@@ -3,118 +3,104 @@
       <!-- Hero Section -->
       <div class="mb-10">
          <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/30">
-               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-accent shadow-lg shadow-accent/25">
+               <svg aria-hidden="true" class="w-5 h-5 text-accent-contrast" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.model.badge') %></span>
+            <span class="text-xs font-semibold text-accent uppercase tracking-wider"><%= t('pages.model.badge') %></span>
          </div>
-         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3">
+         <h1 class="font-bold text-3xl text-ink tracking-tight mb-3">
             <%= pageData.title -%>
          </h1>
-         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl">
+         <p class="text-lg text-ink-muted leading-relaxed max-w-2xl">
             <%= pageData.description -%>
          </p>
       </div>
 
-      <h2 id="the-contact-model" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-6 mt-12">
+      <h2 id="the-contact-model" class="scroll-mt-24 text-xl font-semibold text-ink mb-6 mt-12">
          <%= t('pages.model.modelHeading', { title: pageData.title }) %>
       </h2>
 
-      <script>
-         var __viewPermsLabel = <%- JSON.stringify(t('pages.model.viewPermissions')) %>;
-         var __hidePermsLabel = <%- JSON.stringify(t('pages.model.hidePermissions')) %>;
-         function showPermissions(id) {
-            var permissionsblock = document.getElementById(id + "-permissions");
-            var viewPermissionsBtn = document.getElementById(id + "-view-permissions");
-
-            if (permissionsblock.style.display === "none") {
-               permissionsblock.style.display = "block";
-               viewPermissionsBtn.innerHTML = __hidePermsLabel;
-            } else {
-               permissionsblock.style.display = "none";
-               viewPermissionsBtn.innerHTML = __viewPermsLabel;
-            }
-         }
-      </script>
-
-      <h3 class="text-base font-semibold text-slate-800 mb-4"><%= t('pages.model.properties') %></h3>
-      <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
-         <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
+      <h3 class="text-base font-semibold text-ink mb-4"><%= t('pages.model.properties') %></h3>
+      <div class="my-6 rounded-xl border border-line bg-surface overflow-hidden">
+         <ul role="list" class="m-0 w-full list-none divide-y divide-line-soft p-0">
             <% for(var i=0; i<Object.keys(pageData.columns).length; i++) {%>
-               <li class="m-0 px-5 py-4 hover:bg-slate-50/50 transition-colors">
+               <li class="m-0 px-5 py-4 hover:bg-surface-soft/60 transition-colors">
                   <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                      <dt class="sr-only"><%= t('ui.srName') %></dt>
                      <dd><code class="model-inline-code"><%= Object.keys(pageData.columns)[i] -%></code></dd>
                      <dt class="sr-only"><%= t('ui.srType') %></dt>
-                     <dd class="font-mono text-xs text-slate-500">
+                     <dd class="font-mono text-xs text-ink-subtle">
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath) { %>
-                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
+                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].modelDocumentationPath -%>" class="text-accent hover:text-accent-strong hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].modelName -%></a>
                         <% } else if(pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath) { %>
-                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath -%>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].type -%></a>
+                           <a href="/reference/<%= lang %>/<%= pageData.columns[Object.keys(pageData.columns)[i]].typeDocumentationPath -%>" class="text-accent hover:text-accent-strong hover:underline font-medium"><%= pageData.columns[Object.keys(pageData.columns)[i]].type -%></a>
                         <% } else { %>
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
                         <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
-                           <span class="ml-1.5 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"><%= t('ui.required') %></span>
+                           <span class="ml-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                         <% } %>
                      </dd>
                      <dt class="sr-only"><%= t('ui.srDescription') %></dt>
                      <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-                        <p class="text-slate-600">
+                        <p class="text-ink-muted">
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%>
-                           <button class="text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer text-xs font-medium ml-1"
-                                 id="<%= Object.keys(pageData.columns)[i] -%>-view-permissions"
-                                 onclick="showPermissions('<%= Object.keys(pageData.columns)[i] -%>')"><%= t('pages.model.viewPermissions') %></button>
+                           <button type="button"
+                                 class="ml-1 cursor-pointer text-xs font-medium text-accent transition-colors hover:text-accent-strong hover:underline"
+                                 data-permissions-toggle
+                                 aria-expanded="false"
+                                 aria-controls="<%= Object.keys(pageData.columns)[i] -%>-permissions"><%= t('pages.model.viewPermissions') %></button>
                         </p>
                      </dd>
 
-                     <dd class="w-full mt-3 rounded-lg bg-slate-50 p-4 border border-slate-100" style="display: none;"
+                     <dd class="mt-3 w-full rounded-lg border border-line-soft bg-surface-soft p-4"
+                        hidden
                         id="<%= Object.keys(pageData.columns)[i] -%>-permissions">
                         <div class="space-y-3">
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.createLabel') %></span>
+                              <span class="text-ink-muted text-xs font-medium min-w-[100px]"><%= t('pages.model.createLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length; j++) {%>
-                                 <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                                 <span class="inline-flex items-center rounded-md bg-surface px-2 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.create[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length-1){ %>
-                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
+                                    <span class="text-ink-faint text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.create.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.autogenerated') %></span>
+                                 <span class="inline-flex items-center rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/30"><%= t('pages.model.autogenerated') %></span>
                               <% } %>
                            </div>
 
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.readLabel') %></span>
+                              <span class="text-ink-muted text-xs font-medium min-w-[100px]"><%= t('pages.model.readLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length; j++) {%>
-                                 <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                                 <span class="inline-flex items-center rounded-md bg-surface px-2 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.read[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length-1){ %>
-                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
+                                    <span class="text-ink-faint text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.read.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.cannotRead') %></span>
+                                 <span class="inline-flex items-center rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/30"><%= t('pages.model.cannotRead') %></span>
                               <% } %>
                            </div>
 
                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="text-slate-700 text-xs font-medium min-w-[100px]"><%= t('pages.model.updateLabel') %></span>
+                              <span class="text-ink-muted text-xs font-medium min-w-[100px]"><%= t('pages.model.updateLabel') %></span>
                               <% for(var j=0; j < pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length; j++) {%>
-                                 <span class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
+                                 <span class="inline-flex items-center rounded-md bg-surface px-2 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line">
                                     <%= pageData.columns[Object.keys(pageData.columns)[i]].permissions.update[j] -%>
                                  </span>
                                  <% if(j !== pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length-1){ %>
-                                    <span class="text-slate-400 text-xs"><%= t('ui.or') %></span>
+                                    <span class="text-ink-faint text-xs"><%= t('ui.or') %></span>
                                  <% } %>
                               <% } %>
                               <% if(pageData.columns[Object.keys(pageData.columns)[i]].permissions.update.length===0){ %>
-                                 <span class="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-600 ring-1 ring-inset ring-rose-200"><%= t('pages.model.cannotUpdate') %></span>
+                                 <span class="inline-flex items-center rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/30"><%= t('pages.model.cannotUpdate') %></span>
                               <% } %>
                            </div>
                         </div>
@@ -127,30 +113,24 @@
 
 
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/get-list</code>
-            </div>
-            <h2 id="list-all-contacts" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.listHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['GET', 'POST'], path: pageData.apiPath + '/get-list' }) -%>
+            <h2 id="list-all-contacts" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.listHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.listIntro', { title: pageData.title }) %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalQueryParams') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.listIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.optionalQueryParams') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Limit</dt>
                               <dd><code class="inline-code">limit</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">number</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">number</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.limitDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.limitDescription') %></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
@@ -158,24 +138,24 @@
                               <dt class="sr-only">Skip</dt>
                               <dd><code class="inline-code">skip</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">number</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">number</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.skipDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.skipDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Query</dt>
                               <dd><code class="inline-code">query</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">query</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">query</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-accent hover:text-accent-strong font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
@@ -183,9 +163,9 @@
                               <dt class="sr-only">Select</dt>
                               <dd><code class="inline-code">select</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">select</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">select</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.selectFieldsDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.selectFieldsDescription') %> <a class="text-accent hover:text-accent-strong font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                         <li class="m-0 px-4 py-3">
@@ -193,9 +173,9 @@
                               <dt class="sr-only">Sort</dt>
                               <dd><code class="inline-code">sort</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">sort</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">sort</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.sortDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.sortDescription') %> <a class="text-accent hover:text-accent-strong font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -225,45 +205,39 @@
       </div>
 
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id/get-item</code>
-            </div>
-            <h2 id="get-item-by-id" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.getItemHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['GET', 'POST'], path: pageData.apiPath + '/:id/get-item' }) -%>
+            <h2 id="get-item-by-id" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.getItemHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.getItemIntro', { title: pageData.title }) %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requiredQueryParams') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.getItemIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requiredQueryParams') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">ID</dt>
                               <dd><code class="inline-code">id</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">text</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">text</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.idDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.idDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Select</dt>
                               <dd><code class="inline-code">select</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">select</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">select</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.selectFieldsDescription') %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.selectFieldsDescription') %> <a class="text-accent hover:text-accent-strong font-medium" target="_blank" href="/reference/<%= lang %>/data-types#select"><%= t('pages.model.checkSelectLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -289,28 +263,24 @@
 
 
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/count</code>
-            </div>
-            <h2 id="count" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.countHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['POST'], path: pageData.apiPath + '/count' }) -%>
+            <h2 id="count" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.countHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.countIntro', { title: pageData.title }) %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.countIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.optionalRequestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Query</dt>
                               <dd><code class="inline-code">query</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">query</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">query</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-indigo-600 hover:text-indigo-700 font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.queryFilterDescription', { title: pageData.title }) %> <a class="text-accent hover:text-accent-strong font-medium" target="_blank" href="/reference/<%= lang %>/data-types#queries"><%= t('pages.model.checkQueriesLink') %></a></dd>
                            </dl>
                         </li>
                      </ul>
@@ -335,30 +305,24 @@
 
       <% if(pageData.showAggregate){ %>
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600">GET</span>
-               <span class="font-mono text-xs text-slate-400"><%= t('ui.or') %></span>
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/aggregate</code>
-            </div>
-            <h2 id="aggregate" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.aggregateHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['GET', 'POST'], path: pageData.apiPath + '/aggregate' }) -%>
+            <h2 id="aggregate" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.aggregateHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.aggregateIntro', { title: pageData.title }) %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.aggregateIntro', { title: pageData.title }) %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">aggregateBy</dt>
                               <dd><code class="inline-code">aggregateBy</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">JSON</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">JSON</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.aggregateByDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.aggregateByDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
@@ -391,28 +355,24 @@
 
       <% if(pageData.tablePermissions.create && pageData.tablePermissions.create.length > 0) { %>
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600">POST</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%></code>
-            </div>
-            <h2 id="create" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.createHeading', { title: pageData.title }) %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['POST'], path: pageData.apiPath }) -%>
+            <h2 id="create" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.createHeading', { title: pageData.title }) %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.createIntro') %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.createIntro') %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Data</dt>
                               <dd><code class="inline-code">data</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">JSON</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">JSON</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.createDataDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.createDataDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
@@ -439,43 +399,39 @@
 
       <% if(pageData.tablePermissions.update && pageData.tablePermissions.update.length > 0) { %>
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-amber-300 bg-amber-400/10 text-amber-600">PUT</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
-            </div>
-            <h2 id="update" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.updateHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['PUT'], path: pageData.apiPath + '/:id' }) -%>
+            <h2 id="update" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.updateHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.updateIntro') %></p>
-                  <h3 class="text-base font-semibold text-slate-800 mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
-                  <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                     <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.updateIntro') %></p>
+                  <h3 class="text-base font-semibold text-ink mt-6 mb-3"><%= t('pages.model.requestBody') %></h3>
+                  <div class="rounded-lg border border-line bg-surface overflow-hidden">
+                     <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                               <dt class="sr-only">Data</dt>
                               <dd><code class="inline-code">data</code></dd>
                               <dt class="sr-only"><%= t('ui.srType') %></dt>
-                              <dd class="font-mono text-xs text-slate-500">JSON</dd>
+                              <dd class="font-mono text-xs text-ink-subtle">JSON</dd>
                               <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                              <dd class="w-full flex-none text-sm text-slate-600"><%= t('pages.model.updateDataDescription') %></dd>
+                              <dd class="w-full flex-none text-sm text-ink-muted"><%= t('pages.model.updateDataDescription') %></dd>
                            </dl>
                         </li>
                      </ul>
                   </div>
-                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
-                     <h4 class="font-semibold text-slate-800 text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
-                     <p class="text-slate-600 text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyUpdate') %></p>
+                  <div class="rounded-xl border border-line bg-surface-soft p-4 sm:p-5 mt-6">
+                     <h4 class="font-semibold text-ink text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
+                     <p class="text-ink-muted text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyUpdate') %></p>
                      <div class="space-y-2">
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
-                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/update-item</code>
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-info/40 bg-info-soft text-info flex-shrink-0">POST</span>
+                           <code class="font-mono text-xs text-ink-muted break-all"><%= pageData.apiPath -%>/:id/update-item</code>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600 flex-shrink-0">GET</span>
-                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/update-item</code>
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-success/40 bg-success-soft text-success flex-shrink-0">GET</span>
+                           <code class="font-mono text-xs text-ink-muted break-all"><%= pageData.apiPath -%>/:id/update-item</code>
                         </div>
                      </div>
                   </div>
@@ -499,28 +455,24 @@
 
       <% if(pageData.tablePermissions.delete && pageData.tablePermissions.delete.length > 0) { %>
       <div class="mt-12">
-         <div class="border-t border-slate-200 pt-10">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-x-3 mb-6">
-               <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-red-300 bg-red-400/10 text-red-600">DELETE</span>
-               <span class="hidden sm:block h-1 w-1 rounded-full bg-slate-300"></span>
-               <code class="font-mono text-xs sm:text-sm text-slate-600 bg-slate-100 px-2 py-0.5 rounded break-all w-full sm:w-auto mt-2 sm:mt-0"><%= pageData.apiPath -%>/:id</code>
-            </div>
-            <h2 id="delete" class="text-xl font-semibold text-slate-900 mb-4 scroll-mt-32"><%= t('pages.model.deleteHeading') %></h2>
+         <div class="border-t border-line pt-10">
+            <%- include('../partials/endpoint', { methods: ['DELETE'], path: pageData.apiPath + '/:id' }) -%>
+            <h2 id="delete" class="text-xl font-semibold text-ink mb-4 scroll-mt-32"><%= t('pages.model.deleteHeading') %></h2>
 
             <div class="space-y-8">
                <div>
-                  <p class="text-slate-600 leading-relaxed"><%= t('pages.model.deleteIntro') %></p>
-                  <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5 mt-6">
-                     <h4 class="font-semibold text-slate-800 text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
-                     <p class="text-slate-600 text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyDelete') %></p>
+                  <p class="text-ink-muted leading-relaxed"><%= t('pages.model.deleteIntro') %></p>
+                  <div class="rounded-xl border border-line bg-surface-soft p-4 sm:p-5 mt-6">
+                     <h4 class="font-semibold text-ink text-sm mb-2"><%= t('pages.model.alternativeMethods') %></h4>
+                     <p class="text-ink-muted text-sm mb-4"><%= t('pages.model.alternativeMethodsBodyDelete') %></p>
                      <div class="space-y-2">
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-sky-300 bg-sky-400/10 text-sky-600 flex-shrink-0">POST</span>
-                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-info/40 bg-info-soft text-info flex-shrink-0">POST</span>
+                           <code class="font-mono text-xs text-ink-muted break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 sm:gap-x-3">
-                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-emerald-300 bg-emerald-400/10 text-emerald-600 flex-shrink-0">GET</span>
-                           <code class="font-mono text-xs text-slate-600 break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
+                           <span class="font-mono text-[0.625rem] font-semibold leading-6 rounded-lg px-2 py-0.5 ring-1 ring-inset ring-success/40 bg-success-soft text-success flex-shrink-0">GET</span>
+                           <code class="font-mono text-xs text-ink-muted break-all"><%= pageData.apiPath -%>/:id/delete-item</code>
                         </div>
                      </div>
                   </div>
@@ -542,36 +494,36 @@
       </div>
       <% } %>
 
-      <div class="mt-12 border-t border-slate-200 pt-10">
-         <h2 class="text-xl font-semibold text-slate-900 mb-4"><%= t('pages.model.permissionsHeading') %></h2>
+      <div class="mt-12 border-t border-line pt-10">
+         <h2 class="text-xl font-semibold text-ink mb-4"><%= t('pages.model.permissionsHeading') %></h2>
 
          <% if(!pageData.isMasterAdminApiDocs){ %>
-            <p class="text-slate-600 leading-relaxed mb-8"><%- t('pages.model.permissionsIntro') %></p>
+            <p class="text-ink-muted leading-relaxed mb-8"><%- t('pages.model.permissionsIntro') %></p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                <!-- Read Permissions -->
-               <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                  <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.readPermissions') %></h3>
-                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.readPermissionsBody', { title: pageData.title }) %></p>
+               <div class="rounded-xl border border-line bg-surface overflow-hidden">
+                  <div class="bg-surface-soft px-4 py-3 border-b border-line">
+                     <h3 class="text-sm font-semibold text-ink"><%= t('pages.model.readPermissions') %></h3>
+                     <p class="text-xs text-ink-subtle mt-0.5"><%= t('pages.model.readPermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.read.length === 0) { %>
                      <div class="px-4 py-4">
-                        <div class="flex items-center gap-2 text-slate-500">
-                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-ink-subtle">
+                           <svg aria-hidden="true" class="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
                            <span class="text-sm"><%= t('pages.model.cannotReadResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
-                  <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+                  <ul role="list" class="m-0 divide-y divide-line-soft p-0">
                      <% for(var i=0; i<pageData.tablePermissions.read.length; i++) {%>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.read[i].permission -%></code></dd>
-                              <dd class="font-mono text-xs text-slate-500"><%= pageData.tablePermissions.read[i].title -%></dd>
-                              <dd class="w-full text-xs text-slate-600 mt-1"><%= pageData.tablePermissions.read[i].description -%></dd>
+                              <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.read[i].title -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.read[i].description -%></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -580,28 +532,28 @@
                </div>
 
                <!-- Create Permissions -->
-               <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                  <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.createPermissions') %></h3>
-                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.createPermissionsBody', { title: pageData.title }) %></p>
+               <div class="rounded-xl border border-line bg-surface overflow-hidden">
+                  <div class="bg-surface-soft px-4 py-3 border-b border-line">
+                     <h3 class="text-sm font-semibold text-ink"><%= t('pages.model.createPermissions') %></h3>
+                     <p class="text-xs text-ink-subtle mt-0.5"><%= t('pages.model.createPermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.create.length === 0) { %>
                      <div class="px-4 py-4">
-                        <div class="flex items-center gap-2 text-slate-500">
-                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-ink-subtle">
+                           <svg aria-hidden="true" class="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
                            <span class="text-sm"><%= t('pages.model.cannotCreateResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
-                  <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+                  <ul role="list" class="m-0 divide-y divide-line-soft p-0">
                      <% for(var i=0; i<pageData.tablePermissions.create.length; i++) {%>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.create[i].permission -%></code></dd>
-                              <dd class="font-mono text-xs text-slate-500"><%= pageData.tablePermissions.create[i].title -%></dd>
-                              <dd class="w-full text-xs text-slate-600 mt-1"><%= pageData.tablePermissions.create[i].description -%></dd>
+                              <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.create[i].title -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.create[i].description -%></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -610,28 +562,28 @@
                </div>
 
                <!-- Update Permissions -->
-               <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                  <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.updatePermissions') %></h3>
-                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.updatePermissionsBody', { title: pageData.title }) %></p>
+               <div class="rounded-xl border border-line bg-surface overflow-hidden">
+                  <div class="bg-surface-soft px-4 py-3 border-b border-line">
+                     <h3 class="text-sm font-semibold text-ink"><%= t('pages.model.updatePermissions') %></h3>
+                     <p class="text-xs text-ink-subtle mt-0.5"><%= t('pages.model.updatePermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.update.length === 0) { %>
                      <div class="px-4 py-4">
-                        <div class="flex items-center gap-2 text-slate-500">
-                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-ink-subtle">
+                           <svg aria-hidden="true" class="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
                            <span class="text-sm"><%= t('pages.model.cannotUpdateResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
-                  <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+                  <ul role="list" class="m-0 divide-y divide-line-soft p-0">
                      <% for(var i=0; i<pageData.tablePermissions.update.length; i++) {%>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.update[i].permission -%></code></dd>
-                              <dd class="font-mono text-xs text-slate-500"><%= pageData.tablePermissions.update[i].title -%></dd>
-                              <dd class="w-full text-xs text-slate-600 mt-1"><%= pageData.tablePermissions.update[i].description -%></dd>
+                              <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.update[i].title -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.update[i].description -%></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -640,28 +592,28 @@
                </div>
 
                <!-- Delete Permissions -->
-               <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                  <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                     <h3 class="text-sm font-semibold text-slate-800"><%= t('pages.model.deletePermissions') %></h3>
-                     <p class="text-xs text-slate-500 mt-0.5"><%= t('pages.model.deletePermissionsBody', { title: pageData.title }) %></p>
+               <div class="rounded-xl border border-line bg-surface overflow-hidden">
+                  <div class="bg-surface-soft px-4 py-3 border-b border-line">
+                     <h3 class="text-sm font-semibold text-ink"><%= t('pages.model.deletePermissions') %></h3>
+                     <p class="text-xs text-ink-subtle mt-0.5"><%= t('pages.model.deletePermissionsBody', { title: pageData.title }) %></p>
                   </div>
                   <% if(pageData.tablePermissions.delete.length === 0) { %>
                      <div class="px-4 py-4">
-                        <div class="flex items-center gap-2 text-slate-500">
-                           <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center gap-2 text-ink-subtle">
+                           <svg aria-hidden="true" class="w-4 h-4 text-ink-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                            </svg>
                            <span class="text-sm"><%= t('pages.model.cannotDeleteResource') %></span>
                         </div>
                      </div>
                   <% } else { %>
-                  <ul role="list" class="m-0 divide-y divide-slate-100 p-0">
+                  <ul role="list" class="m-0 divide-y divide-line-soft p-0">
                      <% for(var i=0; i<pageData.tablePermissions.delete.length; i++) {%>
                         <li class="m-0 px-4 py-3">
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.delete[i].permission -%></code></dd>
-                              <dd class="font-mono text-xs text-slate-500"><%= pageData.tablePermissions.delete[i].title -%></dd>
-                              <dd class="w-full text-xs text-slate-600 mt-1"><%= pageData.tablePermissions.delete[i].description -%></dd>
+                              <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.delete[i].title -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.delete[i].description -%></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -672,16 +624,16 @@
          <% } %>
 
          <% if(pageData.isMasterAdminApiDocs){ %>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <div class="rounded-xl border border-warn/30 bg-warn-soft p-5">
                <div class="flex gap-3">
                   <div class="flex-shrink-0">
-                     <svg class="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <svg class="h-5 w-5 text-warn" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                         <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                      </svg>
                   </div>
                   <div>
-                     <h4 class="text-sm font-semibold text-amber-800 mb-1"><%= t('pages.model.masterAdminOnlyTitle') %></h4>
-                     <p class="text-sm text-amber-700"><%- t('pages.model.masterAdminOnlyBody') %></p>
+                     <h4 class="text-sm font-semibold text-warn mb-1"><%= t('pages.model.masterAdminOnlyTitle') %></h4>
+                     <p class="text-sm text-warn"><%- t('pages.model.masterAdminOnlyBody') %></p>
                   </div>
                </div>
             </div>

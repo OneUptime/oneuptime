@@ -1,0 +1,57 @@
+<%#
+   Command palette. The API reference documents a couple of hundred resources
+   and data types; the sidebar lists all of them, which is a long scroll and no
+   way to answer "where is the on-call policy model". The index is the same
+   `navSections` tree the sidebar renders, serialised once per page.
+
+   Opened by the two buttons in the top bar, by Cmd/Ctrl-K, and by "/".
+-%>
+<div id="reference-search" class="fixed inset-0 z-50 hidden no-print" role="dialog" aria-modal="true"
+   aria-labelledby="reference-search-label">
+   <div class="absolute inset-0 bg-ink/40 backdrop-blur-sm" data-search-close></div>
+
+   <div class="relative mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-xl">
+      <div class="overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
+         <h2 id="reference-search-label" class="sr-only"><%= t('ui.searchAria') %></h2>
+
+         <div class="flex items-center gap-3 border-b border-line px-4">
+            <svg class="h-4 w-4 shrink-0 text-ink-faint" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+               stroke-width="1.5" aria-hidden="true">
+               <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12.01 12a4.25 4.25 0 1 0-6.02-6 4.25 4.25 0 0 0 6.02 6Zm0 0 3.24 3.25"></path>
+            </svg>
+            <input id="reference-search-input" type="text" autocomplete="off" spellcheck="false"
+               role="combobox" aria-expanded="true" aria-controls="reference-search-results"
+               aria-autocomplete="list"
+               placeholder="<%= t('ui.searchPlaceholder') %>"
+               class="h-12 w-full border-0 bg-transparent p-0 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-0">
+            <button type="button" data-search-close
+               class="shrink-0 rounded border border-line px-1.5 py-0.5 font-sans text-[0.6875rem] font-medium text-ink-faint transition-colors hover:text-ink-subtle">
+               <%= t('ui.escape') %>
+            </button>
+         </div>
+
+         <ul id="reference-search-results" role="listbox" aria-label="<%= t('ui.searchResultsAria') %>"
+            class="max-h-[min(24rem,50vh)] overflow-y-auto p-2"></ul>
+
+         <p id="reference-search-empty" class="hidden px-4 py-8 text-center text-sm text-ink-subtle">
+            <%= t('ui.searchNoResults') %>
+         </p>
+
+         <div class="flex items-center gap-4 border-t border-line bg-surface-soft px-4 py-2 text-[0.6875rem] text-ink-faint">
+            <span class="flex items-center gap-1">
+               <kbd class="rounded border border-line bg-surface px-1 font-sans">&uarr;</kbd>
+               <kbd class="rounded border border-line bg-surface px-1 font-sans">&darr;</kbd>
+               <%= t('ui.searchHintNavigate') %>
+            </span>
+            <span class="flex items-center gap-1">
+               <kbd class="rounded border border-line bg-surface px-1 font-sans"><%= t('ui.enter') %></kbd>
+               <%= t('ui.searchHintOpen') %>
+            </span>
+         </div>
+      </div>
+   </div>
+</div>
+
+<script id="reference-search-index" type="application/json"><%- JSON.stringify(typeof searchIndex !== 'undefined' ? searchIndex : []).replace(/</g, '\\u003c') %></script>
+<script id="reference-search-config" type="application/json"><%- JSON.stringify({ lang: typeof lang !== 'undefined' ? lang : 'en' }).replace(/</g, '\\u003c') %></script>

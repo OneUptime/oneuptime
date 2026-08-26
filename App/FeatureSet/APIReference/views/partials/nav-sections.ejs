@@ -1,0 +1,39 @@
+<%#
+   The sidebar's link tree. Rendered twice - once in the desktop rail, once in
+   the mobile drawer - from the same `navSections` the pager and the command
+   palette read, so the three cannot drift apart.
+
+   Locals: navSections, lang, currentPage, idPrefix.
+-%>
+<ul role="list" class="space-y-7">
+   <% navSections.forEach(function(section){ %>
+   <li>
+      <h2 id="<%= idPrefix %>-<%= section.id %>-heading"
+         class="px-2 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+         <%= section.title %>
+      </h2>
+      <div class="relative mt-3">
+         <div class="absolute inset-y-0 left-[0.3125rem] w-px bg-line" aria-hidden="true"></div>
+         <% section.groups.forEach(function(group){ %>
+            <% if (group.title) { %>
+            <p class="mb-1 mt-4 pl-5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+               <%= group.title %>
+            </p>
+            <% } %>
+            <ul role="list" aria-labelledby="<%= idPrefix %>-<%= section.id %>-heading">
+               <% group.items.forEach(function(item){ %>
+               <li>
+                  <a class="nav-link group flex items-center gap-2 rounded-r-md py-1.5 pl-5 pr-3 text-sm transition-colors"
+                     href="/reference/<%= lang %>/<%= item.slug %>"
+                     data-nav-slug="<%= item.slug %>"
+                     aria-current="<%= item.slug === currentPage ? 'page' : 'false' %>">
+                     <span class="truncate"><%= item.name %></span>
+                  </a>
+               </li>
+               <% }); %>
+            </ul>
+         <% }); %>
+      </div>
+   </li>
+   <% }); %>
+</ul>

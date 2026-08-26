@@ -122,8 +122,13 @@ export default class DataTypeUtil {
           "A color value represented as a hex string (e.g., #3498db).",
       },
       {
+        /*
+         * Not "domain": the Domain model documents itself at that path, and the
+         * router resolves data types first, so sharing it made the model's API
+         * docs unreachable.
+         */
         name: "Domain",
-        path: "domain",
+        path: "domain-name",
         description: "A domain name type (e.g., example.com).",
       },
       {

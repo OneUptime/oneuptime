@@ -246,6 +246,68 @@ export default class Markdown {
     return markdownSlugify(text);
   }
 
+  /*
+   * Human-readable names for the languages a docs code fence can declare.
+   * Rendered into the code block's header bar. A fence with no language, or
+   * one that is not listed here, gets no label rather than a guess — the
+   * label used to come from highlight.js auto-detection, which cheerfully
+   * announced shell snippets as "PHP".
+   */
+  private static readonly codeLanguageNames: Record<string, string> = {
+    apache: "Apache",
+    bash: "Bash",
+    c: "C",
+    cpp: "C++",
+    csharp: "C#",
+    css: "CSS",
+    diff: "Diff",
+    dns: "DNS Zone",
+    docker: "Dockerfile",
+    dockerfile: "Dockerfile",
+    go: "Go",
+    graphql: "GraphQL",
+    groovy: "Groovy",
+    hcl: "HCL",
+    html: "HTML",
+    http: "HTTP",
+    ini: "INI",
+    java: "Java",
+    javascript: "JavaScript",
+    js: "JavaScript",
+    json: "JSON",
+    jsx: "JSX",
+    kotlin: "Kotlin",
+    lua: "Lua",
+    makefile: "Makefile",
+    markdown: "Markdown",
+    md: "Markdown",
+    nginx: "Nginx",
+    perl: "Perl",
+    php: "PHP",
+    powershell: "PowerShell",
+    proto: "Protobuf",
+    py: "Python",
+    python: "Python",
+    r: "R",
+    rb: "Ruby",
+    ruby: "Ruby",
+    rust: "Rust",
+    scala: "Scala",
+    sh: "Shell",
+    shell: "Shell",
+    sql: "SQL",
+    swift: "Swift",
+    terraform: "Terraform",
+    toml: "TOML",
+    ts: "TypeScript",
+    tsx: "TSX",
+    typescript: "TypeScript",
+    xml: "XML",
+    yaml: "YAML",
+    yml: "YAML",
+    zsh: "Shell",
+  };
+
   private static getDocsRenderer(): Renderer {
     if (this.docsRenderer !== null) {
       return this.docsRenderer;
@@ -253,8 +315,16 @@ export default class Markdown {
 
     const renderer: Renderer = new Renderer();
 
+    /*
+     * The docs renderer emits semantic markup with a small set of stable class
+     * names and leaves every colour, size and spacing decision to
+     * Docs/Static/css/style.css. Utility classes used to be baked in here,
+     * which meant the same element was styled from two places at once and made
+     * a dark theme impossible without editing this file.
+     */
+
     renderer.paragraph = function (text) {
-      return `<p class="mt-2 mb-2 leading-8 text-gray-600">${text}</p>`;
+      return `<p>${text}</p>`;
     };
 
     renderer.blockquote = function (quote) {
@@ -264,130 +334,154 @@ export default class Markdown {
 
       if (calloutMatch) {
         const type: string = calloutMatch[1]!.toLowerCase();
-        const configMap: Record<
-          string,
-          { border: string; bg: string; icon: string; label: string }
-        > = {
+        const configMap: Record<string, { icon: string; label: string }> = {
           note: {
-            border: "border-blue-400",
-            bg: "bg-blue-50",
-            icon: `<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
             label: "Note",
           },
           info: {
-            border: "border-blue-400",
-            bg: "bg-blue-50",
-            icon: `<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
             label: "Info",
           },
           tip: {
-            border: "border-green-400",
-            bg: "bg-green-50",
-            icon: `<svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
             label: "Tip",
           },
           warning: {
-            border: "border-yellow-400",
-            bg: "bg-yellow-50",
-            icon: `<svg class="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
             label: "Warning",
           },
           caution: {
-            border: "border-yellow-400",
-            bg: "bg-yellow-50",
-            icon: `<svg class="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
             label: "Caution",
           },
           danger: {
-            border: "border-red-400",
-            bg: "bg-red-50",
-            icon: `<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
             label: "Danger",
           },
         };
 
-        const config: {
-          border: string;
-          bg: string;
-          icon: string;
-          label: string;
-        } = configMap[type] || configMap["note"]!;
+        const config: { icon: string; label: string } =
+          configMap[type] || configMap["note"]!;
 
         const content: string = quote.replace(
           /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>\s*/i,
-          '<p class="mt-2 mb-2 leading-8 text-gray-600">',
+          "<p>",
         );
 
-        return `<div class="callout callout-${type} my-4 rounded-r-lg border-l-4 ${config.border} ${config.bg} p-4">
-          <div class="flex items-center gap-2 mb-1">
-            ${config.icon}
-            <span class="text-sm font-semibold text-gray-700">${config.label}</span>
+        return `<div class="docs-callout docs-callout--${type}">
+          <div class="docs-callout__head">
+            <svg class="docs-callout__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${config.icon}</svg>
+            <span class="docs-callout__label">${config.label}</span>
           </div>
-          <div class="leading-7 text-gray-600 text-sm">${content}</div>
+          <div class="docs-callout__body">${content}</div>
         </div>`;
       }
 
-      return `<blockquote class="p-4 pt-1 pb-1 my-4 border-s-4 border-indigo-500">
-            <div class="leading-8 text-gray-600">${quote}</div>
-        </blockquote>`;
+      return `<blockquote class="docs-quote">${quote}</blockquote>`;
     };
 
-    renderer.image = function (href, _title, text) {
-      return `<img src="${href}" alt="${text}" class="rounded-md shadow-md" />`;
+    renderer.image = function (href, title, text) {
+      const titleAttr: string = title
+        ? ` title="${Markdown.escapeHtml(title)}"`
+        : "";
+      return `<img src="${href}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
+    };
+
+    renderer.link = function (href, title, text) {
+      if (!href) {
+        return text as string;
+      }
+
+      const target: string = href.toLowerCase();
+      const isExternal: boolean =
+        (target.startsWith("http://") || target.startsWith("https://")) &&
+        !target.includes("oneuptime.com");
+      const titleAttr: string = title
+        ? ` title="${Markdown.escapeHtml(title)}"`
+        : "";
+      const externalAttrs: string = isExternal
+        ? ' target="_blank" rel="noopener noreferrer"'
+        : "";
+      const marker: string = isExternal
+        ? '<svg class="docs-link__external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>'
+        : "";
+
+      return `<a class="docs-link" href="${href}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
     };
 
     renderer.code = function (code, language) {
-      if (language === "mermaid") {
-        return `<div class="mermaid-wrapper overflow-x-auto my-6"><div class="mermaid">${code}</div></div>`;
+      const lang: string = (language || "").trim().toLowerCase();
+
+      if (lang === "mermaid") {
+        /*
+         * Mermaid reads the diagram from textContent, so escaping here keeps
+         * the diagram identical while making sure a `<` in a node label can
+         * never be parsed as markup.
+         */
+        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div></div>`;
       }
+
       const escaped: string = Markdown.escapeHtml(code);
-      return `<pre><code class="language-${language}">${escaped}</code></pre>`;
+      const label: string | undefined = Markdown.codeLanguageNames[lang];
+      /*
+       * `nohighlight` stops highlight.js auto-detecting a language for fences
+       * that never declared one — plain text is honest, a wrong grammar is not.
+       */
+      const codeClass: string = lang ? `language-${lang}` : "nohighlight";
+      /*
+       * The copy button ships hidden and the page's script unhides it once it
+       * has wired up the click handler and filled in the translated label —
+       * without scripting it would be a dead control with an English name.
+       * The bar reserves its height either way, so nothing shifts.
+       */
+      const bar: string = `<div class="docs-code__bar">
+          <span class="docs-code__lang">${label || ""}</span>
+          <button type="button" class="docs-code__copy" data-copy-code hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            <span class="docs-code__copy-text"></span>
+          </button>
+        </div>`;
+
+      return `<div class="docs-code"${lang ? ` data-language="${lang}"` : ""}>${bar}<pre><code class="${codeClass}">${escaped}</code></pre></div>`;
     };
 
     renderer.heading = function (text, level) {
       const slug: string = Markdown.slugify(text);
       const anchor: string =
-        level === 2 || level === 3
-          ? `<a href="#${slug}" class="anchor-link" aria-hidden="true">#</a>`
+        level >= 2 && level <= 4
+          ? `<a class="docs-anchor" href="#${slug}" aria-hidden="true" tabindex="-1">#</a>`
           : "";
 
-      if (level === 1) {
-        return `<h1 id="${slug}" class="my-5 mt-8 text-4xl font-bold tracking-tight text-gray-800">${text}</h1>`;
-      } else if (level === 2) {
-        return `<h2 id="${slug}" class="group my-5 mt-8 text-3xl font-bold tracking-tight text-gray-800">${text} ${anchor}</h2>`;
-      } else if (level === 3) {
-        return `<h3 id="${slug}" class="group my-5 mt-8 text-2xl font-bold tracking-tight text-gray-800">${text} ${anchor}</h3>`;
-      } else if (level === 4) {
-        return `<h4 id="${slug}" class="my-5 mt-8 text-xl font-bold tracking-tight text-gray-800">${text}</h4>`;
-      } else if (level === 5) {
-        return `<h5 id="${slug}" class="my-5 mt-8 text-lg font-bold tracking-tight text-gray-800">${text}</h5>`;
-      }
-      return `<h6 id="${slug}" class="my-5 tracking-tight font-bold text-gray-800">${text}</h6>`;
+      const safeLevel: number = Math.min(Math.max(level, 1), 6);
+
+      return `<h${safeLevel} id="${slug}" class="docs-heading docs-h${safeLevel}"><span class="docs-heading__text">${text}</span>${anchor}</h${safeLevel}>`;
+    };
+
+    renderer.hr = function () {
+      return '<hr class="docs-hr" />';
     };
 
     renderer.table = function (header, body) {
-      return `<div class="docs-table-wrapper overflow-x-auto my-6 rounded-lg border border-slate-200">
-        <table class="min-w-full text-sm text-left">${header}${body}</table>
-      </div>`;
+      return `<div class="docs-table-wrapper" tabindex="0"><table class="docs-table">${header}${body}</table></div>`;
     };
 
     renderer.tablerow = function (content) {
-      return `<tr class="border-b border-slate-200 last:border-b-0 hover:bg-slate-50/50 transition-colors">${content}</tr>`;
+      return `<tr>${content}</tr>`;
     };
 
     renderer.tablecell = function (content, flags) {
       const tag: string = flags.header ? "th" : "td";
-      const align: string = flags.align ? ` text-${flags.align}` : "";
-      const headerClass: string = flags.header
-        ? " font-semibold text-slate-900 bg-slate-50"
-        : " text-slate-600";
-      return `<${tag} class="px-4 py-2.5${align}${headerClass}">${content}</${tag}>`;
+      const align: string = flags.align
+        ? ` style="text-align:${flags.align}"`
+        : "";
+      return `<${tag}${align}>${content}</${tag}>`;
     };
 
     // Inline code
     renderer.codespan = function (code) {
       const escaped: string = Markdown.escapeHtml(code);
-      return `<code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700 font-mono">${escaped}</code>`;
+      return `<code class="docs-code-inline">${escaped}</code>`;
     };
 
     this.docsRenderer = renderer;

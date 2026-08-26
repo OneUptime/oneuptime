@@ -108,7 +108,8 @@ export default class MonitorRecommendationSeverityMapper {
    *
    * Returns undefined when the mapping has no entry, which callers must treat
    * as "leave the template's own severity alone" rather than as "no severity"
-   * — a criteria instance with a populated incident and no severity id fails
+   * — a criteria instance that creates incidents (`createIncidents`) and has a
+   * populated incident with no severity id fails
    * `MonitorCriteriaInstance.getValidationError` and the whole create fails.
    */
   public static resolveSeverityId(data: {

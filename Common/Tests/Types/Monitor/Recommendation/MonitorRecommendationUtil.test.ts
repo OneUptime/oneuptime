@@ -397,9 +397,10 @@ describe("MonitorRecommendationUtil", () => {
     it("leaves the template's severity alone when the map has no entry for that severity", () => {
       /*
        * A partial map must not blank the severity out. A criteria instance
-       * with a populated incident and no severity id fails
-       * MonitorCriteriaInstance.getValidationError, so the whole create would
-       * fail at submit with a message about a field the user never saw.
+       * that creates incidents and has a populated incident with no severity
+       * id fails MonitorCriteriaInstance.getValidationError, so the whole
+       * create would fail at submit with a message about a field the user
+       * never saw.
        */
       const monitorStep: MonitorStep =
         MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({

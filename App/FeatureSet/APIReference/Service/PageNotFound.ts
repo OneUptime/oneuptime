@@ -24,11 +24,7 @@ export default class ServiceHandler {
       resources: Resources,
       dataTypes: DataTypes,
       pageData: {},
-      lang: ctx.lang,
-      t: ctx.t,
-      supportedLanguages: ctx.supportedLanguages,
-      currentPath: ctx.currentPath,
-      showMasterAdminApis: ctx.showMasterAdminApis,
+      ...ctx,
     });
   }
 }

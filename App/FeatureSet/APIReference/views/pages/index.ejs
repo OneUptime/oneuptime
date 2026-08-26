@@ -1,24 +1,40 @@
-<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased scroll-smooth" style="color-scheme: light;">
+<!DOCTYPE html>
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased">
 <%- include('../partials/head', {
    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
 }) -%>
 
-   <body onload="applyStyles()" class="flex min-h-full bg-white">
-      <div id="__next" class="w-full">
-         <div class="lg:ml-72 xl:ml-80">
-            <%- include('../partials/nav') -%>
-            <div class="flex justify-center">
-               <div class="relative px-4 pt-14 sm:px-6 lg:px-8 max-w-5xl w-full">
-                  <div class="flex justify-center">
-                     <%- include('../main/'+page) -%>
-                  </div>
-                  <div class="flex justify-center">
-                     <%- include('../partials/footer') -%>
-                  </div>
-               </div>
+<body class="min-h-full bg-canvas text-ink-muted">
+   <a href="#reference-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-accent-contrast">
+      <%= t('ui.skipToContent') %>
+   </a>
+
+   <%- include('../partials/nav') -%>
+
+   <div class="lg:pl-72">
+      <div class="mx-auto w-full max-w-8xl px-4 pt-14 sm:px-6 lg:px-10">
+         <%#
+            min-w-0 on the content column is load-bearing: a grid item defaults
+            to min-width:auto, so one wide <pre> would stretch the column and
+            scroll the whole document sideways under the fixed sidebar.
+         -%>
+         <div class="xl:grid xl:grid-cols-[minmax(0,1fr)_14rem] xl:gap-x-10">
+            <div class="min-w-0">
+               <main id="reference-content" tabindex="-1" class="min-w-0 focus:outline-none">
+                  <%- include('../partials/breadcrumbs') -%>
+                  <%- include('../main/'+page) -%>
+                  <%- include('../partials/pager') -%>
+               </main>
+               <%- include('../partials/footer') -%>
             </div>
+            <%- include('../partials/toc') -%>
          </div>
       </div>
-   </body>
+   </div>
+
+   <%- include('../partials/search') -%>
+   <%- include('../partials/scripts') -%>
+</body>
 
 </html>

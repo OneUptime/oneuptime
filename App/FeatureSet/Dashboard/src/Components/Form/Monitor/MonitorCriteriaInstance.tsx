@@ -104,8 +104,18 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }
   }, [props.monitorStatusDropdownOptions]);
 
+  /*
+   * The switch reads the flag first, like the other two actions do, and falls
+   * back to "a status was picked" only for criteria saved before
+   * changeMonitorStatus existed. Reading the status id alone showed the switch
+   * OFF for a criteria whose flag is on but whose status was never chosen -
+   * the state where the criteria acts and the form says it does not.
+   */
   const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] =
-    useState<boolean>(Boolean(props.value?.data?.monitorStatusId?.id) || false);
+    useState<boolean>(
+      Boolean(props.value?.data?.changeMonitorStatus) ||
+        Boolean(props.value?.data?.monitorStatusId?.id),
+    );
   const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
     props.value?.data?.createIncidents || false,
   );
@@ -452,9 +462,16 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 setShowAlertControl(value);
                 monitorCriteriaInstance.setCreateAlerts(value);
 
+                /*
+                 * Seed the blank row on the way ON only. Unguarded, switching
+                 * OFF an action that had no rows yet *added* one - a row the
+                 * user then could not see, because the sub-form below renders
+                 * only while the switch is on.
+                 */
                 if (
-                  !monitorCriteriaInstance.data?.alerts ||
-                  monitorCriteriaInstance.data?.alerts?.length === 0
+                  value &&
+                  (!monitorCriteriaInstance.data?.alerts ||
+                    monitorCriteriaInstance.data?.alerts?.length === 0)
                 ) {
                   monitorCriteriaInstance.setAlerts([
                     {
@@ -511,9 +528,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 setShowIncidentControl(value);
                 monitorCriteriaInstance.setCreateIncidents(value);
 
+                // Seed on the way ON only - see the alert switch above.
                 if (
-                  !monitorCriteriaInstance.data?.incidents ||
-                  monitorCriteriaInstance.data?.incidents?.length === 0
+                  value &&
+                  (!monitorCriteriaInstance.data?.incidents ||
+                    monitorCriteriaInstance.data?.incidents?.length === 0)
                 ) {
                   monitorCriteriaInstance.setIncidents([
                     {

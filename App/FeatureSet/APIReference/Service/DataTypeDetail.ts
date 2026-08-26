@@ -1431,7 +1431,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     values: [],
     jsonExample: JSON.stringify({ _type: "Color", value: "#3498db" }, null, 2),
   },
-  domain: {
+  "domain-name": {
     title: "Domain",
     description: "A domain name type (e.g., example.com).",
     isEnum: false,
@@ -3279,11 +3279,7 @@ export default class ServiceHandler {
         resources: Resources,
         dataTypes: DataTypes,
         pageData: {},
-        lang: ctx.lang,
-        t: ctx.t,
-        supportedLanguages: ctx.supportedLanguages,
-        currentPath: ctx.currentPath,
-        showMasterAdminApis: ctx.showMasterAdminApis,
+        ...ctx,
       });
     }
 
@@ -3299,11 +3295,7 @@ export default class ServiceHandler {
         resources: Resources,
         dataTypes: DataTypes,
         pageData: {},
-        lang: ctx.lang,
-        t: ctx.t,
-        supportedLanguages: ctx.supportedLanguages,
-        currentPath: ctx.currentPath,
-        showMasterAdminApis: ctx.showMasterAdminApis,
+        ...ctx,
       });
     }
 
@@ -3379,11 +3371,7 @@ export default class ServiceHandler {
       enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: detail.description,
       pageData: pageData,
-      lang: ctx.lang,
-      t: ctx.t,
-      supportedLanguages: ctx.supportedLanguages,
-      currentPath: ctx.currentPath,
-      showMasterAdminApis: ctx.showMasterAdminApis,
+      ...ctx,
     });
   }
 }

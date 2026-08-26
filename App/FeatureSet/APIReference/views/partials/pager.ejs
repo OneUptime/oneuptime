@@ -1,0 +1,35 @@
+<%#
+   Previous / next in reading order. Built from the same flat list the sidebar
+   renders, so "next" is literally the next thing in the sidebar.
+-%>
+<% if (typeof pager !== 'undefined' && pager && (pager.previous || pager.next)) { %>
+<nav class="mt-16 grid grid-cols-1 gap-4 border-t border-line pt-8 sm:grid-cols-2 no-print"
+   aria-label="<%= t('ui.pagerAria') %>">
+   <% if (pager.previous) { %>
+   <a href="/reference/<%= lang %>/<%= pager.previous.slug %>"
+      class="group flex flex-col gap-1 rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/40 hover:bg-surface-soft">
+      <span class="flex items-center gap-1.5 text-xs font-medium text-ink-faint">
+         <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m12 5-4 5 4 5"></path>
+         </svg>
+         <%= t('ui.previousPage') %>
+      </span>
+      <span class="truncate text-sm font-semibold text-ink transition-colors group-hover:text-accent"><%= pager.previous.name %></span>
+   </a>
+   <% } else { %>
+   <span class="hidden sm:block"></span>
+   <% } %>
+   <% if (pager.next) { %>
+   <a href="/reference/<%= lang %>/<%= pager.next.slug %>"
+      class="group flex flex-col items-end gap-1 rounded-xl border border-line bg-surface p-4 text-right transition-colors hover:border-accent/40 hover:bg-surface-soft sm:col-start-2">
+      <span class="flex items-center gap-1.5 text-xs font-medium text-ink-faint">
+         <%= t('ui.nextPage') %>
+         <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8 5 4 5-4 5"></path>
+         </svg>
+      </span>
+      <span class="w-full truncate text-sm font-semibold text-ink transition-colors group-hover:text-accent"><%= pager.next.name %></span>
+   </a>
+   <% } %>
+</nav>
+<% } %>

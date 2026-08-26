@@ -1507,39 +1507,62 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return `Description is required for criteria "${value.data.name}"`;
     }
 
-    for (const incident of value.data.incidents) {
-      if (!incident) {
-        continue;
-      }
+    /*
+     * Each "when filters match, ..." action is validated only while its own
+     * switch is on.
+     *
+     * The criteria form keeps the incident / alert rows it seeded when a
+     * switch was turned on, so that turning the switch back on restores what
+     * was typed - the same retained-but-inert config that
+     * MonitorStepsReferenceExtractor documents for project references. The
+     * evaluator ignores those rows entirely while the flag is off
+     * (MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus,
+     * MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus), so
+     * validating them anyway only blocked the form: the row is rendered only
+     * while its switch is on, which left the user staring at "Incident title
+     * is required" with no field on screen to type it into and no way past
+     * Next (issues #3410, #3413).
+     *
+     * The predicate is the falsy one the evaluator uses, not `!== false`, so
+     * a criteria saved before these flags existed - populated rows, no flag -
+     * is treated as off here exactly as it already is at runtime.
+     *
+     * Title and severity are the two fields the form marks required; the
+     * description is not one of them. It sits in a collapsed section labelled
+     * "Optional incident description" / "Optional alert description", and both
+     * Incident.description and Alert.description are nullable columns. So it is
+     * not required here either - demanding it stuck the form on a field the UI
+     * calls optional and keeps folded away, which is the second half of #3410.
+     */
+    if (value.data.createIncidents) {
+      for (const incident of value.data.incidents) {
+        if (!incident) {
+          continue;
+        }
 
-      if (!incident.title) {
-        return `Incident title is required for criteria "${value.data.name}"`;
-      }
+        if (!incident.title) {
+          return `Incident title is required for criteria "${value.data.name}"`;
+        }
 
-      if (!incident.description) {
-        return `Incident description is required for criteria "${value.data.name}"`;
-      }
-
-      if (!incident.incidentSeverityId) {
-        return `Incident severity is required for criteria "${value.data.name}"`;
+        if (!incident.incidentSeverityId) {
+          return `Incident severity is required for criteria "${value.data.name}"`;
+        }
       }
     }
 
-    for (const alert of value.data.alerts) {
-      if (!alert) {
-        continue;
-      }
+    if (value.data.createAlerts) {
+      for (const alert of value.data.alerts) {
+        if (!alert) {
+          continue;
+        }
 
-      if (!alert.title) {
-        return `Alert title is required for criteria "${value.data.name}"`;
-      }
+        if (!alert.title) {
+          return `Alert title is required for criteria "${value.data.name}"`;
+        }
 
-      if (!alert.description) {
-        return `Alert description is required for criteria "${value.data.name}"`;
-      }
-
-      if (!alert.alertSeverityId) {
-        return `Alert severity is required for criteria "${value.data.name}"`;
+        if (!alert.alertSeverityId) {
+          return `Alert severity is required for criteria "${value.data.name}"`;
+        }
       }
     }
 

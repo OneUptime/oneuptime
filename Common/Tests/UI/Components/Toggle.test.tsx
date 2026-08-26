@@ -46,6 +46,31 @@ describe("Toggle", () => {
     expect(onChange).toHaveBeenCalledWith(true);
   });
 
+  test("calls onChange exactly once per click", () => {
+    /*
+     * The click handler used to call handleChange (which already calls
+     * props.onChange) and then props.onChange again, running every consumer's
+     * handler twice per click. Idempotent handlers never noticed; the monitor
+     * criteria switches, which seed a blank incident / alert row on the way
+     * on, were saved from a second row only by their own "is the array still
+     * empty" guard.
+     */
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { getByRole } = render(
+      <Toggle onChange={onChange} initialValue={false} />,
+    );
+    const toggle: HTMLElement = getByRole("switch");
+
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenNthCalledWith(1, true);
+
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenNthCalledWith(2, false);
+  });
+
   test("calls onFocus", () => {
     const onFocus: MockFunction = getJestMockFunction();
 

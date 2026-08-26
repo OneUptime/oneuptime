@@ -6,14 +6,14 @@
                 <ol class="flex items-center flex-wrap gap-1 text-sm">
                     <% for (var h = 0; h < pageData.typeHierarchy.length; h++) { %>
                         <% if (h > 0) { %>
-                            <li class="text-slate-400">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            <li class="text-ink-faint">
+                                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </li>
                         <% } %>
                         <% if (pageData.typeHierarchy[h].path && pageData.typeHierarchy[h].name !== pageData.title) { %>
-                            <li><a href="/reference/<%= lang %>/<%= pageData.typeHierarchy[h].path %>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= pageData.typeHierarchy[h].name %></a></li>
+                            <li><a href="/reference/<%= lang %>/<%= pageData.typeHierarchy[h].path %>" class="text-accent hover:text-accent-strong hover:underline font-medium"><%= pageData.typeHierarchy[h].name %></a></li>
                         <% } else { %>
-                            <li class="text-slate-900 font-semibold"><%= pageData.typeHierarchy[h].name %></li>
+                            <li class="text-ink font-semibold"><%= pageData.typeHierarchy[h].name %></li>
                         <% } %>
                     <% } %>
                 </ol>
@@ -23,39 +23,39 @@
         <!-- Hero Section -->
         <div class="mb-8">
             <div class="flex items-center gap-3 mb-4">
-                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-600 shadow-lg shadow-emerald-500/30">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-success shadow-lg shadow-success/25">
+                    <svg aria-hidden="true" class="w-5 h-5 text-accent-contrast" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                     </svg>
                 </div>
-                <span class="text-xs font-semibold text-emerald-600 uppercase tracking-wider"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
+                <span class="text-xs font-semibold text-success uppercase tracking-wider"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
             </div>
-            <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= pageData.title %></h1>
-            <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%- pageData.description %></p>
+            <h1 class="font-bold text-3xl text-ink tracking-tight mb-3"><%= pageData.title %></h1>
+            <p class="text-lg text-ink-muted leading-relaxed max-w-2xl"><%- pageData.description %></p>
         </div>
 
         <!-- At a Glance Summary Box -->
-        <div class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3"><%= t('pages.dataType.atGlance') %></h4>
+        <div class="mb-10 rounded-xl border border-line bg-surface-soft p-5">
+            <h4 class="text-xs font-semibold text-ink-subtle uppercase tracking-wider mb-3"><%= t('pages.dataType.atGlance') %></h4>
             <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
                 <div>
-                    <span class="text-slate-500"><%= t('pages.dataType.kind') %></span>
-                    <span class="ml-2 font-medium text-slate-900"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
+                    <span class="text-ink-subtle"><%= t('pages.dataType.kind') %></span>
+                    <span class="ml-2 font-medium text-ink"><%= pageData.isEnum ? t('pages.dataType.enumBadge') : t('pages.dataType.dataTypeBadge') %></span>
                 </div>
                 <% if (pageData.isEnum && pageData.valueCount > 0) { %>
                     <div>
-                        <span class="text-slate-500"><%= t('pages.dataType.values') %></span>
-                        <span class="ml-2 font-medium text-slate-900"><%= pageData.valueCount %></span>
+                        <span class="text-ink-subtle"><%= t('pages.dataType.values') %></span>
+                        <span class="ml-2 font-medium text-ink"><%= pageData.valueCount %></span>
                     </div>
                 <% } else if (pageData.propertyCount > 0) { %>
                     <div>
-                        <span class="text-slate-500"><%= t('pages.dataType.propertiesLabel') %></span>
-                        <span class="ml-2 font-medium text-slate-900"><%= pageData.propertyCount %></span>
+                        <span class="text-ink-subtle"><%= t('pages.dataType.propertiesLabel') %></span>
+                        <span class="ml-2 font-medium text-ink"><%= pageData.propertyCount %></span>
                     </div>
                 <% } %>
                 <div>
-                    <span class="text-slate-500"><%= t('pages.dataType.jsonFormat') %></span>
-                    <code class="ml-2 text-xs font-mono bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
+                    <span class="text-ink-subtle"><%= t('pages.dataType.jsonFormat') %></span>
+                    <code class="ml-2 text-xs font-mono bg-surface px-2 py-0.5 rounded border border-line text-ink-muted">{"_type": "<%= pageData.jsonWrapperType %>", "value": ...}</code>
                 </div>
             </div>
         </div>
@@ -66,24 +66,24 @@
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-1.5">
                         <% for (var qv = 0; qv < pageData.values.length; qv++) { %>
-                            <a href="#value-<%= pageData.values[qv].value.toLowerCase().replace(/\s+/g, '-') %>" class="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors no-underline"><%= pageData.values[qv].value %></a>
+                            <a href="#value-<%= pageData.values[qv].value.toLowerCase().replace(/\s+/g, '-') %>" class="rounded-md bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line hover:bg-surface-soft hover:text-ink transition-colors no-underline"><%= pageData.values[qv].value %></a>
                         <% } %>
                     </div>
                 </div>
             <% } %>
 
-            <h3 id="values" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24"><%= t('pages.dataType.possibleValues') %></h3>
-            <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
-                <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
+            <h3 id="values" class="text-base font-semibold text-ink mb-4 scroll-mt-24"><%= t('pages.dataType.possibleValues') %></h3>
+            <div class="my-6 rounded-xl border border-line bg-surface overflow-hidden">
+                <ul role="list" class="m-0 w-full list-none divide-y divide-line-soft p-0">
                     <% for (var v = 0; v < pageData.values.length; v++) { %>
-                        <li id="value-<%= pageData.values[v].value.toLowerCase().replace(/\s+/g, '-') %>" class="m-0 px-5 py-5 hover:bg-slate-50/50 transition-colors scroll-mt-24">
+                        <li id="value-<%= pageData.values[v].value.toLowerCase().replace(/\s+/g, '-') %>" class="m-0 px-5 py-5 hover:bg-surface-soft/60 transition-colors scroll-mt-24">
                             <dl class="m-0 flex flex-wrap items-start gap-x-3 gap-y-2">
                                 <dt class="sr-only"><%= t('ui.srIndex') %></dt>
-                                <dd class="text-xs font-mono text-slate-300 w-6 pt-0.5 flex-shrink-0"><%= v + 1 %>.</dd>
+                                <dd class="text-xs font-mono text-ink-faint w-6 pt-0.5 flex-shrink-0"><%= v + 1 %>.</dd>
                                 <dt class="sr-only"><%= t('ui.srValue') %></dt>
                                 <dd><code class="model-inline-code"><%= pageData.values[v].value %></code></dd>
                                 <dt class="sr-only"><%= t('ui.srDescription') %></dt>
-                                <dd class="w-full flex-none pl-9 text-sm text-slate-600"><%- pageData.values[v].description %></dd>
+                                <dd class="w-full flex-none pl-9 text-sm text-ink-muted"><%- pageData.values[v].description %></dd>
                             </dl>
                         </li>
                     <% } %>
@@ -95,30 +95,30 @@
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-1.5">
                         <% for (var qp = 0; qp < pageData.properties.length; qp++) { %>
-                            <a href="#prop-<%= pageData.properties[qp].name %>" class="rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors no-underline"><%= pageData.properties[qp].name %></a>
+                            <a href="#prop-<%= pageData.properties[qp].name %>" class="rounded-md bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line hover:bg-surface-soft hover:text-ink transition-colors no-underline"><%= pageData.properties[qp].name %></a>
                         <% } %>
                     </div>
                 </div>
             <% } %>
 
-            <h3 id="properties" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24"><%= t('pages.dataType.propertiesLabel') %></h3>
-            <div class="my-6 rounded-xl border border-slate-200 bg-white overflow-hidden">
-                <ul role="list" class="m-0 w-full list-none divide-y divide-slate-100 p-0">
+            <h3 id="properties" class="text-base font-semibold text-ink mb-4 scroll-mt-24"><%= t('pages.dataType.propertiesLabel') %></h3>
+            <div class="my-6 rounded-xl border border-line bg-surface overflow-hidden">
+                <ul role="list" class="m-0 w-full list-none divide-y divide-line-soft p-0">
                     <% for (var p = 0; p < pageData.properties.length; p++) { %>
-                        <li id="prop-<%= pageData.properties[p].name %>" class="m-0 px-5 py-5 hover:bg-slate-50/50 transition-colors scroll-mt-24">
+                        <li id="prop-<%= pageData.properties[p].name %>" class="m-0 px-5 py-5 hover:bg-surface-soft/60 transition-colors scroll-mt-24">
                             <div class="mb-1.5">
-                                <code class="text-sm font-semibold text-slate-900"><%= pageData.properties[p].name %></code>
+                                <code class="text-sm font-semibold text-ink"><%= pageData.properties[p].name %></code>
                                 <% if (pageData.properties[p].required) { %>
-                                    <span class="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"><%= t('ui.required') %></span>
+                                    <span class="ml-2 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                                 <% } %>
                             </div>
                             <div class="mb-2">
-                                <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono text-slate-600">
+                                <span class="inline-flex items-center rounded-md bg-surface-soft px-2 py-0.5 text-xs font-mono text-ink-muted">
                                     <% if (pageData.properties[p].typeLinks && pageData.properties[p].typeLinks.length > 0) { %>
                                         <% var typeLinks = pageData.properties[p].typeLinks; %>
                                         <% for (var tl = 0; tl < typeLinks.length; tl++) { %>
                                             <% if (typeLinks[tl].path) { %>
-                                                <a href="/reference/<%= lang %>/<%= typeLinks[tl].path %>" class="text-indigo-600 hover:text-indigo-700 hover:underline font-medium"><%= typeLinks[tl].label %></a>
+                                                <a href="/reference/<%= lang %>/<%= typeLinks[tl].path %>" class="text-accent hover:text-accent-strong hover:underline font-medium"><%= typeLinks[tl].label %></a>
                                             <% } else { %>
                                                 <%= typeLinks[tl].label %>
                                             <% } %>
@@ -128,7 +128,7 @@
                                     <% } %>
                                 </span>
                             </div>
-                            <p class="m-0 text-sm text-slate-600 leading-relaxed"><%- pageData.properties[p].description %></p>
+                            <p class="m-0 text-sm text-ink-muted leading-relaxed"><%- pageData.properties[p].description %></p>
                         </li>
                     <% } %>
                 </ul>
@@ -136,37 +136,37 @@
         <% } %>
 
         <!-- JSON Example Section -->
-        <div class="border-t border-slate-200 pt-8 mt-10">
-            <h3 id="example" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24"><%= t('pages.dataType.jsonExample') %></h3>
+        <div class="border-t border-line pt-8 mt-10">
+            <h3 id="example" class="text-base font-semibold text-ink mb-4 scroll-mt-24"><%= t('pages.dataType.jsonExample') %></h3>
             <%- include('../partials/code', { title: "JSON", code: pageData.jsonExample, requestType: "", requestUrl: "" }) %>
         </div>
 
         <% if (pageData.title === "Permission") { %>
-            <div class="mt-6 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-                <p class="text-sm text-indigo-800 m-0">
+            <div class="mt-6 rounded-lg border border-accent/20 bg-accent-soft p-4">
+                <p class="text-sm text-accent-strong m-0">
                     <%= t('pages.dataType.permissionGuideLink') %>
-                    <a href="/reference/<%= lang %>/permissions" class="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"><%= t('pages.dataType.permissionsLinkText') %></a>.
+                    <a href="/reference/<%= lang %>/permissions" class="font-medium text-accent hover:text-accent-strong hover:underline"><%= t('pages.dataType.permissionsLinkText') %></a>.
                 </p>
             </div>
         <% } %>
 
         <!-- Related Types Section -->
         <% if (pageData.relatedTypes && pageData.relatedTypes.length > 0) { %>
-            <div class="border-t border-slate-200 pt-8 mt-10">
-                <h3 id="related-types" class="text-base font-semibold text-slate-800 mb-4 scroll-mt-24"><%= t('pages.dataType.relatedTypes') %></h3>
+            <div class="border-t border-line pt-8 mt-10">
+                <h3 id="related-types" class="text-base font-semibold text-ink mb-4 scroll-mt-24"><%= t('pages.dataType.relatedTypes') %></h3>
                 <div class="my-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <% for (var r = 0; r < pageData.relatedTypes.length; r++) { %>
-                        <a href="/reference/<%= lang %>/<%= pageData.relatedTypes[r].path %>" class="group flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 hover:border-indigo-300 hover:shadow-sm transition-all no-underline">
+                        <a href="/reference/<%= lang %>/<%= pageData.relatedTypes[r].path %>" class="group flex items-start gap-3 rounded-xl border border-line bg-surface p-5 hover:border-accent/40 hover:shadow-sm transition-all no-underline">
                             <div class="flex-shrink-0 mt-0.5">
-                                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
-                                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-accent-soft group-hover:bg-accent-soft transition-colors">
+                                    <svg aria-hidden="true" class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                                 </div>
                             </div>
                             <div>
-                                <div class="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors"><%= pageData.relatedTypes[r].name %></div>
-                                <div class="text-xs text-slate-500 mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
+                                <div class="text-sm font-semibold text-ink group-hover:text-accent transition-colors"><%= pageData.relatedTypes[r].name %></div>
+                                <div class="text-xs text-ink-subtle mt-0.5"><%= pageData.relatedTypes[r].relationship %></div>
                                 <% if (pageData.relatedTypes[r].description) { %>
-                                    <div class="text-xs text-slate-400 mt-1 line-clamp-2"><%= pageData.relatedTypes[r].description %></div>
+                                    <div class="text-xs text-ink-faint mt-1 line-clamp-2"><%= pageData.relatedTypes[r].description %></div>
                                 <% } %>
                             </div>
                         </a>

@@ -1,0 +1,20 @@
+<%#
+   "On this page". The list is filled in by scripts.ejs from the headings that
+   are actually in the document, so it cannot list a section a page does not
+   have. Hidden entirely when a page has fewer than two headings.
+-%>
+<aside id="reference-toc" class="hidden xl:block no-print" hidden>
+   <div class="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto py-10">
+      <h2 class="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+         <%= t('ui.onThisPage') %>
+      </h2>
+      <ul role="list" id="reference-toc-list" class="mt-3 space-y-1 border-l border-line text-sm"></ul>
+      <button type="button" id="back-to-top"
+         class="mt-6 flex items-center gap-1.5 text-xs font-medium text-ink-faint transition-colors hover:text-accent">
+         <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 15V5m0 0-4 4m4-4 4 4"></path>
+         </svg>
+         <%= t('ui.backToTop') %>
+      </button>
+   </div>
+</aside>

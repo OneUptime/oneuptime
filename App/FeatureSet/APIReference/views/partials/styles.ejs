@@ -1,0 +1,469 @@
+<style>
+   @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+      src: url('/reference/fonts/InterVariable.woff2') format('woff2') tech('variations'),
+           url('/reference/fonts/InterVariable.woff2') format('woff2-variations');
+   }
+
+   /*
+    * Design tokens. Light is the default; the .dark block swaps the same names.
+    * Values are space-separated RGB channels because the Tailwind config wraps
+    * them in rgb(... / <alpha-value>) to keep opacity modifiers working.
+    */
+   :root {
+      --ou-canvas: 255 255 255;
+      --ou-surface: 255 255 255;
+      --ou-surface-soft: 248 250 252;
+      --ou-surface-raised: 252 252 253;
+
+      --ou-line: 226 232 240;
+      --ou-line-soft: 241 245 249;
+
+      --ou-ink: 15 23 42;
+      --ou-ink-muted: 71 85 105;
+      --ou-ink-subtle: 100 116 139;
+      --ou-ink-faint: 148 163 184;
+
+      --ou-accent: 79 70 229;
+      --ou-accent-strong: 67 56 202;
+      --ou-accent-soft: 238 242 255;
+      --ou-accent-contrast: 255 255 255;
+
+      --ou-success: 5 150 105;
+      --ou-success-soft: 236 253 245;
+      --ou-warn: 180 83 9;
+      --ou-warn-soft: 255 251 235;
+      --ou-danger: 225 29 72;
+      --ou-danger-soft: 255 241 242;
+      --ou-info: 2 132 199;
+      --ou-info-soft: 240 249 255;
+
+      /* Code surfaces stay dark in both themes, so they are not swapped below. */
+      --ou-code-bg: 15 23 42;
+      --ou-code-bg-raised: 30 41 59;
+      --ou-code-line: 51 65 85;
+      --ou-code-ink: 226 232 240;
+      --ou-code-ink-muted: 148 163 184;
+
+      --ou-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+      --ou-shadow-pop: 0 20px 48px -12px rgb(15 23 42 / 0.22);
+   }
+
+   .dark {
+      --ou-canvas: 9 13 25;
+      --ou-surface: 16 21 36;
+      --ou-surface-soft: 22 28 46;
+      --ou-surface-raised: 13 18 32;
+
+      --ou-line: 38 47 71;
+      --ou-line-soft: 30 38 59;
+
+      --ou-ink: 241 245 249;
+      --ou-ink-muted: 176 189 209;
+      --ou-ink-subtle: 141 156 179;
+      --ou-ink-faint: 110 124 148;
+
+      --ou-accent: 129 140 248;
+      --ou-accent-strong: 165 180 252;
+      --ou-accent-soft: 30 33 68;
+      --ou-accent-contrast: 12 16 30;
+
+      --ou-success: 52 211 153;
+      --ou-success-soft: 6 44 36;
+      --ou-warn: 251 191 36;
+      --ou-warn-soft: 51 34 8;
+      --ou-danger: 251 113 133;
+      --ou-danger-soft: 55 15 26;
+      --ou-info: 56 189 248;
+      --ou-info-soft: 8 39 58;
+
+      --ou-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+      --ou-shadow-pop: 0 24px 56px -12px rgb(0 0 0 / 0.7);
+   }
+
+   /*
+    * A display utility outranks the user-agent's [hidden] rule, so `hidden
+    * xl:block` on the table of contents would show it even while the script
+    * still considers it hidden. Author-level and !important settles it.
+    */
+   [hidden] {
+      display: none !important;
+   }
+
+   html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+   }
+
+   body {
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background-color: rgb(var(--ou-canvas));
+      color: rgb(var(--ou-ink-muted));
+   }
+
+   /*
+    * Base typography. Written with :where() so every rule has zero specificity
+    * and any utility class in a template still wins. This replaces an onload
+    * handler that used to add these classes with JavaScript after first paint -
+    * which is why the page used to reflow a beat after it appeared.
+    */
+   .prose :where(h1) {
+      font-size: 1.875rem;
+      line-height: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: rgb(var(--ou-ink));
+      margin-bottom: 1rem;
+   }
+
+   .prose :where(h2) {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: rgb(var(--ou-ink));
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      scroll-margin-top: 6rem;
+   }
+
+   .prose :where(h3) {
+      font-size: 1rem;
+      line-height: 1.5rem;
+      font-weight: 600;
+      color: rgb(var(--ou-ink));
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      scroll-margin-top: 6rem;
+   }
+
+   .prose :where(p) {
+      margin-bottom: 1.25rem;
+      color: rgb(var(--ou-ink-muted));
+      line-height: 1.75;
+   }
+
+   .prose :where(a) {
+      color: rgb(var(--ou-accent));
+      font-weight: 500;
+   }
+
+   .prose :where(a):hover {
+      color: rgb(var(--ou-accent-strong));
+   }
+
+   .prose :where(strong) {
+      color: rgb(var(--ou-ink));
+      font-weight: 600;
+   }
+
+   .prose :where(li) {
+      color: rgb(var(--ou-ink-muted));
+      line-height: 1.75;
+   }
+
+   .prose :where(hr) {
+      border-color: rgb(var(--ou-line));
+      margin: 2.5rem 0;
+   }
+
+   .prose .lead {
+      font-size: 1.125rem;
+      color: rgb(var(--ou-ink-subtle));
+      line-height: 1.75;
+   }
+
+   .prose ul.list-disc,
+   .prose ol.list-decimal {
+      color: rgb(var(--ou-ink-muted));
+   }
+
+   /* Inline code, in prose and in property tables. */
+   .inline-code,
+   .model-inline-code {
+      border-radius: 0.375rem;
+      padding: 0.125rem 0.375rem;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: rgb(var(--ou-ink));
+      background-color: rgb(var(--ou-surface-soft));
+      border: 1px solid rgb(var(--ou-line));
+   }
+
+   /* Anchor affordance on headings that have an id. */
+   .heading-anchor {
+      margin-left: 0.5rem;
+      color: rgb(var(--ou-ink-faint));
+      opacity: 0;
+      transition: opacity 0.15s ease, color 0.15s ease;
+      text-decoration: none;
+      font-weight: 400;
+   }
+
+   :where(h1, h2, h3):hover > .heading-anchor,
+   .heading-anchor:focus-visible {
+      opacity: 1;
+   }
+
+   .heading-anchor:hover {
+      color: rgb(var(--ou-accent));
+   }
+
+   /* Sidebar link states. Driven by aria-current so the server can set them. */
+   .nav-link {
+      border-left: 2px solid transparent;
+      color: rgb(var(--ou-ink-muted));
+   }
+
+   .nav-link:hover {
+      color: rgb(var(--ou-ink));
+      border-left-color: rgb(var(--ou-line));
+      background-color: rgb(var(--ou-surface-soft) / 0.7);
+   }
+
+   .nav-link[aria-current="page"] {
+      color: rgb(var(--ou-accent));
+      border-left-color: rgb(var(--ou-accent));
+      background-color: rgb(var(--ou-accent-soft) / 0.7);
+      font-weight: 600;
+   }
+
+   /* "On this page" rail. */
+   .toc-link[aria-current="location"] {
+      color: rgb(var(--ou-accent));
+      font-weight: 600;
+   }
+
+   .toc-link[aria-current="location"]::before {
+      opacity: 1;
+   }
+
+   /* Code blocks. Deliberately dark in both themes. */
+   .code-surface {
+      background-color: rgb(var(--ou-code-bg));
+      border: 1px solid rgb(var(--ou-code-line) / 0.6);
+   }
+
+   .code-surface-raised {
+      background-color: rgb(var(--ou-code-bg-raised) / 0.5);
+   }
+
+   .code-divider {
+      border-color: rgb(var(--ou-code-line) / 0.6);
+   }
+
+   .code-divider-soft {
+      border-color: rgb(var(--ou-code-line) / 0.4);
+   }
+
+   .code-text {
+      color: rgb(var(--ou-code-ink));
+   }
+
+   .code-text-muted {
+      color: rgb(var(--ou-code-ink-muted));
+   }
+
+   .hljs {
+      background: transparent !important;
+      padding: 0 !important;
+   }
+
+   .code-panel pre {
+      margin: 0;
+      background: transparent;
+   }
+
+   .code-panel code,
+   .code-block-wrapper code {
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      font-size: 0.8125rem;
+      line-height: 1.65;
+      color: rgb(var(--ou-code-ink));
+   }
+
+   /*
+    * Long code lines scroll inside their own box. `width: 0; min-width: 100%`
+    * is what stops a wide <pre> from widening the grid column it sits in -
+    * without it a model page with a long cURL example scrolls the whole
+    * document sideways and the fixed sidebar slides over the text.
+    */
+   .code-tabs-container,
+   .code-panel,
+   .code-content {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+   }
+
+   .code-tabs-container pre,
+   .code-block-wrapper pre {
+      width: 0;
+      min-width: 100%;
+      overflow-x: auto;
+   }
+
+   .code-content pre code {
+      display: block;
+      white-space: pre;
+      word-wrap: normal;
+   }
+
+   .code-tab:hover {
+      color: rgb(var(--ou-code-ink));
+      background-color: rgb(var(--ou-code-bg-raised) / 0.35);
+   }
+
+   .code-tab[aria-selected="true"] {
+      color: rgb(var(--ou-accent));
+      background-color: rgb(var(--ou-code-bg-raised) / 0.6);
+   }
+
+   .code-tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: -1px;
+      height: 2px;
+      border-radius: 2px;
+      background-color: rgb(var(--ou-accent));
+   }
+
+   /* Copy buttons over a dark code surface. */
+   .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: rgb(var(--ou-code-ink-muted));
+      background-color: rgb(var(--ou-code-bg-raised) / 0.85);
+      border: 1px solid rgb(var(--ou-code-line));
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+   }
+
+   .copy-btn:hover {
+      color: rgb(var(--ou-code-ink));
+      background-color: rgb(var(--ou-code-bg-raised));
+   }
+
+   .copy-btn.copied {
+      color: rgb(52 211 153);
+      border-color: rgb(52 211 153 / 0.5);
+      background-color: rgb(52 211 153 / 0.12);
+   }
+
+   /*
+    * Floating copy button. Hidden until hover on a pointer device; always shown
+    * on touch, where there is no hover to reveal it with.
+    */
+   .copy-btn-floating {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+   }
+
+   @media (hover: hover) and (pointer: fine) {
+      .copy-btn-floating {
+         opacity: 0;
+      }
+
+      .code-panel:hover .copy-btn-floating,
+      .copy-btn-floating:focus-visible {
+         opacity: 1;
+      }
+   }
+
+   /* Scrollbars: thin, themed, and out of the way. */
+   ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+   }
+
+   ::-webkit-scrollbar-track {
+      background: transparent;
+   }
+
+   ::-webkit-scrollbar-thumb {
+      background: rgb(var(--ou-ink-faint) / 0.4);
+      border-radius: 4px;
+   }
+
+   ::-webkit-scrollbar-thumb:hover {
+      background: rgb(var(--ou-ink-faint) / 0.7);
+   }
+
+   .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+   }
+
+   .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+   }
+
+   /* Focus states. Visible on both themes, never on a plain mouse click. */
+   a:focus-visible,
+   button:focus-visible,
+   select:focus-visible,
+   input:focus-visible,
+   [tabindex]:focus-visible {
+      outline: 2px solid rgb(var(--ou-accent));
+      outline-offset: 2px;
+      border-radius: 4px;
+   }
+
+   /*
+    * Everything animated is listed here rather than on `*`, so a reader who
+    * asked for less motion gets a page that still works.
+    */
+   @media (prefers-reduced-motion: reduce) {
+      html {
+         scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+         animation-duration: 0.01ms !important;
+         animation-iteration-count: 1 !important;
+         transition-duration: 0.01ms !important;
+      }
+   }
+
+   /* Calendar picker hit area, inherited from the previous stylesheet. */
+   input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+   input[type="date"]::-webkit-calendar-picker-indicator {
+      background: transparent;
+      bottom: 0;
+      color: transparent;
+      cursor: pointer;
+      height: auto;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: auto;
+   }
+
+   @media print {
+      .no-print {
+         display: none !important;
+      }
+
+      body {
+         background: #fff;
+      }
+   }
+</style>

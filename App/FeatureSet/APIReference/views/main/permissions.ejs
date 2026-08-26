@@ -3,34 +3,34 @@
       <!-- Hero Section -->
       <div class="mb-10">
          <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/30">
-               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-accent shadow-lg shadow-accent/25">
+               <svg aria-hidden="true" class="w-5 h-5 text-accent-contrast" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.permissions.badge') %></span>
+            <span class="text-xs font-semibold text-accent uppercase tracking-wider"><%= t('pages.permissions.badge') %></span>
          </div>
-         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= t('pages.permissions.title') %></h1>
-         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%- t('pages.permissions.intro') %></p>
+         <h1 class="font-bold text-3xl text-ink tracking-tight mb-3"><%= t('pages.permissions.title') %></h1>
+         <p class="text-lg text-ink-muted leading-relaxed max-w-2xl"><%- t('pages.permissions.intro') %></p>
       </div>
 
       <!-- Quick Navigation -->
-      <div class="my-6 flex gap-3 rounded-xl border border-indigo-500/20 bg-indigo-50/50 p-4">
+      <div class="my-6 flex gap-3 rounded-xl border border-accent/25 bg-accent-soft/70 p-4">
          <div class="flex-shrink-0">
-            <svg viewBox="0 0 16 16" aria-hidden="true" class="h-5 w-5 fill-indigo-500 stroke-white">
+            <svg viewBox="0 0 16 16" aria-hidden="true" class="h-5 w-5 fill-accent stroke-surface">
                <circle cx="8" cy="8" r="8" stroke-width="0"></circle>
                <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.75h1.5v3.5"></path>
                <circle cx="8" cy="4" r=".5" fill="none"></circle>
             </svg>
          </div>
          <div>
-            <p class="text-sm font-medium text-indigo-900 mb-2"><%= t('pages.permissions.jumpToCategory') %></p>
+            <p class="text-sm font-medium text-accent-strong mb-2"><%= t('pages.permissions.jumpToCategory') %></p>
             <div class="flex flex-wrap gap-2">
                <% for(var g=0; g<pageData.permissionGroups.length; g++) { %>
                   <a href="#<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>"
-                     class="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-200 transition-colors">
+                     class="inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line hover:bg-accent-soft hover:text-accent-strong hover:ring-accent/30 transition-colors">
                      <%= pageData.permissionGroups[g].group %>
-                     <span class="text-slate-400">(<%= pageData.permissionGroups[g].permissions.length %>)</span>
+                     <span class="text-ink-faint">(<%= pageData.permissionGroups[g].permissions.length %>)</span>
                   </a>
                <% } %>
             </div>
@@ -39,19 +39,19 @@
 
       <% for(var g=0; g<pageData.permissionGroups.length; g++) { %>
          <h2 id="<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>"
-            class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 <%= g > 0 ? 'pt-8 border-t border-slate-200' : '' %>">
+            class="scroll-mt-24 text-xl font-semibold text-ink mb-4 mt-12 <%= g > 0 ? 'pt-8 border-t border-line' : '' %>">
             <%= pageData.permissionGroups[g].group %>
-            <span class="ml-2 align-middle inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"><%= pageData.permissionGroups[g].permissions.length %></span>
+            <span class="ml-2 align-middle inline-flex items-center rounded-full bg-surface-soft px-2.5 py-0.5 text-xs font-medium text-ink-muted"><%= pageData.permissionGroups[g].permissions.length %></span>
          </h2>
 
-         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+         <div class="rounded-xl border border-line bg-surface overflow-hidden">
+            <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
                <% for(var i=0; i<pageData.permissionGroups[g].permissions.length; i++) { %>
-                  <li class="m-0 px-5 py-4 hover:bg-slate-50/50 transition-colors">
+                  <li class="m-0 px-5 py-4 hover:bg-surface-soft/60 transition-colors">
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code"><%= pageData.permissionGroups[g].permissions[i].permission -%></code></dd>
-                        <dd class="font-mono text-xs text-slate-500"><%= pageData.permissionGroups[g].permissions[i].title -%></dd>
-                        <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= pageData.permissionGroups[g].permissions[i].description -%></dd>
+                        <dd class="font-mono text-xs text-ink-subtle"><%= pageData.permissionGroups[g].permissions[i].title -%></dd>
+                        <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= pageData.permissionGroups[g].permissions[i].description -%></dd>
                      </dl>
                   </li>
                <% } %>

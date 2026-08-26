@@ -1,0 +1,40 @@
+<%#
+   Light / dark / system, cycled in that order. The icon that is visible is
+   chosen by CSS from data-theme-preference on <html>, which the bootstrap
+   script in head.ejs sets before first paint - so the button is never briefly
+   showing the wrong state.
+-%>
+<style>
+   [data-theme-preference="light"] .theme-icon-light,
+   [data-theme-preference="dark"] .theme-icon-dark,
+   [data-theme-preference="system"] .theme-icon-system {
+      display: block;
+   }
+
+   .theme-icon-light,
+   .theme-icon-dark,
+   .theme-icon-system {
+      display: none;
+   }
+</style>
+<button type="button" id="theme-toggle"
+   class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-subtle transition-colors hover:bg-surface-soft hover:text-ink"
+   aria-label="<%= t('ui.toggleTheme') %>" title="<%= t('ui.toggleTheme') %>">
+   <svg class="theme-icon-light h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+      aria-hidden="true">
+      <path d="M12.5 10a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"></path>
+      <path stroke-linecap="round"
+         d="M10 5.5v-1M13.182 6.818l.707-.707M14.5 10h1M13.182 13.182l.707.707M10 15.5v-1M6.11 13.889l.708-.707M4.5 10h1M6.11 6.111l.708.707">
+      </path>
+   </svg>
+   <svg class="theme-icon-dark h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+      aria-hidden="true">
+      <path d="M15.224 11.724a5.5 5.5 0 0 1-6.949-6.949 5.5 5.5 0 1 0 6.949 6.949Z"></path>
+   </svg>
+   <svg class="theme-icon-system h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+      aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round"
+         d="M3.5 5.5h13v8h-13v-8ZM7.5 16.5h5M10 13.5v3"></path>
+   </svg>
+   <span class="sr-only" data-theme-state></span>
+</button>

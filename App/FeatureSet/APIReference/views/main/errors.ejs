@@ -3,73 +3,73 @@
       <!-- Hero Section -->
       <div class="mb-10">
          <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/30">
-               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-accent shadow-lg shadow-accent/25">
+               <svg aria-hidden="true" class="w-5 h-5 text-accent-contrast" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                </svg>
             </div>
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider"><%= t('pages.errors.badge') %></span>
+            <span class="text-xs font-semibold text-accent uppercase tracking-wider"><%= t('pages.errors.badge') %></span>
          </div>
-         <h1 class="font-bold text-3xl text-slate-900 tracking-tight mb-3"><%= t('pages.errors.title') %></h1>
-         <p class="text-lg text-slate-600 leading-relaxed max-w-2xl"><%= t('pages.errors.intro') %></p>
+         <h1 class="font-bold text-3xl text-ink tracking-tight mb-3"><%= t('pages.errors.title') %></h1>
+         <p class="text-lg text-ink-muted leading-relaxed max-w-2xl"><%= t('pages.errors.intro') %></p>
       </div>
 
-      <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.body') %></p>
+      <p class="text-ink-muted leading-relaxed"><%= t('pages.errors.body') %></p>
 
-      <div class="my-6 flex gap-3 rounded-xl border border-indigo-500/20 bg-indigo-50/50 p-4">
+      <div class="my-6 flex gap-3 rounded-xl border border-accent/25 bg-accent-soft/70 p-4">
          <div class="flex-shrink-0">
-            <svg viewBox="0 0 16 16" aria-hidden="true" class="h-5 w-5 fill-indigo-500 stroke-white">
+            <svg viewBox="0 0 16 16" aria-hidden="true" class="h-5 w-5 fill-accent stroke-surface">
                <circle cx="8" cy="8" r="8" stroke-width="0"></circle>
                <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 7.75h1.5v3.5"></path>
                <circle cx="8" cy="4" r=".5" fill="none"></circle>
             </svg>
          </div>
-         <p class="text-sm text-indigo-900"><%= t('pages.errors.warning') %></p>
+         <p class="text-sm text-accent-strong"><%= t('pages.errors.warning') %></p>
       </div>
 
-      <h2 id="status-codes" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 pt-8 border-t border-slate-200">
+      <h2 id="status-codes" class="scroll-mt-24 text-xl font-semibold text-ink mb-4 mt-12 pt-8 border-t border-line">
          <%= t('pages.errors.statusCodes') %>
       </h2>
-      <p class="text-slate-600 leading-relaxed mb-6"><%= t('pages.errors.statusCodesBody') %></p>
+      <p class="text-ink-muted leading-relaxed mb-6"><%= t('pages.errors.statusCodesBody') %></p>
 
-      <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-         <ul role="list" class="m-0 list-none divide-y divide-slate-100 p-0">
+      <div class="rounded-xl border border-line bg-surface overflow-hidden">
+         <ul role="list" class="m-0 list-none divide-y divide-line-soft p-0">
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <dd><code class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">2xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status2xx') %></dd>
+                  <dd><code class="inline-flex items-center rounded-md bg-success-soft px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/30">2xx</code></dd>
+                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= t('pages.errors.status2xx') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <dd><code class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">4xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%- t('pages.errors.status4xx') %></dd>
+                  <dd><code class="inline-flex items-center rounded-md bg-warn-soft px-2 py-1 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30">4xx</code></dd>
+                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%- t('pages.errors.status4xx') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <dd><code class="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20">429</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status429') %></dd>
+                  <dd><code class="inline-flex items-center rounded-md bg-warn-soft px-2 py-1 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30">429</code></dd>
+                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= t('pages.errors.status429') %></dd>
                </dl>
             </li>
             <li class="m-0 px-5 py-4">
                <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <dd><code class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">5xx</code></dd>
-                  <dd class="w-full flex-none text-sm text-slate-600 mt-1"><%= t('pages.errors.status5xx') %></dd>
+                  <dd><code class="inline-flex items-center rounded-md bg-danger-soft px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/30">5xx</code></dd>
+                  <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= t('pages.errors.status5xx') %></dd>
                </dl>
             </li>
          </ul>
       </div>
 
-      <h2 id="error-types" class="scroll-mt-24 text-xl font-semibold text-slate-900 mb-4 mt-12 pt-8 border-t border-slate-200">
+      <h2 id="error-types" class="scroll-mt-24 text-xl font-semibold text-ink mb-4 mt-12 pt-8 border-t border-line">
          <%= t('pages.errors.errorMessages') %>
       </h2>
-      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+      <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 2xl:max-w-none 2xl:grid-cols-2">
          <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
-            <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.errorMessagesBody') %></p>
-            <p class="text-slate-600 leading-relaxed"><%= t('pages.errors.errorMessagesExample') %></p>
+            <p class="text-ink-muted leading-relaxed"><%= t('pages.errors.errorMessagesBody') %></p>
+            <p class="text-ink-muted leading-relaxed"><%= t('pages.errors.errorMessagesExample') %></p>
          </div>
-         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 xl:sticky xl:top-24">
+         <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0 2xl:sticky 2xl:top-20">
             <%- include('../partials/code', {title: t('pages.errors.exampleResponseTitle'), requestUrl: "", requestType: "", code: "{ \"message\": \"Name is required\" }" }) -%>
          </div>
       </div>

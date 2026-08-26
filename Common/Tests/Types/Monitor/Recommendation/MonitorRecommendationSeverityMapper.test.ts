@@ -390,10 +390,10 @@ describe("MonitorRecommendationSeverityMapper", () => {
       /*
        * "No map" is the state of every caller that predates this feature, and
        * it must mean "leave the template's severity alone" rather than throw or
-       * return a blank id — a criteria instance with a populated incident and
-       * no severity fails MonitorCriteriaInstance.getValidationError, so the
-       * whole create would fail at submit with a message about a field the user
-       * never saw.
+       * return a blank id — a criteria instance that creates incidents and has
+       * a populated incident with no severity fails
+       * MonitorCriteriaInstance.getValidationError, so the whole create would
+       * fail at submit with a message about a field the user never saw.
        */
       expect(
         MonitorRecommendationSeverityMapper.resolveSeverityId({

@@ -1,50 +1,46 @@
-<footer class="mx-auto w-full space-y-10 pb-16">
-    <div class="mt-12 sm:mt-16 pt-8 border-t border-slate-200">
-       <div class="rounded-xl bg-gradient-to-r from-slate-50 to-slate-100/50 p-4 sm:p-6 ring-1 ring-slate-200/50">
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-             <div class="flex items-center gap-4">
-                <div class="flex-shrink-0 rounded-lg bg-indigo-100 p-2.5">
-                   <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                   </svg>
-                </div>
-                <div>
-                   <h3 class="text-sm font-semibold text-slate-900 mb-1"><%= t('ui.openSourceTitle') %></h3>
-                   <p class="text-sm text-slate-600 leading-relaxed">
-                      <%= t('ui.openSourceBody') %>
-                   </p>
-                </div>
-             </div>
-             <div class="flex gap-3">
-                <a class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-indigo-300 hover:bg-indigo-50 transition-all" href="https://twitter.com/OneUptimeHQ" target="_blank">
-                   <span class="sr-only"><%= t('ui.followTwitter') %></span>
-                   <svg viewBox="0 0 20 20" aria-hidden="true"
-                      class="h-4 w-4 fill-slate-500 transition group-hover:fill-indigo-600">
-                      <path
-                         d="M16.712 6.652c.01.146.01.29.01.436 0 4.449-3.267 9.579-9.242 9.579v-.003a8.963 8.963 0 0 1-4.98-1.509 6.379 6.379 0 0 0 4.807-1.396c-1.39-.027-2.608-.966-3.035-2.337.487.097.99.077 1.467-.059-1.514-.316-2.606-1.696-2.606-3.3v-.041c.45.26.956.404 1.475.42C3.18 7.454 2.74 5.486 3.602 3.947c1.65 2.104 4.083 3.382 6.695 3.517a3.446 3.446 0 0 1 .94-3.217 3.172 3.172 0 0 1 4.596.148 6.38 6.38 0 0 0 2.063-.817 3.357 3.357 0 0 1-1.428 1.861 6.283 6.283 0 0 0 1.865-.53 6.735 6.735 0 0 1-1.62 1.744Z">
-                      </path>
-                   </svg>
-                </a>
-                <a class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-indigo-300 hover:bg-indigo-50 transition-all" href="https://njump.me/npub1kggtaw83q0mctlwvh854xdu3wjmen8tmq9cx9l030x2ylay6wk8qy2f2e6" target="_blank">
-                   <span class="sr-only"><%= t('ui.followNostr') %></span>
-                   <svg viewBox="0 0 256 256" aria-hidden="true"
-                      class="h-4 w-4 fill-slate-500 transition group-hover:fill-indigo-600">
-                      <path
-                         d="M210.8 199.4c0 3.1-2.5 5.7-5.7 5.7h-68c-3.1 0-5.7-2.5-5.7-5.7v-15.5c.3-19 2.3-37.2 6.5-45.5 2.5-5 6.7-7.7 11.5-9.1 9.1-2.7 24.9-.9 31.7-1.2 0 0 20.4.8 20.4-10.7s-9.1-8.6-9.1-8.6c-10 .3-17.7-.4-22.6-2.4-8.3-3.3-8.6-9.2-8.6-11.2-.4-23.1-34.5-25.9-64.5-20.1-32.8 6.2.4 53.3.4 116.1v8.4c0 3.1-2.6 5.6-5.7 5.6H57.7c-3.1 0-5.7-2.5-5.7-5.7v-144c0-3.1 2.5-5.7 5.7-5.7h31.7c3.1 0 5.7 2.5 5.7 5.7 0 4.7 5.2 7.2 9 4.5 11.4-8.2 26-12.5 42.4-12.5 36.6 0 64.4 21.4 64.4 68.7v83.2ZM150 99.3c0-6.7-5.4-12.1-12.1-12.1s-12.1 5.4-12.1 12.1 5.4 12.1 12.1 12.1S150 106 150 99.3Z">
-                      </path>
-                   </svg>
-                </a>
-                <a class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white ring-1 ring-slate-200 hover:ring-indigo-300 hover:bg-indigo-50 transition-all" href="https://github.com/oneuptime/oneuptime" target="_blank">
-                   <span class="sr-only"><%= t('ui.followGithub') %></span>
-                   <svg viewBox="0 0 20 20" aria-hidden="true"
-                      class="h-4 w-4 fill-slate-500 transition group-hover:fill-indigo-600">
-                      <path fill-rule="evenodd" clip-rule="evenodd"
-                         d="M10 1.667c-4.605 0-8.334 3.823-8.334 8.544 0 3.78 2.385 6.974 5.698 8.106.417.075.573-.182.573-.406 0-.203-.011-.875-.011-1.592-2.093.397-2.635-.522-2.802-1.002-.094-.246-.5-1.005-.854-1.207-.291-.16-.708-.556-.01-.567.656-.01 1.124.62 1.281.876.75 1.292 1.948.93 2.427.705.073-.555.291-.93.531-1.143-1.854-.213-3.791-.95-3.791-4.218 0-.929.322-1.698.854-2.296-.083-.214-.375-1.09.083-2.265 0 0 .698-.224 2.292.876a7.576 7.576 0 0 1 2.083-.288c.709 0 1.417.096 2.084.288 1.593-1.11 2.291-.875 2.291-.875.459 1.174.167 2.05.084 2.263.53.599.854 1.357.854 2.297 0 3.278-1.948 4.005-3.802 4.219.302.266.563.78.563 1.58 0 1.143-.011 2.061-.011 2.35 0 .224.156.491.573.405a8.365 8.365 0 0 0 4.11-3.116 8.707 8.707 0 0 0 1.567-4.99c0-4.721-3.73-8.545-8.334-8.545Z">
-                      </path>
-                   </svg>
-                </a>
-             </div>
-          </div>
-       </div>
-    </div>
+<footer class="mt-16 border-t border-line pb-16 pt-8 no-print">
+   <div class="rounded-2xl border border-line bg-surface-soft p-5 sm:p-6">
+      <div class="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+         <div class="flex items-start gap-4">
+            <div class="shrink-0 rounded-xl bg-accent-soft p-2.5 text-accent">
+               <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+               </svg>
+            </div>
+            <div>
+               <h2 class="mb-1 text-sm font-semibold text-ink"><%= t('ui.openSourceTitle') %></h2>
+               <p class="max-w-lg text-sm leading-relaxed text-ink-muted"><%= t('ui.openSourceBody') %></p>
+            </div>
+         </div>
+         <div class="flex gap-2.5">
+            <a class="group flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface transition-colors hover:border-accent/40 hover:bg-accent-soft"
+               href="https://twitter.com/OneUptimeHQ" target="_blank" rel="noreferrer">
+               <span class="sr-only"><%= t('ui.followTwitter') %></span>
+               <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-ink-subtle transition-colors group-hover:fill-accent">
+                  <path
+                     d="M16.712 6.652c.01.146.01.29.01.436 0 4.449-3.267 9.579-9.242 9.579v-.003a8.963 8.963 0 0 1-4.98-1.509 6.379 6.379 0 0 0 4.807-1.396c-1.39-.027-2.608-.966-3.035-2.337.487.097.99.077 1.467-.059-1.514-.316-2.606-1.696-2.606-3.3v-.041c.45.26.956.404 1.475.42C3.18 7.454 2.74 5.486 3.602 3.947c1.65 2.104 4.083 3.382 6.695 3.517a3.446 3.446 0 0 1 .94-3.217 3.172 3.172 0 0 1 4.596.148 6.38 6.38 0 0 0 2.063-.817 3.357 3.357 0 0 1-1.428 1.861 6.283 6.283 0 0 0 1.865-.53 6.735 6.735 0 0 1-1.62 1.744Z">
+                  </path>
+               </svg>
+            </a>
+            <a class="group flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface transition-colors hover:border-accent/40 hover:bg-accent-soft"
+               href="https://njump.me/npub1kggtaw83q0mctlwvh854xdu3wjmen8tmq9cx9l030x2ylay6wk8qy2f2e6" target="_blank" rel="noreferrer">
+               <span class="sr-only"><%= t('ui.followNostr') %></span>
+               <svg viewBox="0 0 256 256" aria-hidden="true" class="h-4 w-4 fill-ink-subtle transition-colors group-hover:fill-accent">
+                  <path
+                     d="M210.8 199.4c0 3.1-2.5 5.7-5.7 5.7h-68c-3.1 0-5.7-2.5-5.7-5.7v-15.5c.3-19 2.3-37.2 6.5-45.5 2.5-5 6.7-7.7 11.5-9.1 9.1-2.7 24.9-.9 31.7-1.2 0 0 20.4.8 20.4-10.7s-9.1-8.6-9.1-8.6c-10 .3-17.7-.4-22.6-2.4-8.3-3.3-8.6-9.2-8.6-11.2-.4-23.1-34.5-25.9-64.5-20.1-32.8 6.2.4 53.3.4 116.1v8.4c0 3.1-2.6 5.6-5.7 5.6H57.7c-3.1 0-5.7-2.5-5.7-5.7v-144c0-3.1 2.5-5.7 5.7-5.7h31.7c3.1 0 5.7 2.5 5.7 5.7 0 4.7 5.2 7.2 9 4.5 11.4-8.2 26-12.5 42.4-12.5 36.6 0 64.4 21.4 64.4 68.7v83.2ZM150 99.3c0-6.7-5.4-12.1-12.1-12.1s-12.1 5.4-12.1 12.1 5.4 12.1 12.1 12.1S150 106 150 99.3Z">
+                  </path>
+               </svg>
+            </a>
+            <a class="group flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface transition-colors hover:border-accent/40 hover:bg-accent-soft"
+               href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noreferrer">
+               <span class="sr-only"><%= t('ui.followGithub') %></span>
+               <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-ink-subtle transition-colors group-hover:fill-accent">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                     d="M10 1.667c-4.605 0-8.334 3.823-8.334 8.544 0 3.78 2.385 6.974 5.698 8.106.417.075.573-.182.573-.406 0-.203-.011-.875-.011-1.592-2.093.397-2.635-.522-2.802-1.002-.094-.246-.5-1.005-.854-1.207-.291-.16-.708-.556-.01-.567.656-.01 1.124.62 1.281.876.75 1.292 1.948.93 2.427.705.073-.555.291-.93.531-1.143-1.854-.213-3.791-.95-3.791-4.218 0-.929.322-1.698.854-2.296-.083-.214-.375-1.09.083-2.265 0 0 .698-.224 2.292.876a7.576 7.576 0 0 1 2.083-.288c.709 0 1.417.096 2.084.288 1.593-1.11 2.291-.875 2.291-.875.459 1.174.167 2.05.084 2.263.53.599.854 1.357.854 2.297 0 3.278-1.948 4.005-3.802 4.219.302.266.563.78.563 1.58 0 1.143-.011 2.061-.011 2.35 0 .224.156.491.573.405a8.365 8.365 0 0 0 4.11-3.116 8.707 8.707 0 0 0 1.567-4.99c0-4.721-3.73-8.545-8.334-8.545Z">
+                  </path>
+               </svg>
+            </a>
+         </div>
+      </div>
+   </div>
 </footer>

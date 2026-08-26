@@ -1,0 +1,24 @@
+<%#
+   HTTP method pill. One definition, used by the endpoint headings on the model
+   page and by both code partials, so GET is the same green everywhere.
+
+   Locals: method, tone ("light" over the page, "dark" over a code surface).
+-%>
+<%
+   var methodToneClasses = {
+      GET: 'bg-success-soft text-success ring-success/30',
+      POST: 'bg-info-soft text-info ring-info/30',
+      PUT: 'bg-warn-soft text-warn ring-warn/30',
+      DELETE: 'bg-danger-soft text-danger ring-danger/30'
+   };
+   var darkToneClasses = {
+      GET: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/30',
+      POST: 'bg-indigo-500/15 text-indigo-300 ring-indigo-500/30',
+      PUT: 'bg-amber-500/15 text-amber-300 ring-amber-500/30',
+      DELETE: 'bg-rose-500/15 text-rose-300 ring-rose-500/30'
+   };
+   var toneClass = (tone === 'dark' ? darkToneClasses : methodToneClasses)[method];
+%>
+<% if (toneClass) { %>
+<span class="inline-flex shrink-0 items-center rounded-md px-2 py-0.5 font-mono text-[0.6875rem] font-bold uppercase tracking-wide ring-1 ring-inset <%= toneClass %>"><%= method %></span>
+<% } %>

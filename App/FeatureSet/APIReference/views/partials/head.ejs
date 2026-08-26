@@ -1,19 +1,80 @@
 <head>
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+   <title><%= (typeof t !== 'undefined' ? t('ui.metaTitleSuffix') : 'OneUptime API Reference') %> - <%= pageTitle -%></title>
+   <meta name="description" content="<%= pageDescription -%>">
+
+   <%#
+      Theme bootstrap. Runs before any stylesheet so the first paint is already
+      in the right theme - a dark-mode reader used to get a white flash on every
+      navigation. `oneuptime-reference-theme` holds "light", "dark" or "system";
+      the older `isDarkMode` key is still read so anyone who set it keeps their
+      choice.
+   -%>
+   <script>
+      (function () {
+         var STORAGE_KEY = 'oneuptime-reference-theme';
+
+         window.__referenceTheme = {
+            key: STORAGE_KEY,
+            /* The stored choice, or "system" when nothing has been chosen. */
+            preference: function () {
+               try {
+                  var stored = window.localStorage.getItem(STORAGE_KEY);
+                  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+                     return stored;
+                  }
+                  /* Legacy key, written by the previous version of this page. */
+                  if (window.localStorage.isDarkMode === 'true') {
+                     return 'dark';
+                  }
+                  if (window.localStorage.isDarkMode === 'false') {
+                     return 'light';
+                  }
+               } catch (e) { /* Storage can be blocked; fall through to system. */ }
+               return 'system';
+            },
+            /* What the preference resolves to right now. */
+            resolved: function () {
+               var preference = window.__referenceTheme.preference();
+               if (preference !== 'system') {
+                  return preference;
+               }
+               return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            },
+            apply: function () {
+               var resolved = window.__referenceTheme.resolved();
+               var root = document.documentElement;
+               root.classList.toggle('dark', resolved === 'dark');
+               root.style.colorScheme = resolved;
+               root.setAttribute('data-theme', resolved);
+               root.setAttribute('data-theme-preference', window.__referenceTheme.preference());
+            }
+         };
+
+         window.__referenceTheme.apply();
+
+         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+            if (window.__referenceTheme.preference() === 'system') {
+               window.__referenceTheme.apply();
+            }
+         });
+
+         /* Another tab changing the theme should change this one too. */
+         window.addEventListener('storage', function (event) {
+            if (!event.key || event.key === STORAGE_KEY || event.key === 'isDarkMode') {
+               window.__referenceTheme.apply();
+            }
+         });
+      })();
+   </script>
+
    <link rel="preload" href="/reference/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
-   <style>
-      @font-face {
-         font-family: 'Inter';
-         font-style: normal;
-         font-weight: 100 900;
-         font-display: swap;
-         src: url('/reference/fonts/InterVariable.woff2') format('woff2') tech('variations'),
-              url('/reference/fonts/InterVariable.woff2') format('woff2-variations');
-      }
-   </style>
 
    <link rel="stylesheet" href="/oneuptime-assets/highlight/styles/github-dark.min.css">
    <script src="/oneuptime-assets/highlight/highlight.min.js"></script>
-   <!-- Load additional language support -->
+   <%# Grammars for every language the code tabs offer. -%>
    <script src="/oneuptime-assets/highlight/languages/python.min.js"></script>
    <script src="/oneuptime-assets/highlight/languages/go.min.js"></script>
    <script src="/oneuptime-assets/highlight/languages/java.min.js"></script>
@@ -29,376 +90,60 @@
 
    <link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
    <script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
-
    <script>
-      function applyStyles() {
-         applyStylesTo("h1", "font-bold text-2xl mb-6 text-slate-900 tracking-tight")
-         applyStylesTo("h2", "mb-5 scroll-mt-24 mt-16 font-semibold text-xl text-slate-900 tracking-tight")
-         applyStylesTo("h3", "mb-4 scroll-mt-24 mt-10 font-semibold text-base text-slate-800")
-         applyStylesTo("p", "mb-5 text-slate-600 leading-7")
-         applyStylesTo("link", "text-indigo-600 hover:text-indigo-700 font-medium transition-colors")
-         applyStylesTo("model-inline-code", "rounded-md py-0.5 px-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200")
-         applyStylesTo("inline-code", "rounded-md py-0.5 px-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200")
+      /*
+       * Every colour is a CSS variable holding an "R G B" triple, so switching
+       * theme is one variable flip on <html> rather than a `dark:` twin on each
+       * of the several thousand utility classes in these templates. The
+       * <alpha-value> placeholder keeps the /opacity modifiers working.
+       */
+      function referenceColor(variableName) {
+         return 'rgb(var(--ou-' + variableName + ') / <alpha-value>)';
       }
 
-      function applyStylesTo(tagOrClassName, classList) {
-         let elements = document.getElementsByClassName(tagOrClassName);
-         if(elements.length === 0){
-            elements = document.getElementsByTagName(tagOrClassName);
+      tailwind.config = {
+         darkMode: 'class',
+         theme: {
+            extend: {
+               colors: {
+                  canvas: referenceColor('canvas'),
+                  surface: referenceColor('surface'),
+                  'surface-soft': referenceColor('surface-soft'),
+                  'surface-raised': referenceColor('surface-raised'),
+                  line: referenceColor('line'),
+                  'line-soft': referenceColor('line-soft'),
+                  ink: referenceColor('ink'),
+                  'ink-muted': referenceColor('ink-muted'),
+                  'ink-subtle': referenceColor('ink-subtle'),
+                  'ink-faint': referenceColor('ink-faint'),
+                  accent: referenceColor('accent'),
+                  'accent-strong': referenceColor('accent-strong'),
+                  'accent-soft': referenceColor('accent-soft'),
+                  'accent-contrast': referenceColor('accent-contrast'),
+                  success: referenceColor('success'),
+                  'success-soft': referenceColor('success-soft'),
+                  warn: referenceColor('warn'),
+                  'warn-soft': referenceColor('warn-soft'),
+                  danger: referenceColor('danger'),
+                  'danger-soft': referenceColor('danger-soft'),
+                  info: referenceColor('info'),
+                  'info-soft': referenceColor('info-soft')
+               },
+               fontFamily: {
+                  sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                  mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+               },
+               maxWidth: {
+                  '8xl': '90rem'
+               }
+            }
          }
-         for (var i = 0, all = elements.length; i < all; i++) {
-            classList.split(" ").map((classItem)=> {
-               elements[i].classList.add(classItem);
-            })
-         }
-      }
+      };
    </script>
 
-   <style>
-      * {
-         font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      }
+   <%- include('styles') -%>
 
-      html {
-         scroll-behavior: smooth;
-         -webkit-font-smoothing: antialiased;
-         -moz-osx-font-smoothing: grayscale;
-      }
-
-      /* Better prose styling */
-      .prose p {
-         color: #475569;
-         line-height: 1.75;
-      }
-
-      .prose .lead {
-         font-size: 1.125rem;
-         color: #64748b;
-         line-height: 1.75;
-      }
-
-      .prose hr {
-         border-color: #e2e8f0;
-         margin-top: 2.5rem;
-         margin-bottom: 2.5rem;
-      }
-
-      .prose ul {
-         list-style: none;
-         padding: 0;
-      }
-
-      /* Syntax highlighting - comprehensive token styles */
-      .hljs {
-         background: transparent !important;
-      }
-
-      /* Keywords: import, from, def, class, if, else, for, while, return, etc. */
-      .hljs-keyword,
-      .hljs-built_in,
-      .hljs-type,
-      .hljs-literal,
-      .hljs-symbol {
-         color: #c792ea !important;
-      }
-
-      /* Strings */
-      .hljs-string,
-      .hljs-doctag,
-      .hljs-regexp {
-         color: #c3e88d !important;
-      }
-
-      /* Numbers */
-      .hljs-number {
-         color: #f78c6c !important;
-      }
-
-      /* Comments */
-      .hljs-comment {
-         color: #676e95 !important;
-         font-style: italic;
-      }
-
-      /* Function/method names */
-      .hljs-title,
-      .hljs-title.function_,
-      .hljs-title.class_ {
-         color: #82aaff !important;
-      }
-
-      /* Variables and parameters */
-      .hljs-variable,
-      .hljs-params,
-      .hljs-attr {
-         color: #f07178 !important;
-      }
-
-      /* Properties and attributes */
-      .hljs-property,
-      .hljs-attribute {
-         color: #ffcb6b !important;
-      }
-
-      /* Punctuation */
-      .hljs-punctuation {
-         color: #89ddff !important;
-      }
-
-      /* Operators */
-      .hljs-operator {
-         color: #89ddff !important;
-      }
-
-      /* Meta/preprocessor */
-      .hljs-meta {
-         color: #ffcb6b !important;
-      }
-
-      /* Section headers */
-      .hljs-section {
-         color: #82aaff !important;
-      }
-
-      /* Names (function calls, etc) */
-      .hljs-name {
-         color: #f07178 !important;
-      }
-
-      /* Selector tags in CSS */
-      .hljs-selector-tag,
-      .hljs-selector-class,
-      .hljs-selector-id {
-         color: #c792ea !important;
-      }
-
-      /* Template variables */
-      .hljs-template-variable {
-         color: #f07178 !important;
-      }
-
-      /* Deletion/addition in diffs */
-      .hljs-deletion {
-         color: #f07178 !important;
-      }
-
-      .hljs-addition {
-         color: #c3e88d !important;
-      }
-
-      /* Custom scrollbar */
-      ::-webkit-scrollbar {
-         width: 6px;
-         height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-         background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-         background: #e2e8f0;
-         border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-         background: #cbd5e1;
-      }
-
-      /* Code block copy button */
-      .code-block-wrapper {
-         position: relative;
-      }
-
-      /* Response block copy button */
-      .copy-btn-response {
-         display: flex;
-         align-items: center;
-         gap: 6px;
-         padding: 6px 12px;
-         font-size: 12px;
-         font-weight: 500;
-         color: #94a3b8;
-         background: rgba(30, 41, 59, 0.6);
-         border: 1px solid #334155;
-         border-radius: 6px;
-         cursor: pointer;
-         transition: all 0.15s ease;
-      }
-      .copy-btn-response:hover {
-         color: #f1f5f9;
-         background: #334155;
-         border-color: #475569;
-      }
-      .copy-btn-response.copied {
-         color: #22c55e;
-         border-color: #22c55e;
-         background: rgba(34, 197, 94, 0.1);
-      }
-
-      /* Code tabs styling */
-      .code-tabs-container {
-         --tab-hover-bg: rgba(30, 41, 59, 0.5);
-      }
-
-      .code-tab {
-         position: relative;
-         border-bottom: 2px solid transparent;
-      }
-
-      .code-tab[aria-selected="true"] {
-         border-bottom-color: #6366f1;
-      }
-
-      .code-panel {
-         position: relative;
-      }
-
-      .copy-btn-tabs {
-         position: absolute;
-         top: 12px;
-         right: 12px;
-         display: flex;
-         align-items: center;
-         gap: 6px;
-         padding: 6px 12px;
-         font-size: 12px;
-         font-weight: 500;
-         color: #94a3b8;
-         background: rgba(30, 41, 59, 0.9);
-         border: 1px solid #334155;
-         border-radius: 6px;
-         cursor: pointer;
-         opacity: 0;
-         transition: all 0.15s ease;
-         z-index: 10;
-         backdrop-filter: blur(4px);
-      }
-
-      .code-panel:hover .copy-btn-tabs {
-         opacity: 1;
-      }
-
-      .copy-btn-tabs:hover {
-         color: #f1f5f9;
-         background: #334155;
-         border-color: #475569;
-      }
-
-      .copy-btn-tabs.copied {
-         color: #22c55e;
-         border-color: #22c55e;
-         background: rgba(34, 197, 94, 0.1);
-      }
-
-      /* Code content min-height for consistent sizing */
-      .code-content {
-         min-height: 200px;
-      }
-
-      /* Fix code tabs width - prevent content from expanding container */
-      .code-tabs-container {
-         width: 100%;
-         max-width: 100%;
-         overflow: hidden;
-      }
-
-      .code-tabs-container pre {
-         width: 0;
-         min-width: 100%;
-         overflow-x: auto;
-      }
-
-      .code-panel {
-         width: 100%;
-         max-width: 100%;
-         overflow: hidden;
-      }
-
-      .code-content {
-         width: 100%;
-         max-width: 100%;
-         overflow: hidden;
-      }
-
-      .code-content pre code {
-         display: block;
-         white-space: pre;
-         word-wrap: normal;
-      }
-
-      /* Hide scrollbar for tabs but keep functionality */
-      .scrollbar-hide {
-         -ms-overflow-style: none;
-         scrollbar-width: none;
-      }
-      .scrollbar-hide::-webkit-scrollbar {
-         display: none;
-      }
-
-      /* Tab indicator animation */
-      .tab-indicator {
-         transition: all 0.2s ease;
-      }
-
-      /* Code panel base styles */
-      .code-panel pre {
-         margin: 0;
-         background: transparent;
-      }
-
-      .code-panel code {
-         font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-         font-size: 13px;
-         line-height: 1.6;
-         color: #e2e8f0;
-      }
-
-      /* Better focus states */
-      a:focus-visible, button:focus-visible {
-         outline: 2px solid #6366f1;
-         outline-offset: 2px;
-         border-radius: 4px;
-      }
-
-      /* Smooth transitions */
-      a, button {
-         transition: all 0.15s ease;
-      }
-
-      /* Property list styling */
-      .property-item {
-         padding: 1rem 0;
-         border-bottom: 1px solid #f1f5f9;
-      }
-      .property-item:last-child {
-         border-bottom: none;
-      }
-
-      /* Endpoint card styling */
-      .endpoint-card {
-         background: linear-gradient(to right, #fafafa, white);
-         border-radius: 0.75rem;
-         padding: 1.5rem;
-         border: 1px solid #e2e8f0;
-         margin-bottom: 1.5rem;
-      }
-
-      /* Calendar picker */
-      input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-      input[type="date"]::-webkit-calendar-picker-indicator {
-         background: transparent;
-         bottom: 0;
-         color: transparent;
-         cursor: pointer;
-         height: auto;
-         left: 0;
-         position: absolute;
-         right: 0;
-         top: 0;
-         width: auto;
-      }
-   </style>
-
-   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
-
+   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
    <!-- Google Tag Manager -->
    <script>(function (w, d, s, l, i) {
          w[l] = w[l] || []; w[l].push({
@@ -411,15 +156,6 @@
    <!-- End Google Tag Manager -->
    <% } %>
 
-
-   <style>
-      .async-hide {
-         opacity: 0 !important
-      }
-   </style>
-
-   <meta charset="utf-8" />
-   <meta name="viewport" content="width=device-width, initial-scale=1" />
    <link rel="shortcut icon" href="/img/favicons/favicon.ico">
    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
@@ -430,6 +166,11 @@
    <link rel="icon" href="/img/ou-wb.svg">
    <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
    <link rel="manifest" href="/manifest.json">
+
+   <%# Follows the resolved theme so browser chrome does not clash with the page. -%>
+   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+   <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
+
    <meta property="og:title" content="OneUptime - One Complete Observability platform.">
    <meta property="og:url" content="https://oneuptime.com">
    <meta property="og:type" content="website" />
@@ -438,13 +179,11 @@
    <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
 
    <meta name="twitter:card" content="summary">
-   <meta name="theme-color" content="#6366f1">
    <meta name="twitter:image" content="/img/ou-wb.svg">
    <meta name="twitter:site" content="@oneuptimeinc">
    <meta name="twitter:title" content="OneUptime - One Complete Observability platform.">
    <meta name="twitter:description"
       content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-
 
    <script type="application/ld+json">
      {
@@ -462,45 +201,4 @@
      "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
  }
  </script>
-   <meta charset="utf-8">
-   <meta name="viewport" content="width=device-width">
-   <title><%= (typeof t !== 'undefined' ? t('ui.metaTitleSuffix') : 'OneUptime API Reference') %> - <%= pageTitle -%>
-   </title>
-   <meta name="description" content="<%= pageDescription -%>">
-   <meta name="next-head-count" content="4">
-   <script>
-      let darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-      updateMode()
-      darkModeMediaQuery.addEventListener('change', updateModeWithoutTransitions)
-      window.addEventListener('storage', updateModeWithoutTransitions)
-
-      function updateMode() {
-         let isSystemDarkMode = darkModeMediaQuery.matches
-         let isDarkMode = window.localStorage.isDarkMode === 'true' || (!('isDarkMode' in window.localStorage) && isSystemDarkMode)
-
-         if (isDarkMode) {
-            document.documentElement.classList.add('dark')
-         } else {
-            document.documentElement.classList.remove('dark')
-         }
-
-         if (isDarkMode === isSystemDarkMode) {
-            delete window.localStorage.isDarkMode
-         }
-      }
-
-      function disableTransitionsTemporarily() {
-         document.documentElement.classList.add('[&_*]:!transition-none')
-         window.setTimeout(() => {
-            document.documentElement.classList.remove('[&_*]:!transition-none')
-         }, 0)
-      }
-
-      function updateModeWithoutTransitions() {
-         disableTransitionsTemporarily()
-         updateMode()
-      }
-   </script>
-
 </head>
