@@ -90,6 +90,35 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     };
   }
 
+  /*
+   * The monitor types whose criteria MonitorCriteriaEvaluator hands to
+   * MetricMonitorCriteria. That evaluator reads exactly one thing -
+   * CheckOn.MetricValue - so these types share a single pair of defaults:
+   * a metric that is reporting a value means online, a metric that has
+   * gone to zero means offline.
+   *
+   * Kept in step with the routing list in MonitorCriteriaEvaluator and
+   * with the check-on narrowing in the dashboard's CriteriaFilter util,
+   * which offers these types the metric value and nothing else. A type
+   * missing here falls through to `new MonitorCriteriaInstance()` and
+   * ships an unnamed criteria whose "Is Online" filter no evaluator on
+   * this path reads - a rule that can never fire and cannot be saved,
+   * since getValidationError requires a name and a description.
+   */
+  public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
+    return (
+      monitorType === MonitorType.Metrics ||
+      monitorType === MonitorType.Kubernetes ||
+      monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Host ||
+      monitorType === MonitorType.Podman ||
+      monitorType === MonitorType.DockerSwarm ||
+      monitorType === MonitorType.Proxmox ||
+      monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.IoTDevice
+    );
+  }
+
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
@@ -239,7 +268,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (arg.monitorType === MonitorType.Metrics) {
+    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -261,7 +290,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                   ? arg.metricOptions.metricAliases[0]
                   : undefined,
             },
-            value: 0, // if there are some logs then monitor is online.
+            value: 0, // the metric is reporting above zero, so the monitor is online.
           },
         ],
         incidents: [],
@@ -276,7 +305,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (arg.monitorType === MonitorType.Kubernetes) {
+    if (arg.monitorType === MonitorType.Profiles) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -286,19 +315,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.Any,
         filters: [
           {
-            checkOn: CheckOn.MetricValue,
+            checkOn: CheckOn.ProfileCount,
             filterType: FilterType.GreaterThan,
-
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias:
-                arg.metricOptions &&
-                arg.metricOptions.metricAliases &&
-                arg.metricOptions.metricAliases.length > 0
-                  ? arg.metricOptions.metricAliases[0]
-                  : undefined,
-            },
-            value: 0,
+            value: 0, // if profiles are arriving then the monitor is online.
           },
         ],
         incidents: [],
@@ -1137,7 +1156,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (arg.monitorType === MonitorType.Metrics) {
+    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -1155,7 +1174,15 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
                   ? arg.metricOptions.metricAliases[0]
                   : undefined,
             },
-            value: 0, // if there are no logs then the monitor is offline
+            /*
+             * A reported value of zero, not an absent one. When the window
+             * holds no samples at all the evaluator honours
+             * metricMonitorOptions.onNoDataPolicy, which defaults to
+             * Ignore, so silence alone does not fire this - a user who
+             * wants "stopped reporting" to page has to opt into
+             * NoDataPolicy.Trigger or TreatAsZero on the filter.
+             */
+            value: 0,
           },
         ],
         incidents: [
@@ -1186,25 +1213,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (arg.monitorType === MonitorType.Kubernetes) {
+    if (arg.monitorType === MonitorType.Profiles) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.Any,
         filters: [
           {
-            checkOn: CheckOn.MetricValue,
+            checkOn: CheckOn.ProfileCount,
             filterType: FilterType.EqualTo,
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias:
-                arg.metricOptions &&
-                arg.metricOptions.metricAliases &&
-                arg.metricOptions.metricAliases.length > 0
-                  ? arg.metricOptions.metricAliases[0]
-                  : undefined,
-            },
-            value: 0,
+            value: 0, // if no profiles are arriving then the monitor is offline
           },
         ],
         incidents: [

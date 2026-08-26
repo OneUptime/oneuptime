@@ -200,30 +200,34 @@ describe("ProfileMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
   });
 
   /*
-   * The exact production shape of a "profile presence" alert: criteria
-   * "Profile Count >= 1" flips the monitor Offline the moment a matching
-   * profile is ingested. Mirrors the log-presence offline criteria and keeps
-   * the count-based criteria in lock-step.
+   * A hand-written inversion of the shipped default, not the default itself.
+   * Profiles ships the Logs polarity - profiles arriving is the sign of life,
+   * so the default offline criteria is "Profile Count == 0" (covered above)
+   * and the online one is "Profile Count > 0". Someone monitoring for the
+   * appearance of profiles rather than their absence can write "Profile
+   * Count >= 1" and point it at the offline status instead; these tests pin
+   * that the evaluator decides that rule the same way, since nothing in
+   * ProfileMonitorCriteria knows or cares which status a criteria carries.
    */
-  describe("profile-presence offline criteria (Profile Count >= 1)", () => {
-    const offlineCriteria: CriteriaFilter = {
+  describe("a user-authored profile-presence criteria (Profile Count >= 1)", () => {
+    const presenceCriteria: CriteriaFilter = {
       checkOn: CheckOn.ProfileCount,
       filterType: FilterType.GreaterThanOrEqualTo,
       value: 1,
     };
 
-    test("one matching profile → met (monitor goes offline)", async () => {
-      const result: string | null = await evaluate(1, offlineCriteria);
+    test("one matching profile → met", async () => {
+      const result: string | null = await evaluate(1, presenceCriteria);
       expect(result).toBeTruthy();
       expect(result).toContain("Profile Count");
     });
 
     test("many matching profiles → met", async () => {
-      expect(await evaluate(6718284, offlineCriteria)).toBeTruthy();
+      expect(await evaluate(6718284, presenceCriteria)).toBeTruthy();
     });
 
-    test("zero matching profiles → not met (monitor stays operational)", async () => {
-      expect(await evaluate(0, offlineCriteria)).toBeNull();
+    test("zero matching profiles → not met", async () => {
+      expect(await evaluate(0, presenceCriteria)).toBeNull();
     });
   });
 

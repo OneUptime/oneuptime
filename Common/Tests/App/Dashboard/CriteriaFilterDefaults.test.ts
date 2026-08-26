@@ -90,28 +90,25 @@ const MONITOR_TYPES_WITH_CRITERIA: Array<MonitorType> =
  * filter. `getDefaultOnlineMonitorCriteriaInstance` returns null for them
  * outright.
  *
- * That placeholder is nobody's design for these types. None of their
- * evaluators decides on "Is Online": the metric family and IoT Device go to
- * MetricMonitorCriteria, Profiles to ProfileMonitorCriteria, and Manual
- * monitors are never evaluated at all. It went unnoticed while every one of
- * these types offered the whole CheckOn enum, because "Is Online" was then on
- * offer everywhere; narrowing the lists is what surfaced it.
+ * Manual monitors are the only type left here, and for them the blank is not
+ * a gap: nothing polls a Manual monitor, MonitorCriteriaEvaluator has no
+ * branch for it, and the Criteria page draws an empty state in place of the
+ * form. There is no criteria to seed.
  *
- * Writing real defaults for these types is its own change. This list pins the
- * gap from both sides - the assertions below fail if a type here quietly grows
- * a real default, and if a type not here quietly loses one - so the two sweeps
- * can skip them without pretending they pass.
+ * Eight types used to sit alongside it - Docker, Host, Podman, Docker Swarm,
+ * Proxmox, Ceph, IoT Device, and Profiles. That placeholder was nobody's
+ * design for any of them: none of their evaluators decides on "Is Online",
+ * the metric family and IoT Device going to MetricMonitorCriteria and
+ * Profiles to ProfileMonitorCriteria. They now seed real defaults on the one
+ * check their evaluator does read, so they have moved to the other list and
+ * are held to the same renderability bar as every other type.
+ *
+ * This list pins the gap from both sides - the assertions below fail if a
+ * type here quietly grows a real default, and if a type not here quietly
+ * loses one.
  */
 const MONITOR_TYPES_WITHOUT_SEEDED_CRITERIA: Array<MonitorType> = [
   MonitorType.Manual,
-  MonitorType.Docker,
-  MonitorType.Host,
-  MonitorType.Podman,
-  MonitorType.DockerSwarm,
-  MonitorType.Proxmox,
-  MonitorType.Ceph,
-  MonitorType.IoTDevice,
-  MonitorType.Profiles,
 ];
 
 const MONITOR_TYPES_WITH_SEEDED_CRITERIA: Array<MonitorType> =
