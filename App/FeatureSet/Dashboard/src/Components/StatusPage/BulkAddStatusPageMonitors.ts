@@ -12,6 +12,11 @@ export interface BulkAddStatusPageMonitorFailure {
 export interface BulkAddStatusPageMonitorsResult {
   succeeded: Array<Monitor>;
   failed: Array<BulkAddStatusPageMonitorFailure>;
+  /**
+   * Monitors that were selected but are already on the status page. They are
+   * left alone rather than added a second time - see `existingMonitorIds`.
+   */
+  skipped: Array<Monitor>;
 }
 
 /**
@@ -35,6 +40,13 @@ export interface BulkAddStatusPageMonitorsOptions {
   rowAxisValue?: string | undefined;
   columnAxisValue?: string | undefined;
   resourceOptions?: BulkAddStatusPageMonitorResourceOptions | undefined;
+  /**
+   * Monitors the status page already lists. Selecting monitors by label
+   * re-selects every monitor carrying that label, including the ones already
+   * added, so adding by label has to be idempotent: anything in here is
+   * reported as skipped instead of being added a second time (issue #3420).
+   */
+  existingMonitorIds?: Array<ObjectID | string> | undefined;
   createResource?:
     | ((resource: StatusPageResource) => Promise<void>)
     | undefined;
@@ -51,11 +63,32 @@ const createResourceWithModelAPI: CreateResourceFunction = async (
   });
 };
 
+type ToMonitorIdSetFunction = (
+  monitorIds: Array<ObjectID | string> | undefined,
+) => Set<string>;
+
+const toMonitorIdSet: ToMonitorIdSetFunction = (
+  monitorIds: Array<ObjectID | string> | undefined,
+): Set<string> => {
+  const ids: Set<string> = new Set<string>();
+
+  for (const monitorId of monitorIds || []) {
+    const id: string = monitorId ? monitorId.toString() : "";
+
+    if (id) {
+      ids.add(id);
+    }
+  }
+
+  return ids;
+};
+
 /**
  * Creates one status page resource for every distinct monitor in the order it
- * was selected. The status page resource service assigns display order during
- * each create, so these requests intentionally run sequentially to avoid
- * concurrent creates receiving the same order.
+ * was selected, skipping the monitors the status page already lists. The
+ * status page resource service assigns display order during each create, so
+ * these requests intentionally run sequentially to avoid concurrent creates
+ * receiving the same order.
  */
 export const bulkAddStatusPageMonitors: (
   options: BulkAddStatusPageMonitorsOptions,
@@ -65,8 +98,12 @@ export const bulkAddStatusPageMonitors: (
   const result: BulkAddStatusPageMonitorsResult = {
     succeeded: [],
     failed: [],
+    skipped: [],
   };
   const processedMonitorIds: Set<string> = new Set<string>();
+  const existingMonitorIds: Set<string> = toMonitorIdSet(
+    options.existingMonitorIds,
+  );
   const createResource: CreateResourceFunction =
     options.createResource || createResourceWithModelAPI;
 
@@ -91,6 +128,16 @@ export const bulkAddStatusPageMonitors: (
       }
 
       processedMonitorIds.add(monitorIdString);
+
+      /*
+       * Already on the page: not an error and not a create. The monitor keeps
+       * the resource it has, with whatever display name and options someone
+       * gave it, and the caller is told it was left alone.
+       */
+      if (existingMonitorIds.has(monitorIdString)) {
+        result.skipped.push(monitor);
+        continue;
+      }
 
       const resource: StatusPageResource = new StatusPageResource();
       resource.projectId = options.projectId;
