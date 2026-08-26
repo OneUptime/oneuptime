@@ -74,7 +74,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "DockerSwarmClusterOwnerUser",
 })
-@Index(["dockerSwarmClusterId", "userId", "projectId"], { unique: true })
+@Index(["dockerSwarmClusterId", "userId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export default class DockerSwarmClusterOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

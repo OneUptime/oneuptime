@@ -74,7 +74,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ServerlessFunctionOwnerUser",
 })
-@Index(["serverlessFunctionId", "userId", "projectId"], { unique: true })
+@Index(["serverlessFunctionId", "userId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export default class ServerlessFunctionOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

@@ -1,4 +1,4 @@
-import { UniqueOwnerRows1787725772959 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1787725772959-UniqueOwnerRows";
+import { UniqueOwnerRows1787729350313 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1787729350313-UniqueOwnerRows";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, it } from "@jest/globals";
@@ -31,8 +31,8 @@ interface CapturedSql {
 }
 
 async function captureSql(): Promise<CapturedSql> {
-  const migration: UniqueOwnerRows1787725772959 =
-    new UniqueOwnerRows1787725772959();
+  const migration: UniqueOwnerRows1787729350313 =
+    new UniqueOwnerRows1787729350313();
 
   const up: Array<string> = [];
   const down: Array<string> = [];
@@ -60,7 +60,7 @@ const INDEX_STATEMENT: RegExp =
 
 describe("UniqueOwnerRows migration", () => {
   it("is registered, so it actually runs on startup", () => {
-    expect(SchemaMigrations).toContain(UniqueOwnerRows1787725772959);
+    expect(SchemaMigrations).toContain(UniqueOwnerRows1787729350313);
   });
 
   it("collapses duplicates before building each unique index", async () => {
@@ -87,21 +87,66 @@ describe("UniqueOwnerRows migration", () => {
        * index is built while the duplicates are still there and the whole
        * migration aborts.
        */
-      const dedupedEarlier: boolean = up
+      const repairedEarlier: boolean = up
         .slice(0, index)
         .some((earlier: string) => {
           return (
-            earlier.startsWith(`DELETE FROM "${table}"`) &&
-            earlier.includes(`USING "${table}"`)
+            earlier.includes(`FROM "${table}"`) &&
+            earlier.includes(`UPDATE "${table}"`) &&
+            earlier.includes(`SET "deletedAt" = CURRENT_TIMESTAMP`)
           );
         });
 
-      if (!dedupedEarlier) {
-        offenders.push(`${table}: unique index built with no preceding DELETE`);
+      if (!repairedEarlier) {
+        offenders.push(
+          `${table}: unique index built with no preceding soft-delete repair`,
+        );
       }
     });
 
     expect(offenders).toEqual([]);
+  });
+
+  it("builds every unique index as PARTIAL on deletedAt IS NULL", async () => {
+    /*
+     * House convention (see migration 1786200000000): an unqualified unique
+     * index lets a soft-deleted row hold the tuple hostage -- remove an
+     * owner whose ghost row exists and it can never be re-added. Partial on
+     * live rows matches how every app query reads, and lets the repair be
+     * non-destructive.
+     */
+    const { up }: CapturedSql = await captureSql();
+
+    const offenders: Array<string> = up.filter((sql: string) => {
+      return (
+        sql.includes("CREATE UNIQUE INDEX") &&
+        !sql.includes(`WHERE "deletedAt" IS NULL`)
+      );
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("repairs only live rows and never hard-deletes", async () => {
+    const { up }: CapturedSql = await captureSql();
+
+    const repairs: Array<string> = up.filter((sql: string) => {
+      return sql.includes(`SET "deletedAt" = CURRENT_TIMESTAMP`);
+    });
+
+    // One repair per owner table.
+    expect(repairs.length).toBe(66);
+
+    for (const sql of repairs) {
+      // Ranked over live rows only: pre-existing ghosts stay untouched.
+      expect(sql).toContain(`WHERE "deletedAt" IS NULL`);
+    }
+
+    const hardDeletes: Array<string> = up.filter((sql: string) => {
+      return sql.includes("DELETE FROM");
+    });
+
+    expect(hardDeletes).toEqual([]);
   });
 
   it("covers every owner table it indexes", async () => {
@@ -123,38 +168,51 @@ describe("UniqueOwnerRows migration", () => {
     expect(indexedTables.size).toBe(66);
   });
 
-  it("restores each index in down() with the SAME column order as up()", async () => {
+  it("restores each plain index in down() with the entity's column order", async () => {
+    /*
+     * TypeORM generated down()'s restore statements with their columns
+     * REVERSED. The restored plain composite and the partial unique both
+     * derive from the same entity tuple (resourceId, ownerId, projectId),
+     * so match by TABLE -- matching by index name would be vacuous here,
+     * since the partial unique hashes to a different name than the plain
+     * composite it replaced.
+     */
     const { up, down }: CapturedSql = await captureSql();
 
-    const upColumns: Map<string, string> = new Map<string, string>();
+    const upColumnsByTable: Map<string, string> = new Map<string, string>();
 
     for (const sql of up) {
       const match: RegExpMatchArray | null = sql.match(INDEX_STATEMENT);
       if (match && sql.includes("CREATE UNIQUE INDEX")) {
-        upColumns.set(match[1]!, match[3]!.trim());
+        upColumnsByTable.set(match[2]!, match[3]!.trim());
       }
     }
 
     const offenders: Array<string> = [];
+    let restoredCount: number = 0;
 
     for (const sql of down) {
       const match: RegExpMatchArray | null = sql.match(INDEX_STATEMENT);
 
-      if (!match || !sql.includes("CREATE INDEX")) {
+      if (!match || sql.includes("CREATE UNIQUE INDEX")) {
         continue;
       }
 
-      const name: string = match[1]!;
-      const restored: string = match[3]!.trim();
-      const original: string | undefined = upColumns.get(name);
+      restoredCount += 1;
 
-      if (original && restored !== original) {
+      const table: string = match[2]!;
+      const restored: string = match[3]!.trim();
+      const entityOrder: string | undefined = upColumnsByTable.get(table);
+
+      if (entityOrder && restored !== entityOrder) {
         offenders.push(
-          `${match[2]}: down() restores (${restored}) but the index is (${original})`,
+          `${table}: down() restores (${restored}) but the entity tuple is (${entityOrder})`,
         );
       }
     }
 
+    // The 30 tables that had a plain composite before this migration.
+    expect(restoredCount).toBe(30);
     expect(offenders).toEqual([]);
   });
 

@@ -75,7 +75,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "PodmanHostOwnerTeam",
 })
-@Index(["podmanHostId", "teamId", "projectId"], { unique: true })
+@Index(["podmanHostId", "teamId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export default class PodmanHostOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [
