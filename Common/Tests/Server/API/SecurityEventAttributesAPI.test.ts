@@ -1,4 +1,5 @@
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -289,6 +290,19 @@ describe("Security event attribute API", () => {
 
     projectId = ObjectID.generate();
     userId = ObjectID.generate();
+
+    /*
+     * CI runs the Common suite with BILLING_ENABLED=true (see test-setup.sh),
+     * so getDatabaseCommonInteractionProps resolves the caller's plan through
+     * ProjectService.getCurrentPlan. These fixtures use a project that never
+     * exists in the database, so the real lookup throws "Project ID is invalid"
+     * and the handler's error path swallows the request before it ever reaches
+     * the attribute service. Billing is orthogonal to what this file pins, so
+     * stub the plan lookup to a benign value and let the rest run for real.
+     */
+    jest
+      .spyOn(ProjectService, "getCurrentPlan")
+      .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false });
 
     fetchAttributes = jest.spyOn(
       TelemetryAttributeService,
