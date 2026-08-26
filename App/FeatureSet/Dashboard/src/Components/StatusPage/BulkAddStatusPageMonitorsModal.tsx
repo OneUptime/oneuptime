@@ -1,9 +1,13 @@
+import addStatusPageMonitorsWithLabelSync, {
+  AddStatusPageMonitorsWithLabelSyncResult,
+} from "./AddStatusPageMonitorsWithLabelSync";
 import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorFailure,
   BulkAddStatusPageMonitorsResult,
 } from "./BulkAddStatusPageMonitors";
 import { getStatusPageResourceAdvancedFields } from "./StatusPageResourceFormFields";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -18,6 +22,7 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { BulkAddedLabel } from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, {
   FunctionComponent,
@@ -50,6 +55,7 @@ export interface ComponentProps {
  */
 export interface BulkAddStatusPageMonitorsFormValues {
   monitors?: Array<ObjectID | string> | undefined;
+  keepInSyncWithLabels?: boolean | undefined;
   rowAxisValue?: string | undefined;
   columnAxisValue?: string | undefined;
   displayTooltip?: string | undefined;
@@ -69,6 +75,22 @@ const FORM_STEPS: Array<FormStep<BulkAddStatusPageMonitorsFormValues>> = [
     id: "advanced",
   },
 ];
+
+type CreateMonitorRuleFunction = (rule: StatusPageMonitorRule) => Promise<void>;
+
+/*
+ * The write that makes a label-populated group stay populated. Lives here
+ * rather than in the runner so the runner stays free of ModelAPI and every one
+ * of its branches is testable without a browser.
+ */
+const createMonitorRule: CreateMonitorRuleFunction = async (
+  rule: StatusPageMonitorRule,
+): Promise<void> => {
+  await ModelAPI.create<StatusPageMonitorRule>({
+    model: rule,
+    modelType: StatusPageMonitorRule,
+  });
+};
 
 type ToObjectIdsFunction = (value: unknown) => Array<ObjectID>;
 
@@ -105,9 +127,23 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [result, setResult] = useState<BulkAddStatusPageMonitorsResult | null>(
-    null,
-  );
+  const [result, setResult] =
+    useState<AddStatusPageMonitorsWithLabelSyncResult | null>(null);
+  /*
+   * Which labels the picker expanded to fill the monitor list. The picker
+   * drops the label the moment it hands back the monitors, so this is the only
+   * record that the selection came from a label at all - and it is what turns
+   * a one-time bulk add into a rule that keeps the group populated (#3418).
+   */
+  const [syncLabels, setSyncLabels] = useState<Array<BulkAddedLabel>>([]);
+  /*
+   * The same list in a ref. State is what makes the toggle appear; the ref is
+   * what submit reads, because the submit handler reaches this component
+   * through the form and can be a closure older than the current render.
+   */
+  const syncLabelsRef: MutableRefObject<Array<BulkAddedLabel>> = useRef<
+    Array<BulkAddedLabel>
+  >([]);
   const [submitButtonText, setSubmitButtonText] =
     useState<string>("Add Monitors");
 
@@ -132,6 +168,46 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         },
         required: true,
         placeholder: "Select Monitors",
+        stepId: "monitor-details",
+        onLabelsBulkAdded: (labels: Array<BulkAddedLabel>): void => {
+          const merged: Map<string, BulkAddedLabel> = new Map<
+            string,
+            BulkAddedLabel
+          >();
+
+          for (const label of [...syncLabelsRef.current, ...labels]) {
+            if (label?.id) {
+              merged.set(label.id, label);
+            }
+          }
+
+          syncLabelsRef.current = Array.from(merged.values());
+          setSyncLabels(syncLabelsRef.current);
+        },
+      },
+      /*
+       * Declared unconditionally so the form seeds it with its default the one
+       * time it builds initial values; showIf keeps it out of sight until the
+       * user has actually bulk-added by label and the question means something.
+       *
+       * Never offered for a grid group: a rule cannot record the row and
+       * column the user is being asked for two fields below, and a resource in
+       * a grid group with neither is dropped by the public page. Promising
+       * live sync there would promise monitors nobody can see.
+       */
+      {
+        field: {
+          keepInSyncWithLabels: true,
+        },
+        title: "Keep This Group In Sync With These Labels",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        defaultValue: true,
+        description:
+          "Monitors carrying these labels are added to this group now and whenever a new monitor is given one of them. Turn this off to add only the monitors selected above, once.",
+        showIf: (): boolean => {
+          return syncLabels.length > 0 && !props.gridPlacement;
+        },
         stepId: "monitor-details",
       },
     ];
@@ -253,8 +329,8 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     try {
       const monitors: Array<Monitor> = await fetchMonitors(monitorIds);
 
-      const bulkResult: BulkAddStatusPageMonitorsResult =
-        await bulkAddStatusPageMonitors({
+      const bulkResult: AddStatusPageMonitorsWithLabelSyncResult =
+        await addStatusPageMonitorsWithLabelSync({
           monitors: monitors,
           projectId: props.projectId,
           statusPageId: props.statusPageId,
@@ -270,6 +346,10 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
               : undefined,
             showStatusHistoryChart: Boolean(values.showStatusHistoryChart),
           },
+          syncLabels: syncLabelsRef.current,
+          keepInSyncWithLabels: Boolean(values.keepInSyncWithLabels),
+          bulkAdd: bulkAddStatusPageMonitors,
+          createMonitorRule: createMonitorRule,
         });
 
       setResult(bulkResult);
@@ -301,6 +381,23 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         onClose={props.onClose}
       >
         <div className="space-y-4">
+          {result.monitorRule && !result.monitorRuleError ? (
+            <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+              This group now stays in sync with the labels you used. Monitors
+              given one of those labels later are added here automatically.
+            </div>
+          ) : null}
+
+          {result.monitorRuleError ? (
+            <div className="rounded-md bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+              <span className="font-medium">
+                The monitors were added, but this group could not be kept in
+                sync with the labels you used:
+              </span>{" "}
+              {API.getFriendlyMessage(result.monitorRuleError)}
+            </div>
+          ) : null}
+
           {result.succeeded.length > 0 ? (
             <div>
               <h4 className="text-sm font-semibold text-green-800">

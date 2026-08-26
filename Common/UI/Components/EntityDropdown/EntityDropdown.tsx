@@ -65,6 +65,12 @@ export type EntityDropdownValue =
   | null
   | undefined;
 
+/** A label the Labels tab expanded, as handed to onLabelsBulkAdded. */
+export interface BulkAddedLabel {
+  id: string;
+  name: string;
+}
+
 export interface EntityDropdownProps {
   /*
    * Static options (enum-like). Used as initial cache when modelType is set;
@@ -104,6 +110,15 @@ export interface EntityDropdownProps {
    * labeled entity, or force-show it.
    */
   enableLabelsTab?: boolean | undefined;
+  /*
+   * Fired when the Labels tab actually expands a label into entries, with the
+   * labels that were applied. Bulk-add by tag is a one-time expansion - the
+   * labels are dropped the moment the entries land in the selection - so a
+   * caller that wants to remember which label a selection came from (to keep
+   * it in sync later, say) has no other way to find out. Names come along
+   * because the caller has no cheap way back from an id to one.
+   */
+  onLabelsBulkAdded?: ((labels: Array<BulkAddedLabel>) => void) | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -969,6 +984,24 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           additions.push(key);
         }
       }
+      /*
+       * Tell the caller which labels the user applied. Reported before the
+       * empty check below, and before the selection is cleared further down:
+       * the interesting case is a label whose entries are ALL already
+       * selected, which adds nothing here but is still a label the user asked
+       * this selection to be built from.
+       */
+      props.onLabelsBulkAdded?.(
+        selectedLabelIds.map((labelId: string): BulkAddedLabel => {
+          const label: Label | undefined = allLabels.find(
+            (candidate: Label): boolean => {
+              return candidate._id?.toString() === labelId;
+            },
+          );
+
+          return { id: labelId, name: label?.name || "" };
+        }),
+      );
       if (additions.length === 0) {
         setLabelError(
           "No new entries matched the selected labels (or you don't have read access).",

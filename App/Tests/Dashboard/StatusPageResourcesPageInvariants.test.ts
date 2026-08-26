@@ -201,6 +201,28 @@ describe("groups and their monitors are one page", () => {
     expect(sideMenu).toContain("STATUS_PAGE_VIEW_RESOURCES");
     expect(sideMenu).not.toContain("STATUS_PAGE_VIEW_GROUPS");
   });
+
+  /*
+   * Monitor Rules writes resources onto this page, and it is how a group
+   * filled from a label stays filled - the whole of #3418. It used to be filed
+   * under Advanced, three sections below the screen its work shows up on, and
+   * the person who filed that issue never found it. Somebody populating a
+   * group is standing here.
+   */
+  test("the rules that write resources sit beside the resources", () => {
+    const sideMenu: string = readCode(...SIDE_MENU);
+
+    const resourcesSection: string | undefined = sideMenu
+      .split('<SideMenuSection title="Resources">')[1]
+      ?.split("</SideMenuSection>")[0];
+
+    const advancedSection: string | undefined = sideMenu
+      .split('<SideMenuSection title="Advanced">')[1]
+      ?.split("</SideMenuSection>")[0];
+
+    expect(resourcesSection).toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+    expect(advancedSection).not.toContain("STATUS_PAGE_VIEW_MONITOR_RULES");
+  });
 });
 
 describe("the group fetch", () => {
