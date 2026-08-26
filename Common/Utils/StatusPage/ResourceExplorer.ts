@@ -154,6 +154,25 @@ export interface StatusPageResourceGridModel {
   orphanResources: Array<StatusPageResource>;
 }
 
+/*
+ * How a group's checkbox column stands at the moment: whether the box at the
+ * top of the list should be ticked, half ticked, or empty.
+ *
+ * Computed over whichever resources the list is actually drawing - a filtered
+ * list's "select all" means "everything the search matched", not "everything in
+ * the group", because those are the only rows the operator can see.
+ */
+export interface StatusPageResourceSelectionState {
+  /* Every resource on offer is selected, and there is at least one. */
+  isAllSelected: boolean;
+  /* Some but not all - the half-filled box. */
+  isIndeterminate: boolean;
+  /* How many of the resources on offer are selected. */
+  selectedCount: number;
+  /* How many resources were on offer at all. */
+  selectableCount: number;
+}
+
 export default class StatusPageResourceExplorerUtil {
   /*
    * How many navigator rows are drawn before the list stops and offers to draw
@@ -620,6 +639,245 @@ export default class StatusPageResourceExplorerUtil {
         });
       },
     );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Selecting resources                                                 */
+  /* ------------------------------------------------------------------ */
+
+  /*
+   * Removing monitors from a status page used to be a row at a time: open the
+   * row's menu, confirm, wait for the refetch, and do it again for the next of
+   * twenty seven (issue #3419). The list carries a checkbox column instead, and
+   * everything below is the model behind it.
+   *
+   * A selection is a set of id STRINGS rather than of resources. Resources are
+   * re-fetched constantly here - every create, delete, reorder and refresh
+   * replaces the whole array - so holding the objects would mean holding rows
+   * that no longer exist, compared by identity against their own replacements.
+   */
+
+  /*
+   * A resource's id as a selection holds it.
+   *
+   * Null when there is nothing to hold on to. The server never returns such a
+   * row, but a list drawn from local state briefly can, and a set containing
+   * `""` would silently make every id-less row the same row.
+   */
+  public static getResourceId(
+    statusPageResource: StatusPageResource,
+  ): string | null {
+    const id: string = statusPageResource._id?.toString() || "";
+
+    return id.length > 0 ? id : null;
+  }
+
+  /*
+   * The ids of everything in the list that can be selected at all, in the order
+   * the list draws them and without repeats.
+   */
+  public static getResourceIds(
+    statusPageResources: Array<StatusPageResource>,
+  ): Array<string> {
+    const ids: Array<string> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const statusPageResource of statusPageResources) {
+      const id: string | null =
+        StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+
+      if (!id || seen.has(id)) {
+        continue;
+      }
+
+      seen.add(id);
+      ids.push(id);
+    }
+
+    return ids;
+  }
+
+  /*
+   * One row's box, ticked or unticked. Always a new set, because it always
+   * changes something.
+   */
+  public static toggleSelectedResourceId(data: {
+    selectedResourceIds: Set<string>;
+    resourceId: string;
+  }): Set<string> {
+    const next: Set<string> = new Set<string>(data.selectedResourceIds);
+
+    if (next.has(data.resourceId)) {
+      next.delete(data.resourceId);
+    } else {
+      next.add(data.resourceId);
+    }
+
+    return next;
+  }
+
+  /*
+   * The box at the top of the list: every resource handed in is selected, or
+   * none of them is.
+   *
+   * Only the resources handed in are touched. A search is on while this is
+   * pressed as often as not, and un-ticking "select all" over four matching
+   * rows must not quietly drop the twenty the operator selected before they
+   * started typing.
+   *
+   * Returns the set it was given when nothing would change, so a component
+   * holding it in state does not re-render itself for a no-op.
+   */
+  public static setResourcesSelected(data: {
+    selectedResourceIds: Set<string>;
+    statusPageResources: Array<StatusPageResource>;
+    isSelected: boolean;
+  }): Set<string> {
+    const ids: Array<string> = StatusPageResourceExplorerUtil.getResourceIds(
+      data.statusPageResources,
+    );
+
+    const next: Set<string> = new Set<string>(data.selectedResourceIds);
+
+    let hasChanged: boolean = false;
+
+    for (const id of ids) {
+      if (data.isSelected) {
+        if (!next.has(id)) {
+          next.add(id);
+          hasChanged = true;
+        }
+
+        continue;
+      }
+
+      if (next.delete(id)) {
+        hasChanged = true;
+      }
+    }
+
+    return hasChanged ? next : data.selectedResourceIds;
+  }
+
+  /*
+   * What the box at the top of the list should look like, over whichever
+   * resources are being drawn.
+   *
+   * An empty list is never "all selected": a ticked box over nothing to tick
+   * reads as a selection that was lost.
+   */
+  public static getSelectionState(data: {
+    statusPageResources: Array<StatusPageResource>;
+    selectedResourceIds: Set<string>;
+  }): StatusPageResourceSelectionState {
+    const ids: Array<string> = StatusPageResourceExplorerUtil.getResourceIds(
+      data.statusPageResources,
+    );
+
+    let selectedCount: number = 0;
+
+    for (const id of ids) {
+      if (data.selectedResourceIds.has(id)) {
+        selectedCount++;
+      }
+    }
+
+    const isAllSelected: boolean =
+      ids.length > 0 && selectedCount === ids.length;
+
+    return {
+      isAllSelected: isAllSelected,
+      isIndeterminate: selectedCount > 0 && !isAllSelected,
+      selectedCount: selectedCount,
+      selectableCount: ids.length,
+    };
+  }
+
+  /*
+   * The selected resources themselves, in the order the list holds them, so a
+   * bulk action reports its progress in the order the operator is looking at.
+   *
+   * Ids in the selection that match nothing in the list are dropped rather than
+   * guessed at - see retainSelectedResourceIds for where they come from.
+   */
+  public static getSelectedResources(data: {
+    statusPageResources: Array<StatusPageResource>;
+    selectedResourceIds: Set<string>;
+  }): Array<StatusPageResource> {
+    const seen: Set<string> = new Set<string>();
+
+    return data.statusPageResources.filter(
+      (statusPageResource: StatusPageResource): boolean => {
+        const id: string | null =
+          StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+
+        if (!id || seen.has(id) || !data.selectedResourceIds.has(id)) {
+          return false;
+        }
+
+        seen.add(id);
+
+        return true;
+      },
+    );
+  }
+
+  /*
+   * The selection, minus anything the list no longer holds.
+   *
+   * Every write on this pane ends in a refetch, and a resource that was removed
+   * - by this operator's own bulk action, or by somebody else's - must not stay
+   * in the selection: the bulk bar would go on counting it, and the next action
+   * would try to delete a row that is already gone.
+   *
+   * Returns the set it was given when nothing was dropped, for the same reason
+   * setResourcesSelected does.
+   */
+  public static retainSelectedResourceIds(data: {
+    selectedResourceIds: Set<string>;
+    statusPageResources: Array<StatusPageResource>;
+  }): Set<string> {
+    if (data.selectedResourceIds.size === 0) {
+      return data.selectedResourceIds;
+    }
+
+    const present: Set<string> = new Set<string>(
+      StatusPageResourceExplorerUtil.getResourceIds(data.statusPageResources),
+    );
+
+    const next: Set<string> = new Set<string>();
+
+    for (const id of data.selectedResourceIds) {
+      if (present.has(id)) {
+        next.add(id);
+      }
+    }
+
+    return next.size === data.selectedResourceIds.size
+      ? data.selectedResourceIds
+      : next;
+  }
+
+  /*
+   * What the confirmation for a bulk removal is called, and what it says.
+   *
+   * It says the monitors survive, for the same reason the single-row confirm
+   * does: "remove" on a status page means "stop publishing this", and an
+   * operator clearing twenty seven rows deserves to be told that once, loudly,
+   * rather than to wonder afterwards.
+   */
+  public static getBulkRemoveConfirmTitle(data: { count: number }): string {
+    return `Remove ${data.count.toLocaleString()} ${
+      data.count === 1 ? "resource" : "resources"
+    }`;
+  }
+
+  public static getBulkRemoveConfirmMessage(data: { count: number }): string {
+    if (data.count === 1) {
+      return "Are you sure you want to remove 1 resource from this status page? The monitor itself is not deleted.";
+    }
+
+    return `Are you sure you want to remove ${data.count.toLocaleString()} resources from this status page? The monitors themselves are not deleted.`;
   }
 
   /*

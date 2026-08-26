@@ -36,6 +36,16 @@ If your project has monitor groups enabled, a link under the dropdown reads **Ad
 
 **Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It has the same two steps, but the first one is a **Monitors** multi-select instead of a single dropdown, and the display options you choose on **Advanced** apply to every monitor you picked. This is the fastest way to seed a new page.
 
+The multi-select also has a **Labels** tab: click a label and every monitor carrying it is selected at once.
+
+### Adding by label twice is safe
+
+A status page lists a monitor once. Adding is idempotent, so picking the same label again after labelling a few new monitors adds only the new ones — the monitors already on the page are left exactly as they are, with whatever display name and options you gave them.
+
+The summary at the end of the bulk add says so: added monitors are listed under **Added**, and the ones that were already there under **Already Added**. Nothing is reported as a failure, and nothing is written for them.
+
+The same rule holds everywhere else a resource is created. Adding a monitor that is already on the page from the single-add form, or pointing an existing resource at one from the edit form, is refused with *"This monitor is already added to this status page"* — including when the existing resource already sits in a different group, because a visitor would still see the monitor twice. To show a monitor in a different group, delete the resource it already has and add it where you want it.
+
 ## Display options on a resource
 
 The **Advanced** step is the same on the single-add form and the bulk modal. Everything here is per-resource — two rows in the same group can be configured differently.

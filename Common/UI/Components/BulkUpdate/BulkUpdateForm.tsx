@@ -358,7 +358,16 @@ const BulkUpdateForm: <T extends GenericObject>(
                   className="h-4 w-4 text-indigo-600"
                 />
                 <span>
-                  {props.selectedItems.length} {props.pluralLabel} Selected
+                  {props.selectedItems.length}{" "}
+                  {/*
+                   * The singular when there is one of them. The badge is the
+                   * one sentence in this bar that is always on screen, and
+                   * "1 resources Selected" reads as a bug in the count.
+                   */}
+                  {props.selectedItems.length === 1
+                    ? props.singularLabel
+                    : props.pluralLabel}{" "}
+                  Selected
                 </span>
               </div>
 

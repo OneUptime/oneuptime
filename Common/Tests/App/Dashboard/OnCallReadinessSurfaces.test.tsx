@@ -2237,7 +2237,7 @@ describe("On-call readiness page", () => {
 
       selectResponder("Zed Unreachable");
 
-      expect(screen.getByText("1 Responders Selected")).toBeInTheDocument();
+      expect(screen.getByText("1 Responder Selected")).toBeInTheDocument();
       expect(screen.getByText("Bulk Actions")).toBeInTheDocument();
     });
 
@@ -2639,7 +2639,7 @@ describe("On-call readiness page", () => {
     test("the selection survives, so the run can be retried", async () => {
       await runFailingReminder();
 
-      expect(screen.getByText("1 Responders Selected")).toBeInTheDocument();
+      expect(screen.getByText("1 Responder Selected")).toBeInTheDocument();
     });
 
     test("a non-200 answer is a failure, not a silent success", async () => {

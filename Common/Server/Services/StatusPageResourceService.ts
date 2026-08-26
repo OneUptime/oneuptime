@@ -17,6 +17,82 @@ import Model from "../../Models/DatabaseModels/StatusPageResource";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 
+/**
+ * The ways a create or update can name the resource's target. Everything
+ * server side sets the foreign key column, but the dashboard's resource form
+ * posts the relation - and the relation does NOT arrive in the same shape on
+ * both write paths:
+ *
+ *   - create goes through BaseAPI.createItem, which revives the body with
+ *     BaseModel.fromJSON, so `monitor` is a real Monitor and `monitor.id` is
+ *     an ObjectID;
+ *   - update goes through BaseAPI.updateItem, which only runs
+ *     JSONFunctions.deserialize. That revives ObjectID/DateTime values, but
+ *     never nested models, so `monitor` stays the plain `{ _id: "<uuid>" }`
+ *     the browser sent and has no `id` at all.
+ *
+ * Reading only `.id` therefore silently saw nothing on every edit-form save,
+ * which is the whole path the update guard exists for - so this accepts the
+ * id however it arrives.
+ */
+type StatusPageResourceTargetValue =
+  | ObjectID
+  | string
+  | { id?: unknown; _id?: unknown }
+  | null
+  | undefined;
+
+interface StatusPageResourceTargetInput {
+  monitorId?: StatusPageResourceTargetValue;
+  monitor?: StatusPageResourceTargetValue;
+  monitorGroupId?: StatusPageResourceTargetValue;
+  monitorGroup?: StatusPageResourceTargetValue;
+}
+
+function toTargetObjectID(
+  value: StatusPageResourceTargetValue,
+): ObjectID | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof ObjectID) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return new ObjectID(value);
+  }
+
+  if (typeof value === "object") {
+    return (
+      toTargetObjectID(value.id as StatusPageResourceTargetValue) ||
+      toTargetObjectID(value._id as StatusPageResourceTargetValue)
+    );
+  }
+
+  return null;
+}
+
+interface StatusPageResourceTarget {
+  monitorId: ObjectID | null;
+  monitorGroupId: ObjectID | null;
+}
+
+/**
+ * Named after what the operator sees rather than what the column is, because
+ * this reads back to them on the resource form.
+ */
+function duplicateResourceException(
+  target: StatusPageResourceTarget,
+): BadDataException {
+  const thing: string = target.monitorId ? "monitor" : "monitor group";
+
+  return new BadDataException(
+    `This ${thing} is already added to this status page. A ${thing} can only be added once so it is not shown twice to your customers.`,
+  );
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -115,6 +191,76 @@ export class Service extends DatabaseService<Model> {
     return statusPageResources;
   }
 
+  /**
+   * The id of the thing a resource points at, whichever way the caller
+   * expressed it. The dashboard's resource form posts the relation
+   * (`monitor: { _id }`) while everything server side sets the foreign key
+   * column, and both mean the same resource.
+   */
+  private getResourceMonitorTarget(
+    data: StatusPageResourceTargetInput,
+  ): StatusPageResourceTarget {
+    return {
+      monitorId:
+        toTargetObjectID(data.monitorId) || toTargetObjectID(data.monitor),
+      monitorGroupId:
+        toTargetObjectID(data.monitorGroupId) ||
+        toTargetObjectID(data.monitorGroup),
+    };
+  }
+
+  /**
+   * A status page lists a monitor once.
+   *
+   * Nothing stopped the same monitor being added twice, so re-adding a label's
+   * monitors after a new one joined that label created a second resource for
+   * every monitor already there, and the public page listed each of them twice
+   * (issue #3420). The rule engine has always refused to add a monitor that is
+   * already on the page for exactly this reason; this makes the same promise
+   * hold for every other way a resource is created - the resource form, the
+   * bulk add modal, and the API.
+   *
+   * The check is status-page-wide rather than per group: a monitor in two
+   * groups is still a monitor a visitor sees twice.
+   */
+  @CaptureSpan()
+  public async isResourceAlreadyOnStatusPage(data: {
+    statusPageId: ObjectID;
+    monitorId?: ObjectID | null | undefined;
+    monitorGroupId?: ObjectID | null | undefined;
+    excludeResourceId?: ObjectID | null | undefined;
+  }): Promise<boolean> {
+    if (!data.monitorId && !data.monitorGroupId) {
+      return false;
+    }
+
+    const query: Query<Model> = {
+      statusPageId: data.statusPageId,
+    };
+
+    if (data.monitorId) {
+      query.monitorId = data.monitorId;
+    } else {
+      query.monitorGroupId = data.monitorGroupId!;
+    }
+
+    if (data.excludeResourceId) {
+      query._id = QueryHelper.notEquals(data.excludeResourceId.toString());
+    }
+
+    const existingResource: Model | null = await this.findOneBy({
+      query: query,
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(existingResource);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -123,6 +269,20 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         "Status Page Resource statusPageId is required",
       );
+    }
+
+    const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
+      createBy.data as unknown as StatusPageResourceTargetInput,
+    );
+
+    if (
+      await this.isResourceAlreadyOnStatusPage({
+        statusPageId: createBy.data.statusPageId,
+        monitorId: target.monitorId,
+        monitorGroupId: target.monitorGroupId,
+      })
+    ) {
+      throw duplicateResourceException(target);
     }
 
     if (!createBy.data.order) {
@@ -222,6 +382,69 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Pointing an existing resource at a monitor the page already lists is the
+     * same duplicate onBeforeCreate refuses, just reached from the edit form.
+     */
+    const updatedTarget: StatusPageResourceTarget =
+      this.getResourceMonitorTarget(
+        updateBy.data as unknown as StatusPageResourceTargetInput,
+      );
+
+    if (
+      (updatedTarget.monitorId || updatedTarget.monitorGroupId) &&
+      updateBy.query._id
+    ) {
+      const resourceBeingUpdated: Model | null = await this.findOneBy({
+        query: {
+          _id: updateBy.query._id!,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          statusPageId: true,
+          monitorId: true,
+          monitorGroupId: true,
+        },
+      });
+
+      const currentTarget: StatusPageResourceTarget =
+        this.getResourceMonitorTarget(
+          (resourceBeingUpdated ||
+            {}) as unknown as StatusPageResourceTargetInput,
+        );
+
+      /*
+       * The edit form is a ModelForm, so it posts every field it collects -
+       * the monitor included - even when all the operator changed was the
+       * display name. Checking an unchanged target would refuse those saves
+       * on a status page that already carries a duplicate from before this
+       * rule existed, which would leave both of its rows uneditable.
+       */
+      const isTargetUnchanged: boolean =
+        (!updatedTarget.monitorId ||
+          updatedTarget.monitorId.toString() ===
+            currentTarget.monitorId?.toString()) &&
+        (!updatedTarget.monitorGroupId ||
+          updatedTarget.monitorGroupId.toString() ===
+            currentTarget.monitorGroupId?.toString());
+
+      if (
+        resourceBeingUpdated?.statusPageId &&
+        !isTargetUnchanged &&
+        (await this.isResourceAlreadyOnStatusPage({
+          statusPageId: resourceBeingUpdated.statusPageId,
+          monitorId: updatedTarget.monitorId,
+          monitorGroupId: updatedTarget.monitorGroupId,
+          excludeResourceId: resourceBeingUpdated.id,
+        }))
+      ) {
+        throw duplicateResourceException(updatedTarget);
+      }
+    }
+
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
         query: {

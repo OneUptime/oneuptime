@@ -56,9 +56,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * One entry, not two. Groups used to have a page of their own beside this
-       * one; the hierarchy and the monitors inside it are now the same screen,
-       * so splitting them in the menu would be sending people to two halves of
+       * Groups used to have a page of their own beside the resources one; the
+       * hierarchy and the monitors inside it are now the same screen, so
+       * splitting them in the menu would be sending people to two halves of
        * something that no longer has halves.
        */}
       <SideMenuSection title="Resources">
@@ -73,6 +73,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.AltGlobe}
+        />
+        {/*
+         * Rules belong beside the resources they write, not filed under
+         * Advanced. Somebody populating a group from a label is standing on
+         * the Resources screen, and a rule is the only thing that keeps that
+         * group populated as monitors are added.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Monitor Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Filter}
         />
       </SideMenuSection>
 
@@ -323,17 +339,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
-        <SideMenuItem
-          link={{
-            title: "Monitor Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Filter}
-        />
-
         <SideMenuItem
           link={{
             title: "Embedded Status",
