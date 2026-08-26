@@ -78,8 +78,16 @@ const Toggle: FunctionComponent<ComponentProps> = (
             if (props.onBlur) {
               props.onBlur();
             }
+            /*
+             * handleChange already calls props.onChange. Calling it a second
+             * time here ran every consumer's handler twice per click, which an
+             * idempotent handler never notices and a non-idempotent one cannot
+             * survive. The monitor criteria switches are one click away from
+             * that: they seed a blank incident / alert row on the way on, and
+             * only the "is the array still empty" guard around that seed kept
+             * the second pass from adding a second row.
+             */
             handleChange(!isChecked);
-            props.onChange(!isChecked);
           }}
           onFocus={() => {
             if (props.onFocus) {

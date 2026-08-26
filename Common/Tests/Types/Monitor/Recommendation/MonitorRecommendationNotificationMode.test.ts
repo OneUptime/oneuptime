@@ -540,12 +540,12 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("still passes MonitorSteps.getValidationError under every mode, for every recommendation", () => {
       /*
        * `MonitorSteps.getValidationError` is the same client-side gate the
-       * monitor create form runs before POSTing, and it validates the incident
-       * and alert payloads regardless of whether their create flag is on. So a
-       * mode implementation that "disabled" a side by blanking a title or a
-       * severity id instead of clearing the flag would fail here — at submit
-       * time in production, with a message about a field the user was never
-       * shown, and only for the mode they happened to pick.
+       * monitor create form runs before POSTing. It validates the incident and
+       * alert payloads of whichever side the mode leaves switched on, so a
+       * mode implementation that blanked a title or a severity id on the side
+       * it kept enabled would fail here — at submit time in production, with a
+       * message about a field the user was never shown, and only for the mode
+       * they happened to pick.
        */
       for (const recommendation of ALL_RECOMMENDATIONS) {
         for (const notificationMode of ALL_MODES) {

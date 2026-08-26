@@ -276,6 +276,7 @@ describe("MonitorCriteriaInstance", () => {
 
     test("returns error when an incident is missing its severity", () => {
       const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.createIncidents = true;
       instance.data!.incidents = [
         {
           title: "Down",
@@ -294,6 +295,7 @@ describe("MonitorCriteriaInstance", () => {
 
     test("returns error when an alert is missing its title", () => {
       const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.createAlerts = true;
       instance.data!.alerts = [
         {
           title: "",
