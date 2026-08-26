@@ -1,4 +1,4 @@
-import { UniqueOwnerRows1787729350313 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1787729350313-UniqueOwnerRows";
+import { UniqueOwnerRows1789600000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1789600000000-UniqueOwnerRows";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, it } from "@jest/globals";
@@ -31,8 +31,8 @@ interface CapturedSql {
 }
 
 async function captureSql(): Promise<CapturedSql> {
-  const migration: UniqueOwnerRows1787729350313 =
-    new UniqueOwnerRows1787729350313();
+  const migration: UniqueOwnerRows1789600000000 =
+    new UniqueOwnerRows1789600000000();
 
   const up: Array<string> = [];
   const down: Array<string> = [];
@@ -60,7 +60,7 @@ const INDEX_STATEMENT: RegExp =
 
 describe("UniqueOwnerRows migration", () => {
   it("is registered, so it actually runs on startup", () => {
-    expect(SchemaMigrations).toContain(UniqueOwnerRows1787729350313);
+    expect(SchemaMigrations).toContain(UniqueOwnerRows1789600000000);
   });
 
   it("collapses duplicates before building each unique index", async () => {
