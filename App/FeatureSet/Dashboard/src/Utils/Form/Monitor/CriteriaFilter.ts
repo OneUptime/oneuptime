@@ -8,7 +8,9 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -194,6 +196,19 @@ export default class CriteriaFilterUtil {
     let options: Array<DropdownOption> =
       DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
 
+    /*
+     * Manual monitors have no criteria at all. Nothing polls them - their
+     * status is set by hand - and MonitorCriteriaEvaluator has no branch
+     * for the type, so no check would ever be evaluated. That is what
+     * MonitorTypeHelper.doesMonitorTypeHaveCriteria records, and it is why
+     * the Criteria page renders an empty state in place of this form.
+     * Offering the whole CheckOn enum here would be offering rules that
+     * can never fire.
+     */
+    if (!MonitorTypeHelper.doesMonitorTypeHaveCriteria(monitorType)) {
+      return [];
+    }
+
     if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -344,9 +359,18 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    /*
+     * Every monitor type whose criteria the server hands to
+     * MetricMonitorCriteria: the metric-only types this form already pins
+     * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
+     * types Docker / Host / Podman / Docker Swarm / Proxmox / Ceph), plus
+     * IoT Device, which MonitorCriteriaEvaluator routes down the same path
+     * but which is not metric-only here, so it still draws the full
+     * criteria UI. All of them alert on one thing - an ingested metric.
+     */
     if (
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Kubernetes
+      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType) ||
+      monitorType === MonitorType.IoTDevice
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
@@ -356,6 +380,12 @@ export default class CriteriaFilterUtil {
     if (monitorType === MonitorType.Exceptions) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.ExceptionCount;
+      });
+    }
+
+    if (monitorType === MonitorType.Profiles) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.ProfileCount;
       });
     }
 
@@ -500,6 +530,35 @@ export default class CriteriaFilterUtil {
             i.value === FilterType.AnomalouslyLow ||
             i.value === FilterType.Anomalous);
         return baseStatic || baseAnomaly;
+      });
+    }
+
+    if (
+      checkOn === CheckOn.ExceptionCount ||
+      checkOn === CheckOn.ProfileCount
+    ) {
+      /*
+       * Exception and profile counts are whole numbers the server decides
+       * on with CompareCriteria.compareCriteriaNumbers
+       * (ExceptionMonitorCriteria / ProfileMonitorCriteria). That
+       * comparator recognises exactly these six conditions and returns
+       * "no match" for every other filter type, so anything else offered
+       * here would let the user save a rule that silently never fires.
+       *
+       * Unlike log and span counts, neither of these has a volume
+       * baseline behind it - there is no ExceptionCountBaseline or
+       * ProfileCountBaseline and no anomaly branch in either evaluator -
+       * so the anomaly conditions stay off this list too.
+       */
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
       });
     }
 

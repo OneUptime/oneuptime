@@ -6,7 +6,9 @@ import {
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
@@ -69,7 +71,59 @@ const ALL_MONITOR_TYPES: Array<MonitorType> = Object.values(
   MonitorType,
 ) as Array<MonitorType>;
 
+/*
+ * Every monitor type the criteria form is ever drawn for. Manual monitors are
+ * the one exception: nothing polls them, no evaluator has a branch for them,
+ * and the Criteria page renders an empty state in place of the form - so
+ * "arrives with both dropdowns already chosen" is not a question that can be
+ * asked of them. They get their own assertion below instead.
+ */
+const MONITOR_TYPES_WITH_CRITERIA: Array<MonitorType> =
+  ALL_MONITOR_TYPES.filter((monitorType: MonitorType) => {
+    return MonitorTypeHelper.doesMonitorTypeHaveCriteria(monitorType);
+  });
+
+/*
+ * Monitor types that fall through `getDefaultOfflineMonitorCriteriaInstance`
+ * to `new MonitorCriteriaInstance()` - the blank starting criteria, with an
+ * empty name and description and the constructor's placeholder "Is Online"
+ * filter. `getDefaultOnlineMonitorCriteriaInstance` returns null for them
+ * outright.
+ *
+ * That placeholder is nobody's design for these types. None of their
+ * evaluators decides on "Is Online": the metric family and IoT Device go to
+ * MetricMonitorCriteria, Profiles to ProfileMonitorCriteria, and Manual
+ * monitors are never evaluated at all. It went unnoticed while every one of
+ * these types offered the whole CheckOn enum, because "Is Online" was then on
+ * offer everywhere; narrowing the lists is what surfaced it.
+ *
+ * Writing real defaults for these types is its own change. This list pins the
+ * gap from both sides - the assertions below fail if a type here quietly grows
+ * a real default, and if a type not here quietly loses one - so the two sweeps
+ * can skip them without pretending they pass.
+ */
+const MONITOR_TYPES_WITHOUT_SEEDED_CRITERIA: Array<MonitorType> = [
+  MonitorType.Manual,
+  MonitorType.Docker,
+  MonitorType.Host,
+  MonitorType.Podman,
+  MonitorType.DockerSwarm,
+  MonitorType.Proxmox,
+  MonitorType.Ceph,
+  MonitorType.IoTDevice,
+  MonitorType.Profiles,
+];
+
+const MONITOR_TYPES_WITH_SEEDED_CRITERIA: Array<MonitorType> =
+  MONITOR_TYPES_WITH_CRITERIA.filter((monitorType: MonitorType) => {
+    return !MONITOR_TYPES_WITHOUT_SEEDED_CRITERIA.includes(monitorType);
+  });
+
 const ALL_CHECK_ONS: Array<CheckOn> = Object.values(CheckOn) as Array<CheckOn>;
+
+const ALL_FILTER_TYPES: Array<FilterType> = Object.values(
+  FilterType,
+) as Array<FilterType>;
 
 /*
  * The default criteria a monitor of this type is created with, as the criteria
@@ -103,7 +157,7 @@ function seededCriteriaInstances(
 
 describe("Criteria filter defaults", () => {
   describe("every seeded default criteria is renderable in the criteria form", () => {
-    test.each(ALL_MONITOR_TYPES)(
+    test.each(MONITOR_TYPES_WITH_SEEDED_CRITERIA)(
       "%s: every seeded filter's check is offered by the monitor type",
       (monitorType: MonitorType) => {
         const offeredChecks: Array<string> = checkOnOptionsFor(monitorType);
@@ -124,7 +178,7 @@ describe("Criteria filter defaults", () => {
       },
     );
 
-    test.each(ALL_MONITOR_TYPES)(
+    test.each(MONITOR_TYPES_WITH_SEEDED_CRITERIA)(
       "%s: every seeded filter's condition is offered by its check",
       (monitorType: MonitorType) => {
         const unrenderable: Array<string> = [];
@@ -151,6 +205,43 @@ describe("Criteria filter defaults", () => {
         }
 
         expect(unrenderable).toEqual([]);
+      },
+    );
+
+    test.each(MONITOR_TYPES_WITH_SEEDED_CRITERIA)(
+      "%s seeds at least one criteria somebody designed for it",
+      (monitorType: MonitorType) => {
+        const designed: Array<MonitorCriteriaInstance> =
+          seededCriteriaInstances(monitorType).filter(
+            (instance: MonitorCriteriaInstance) => {
+              return Boolean(instance.data!.name);
+            },
+          );
+
+        expect(designed.length).toBeGreaterThan(0);
+      },
+    );
+
+    /*
+     * The other side of that list. These types seed only the blank starting
+     * criteria - an unnamed instance carrying the constructor's placeholder
+     * "Is Online" filter, which none of their evaluators reads. Kept as an
+     * assertion rather than a comment so the gap is visible in the run, and
+     * so it closes loudly the day one of them gets real defaults.
+     */
+    test.each(MONITOR_TYPES_WITHOUT_SEEDED_CRITERIA)(
+      "%s seeds nothing but the blank starting criteria",
+      (monitorType: MonitorType) => {
+        for (const instance of seededCriteriaInstances(monitorType)) {
+          expect(instance.data!.name).toBe("");
+          expect(instance.data!.filters).toEqual([
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.True,
+              value: undefined,
+            },
+          ]);
+        }
       },
     );
   });
@@ -191,6 +282,8 @@ describe("Criteria filter defaults", () => {
       [CheckOn.RequestHeaderValue, FilterType.Contains],
       // Counts and enumerated values start on an exact match.
       [CheckOn.ExternalStatusPageActiveIncidents, FilterType.EqualTo],
+      [CheckOn.ExceptionCount, FilterType.EqualTo],
+      [CheckOn.ProfileCount, FilterType.EqualTo],
       [CheckOn.ExternalStatusPageComponentStatus, FilterType.EqualTo],
       [CheckOn.BrowserType, FilterType.EqualTo],
       [CheckOn.SqlQueryRowCount, FilterType.EqualTo],
@@ -204,6 +297,199 @@ describe("Criteria filter defaults", () => {
         expected,
       );
     });
+  });
+
+  describe("getFilterTypeOptionsByCheckOn", () => {
+    /*
+     * Offering a condition the server does not decide on is the mirror image
+     * of #3412 and just as quiet: the dropdown draws fine, the criteria saves
+     * fine, and then the comparator it lands in does not recognise the filter
+     * type and returns "no match" forever. So no check may fall through to the
+     * whole FilterType enum - each one has to say which conditions it means.
+     */
+    test.each(ALL_CHECK_ONS)(
+      "%s narrows the conditions it offers rather than offering all of them",
+      (checkOn: CheckOn) => {
+        expect(filterTypeOptionsFor(checkOn).length).toBeLessThan(
+          ALL_FILTER_TYPES.length,
+        );
+      },
+    );
+
+    /*
+     * Exception Count and Profile Count used to be two of those fall-throughs.
+     * Both are decided by CompareCriteria.compareCriteriaNumbers - via
+     * ExceptionMonitorCriteria and ProfileMonitorCriteria - which recognises
+     * these six conditions and nothing else.
+     */
+    test.each([CheckOn.ExceptionCount, CheckOn.ProfileCount])(
+      "%s offers exactly the six numeric comparators the server evaluates",
+      (checkOn: CheckOn) => {
+        expect(filterTypeOptionsFor(checkOn)).toEqual([
+          FilterType.EqualTo,
+          FilterType.NotEqualTo,
+          FilterType.GreaterThan,
+          FilterType.LessThan,
+          FilterType.GreaterThanOrEqualTo,
+          FilterType.LessThanOrEqualTo,
+        ]);
+      },
+    );
+
+    /*
+     * Spelled out because these are the ones the enum-wide list used to offer
+     * on a count: conditions for processes, booleans, JavaScript, and free
+     * text, none of which compareCriteriaNumbers has a branch for.
+     */
+    test.each([CheckOn.ExceptionCount, CheckOn.ProfileCount])(
+      "%s no longer offers conditions that mean nothing for a count",
+      (checkOn: CheckOn) => {
+        const offered: Array<string> = filterTypeOptionsFor(checkOn);
+
+        for (const nonsense of [
+          FilterType.IsExecuting,
+          FilterType.IsNotExecuting,
+          FilterType.EvaluatesToTrue,
+          FilterType.True,
+          FilterType.False,
+          FilterType.IsEmpty,
+          FilterType.IsNotEmpty,
+          FilterType.Contains,
+          FilterType.NotContains,
+          FilterType.StartsWith,
+          FilterType.EndsWith,
+          FilterType.RecievedInMinutes,
+          FilterType.NotRecievedInMinutes,
+        ]) {
+          expect(offered).not.toContain(nonsense.toString());
+        }
+      },
+    );
+
+    /*
+     * Log and span counts get the anomaly conditions because a baseline
+     * exists to compare against (LogCountBaseline / SpanCountBaseline).
+     * Exceptions and profiles have no such baseline and no anomaly branch in
+     * their evaluators, so an anomaly rule saved against them could never
+     * fire.
+     */
+    test.each([CheckOn.ExceptionCount, CheckOn.ProfileCount])(
+      "%s offers no anomaly condition, having no baseline behind it",
+      (checkOn: CheckOn) => {
+        const offered: Array<string> = filterTypeOptionsFor(checkOn);
+
+        for (const anomaly of [
+          FilterType.AnomalouslyHigh,
+          FilterType.AnomalouslyLow,
+          FilterType.Anomalous,
+        ]) {
+          expect(offered).not.toContain(anomaly.toString());
+        }
+      },
+    );
+
+    test("the counts that do have a baseline keep their anomaly conditions", () => {
+      for (const checkOn of [CheckOn.LogCount, CheckOn.SpanCount]) {
+        expect(filterTypeOptionsFor(checkOn)).toContain(
+          FilterType.AnomalouslyHigh.toString(),
+        );
+      }
+    });
+  });
+
+  describe("getCheckOnOptionsByMonitorType", () => {
+    /*
+     * Same rule one level up: a monitor type that names no checks offers every
+     * check in the product, including ones its evaluator has no branch for.
+     */
+    test.each(MONITOR_TYPES_WITH_CRITERIA)(
+      "%s narrows the checks it offers rather than offering all of them",
+      (monitorType: MonitorType) => {
+        expect(checkOnOptionsFor(monitorType).length).toBeLessThan(
+          ALL_CHECK_ONS.length,
+        );
+      },
+    );
+
+    test.each(MONITOR_TYPES_WITH_CRITERIA)(
+      "%s offers at least one check",
+      (monitorType: MonitorType) => {
+        expect(checkOnOptionsFor(monitorType).length).toBeGreaterThan(0);
+      },
+    );
+
+    /*
+     * Manual monitors are the one type with nothing to offer. Their status is
+     * set by hand, MonitorCriteriaEvaluator has no branch for them, and the
+     * Criteria page shows an empty state instead of this form.
+     */
+    test("Manual monitors offer no checks at all", () => {
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.Manual),
+      ).toBe(false);
+      expect(checkOnOptionsFor(MonitorType.Manual)).toEqual([]);
+    });
+
+    test("Profiles monitors offer the profile count and nothing else", () => {
+      expect(checkOnOptionsFor(MonitorType.Profiles)).toEqual([
+        CheckOn.ProfileCount,
+      ]);
+    });
+
+    /*
+     * MonitorCriteriaEvaluator sends all of these down MetricMonitorCriteria,
+     * which only ever reads CheckOn.MetricValue. Metrics and Kubernetes were
+     * already narrowed; the infrastructure types and IoT Device fell through
+     * to the full list even though they alert on exactly the same one thing.
+     */
+    test.each([
+      MonitorType.Metrics,
+      MonitorType.Kubernetes,
+      MonitorType.Docker,
+      MonitorType.Host,
+      MonitorType.Podman,
+      MonitorType.DockerSwarm,
+      MonitorType.Proxmox,
+      MonitorType.Ceph,
+      MonitorType.IoTDevice,
+    ])(
+      "%s alerts on an ingested metric, so it offers only the metric value",
+      (monitorType: MonitorType) => {
+        expect(checkOnOptionsFor(monitorType)).toEqual([CheckOn.MetricValue]);
+      },
+    );
+
+    /*
+     * IoT Device is routed to MetricMonitorCriteria alongside the metric-only
+     * types but is not itself metric-only - the form still draws the full
+     * criteria UI for it rather than pinning the check and hiding the
+     * dropdown. Narrowing the list is what makes that UI honest, and the
+     * derived default lands on the metric value regardless.
+     */
+    test("IoT Device is not metric-only, yet still defaults to the metric value", () => {
+      expect(
+        CriteriaFilterUtil.isMetricOnlyMonitorType(MonitorType.IoTDevice),
+      ).toBe(false);
+      expect(
+        CriteriaFilterUtil.getDefaultCheckOnByMonitorType(
+          MonitorType.IoTDevice,
+        ),
+      ).toBe(CheckOn.MetricValue);
+    });
+
+    test.each([
+      [MonitorType.Exceptions, CheckOn.ExceptionCount, FilterType.EqualTo],
+      [MonitorType.Profiles, CheckOn.ProfileCount, FilterType.EqualTo],
+    ])(
+      "%s seeds a new filter on %s / %s",
+      (monitorType: MonitorType, checkOn: CheckOn, filterType: FilterType) => {
+        const criteriaFilter: CriteriaFilter =
+          CriteriaFilterUtil.getDefaultCriteriaFilter(monitorType);
+
+        expect(criteriaFilter.checkOn).toBe(checkOn);
+        expect(criteriaFilter.filterType).toBe(filterType);
+      },
+    );
   });
 
   describe("getFilterTypeOrDefault", () => {
@@ -272,7 +558,7 @@ describe("Criteria filter defaults", () => {
   });
 
   describe("getDefaultCheckOnByMonitorType", () => {
-    test.each(ALL_MONITOR_TYPES)(
+    test.each(MONITOR_TYPES_WITH_CRITERIA)(
       "%s resolves to a check the monitor type actually offers",
       (monitorType: MonitorType) => {
         const defaultCheckOn: CheckOn | undefined =
@@ -341,7 +627,7 @@ describe("Criteria filter defaults", () => {
   });
 
   describe("getDefaultCriteriaFilter", () => {
-    test.each(ALL_MONITOR_TYPES)(
+    test.each(MONITOR_TYPES_WITH_CRITERIA)(
       "%s: a newly added filter arrives with both dropdowns already chosen",
       (monitorType: MonitorType) => {
         const criteriaFilter: CriteriaFilter =
