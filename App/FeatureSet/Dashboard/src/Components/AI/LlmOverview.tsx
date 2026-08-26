@@ -5,13 +5,20 @@ import React, {
   useState,
 } from "react";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
+import { LlmTokenTypeAttributeKeys } from "Common/Types/Telemetry/LlmMetricConventions";
+import LlmMetricQuery, {
+  LlmMetricScope,
+  LlmMetricTokenTotals,
+} from "Common/Utils/Telemetry/LlmMetricQuery";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -25,13 +32,37 @@ import LlmCallsTable from "./LlmCallsTable";
 
 const DEFAULT_WINDOW_DAYS: number = 7;
 
+/*
+ * Which signal a figure came from. Spans are authoritative and carry the
+ * per-call detail; "metrics" means this project emits GenAI metrics but no
+ * GenAI spans, so the tile is standing in for a number the span stream cannot
+ * supply. Surfacing it matters — a metric-sourced token total has no matching
+ * rows in the LLM Calls list below, and an unlabelled tile would read as a
+ * contradiction.
+ */
+type KpiSource = "spans" | "metrics" | "none";
+
+const METRIC_SOURCE_HINT: string = "from GenAI metrics";
+
 interface Kpis {
   totalCalls: number | null;
   erroredCalls: number | null;
   inputTokens: number | null;
   outputTokens: number | null;
   cost: number | null;
+  tokenSource: KpiSource;
+  costSource: KpiSource;
 }
+
+const EMPTY_KPIS: Kpis = {
+  totalCalls: null,
+  erroredCalls: null,
+  inputTokens: null,
+  outputTokens: null,
+  cost: null,
+  tokenSource: "spans",
+  costSource: "spans",
+};
 
 function sumBuckets(result: AggregatedResult): number {
   return (result.data || []).reduce(
@@ -73,13 +104,7 @@ const KpiCard: FunctionComponent<{
 };
 
 const LlmOverview: FunctionComponent = (): ReactElement => {
-  const [kpis, setKpis] = useState<Kpis>({
-    totalCalls: null,
-    erroredCalls: null,
-    inputTokens: null,
-    outputTokens: null,
-    cost: null,
-  });
+  const [kpis, setKpis] = useState<Kpis>(EMPTY_KPIS);
 
   const [range, setRange] = useState<InBetween<Date>>(() => {
     return new InBetween<Date>(
@@ -92,13 +117,7 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
     let cancelled: boolean = false;
 
     // Reset to the loading state ("—") whenever the selected range changes.
-    setKpis({
-      totalCalls: null,
-      erroredCalls: null,
-      inputTokens: null,
-      outputTokens: null,
-      cost: null,
-    });
+    setKpis(EMPTY_KPIS);
 
     const load: () => Promise<void> = async (): Promise<void> => {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -157,7 +176,69 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
         }
       };
 
-      const [totalCalls, erroredCalls, inputTokens, outputTokens, cost] =
+      const metricScope: LlmMetricScope = {
+        projectId: projectId,
+        startTime: startDate,
+        endTime: endDate,
+      };
+
+      /*
+       * Metric-sourced fallbacks, mirroring LlmCostBudgetEvaluator.resolveSpend
+       * on the server: spans are authoritative, and metrics are consulted only
+       * when the span stream reported nothing. Never summed — an SDK that emits
+       * both signals would otherwise be counted twice.
+       */
+      const safeMetricCost: () => Promise<number | null> = async (): Promise<
+        number | null
+      > => {
+        try {
+          const result: AggregatedResult =
+            await AnalyticsModelAPI.aggregate<Metric>({
+              modelType: Metric,
+              aggregateBy: {
+                query: LlmMetricQuery.buildCostQuery(metricScope),
+                aggregationType: AggregationType.Sum,
+                aggregateColumnName: "value",
+                aggregationTimestampColumnName: "time",
+                startTimestamp: startDate,
+                endTimestamp: endDate,
+                aggregationInterval: AggregationInterval.Total,
+                limit: 10000,
+                skip: 0,
+              } as AggregateBy<Metric>,
+            });
+          return LlmMetricQuery.sumAggregatedRows(result.data);
+        } catch {
+          return null;
+        }
+      };
+
+      const safeMetricTokens: () => Promise<LlmMetricTokenTotals | null> =
+        async (): Promise<LlmMetricTokenTotals | null> => {
+          try {
+            const result: AggregatedResult =
+              await AnalyticsModelAPI.aggregate<Metric>({
+                modelType: Metric,
+                aggregateBy: {
+                  query: LlmMetricQuery.buildTokenQuery(metricScope),
+                  aggregationType: AggregationType.Sum,
+                  aggregateColumnName: "value",
+                  aggregationTimestampColumnName: "time",
+                  startTimestamp: startDate,
+                  endTimestamp: endDate,
+                  aggregationInterval: AggregationInterval.Total,
+                  groupByAttributeKeys: [...LlmTokenTypeAttributeKeys],
+                  limit: 10000,
+                  skip: 0,
+                } as AggregateBy<Metric>,
+              });
+            return LlmMetricQuery.reduceTokenRows(result.data);
+          } catch {
+            return null;
+          }
+        };
+
+      const [totalCalls, erroredCalls, spanInput, spanOutput, spanCost] =
         await Promise.all([
           safeCount(baseQuery),
           safeCount({
@@ -169,6 +250,41 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
           safeSum("llmCost"),
         ]);
 
+      let inputTokens: number | null = spanInput;
+      let outputTokens: number | null = spanOutput;
+      let tokenSource: KpiSource = "spans";
+
+      /*
+       * Only fall back on a successful-but-empty span read. A null means the
+       * span aggregate itself failed, and quietly substituting metrics there
+       * would dress an error up as data.
+       */
+      if (spanInput === 0 && spanOutput === 0) {
+        const totals: LlmMetricTokenTotals | null = await safeMetricTokens();
+
+        if (totals && (totals.inputTokens > 0 || totals.outputTokens > 0)) {
+          inputTokens = totals.inputTokens;
+          outputTokens = totals.outputTokens;
+          tokenSource = "metrics";
+        } else {
+          tokenSource = "none";
+        }
+      }
+
+      let cost: number | null = spanCost;
+      let costSource: KpiSource = "spans";
+
+      if (spanCost === 0) {
+        const metricCost: number | null = await safeMetricCost();
+
+        if (metricCost !== null && metricCost > 0) {
+          cost = metricCost;
+          costSource = "metrics";
+        } else {
+          costSource = "none";
+        }
+      }
+
       if (!cancelled) {
         setKpis({
           totalCalls,
@@ -176,6 +292,8 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
           inputTokens,
           outputTokens,
           cost,
+          tokenSource,
+          costSource,
         });
       }
     };
@@ -216,8 +334,9 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
             <div className="mt-0.5 text-sm text-gray-600">
               Token usage, cost, latency and errors for every LLM, embedding,
               agent and tool call your apps emit via the OpenTelemetry GenAI
-              conventions. Figures below cover the selected time range. Cost is
-              shown only when your instrumentation reports it.
+              conventions. Figures below cover the selected time range. Token
+              and cost tiles read your GenAI spans; if you emit GenAI metrics
+              without spans, they fall back to the metric stream and say so.
             </div>
           </div>
         </div>
@@ -245,12 +364,24 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
           value={fmt(kpis.erroredCalls)}
           hint={`${errorRate} error rate`}
         />
-        <KpiCard label="Input tokens" value={fmt(kpis.inputTokens)} />
-        <KpiCard label="Output tokens" value={fmt(kpis.outputTokens)} />
+        <KpiCard
+          label="Input tokens"
+          value={fmt(kpis.inputTokens)}
+          hint={kpis.tokenSource === "metrics" ? METRIC_SOURCE_HINT : undefined}
+        />
+        <KpiCard
+          label="Output tokens"
+          value={fmt(kpis.outputTokens)}
+          hint={kpis.tokenSource === "metrics" ? METRIC_SOURCE_HINT : undefined}
+        />
         <KpiCard
           label="Cost (USD)"
           value={kpis.cost === null ? "—" : `$${kpis.cost.toFixed(4)}`}
-          hint="when reported by SDK"
+          hint={
+            kpis.costSource === "metrics"
+              ? METRIC_SOURCE_HINT
+              : "when reported by SDK"
+          }
         />
       </div>
 
