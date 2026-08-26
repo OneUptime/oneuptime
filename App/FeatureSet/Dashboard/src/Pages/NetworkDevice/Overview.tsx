@@ -224,6 +224,8 @@ const NetworkOverview: FunctionComponent<
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        monitoringMethod: device.monitoringMethod,
+        currentMonitorStatus: device.currentMonitorStatus,
         interfacesDown: device.interfacesDown,
         vendor: device.vendor,
       };

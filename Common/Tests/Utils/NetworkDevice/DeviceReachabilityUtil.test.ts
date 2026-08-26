@@ -608,3 +608,252 @@ describe("issue #3220 at fleet scale", () => {
     expect(stale).toBe(50);
   });
 });
+
+/*
+ * Issue #3392: a device nothing polls.
+ *
+ * The whole rule above is about the OUTCOME of a poll, and a monitor-backed
+ * device never gets one — no probe, no credentials, no walk. Its poll
+ * columns are NULL forever, so the rule could only ever answer "Pending"
+ * for it: an operator who followed the documented workflow to the letter
+ * (Monitoring Method = Monitor, a Ping monitor bound, polling off) watched
+ * a device that answers every ping sit on "Pending" indefinitely.
+ *
+ * These pin the second rule: for such a device the bound Monitor's verdict
+ * IS the answer, and every poll column on the row is irrelevant to it.
+ */
+describe("monitor-backed devices are judged by their monitor, not by a poll", () => {
+  const MONITOR_BACKED: string = "Monitor";
+
+  test("a bound monitor reporting healthy makes the device Up", () => {
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: false,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  test("a bound monitor reporting offline makes the device Down", () => {
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: true,
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+
+  /*
+   * MonitorStatus is a ladder, not a pair: a "Degraded" row is neither
+   * operational nor offline. Reading the OFFLINE end is what keeps this
+   * verdict identical to the one the topology map draws for the same
+   * device, which resolves the ladder the same way.
+   */
+  test("a degraded-but-not-offline status is Up, exactly as the map draws it", () => {
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: false,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * The two ways a monitor-backed device legitimately has no verdict:
+   * nothing is bound to it yet (discovery import creates ping-only hosts
+   * that way on purpose), or something is bound and has not been evaluated
+   * yet. Both are Pending, and neither may default to healthy.
+   */
+  test("no stamped status is Pending, not a healthy default", () => {
+    expect(statusOf({ monitoringMethod: MONITOR_BACKED })).toBe(
+      NetworkDeviceReachability.Pending,
+    );
+
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: null,
+      }),
+    ).toBe(NetworkDeviceReachability.Pending);
+  });
+
+  /*
+   * The regression itself. This is the exact row shape the issue reports:
+   * an ICMP-only host imported by a discovery scan, switched to Monitor,
+   * bound to a Ping monitor that is reporting healthy, and polled by
+   * nothing — so every poll column is NULL.
+   */
+  test("the reported row shape reads Up rather than Pending", () => {
+    const un0661voipcp01: DeviceReachabilityInput = {
+      monitoringMethod: MONITOR_BACKED,
+      monitorStatusIsOffline: false,
+      isReachable: null,
+      lastPolledAt: null,
+      lastSeenAt: null,
+      pollingIntervalInMinutes: null,
+    };
+
+    expect(statusOf(un0661voipcp01)).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * Poll columns on a monitor-backed row are not merely absent — on a
+   * device switched over from SNMP they hold whatever a probe last found
+   * before it stopped asking, which is worse than nothing. The monitor
+   * wins outright, in both directions.
+   */
+  test("a stale successful walk does not override a monitor reporting offline", () => {
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: true,
+        isReachable: true,
+        lastPolledAt: minutesAgo(2),
+        lastSeenAt: minutesAgo(2),
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+
+  test("a failed walk from its SNMP days does not override a healthy monitor", () => {
+    expect(
+      statusOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: false,
+        isReachable: false,
+        lastPolledAt: minutesAgo(4000),
+        lastSeenAt: minutesAgo(9000),
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * Staleness says "nothing has polled this device lately, go and check its
+   * probe". For a device that has no probe BY DESIGN that is both false and
+   * actively misleading, so it can never be raised here.
+   */
+  test("is never flagged stale, however old the poll columns are", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      monitoringMethod: MONITOR_BACKED,
+      monitorStatusIsOffline: false,
+      lastPolledAt: minutesAgo(60 * 24 * 30),
+      lastSeenAt: minutesAgo(60 * 24 * 30),
+      pollingIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe(NetworkDeviceReachability.Up);
+    expect(result.isStale).toBe(false);
+  });
+
+  test("is never flagged stale even when it has no poll columns at all", () => {
+    expect(
+      reachabilityOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: true,
+      }).isStale,
+    ).toBe(false);
+  });
+
+  /*
+   * lastContactAt is still reported honestly — it is "the newest thing a
+   * probe wrote", and for a device converted from SNMP that is a real
+   * historical fact the device page prints. It just does not decide
+   * anything here.
+   */
+  test("still reports lastContactAt from the poll columns when there is one", () => {
+    expect(
+      reachabilityOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: false,
+        lastPolledAt: minutesAgo(90),
+      }).lastContactAt?.getTime(),
+    ).toBe(minutesAgo(90).getTime());
+
+    expect(
+      reachabilityOf({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: false,
+      }).lastContactAt,
+    ).toBeNull();
+  });
+});
+
+/*
+ * The column is free text (the SnmpVersion precedent), so what counts as
+ * "monitor-backed" is whatever NetworkDeviceMonitoringMethodUtil.parse says
+ * — and every other value has to keep the poll rule, because reading a
+ * typo as monitor-backed would silently stop a switch being judged by its
+ * walk.
+ */
+describe("which rows count as monitor-backed", () => {
+  test.each(["Monitor", "monitor", "MONITOR", "  Monitor  "])(
+    "%p reads as monitor-backed",
+    (monitoringMethod: string) => {
+      const result: DeviceReachabilityResult = reachabilityOf({
+        monitoringMethod: monitoringMethod,
+        monitorStatusIsOffline: false,
+      });
+
+      expect(result.isMonitorBacked).toBe(true);
+      expect(result.status).toBe(NetworkDeviceReachability.Up);
+    },
+  );
+
+  test.each([
+    ["SNMP", "the explicit SNMP value"],
+    ["", "an empty string"],
+    ["Monitorr", "a typo"],
+    ["ping", "an unrecognised word"],
+  ])("%p (%s) keeps the poll rule", (monitoringMethod: string) => {
+    const device: DeviceReachabilityInput = {
+      monitoringMethod: monitoringMethod,
+      // A monitor status the poll rule must ignore for these rows.
+      monitorStatusIsOffline: true,
+      isReachable: true,
+      lastPolledAt: minutesAgo(1),
+      lastSeenAt: minutesAgo(1),
+    };
+
+    const result: DeviceReachabilityResult = reachabilityOf(device);
+
+    expect(result.isMonitorBacked).toBe(false);
+    expect(result.status).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * Every row written before the column existed, and every caller that
+   * does not select it. Both have to keep behaving exactly as they did.
+   */
+  test.each([
+    ["null", null],
+    ["undefined", undefined],
+  ])("a %s method is a polled device, unchanged", (_label: string, value) => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      monitoringMethod: value as string | null | undefined,
+      monitorStatusIsOffline: true,
+      isReachable: true,
+      lastPolledAt: minutesAgo(1),
+      lastSeenAt: minutesAgo(1),
+    });
+
+    expect(result.isMonitorBacked).toBe(false);
+    expect(result.status).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * A caller that selects neither new column gets precisely the old
+   * behaviour, including staleness — which is what lets the topology
+   * builder and the site rollup keep passing their existing projections.
+   */
+  test("an input carrying neither new column behaves exactly as before", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      isReachable: true,
+      lastPolledAt: minutesAgo(180),
+      lastSeenAt: minutesAgo(180),
+      pollingIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe(NetworkDeviceReachability.Up);
+    expect(result.isStale).toBe(true);
+    expect(result.isMonitorBacked).toBe(false);
+  });
+});

@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../Types/Date";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * The one place that decides whether a NetworkDevice is reachable.
@@ -23,6 +24,14 @@ import OneUptimeDate from "../../Types/Date";
  * NetworkDevice.isReachable, stamped by the walk pipeline on every ingested
  * walk — and freshness is only a backstop for "the polling pipeline itself
  * stopped", measured generously against the device's own interval.
+ *
+ * All of which is about a device that gets POLLED. A monitor-backed device
+ * (monitoringMethod "Monitor") is never polled at all: no probe, no
+ * credentials, no walk. Every poll column on such a row is NULL forever, so
+ * the rule above can only ever answer "Pending" for it — which is
+ * OneUptime/oneuptime#3392, a correctly bound ping-only device stuck on
+ * Pending. Its health comes from the Monitor bound to it, stamped onto
+ * NetworkDevice.currentMonitorStatusId, and that is the branch below.
  */
 
 export enum NetworkDeviceReachability {
@@ -71,6 +80,28 @@ export interface DeviceReachabilityInput {
   lastSeenAt?: Date | string | null | undefined;
   // The device's own schedule; sizes the staleness backstop.
   pollingIntervalInMinutes?: number | null | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as SNMP — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   */
+  monitoringMethod?: string | null | undefined;
+  /*
+   * The OFFLINE end of the device's stamped MonitorStatus row, and only
+   * consulted for a monitor-backed device. `undefined` means no monitor has
+   * reported yet (nothing bound, or bound and never evaluated), which is a
+   * real "Pending" rather than a healthy default.
+   *
+   * The offline end and not the operational end, because MonitorStatus is a
+   * ladder rather than a pair: a "Degraded" row is NEITHER operational nor
+   * offline, and the device map already resolves that ladder with
+   * `isOfflineState ? down : up`. Reading the operational flag here instead
+   * would paint every degraded-but-reachable device red on one surface and
+   * green on the other. See DeviceHealthStateUtil, which reads it the same
+   * way for the same reason.
+   */
+  monitorStatusIsOffline?: boolean | null | undefined;
 }
 
 export interface DeviceReachabilityResult {
@@ -87,6 +118,13 @@ export interface DeviceReachabilityResult {
   staleWindowInMinutes: number;
   // Latest of lastPolledAt / lastSeenAt; null when neither is set.
   lastContactAt: Date | null;
+  /*
+   * True when this verdict came from the bound Monitor rather than from an
+   * SNMP poll. Carried so a surface can word its pill and its tooltip for
+   * what actually decided the answer — "the last SNMP poll reached this
+   * device" is a lie on a device nothing polls.
+   */
+  isMonitorBacked: boolean;
 }
 
 const MS_PER_MINUTE: number = 60 * 1000;
@@ -153,6 +191,11 @@ export default class DeviceReachabilityUtil {
         staleWindowInMinutes * MS_PER_MINUTE
       : false;
 
+    const isMonitorBacked: boolean =
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        device.monitoringMethod,
+      );
+
     const result: (
       status: NetworkDeviceReachability,
     ) => DeviceReachabilityResult = (
@@ -160,11 +203,40 @@ export default class DeviceReachabilityUtil {
     ): DeviceReachabilityResult => {
       return {
         status: status,
-        isStale: isStale,
+        /*
+         * Staleness is "nothing has polled this device lately", so it can
+         * only ever be false for a device nothing polls BY DESIGN. Letting
+         * it through would put an amber "check this device's probe" pill on
+         * every monitor-backed device forever — and it has no probe.
+         */
+        isStale: isMonitorBacked ? false : isStale,
         staleWindowInMinutes: staleWindowInMinutes,
         lastContactAt: lastContactAt,
+        isMonitorBacked: isMonitorBacked,
       };
     };
+
+    /*
+     * Monitor-backed: the bound Monitor's verdict IS the device's, and the
+     * poll columns below are meaningless for it (they are NULL forever, and
+     * on a device switched over from SNMP they are worse than meaningless —
+     * they are the last thing a probe found before it stopped asking).
+     *
+     * No stamped status means Pending, and it is honest in both of the ways
+     * it happens: no monitor is bound yet (discovery import creates devices
+     * that way on purpose), or one is bound and has not been evaluated yet.
+     */
+    if (isMonitorBacked) {
+      if (device.monitorStatusIsOffline === true) {
+        return result(NetworkDeviceReachability.Down);
+      }
+
+      if (device.monitorStatusIsOffline === false) {
+        return result(NetworkDeviceReachability.Up);
+      }
+
+      return result(NetworkDeviceReachability.Pending);
+    }
 
     /*
      * The probe asked and got nothing. Authoritative however long ago it

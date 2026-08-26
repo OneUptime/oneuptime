@@ -102,6 +102,7 @@ import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
 import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaintenanceTemplateOwnerPermissions";
 import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
+import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStatus";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -343,6 +344,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * rule pages. Idempotent and restartable, so a re-run is a clean no-op.
    */
   new RepairEpisodeNotificationRuleSeverity(),
+  /*
+   * Stamps the bound monitor's current status onto monitor-backed network
+   * devices that never got one. Until the binding itself started stamping,
+   * the column was only ever written by a monitor's next status CHANGE — so
+   * a ping-only device bound to a monitor that was already Up sat on
+   * "Pending" indefinitely (OneUptime/oneuptime#3392). Idempotent: the stamp
+   * is re-derived from the binding and only written when it disagrees.
+   */
+  new BackfillMonitorBackedDeviceStatus(),
 ];
 
 export default DataMigrations;

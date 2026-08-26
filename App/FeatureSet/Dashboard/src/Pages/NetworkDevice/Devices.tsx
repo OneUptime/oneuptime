@@ -843,21 +843,17 @@ const NetworkDevices: FunctionComponent<
           },
         ]}
         selectMoreFields={{
+          /*
+           * Carries `monitoringMethod` and `currentMonitorStatus` as well as
+           * the poll columns: the status pill reads a monitor-backed
+           * device's health from its monitor, not from an SNMP walk —
+           * nothing polls those, so the poll columns alone would leave every
+           * one of them stuck on "Pending".
+           */
           ...DEVICE_STATUS_SELECT,
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
-          /*
-           * The status pill reads a monitor-backed device's health from its
-           * monitor, not from an SNMP walk — nothing polls those, so the poll
-           * columns would leave every one of them stuck on "Pending".
-           */
-          monitoringMethod: true,
-          currentMonitorStatus: {
-            name: true,
-            color: true,
-            isOfflineState: true,
-          },
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(

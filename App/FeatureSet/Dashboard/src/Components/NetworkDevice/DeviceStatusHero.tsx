@@ -28,7 +28,8 @@ export interface ComponentProps {
 
 /*
  * Status hero for the device Overview: answers "is this device OK right
- * now?" in one glance — SNMP reachability, monitor-evaluated status,
+ * now?" in one glance — reachability (from the SNMP walk, or from the bound
+ * Monitor for a device nothing polls), monitor-evaluated status,
  * interface up/down bar, hardware uptime, and where the device lives
  * (site + probe) — before the user reads anything else on the page.
  */
@@ -53,10 +54,6 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           interfacesTotal: true,
           interfacesUp: true,
           interfacesDown: true,
-          currentMonitorStatus: {
-            name: true,
-            color: true,
-          },
           site: {
             name: true,
             _id: true,
@@ -114,6 +111,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
 
   type GetReachabilityPillFunction = () => ReactElement;
 
+  /*
+   * Nothing polls a monitor-backed device, so every sentence this tile can
+   * say about a poll is false for one — including the "check that this
+   * device's probe is online" staleness note, which the shared rule already
+   * suppresses for them.
+   */
+  const isMonitorBacked: boolean = reachabilityResult.isMonitorBacked;
+
   const getReachabilityPill: GetReachabilityPillFunction = (): ReactElement => {
     if (reachability === NetworkDeviceStatus.Up) {
       return (
@@ -121,7 +126,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           text="Up"
           color={Green}
           size={PillSize.Normal}
-          tooltip="The last SNMP poll reached this device."
+          tooltip={
+            isMonitorBacked
+              ? "The monitor bound to this device reports it healthy."
+              : "The last SNMP poll reached this device."
+          }
         />
       );
     }
@@ -132,7 +141,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           text="Down"
           color={Red500}
           size={PillSize.Normal}
-          tooltip="The last SNMP poll could not reach this device."
+          tooltip={
+            isMonitorBacked
+              ? "The monitor bound to this device reports it offline."
+              : "The last SNMP poll could not reach this device."
+          }
         />
       );
     }
@@ -142,7 +155,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         text="Pending"
         color={Gray500}
         size={PillSize.Normal}
-        tooltip="This device has not been polled yet."
+        tooltip={
+          isMonitorBacked
+            ? "No monitor is bound to this device yet, or the one that is has not reported a status."
+            : "This device has not been polled yet."
+        }
       />
     );
   };
@@ -212,11 +229,13 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
-            {lastSeenAt
-              ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-              : "Never answered a poll"}
+            {isMonitorBacked
+              ? "Reported by the monitor bound to this device"
+              : lastSeenAt
+                ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
+                : "Never answered a poll"}
           </div>
-          {isPollNewerThanContact && lastPolledAt && (
+          {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
             <div className="mt-0.5 text-xs text-gray-400">
               {`Last polled ${OneUptimeDate.fromNow(lastPolledAt)}`}
             </div>

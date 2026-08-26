@@ -39,7 +39,34 @@ describe("DEVICE_STATUS_SELECT", () => {
       lastPolledAt: true,
       lastSeenAt: true,
       pollingIntervalInMinutes: true,
+      monitoringMethod: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        isOfflineState: true,
+      },
     });
+  });
+
+  /*
+   * Issue #3392 was a select as much as it was a rule: the poll columns
+   * alone can only ever answer "Pending" for a device nothing polls, so a
+   * page that selects them and nothing else paints every correctly bound
+   * ping-only device grey forever.
+   */
+  test("names the two columns a monitor-backed device is judged by", () => {
+    expect(DEVICE_STATUS_SELECT.monitoringMethod).toBe(true);
+    expect(DEVICE_STATUS_SELECT.currentMonitorStatus.isOfflineState).toBe(true);
+  });
+
+  /*
+   * `name` and `color` come with it so a surface can print the operator's
+   * own status word ("Operational", "Degraded") rather than flattening
+   * every ladder rung to Up or Down.
+   */
+  test("carries the monitor status label the pills render", () => {
+    expect(DEVICE_STATUS_SELECT.currentMonitorStatus.name).toBe(true);
+    expect(DEVICE_STATUS_SELECT.currentMonitorStatus.color).toBe(true);
   });
 
   test("spreads into a ModelAPI select without nesting", () => {
@@ -203,5 +230,140 @@ describe("DeviceStatusUtil.getStaleWindowInMinutes", () => {
     expect(DeviceStatusUtil.getStaleWindowInMinutes(5)).toBe(60);
     expect(DeviceStatusUtil.getStaleWindowInMinutes(undefined)).toBe(60);
     expect(DeviceStatusUtil.getStaleWindowInMinutes(30)).toBe(300);
+  });
+});
+
+/*
+ * Issue #3392, at the dashboard door.
+ *
+ * The shared rule takes one flag — "is the device's stamped MonitorStatus
+ * at the OFFLINE end of the ladder" — while the API hands every page the
+ * nested `currentMonitorStatus` relation instead. This door is where the
+ * one becomes the other, and it is the only place that mapping happens, so
+ * a page can go on passing a NetworkDevice row straight through.
+ */
+describe("a monitor-backed device, as a page actually receives it", () => {
+  const MONITOR_BACKED: string = "Monitor";
+
+  test("reads an operational monitor off the nested relation as Up", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: { isOfflineState: false },
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
+  });
+
+  test("reads an offline monitor off the nested relation as Down", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: { isOfflineState: true },
+      }),
+    ).toBe(NetworkDeviceStatus.Down);
+  });
+
+  /*
+   * The regression. Every poll column NULL — because nothing polls it —
+   * plus a bound Ping monitor reporting healthy, which is exactly the row
+   * the issue screenshots show sitting on "Pending".
+   */
+  test("issue #3392: a bound ping monitor beats the empty poll columns", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: { isOfflineState: false },
+        isReachable: null,
+        lastPolledAt: null,
+        lastSeenAt: null,
+        pollingIntervalInMinutes: null,
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
+  });
+
+  /*
+   * A relation the API left out (nothing bound, or bound and never
+   * evaluated) must not collapse into "not offline" — that would paint an
+   * unbound device green, which is a worse lie than the grey one this
+   * change is fixing.
+   */
+  test("a missing relation is Pending, not a healthy default", () => {
+    expect(
+      DeviceStatusUtil.getStatus({ monitoringMethod: MONITOR_BACKED }),
+    ).toBe(NetworkDeviceStatus.Pending);
+
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: null,
+      }),
+    ).toBe(NetworkDeviceStatus.Pending);
+  });
+
+  /*
+   * A MonitorStatus row whose isOfflineState the select did not ask for
+   * still means "a monitor has reported" — the middle rungs of the ladder
+   * ("Degraded") are not offline, which is how the topology map reads them.
+   */
+  test("a relation with no isOfflineState reads as not-offline", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: {},
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
+  });
+
+  test("flags the verdict as monitor-backed so a tooltip can say so", () => {
+    const monitorBacked: DeviceReachabilityResult =
+      DeviceStatusUtil.getReachability({
+        monitoringMethod: MONITOR_BACKED,
+        currentMonitorStatus: { isOfflineState: false },
+      });
+
+    expect(monitorBacked.isMonitorBacked).toBe(true);
+    // Nothing polls it, so it can never be "nobody has polled this lately".
+    expect(monitorBacked.isStale).toBe(false);
+
+    const polled: DeviceReachabilityResult = DeviceStatusUtil.getReachability({
+      isReachable: true,
+      lastPolledAt: minutesAgo(1),
+      lastSeenAt: minutesAgo(1),
+    });
+
+    expect(polled.isMonitorBacked).toBe(false);
+  });
+
+  /*
+   * An SNMP device can also carry a stamped monitor status — a Network
+   * Device monitor watching its walk puts one there. That must not start
+   * deciding its pill: the walk does, and the two disagreeing is how a
+   * device reads Up on its own Interfaces tab and Down on the list above it.
+   */
+  test("an SNMP device with a stamped status is still judged by its walk", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: "SNMP",
+        currentMonitorStatus: { isOfflineState: true },
+        isReachable: true,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(1),
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
+  });
+
+  /*
+   * Server-side callers (the site rollup, the topology builder) already
+   * hand the shared rule the flat flag. Passing it through unchanged is
+   * what lets the same door serve both.
+   */
+  test("an explicit flat flag is passed through rather than remapped", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        monitoringMethod: MONITOR_BACKED,
+        monitorStatusIsOffline: true,
+        currentMonitorStatus: { isOfflineState: false },
+      }),
+    ).toBe(NetworkDeviceStatus.Down);
   });
 });

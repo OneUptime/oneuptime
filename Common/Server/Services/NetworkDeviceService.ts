@@ -303,6 +303,24 @@ export class Service extends DatabaseService<Model> {
             await this.applySiteAssignmentRulesToDevice(createdItem.id!);
           }
         })
+        .then(async () => {
+          /*
+           * A device created monitor-backed adopts its monitor's CURRENT
+           * status right away rather than waiting for that monitor's next
+           * status CHANGE. Skipped for SNMP devices, which are judged by
+           * their own walk.
+           */
+          if (
+            NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+              createdItem.monitoringMethod,
+            )
+          ) {
+            await this.refreshStampedMonitorStatus({
+              deviceId: createdItem.id!,
+              clearWhenNotMonitorBacked: false,
+            });
+          }
+        })
         .catch((error: Error) => {
           logger.error(
             `Error applying network device rules in NetworkDeviceService.onCreateSuccess: ${error}`,
@@ -454,6 +472,109 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Re-derives one device's stamped `currentMonitorStatusId` from its
+   * binding, and refreshes its site chain if the stamp moved.
+   *
+   * The stamp is what every monitor-backed surface reads — the device list
+   * pill, the site rollup, the topology node — and until this existed the
+   * ONLY thing that ever wrote it was
+   * `NetworkSiteService.onMonitorStatusChanged`, which fires on a monitor's
+   * next status CHANGE. Bind a device to a Ping monitor that is already Up
+   * and staying Up and nothing writes the stamp at all, so the device sits
+   * on "Pending" until the monitor happens to go down — which is
+   * OneUptime/oneuptime#3392. Binding is itself an event that decides the
+   * device's status, so it stamps here.
+   *
+   * `clearWhenNotMonitorBacked` is for the write that moves a device OFF
+   * monitor-backed: the ping monitor's verdict must not outlive the binding
+   * (DeviceHealthStateUtil lets a stamped status beat reachability, so a
+   * stale one would poison the site rollup of a device that is now walked).
+   * It is deliberately NOT set when a write only touches the monitor
+   * binding of an SNMP device, because an SNMP device's stamp comes from
+   * the Network Device monitor that watches it, and that binding lives in
+   * the monitor's step data rather than in this column.
+   */
+  @CaptureSpan()
+  public async refreshStampedMonitorStatus(data: {
+    deviceId: ObjectID;
+    clearWhenNotMonitorBacked: boolean;
+  }): Promise<void> {
+    const device: Model | null = await this.findOneById({
+      id: data.deviceId,
+      select: {
+        _id: true,
+        projectId: true,
+        siteId: true,
+        monitoringMethod: true,
+        monitorId: true,
+        currentMonitorStatusId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!device || !device.projectId) {
+      return;
+    }
+
+    const isMonitorBacked: boolean =
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        device.monitoringMethod,
+      );
+
+    if (!isMonitorBacked && !data.clearWhenNotMonitorBacked) {
+      return;
+    }
+
+    let monitorStatusId: ObjectID | null = null;
+
+    if (isMonitorBacked && device.monitorId) {
+      /*
+       * Scoped to the device's project on the read as well as on the write
+       * path in onBeforeCreate/onBeforeUpdate: a monitor from another
+       * tenant must never be able to stamp a status here.
+       */
+      const monitor: Monitor | null = await MonitorService.findOneBy({
+        query: {
+          _id: device.monitorId,
+          projectId: device.projectId,
+        },
+        select: {
+          _id: true,
+          currentMonitorStatusId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      monitorStatusId = monitor?.currentMonitorStatusId || null;
+    }
+
+    const currentStampId: string | null =
+      device.currentMonitorStatusId?.toString() || null;
+    const nextStampId: string | null = monitorStatusId?.toString() || null;
+
+    if (currentStampId === nextStampId) {
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.deviceId,
+      data: {
+        currentMonitorStatusId: monitorStatusId,
+      },
+    });
+
+    if (device.siteId) {
+      await NetworkSiteService.recomputeRollupForSiteAndAncestors(
+        device.siteId,
+      );
+    }
+  }
+
+  /*
    * Site maintenance after device updates. Resilient by design: a rollup
    * or rule-engine failure must never fail the device update itself.
    */
@@ -462,6 +583,33 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Re-stamp before the site maintenance below, and in its own try: the
+     * two are independent, and a rollup failure must not cost the device
+     * its status (nor the other way round).
+     */
+    try {
+      const dataKeys: Array<string> = Object.keys(onUpdate.updateBy.data || {});
+      const isMethodWrite: boolean = dataKeys.includes("monitoringMethod");
+      const isMonitorWrite: boolean = RelationIdUtil.isWritten(
+        dataKeys,
+        MONITOR_KEYS,
+      );
+
+      if (isMethodWrite || isMonitorWrite) {
+        for (const deviceId of updatedItemIds) {
+          await this.refreshStampedMonitorStatus({
+            deviceId: deviceId,
+            clearWhenNotMonitorBacked: isMethodWrite,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `Error in NetworkDeviceService.onUpdateSuccess monitor status refresh: ${error}`,
+      );
+    }
+
     try {
       const dataKeys: Array<string> = Object.keys(onUpdate.updateBy.data || {});
 
