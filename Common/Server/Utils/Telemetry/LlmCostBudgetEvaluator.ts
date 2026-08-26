@@ -19,14 +19,22 @@ import MetricService from "../../Services/MetricService";
 import SpanService from "../../Services/SpanService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import LlmMetricSpend, { LlmMetricScope } from "./LlmMetricSpend";
 import TelemetryUtil from "./Telemetry";
 
 /*
- * Evaluates LLM cost budgets against the day's LLM span spend.
+ * Evaluates LLM cost budgets against the day's LLM spend.
+ *
+ * Spend is sourced from GenAI trace spans first and, when a scope produced no
+ * span spend at all, from the GenAI metric stream instead (see resolveSpend
+ * and Common/Server/Utils/Telemetry/LlmMetricSpend.ts). That second source is
+ * what lets a metrics-only emitter — an SDK exporting metrics without traces,
+ * or a gateway that publishes spend counters and no spans — hold a budget at
+ * all. The two are never summed; see resolveSpend for why.
  *
  * The worker job (App/FeatureSet/Workers/Jobs/Llm/EvaluateLlmCostBudgets.ts)
  * calls evaluateAllBudgets() on a 15-minute tick. For each enabled budget it
- * sums the UTC day's llmCost from ClickHouse (scoped by the budget's optional
+ * sums the UTC day's spend from ClickHouse (scoped by the budget's optional
  * service / provider / model filters), stamps the spend back onto the budget
  * row for the dashboard, and publishes two gauge metrics:
  *
@@ -64,6 +72,17 @@ export const LLM_BUDGET_SERVICE_ID_ATTRIBUTE: string =
  * history belongs to the spans themselves.
  */
 const BUDGET_METRIC_RETENTION_IN_DAYS: number = 15;
+
+/*
+ * Which telemetry signal a budget's spend figure came from. "none" means both
+ * sources were empty — a genuinely idle scope, not a failure.
+ */
+export type LlmSpendSource = "spans" | "metrics" | "none";
+
+export interface LlmResolvedSpend {
+  spendInUSD: number;
+  source: LlmSpendSource;
+}
 
 export default class LlmCostBudgetEvaluator {
   /**
@@ -262,11 +281,17 @@ export default class LlmCostBudgetEvaluator {
 
     const dayStart: Date = this.getUtcDayStart(data.now);
 
-    const spendInUSD: number = await this.getSpendInUSD({
+    const resolved: LlmResolvedSpend = await this.resolveSpend({
       budget: budget,
       dayStart: dayStart,
       now: data.now,
     });
+
+    const spendInUSD: number = resolved.spendInUSD;
+
+    logger.debug(
+      `LLM cost budget ${budget.id.toString()}: spend ${spendInUSD} USD sourced from ${resolved.source}`,
+    );
 
     const percentUsed: number = this.computePercentUsed({
       spendInUSD: spendInUSD,
@@ -294,10 +319,82 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
+   * Translate a budget's scope into the equivalent metric-stream scope, so
+   * the span query and the metric query narrow to the same slice of traffic.
+   *
+   * Service scoping is exact — Span.primaryEntityId and Metric.primaryEntityId
+   * are the same telemetry-service id. Provider/model scoping matches the
+   * primary semantic-convention attribute keys only; see the caveat on
+   * LlmMetricSpend.
+   */
+  public static buildMetricScope(data: {
+    budget: LlmCostBudget;
+    dayStart: Date;
+    now: Date;
+  }): LlmMetricScope {
+    return {
+      projectId: data.budget.projectId!,
+      startTime: data.dayStart,
+      endTime: data.now,
+      serviceId: data.budget.serviceId,
+      llmSystem: data.budget.llmSystem,
+      llmModel: data.budget.llmModel,
+    };
+  }
+
+  /**
+   * The day's spend for a budget, and which telemetry signal it came from.
+   *
+   * Spans are authoritative: a GenAI span carries model, tokens and cost on
+   * one row, and it is the only source that can also back the per-call views.
+   * Metrics are consulted ONLY when the span-sourced total is zero.
+   *
+   * That ordering is a deliberate fallback rather than a sum. Instrumentations
+   * that emit both signals (OpenLLMetry is the common case) would otherwise be
+   * counted twice, and for a budget that gates alerting an inflated figure is
+   * worse than a missing one — it fires on spend that never happened. The
+   * fallback turns on exactly for the emitters that need it: those publishing
+   * GenAI metrics and no GenAI spans, whose span total is structurally zero.
+   *
+   * Known limit, documented rather than papered over: a scope where SOME
+   * services emit spans and others emit only metrics resolves to "spans" and
+   * under-counts the metrics-only services. Splitting a budget per service is
+   * the workaround; scoping each to its own service gives each the source it
+   * actually has.
+   *
+   * A metric-query failure is allowed to propagate for the same reason the
+   * span aggregate passes timeoutOverflowMode 'throw': returning 0 on error
+   * would silently suppress a real breach. evaluateAllBudgets isolates the
+   * failure to the one budget.
+   */
+  @CaptureSpan()
+  public static async resolveSpend(data: {
+    budget: LlmCostBudget;
+    dayStart: Date;
+    now: Date;
+  }): Promise<LlmResolvedSpend> {
+    const spanSpend: number = await this.getSpanSpendInUSD(data);
+
+    if (spanSpend > 0) {
+      return { spendInUSD: spanSpend, source: "spans" };
+    }
+
+    const metricSpend: number = await LlmMetricSpend.getCostInUSD(
+      this.buildMetricScope(data),
+    );
+
+    if (metricSpend > 0) {
+      return { spendInUSD: metricSpend, source: "metrics" };
+    }
+
+    return { spendInUSD: 0, source: "none" };
+  }
+
+  /**
    * Sum the day's llmCost for the budget's scope from ClickHouse.
    */
   @CaptureSpan()
-  private static async getSpendInUSD(data: {
+  private static async getSpanSpendInUSD(data: {
     budget: LlmCostBudget;
     dayStart: Date;
     now: Date;

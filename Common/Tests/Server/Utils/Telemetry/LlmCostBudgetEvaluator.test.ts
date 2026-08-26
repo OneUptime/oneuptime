@@ -19,6 +19,7 @@ import LlmCostBudgetService from "../../../../Server/Services/LlmCostBudgetServi
 import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
 import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
+import { LlmMetricScope } from "../../../../Utils/Telemetry/LlmMetricQuery";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
  * imported value would shadow the global `jest` NAMESPACE and break the
@@ -41,6 +42,11 @@ jest.mock("../../../../Server/Services/MetricService", () => {
     __esModule: true,
     default: {
       insertJsonRows: jest.fn(),
+      /*
+       * aggregateBy backs the metric-sourced spend fallback that
+       * resolveSpend reaches for when the span stream is empty.
+       */
+      aggregateBy: jest.fn(),
     },
   };
 });
@@ -70,10 +76,13 @@ const mockedSpanService: { aggregateBy: MockedFn } = SpanService as unknown as {
   aggregateBy: MockedFn;
 };
 
-const mockedMetricService: { insertJsonRows: MockedFn } =
-  MetricService as unknown as {
-    insertJsonRows: MockedFn;
-  };
+const mockedMetricService: {
+  insertJsonRows: MockedFn;
+  aggregateBy: MockedFn;
+} = MetricService as unknown as {
+  insertJsonRows: MockedFn;
+  aggregateBy: MockedFn;
+};
 
 const mockedBudgetService: {
   findBy: MockedFn;
@@ -328,6 +337,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
     mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
     mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
@@ -447,6 +457,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
 describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
     mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
     mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
@@ -481,6 +492,7 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
     await LlmCostBudgetEvaluator.evaluateAllBudgets();
 
     expect(mockedSpanService.aggregateBy).not.toHaveBeenCalled();
+    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
   });
 
   test("only enabled budgets are loaded", async () => {
@@ -493,5 +505,357 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
       query: Record<string, unknown>;
     };
     expect(findArg.query["isEnabled"]).toBe(true);
+  });
+});
+
+describe("LlmCostBudgetEvaluator.buildMetricScope", () => {
+  const DAY_START: Date = new Date(Date.UTC(2026, 7, 22, 0, 0, 0));
+
+  test("carries the project and the day-so-far window", () => {
+    const budget: LlmCostBudget = makeBudget();
+
+    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
+      budget,
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    expect(scope.projectId).toBe(budget.projectId);
+    expect(scope.startTime).toBe(DAY_START);
+    expect(scope.endTime).toBe(NOW);
+  });
+
+  test("leaves an unscoped budget unscoped — it must see every datapoint", () => {
+    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
+      budget: makeBudget(),
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    expect(scope.serviceId).toBeUndefined();
+    expect(scope.llmSystem).toBeUndefined();
+    expect(scope.llmModel).toBeUndefined();
+  });
+
+  test("mirrors the budget's service / provider / model scoping", () => {
+    const serviceId: ObjectID = ObjectID.generate();
+
+    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
+      budget: makeBudget({
+        serviceId: serviceId,
+        llmSystem: "anthropic",
+        llmModel: "claude-sonnet-4",
+      }),
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    expect(scope.serviceId).toBe(serviceId);
+    expect(scope.llmSystem).toBe("anthropic");
+    expect(scope.llmModel).toBe("claude-sonnet-4");
+  });
+
+  /*
+   * The span query and the metric query must narrow to the same slice of
+   * traffic, or the fallback would silently measure something else.
+   */
+  test("agrees with buildSpanQuery on the service scope", () => {
+    const serviceId: ObjectID = ObjectID.generate();
+    const budget: LlmCostBudget = makeBudget({ serviceId: serviceId });
+
+    const spanQuery: Record<string, unknown> =
+      LlmCostBudgetEvaluator.buildSpanQuery({
+        budget,
+        dayStart: DAY_START,
+        now: NOW,
+      }) as unknown as Record<string, unknown>;
+
+    const scope: LlmMetricScope = LlmCostBudgetEvaluator.buildMetricScope({
+      budget,
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    expect(spanQuery["primaryEntityId"]).toBe(scope.serviceId);
+  });
+});
+
+describe("LlmCostBudgetEvaluator.resolveSpend — source selection", () => {
+  const DAY_START: Date = new Date(Date.UTC(2026, 7, 22, 0, 0, 0));
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+  });
+
+  function mockSpanSpend(value: number): void {
+    mockedSpanService.aggregateBy.mockResolvedValue({
+      data: [{ timestamp: NOW, value: value }],
+    } as never);
+  }
+
+  function mockMetricSpend(value: number): void {
+    mockedMetricService.aggregateBy.mockResolvedValue({
+      data: [{ timestamp: NOW, value: value }],
+    } as never);
+  }
+
+  test("uses spans when the span stream reported spend", async () => {
+    mockSpanSpend(42);
+    mockMetricSpend(999);
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 42, source: "spans" });
+  });
+
+  /*
+   * The double-counting guard, and the reason this is a fallback rather than a
+   * sum: an SDK emitting both signals would otherwise report 1041 here, and a
+   * budget that fires on spend that never happened is worse than one that
+   * misses.
+   */
+  test("never adds metric spend on top of span spend", async () => {
+    mockSpanSpend(42);
+    mockMetricSpend(999);
+
+    const resolved: { spendInUSD: number } =
+      await LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      });
+
+    expect(resolved.spendInUSD).toBe(42);
+    expect(resolved.spendInUSD).not.toBe(1041);
+  });
+
+  test("does not query metrics at all when spans answered", async () => {
+    mockSpanSpend(42);
+
+    await LlmCostBudgetEvaluator.resolveSpend({
+      budget: makeBudget(),
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
+  });
+
+  test("falls back to metrics when the span stream is empty", async () => {
+    mockMetricSpend(17.5);
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 17.5, source: "metrics" });
+  });
+
+  test("reports source 'none' when both streams are empty", async () => {
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 0, source: "none" });
+  });
+
+  test("treats a zero-valued span bucket as no span spend", async () => {
+    mockSpanSpend(0);
+    mockMetricSpend(8);
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 8, source: "metrics" });
+  });
+
+  test("a zero metric total still resolves to 'none', not 'metrics'", async () => {
+    mockMetricSpend(0);
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 0, source: "none" });
+  });
+
+  /*
+   * Returning 0 on a failed metric query would silently suppress a real
+   * breach — the same reasoning behind the span aggregate's
+   * timeoutOverflowMode: 'throw'. evaluateAllBudgets isolates the failure.
+   */
+  test("propagates a metric-query failure rather than reporting zero spend", async () => {
+    mockedMetricService.aggregateBy.mockRejectedValue(
+      new Error("clickhouse timeout") as never,
+    );
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).rejects.toThrow("clickhouse timeout");
+  });
+
+  test("propagates a span-query failure without reaching the fallback", async () => {
+    mockedSpanService.aggregateBy.mockRejectedValue(
+      new Error("span boom") as never,
+    );
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).rejects.toThrow("span boom");
+
+    expect(mockedMetricService.aggregateBy).not.toHaveBeenCalled();
+  });
+
+  test("sums multiple metric buckets", async () => {
+    mockedMetricService.aggregateBy.mockResolvedValue({
+      data: [
+        { timestamp: NOW, value: 1.5 },
+        { timestamp: NOW, value: 2.5 },
+      ],
+    } as never);
+
+    await expect(
+      LlmCostBudgetEvaluator.resolveSpend({
+        budget: makeBudget(),
+        dayStart: DAY_START,
+        now: NOW,
+      }),
+    ).resolves.toEqual({ spendInUSD: 4, source: "metrics" });
+  });
+
+  test("passes the budget's scope through to the metric query", async () => {
+    const serviceId: ObjectID = ObjectID.generate();
+    mockMetricSpend(3);
+
+    await LlmCostBudgetEvaluator.resolveSpend({
+      budget: makeBudget({ serviceId: serviceId, llmSystem: "openai" }),
+      dayStart: DAY_START,
+      now: NOW,
+    });
+
+    const aggregateArg: { query: Record<string, unknown> } = mockedMetricService
+      .aggregateBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+    };
+
+    expect(aggregateArg.query["primaryEntityId"]).toBe(serviceId);
+    expect(aggregateArg.query["attributes"]).toEqual({
+      "gen_ai.system": "openai",
+    });
+  });
+});
+
+describe("LlmCostBudgetEvaluator.evaluateBudget — metric-sourced spend", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.aggregateBy.mockResolvedValue({ data: [] } as never);
+    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
+    mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
+    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
+      undefined as never,
+    );
+  });
+
+  test("a metrics-only project gets its spend stamped on the budget row", async () => {
+    mockedMetricService.aggregateBy.mockResolvedValue({
+      data: [{ timestamp: NOW, value: 60 }],
+    } as never);
+
+    const budget: LlmCostBudget = makeBudget({ dailyBudgetInUSD: 100 });
+
+    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
+
+    const updateArg: { data: Record<string, unknown> } = mockedBudgetService
+      .updateOneById.mock.calls[0]![0] as {
+      data: Record<string, unknown>;
+    };
+
+    expect(updateArg.data["currentDaySpendInUSD"]).toBe(60);
+  });
+
+  test("a metrics-only project publishes the same budget series as a span-backed one", async () => {
+    mockedMetricService.aggregateBy.mockResolvedValue({
+      data: [{ timestamp: NOW, value: 80 }],
+    } as never);
+
+    await LlmCostBudgetEvaluator.evaluateBudget({
+      budget: makeBudget({ dailyBudgetInUSD: 100 }),
+      now: NOW,
+    });
+
+    const rows: Array<Record<string, unknown>> = mockedMetricService
+      .insertJsonRows.mock.calls[0]![0] as Array<Record<string, unknown>>;
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!["name"]).toBe(LLM_BUDGET_SPEND_METRIC_NAME);
+    expect(rows[0]!["value"]).toBe(80);
+    expect(rows[1]!["name"]).toBe(LLM_BUDGET_PERCENT_METRIC_NAME);
+    expect(rows[1]!["value"]).toBe(80);
+  });
+
+  /*
+   * The published series must stay byte-identical to what a span-backed budget
+   * emits — existing monitors filter on oneuptime.llm.budget.id and must not
+   * have to learn about the source.
+   */
+  test("the published series carries no source-specific attribute", async () => {
+    mockedMetricService.aggregateBy.mockResolvedValue({
+      data: [{ timestamp: NOW, value: 5 }],
+    } as never);
+
+    const budget: LlmCostBudget = makeBudget();
+
+    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
+
+    const rows: Array<Record<string, unknown>> = mockedMetricService
+      .insertJsonRows.mock.calls[0]![0] as Array<Record<string, unknown>>;
+
+    const attributes: Record<string, string> = rows[0]!["attributes"] as Record<
+      string,
+      string
+    >;
+
+    expect(Object.keys(attributes).sort()).toEqual(
+      [LLM_BUDGET_ID_ATTRIBUTE, LLM_BUDGET_NAME_ATTRIBUTE].sort(),
+    );
+  });
+
+  test("an idle project still stamps zero and publishes its series", async () => {
+    await LlmCostBudgetEvaluator.evaluateBudget({
+      budget: makeBudget(),
+      now: NOW,
+    });
+
+    const updateArg: { data: Record<string, unknown> } = mockedBudgetService
+      .updateOneById.mock.calls[0]![0] as {
+      data: Record<string, unknown>;
+    };
+
+    expect(updateArg.data["currentDaySpendInUSD"]).toBe(0);
+    expect(mockedMetricService.insertJsonRows).toHaveBeenCalledTimes(1);
   });
 });
