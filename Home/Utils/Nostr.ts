@@ -35,6 +35,17 @@ export const NostrRootName: string = "_";
  */
 export const NostrCanonicalHost: string = "oneuptime.com";
 
+/*
+ * Where the social links on the website point. njump.me renders any nostr
+ * profile as an ordinary web page and hands off to a native client when the
+ * visitor has one, so a single href works for the whole audience rather than
+ * only for people already running nostr. Built from the npub above so the
+ * account the site links to and the account this domain vouches for over
+ * NIP-05 cannot drift apart — a mismatch would send visitors to a stranger's
+ * profile while the identity document verified a different key.
+ */
+export const NostrProfileUrl: string = `https://njump.me/${NostrRootNpub}`;
+
 const Bech32Charset: string = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
 const Bech32GeneratorPolynomials: Array<number> = [

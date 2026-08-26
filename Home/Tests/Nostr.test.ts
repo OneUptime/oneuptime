@@ -1,5 +1,6 @@
 import {
   NostrCanonicalHost,
+  NostrProfileUrl,
   NostrRootName,
   NostrRootNpub,
   NostrRootPublicKeyHex,
@@ -7,6 +8,8 @@ import {
   npubToPublicKeyHex,
 } from "../Utils/Nostr";
 import { JSONObject } from "Common/Types/JSON";
+import fs from "fs";
+import path from "path";
 
 /*
  * The hex key a nostr client compares against the profile. Written out here
@@ -98,5 +101,101 @@ describe("Nostr", () => {
     expect(
       generateNostrWellKnown({ host: "localhost", requestedName: "_" }),
     ).toEqual({ names: {} });
+  });
+});
+
+/*
+ * The templates below hard-code the profile URL the way they hard-code every
+ * other social link, so nothing about rendering them depends on a local being
+ * threaded through every res.render call. The cost of that choice is that the
+ * npub now lives in more than one place, and the failure it invites is a
+ * quiet one: rotate the key in Utils/Nostr.ts, miss a template, and the site
+ * goes on sending visitors to whoever owns the old npub while
+ * /.well-known/nostr.json vouches for the new one. Nobody sees an error. This
+ * suite is what turns that into a failing test instead.
+ */
+const REPOSITORY_ROOT: string = path.join(__dirname, "..", "..");
+
+/*
+ * Every template outside Home/Views that links to the account. Home's own
+ * templates are not listed because they are discovered below - a new social
+ * link added to the marketing site should be covered without anyone
+ * remembering to edit this file.
+ */
+const SharedTemplatesLinkingToNostr: Array<string> = [
+  "Common/Server/Views/Partials/Head.ejs",
+  "App/FeatureSet/Identity/Views/Partials/Head.ejs",
+  "App/FeatureSet/APIReference/views/partials/head.ejs",
+  "App/FeatureSet/APIReference/views/partials/footer.ejs",
+];
+
+function listFilesRecursively(directory: string): Array<string> {
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent) => {
+      const entryPath: string = path.join(directory, entry.name);
+      return entry.isDirectory()
+        ? listFilesRecursively(entryPath)
+        : [entryPath];
+    });
+}
+
+describe("Nostr profile link", () => {
+  test("the link is built from the npub this domain publishes", () => {
+    expect(NostrProfileUrl).toBe(`https://njump.me/${NostrRootNpub}`);
+
+    /*
+     * Pinned rather than derived, so swapping the account is a deliberate
+     * edit here too - the same reason expectedPublicKeyHex is written out.
+     */
+    expect(NostrProfileUrl).toBe(
+      "https://njump.me/npub1kggtaw83q0mctlwvh854xdu3wjmen8tmq9cx9l030x2ylay6wk8qy2f2e6",
+    );
+  });
+
+  test("the marketing site links to the account and nowhere else", () => {
+    const viewsRoot: string = path.join(__dirname, "..", "Views");
+    const linkingFiles: Array<string> = [];
+
+    for (const filePath of listFilesRecursively(viewsRoot)) {
+      const contents: string = fs.readFileSync(filePath, "utf-8");
+
+      if (!contents.includes("njump.me")) {
+        continue;
+      }
+
+      linkingFiles.push(path.relative(viewsRoot, filePath));
+
+      for (const link of contents.match(/https:\/\/njump\.me\/[^"'\s]+/g) ||
+        []) {
+        expect(link).toBe(NostrProfileUrl);
+      }
+    }
+
+    /*
+     * The footer social row is the link users actually click, and the
+     * Organization schema is what search engines and AI crawlers read the
+     * account off. Losing either silently is the point of naming them.
+     */
+    expect(linkingFiles.sort()).toEqual(["footer.ejs", "head-social.ejs"]);
+  });
+
+  test("the other services agree on the same account", () => {
+    for (const relativePath of SharedTemplatesLinkingToNostr) {
+      const contents: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, relativePath),
+        "utf-8",
+      );
+
+      expect([relativePath, contents.includes(NostrProfileUrl)]).toEqual([
+        relativePath,
+        true,
+      ]);
+
+      for (const link of contents.match(/https:\/\/njump\.me\/[^"'\s]+/g) ||
+        []) {
+        expect([relativePath, link]).toEqual([relativePath, NostrProfileUrl]);
+      }
+    }
   });
 });
