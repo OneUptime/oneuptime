@@ -225,6 +225,222 @@ describe("bulkAddStatusPageMonitors", () => {
     expect(result.failed).toEqual([]);
   });
 
+  test("reports no skipped monitors when the status page is empty", async () => {
+    const monitor: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160080",
+      "First",
+    );
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [monitor],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        createResource: async (): Promise<void> => {},
+      });
+
+    expect(result.succeeded).toEqual([monitor]);
+    expect(result.skipped).toEqual([]);
+  });
+
+  /*
+   * Issue #3420. Selecting a label re-selects every monitor carrying it, so a
+   * re-add after one new monitor joined the label arrives here as "the three
+   * already on the page, plus the new one". Only the new one is a create.
+   */
+  test("adds only the monitors the status page does not already list", async () => {
+    const alreadyAdded: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160090",
+      "Checkout API",
+    );
+    const alsoAlreadyAdded: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160091",
+      "Billing Worker",
+    );
+    const newlyLabelled: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160092",
+      "Search API",
+    );
+    const created: Array<StatusPageResource> = [];
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [alreadyAdded, alsoAlreadyAdded, newlyLabelled],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        statusPageGroupId: GROUP_ID,
+        existingMonitorIds: [alreadyAdded.id!, alsoAlreadyAdded.id!],
+        createResource: async (resource: StatusPageResource): Promise<void> => {
+          created.push(resource);
+        },
+      });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.monitorId?.toString()).toBe(newlyLabelled._id);
+    expect(result.succeeded).toEqual([newlyLabelled]);
+    expect(result.skipped).toEqual([alreadyAdded, alsoAlreadyAdded]);
+    expect(result.failed).toEqual([]);
+  });
+
+  test("re-adding the same label a second time writes nothing at all", async () => {
+    const monitors: Array<Monitor> = [
+      makeMonitor("0198c8ec-2a1d-7f0c-9e75-384194160100", "First"),
+      makeMonitor("0198c8ec-2a1d-7f0c-9e75-384194160101", "Second"),
+    ];
+    const createResource: (resource: StatusPageResource) => Promise<void> =
+      jest.fn(async (_resource: StatusPageResource): Promise<void> => {});
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: monitors,
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        existingMonitorIds: monitors.map((monitor: Monitor) => {
+          return monitor.id!;
+        }),
+        createResource,
+      });
+
+    expect(createResource).not.toHaveBeenCalled();
+    expect(result.succeeded).toEqual([]);
+    expect(result.failed).toEqual([]);
+    expect(result.skipped).toEqual(monitors);
+  });
+
+  test("accepts existing monitor ids as ObjectIDs or as strings", async () => {
+    const byObjectId: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160110",
+      "By Object ID",
+    );
+    const byString: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160111",
+      "By String",
+    );
+    const created: Array<StatusPageResource> = [];
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [byObjectId, byString],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        existingMonitorIds: [new ObjectID(byObjectId._id!), byString._id!],
+        createResource: async (resource: StatusPageResource): Promise<void> => {
+          created.push(resource);
+        },
+      });
+
+    expect(created).toEqual([]);
+    expect(result.skipped).toEqual([byObjectId, byString]);
+  });
+
+  test("ignores blank entries in the existing monitor ids", async () => {
+    const monitor: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160120",
+      "First",
+    );
+    const created: Array<StatusPageResource> = [];
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [monitor],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        existingMonitorIds: ["", undefined as unknown as string],
+        createResource: async (resource: StatusPageResource): Promise<void> => {
+          created.push(resource);
+        },
+      });
+
+    expect(created).toHaveLength(1);
+    expect(result.succeeded).toEqual([monitor]);
+    expect(result.skipped).toEqual([]);
+  });
+
+  test("keeps the display order of the monitors it does add", async () => {
+    const first: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160130",
+      "First",
+    );
+    const alreadyAdded: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160131",
+      "Already Added",
+    );
+    const last: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160132",
+      "Last",
+    );
+    const createdNames: Array<string> = [];
+
+    await bulkAddStatusPageMonitors({
+      monitors: [first, alreadyAdded, last],
+      projectId: PROJECT_ID,
+      statusPageId: STATUS_PAGE_ID,
+      existingMonitorIds: [alreadyAdded.id!],
+      createResource: async (resource: StatusPageResource): Promise<void> => {
+        createdNames.push(resource.displayName!);
+      },
+    });
+
+    expect(createdNames).toEqual(["First", "Last"]);
+  });
+
+  test("reports a monitor that is both selected twice and already added once", async () => {
+    const alreadyAdded: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160140",
+      "Already Added",
+    );
+    const alreadyAddedAgain: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160140",
+      "Already Added Duplicate",
+    );
+    const createResource: (resource: StatusPageResource) => Promise<void> =
+      jest.fn(async (_resource: StatusPageResource): Promise<void> => {});
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [alreadyAdded, alreadyAddedAgain],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        existingMonitorIds: [alreadyAdded.id!],
+        createResource,
+      });
+
+    expect(createResource).not.toHaveBeenCalled();
+    expect(result.skipped).toEqual([alreadyAdded]);
+  });
+
+  test("still reports invalid selections while skipping the already added ones", async () => {
+    const missingId: Monitor = makeMonitor(null, "Missing ID");
+    const alreadyAdded: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160150",
+      "Already Added",
+    );
+    const valid: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160151",
+      "Valid",
+    );
+    const created: Array<StatusPageResource> = [];
+
+    const result: BulkAddStatusPageMonitorsResult =
+      await bulkAddStatusPageMonitors({
+        monitors: [missingId, alreadyAdded, valid],
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        existingMonitorIds: [alreadyAdded.id!],
+        createResource: async (resource: StatusPageResource): Promise<void> => {
+          created.push(resource);
+        },
+      });
+
+    expect(created).toHaveLength(1);
+    expect(result.succeeded).toEqual([valid]);
+    expect(result.skipped).toEqual([alreadyAdded]);
+    expect(result.failed).toHaveLength(1);
+    expect((result.failed[0]!.error as Error).message).toBe(
+      "Monitor ID is required.",
+    );
+  });
+
   test("accepts plain monitor objects returned by the multi-select list", async () => {
     const selectedMonitor: Monitor = {
       _id: "0198c8ec-2a1d-7f0c-9e75-384194160045",

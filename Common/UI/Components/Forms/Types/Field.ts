@@ -8,6 +8,7 @@ import {
   CardSelectOptionGroup,
 } from "../../CardSelect/CardSelect";
 import { DropdownOption, DropdownOptionGroup } from "../../Dropdown/Dropdown";
+import { BulkAddedLabel } from "../../EntityDropdown/EntityDropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
 import FormValues from "./FormValues";
@@ -78,6 +79,13 @@ export default interface Field<TEntity> {
     labelField: string;
     valueField: string;
   };
+  /*
+   * Entity dropdowns can bulk-add every entry carrying a label. That is a
+   * one-time expansion and the label is not part of the field's value, so a
+   * form that needs to know which label a selection came from asks for it
+   * here.
+   */
+  onLabelsBulkAdded?: ((labels: Array<BulkAddedLabel>) => void) | undefined;
   selectByAccessControlProps?: {
     categoryCheckboxProps: CategoryCheckboxProps;
     accessControlColumnTitle: string;

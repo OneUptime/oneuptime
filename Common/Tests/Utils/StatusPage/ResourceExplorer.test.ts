@@ -10,6 +10,7 @@ import StatusPageResourceExplorerUtil, {
   StatusPageResourceNavigatorResult,
   StatusPageResourceNavigatorRow,
   StatusPageResourceSelection,
+  StatusPageResourceSelectionState,
   StatusPageResourceSelectionType,
 } from "../../../Utils/StatusPage/ResourceExplorer";
 import { describe, expect, test } from "@jest/globals";
@@ -926,6 +927,473 @@ describe("StatusPageResourceExplorerUtil", () => {
           subGroupCount: 12,
         }),
       ).toBe("12 sub groups");
+    });
+  });
+
+  /*
+   * Ticking rows, so that clearing a group is one decision rather than twenty
+   * seven (issue #3419).
+   *
+   * A selection is a set of id strings held by the pane, and the pane re-fetches
+   * the group after every write - so the two properties worth pinning down are
+   * that an operation only ever touches the resources it was handed, and that a
+   * no-op hands back the very set it was given rather than an equal copy. The
+   * second one is not tidiness: the set is React state, and returning a new
+   * instance for a no-op is a re-render of the whole pane per keystroke.
+   */
+  describe("selecting resources", () => {
+    type MakeSelectionFunction = (ids: Array<string>) => Set<string>;
+
+    const makeSelection: MakeSelectionFunction = (
+      ids: Array<string>,
+    ): Set<string> => {
+      return new Set<string>(ids);
+    };
+
+    /* A resource the server would never return: no id at all. */
+    type MakeIdlessResourceFunction = (name: string) => StatusPageResource;
+
+    const makeIdlessResource: MakeIdlessResourceFunction = (
+      name: string,
+    ): StatusPageResource => {
+      const resource: StatusPageResource = new StatusPageResource();
+      resource.displayName = name;
+
+      return resource;
+    };
+
+    describe("reading a resource's id", () => {
+      test("hands back the id as a string", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getResourceId(
+            makeResource({ id: "a" }),
+          ),
+        ).toBe("a");
+      });
+
+      test("is null for a resource with no id", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getResourceId(
+            makeIdlessResource("Nameless"),
+          ),
+        ).toBeNull();
+      });
+
+      test("is null rather than the empty string, which would collide", () => {
+        const resource: StatusPageResource = new StatusPageResource();
+        resource._id = "";
+
+        expect(
+          StatusPageResourceExplorerUtil.getResourceId(resource),
+        ).toBeNull();
+      });
+    });
+
+    describe("the ids a list offers", () => {
+      test("are in the order the list draws them", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getResourceIds([
+            makeResource({ id: "c" }),
+            makeResource({ id: "a" }),
+            makeResource({ id: "b" }),
+          ]),
+        ).toEqual(["c", "a", "b"]);
+      });
+
+      test("skip anything that cannot be held on to", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getResourceIds([
+            makeResource({ id: "a" }),
+            makeIdlessResource("Nameless"),
+            makeResource({ id: "b" }),
+          ]),
+        ).toEqual(["a", "b"]);
+      });
+
+      test("say each id once, however many rows carry it", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getResourceIds([
+            makeResource({ id: "a" }),
+            makeResource({ id: "a" }),
+            makeResource({ id: "b" }),
+          ]),
+        ).toEqual(["a", "b"]);
+      });
+
+      test("are empty for an empty list", () => {
+        expect(StatusPageResourceExplorerUtil.getResourceIds([])).toEqual([]);
+      });
+    });
+
+    describe("ticking one row", () => {
+      test("adds an id that was not selected", () => {
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.toggleSelectedResourceId({
+            selectedResourceIds: makeSelection(["a"]),
+            resourceId: "b",
+          });
+
+        expect([...next].sort()).toEqual(["a", "b"]);
+      });
+
+      test("removes an id that was", () => {
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.toggleSelectedResourceId({
+            selectedResourceIds: makeSelection(["a", "b"]),
+            resourceId: "a",
+          });
+
+        expect([...next]).toEqual(["b"]);
+      });
+
+      test("leaves the set it was given alone", () => {
+        const current: Set<string> = makeSelection(["a"]);
+
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.toggleSelectedResourceId({
+            selectedResourceIds: current,
+            resourceId: "b",
+          });
+
+        expect(next).not.toBe(current);
+        expect([...current]).toEqual(["a"]);
+      });
+    });
+
+    describe("the box at the top of the list", () => {
+      test("selects every resource it was handed", () => {
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: makeSelection([]),
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeResource({ id: "b" }),
+            ],
+            isSelected: true,
+          });
+
+        expect([...next].sort()).toEqual(["a", "b"]);
+      });
+
+      /*
+       * The list is filtered as often as not, and the rows the search hid are
+       * still selected. Un-ticking over four matches must not drop the twenty
+       * that were selected before the operator started typing.
+       */
+      test("leaves selected rows it was not handed alone, in both directions", () => {
+        const selected: Set<string> =
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: makeSelection(["hidden"]),
+            statusPageResources: [makeResource({ id: "shown" })],
+            isSelected: true,
+          });
+
+        expect([...selected].sort()).toEqual(["hidden", "shown"]);
+
+        const deselected: Set<string> =
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: selected,
+            statusPageResources: [makeResource({ id: "shown" })],
+            isSelected: false,
+          });
+
+        expect([...deselected]).toEqual(["hidden"]);
+      });
+
+      test("ignores rows that cannot be selected at all", () => {
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: makeSelection([]),
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeIdlessResource("Nameless"),
+            ],
+            isSelected: true,
+          });
+
+        expect([...next]).toEqual(["a"]);
+      });
+
+      test("hands back the same set when everything was already selected", () => {
+        const current: Set<string> = makeSelection(["a", "b"]);
+
+        expect(
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: current,
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeResource({ id: "b" }),
+            ],
+            isSelected: true,
+          }),
+        ).toBe(current);
+      });
+
+      test("hands back the same set when nothing handed in was selected", () => {
+        const current: Set<string> = makeSelection(["other"]);
+
+        expect(
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: current,
+            statusPageResources: [makeResource({ id: "a" })],
+            isSelected: false,
+          }),
+        ).toBe(current);
+      });
+
+      test("hands back the same set for an empty list", () => {
+        const current: Set<string> = makeSelection(["a"]);
+
+        expect(
+          StatusPageResourceExplorerUtil.setResourcesSelected({
+            selectedResourceIds: current,
+            statusPageResources: [],
+            isSelected: true,
+          }),
+        ).toBe(current);
+      });
+    });
+
+    describe("what the box at the top of the list looks like", () => {
+      type StateFunction = (
+        resources: Array<StatusPageResource>,
+        ids: Array<string>,
+      ) => StatusPageResourceSelectionState;
+
+      const state: StateFunction = (
+        resources: Array<StatusPageResource>,
+        ids: Array<string>,
+      ): StatusPageResourceSelectionState => {
+        return StatusPageResourceExplorerUtil.getSelectionState({
+          statusPageResources: resources,
+          selectedResourceIds: makeSelection(ids),
+        });
+      };
+
+      test("is empty when nothing is selected", () => {
+        expect(
+          state([makeResource({ id: "a" }), makeResource({ id: "b" })], []),
+        ).toEqual({
+          isAllSelected: false,
+          isIndeterminate: false,
+          selectedCount: 0,
+          selectableCount: 2,
+        });
+      });
+
+      test("is half filled when some of them are", () => {
+        expect(
+          state([makeResource({ id: "a" }), makeResource({ id: "b" })], ["a"]),
+        ).toEqual({
+          isAllSelected: false,
+          isIndeterminate: true,
+          selectedCount: 1,
+          selectableCount: 2,
+        });
+      });
+
+      test("is filled when all of them are", () => {
+        expect(
+          state(
+            [makeResource({ id: "a" }), makeResource({ id: "b" })],
+            ["a", "b"],
+          ),
+        ).toEqual({
+          isAllSelected: true,
+          isIndeterminate: false,
+          selectedCount: 2,
+          selectableCount: 2,
+        });
+      });
+
+      /*
+       * A ticked box over nothing to tick reads as a selection that was lost -
+       * which is exactly what an operator sees when a search matches nothing.
+       */
+      test("is never filled over an empty list", () => {
+        expect(state([], ["a"])).toEqual({
+          isAllSelected: false,
+          isIndeterminate: false,
+          selectedCount: 0,
+          selectableCount: 0,
+        });
+      });
+
+      /*
+       * The selection outlives the filter, so it routinely holds ids that the
+       * rows on screen know nothing about. They must not make the box on screen
+       * look fuller than it is.
+       */
+      test("counts only the rows it was handed", () => {
+        expect(state([makeResource({ id: "a" })], ["a", "elsewhere"])).toEqual({
+          isAllSelected: true,
+          isIndeterminate: false,
+          selectedCount: 1,
+          selectableCount: 1,
+        });
+      });
+
+      test("is filled when every selectable row is selected, id-less ones aside", () => {
+        expect(
+          state(
+            [makeResource({ id: "a" }), makeIdlessResource("Nameless")],
+            ["a"],
+          ),
+        ).toEqual({
+          isAllSelected: true,
+          isIndeterminate: false,
+          selectedCount: 1,
+          selectableCount: 1,
+        });
+      });
+    });
+
+    describe("resolving a selection to resources", () => {
+      test("hands them back in the order the list holds them", () => {
+        const resources: Array<StatusPageResource> = [
+          makeResource({ id: "a", monitorName: "API" }),
+          makeResource({ id: "b", monitorName: "Database" }),
+          makeResource({ id: "c", monitorName: "Cache" }),
+        ];
+
+        const selected: Array<StatusPageResource> =
+          StatusPageResourceExplorerUtil.getSelectedResources({
+            statusPageResources: resources,
+            /* Ticked bottom up; reported top down. */
+            selectedResourceIds: makeSelection(["c", "a"]),
+          });
+
+        expect(
+          selected.map((resource: StatusPageResource) => {
+            return StatusPageResourceExplorerUtil.getResourceName(resource);
+          }),
+        ).toEqual(["API", "Cache"]);
+      });
+
+      test("drops ids that match nothing on screen", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getSelectedResources({
+            statusPageResources: [makeResource({ id: "a" })],
+            selectedResourceIds: makeSelection(["a", "gone"]),
+          }).length,
+        ).toBe(1);
+      });
+
+      test("hands back one resource per id", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getSelectedResources({
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeResource({ id: "a" }),
+            ],
+            selectedResourceIds: makeSelection(["a"]),
+          }).length,
+        ).toBe(1);
+      });
+
+      test("is empty when nothing is selected", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getSelectedResources({
+            statusPageResources: [makeResource({ id: "a" })],
+            selectedResourceIds: makeSelection([]),
+          }),
+        ).toEqual([]);
+      });
+    });
+
+    describe("keeping a selection honest across a refetch", () => {
+      test("drops whatever the group no longer holds", () => {
+        const next: Set<string> =
+          StatusPageResourceExplorerUtil.retainSelectedResourceIds({
+            selectedResourceIds: makeSelection(["a", "b", "c"]),
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeResource({ id: "c" }),
+            ],
+          });
+
+        expect([...next].sort()).toEqual(["a", "c"]);
+      });
+
+      test("hands back the same set when nothing was dropped", () => {
+        const current: Set<string> = makeSelection(["a", "b"]);
+
+        expect(
+          StatusPageResourceExplorerUtil.retainSelectedResourceIds({
+            selectedResourceIds: current,
+            statusPageResources: [
+              makeResource({ id: "a" }),
+              makeResource({ id: "b" }),
+            ],
+          }),
+        ).toBe(current);
+      });
+
+      test("hands back the same empty set rather than a new one", () => {
+        const current: Set<string> = makeSelection([]);
+
+        expect(
+          StatusPageResourceExplorerUtil.retainSelectedResourceIds({
+            selectedResourceIds: current,
+            statusPageResources: [makeResource({ id: "a" })],
+          }),
+        ).toBe(current);
+      });
+
+      test("empties a selection whose group came back empty", () => {
+        expect(
+          StatusPageResourceExplorerUtil.retainSelectedResourceIds({
+            selectedResourceIds: makeSelection(["a"]),
+            statusPageResources: [],
+          }).size,
+        ).toBe(0);
+      });
+    });
+
+    describe("what the confirmation says", () => {
+      test("uses the singular for one resource, and says the monitor survives", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmTitle({
+            count: 1,
+          }),
+        ).toBe("Remove 1 resource");
+
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmMessage({
+            count: 1,
+          }),
+        ).toBe(
+          "Are you sure you want to remove 1 resource from this status page? The monitor itself is not deleted.",
+        );
+      });
+
+      test("uses the plural for several, and says the monitors survive", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmTitle({
+            count: 27,
+          }),
+        ).toBe("Remove 27 resources");
+
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmMessage({
+            count: 27,
+          }),
+        ).toContain("remove 27 resources from this status page");
+
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmMessage({
+            count: 27,
+          }),
+        ).toContain("The monitors themselves are not deleted.");
+      });
+
+      test("groups the thousands, because the number is the whole warning", () => {
+        expect(
+          StatusPageResourceExplorerUtil.getBulkRemoveConfirmTitle({
+            count: 1506,
+          }),
+        ).toBe(`Remove ${(1506).toLocaleString()} resources`);
+      });
     });
   });
 });

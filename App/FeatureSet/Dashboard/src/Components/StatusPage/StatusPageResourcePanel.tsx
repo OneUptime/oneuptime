@@ -12,6 +12,11 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import BulkUpdateForm, {
+  BulkActionButtonSchema,
+  BulkActionFailed,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -34,6 +39,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageResourceExplorerUtil, {
   StatusPageResourceBreadcrumbStep,
   StatusPageResourceSelection,
+  StatusPageResourceSelectionState,
   StatusPageResourceSelectionType,
 } from "Common/Utils/StatusPage/ResourceExplorer";
 import React, {
@@ -198,6 +204,15 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState<boolean>(false);
 
+  /*
+   * Which rows are ticked, as ids rather than as resources: every write on this
+   * pane ends in a refetch that replaces the whole array, so holding the
+   * objects would be holding rows that no longer exist (issue #3419).
+   */
+  const [selectedResourceIds, setSelectedResourceIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
+
   /* The row whose reorder is in flight. See onReorder. */
   const [busyResourceId, setBusyResourceId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string>("");
@@ -275,6 +290,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         });
 
       setStatusPageResources(listResult.data);
+      /*
+       * A resource that is no longer in the group cannot stay selected: the
+       * bulk bar would go on counting it and the next action would try to
+       * delete a row that is already gone. This covers the pane's own bulk
+       * removal and anything somebody else did to the group in the meantime.
+       */
+      setSelectedResourceIds((current: Set<string>): Set<string> => {
+        return StatusPageResourceExplorerUtil.retainSelectedResourceIds({
+          selectedResourceIds: current,
+          statusPageResources: listResult.data,
+        });
+      });
       setTotalResourceCount(listResult.count);
       props.onResourceCountLoaded(
         props.selection.statusPageGroupId,
@@ -303,6 +330,11 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     setSearchText("");
     setVisibleCount(StatusPageResourceExplorerUtil.ResourceRowsPerPage);
     setActionError("");
+    /*
+     * A selection belongs to the group it was made in. Carrying it across would
+     * mean a bulk removal aimed at rows the operator is no longer looking at.
+     */
+    setSelectedResourceIds(new Set<string>());
     reload();
   }, [selectionKey]);
 
@@ -315,6 +347,101 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     }, [statusPageResources, searchText]);
 
   const isFiltering: boolean = searchText.trim().length > 0;
+
+  /* ------------------------------------------------------------------ */
+  /* Selection                                                           */
+  /* ------------------------------------------------------------------ */
+
+  /*
+   * Ticking rows is only worth offering to somebody who can act on them, and
+   * removing is the only thing this pane does to a selection. A viewer who may
+   * read a status page but not change it gets the list it always had.
+   */
+  const isSelectable: boolean = props.canDelete;
+
+  /*
+   * The whole loaded group, not the filtered view: a selection made before a
+   * search was typed is still a selection, and the bulk bar has to keep
+   * counting it.
+   */
+  const selectedResources: Array<StatusPageResource> =
+    useMemo((): Array<StatusPageResource> => {
+      if (!isSelectable) {
+        return [];
+      }
+
+      return StatusPageResourceExplorerUtil.getSelectedResources({
+        statusPageResources: statusPageResources,
+        selectedResourceIds: selectedResourceIds,
+      });
+    }, [isSelectable, statusPageResources, selectedResourceIds]);
+
+  /*
+   * The box at the top of the list, over the rows the list is drawing. Ticking
+   * it while a search is on selects what the search matched - including the
+   * matches held back behind "Show more", which are matches all the same.
+   */
+  const listSelectionState: StatusPageResourceSelectionState =
+    useMemo((): StatusPageResourceSelectionState => {
+      return StatusPageResourceExplorerUtil.getSelectionState({
+        statusPageResources: filteredResources,
+        selectedResourceIds: selectedResourceIds,
+      });
+    }, [filteredResources, selectedResourceIds]);
+
+  /*
+   * Whether there is anything left for the bulk bar's own "Select all" to add.
+   * That button means the whole group rather than the filtered view, which is
+   * how it differs from the box at the top of the list.
+   */
+  const isEveryLoadedResourceSelected: boolean = useMemo((): boolean => {
+    return StatusPageResourceExplorerUtil.getSelectionState({
+      statusPageResources: statusPageResources,
+      selectedResourceIds: selectedResourceIds,
+    }).isAllSelected;
+  }, [statusPageResources, selectedResourceIds]);
+
+  type ToggleResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ) => void;
+
+  const toggleResourceSelected: ToggleResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ): void => {
+    const resourceId: string | null =
+      StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+
+    if (!resourceId) {
+      return;
+    }
+
+    setSelectedResourceIds(
+      StatusPageResourceExplorerUtil.toggleSelectedResourceId({
+        selectedResourceIds: selectedResourceIds,
+        resourceId: resourceId,
+      }),
+    );
+  };
+
+  type ToggleAllSelectedFunction = (isSelected: boolean) => void;
+
+  const toggleAllSelected: ToggleAllSelectedFunction = (
+    isSelected: boolean,
+  ): void => {
+    setSelectedResourceIds(
+      StatusPageResourceExplorerUtil.setResourcesSelected({
+        selectedResourceIds: selectedResourceIds,
+        statusPageResources: filteredResources,
+        isSelected: isSelected,
+      }),
+    );
+  };
+
+  type ClearSelectionFunction = () => void;
+
+  const clearSelection: ClearSelectionFunction = (): void => {
+    setSelectedResourceIds(new Set<string>());
+  };
 
   /* ------------------------------------------------------------------ */
   /* Writes                                                              */
@@ -398,6 +525,80 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     }
 
     setIsDeleting(false);
+  };
+
+  /*
+   * Removing everything that is ticked, one request at a time.
+   *
+   * There is no bulk delete endpoint, so this is the same loop every other
+   * bulk action in the product runs - and the reason it is worth having anyway
+   * is that the operator makes one decision and confirms it once, instead of
+   * making twenty seven of them through a modal that reloads the list between
+   * each (issue #3419).
+   *
+   * A failure part way through is reported per resource rather than thrown: the
+   * ones that were removed stay removed, and the operator is told which of them
+   * did not go, by name.
+   */
+  const bulkRemoveAction: BulkActionButtonSchema<StatusPageResource> = {
+    title: "Remove from status page",
+    icon: IconProp.Trash,
+    buttonStyleType: ButtonStyleType.DANGER,
+    confirmButtonStyleType: ButtonStyleType.DANGER,
+    confirmTitle: (items: Array<StatusPageResource>): string => {
+      return StatusPageResourceExplorerUtil.getBulkRemoveConfirmTitle({
+        count: items.length,
+      });
+    },
+    confirmMessage: (items: Array<StatusPageResource>): string => {
+      return StatusPageResourceExplorerUtil.getBulkRemoveConfirmMessage({
+        count: items.length,
+      });
+    },
+    onClick: async (
+      onClickProps: BulkActionOnClickProps<StatusPageResource>,
+    ): Promise<void> => {
+      const items: Array<StatusPageResource> = onClickProps.items;
+
+      onClickProps.onBulkActionStart();
+
+      const inProgressItems: Array<StatusPageResource> = [...items];
+      const successItems: Array<StatusPageResource> = [];
+      const failedItems: Array<BulkActionFailed<StatusPageResource>> = [];
+
+      for (const item of items) {
+        inProgressItems.splice(inProgressItems.indexOf(item), 1);
+
+        try {
+          if (!item.id) {
+            throw new BadDataException(
+              "This resource has no id, so it cannot be removed.",
+            );
+          }
+
+          await ModelAPI.deleteItem<StatusPageResource>({
+            modelType: StatusPageResource,
+            id: item.id,
+          });
+
+          successItems.push(item);
+        } catch (err) {
+          failedItems.push({
+            item: item,
+            failedMessage: API.getFriendlyMessage(err),
+          });
+        }
+
+        onClickProps.onProgressInfo({
+          inProgressItems: inProgressItems,
+          successItems: successItems,
+          failed: failedItems,
+          totalItems: items,
+        });
+      }
+
+      onClickProps.onBulkActionEnd();
+    },
   };
 
   type OnBeforeCreateFunction = (
@@ -1264,6 +1465,9 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           isCreateable={canAddToSelection}
           isEditable={props.canEdit}
           isDeleteable={props.canDelete}
+          isSelectable={isSelectable}
+          selectedResourceIds={selectedResourceIds}
+          onToggleResourceSelected={toggleResourceSelected}
           onAddToCell={openCreate}
           onEdit={(statusPageResource: StatusPageResource) => {
             setResourceIdToEdit(statusPageResource.id || null);
@@ -1284,6 +1488,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         isEditable={props.canEdit}
         isDeleteable={props.canDelete}
         isReorderable={props.canEdit && !isFiltering}
+        isSelectable={isSelectable}
+        selectedResourceIds={selectedResourceIds}
+        isAllSelected={listSelectionState.isAllSelected}
+        isSelectionIndeterminate={listSelectionState.isIndeterminate}
+        onToggleResourceSelected={toggleResourceSelected}
+        onToggleAllSelected={toggleAllSelected}
         busyResourceId={busyResourceId}
         visibleCount={visibleCount}
         onShowMore={() => {
@@ -1314,6 +1524,59 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       {getSubGroups()}
       {getSearch()}
       {actionError ? <ErrorMessage message={actionError} /> : <></>}
+
+      {/*
+       * What can be done to the ticked rows. Above the list rather than inside
+       * it, so it is in the same place whether the group is drawn as a list or
+       * as a grid - and it draws nothing at all until something is ticked.
+       */}
+      {isSelectable && selectedResources.length > 0 ? (
+        <div data-testid="status-page-resource-panel-bulk-actions">
+          <BulkUpdateForm<StatusPageResource>
+            selectedItems={selectedResources}
+            singularLabel="resource"
+            pluralLabel="resources"
+            isAllItemsSelected={isEveryLoadedResourceSelected}
+            onSelectAllClick={() => {
+              setSelectedResourceIds(
+                StatusPageResourceExplorerUtil.setResourcesSelected({
+                  selectedResourceIds: selectedResourceIds,
+                  statusPageResources: statusPageResources,
+                  isSelected: true,
+                }),
+              );
+            }}
+            onClearSelectionClick={clearSelection}
+            itemToString={(item: StatusPageResource): string => {
+              return StatusPageResourceExplorerUtil.getResourceName(item);
+            }}
+            /*
+             * The fetch is capped, so a group past the cap holds resources this
+             * pane never loaded - and a selection of "everything" is a
+             * selection of everything that arrived. The bar says so rather than
+             * letting the operator believe the group has been cleared.
+             */
+            isSelectionTruncated={
+              isEveryLoadedResourceSelected &&
+              totalResourceCount > statusPageResources.length
+            }
+            totalMatchingItemsCount={totalResourceCount}
+            onActionEnd={() => {
+              /*
+               * Only once the progress modal is dismissed. Clearing the
+               * selection unmounts this component - and the modal with it - so
+               * doing it as the last request lands would take the report of
+               * what failed off the screen before it could be read.
+               */
+              clearSelection();
+              reload();
+            }}
+            buttons={[bulkRemoveAction]}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {/*
        * A group holding more resources than one request returns. Saying so is

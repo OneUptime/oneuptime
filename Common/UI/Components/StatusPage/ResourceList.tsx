@@ -2,6 +2,7 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import IconProp from "../../../Types/Icon/IconProp";
 import StatusPageResourceExplorerUtil from "../../../Utils/StatusPage/ResourceExplorer";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import CheckboxElement from "../Checkbox/Checkbox";
 import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
@@ -39,6 +40,28 @@ export interface ComponentProps {
    * the row above - so the reorder is offered only over the whole list.
    */
   isReorderable: boolean;
+
+  /*
+   * Whether the rows carry checkboxes at all.
+   *
+   * Off for anybody who cannot remove a resource. Removing is the only thing a
+   * selection is for here, so without it the column would be a row of controls
+   * that lead nowhere - and it would cost every row 28px of the width its
+   * monitor's name is drawn in.
+   */
+  isSelectable: boolean;
+  /* Held by the caller: a selection outlives this list's re-renders. */
+  selectedResourceIds: Set<string>;
+  /*
+   * The state of the box at the top of the list, computed by the caller over
+   * everything this list was handed - which is the whole point of it being
+   * computed there. A filtered list's "select all" means the rows the search
+   * matched, and rows held back behind "Show more" are matched rows too.
+   */
+  isAllSelected: boolean;
+  isSelectionIndeterminate: boolean;
+  onToggleResourceSelected: (statusPageResource: StatusPageResource) => void;
+  onToggleAllSelected: (isSelected: boolean) => void;
 
   onEdit: (statusPageResource: StatusPageResource) => void;
   onDelete: (statusPageResource: StatusPageResource) => void;
@@ -90,6 +113,12 @@ export interface ComponentProps {
  * rather than one copy per breakpoint.
  */
 const GRIP_COLUMN_CLASS_NAME: string = "w-5 flex-shrink-0";
+/*
+ * Wider than the 16px box it holds: the checkbox draws an empty label beside
+ * itself with a 12px gutter, and a narrower column would push the grip out from
+ * under the header's own box.
+ */
+const SELECT_COLUMN_CLASS_NAME: string = "flex w-7 flex-shrink-0 items-center";
 /*
  * Held back on a phone, where 24px of number costs a fifth of what is left for
  * the monitor's name and the rows are already in the order it describes.
@@ -239,6 +268,49 @@ const ResourceList: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type RenderSelectFunction = (
+    statusPageResource: StatusPageResource,
+  ) => ReactElement;
+
+  /*
+   * One row's checkbox. Nothing is drawn at all when selection is off, rather
+   * than an empty column: unlike the grip - which is held open so that typing
+   * into the search box does not shift every row sideways - the checkbox column
+   * appears and disappears with the operator's permissions, which do not change
+   * while they are looking at the list.
+   */
+  const renderSelect: RenderSelectFunction = (
+    statusPageResource: StatusPageResource,
+  ): ReactElement => {
+    if (!props.isSelectable) {
+      return <></>;
+    }
+
+    const resourceId: string | null =
+      StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+    const name: string =
+      StatusPageResourceExplorerUtil.getResourceName(statusPageResource);
+
+    return (
+      <span
+        className={SELECT_COLUMN_CLASS_NAME}
+        data-testid="status-page-resource-row-select"
+      >
+        <CheckboxElement
+          value={Boolean(
+            resourceId && props.selectedResourceIds.has(resourceId),
+          )}
+          disabled={!resourceId}
+          ariaLabel={`Select ${name}`}
+          hoverText={`Select ${name}`}
+          onChange={() => {
+            props.onToggleResourceSelected(statusPageResource);
+          }}
+        />
+      </span>
+    );
+  };
+
   type RenderRowBodyFunction = (
     statusPageResource: StatusPageResource,
     index: number,
@@ -256,6 +328,8 @@ const ResourceList: FunctionComponent<ComponentProps> = (
 
     return (
       <>
+        {renderSelect(statusPageResource)}
+
         {dragHandle}
 
         {/*
@@ -347,32 +421,60 @@ const ResourceList: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type GetRowClassNameFunction = (
-    isDragging: boolean,
-    isBusy: boolean,
-    isLastRow: boolean,
-  ) => string;
+  type GetRowClassNameFunction = (data: {
+    isDragging: boolean;
+    isBusy: boolean;
+    isLastRow: boolean;
+    isSelected: boolean;
+  }) => string;
 
-  const getRowClassName: GetRowClassNameFunction = (
-    isDragging: boolean,
-    isBusy: boolean,
-    isLastRow: boolean,
-  ): string => {
+  const getRowClassName: GetRowClassNameFunction = (data: {
+    isDragging: boolean;
+    isBusy: boolean;
+    isLastRow: boolean;
+    isSelected: boolean;
+  }): string => {
+    /*
+     * A selected row is filled, so that a selection made near the top of a long
+     * list is still visible from the bottom of it - the count in the bulk bar
+     * says how many, and this says which.
+     *
+     * Un-suffixed colour tokens throughout, for the same reason the dragged row
+     * uses them: the dark theme remaps those and not the transparent ones, so
+     * an opacity modifier leaves a light row in a dark list.
+     */
+    const restingClassName: string = data.isSelected
+      ? "bg-indigo-50 hover:bg-indigo-100"
+      : "bg-white hover:bg-gray-50";
+
     return `${ROW_CLASS_NAME} ${
-      isDragging
+      data.isDragging
         ? /*
-           * bg-indigo-50 rather than bg-indigo-50/70: the dark theme remaps the
-           * un-suffixed colour tokens and not the transparent ones, so an
-           * opacity modifier leaves a light row in a dark list.
-           *
            * A lifted row is rounded on all four corners because it is off the
            * list while it is being dragged; a settled one only rounds where the
            * container does, so its hover fill cannot square off the card's own
            * bottom corners.
            */
           "rounded-xl bg-indigo-50 shadow-md ring-1 ring-indigo-200"
-        : `bg-white hover:bg-gray-50 ${isLastRow ? "rounded-b-xl" : ""}`
-    } ${isBusy ? "opacity-60" : ""}`;
+        : `${restingClassName} ${data.isLastRow ? "rounded-b-xl" : ""}`
+    } ${data.isBusy ? "opacity-60" : ""}`;
+  };
+
+  type IsResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ) => boolean;
+
+  const isResourceSelected: IsResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ): boolean => {
+    if (!props.isSelectable) {
+      return false;
+    }
+
+    const resourceId: string | null =
+      StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+
+    return Boolean(resourceId && props.selectedResourceIds.has(resourceId));
   };
 
   type IsLastRowFunction = (index: number) => boolean;
@@ -388,32 +490,82 @@ const ResourceList: FunctionComponent<ComponentProps> = (
   type RenderHeaderFunction = () => ReactElement;
 
   /*
-   * Column headings, from sm up. They are what makes the second column read as
-   * "the name visitors see" rather than as a stray subtitle, and they are the
-   * only place the position column can be explained at all.
+   * Column headings, from sm up, and the box that selects the whole list.
    *
-   * Below sm the published name wraps under the monitor instead of sitting
-   * beside it, so a header row would be labelling columns that are not there.
+   * The headings are what makes the second column read as "the name visitors
+   * see" rather than as a stray subtitle, and they are the only place the
+   * position column can be explained at all. Below sm the published name wraps
+   * under the monitor instead of sitting beside it, so they would be labelling
+   * columns that are not there - and the row is hidden.
+   *
+   * The select-all box is not a heading, though, and a phone is exactly where
+   * removing twenty seven monitors one at a time hurts most. So when there is a
+   * checkbox column the row is drawn at every width, with the headings held
+   * back below sm and the box given a visible label of its own instead.
+   *
+   * aria-hidden sits on the individual headings rather than on the row, because
+   * the row now contains a control: hiding a focusable checkbox from the
+   * accessibility tree while leaving it in the tab order is worse than not
+   * offering it.
    */
   const renderHeader: RenderHeaderFunction = (): ReactElement => {
     return (
       <div
-        className="hidden items-center gap-x-3 rounded-t-xl border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:flex"
+        className={`${
+          props.isSelectable ? "flex" : "hidden sm:flex"
+        } items-center gap-x-3 rounded-t-xl border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:flex`}
         data-testid="status-page-resource-list-header"
-        aria-hidden="true"
       >
-        <span className={GRIP_COLUMN_CLASS_NAME} />
+        {props.isSelectable ? (
+          <span className={SELECT_COLUMN_CLASS_NAME}>
+            <CheckboxElement
+              value={props.isAllSelected}
+              isIndeterminate={props.isSelectionIndeterminate}
+              ariaLabel="Select all resources"
+              hoverText="Select all resources"
+              dataTestId="status-page-resource-list-select-all"
+              onChange={(value: boolean) => {
+                props.onToggleAllSelected(value);
+              }}
+            />
+          </span>
+        ) : (
+          <></>
+        )}
+
+        {props.isSelectable ? (
+          <span className="sm:hidden">Select all</span>
+        ) : (
+          <></>
+        )}
+
+        <span
+          className={`${GRIP_COLUMN_CLASS_NAME} hidden sm:block`}
+          aria-hidden="true"
+        />
         <span
           className={POSITION_COLUMN_CLASS_NAME}
           title="Position on the status page"
+          aria-hidden="true"
         >
           #
         </span>
-        <span className={MONITOR_COLUMN_CLASS_NAME}>Monitor</span>
-        <span className={PUBLISHED_NAME_COLUMN_CLASS_NAME}>
+        <span
+          className={`${MONITOR_COLUMN_CLASS_NAME} hidden sm:block`}
+          aria-hidden="true"
+        >
+          Monitor
+        </span>
+        <span
+          className={`${PUBLISHED_NAME_COLUMN_CLASS_NAME} hidden sm:block`}
+          aria-hidden="true"
+        >
           Shown on the status page as
         </span>
-        <span className={ACTIONS_COLUMN_CLASS_NAME} />
+        <span
+          className={`${ACTIONS_COLUMN_CLASS_NAME} hidden sm:flex`}
+          aria-hidden="true"
+        />
       </div>
     );
   };
@@ -437,11 +589,13 @@ const ResourceList: FunctionComponent<ComponentProps> = (
                   key={resourceId}
                   data-testid="status-page-resource-row"
                   data-resource-id={resourceId}
-                  className={getRowClassName(
-                    false,
-                    props.busyResourceId === resourceId,
-                    isLastRow(index),
-                  )}
+                  data-selected={isResourceSelected(statusPageResource)}
+                  className={getRowClassName({
+                    isDragging: false,
+                    isBusy: props.busyResourceId === resourceId,
+                    isLastRow: isLastRow(index),
+                    isSelected: isResourceSelected(statusPageResource),
+                  })}
                 >
                   {renderRowBody(
                     statusPageResource,
@@ -497,11 +651,16 @@ const ResourceList: FunctionComponent<ComponentProps> = (
                               {...draggableProvided.draggableProps}
                               data-testid="status-page-resource-row"
                               data-resource-id={resourceId}
-                              className={getRowClassName(
-                                snapshot.isDragging,
-                                props.busyResourceId === resourceId,
-                                isLastRow(index),
+                              data-selected={isResourceSelected(
+                                statusPageResource,
                               )}
+                              className={getRowClassName({
+                                isDragging: snapshot.isDragging,
+                                isBusy: props.busyResourceId === resourceId,
+                                isLastRow: isLastRow(index),
+                                isSelected:
+                                  isResourceSelected(statusPageResource),
+                              })}
                             >
                               {renderRowBody(
                                 statusPageResource,
