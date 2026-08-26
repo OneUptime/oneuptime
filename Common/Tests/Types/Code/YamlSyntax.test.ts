@@ -293,3 +293,81 @@ describe("describeYamlSyntaxError — one readable sentence", () => {
     expect(sentence).not.toContain("\n");
   });
 });
+
+/*
+ * Tabs in indentation.
+ *
+ * js-yaml ACCEPTS tab-indented YAML rather than rejecting it, and quietly
+ * restructures the document: `detection:\n\tselection: 1` yields
+ * `{detection: null, selection: 1}` — a sibling where the author wrote a
+ * child. So checkYamlSyntax finds these itself, and the risk moves from
+ * missing them to over-reporting: a tab is only illegal in INDENTATION, and
+ * every "allows" case below is legal YAML that js-yaml parses. Flagging one of
+ * them would block Save on a working document, which is the failure this
+ * module's permissiveness exists to prevent.
+ */
+describe("checkYamlSyntax — tabs used for indentation", () => {
+  test("reports the line and column of the tab", () => {
+    const result: YamlSyntaxCheckResult = checkYamlSyntax(
+      "detection:\n\tselection: 1\n",
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.wasSkipped).toBe(false);
+    expect(result.line).toBe(2);
+    expect(result.column).toBe(1);
+    expect(describeYamlSyntaxError(result)).toContain("line 2");
+  });
+
+  test.each([
+    ["a tab indenting a sequence entry", "a:\n\t- 1\n", 2],
+    ["spaces followed by a tab", "a:\n  \tb: 1\n", 2],
+    ["a tab on a line after a block scalar closes", "a: |\n  body\nb:\n\tc: 1\n", 4],
+    ["a CRLF document", "a:\r\n\tb: 1\r\n", 2],
+    ["a tab several levels into the document", "a:\n  b:\n    c: 1\n\td: 2\n", 4],
+  ])("rejects %s", (_label: string, document: string, line: number) => {
+    const result: YamlSyntaxCheckResult = checkYamlSyntax(document);
+
+    expect(result.isValid).toBe(false);
+    expect(result.line).toBe(line);
+  });
+
+  /*
+   * Each of these parses under js-yaml. Verified case by case rather than
+   * assumed — a tab is ordinary content inside a scalar, and legal separation
+   * whitespace inside a flow collection.
+   */
+  test.each([
+    ["a tab inside block scalar content", "a: |\n  line\twith tab\n"],
+    ["a block scalar line that starts with a tab", "a: |\n  first\n  \tindented more\n"],
+    ["a block scalar with an explicit indent indicator", "a: |2\n  \tcontent\n"],
+    ["a block scalar with chomping indicators", "a: |-\n  \tx\nb: >+\n  \ty\n"],
+    ["a block scalar containing a blank line", "a: |\n  one\n\n  \ttwo\nb: 2\n"],
+    ["a block scalar inside a sequence", "- |\n  \tx\n- 2\n"],
+    ["YAML embedded in a block scalar, as a ConfigMap does", "data:\n  app.yaml: |\n    outer:\n    \tinner: 1\n"],
+    ["a block scalar line shaped like a mapping key", "a: |\n  x:\n  \ty: 1\n"],
+    ["a double-quoted scalar continued on a tabbed line", 'a: "one\n\ttwo"\n'],
+    ["a single-quoted scalar continued on a tabbed line", "a: 'one\n\ttwo'\n"],
+    ["a quoted continuation that looks like a mapping key", 'a: "one\n\ttwo: three"\n'],
+    ["a flow mapping spanning lines", "a: {\n\tb: 1 }\n"],
+    ["a tab inside a quoted value", 'a: "x\ty"\n'],
+    ["a tab inside a comment", "a: 1 #\tcomment\n"],
+    ["a tab inside folded scalar content", "a: >\n  text\there\n"],
+  ])("allows %s", (_label: string, document: string) => {
+    expect(checkYamlSyntax(document).isValid).toBe(true);
+  });
+
+  /*
+   * The apostrophe in `it's` is not an opening quote. Reading it as one would
+   * leave a scalar "open" for the rest of the document and silence the check
+   * from that line on — a miss rather than a false positive, but a total one.
+   */
+  test("an apostrophe in a plain scalar does not blind the rest of the document", () => {
+    const result: YamlSyntaxCheckResult = checkYamlSyntax(
+      "a: it's fine\nb:\n\tc: 1\n",
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.line).toBe(3);
+  });
+});

@@ -91,6 +91,200 @@ const readReason: ReadReasonFunction = (error: unknown): string => {
   return "Invalid YAML.";
 };
 
+/*
+ * A tab used as indentation, which YAML forbids outright.
+ *
+ * This has to be found by hand because js-yaml does not report it: it parses
+ * `detection:\n\tselection: 1` without complaint and yields
+ * `{detection: null, selection: 1}` — the tab silently makes `selection` a
+ * SIBLING of `detection` rather than its child. The document looks nested on
+ * screen and is flat in the parse, which is the worst shape a syntax error can
+ * take, and the reason this module reports it as invalid rather than trusting
+ * the parser's verdict.
+ *
+ * Tabs are only illegal in INDENTATION. They are ordinary characters inside a
+ * scalar, and a scan that ignores that blocks Save on documents that work —
+ * the exact failure this module's permissiveness exists to prevent. Verified
+ * against js-yaml, all of these parse and must not be flagged:
+ *
+ *   a: |            a: "one          a: {           data:
+ *     \tcontent       \ttwo"           \tb: 1 }       app.yaml: |
+ *                                                       outer:
+ *                                                     \tinner: 1
+ *
+ * So three contexts are tracked and skipped — block scalars (`|`, `>`),
+ * multi-line quoted scalars, and flow collections (`{}`, `[]`, where tabs are
+ * legal separation whitespace) — and within what remains a tab is reported
+ * only when the line goes on to open a block node (`key:` or `- `). Anything
+ * this cannot place confidently is left alone, valid, per the module contract.
+ */
+interface TabIndentationFinding {
+  line: number;
+  column: number;
+}
+
+type QuoteCharacter = '"' | "'" | null;
+
+interface LineScanState {
+  flowDepth: number;
+  openQuote: QuoteCharacter;
+}
+
+/*
+ * True when the quote at `index` opens a scalar rather than sitting inside
+ * one. Without this, the apostrophe in `a: it's fine` reads as an unterminated
+ * quote and silences the check for the rest of the document.
+ */
+type IsScalarOpeningQuoteFunction = (line: string, index: number) => boolean;
+
+const isScalarOpeningQuote: IsScalarOpeningQuoteFunction = (
+  line: string,
+  index: number,
+): boolean => {
+  const before: string = line.slice(0, index).trimEnd();
+
+  if (before === "") {
+    return true;
+  }
+
+  return ["-", ":", ",", "[", "{"].includes(before[before.length - 1] || "");
+};
+
+/*
+ * Walk one line's characters, updating flow depth and quote state and
+ * returning the line with any trailing comment removed.
+ */
+type ScanLineFunction = (line: string, state: LineScanState) => string;
+
+const scanLine: ScanLineFunction = (
+  line: string,
+  state: LineScanState,
+): string => {
+  let index: number = 0;
+
+  while (index < line.length) {
+    const character: string = line[index] || "";
+
+    if (state.openQuote === '"') {
+      if (character === "\\") {
+        index += 2;
+        continue;
+      }
+      if (character === '"') {
+        state.openQuote = null;
+      }
+      index++;
+      continue;
+    }
+
+    if (state.openQuote === "'") {
+      // '' is an escaped quote inside a single-quoted scalar, not a close.
+      if (character === "'" && line[index + 1] === "'") {
+        index += 2;
+        continue;
+      }
+      if (character === "'") {
+        state.openQuote = null;
+      }
+      index++;
+      continue;
+    }
+
+    const previous: string = line[index - 1] || "";
+
+    if (character === "#" && (index === 0 || previous === " " || previous === "\t")) {
+      return line.slice(0, index);
+    }
+
+    if ((character === '"' || character === "'") && isScalarOpeningQuote(line, index)) {
+      state.openQuote = character as QuoteCharacter;
+      index++;
+      continue;
+    }
+
+    if (character === "{" || character === "[") {
+      state.flowDepth++;
+    }
+
+    if (character === "}" || character === "]") {
+      state.flowDepth = Math.max(0, state.flowDepth - 1);
+    }
+
+    index++;
+  }
+
+  return line;
+};
+
+// `key:` or `- ` — the shapes whose indentation decides the document's tree.
+const BLOCK_NODE_START: RegExp = /^(?:-(?:\s|$)|[^\s#].*?:(?:\s|$))/;
+
+// A trailing `|`, `>`, with optional chomping and explicit-indent indicators.
+const BLOCK_SCALAR_HEADER: RegExp = /(?:^|\s)[|>][+-]?[0-9]*[+-]?\s*$/;
+
+type FindTabIndentationFunction = (
+  text: string,
+) => TabIndentationFinding | null;
+
+const findTabIndentation: FindTabIndentationFunction = (
+  text: string,
+): TabIndentationFinding | null => {
+  const lines: Array<string> = text.split("\n");
+  const state: LineScanState = { flowDepth: 0, openQuote: null };
+
+  let blockScalarIndent: number | null = null;
+
+  for (let index: number = 0; index < lines.length; index++) {
+    // Tolerate CRLF: the \r is not indentation and must not shift a column.
+    const line: string = (lines[index] || "").replace(/\r$/, "");
+    const indentation: string = line.match(/^[ \t]*/)?.[0] || "";
+    const isBlank: boolean = line.trim() === "";
+
+    if (blockScalarIndent !== null) {
+      // Blank lines and anything indented past the header stay inside it.
+      if (isBlank || indentation.length > blockScalarIndent) {
+        continue;
+      }
+      blockScalarIndent = null;
+    }
+
+    if (isBlank) {
+      continue;
+    }
+
+    const wasInsideQuote: boolean = state.openQuote !== null;
+    const insideFlow: boolean = state.flowDepth > 0;
+    const code: string = scanLine(line, state);
+
+    /*
+     * Only judge lines that begin a block node in block context. A
+     * continuation of a quoted scalar, or a line inside `{}`/`[]`, may hold a
+     * leading tab legally.
+     */
+    if (
+      !wasInsideQuote &&
+      !insideFlow &&
+      indentation.includes("\t") &&
+      BLOCK_NODE_START.test(line.slice(indentation.length))
+    ) {
+      return {
+        line: index + 1,
+        column: indentation.indexOf("\t") + 1,
+      };
+    }
+
+    if (
+      state.openQuote === null &&
+      state.flowDepth === 0 &&
+      BLOCK_SCALAR_HEADER.test(code)
+    ) {
+      blockScalarIndent = indentation.length;
+    }
+  }
+
+  return null;
+};
+
 export type CheckYamlSyntaxFunction = (value: unknown) => YamlSyntaxCheckResult;
 
 /**
@@ -126,6 +320,22 @@ export const checkYamlSyntax: CheckYamlSyntaxFunction = (
   }
 
   const masked: string = maskTemplateExpressions(value);
+
+  /*
+   * Before the parse, not after: js-yaml ACCEPTS tab indentation and returns a
+   * silently restructured document, so there is no exception to catch.
+   */
+  const tab: TabIndentationFinding | null = findTabIndentation(masked);
+
+  if (tab) {
+    return {
+      isValid: false,
+      errorMessage: "a tab character cannot be used for indentation",
+      wasSkipped: false,
+      line: tab.line,
+      column: tab.column,
+    };
+  }
 
   try {
     /*
