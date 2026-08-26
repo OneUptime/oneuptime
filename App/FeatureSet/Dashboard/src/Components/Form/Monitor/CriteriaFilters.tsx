@@ -1,11 +1,7 @@
 import CriteriaFilterElement from "./CriteriaFilter";
 import IconProp from "Common/Types/Icon/IconProp";
-import {
-  CheckOn,
-  CriteriaFilter,
-  EvaluateOverTimeType,
-  FilterType,
-} from "Common/Types/Monitor/CriteriaFilter";
+import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
@@ -118,25 +114,16 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               ...criteriaFilters,
             ];
 
-            const isMetricOnly: boolean =
-              props.monitorType === MonitorType.Kubernetes ||
-              props.monitorType === MonitorType.Metrics;
-
+            /*
+             * Seed both dropdowns from what this monitor type actually
+             * offers. Hard-coding "Is Online" / "Equal To" here handed the
+             * user a filter the form could not render: most monitor types
+             * do not offer an Is Online check at all, and none of the ones
+             * that do accept Equal To on it - so one or both dropdowns
+             * opened on an empty "Select...".
+             */
             newCriteriaFilters.push(
-              isMetricOnly
-                ? {
-                    checkOn: CheckOn.MetricValue,
-                    filterType: FilterType.GreaterThan,
-                    value: "",
-                    metricMonitorOptions: {
-                      metricAggregationType: EvaluateOverTimeType.AnyValue,
-                    },
-                  }
-                : {
-                    checkOn: CheckOn.IsOnline,
-                    filterType: FilterType.EqualTo,
-                    value: "",
-                  },
+              CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
             );
 
             props.onChange?.(newCriteriaFilters);

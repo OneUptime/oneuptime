@@ -3,6 +3,7 @@ import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
@@ -399,7 +400,23 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
               ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
             ];
-            newMonitorCriterias.push(new MonitorCriteriaInstance());
+
+            const newMonitorCriteria: MonitorCriteriaInstance =
+              new MonitorCriteriaInstance();
+
+            /*
+             * The type-agnostic seed filter on a fresh criteria is an
+             * "Is Online" check, which most monitor types do not offer.
+             * Replace it with one this monitor type can actually render,
+             * so the new criteria opens with both dropdowns filled in.
+             */
+            if (newMonitorCriteria.data) {
+              newMonitorCriteria.data.filters = [
+                CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
+              ];
+            }
+
+            newMonitorCriterias.push(newMonitorCriteria);
             props.onChange?.(
               MonitorCriteria.fromJSON({
                 _type: "MonitorCriteria",

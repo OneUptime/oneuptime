@@ -42,21 +42,6 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
 }
 
-const isMetricOnlyMonitorType: (monitorType: MonitorType) => boolean = (
-  monitorType: MonitorType,
-): boolean => {
-  return (
-    monitorType === MonitorType.Kubernetes ||
-    monitorType === MonitorType.Docker ||
-    monitorType === MonitorType.Host ||
-    monitorType === MonitorType.Podman ||
-    monitorType === MonitorType.DockerSwarm ||
-    monitorType === MonitorType.Proxmox ||
-    monitorType === MonitorType.Ceph ||
-    monitorType === MonitorType.Metrics
-  );
-};
-
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -99,7 +84,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     );
   }, [criteriaFilter]);
 
-  const isMetricOnly: boolean = isMetricOnlyMonitorType(props.monitorType);
+  const isMetricOnly: boolean = CriteriaFilterUiUtil.isMetricOnlyMonitorType(
+    props.monitorType,
+  );
 
   // Auto-select MetricValue for metric-only monitor types (Kubernetes, Metrics)
   useEffect(() => {
@@ -111,6 +98,17 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       props.onChange?.({
         ...criteriaFilter,
         checkOn: CheckOn.MetricValue,
+        /*
+         * The condition travels with the check. A filter seeded elsewhere
+         * (a brand new criteria starts on "Is Online") carries a condition
+         * that a metric threshold has no use for, and the Condition
+         * dropdown would render nothing at all - so carry it over only
+         * when it still applies, and otherwise start on the default.
+         */
+        filterType: CriteriaFilterUiUtil.getFilterTypeOrDefault({
+          checkOn: CheckOn.MetricValue,
+          filterType: criteriaFilter.filterType,
+        }),
       });
     }
   }, [isMetricOnly]);
@@ -258,9 +256,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
+                const checkOn: CheckOn = value?.toString() as CheckOn;
+
                 props.onChange?.({
-                  checkOn: value?.toString() as CheckOn,
-                  filterType: undefined,
+                  checkOn: checkOn,
+                  /*
+                   * Start the new check on its default condition rather
+                   * than clearing it. An empty Filter Condition sits
+                   * unnoticed next to fields that are all filled in, and
+                   * a criteria saved without one never matches anything.
+                   */
+                  filterType:
+                    CriteriaFilterUiUtil.getDefaultFilterTypeByCheckOn(checkOn),
                   value: undefined,
                   evaluateOverTime: false,
                   evaluateOverTimeOptions: undefined,

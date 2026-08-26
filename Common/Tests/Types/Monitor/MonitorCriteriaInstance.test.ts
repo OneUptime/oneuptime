@@ -58,6 +58,14 @@ describe("MonitorCriteriaInstance", () => {
       expect(instance.data?.filterCondition).toBe(FilterCondition.All);
       expect(instance.data?.filters).toHaveLength(1);
       expect(instance.data?.filters[0]?.checkOn).toBe(CheckOn.IsOnline);
+      /*
+       * The condition is seeded too. A filter carrying only a check shows
+       * an empty "Filter Condition" dropdown in the criteria form, and is
+       * dead on the server - every comparator in CompareCriteria switches
+       * on the filter type and treats one it does not recognise as "no
+       * match", so the criteria never fires. See #3412.
+       */
+      expect(instance.data?.filters[0]?.filterType).toBe(FilterType.True);
       expect(instance.data?.isEnabled).toBe(true);
       // id should be a valid, non-empty ObjectID string.
       expect(typeof instance.data?.id).toBe("string");
@@ -348,6 +356,45 @@ describe("MonitorCriteriaInstance", () => {
         MonitorType.Ping,
       );
       expect(error).toContain("Value is required");
+    });
+
+    test("returns error when a filter has no condition", () => {
+      /*
+       * The blank "Filter Condition" dropdown reported in #3412 sat next to
+       * fields that were all filled in, so it was easy to save past. A
+       * criteria with no condition can never match, so refuse it rather
+       * than accept a rule that silently does nothing.
+       */
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.ExternalStatusPageActiveIncidents,
+          filterType: undefined,
+          value: 0,
+        },
+      ];
+      const error: string | null = MonitorCriteriaInstance.getValidationError(
+        instance,
+        MonitorType.ExternalStatusPage,
+      );
+      expect(error).toContain("Filter Condition is required");
+      expect(error).toContain(CheckOn.ExternalStatusPageActiveIncidents);
+    });
+
+    test("accepts the criteria an External Status Page monitor is created with", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+          monitorType: MonitorType.ExternalStatusPage,
+          monitorStatusId: new ObjectID("aaaaaaaaaaaaaaaaaaaaaaaa"),
+          monitorName: "Acme Status",
+        })!;
+
+      expect(
+        MonitorCriteriaInstance.getValidationError(
+          instance,
+          MonitorType.ExternalStatusPage,
+        ),
+      ).toBeNull();
     });
 
     test("returns null for a fully valid instance", () => {

@@ -68,7 +68,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       filters: [
         {
           checkOn: CheckOn.IsOnline,
-          filterType: undefined,
+          /*
+           * Seed the condition too, matching
+           * getNewMonitorCriteriaInstanceAsJSON. A filter with no filter
+           * type shows an empty "Filter Condition" dropdown in the form
+           * and never matches anything at evaluation time, because every
+           * comparator in CompareCriteria switches on the filter type.
+           */
+          filterType: FilterType.True,
           value: undefined,
         },
       ],
@@ -1521,6 +1528,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     for (const filter of value.data.filters) {
       if (!filter.checkOn) {
         return `Filter Type is required for criteria "${value.data.name}"`;
+      }
+
+      /*
+       * A filter with no condition is silently dead: every comparator in
+       * CompareCriteria switches on the filter type and returns "no
+       * match" for one it does not recognise, so the criteria never
+       * fires. The empty dropdown is easy to walk past when every field
+       * around it is filled in, so refuse the save instead of accepting
+       * a rule that can never be true.
+       */
+      if (!filter.filterType) {
+        return `Filter Condition is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
       }
 
       if (

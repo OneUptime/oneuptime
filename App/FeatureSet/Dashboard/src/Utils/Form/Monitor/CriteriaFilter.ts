@@ -904,12 +904,32 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (
-      checkOn === CheckOn.ExternalStatusPageResponseTime ||
-      checkOn === CheckOn.ExternalStatusPageActiveIncidents
-    ) {
+    if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       options = options.filter((i: DropdownOption) => {
         return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.ExternalStatusPageActiveIncidents) {
+      /*
+       * Active incidents is a whole-number count, not a measurement, so
+       * "is exactly N" reads naturally - "no active incidents" is the
+       * out-of-the-box online criteria and it is written as Equal To 0.
+       * Leaving Equal To / Not Equal To off this list is what left that
+       * seeded criteria showing an empty Filter Condition dropdown: the
+       * stored filter type was not among the options the dropdown could
+       * render. The server evaluates this check with
+       * CompareCriteria.compareCriteriaNumbers, which handles both.
+       */
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
@@ -935,6 +955,140 @@ export default class CriteriaFilterUtil {
     }
 
     return options;
+  }
+
+  /*
+   * The filter condition a brand new filter should start on for a given
+   * "check on".
+   *
+   * Every filter the form hands the user has to arrive with a condition
+   * already chosen. A filter with no condition is not just untidy - the
+   * server's comparators switch on the filter type and return "no match"
+   * for anything they do not recognise, so a criteria carrying a blank
+   * condition silently never fires, and the empty dropdown is easy to
+   * miss when every field around it is filled in.
+   *
+   * The first option offered for the check is that default. The option
+   * lists above are written in FilterType declaration order, and each is
+   * already led by the condition that reads as the natural starting
+   * point for its kind of check - True for booleans, Greater Than for
+   * measurements, Contains for free text, Equal To for counts and
+   * enumerated values, Evaluates To True for JavaScript expressions.
+   * Deriving it keeps the default correct by construction: reorder or
+   * extend a list and the default follows it.
+   */
+  public static getDefaultFilterTypeByCheckOn(
+    checkOn: CheckOn,
+  ): FilterType | undefined {
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn);
+
+    return options[0]?.value as FilterType | undefined;
+  }
+
+  /*
+   * Keep the filter type the user already chose when it still applies to
+   * the check being switched to, otherwise fall back to that check's
+   * default. Used wherever `checkOn` changes underneath an existing
+   * filter so the condition dropdown is never left showing nothing.
+   */
+  public static getFilterTypeOrDefault(data: {
+    checkOn: CheckOn;
+    filterType?: FilterType | undefined;
+  }): FilterType | undefined {
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(data.checkOn);
+
+    const isStillValid: boolean = options.some((option: DropdownOption) => {
+      return option.value === data.filterType;
+    });
+
+    if (isStillValid) {
+      return data.filterType;
+    }
+
+    return options[0]?.value as FilterType | undefined;
+  }
+
+  /*
+   * The "check on" a brand new filter should start on for a monitor type.
+   *
+   * Prefer the up/down check (or the metric value, on monitor types that
+   * only alert on metrics) because that is the check most people reach
+   * for first, but only when the monitor type actually offers it - most
+   * of the protocol-specific types (DNS, SNMP, SQL, External Status Page,
+   * telemetry...) do not, and seeding a check they never offer leaves the
+   * Filter Type dropdown blank too. Fall back to the first check the type
+   * does offer.
+   */
+  public static getDefaultCheckOnByMonitorType(
+    monitorType: MonitorType,
+  ): CheckOn | undefined {
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType);
+
+    const preferredCheckOn: CheckOn =
+      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType)
+        ? CheckOn.MetricValue
+        : CheckOn.IsOnline;
+
+    const isPreferredOffered: boolean = options.some(
+      (option: DropdownOption) => {
+        return option.value === preferredCheckOn;
+      },
+    );
+
+    if (isPreferredOffered) {
+      return preferredCheckOn;
+    }
+
+    return options[0]?.value as CheckOn | undefined;
+  }
+
+  /*
+   * Monitor types whose criteria are expressed purely as metric
+   * thresholds. Their criteria form hides the "Filter Type" dropdown
+   * entirely and pins every filter to CheckOn.MetricValue.
+   */
+  public static isMetricOnlyMonitorType(monitorType: MonitorType): boolean {
+    return (
+      monitorType === MonitorType.Kubernetes ||
+      monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Host ||
+      monitorType === MonitorType.Podman ||
+      monitorType === MonitorType.DockerSwarm ||
+      monitorType === MonitorType.Proxmox ||
+      monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.Metrics
+    );
+  }
+
+  /*
+   * A complete, immediately usable filter for a monitor type - both
+   * dropdowns pre-selected. This is what "Add Filter" and "Add Criteria"
+   * seed, so a newly added rule is valid the moment it appears instead of
+   * waiting on the user to notice an empty dropdown.
+   */
+  public static getDefaultCriteriaFilter(
+    monitorType: MonitorType,
+  ): CriteriaFilter {
+    const checkOn: CheckOn =
+      CriteriaFilterUtil.getDefaultCheckOnByMonitorType(monitorType) ||
+      CheckOn.IsOnline;
+
+    const criteriaFilter: CriteriaFilter = {
+      checkOn: checkOn,
+      filterType: CriteriaFilterUtil.getDefaultFilterTypeByCheckOn(checkOn),
+      value: "",
+    };
+
+    if (checkOn === CheckOn.MetricValue) {
+      criteriaFilter.metricMonitorOptions = {
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      };
+    }
+
+    return criteriaFilter;
   }
 
   public static isDropdownValueField(data: {
