@@ -1,0 +1,24 @@
+<%#
+   Where the reader is. Only rendered for pages that are actually in the nav -
+   a 404 or the status page has nothing to say here.
+-%>
+<% if (typeof currentLocation !== 'undefined' && currentLocation) { %>
+<nav class="flex items-center gap-1.5 pt-8 text-xs font-medium text-ink-faint no-print"
+   aria-label="<%= t('ui.breadcrumbAria') %>">
+   <a class="transition-colors hover:text-ink-subtle" href="/reference/<%= lang %>/introduction"><%= t('ui.apiReference') %></a>
+   <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m8 5 4 5-4 5"></path>
+   </svg>
+   <span><%= currentLocation.section.title %></span>
+   <% if (currentLocation.group.title) { %>
+   <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m8 5 4 5-4 5"></path>
+   </svg>
+   <span><%= currentLocation.group.title %></span>
+   <% } %>
+   <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m8 5 4 5-4 5"></path>
+   </svg>
+   <span class="text-ink-subtle" aria-current="page"><%= currentLocation.item.name %></span>
+</nav>
+<% } %>

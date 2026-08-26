@@ -32,11 +32,7 @@ export default class ServiceHandler {
       enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("pages.openapi.metaDescription"),
       pageData: pageData,
-      lang: ctx.lang,
-      t: ctx.t,
-      supportedLanguages: ctx.supportedLanguages,
-      currentPath: ctx.currentPath,
-      showMasterAdminApis: ctx.showMasterAdminApis,
+      ...ctx,
     });
   }
 }

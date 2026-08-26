@@ -1,15 +1,15 @@
 <main class="py-12">
    <article class="prose">
       <div class="text-center py-20">
-         <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-100 mx-auto mb-6">
-            <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-soft mx-auto mb-6">
+            <svg aria-hidden="true" class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
          </div>
-         <h1 class="text-7xl font-bold text-slate-900 tracking-tight mb-4"><%= t('ui.pageNotFoundTitle') %></h1>
-         <p class="text-xl text-slate-600 mb-8"><%= t('ui.pageNotFoundBody') %></p>
-         <a href="/reference/<%= lang %>" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <h1 class="text-7xl font-bold text-ink tracking-tight mb-4"><%= t('ui.pageNotFoundTitle') %></h1>
+         <p class="text-xl text-ink-muted mb-8"><%= t('ui.pageNotFoundBody') %></p>
+         <a href="/reference/<%= lang %>" class="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm hover:bg-accent transition-colors">
+            <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>
             <%= t('ui.backToApiReference') %>

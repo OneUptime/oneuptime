@@ -1,0 +1,28 @@
+<%#
+   The endpoint chip above each operation on a model page: the methods it
+   answers, the path, and a button to copy the path.
+
+   Locals: methods (array), path.
+-%>
+<div class="not-prose mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-surface-soft px-3 py-2.5"
+   data-copy-scope>
+   <div class="flex items-center gap-2">
+      <% methods.forEach(function(method, index){ %>
+      <% if (index > 0) { %>
+      <span class="font-mono text-xs text-ink-faint"><%= t('ui.or') %></span>
+      <% } %>
+      <%- include('method-badge', { method: method, tone: 'light' }) -%>
+      <% }); %>
+   </div>
+   <code class="min-w-0 flex-1 break-all font-mono text-xs text-ink-muted sm:text-sm"><%= path %></code>
+   <button type="button" class="ml-auto shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-surface hover:text-ink"
+      data-copy-button aria-label="<%= t('ui.copy') %>">
+      <svg class="copy-icon h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+         <path stroke-linecap="round" stroke-linejoin="round"
+            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+      </svg>
+      <svg class="check-icon hidden h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+      </svg>
+   </button>
+</div>

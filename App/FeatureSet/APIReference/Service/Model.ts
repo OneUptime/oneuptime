@@ -738,11 +738,7 @@ export default class ServiceHandler {
       enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: pageDescription,
       pageData: pageData,
-      lang: ctx.lang,
-      t: ctx.t,
-      supportedLanguages: ctx.supportedLanguages,
-      currentPath: ctx.currentPath,
-      showMasterAdminApis: ctx.showMasterAdminApis,
+      ...ctx,
     });
   }
 }
