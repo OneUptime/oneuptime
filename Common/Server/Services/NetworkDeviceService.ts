@@ -25,6 +25,31 @@ import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleR
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import {
+  DEVICE_HEALTH_AGGREGATES,
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE,
+  DEVICE_HEALTH_NOW_PARAMETER,
+  DeviceHealthGroup,
+  parseDeviceHealthGroup,
+} from "../Utils/NetworkDevice/DeviceHealthAggregation";
+
+/**
+ * The fleet-wide numbers the device summary strip and the network overview
+ * both print. Counted in Postgres — see `Service.getFleetSummary`.
+ */
+export interface DeviceFleetSummary {
+  devicesUp: number;
+  devicesDown: number;
+  devicesPending: number;
+  // Interfaces, not devices: a switch with three dark ports contributes three.
+  interfacesDown: number;
+  totalDevices: number;
+  devicesWithoutSite: number;
+}
 
 /*
  * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
@@ -116,6 +141,201 @@ function toRuleMatchTarget(device: Model): {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * The four numbers in the summary strip above the device list, in one
+   * round trip and one SQL statement.
+   *
+   * The three status counts partition the fleet exactly — `isReachable` is
+   * true, false, or NULL — which is what lets the strip agree with the rows
+   * underneath it: the Status chip filters on the same column, so clicking a
+   * tile opens exactly the devices it counted.
+   *
+   * `interfacesDown` is a real SUM over the whole fleet. It used to be
+   * computed by fetching every device with a down interface and adding them
+   * up in the browser, which was not only slow but WRONG past ten thousand
+   * such devices — the fetch was capped, so the tile understated the fleet
+   * without saying so.
+   */
+  @CaptureSpan()
+  public async getFleetSummary(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DeviceFleetSummary> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      select: [
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true)`,
+          alias: "devicesUp",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = false)`,
+          alias: "devicesDown",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" IS NULL)`,
+          alias: "devicesPending",
+        },
+        {
+          expression: `COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)`,
+          alias: "interfacesDown",
+        },
+        {
+          expression: `COUNT(*)`,
+          alias: "totalDevices",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."siteId" IS NULL)`,
+          alias: "devicesWithoutSite",
+        },
+      ],
+      props: data.props,
+    });
+
+    const row: AggregateRow | undefined = rows[0];
+
+    return {
+      devicesUp: AggregateResultUtil.toNumber(row, "devicesUp"),
+      devicesDown: AggregateResultUtil.toNumber(row, "devicesDown"),
+      devicesPending: AggregateResultUtil.toNumber(row, "devicesPending"),
+      interfacesDown: AggregateResultUtil.toNumber(row, "interfacesDown"),
+      totalDevices: AggregateResultUtil.toNumber(row, "totalDevices"),
+      devicesWithoutSite: AggregateResultUtil.toNumber(
+        row,
+        "devicesWithoutSite",
+      ),
+    };
+  }
+
+  /**
+   * How many devices of each vendor, biggest first.
+   *
+   * `GROUP BY vendor` in the database rather than a Map built over every
+   * device row in the browser. Unenriched devices — no SNMP walk yet, so no
+   * vendor — group under the empty string here and are named by the caller,
+   * because "Unknown" is a label rather than a fact about the row.
+   */
+  @CaptureSpan()
+  public async getVendorBreakdown(data: {
+    projectId: ObjectID;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ vendor: string; count: number }>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: [
+        {
+          expression: `COALESCE(NULLIF(TRIM("NetworkDevice"."vendor"), ''), '')`,
+          alias: "vendor",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "deviceCount",
+        },
+      ],
+      orderBy: [
+        // Ties break by name so the list is stable across refreshes.
+        { expression: `"deviceCount"`, sortOrder: SortOrder.Descending },
+        { expression: `"vendor"`, sortOrder: SortOrder.Ascending },
+      ],
+      limit: data.limit,
+      props: data.props,
+    });
+
+    return rows.map((row: AggregateRow) => {
+      return {
+        vendor: AggregateResultUtil.toStringOrNull(row, "vendor") || "",
+        count: AggregateResultUtil.toNumber(row, "deviceCount"),
+      };
+    });
+  }
+
+  /**
+   * Device health, bucketed by the discriminating columns and broken down by
+   * site — the input a per-site rollup needs, without reading the devices.
+   *
+   * The buckets are NOT verdicts: they are the raw facts
+   * `DeviceHealthStateUtil` classifies, so the caller runs the one real
+   * classifier over a few hundred buckets instead of eighty thousand rows.
+   * See DeviceHealthAggregation for why the rule is not reimplemented in SQL.
+   */
+  @CaptureSpan()
+  public async getHealthGroups(data: {
+    projectId: ObjectID;
+    // Restricts to devices attached to a site. Off by default.
+    onlyAttachedToSite?: boolean | undefined;
+    groupBySite: boolean;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    const query: Query<Model> = {
+      projectId: data.projectId,
+      isArchived: false,
+    };
+
+    if (data.onlyAttachedToSite) {
+      query.siteId = QueryHelper.notNull();
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: query,
+      groupBy: data.groupBySite
+        ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE
+        : DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
+  }
+
+  /**
+   * Health buckets for the devices attached to a specific set of sites — the
+   * subtree read the persisted rollup engine runs on.
+   *
+   * Not broken down by site: the caller wants one verdict for the whole
+   * subtree, so bucketing across all of it produces the fewest rows that can
+   * still answer the question.
+   */
+  @CaptureSpan()
+  public async getHealthGroupsForSites(data: {
+    projectId: ObjectID;
+    siteIds: Array<ObjectID>;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    if (data.siteIds.length === 0) {
+      return [];
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        siteId: QueryHelper.any(data.siteIds),
+        isArchived: false,
+      },
+      groupBy: DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
   }
 
   /*

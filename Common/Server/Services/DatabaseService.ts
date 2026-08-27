@@ -1,6 +1,10 @@
 import { EncryptionSecret, WorkflowHostname } from "../EnvironmentConfig";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
+import AggregateBy, {
+  AggregateColumn,
+  AggregateRow,
+} from "../Types/Database/AggregateBy";
 import CountBy from "../Types/Database/CountBy";
 import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
@@ -1456,6 +1460,164 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } catch (error) {
       await this.onCountError(error as Exception);
       throw this.getException(error as Exception);
+    }
+  }
+
+  /*
+   * A plain identifier, because an alias is interpolated into `AS "..."` and
+   * is structure rather than data — there is no parameter form for it.
+   */
+  private static readonly aggregateAliasPattern: RegExp =
+    /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
+  /**
+   * Answers a question ABOUT the matched rows — how many, how much, how many
+   * of each — without loading them.
+   *
+   * Same permission pipeline as `findBy` and `countBy`: the query is run
+   * through `checkReadQueryPermission` first, so tenant scoping and
+   * label-block filtering apply exactly as they do to a list read (a blocked
+   * label produces the same relation join here that it produces there — the
+   * count cannot see rows the list would hide).
+   *
+   * Returns one row per group, or exactly one row when `groupBy` is omitted.
+   * Values come back as the driver produced them; read them through
+   * `AggregateResultUtil` rather than indexing in directly, because Postgres
+   * hands COUNT and SUM back as strings.
+   *
+   * See `AggregateBy` for the trust boundary on `expression`: constants only,
+   * every dynamic value through `parameters`.
+   */
+  @CaptureSpan()
+  public async aggregateBy(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): Promise<Array<AggregateRow>> {
+    try {
+      this.setTelemetryContextFromProps(aggregateBy.props);
+
+      if (!aggregateBy.select || aggregateBy.select.length === 0) {
+        throw new BadDataException(
+          "aggregateBy needs at least one aggregate column to select.",
+        );
+      }
+
+      const groupByColumns: Array<AggregateColumn> = aggregateBy.groupBy || [];
+
+      /*
+       * Grouped columns are selected as well as grouped on. Doing it here
+       * rather than making callers list them twice is what keeps a group key
+       * and the bucket it labels from ever drifting apart.
+       */
+      const selectColumns: Array<AggregateColumn> = [
+        ...groupByColumns,
+        ...aggregateBy.select,
+      ];
+
+      const seenAliases: Set<string> = new Set<string>();
+
+      for (const column of selectColumns) {
+        DatabaseService.assertSafeAggregateExpression(column.expression);
+
+        if (!DatabaseService.aggregateAliasPattern.test(column.alias)) {
+          throw new BadDataException(
+            `Invalid aggregate alias: ${column.alias}. Aliases must be plain identifiers.`,
+          );
+        }
+
+        if (seenAliases.has(column.alias)) {
+          throw new BadDataException(
+            `Duplicate aggregate alias: ${column.alias}.`,
+          );
+        }
+
+        seenAliases.add(column.alias);
+      }
+
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadQueryPermission(
+          this.modelType,
+          aggregateBy.query,
+          null,
+          aggregateBy.props,
+        );
+
+      const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
+        this.modelName,
+      );
+
+      /*
+       * setFindOptions rather than `.where(...)`, and that is load-bearing:
+       * the permission pipeline can hand back a NESTED condition on the
+       * access-control relation (`{ labels: { _id: NotIn([...]) } }` for a
+       * user with a label-blocked permission). `.where(object)` renders flat
+       * conditions only and would silently drop that clause — turning a
+       * restricted user's count into a count over rows they cannot list.
+       * setFindOptions goes through the same FindOptions machinery `findBy`
+       * uses, so the relation is joined and the condition applied.
+       */
+      queryBuilder.setFindOptions({
+        where: checkReadPermissionType.query as any,
+      });
+
+      let isFirstColumn: boolean = true;
+
+      for (const column of selectColumns) {
+        if (isFirstColumn) {
+          queryBuilder.select(column.expression, column.alias);
+          isFirstColumn = false;
+        } else {
+          queryBuilder.addSelect(column.expression, column.alias);
+        }
+      }
+
+      for (const column of groupByColumns) {
+        queryBuilder.addGroupBy(column.expression);
+      }
+
+      for (const order of aggregateBy.orderBy || []) {
+        DatabaseService.assertSafeAggregateExpression(order.expression);
+
+        queryBuilder.addOrderBy(
+          order.expression,
+          order.sortOrder === SortOrder.Ascending ? "ASC" : "DESC",
+        );
+      }
+
+      if (aggregateBy.parameters) {
+        queryBuilder.setParameters(aggregateBy.parameters);
+      }
+
+      if (aggregateBy.limit !== undefined) {
+        /*
+         * `.limit`, not `.take`: this is a raw read, and `take` is the
+         * entity-hydrating pagination that would wrap the whole aggregate in
+         * a distinct-id subquery.
+         */
+        queryBuilder.limit(aggregateBy.limit);
+      }
+
+      return (await queryBuilder.getRawMany()) as Array<AggregateRow>;
+    } catch (error) {
+      await this.onCountError(error as Exception);
+      throw this.getException(error as Exception);
+    }
+  }
+
+  /*
+   * A tripwire on the constants-only contract, not a sanitizer: an expression
+   * assembled from request data can be perfectly valid SQL and still be an
+   * injection. What this catches is the one shape that turns a leaked value
+   * into a second statement.
+   */
+  private static assertSafeAggregateExpression(expression: string): void {
+    if (!expression || !expression.trim()) {
+      throw new BadDataException("Aggregate expression cannot be empty.");
+    }
+
+    if (expression.includes(";")) {
+      throw new BadDataException(
+        "Aggregate expressions cannot contain statement separators.",
+      );
     }
   }
 

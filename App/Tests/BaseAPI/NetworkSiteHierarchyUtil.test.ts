@@ -366,7 +366,7 @@ describe("aggregateChildStats", () => {
       children: children,
       descendants: descendants,
       devices: deviceSiteIds.map((siteId: string): DeviceAttachmentRow => {
-        return { siteId: siteId, healthState: "healthy" };
+        return { siteId: siteId, healthState: "healthy" , deviceCount: 1 };
       }),
       operationalStatusIds: operationalStatusIds,
     });
@@ -511,7 +511,7 @@ describe("aggregateChildStats", () => {
             currentMonitorStatusId: OPERATIONAL,
           },
         ],
-        devices: [{ siteId: "unit1", healthState: "healthy" }],
+        devices: [{ siteId: "unit1", healthState: "healthy" , deviceCount: 1 }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("marketA")!.childSiteCount).toBe(1);
@@ -527,7 +527,7 @@ describe("aggregateChildStats", () => {
       NetworkSiteHierarchyUtil.aggregateChildStats({
         children: [],
         descendants: descendants,
-        devices: [{ siteId: "unit1", healthState: "healthy" }],
+        devices: [{ siteId: "unit1", healthState: "healthy" , deviceCount: 1 }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.size).toBe(0);
@@ -552,10 +552,10 @@ describe("aggregateChildStats", () => {
 
     test("each state lands in its own bucket of the owning child", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
-        { siteId: "unit3", healthState: "degraded" },
-        { siteId: "marketA", healthState: "healthy" },
-        { siteId: "unitB", healthState: "unknown" },
+        { siteId: "unit1", healthState: "down" , deviceCount: 1 },
+        { siteId: "unit3", healthState: "degraded" , deviceCount: 1 },
+        { siteId: "marketA", healthState: "healthy" , deviceCount: 1 },
+        { siteId: "unitB", healthState: "unknown" , deviceCount: 1 },
       ]);
       expect(result.get("marketA")!.deviceStats).toEqual({
         total: 3,
@@ -575,10 +575,10 @@ describe("aggregateChildStats", () => {
 
     test("deviceStats.total and deviceCount never disagree", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
-        { siteId: "unit1", healthState: "healthy" },
-        { siteId: "unit2", healthState: "degraded" },
-        { siteId: "unitB", healthState: "healthy" },
+        { siteId: "unit1", healthState: "down" , deviceCount: 1 },
+        { siteId: "unit1", healthState: "healthy" , deviceCount: 1 },
+        { siteId: "unit2", healthState: "degraded" , deviceCount: 1 },
+        { siteId: "unitB", healthState: "healthy" , deviceCount: 1 },
       ]);
       for (const aggregate of result.values()) {
         expect(aggregate.deviceStats.total).toBe(aggregate.deviceCount);
@@ -592,8 +592,8 @@ describe("aggregateChildStats", () => {
      */
     test("devices outside every child's subtree are counted nowhere", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "parent", healthState: "down" },
-        { siteId: "elsewhere", healthState: "down" },
+        { siteId: "parent", healthState: "down" , deviceCount: 1 },
+        { siteId: "elsewhere", healthState: "down" , deviceCount: 1 },
       ]);
       for (const aggregate of result.values()) {
         expect(aggregate.deviceStats.total).toBe(0);
@@ -614,7 +614,7 @@ describe("aggregateChildStats", () => {
 
     test("each child's tally is its own object, never a shared one", () => {
       const result: Map<string, ChildAggregate> = aggregateWithHealth([
-        { siteId: "unit1", healthState: "down" },
+        { siteId: "unit1", healthState: "down" , deviceCount: 1 },
       ]);
       expect(result.get("marketA")!.deviceStats.down).toBe(1);
       expect(result.get("unitB")!.deviceStats.down).toBe(0);
@@ -633,11 +633,11 @@ describe("aggregateChildStats", () => {
  */
 describe("tallyDeviceHealth", () => {
   const devices: Array<DeviceAttachmentRow> = [
-    { siteId: "dc1", healthState: "down" },
-    { siteId: "dc1", healthState: "healthy" },
-    { siteId: "dc1", healthState: "degraded" },
-    { siteId: "store7", healthState: "healthy" },
-    { siteId: "store8", healthState: "unknown" },
+    { siteId: "dc1", healthState: "down" , deviceCount: 1 },
+    { siteId: "dc1", healthState: "healthy" , deviceCount: 1 },
+    { siteId: "dc1", healthState: "degraded" , deviceCount: 1 },
+    { siteId: "store7", healthState: "healthy" , deviceCount: 1 },
+    { siteId: "store8", healthState: "unknown" , deviceCount: 1 },
   ];
 
   test("counts only the sites asked about", () => {

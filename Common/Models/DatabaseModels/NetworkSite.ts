@@ -94,6 +94,13 @@ const decimalTransformer: ValueTransformer = {
 @CrudApiEndpoint(new Route("/network-site"))
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "parentSiteId"])
+/*
+ * The grouped status count behind the Sites summary strip, and the query that
+ * lists the sites rolling up unhealthy. Both are "this project's sites, by
+ * rolled-up status"; the standalone `currentMonitorStatusId` index cannot
+ * serve them because it has no project to narrow by first.
+ */
+@Index(["projectId", "currentMonitorStatusId"])
 @TableMetadata({
   tableName: "NetworkSite",
   singularName: "Network Site",
