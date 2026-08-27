@@ -30,6 +30,22 @@ export interface DockerAlertTemplate {
   getMonitorStep: (args: DockerAlertTemplateArgs) => MonitorStep;
 }
 
+/*
+ * Filter contract: the Docker agent stamps container identity as OTLP
+ * RESOURCE attributes, so ClickHouse stores them `resource.`-prefixed:
+ * `resource.container.name`, `resource.container.image.name`,
+ * `resource.container.runtime` ("docker") and `resource.host.name`. The
+ * worker adds the host scope (`resource.host.name` from hostIdentifier)
+ * and the runtime filter itself. Every template groups by
+ * `resource.container.name` so each container on the host is evaluated
+ * independently — one incident per container instead of one incident for
+ * the whole host, where the busiest container silences every other one.
+ *
+ * NOTE: this is `resource.`-prefixed, unlike Docker Swarm, whose
+ * docker_stats receiver keeps container identity in DATAPOINT labels
+ * (plain `container.name`).
+ */
+
 export function buildDockerMonitorStep(args: {
   dockerMonitor: MonitorStepDockerMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
@@ -184,6 +200,7 @@ export function buildDockerMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKey?: string | undefined;
 }): MonitorStepDockerMonitor {
   return {
     hostIdentifier: args.hostIdentifier,
@@ -205,6 +222,9 @@ export function buildDockerMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
           },
         },
       ],
@@ -219,7 +239,8 @@ export function buildDockerMonitorConfig(args: {
 const highCpuTemplate: DockerAlertTemplate = {
   id: "docker-high-cpu",
   name: "High Container CPU Usage",
-  description: "Alert when container CPU usage exceeds 80% sustained.",
+  description:
+    "Alert when container CPU usage exceeds 80% sustained. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -232,10 +253,12 @@ const highCpuTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single hot container trips the threshold instead of
-         * being diluted by idle containers on the host.
+         * Max WITHIN each container's series: any scrape in the window over
+         * the threshold trips that container. Grouping by container name
+         * already keeps a hot container from being diluted by idle ones.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -264,7 +287,8 @@ const highCpuTemplate: DockerAlertTemplate = {
 const highMemoryTemplate: DockerAlertTemplate = {
   id: "docker-high-memory",
   name: "High Container Memory Usage",
-  description: "Alert when container memory usage exceeds 85% of its limit.",
+  description:
+    "Alert when container memory usage exceeds 85% of its limit. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -277,10 +301,12 @@ const highMemoryTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single container breaching its limit trips the
-         * threshold instead of being diluted by idle containers.
+         * Max WITHIN each container's series: any scrape in the window over
+         * the limit trips that container. Grouping by container name already
+         * keeps a container at its limit from being diluted by idle ones.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -310,7 +336,7 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
   id: "docker-restart-loop",
   name: "Container Restart Loop",
   description:
-    "Alert when a container has restarted more than 5 times, indicating a crash loop.",
+    "Alert when a container has restarted more than 5 times, indicating a crash loop. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -323,6 +349,7 @@ const containerRestartLoopTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -352,7 +379,7 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
   id: "docker-cpu-throttling",
   name: "Container CPU Throttling",
   description:
-    "Alert when a container is being CPU-throttled, indicating it needs more CPU resources.",
+    "Alert when a container is being CPU-throttled, indicating it needs more CPU resources. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -365,10 +392,12 @@ const highCpuThrottlingTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single throttled container trips the threshold,
-         * rather than summing throttled time across all containers.
+         * Max WITHIN each container's series, so throttled time is never
+         * summed across containers — grouping by container name attributes
+         * the throttling to the container that actually suffered it.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -398,7 +427,7 @@ const highProcessCountTemplate: DockerAlertTemplate = {
   id: "docker-high-pids",
   name: "High Container Process Count",
   description:
-    "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak.",
+    "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak. One alert per container.",
   category: "Container",
   severity: "Warning",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -411,6 +440,7 @@ const highProcessCountTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -440,7 +470,7 @@ const containerUptimeTemplate: DockerAlertTemplate = {
   id: "docker-container-down",
   name: "Container Down (Low Uptime)",
   description:
-    "Alert when a container's uptime drops to zero, indicating it has stopped or crashed.",
+    "Alert when a container's uptime drops to zero, indicating it has stopped or crashed. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: DockerAlertTemplateArgs): MonitorStep => {
@@ -453,6 +483,7 @@ const containerUptimeTemplate: DockerAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past1Minute,
         aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildDockerOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

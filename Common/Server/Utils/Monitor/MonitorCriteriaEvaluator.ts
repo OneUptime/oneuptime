@@ -6,6 +6,9 @@ import CustomCodeMonitoringCriteria from "./Criteria/CustomCodeMonitorCriteria";
 import IncomingEmailCriteria from "./Criteria/IncomingEmailCriteria";
 import IncomingRequestCriteria from "./Criteria/IncomingRequestCriteria";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import PerEntityCriteriaFanOut, {
+  FanOutEntity,
+} from "./PerEntityCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
@@ -411,6 +414,31 @@ ${contextBlock}
       return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
     }
 
+    /*
+     * Monitor types with no group-by concept, whose criteria name one
+     * entity each. They opt into per-entity alerting by naming "*"
+     * instead of a specific disk / interface.
+     */
+    if (monitorType === MonitorType.Server) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return PerEntityCriteriaFanOut.isServerDiskFanOutConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
+    if (monitorType === MonitorType.NetworkDevice) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
     return false;
   }
 
@@ -465,6 +493,65 @@ ${contextBlock}
       return IncomingRequestIncidentGrouping.collectFiringMatches({
         dataToProcess: input.dataToProcess,
         criteriaInstance: input.criteriaInstance,
+      });
+    }
+
+    /*
+     * Server and SNMP monitors observe several independent entities in a
+     * single check — every mounted filesystem, every port on a switch —
+     * but their criteria address one at a time. When a criteria opts in
+     * with the "*" wildcard, evaluate it once per entity so a second
+     * full disk or a second dead port raises its own alert instead of
+     * being swallowed by the first one's.
+     */
+    if (
+      input.monitor.monitorType === MonitorType.Server ||
+      input.monitor.monitorType === MonitorType.NetworkDevice
+    ) {
+      const entities: Array<FanOutEntity> =
+        input.monitor.monitorType === MonitorType.Server
+          ? PerEntityCriteriaFanOut.getServerDiskEntities({
+              dataToProcess: input.dataToProcess,
+              criteriaInstance: input.criteriaInstance,
+            })
+          : PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+              dataToProcess: input.dataToProcess,
+              criteriaInstance: input.criteriaInstance,
+            });
+
+      return PerEntityCriteriaFanOut.collectMatches({
+        criteriaInstance: input.criteriaInstance,
+        entities: entities,
+        monitorId: input.monitor.id?.toString(),
+        evaluateNarrowedCriteria: (
+          narrowedCriteriaInstance: MonitorCriteriaInstance,
+        ): Promise<string | null> => {
+          return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: {
+              monitorId: input.dataToProcess.monitorId,
+              rootCause: null,
+            },
+            criteriaInstance: narrowedCriteriaInstance,
+            /*
+             * A throwaway result: the per-entity pass must not overwrite
+             * the summary row the whole-criteria evaluation already
+             * wrote for this criteria.
+             */
+            criteriaResult: {
+              criteriaId: narrowedCriteriaInstance.data?.id,
+              criteriaName: narrowedCriteriaInstance.data?.name,
+              filterCondition:
+                narrowedCriteriaInstance.data?.filterCondition ||
+                FilterCondition.All,
+              met: false,
+              message: "",
+              filters: [],
+            },
+          });
+        },
       });
     }
 
