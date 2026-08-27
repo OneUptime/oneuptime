@@ -50,6 +50,20 @@ export default class MonitorAlert {
     evaluationSummary?: MonitorEvaluationSummary | undefined;
     breachingSeriesFingerprints?: Set<string> | undefined;
     /**
+     * The breaching fingerprints of EACH criteria evaluated on this
+     * tick, keyed by criteria id — a criteria that ran and matched
+     * nothing maps to an empty set.
+     *
+     * Without this, "is this series still breaching?" was answered from
+     * the winning criteria's set alone, so a host held critical by
+     * criteria A silently auto-resolved another host's still-valid alert
+     * from criteria B. A criteria absent from this dictionary was not
+     * evaluated at all, and its open alerts are left untouched.
+     */
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+    /**
      * Event-driven (incoming-request / webhook) mode. When true, an open
      * alert carrying a seriesFingerprint is never auto-resolved here —
      * webhooks resolve per-key only via resolveSeriesAlertsByFingerprint,
@@ -86,6 +100,8 @@ export default class MonitorAlert {
 
     // check if should close the alert.
 
+    const resolvedAlertIds: Set<string> = new Set<string>();
+
     for (const openAlert of openAlerts) {
       const shouldClose: boolean = this.shouldCloseAlert({
         openAlert,
@@ -93,10 +109,14 @@ export default class MonitorAlert {
           input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         criteriaInstance: input.criteriaInstance,
         breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+        breachingSeriesFingerprintsByCriteriaId:
+          input.breachingSeriesFingerprintsByCriteriaId,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
       if (shouldClose) {
+        resolvedAlertIds.add(openAlert.id!.toString());
+
         // then resolve alert.
         await this.resolveOpenAlert({
           openAlert: openAlert,
@@ -118,7 +138,20 @@ export default class MonitorAlert {
       }
     }
 
-    return openAlerts;
+    /*
+     * Return the alerts that are still open AFTER this pass. The create
+     * path dedupes against this list, and an alert this pass just
+     * resolved must not count as "already active" — that combination
+     * resolved a stale whole-monitor alert and then refused to create
+     * the per-series alerts meant to replace it.
+     */
+    if (resolvedAlertIds.size === 0) {
+      return openAlerts;
+    }
+
+    return openAlerts.filter((openAlert: Alert) => {
+      return !resolvedAlertIds.has(openAlert.id!.toString());
+    });
   }
 
   /**
@@ -230,6 +263,26 @@ export default class MonitorAlert {
     };
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
     /**
+     * The still-open alerts, when the caller has already run the
+     * resolve pass itself.
+     *
+     * A single evaluation can fan out across several matching criteria
+     * (host A critical while host B is only warning). The resolve pass
+     * has to run exactly once, with every criteria's breaching set in
+     * hand — running it once per criteria would let each criteria
+     * absence-resolve the others' alerts. So MonitorResource runs it up
+     * front and hands the survivors here.
+     */
+    openAlerts?: Array<Alert> | undefined;
+    /**
+     * Per-criteria breaching fingerprints, forwarded to the resolve pass
+     * when this method runs it itself. See
+     * checkOpenAlertsAndCloseIfResolved.
+     */
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+    /**
      * Series fingerprints whose underlying resource is inside an
      * ongoing scheduled maintenance window. Alerts for these series are
      * suppressed at creation time even though the monitor keeps
@@ -276,19 +329,42 @@ export default class MonitorAlert {
 
     // check active alerts and if there are open alerts, do not cretae anothr alert.
     const openAlerts: Array<Alert> =
-      await this.checkOpenAlertsAndCloseIfResolved({
-        monitorId: input.monitor.id!,
-        autoResolveCriteriaInstanceIdAlertIdsDictionary:
-          input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
-        rootCause: input.rootCause,
-        criteriaInstance: input.criteriaInstance,
-        dataToProcess: input.dataToProcess,
-        evaluationSummary: input.evaluationSummary,
-        breachingSeriesFingerprints,
-        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
-      });
+      input.openAlerts !== undefined
+        ? input.openAlerts
+        : await this.checkOpenAlertsAndCloseIfResolved({
+            monitorId: input.monitor.id!,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary:
+              input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            rootCause: input.rootCause,
+            criteriaInstance: input.criteriaInstance,
+            dataToProcess: input.dataToProcess,
+            evaluationSummary: input.evaluationSummary,
+            breachingSeriesFingerprints,
+            breachingSeriesFingerprintsByCriteriaId:
+              input.breachingSeriesFingerprintsByCriteriaId,
+            disableSeriesAbsenceResolution:
+              input.disableSeriesAbsenceResolution,
+          });
 
     if (!input.criteriaInstance.data?.createAlerts) {
+      return;
+    }
+
+    /*
+     * Checked once, up front. It used to be tested deep inside the
+     * template x series loops with a `return`, which on a grouped
+     * monitor abandoned every series after the first.
+     */
+    if (DisableAutomaticAlertCreation) {
+      input.evaluationSummary?.events.push({
+        type: "alert-skipped",
+        title: "Alert creation skipped",
+        message:
+          "Automatic alert creation is disabled by environment configuration.",
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
       return;
     }
 
@@ -359,332 +435,376 @@ export default class MonitorAlert {
 
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
-        const seriesFingerprint: string | undefined = seriesMatch?.fingerprint;
-        const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
-        const seriesRootCause: string =
-          seriesMatch?.rootCause || input.rootCause;
+        try {
+          const seriesFingerprint: string | undefined =
+            seriesMatch?.fingerprint;
+          const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+          const seriesRootCause: string =
+            seriesMatch?.rootCause || input.rootCause;
 
-        /*
-         * Per-series scheduled-maintenance suppression: skip creating an
-         * alert for a series whose resource is inside an ongoing
-         * maintenance window. Other series on the same monitor are
-         * unaffected. Only *new* creation is suppressed — existing open
-         * alerts follow the normal resolve path.
-         */
-        if (
-          seriesFingerprint &&
-          input.suppressedSeriesFingerprints?.has(seriesFingerprint)
-        ) {
+          /*
+           * Per-series scheduled-maintenance suppression: skip creating an
+           * alert for a series whose resource is inside an ongoing
+           * maintenance window. Other series on the same monitor are
+           * unaffected. Only *new* creation is suppressed — existing open
+           * alerts follow the normal resolve path.
+           */
+          if (
+            seriesFingerprint &&
+            input.suppressedSeriesFingerprints?.has(seriesFingerprint)
+          ) {
+            logger.debug(
+              `${input.monitor.id?.toString()} - Skipping alert for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+              alertLogAttributes,
+            );
+
+            input.evaluationSummary?.events.push({
+              type: "alert-skipped",
+              title: "Alert suppressed by scheduled maintenance",
+              message:
+                "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          /*
+           * Mirror the create path: `createdCriteriaId` is only set when the
+           * criteria has an `id`. Guard the `.toString()` with `?.` (a criteria
+           * with a missing id otherwise threw "Cannot read properties of
+           * undefined (reading 'toString')" and failed the queue job every
+           * cycle) and normalise both sides to `undefined` on missing so dedupe
+           * stays correct instead of creating a duplicate alert each cycle.
+           */
+          const alreadyOpenAlert: Alert | undefined = openAlerts.find(
+            (alert: Alert) => {
+              return (
+                (alert.createdCriteriaId || undefined) ===
+                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
+                (alert.seriesFingerprint || undefined) === seriesFingerprint
+              );
+            },
+          );
+
+          const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
+
           logger.debug(
-            `${input.monitor.id?.toString()} - Skipping alert for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+            `${input.monitor.id?.toString()} - Open Alert ${alreadyOpenAlert?.id?.toString()}`,
             alertLogAttributes,
           );
 
-          input.evaluationSummary?.events.push({
-            type: "alert-skipped",
-            title: "Alert suppressed by scheduled maintenance",
-            message:
-              "Skipped creating an alert because the resource for this series is under an active scheduled maintenance window.",
-            relatedCriteriaId: input.criteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-          continue;
-        }
-
-        /*
-         * Mirror the create path: `createdCriteriaId` is only set when the
-         * criteria has an `id`. Guard the `.toString()` with `?.` (a criteria
-         * with a missing id otherwise threw "Cannot read properties of
-         * undefined (reading 'toString')" and failed the queue job every
-         * cycle) and normalise both sides to `undefined` on missing so dedupe
-         * stays correct instead of creating a duplicate alert each cycle.
-         */
-        const alreadyOpenAlert: Alert | undefined = openAlerts.find(
-          (alert: Alert) => {
-            return (
-              (alert.createdCriteriaId || undefined) ===
-                (input.criteriaInstance.data?.id?.toString() || undefined) &&
-              (alert.seriesFingerprint || undefined) === seriesFingerprint
-            );
-          },
-        );
-
-        const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Open Alert ${alreadyOpenAlert?.id?.toString()}`,
-          alertLogAttributes,
-        );
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Has open alert ${hasAlreadyOpenAlert}`,
-          alertLogAttributes,
-        );
-
-        if (hasAlreadyOpenAlert) {
-          const renderedAlertTitle: string =
-            alreadyOpenAlert?.title || criteriaAlert.title;
-
-          input.evaluationSummary?.events.push({
-            type: "alert-skipped",
-            title: `Alert already active: ${renderedAlertTitle}`,
-            message:
-              "Skipped creating a new alert because an active alert exists for this criteria.",
-            relatedCriteriaId: input.criteriaInstance.data?.id,
-            relatedAlertId: alreadyOpenAlert?.id?.toString(),
-            relatedAlertNumber: alreadyOpenAlert?.alertNumber,
-            relatedAlertNumberWithPrefix:
-              alreadyOpenAlert?.alertNumberWithPrefix,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-          continue;
-        }
-
-        // create alert here.
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Create alert.`,
-          alertLogAttributes,
-        );
-
-        const alert: Alert = new Alert();
-        const storageMap: JSONObject =
-          MonitorTemplateUtil.buildTemplateStorageMap({
-            monitorType: input.monitor.monitorType!,
-            dataToProcess: input.dataToProcess,
-            monitor: input.monitor,
-            seriesLabels,
-          });
-
-        alert.title = MonitorTemplateUtil.processTemplateString({
-          value: criteriaAlert.title,
-          storageMap,
-        });
-        alert.description = MonitorTemplateUtil.processTemplateString({
-          value: criteriaAlert.description,
-          storageMap,
-        });
-
-        /*
-         * A criteria severity belonging to *another* project is rejected by
-         * AlertService on create. Throwing here would fail the whole
-         * probe/telemetry ingest job for this monitor, so treat it as
-         * "missing" and fall back to this project's own default — which is
-         * also what stops the bad id spreading onto new alerts. See the same
-         * fallback in MonitorIncident.
-         */
-        const isCriteriaSeverityUsable: boolean =
-          await ProjectScopedReferenceValidator.isUsableInProject({
-            projectId: input.monitor.projectId!,
-            id: criteriaAlert.alertSeverityId,
-            service: AlertSeverityService,
-          });
-
-        if (
-          criteriaAlert.alertSeverityId?.toString() &&
-          !isCriteriaSeverityUsable
-        ) {
-          logger.error(
-            `${input.monitor.id?.toString()} - Criteria "${
-              input.criteriaInstance.data?.name
-            }" references alert severity ${criteriaAlert.alertSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
+          logger.debug(
+            `${input.monitor.id?.toString()} - Has open alert ${hasAlreadyOpenAlert}`,
+            alertLogAttributes,
           );
-        }
 
-        if (!isCriteriaSeverityUsable) {
-          // pick the critical criteria.
+          if (hasAlreadyOpenAlert) {
+            const renderedAlertTitle: string =
+              alreadyOpenAlert?.title || criteriaAlert.title;
 
-          const severity: AlertSeverity | null =
-            await AlertSeverityService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-              },
+            input.evaluationSummary?.events.push({
+              type: "alert-skipped",
+              title: `Alert already active: ${renderedAlertTitle}`,
+              message:
+                "Skipped creating a new alert because an active alert exists for this criteria.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              relatedAlertId: alreadyOpenAlert?.id?.toString(),
+              relatedAlertNumber: alreadyOpenAlert?.alertNumber,
+              relatedAlertNumberWithPrefix:
+                alreadyOpenAlert?.alertNumberWithPrefix,
+              at: OneUptimeDate.getCurrentDate(),
+            });
+            continue;
+          }
+
+          // create alert here.
+
+          logger.debug(
+            `${input.monitor.id?.toString()} - Create alert.`,
+            alertLogAttributes,
+          );
+
+          const alert: Alert = new Alert();
+          const storageMap: JSONObject =
+            MonitorTemplateUtil.buildTemplateStorageMap({
+              monitorType: input.monitor.monitorType!,
+              dataToProcess: input.dataToProcess,
+              monitor: input.monitor,
+              seriesLabels,
             });
 
-          if (!severity) {
-            throw new BadDataException("Project does not have alert severity");
-          } else {
-            alert.alertSeverityId = severity.id!;
-          }
-        } else {
-          alert.alertSeverityId = criteriaAlert.alertSeverityId!;
-        }
-
-        alert.monitor = input.monitor;
-        alert.projectId = input.monitor.projectId!;
-        alert.rootCause = seriesRootCause;
-        alert.createdStateLog = JSON.parse(
-          JSON.stringify(input.dataToProcess, null, 2),
-        );
-
-        /*
-         * Same capture on every alert this evaluation opens - they all
-         * came from the one check.
-         */
-        const serializedMonitorSummary: JSONObject | null =
-          MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
-
-        if (serializedMonitorSummary) {
-          alert.monitorSummary = serializedMonitorSummary;
-        }
-
-        if (input.criteriaInstance.data?.id) {
-          alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
-        }
-
-        if (seriesFingerprint) {
-          alert.seriesFingerprint = seriesFingerprint;
-        }
-        if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-          alert.seriesLabels = seriesLabels;
-
-          /*
-           * Attach every resource this series identifies — host, docker
-           * host, podman host, k8s cluster, service, and the Proxmox /
-           * Ceph / Swarm / IoT clusters — resolved from the shared label
-           * key map. Same call the incident path makes, so the two can't
-           * drift apart again.
-           */
-          await SeriesResourceLinker.linkSeriesResourcesToModel({
-            model: alert,
-            seriesLabels,
-            projectId: input.monitor.projectId!,
-            monitorType: input.monitor.monitorType,
-          });
-        }
-
-        /*
-         * Deterministic resource link from the monitor's step config
-         * (resolved once above). For most monitor types this — not the
-         * label path above — is what makes the per-resource Activity
-         * tabs and badge counts see monitor-created alerts, because
-         * their criteria are ungrouped and emit no series labels at
-         * all. Runs for both grouped and ungrouped alerts, and merges
-         * with whatever the labels resolved.
-         */
-        SeriesResourceLinker.attachResolvedResources({
-          model: alert,
-          resolved: resourceContext,
-        });
-
-        alert.onCallDutyPolicies =
-          criteriaAlert.onCallPolicyIds?.map((id: ObjectID) => {
-            const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
-            onCallPolicy._id = id.toString();
-            return onCallPolicy;
-          }) || [];
-
-        // Set labels from criteria
-        alert.labels =
-          criteriaAlert.labelIds?.map((id: ObjectID) => {
-            const label: Label = new Label();
-            label._id = id.toString();
-            return label;
-          }) || [];
-
-        alert.isCreatedAutomatically = true;
-
-        if (criteriaAlert.isPrivate === true) {
-          alert.isPrivate = true;
-        }
-
-        if (input.props.telemetryQuery) {
-          alert.telemetryQuery = input.props.telemetryQuery;
-        }
-
-        if (
-          input.dataToProcess &&
-          (input.dataToProcess as ProbeMonitorResponse).probeId
-        ) {
-          alert.createdByProbeId = (
-            input.dataToProcess as ProbeMonitorResponse
-          ).probeId;
-        }
-
-        if (criteriaAlert.remediationNotes) {
-          alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
-            value: criteriaAlert.remediationNotes,
+          alert.title = MonitorTemplateUtil.processTemplateString({
+            value: criteriaAlert.title,
             storageMap,
           });
-        }
+          alert.description = MonitorTemplateUtil.processTemplateString({
+            value: criteriaAlert.description,
+            storageMap,
+          });
 
-        if (DisableAutomaticAlertCreation) {
+          /*
+           * A criteria severity belonging to *another* project is rejected by
+           * AlertService on create. Throwing here would fail the whole
+           * probe/telemetry ingest job for this monitor, so treat it as
+           * "missing" and fall back to this project's own default — which is
+           * also what stops the bad id spreading onto new alerts. See the same
+           * fallback in MonitorIncident.
+           */
+          const isCriteriaSeverityUsable: boolean =
+            await ProjectScopedReferenceValidator.isUsableInProject({
+              projectId: input.monitor.projectId!,
+              id: criteriaAlert.alertSeverityId,
+              service: AlertSeverityService,
+            });
+
+          if (
+            criteriaAlert.alertSeverityId?.toString() &&
+            !isCriteriaSeverityUsable
+          ) {
+            logger.error(
+              `${input.monitor.id?.toString()} - Criteria "${
+                input.criteriaInstance.data?.name
+              }" references alert severity ${criteriaAlert.alertSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
+            );
+          }
+
+          if (!isCriteriaSeverityUsable) {
+            // pick the critical criteria.
+
+            const severity: AlertSeverity | null =
+              await AlertSeverityService.findOneBy({
+                query: {
+                  projectId: input.monitor.projectId!,
+                },
+                sort: {
+                  order: SortOrder.Ascending,
+                },
+                props: {
+                  isRoot: true,
+                },
+                select: {
+                  _id: true,
+                },
+              });
+
+            if (!severity?.id?.toString()) {
+              /*
+               * The project has no alert severity configured. Throwing here
+               * would fail the entire probe/telemetry ingest job — which
+               * then retries forever over a misconfiguration the worker
+               * cannot fix, and takes every other series on this monitor
+               * down with it. Skip this alert and log instead, exactly as
+               * the incident path does.
+               */
+              logger.error(
+                `${input.monitor.id?.toString()} - Cannot create alert: project ${input.monitor.projectId?.toString()} has no alert severity configured. Skipping alert creation for criteria "${
+                  input.criteriaInstance.data?.name
+                }".`,
+              );
+
+              input.evaluationSummary?.events.push({
+                type: "alert-skipped",
+                title: "Alert creation skipped",
+                message:
+                  "Skipped creating an alert because the project has no alert severity configured.",
+                relatedCriteriaId: input.criteriaInstance.data?.id,
+                at: OneUptimeDate.getCurrentDate(),
+              });
+              continue;
+            }
+
+            alert.alertSeverityId = severity.id!;
+          } else {
+            alert.alertSeverityId = criteriaAlert.alertSeverityId!;
+          }
+
+          alert.monitor = input.monitor;
+          alert.projectId = input.monitor.projectId!;
+          alert.rootCause = seriesRootCause;
+          alert.createdStateLog = JSON.parse(
+            JSON.stringify(input.dataToProcess, null, 2),
+          );
+
+          /*
+           * Same capture on every alert this evaluation opens - they all
+           * came from the one check.
+           */
+          const serializedMonitorSummary: JSONObject | null =
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+
+          if (serializedMonitorSummary) {
+            alert.monitorSummary = serializedMonitorSummary;
+          }
+
+          if (input.criteriaInstance.data?.id) {
+            alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
+          }
+
+          if (seriesFingerprint) {
+            alert.seriesFingerprint = seriesFingerprint;
+          }
+          if (seriesLabels && Object.keys(seriesLabels).length > 0) {
+            alert.seriesLabels = seriesLabels;
+
+            /*
+             * Attach every resource this series identifies — host, docker
+             * host, podman host, k8s cluster, service, and the Proxmox /
+             * Ceph / Swarm / IoT clusters — resolved from the shared label
+             * key map. Same call the incident path makes, so the two can't
+             * drift apart again.
+             */
+            await SeriesResourceLinker.linkSeriesResourcesToModel({
+              model: alert,
+              seriesLabels,
+              projectId: input.monitor.projectId!,
+              monitorType: input.monitor.monitorType,
+            });
+          }
+
+          /*
+           * Deterministic resource link from the monitor's step config
+           * (resolved once above). For most monitor types this — not the
+           * label path above — is what makes the per-resource Activity
+           * tabs and badge counts see monitor-created alerts, because
+           * their criteria are ungrouped and emit no series labels at
+           * all. Runs for both grouped and ungrouped alerts, and merges
+           * with whatever the labels resolved.
+           */
+          SeriesResourceLinker.attachResolvedResources({
+            model: alert,
+            resolved: resourceContext,
+          });
+
+          alert.onCallDutyPolicies =
+            criteriaAlert.onCallPolicyIds?.map((id: ObjectID) => {
+              const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
+              onCallPolicy._id = id.toString();
+              return onCallPolicy;
+            }) || [];
+
+          // Set labels from criteria
+          alert.labels =
+            criteriaAlert.labelIds?.map((id: ObjectID) => {
+              const label: Label = new Label();
+              label._id = id.toString();
+              return label;
+            }) || [];
+
+          alert.isCreatedAutomatically = true;
+
+          if (criteriaAlert.isPrivate === true) {
+            alert.isPrivate = true;
+          }
+
+          if (input.props.telemetryQuery) {
+            alert.telemetryQuery = input.props.telemetryQuery;
+          }
+
+          if (
+            input.dataToProcess &&
+            (input.dataToProcess as ProbeMonitorResponse).probeId
+          ) {
+            alert.createdByProbeId = (
+              input.dataToProcess as ProbeMonitorResponse
+            ).probeId;
+          }
+
+          if (criteriaAlert.remediationNotes) {
+            alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
+              value: criteriaAlert.remediationNotes,
+              storageMap,
+            });
+          }
+
+          const createdAlert: Alert = await AlertService.create({
+            data: alert,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          /*
+           * Add owner teams and users after alert creation. Owners configured
+           * on the criteria template are merged (deduped) with the owners of
+           * the network device this monitor watches, so device ownership flows
+           * into the alerts its monitor raises.
+           */
+          if (networkDeviceOwners === null) {
+            networkDeviceOwners =
+              await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+                monitor: input.monitor,
+                monitorStepId: (
+                  input.dataToProcess as ProbeMonitorResponse
+                ).monitorStepId?.toString(),
+              });
+          }
+
+          const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+            criteriaAlert.ownerUserIds || [],
+            networkDeviceOwners.ownerUserIds,
+          );
+
+          const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+            criteriaAlert.ownerTeamIds || [],
+            networkDeviceOwners.ownerTeamIds,
+          );
+
+          if (ownerTeamIds.length || ownerUserIds.length) {
+            await AlertService.addOwners(
+              input.monitor.projectId!,
+              createdAlert.id!,
+              ownerUserIds,
+              ownerTeamIds,
+              true, // notify owners
+              {
+                isRoot: true,
+              },
+            );
+          }
+
+          input.evaluationSummary?.events.push({
+            type: "alert-created",
+            title: `Alert created: ${createdAlert.title || criteriaAlert.title}`,
+            message: `Alert triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            relatedAlertId: createdAlert.id?.toString(),
+            relatedAlertNumber: createdAlert.alertNumber,
+            relatedAlertNumberWithPrefix: createdAlert.alertNumberWithPrefix,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        } catch (err) {
+          /*
+           * One series must not take the rest of the fleet down with it.
+           * Everything below this loop happens per host/container/key and
+           * touches the database; an error thrown from here used to
+           * propagate out of MonitorResource (which has no catch, only a
+           * `finally` that releases the lock) and abandon every series
+           * after the failing one, plus the monitor log for the tick.
+           */
+          logger.error(
+            `${input.monitor.id?.toString()} - Failed to create alert${
+              seriesMatch?.fingerprint
+                ? ` for series ${seriesMatch.fingerprint}`
+                : ""
+            }.`,
+          );
+          logger.error(err);
+
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
-            title: "Alert creation skipped",
-            message:
-              "Automatic alert creation is disabled by environment configuration.",
+            title: "Alert creation failed",
+            message: `Could not create an alert${
+              seriesMatch?.fingerprint
+                ? ` for series ${seriesMatch.fingerprint}`
+                : ""
+            }: ${err instanceof Error ? err.message : String(err)}`,
             relatedCriteriaId: input.criteriaInstance.data?.id,
             at: OneUptimeDate.getCurrentDate(),
           });
-          return;
+
+          continue;
         }
-
-        const createdAlert: Alert = await AlertService.create({
-          data: alert,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        /*
-         * Add owner teams and users after alert creation. Owners configured
-         * on the criteria template are merged (deduped) with the owners of
-         * the network device this monitor watches, so device ownership flows
-         * into the alerts its monitor raises.
-         */
-        if (networkDeviceOwners === null) {
-          networkDeviceOwners =
-            await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-              monitor: input.monitor,
-              monitorStepId: (
-                input.dataToProcess as ProbeMonitorResponse
-              ).monitorStepId?.toString(),
-            });
-        }
-
-        const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
-          criteriaAlert.ownerUserIds || [],
-          networkDeviceOwners.ownerUserIds,
-        );
-
-        const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
-          criteriaAlert.ownerTeamIds || [],
-          networkDeviceOwners.ownerTeamIds,
-        );
-
-        if (ownerTeamIds.length || ownerUserIds.length) {
-          await AlertService.addOwners(
-            input.monitor.projectId!,
-            createdAlert.id!,
-            ownerUserIds,
-            ownerTeamIds,
-            true, // notify owners
-            {
-              isRoot: true,
-            },
-          );
-        }
-
-        input.evaluationSummary?.events.push({
-          type: "alert-created",
-          title: `Alert created: ${createdAlert.title || criteriaAlert.title}`,
-          message: `Alert triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
-          relatedCriteriaId: input.criteriaInstance.data?.id,
-          relatedAlertId: createdAlert.id?.toString(),
-          relatedAlertNumber: createdAlert.alertNumber,
-          relatedAlertNumberWithPrefix: createdAlert.alertNumberWithPrefix,
-          at: OneUptimeDate.getCurrentDate(),
-        });
       }
     }
   }
@@ -778,11 +898,92 @@ export default class MonitorAlert {
     }
   }
 
+  /**
+   * Is `openAlert`'s series still breaching the criteria that raised it?
+   *
+   * Prefers the per-criteria dictionary, which answers the question for
+   * the criteria that actually owns this alert. The single-set fallback
+   * only knows the winning criteria's breaches, so it has to approximate
+   * with `createAlerts` — a criteria that creates no alerts is a
+   * recovery criteria whose "matches" are healthy series, and counting
+   * those as breaches would pin an offline alert open forever.
+   */
+  private static isSeriesStillBreaching(input: {
+    openAlert: Alert;
+    criteriaInstance: MonitorCriteriaInstance | null;
+    openSeriesFingerprint: string;
+    breachingSeriesFingerprints: Set<string>;
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+  }): boolean {
+    const owningCriteriaId: string | undefined =
+      input.openAlert.createdCriteriaId?.toString() || undefined;
+
+    if (input.breachingSeriesFingerprintsByCriteriaId && owningCriteriaId) {
+      return Boolean(
+        input.breachingSeriesFingerprintsByCriteriaId[owningCriteriaId]?.has(
+          input.openSeriesFingerprint,
+        ),
+      );
+    }
+
+    const matchedCriteriaCreatesAlerts: boolean =
+      input.criteriaInstance?.data?.createAlerts === true;
+
+    return (
+      matchedCriteriaCreatesAlerts &&
+      input.breachingSeriesFingerprints.has(input.openSeriesFingerprint)
+    );
+  }
+
+  private static wasCriteriaEvaluated(input: {
+    openAlert: Alert;
+    breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>>;
+  }): boolean {
+    const owningCriteriaId: string | undefined =
+      input.openAlert.createdCriteriaId?.toString() || undefined;
+
+    if (!owningCriteriaId) {
+      return true;
+    }
+
+    return (
+      input.breachingSeriesFingerprintsByCriteriaId[owningCriteriaId] !==
+      undefined
+    );
+  }
+
+  /**
+   * Alert auto-resolve lists templates by criteria; the presence of any
+   * template for a criteria means "this criteria's alerts are configured
+   * to auto-resolve".
+   */
+  private static isAutoResolveConfiguredForAlert(input: {
+    openAlert: Alert;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+  }): boolean {
+    const createdCriteriaId: string | undefined =
+      input.openAlert.createdCriteriaId?.toString() || undefined;
+
+    if (!createdCriteriaId) {
+      return false;
+    }
+
+    const autoResolveTemplates: Array<string> | undefined =
+      input.autoResolveCriteriaInstanceIdAlertIdsDictionary[createdCriteriaId];
+
+    return Boolean(autoResolveTemplates && autoResolveTemplates.length > 0);
+  }
+
   private static shouldCloseAlert(input: {
     openAlert: Alert;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     breachingSeriesFingerprints?: Set<string> | undefined;
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
     disableSeriesAbsenceResolution?: boolean | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
@@ -800,55 +1001,63 @@ export default class MonitorAlert {
       return false;
     }
 
-    /*
-     * Per-series auto-resolve: when a breaching-series set is given and
-     * this alert has a fingerprint, resolve whenever the fingerprint is
-     * no longer in the set, independent of whether other series on the
-     * same monitor are still breaching.
-     */
-    if (
-      input.breachingSeriesFingerprints !== undefined &&
-      openSeriesFingerprint
-    ) {
+    // Per-series mode: this evaluation knows which series are breaching.
+    if (input.breachingSeriesFingerprints !== undefined) {
       /*
-       * The breaching set is the matched criteria's per-series matches.
-       * On a recovery tick the matched criteria is the RECOVERY criteria
-       * and its matches are healthy series, not breaches; counting them
-       * would pin the open offline alert open forever. Membership only
-       * counts as still-breaching when the matched criteria actually
-       * creates alerts (createAlerts=false recovery criteria contributes
-       * no breaches, letting the per-series alert auto-resolve).
+       * A whole-monitor alert (no fingerprint) on a monitor that now
+       * alerts per series. It was raised before the monitor was grouped,
+       * and nothing can ever dedupe against it again — every alert from
+       * here on carries a fingerprint. Left alone it stays open forever
+       * while its replacements come and go. Resolve it, on the same
+       * auto-resolve terms as any other alert from its criteria.
        */
-      const matchedCriteriaCreatesAlerts: boolean =
-        input.criteriaInstance?.data?.createAlerts === true;
+      if (!openSeriesFingerprint) {
+        if (input.disableSeriesAbsenceResolution) {
+          return false;
+        }
 
-      const stillBreaching: boolean =
-        matchedCriteriaCreatesAlerts &&
-        input.breachingSeriesFingerprints.has(openSeriesFingerprint);
+        return MonitorAlert.isAutoResolveConfiguredForAlert({
+          openAlert: input.openAlert,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+        });
+      }
 
-      if (stillBreaching) {
+      if (
+        MonitorAlert.isSeriesStillBreaching({
+          openAlert: input.openAlert,
+          criteriaInstance: input.criteriaInstance,
+          openSeriesFingerprint,
+          breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+          breachingSeriesFingerprintsByCriteriaId:
+            input.breachingSeriesFingerprintsByCriteriaId,
+        })
+      ) {
         return false;
       }
 
-      if (!input.openAlert.createdCriteriaId?.toString()) {
+      /*
+       * The criteria that raised this alert was not evaluated on this
+       * tick at all (disabled, deleted, or the monitor stops at its
+       * first match). Absence of a breaching set for it is not evidence
+       * of recovery, so leave the alert alone.
+       */
+      if (
+        input.breachingSeriesFingerprintsByCriteriaId &&
+        !MonitorAlert.wasCriteriaEvaluated({
+          openAlert: input.openAlert,
+          breachingSeriesFingerprintsByCriteriaId:
+            input.breachingSeriesFingerprintsByCriteriaId,
+        })
+      ) {
         return false;
       }
 
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdAlertIdsDictionary[
-          input.openAlert.createdCriteriaId.toString()
-        ];
-
-      /*
-       * Alert auto-resolve lists templates by criteria; presence of any
-       * template for this criteria means "this criteria's alerts are
-       * configured to auto-resolve", so resolve this series.
-       */
-      if (autoResolveTemplates && autoResolveTemplates.length > 0) {
-        return true;
-      }
-
-      return false;
+      return MonitorAlert.isAutoResolveConfiguredForAlert({
+        openAlert: input.openAlert,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary:
+          input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+      });
     }
 
     if (

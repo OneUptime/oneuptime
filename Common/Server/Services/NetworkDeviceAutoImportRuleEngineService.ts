@@ -3,9 +3,13 @@ import NetworkDeviceAutoImportRule from "../../Models/DatabaseModels/NetworkDevi
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import MonitorService from "./MonitorService";
+import MonitorTemplateService from "./MonitorTemplateService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -13,19 +17,28 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import {
   AutoImportRuleRunResult,
   MAX_MATCHED_IP_SAMPLE,
 } from "../../Types/NetworkAutomation/RuleRunResult";
 import AutoImportRuleMatcher, {
   AutoImportHostEvaluation,
+  AutoImportRuleCandidate,
 } from "../../Utils/NetworkDiscovery/AutoImportRuleMatcher";
 import {
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import { monitoringMethodForDiscoveredHost } from "../../Utils/NetworkDiscovery/DiscoveryImportEligibility";
+import NetworkDeviceMonitoringMethod, {
+  NetworkDeviceMonitoringMethodUtil,
+} from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import QueryHelper from "../Types/Database/QueryHelper";
+import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -48,8 +61,9 @@ import logger, { LogAttributes } from "../Utils/Logger";
  *
  * Everything here is idempotent by construction: a device exists per
  * (project, address), recurring scans re-report the same hosts every
- * interval, and both paths skip hosts whose address is already registered —
- * so seeing the same results twice creates nothing twice.
+ * interval, and both paths reuse hosts whose address is already registered.
+ * Existing devices are still reconciled for a selected template monitor,
+ * while provenance keys prevent the same monitor from being created twice.
  */
 
 /*
@@ -84,6 +98,16 @@ export const AUTO_IMPORT_SCAN_CREDENTIAL_SELECT: {
  * /16" from an outage into a few paced ticks an operator can catch.
  */
 export const MAX_DEVICES_PER_AUTO_IMPORT_RUN: number = 500;
+
+/*
+ * Monitor creates run an even broader service pipeline than device creates:
+ * plan limits, operational status, labels, owners, SLOs and status pages all
+ * participate. Keep a separate cap so reconciling an existing /16 cannot
+ * bypass the device cap merely because all devices are already registered.
+ * A truncated automatic pass leaves its marker NULL whenever it made
+ * progress, and the next sweep resumes from the queryable provenance keys.
+ */
+export const MAX_MONITORS_PER_AUTO_IMPORT_RUN: number = 500;
 
 // Scans one manual "Run Now" will read, oldest results last.
 export const MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN: number = 100;
@@ -122,7 +146,21 @@ export const AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS: number = 11 * 60 * 1000;
  * read as registered when scan B reports the same address seconds later —
  * before any re-read of the device table would show it.
  */
-export type ExistingHostnamesByProjectId = Map<string, Set<string>>;
+export type ExistingHostnamesByProjectId = Map<
+  string,
+  Map<string, NetworkDevice>
+>;
+
+export interface ExistingMonitorProvisioningState {
+  autoProvisionedKeys: Set<string>;
+  manuallyMonitoredDeviceIds: Set<string>;
+  attemptedProvisioningKeys: Set<string>;
+}
+
+export type ExistingMonitorsByProjectId = Map<
+  string,
+  ExistingMonitorProvisioningState
+>;
 
 /*
  * How many imports one run has attempted, shared across every scan the run
@@ -131,9 +169,12 @@ export type ExistingHostnamesByProjectId = Map<string, Set<string>>;
  * cap as the real run it predicts, instead of walking unbounded work inside
  * an API request.
  */
-interface ImportAttemptBudget {
-  count: number;
+export interface ImportAttemptBudget {
+  deviceCount: number;
+  monitorCount: number;
 }
+
+export type ImportAttemptBudgetsByProjectId = Map<string, ImportAttemptBudget>;
 
 class NetworkDeviceAutoImportRuleEngineServiceClass {
   /**
@@ -161,6 +202,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   public async processCompletedScan(data: {
     scanId: ObjectID;
     existingHostnamesByProjectId: ExistingHostnamesByProjectId;
+    existingMonitorsByProjectId?: ExistingMonitorsByProjectId;
+    attemptBudgetsByProjectId?: ImportAttemptBudgetsByProjectId;
   }): Promise<AutoImportRuleRunResult | null> {
     const scan: NetworkDeviceDiscoveryScan | null =
       await NetworkDeviceDiscoveryScanService.findOneBy({
@@ -218,18 +261,57 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return null;
     }
 
-    const existingHostnames: Set<string> = await this.getExistingHostnames({
-      projectId: projectId,
-      cache: data.existingHostnamesByProjectId,
-    });
+    const existingDevices: Map<string, NetworkDevice> =
+      await this.getExistingDevices({
+        projectId: projectId,
+        cache: data.existingHostnamesByProjectId,
+      });
+
+    const hasMonitorProvisioningRules: boolean = rules.some(
+      (rule: NetworkDeviceAutoImportRule): boolean => {
+        return !rule.isExclusion && Boolean(rule.monitorTemplateId);
+      },
+    );
+
+    const existingMonitors: ExistingMonitorProvisioningState =
+      hasMonitorProvisioningRules
+        ? await this.getExistingMonitors({
+            projectId: projectId,
+            cache: data.existingMonitorsByProjectId || new Map(),
+          })
+        : this.emptyExistingMonitorProvisioningState();
+
+    const monitorTemplates: Map<string, MonitorTemplate> =
+      hasMonitorProvisioningRules
+        ? await this.loadMonitorTemplates({ projectId, rules })
+        : new Map();
 
     const result: AutoImportRuleRunResult = this.emptyResult(false);
-    const attempts: ImportAttemptBudget = { count: 0 };
+    const projectBudgetKey: string = projectId.toString();
+    const attempts: ImportAttemptBudget = data.attemptBudgetsByProjectId
+      ? data.attemptBudgetsByProjectId.get(projectBudgetKey) || {
+          deviceCount: 0,
+          monitorCount: 0,
+        }
+      : { deviceCount: 0, monitorCount: 0 };
+
+    /*
+     * A project budget is shared across every scan in one worker sweep. Keep
+     * the starting values so a scan reached after an earlier scan consumed
+     * the budget can be distinguished from a scan whose own create attempts
+     * all failed. The former must remain unprocessed for the next sweep; the
+     * latter is deliberately retired to avoid an infinite retry loop.
+     */
+    const attemptsAtStart: ImportAttemptBudget = { ...attempts };
+
+    data.attemptBudgetsByProjectId?.set(projectBudgetKey, attempts);
 
     const createdIpAddresses: Array<string> = await this.importHostsFromScan({
       scan: scan,
       rules: rules,
-      existingHostnames: existingHostnames,
+      existingDevices: existingDevices,
+      existingMonitors: existingMonitors,
+      monitorTemplates: monitorTemplates,
       result: result,
       attempts: attempts,
       isDryRun: false,
@@ -244,12 +326,24 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
      * pass, so stamping keeps the two consistent. Run Now remains the
      * deliberate way back into a stamped scan.
      */
-    const shouldResume: boolean =
-      result.isTruncated && result.devicesCreated > 0;
+    const inheritedBudget: boolean =
+      result.isTruncated &&
+      (attemptsAtStart.deviceCount > 0 || attemptsAtStart.monitorCount > 0);
 
-    if (result.isTruncated && result.devicesCreated === 0) {
+    const shouldResume: boolean =
+      result.isTruncated &&
+      (result.devicesCreated > 0 ||
+        result.monitorsCreated > 0 ||
+        inheritedBudget);
+
+    if (
+      result.isTruncated &&
+      result.devicesCreated === 0 &&
+      result.monitorsCreated === 0 &&
+      !inheritedBudget
+    ) {
       logger.error(
-        `Auto-import: scan ${scan.id?.toString()} hit the per-pass cap with every create failing (${result.devicesFailed} failure(s)); stamping it processed so the sweep does not retry it forever. Inspect the failures and use the rule's Run Now to retry deliberately.`,
+        `Auto-import: scan ${scan.id?.toString()} hit a per-pass cap without making progress (${result.devicesFailed} device failure(s), ${result.monitorsFailed} monitor failure(s)); stamping it processed so the sweep does not retry it forever. Inspect the failures and use the rule's Run Now to retry deliberately.`,
         { projectId: projectId.toString() } as LogAttributes,
       );
     }
@@ -278,6 +372,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     ruleId: ObjectID;
     projectId: ObjectID;
     isDryRun: boolean;
+    expectedMonitorTemplateId?: ObjectID | null;
   }): Promise<AutoImportRuleRunResult> {
     const rule: NetworkDeviceAutoImportRule | null =
       await NetworkDeviceAutoImportRuleService.findOneBy({
@@ -295,12 +390,26 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           sysDescrPattern: true,
           sysObjectIdPattern: true,
           includePingOnlyHosts: true,
+          monitorTemplateId: true,
         },
         props: { isRoot: true },
       });
 
     if (!rule) {
       throw new BadDataException("Auto-import rule not found.");
+    }
+
+    if (data.expectedMonitorTemplateId !== undefined) {
+      const expectedTemplateId: string =
+        data.expectedMonitorTemplateId?.toString() || "";
+      const currentTemplateId: string =
+        rule.monitorTemplateId?.toString() || "";
+
+      if (expectedTemplateId !== currentTemplateId) {
+        throw new BadDataException(
+          "This auto-import rule changed while the run was being authorized. Review it and run it again.",
+        );
+      }
     }
 
     /*
@@ -384,12 +493,25 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       ...exclusionRules,
     ];
 
-    const existingHostnames: Set<string> = await this.loadExistingHostnames(
-      data.projectId,
+    const existingDevices: Map<string, NetworkDevice> =
+      await this.loadExistingDevices(data.projectId);
+    const hasMonitorProvisioningRule: boolean = Boolean(
+      data.rule.monitorTemplateId,
     );
+    const existingMonitors: ExistingMonitorProvisioningState =
+      hasMonitorProvisioningRule
+        ? await this.loadExistingMonitors(data.projectId)
+        : this.emptyExistingMonitorProvisioningState();
+    const monitorTemplates: Map<string, MonitorTemplate> =
+      hasMonitorProvisioningRule
+        ? await this.loadMonitorTemplates({
+            projectId: data.projectId,
+            rules: rules,
+          })
+        : new Map();
 
     const result: AutoImportRuleRunResult = this.emptyResult(data.isDryRun);
-    const attempts: ImportAttemptBudget = { count: 0 };
+    const attempts: ImportAttemptBudget = { deviceCount: 0, monitorCount: 0 };
 
     /*
      * Newest results first: a manual run is "bring the estate up to date",
@@ -451,7 +573,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       const createdIpAddresses: Array<string> = await this.importHostsFromScan({
         scan: scan,
         rules: rules,
-        existingHostnames: existingHostnames,
+        existingDevices: existingDevices,
+        existingMonitors: existingMonitors,
+        monitorTemplates: monitorTemplates,
         result: result,
         attempts: attempts,
         isDryRun: data.isDryRun,
@@ -506,10 +630,23 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       hostsSkippedAlreadyRegistered: 0,
       devicesCreated: 0,
       devicesFailed: 0,
+      monitorsWouldCreate: 0,
+      monitorsCreated: 0,
+      monitorsSkippedAlreadyExisting: 0,
+      monitorsSkippedUnsupportedHost: 0,
+      monitorsFailed: 0,
       isTruncated: false,
       hasMoreScans: false,
       isDryRun: isDryRun,
       matchedIpAddressSample: [],
+    };
+  }
+
+  private emptyExistingMonitorProvisioningState(): ExistingMonitorProvisioningState {
+    return {
+      autoProvisionedKeys: new Set(),
+      manuallyMonitoredDeviceIds: new Set(),
+      attemptedProvisioningKeys: new Set(),
     };
   }
 
@@ -543,6 +680,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             sysDescrPattern: true,
             sysObjectIdPattern: true,
             includePingOnlyHosts: true,
+            monitorTemplateId: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,
@@ -573,19 +711,19 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     );
   }
 
-  private async getExistingHostnames(data: {
+  private async getExistingDevices(data: {
     projectId: ObjectID;
     cache: ExistingHostnamesByProjectId;
-  }): Promise<Set<string>> {
+  }): Promise<Map<string, NetworkDevice>> {
     const key: string = data.projectId.toString();
 
-    const cached: Set<string> | undefined = data.cache.get(key);
+    const cached: Map<string, NetworkDevice> | undefined = data.cache.get(key);
 
     if (cached) {
       return cached;
     }
 
-    const loaded: Set<string> = await this.loadExistingHostnames(
+    const loaded: Map<string, NetworkDevice> = await this.loadExistingDevices(
       data.projectId,
     );
     data.cache.set(key, loaded);
@@ -599,10 +737,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * a truncated answer produces duplicate devices, which is worse than a
    * slow answer. Sorted for stable paging.
    */
-  private async loadExistingHostnames(
+  private async loadExistingDevices(
     projectId: ObjectID,
-  ): Promise<Set<string>> {
-    const existingHostnames: Set<string> = new Set<string>();
+  ): Promise<Map<string, NetworkDevice>> {
+    const existingDevices: Map<string, NetworkDevice> = new Map();
 
     for (let skip: number = 0; ; skip += LIMIT_MAX) {
       const existing: Array<NetworkDevice> = await NetworkDeviceService.findBy({
@@ -610,7 +748,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           projectId: projectId,
         },
         select: {
+          _id: true,
+          projectId: true,
+          name: true,
           hostname: true,
+          monitoringMethod: true,
         },
         sort: {
           createdAt: SortOrder.Ascending,
@@ -624,7 +766,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
       for (const device of existing) {
         if (device.hostname) {
-          existingHostnames.add(device.hostname);
+          existingDevices.set(device.hostname, device);
         }
       }
 
@@ -633,21 +775,236 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       }
     }
 
-    return existingHostnames;
+    return existingDevices;
+  }
+
+  private static monitorProvisioningKey(
+    networkDeviceId: ObjectID | string,
+    monitorTemplateId: ObjectID | string,
+  ): string {
+    return `${networkDeviceId.toString()}:${monitorTemplateId.toString()}`;
+  }
+
+  private async getExistingMonitors(data: {
+    projectId: ObjectID;
+    cache: ExistingMonitorsByProjectId;
+  }): Promise<ExistingMonitorProvisioningState> {
+    const key: string = data.projectId.toString();
+    const cached: ExistingMonitorProvisioningState | undefined =
+      data.cache.get(key);
+
+    if (cached) {
+      return cached;
+    }
+
+    const loaded: ExistingMonitorProvisioningState =
+      await this.loadExistingMonitors(data.projectId);
+    data.cache.set(key, loaded);
+    return loaded;
+  }
+
+  /*
+   * Queryable provenance is the concurrency/idempotency key for monitors
+   * created by this engine. Existing manually-created Network Device
+   * monitors are parsed once and suppress automatic duplicates: an operator
+   * who already chose how to monitor a device must not receive a second,
+   * potentially billable monitor merely because an import rule was edited.
+   */
+  private async loadExistingMonitors(
+    projectId: ObjectID,
+  ): Promise<ExistingMonitorProvisioningState> {
+    const state: ExistingMonitorProvisioningState =
+      this.emptyExistingMonitorProvisioningState();
+
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const monitors: Array<Monitor> = await MonitorService.findBy({
+        query: {
+          projectId: projectId,
+          monitorType: MonitorType.NetworkDevice,
+        },
+        select: {
+          _id: true,
+          monitorType: true,
+          monitorSteps: true,
+          monitorTemplateId: true,
+          autoProvisionedNetworkDeviceId: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: skip,
+        props: { isRoot: true },
+      });
+
+      for (const monitor of monitors) {
+        this.recordExistingMonitor(state, monitor);
+      }
+
+      if (monitors.length < LIMIT_MAX) {
+        break;
+      }
+    }
+
+    return state;
+  }
+
+  /*
+   * Classify one stored monitor from both its queryable provenance and its
+   * actual step binding. Provenance is trusted only while the monitor still
+   * watches the device it was provisioned for. An orphaned template link or
+   * any legacy drift is treated as an operator-managed monitor on its actual
+   * device(s), which is the conservative no-duplicate behavior.
+   */
+  private recordExistingMonitor(
+    state: ExistingMonitorProvisioningState,
+    monitor: Monitor,
+  ): void {
+    const referencedDeviceIds: Set<string> = new Set(
+      NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds([monitor]),
+    );
+    const provenanceDeviceId: string =
+      monitor.autoProvisionedNetworkDeviceId?.toString() || "";
+
+    if (
+      provenanceDeviceId &&
+      monitor.monitorTemplateId &&
+      referencedDeviceIds.size === 1 &&
+      referencedDeviceIds.has(provenanceDeviceId)
+    ) {
+      state.autoProvisionedKeys.add(
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          provenanceDeviceId,
+          monitor.monitorTemplateId,
+        ),
+      );
+      return;
+    }
+
+    for (const networkDeviceId of referencedDeviceIds) {
+      state.manuallyMonitoredDeviceIds.add(networkDeviceId);
+    }
+  }
+
+  /*
+   * Close the practical manual-create race left by the project-wide snapshot:
+   * immediately before provisioning a device, search the JSON step payload
+   * for its UUID and classify exact bindings. The automatic (device,template)
+   * partial unique index remains the final concurrent-auto backstop; this
+   * narrow read prevents a monitor a human just created from being ignored by
+   * a long-running sweep.
+   */
+  private async refreshExistingMonitorsForDevice(data: {
+    projectId: ObjectID;
+    networkDeviceId: ObjectID;
+    state: ExistingMonitorProvisioningState;
+  }): Promise<void> {
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const monitors: Array<Monitor> = await MonitorService.findBy({
+        query: {
+          projectId: data.projectId,
+          monitorType: MonitorType.NetworkDevice,
+          monitorSteps: QueryHelper.search(data.networkDeviceId.toString()),
+        },
+        select: {
+          _id: true,
+          monitorType: true,
+          monitorSteps: true,
+          monitorTemplateId: true,
+          autoProvisionedNetworkDeviceId: true,
+        },
+        sort: { createdAt: SortOrder.Ascending },
+        limit: LIMIT_MAX,
+        skip: skip,
+        props: { isRoot: true },
+      });
+
+      for (const monitor of monitors) {
+        this.recordExistingMonitor(data.state, monitor);
+      }
+
+      if (monitors.length < LIMIT_MAX) {
+        break;
+      }
+    }
+  }
+
+  private async loadMonitorTemplates(data: {
+    projectId: ObjectID;
+    rules: Array<NetworkDeviceAutoImportRule>;
+  }): Promise<Map<string, MonitorTemplate>> {
+    const ids: Array<ObjectID | string> = Array.from(
+      new Map<string, ObjectID | string>(
+        data.rules
+          .filter((rule: NetworkDeviceAutoImportRule): boolean => {
+            return Boolean(rule.monitorTemplateId);
+          })
+          .map((rule: NetworkDeviceAutoImportRule) => {
+            const id: ObjectID | string = rule.monitorTemplateId!;
+            return [id.toString(), id];
+          }),
+      ).values(),
+    );
+
+    const templatesById: Map<string, MonitorTemplate> = new Map();
+    if (ids.length === 0) {
+      return templatesById;
+    }
+
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const templates: Array<MonitorTemplate> =
+        await MonitorTemplateService.findBy({
+          query: {
+            _id: QueryHelper.any(ids),
+            projectId: data.projectId,
+            monitorType: MonitorType.NetworkDevice,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            monitorName: true,
+            monitorDescription: true,
+            monitorType: true,
+            monitorSteps: true,
+            monitoringInterval: true,
+            minimumProbeAgreement: true,
+            customFields: true,
+            labels: { _id: true },
+          },
+          sort: { createdAt: SortOrder.Ascending },
+          limit: LIMIT_MAX,
+          skip: skip,
+          props: { isRoot: true },
+        });
+
+      for (const template of templates) {
+        if (template.id) {
+          templatesById.set(template.id.toString(), template);
+        }
+      }
+
+      if (templates.length < LIMIT_MAX) {
+        break;
+      }
+    }
+
+    return templatesById;
   }
 
   /*
    * The core loop: evaluate every discovered host of one scan against the
-   * rule set, create what should import, and account for every host in the
-   * shared result. Returns the addresses actually created (for the jsonb
-   * write-back). Mutates `existingHostnames` as it creates, which is what
-   * makes duplicate rows, overlapping scans in one sweep, and repeat runs
-   * idempotent.
+   * rule set, create what should import, reconcile selected template monitors,
+   * and account for every host in the shared result. Returns the addresses
+   * actually created (for the jsonb write-back). Mutates `existingDevices` as
+   * it creates, which is what makes duplicate rows, overlapping scans in one
+   * sweep, and repeat runs idempotent.
    */
   private async importHostsFromScan(data: {
     scan: NetworkDeviceDiscoveryScan;
     rules: Array<NetworkDeviceAutoImportRule>;
-    existingHostnames: Set<string>;
+    existingDevices: Map<string, NetworkDevice>;
+    existingMonitors: ExistingMonitorProvisioningState;
+    monitorTemplates: Map<string, MonitorTemplate>;
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
     isDryRun: boolean;
@@ -699,59 +1056,332 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
       result.hostsMatched++;
 
+      const templateIds: Array<string> = Array.from(
+        new Set(
+          evaluation.matchedRules
+            .map((matchedRule: AutoImportRuleCandidate): string => {
+              return matchedRule.monitorTemplateId?.toString() || "";
+            })
+            .filter((id: string): boolean => {
+              return Boolean(id);
+            }),
+        ),
+      );
+
+      let networkDevice: NetworkDevice | undefined = data.existingDevices.get(
+        host.ipAddress,
+      );
+      let deviceWasCreated: boolean = false;
+
       /*
        * The frozen isAlreadyRegistered flag AND the live set: the flag is a
        * point-in-time answer from the last upload, the set covers devices
        * created since — including by this very run, which is what collapses
        * duplicate rows and overlapping scans into one device.
        */
-      if (
-        host.isAlreadyRegistered ||
-        data.existingHostnames.has(host.ipAddress)
-      ) {
+      if (host.isAlreadyRegistered || networkDevice) {
         result.hostsSkippedAlreadyRegistered++;
-        continue;
-      }
 
-      if (data.attempts.count >= MAX_DEVICES_PER_AUTO_IMPORT_RUN) {
-        result.isTruncated = true;
-        break;
+        /*
+         * A stale scan can claim a deleted device is still registered. With
+         * no live row there is neither a safe binding nor enough intent to
+         * recreate it from old data, so preserve the established skip.
+         */
+        if (!networkDevice) {
+          continue;
+        }
       }
 
       if (result.matchedIpAddressSample.length < MAX_MATCHED_IP_SAMPLE) {
-        result.matchedIpAddressSample.push(host.ipAddress);
+        if (!result.matchedIpAddressSample.includes(host.ipAddress)) {
+          result.matchedIpAddressSample.push(host.ipAddress);
+        }
       }
 
-      if (data.isDryRun) {
-        /*
-         * A dry run reports the device as "created" in no counter at all —
-         * hostsMatched minus hostsSkippedAlreadyRegistered is exactly what a
-         * real run would attempt, and the sample above says which hosts.
-         * The address still joins the set, simulating the create's dedupe:
-         * without this, a host on duplicate rows (or in two overlapping
-         * scans) would be counted as importable once per appearance, and
-         * the dry run would promise more than the real run does.
-         */
-        data.attempts.count++;
-        data.existingHostnames.add(host.ipAddress);
+      if (!networkDevice) {
+        if (data.attempts.deviceCount >= MAX_DEVICES_PER_AUTO_IMPORT_RUN) {
+          result.isTruncated = true;
+          break;
+        }
+
+        if (data.isDryRun) {
+          /*
+           * Add a fully-shaped in-memory device to simulate the create. Its
+           * generated id never leaves this process; it merely lets monitor
+           * reconciliation deduplicate the same host across duplicate rows
+           * and overlapping scans exactly as a real run would.
+           */
+          data.attempts.deviceCount++;
+          networkDevice = buildNetworkDeviceFromDiscoveredHost({
+            projectId: scan.projectId,
+            host: host,
+            scan: scan,
+            autoApplyVendorHealthTemplate: true,
+          });
+          networkDevice.id = ObjectID.generate();
+          data.existingDevices.set(host.ipAddress, networkDevice);
+        } else {
+          const createResult: {
+            device: NetworkDevice | null;
+            wasCreated: boolean;
+          } = await this.createDeviceForHost({
+            projectId: scan.projectId,
+            scan: scan,
+            host: host,
+            existingDevices: data.existingDevices,
+            result: result,
+            attempts: data.attempts,
+          });
+
+          networkDevice = createResult.device || undefined;
+          deviceWasCreated = createResult.wasCreated;
+
+          if (!networkDevice) {
+            continue;
+          }
+        }
+      }
+
+      if (deviceWasCreated) {
+        createdIpAddresses.push(host.ipAddress);
+      }
+
+      if (templateIds.length === 0) {
         continue;
       }
 
-      const wasCreated: boolean = await this.createDeviceForHost({
-        projectId: scan.projectId,
-        scan: scan,
-        host: host,
-        existingHostnames: data.existingHostnames,
-        result: result,
-        attempts: data.attempts,
-      });
+      const monitorsWereTruncated: boolean = await this.ensureMonitorsForDevice(
+        {
+          projectId: scan.projectId,
+          host: host,
+          networkDevice: networkDevice,
+          templateIds: templateIds,
+          monitorTemplates: data.monitorTemplates,
+          existingMonitors: data.existingMonitors,
+          result: result,
+          attempts: data.attempts,
+          isDryRun: data.isDryRun,
+        },
+      );
 
-      if (wasCreated) {
-        createdIpAddresses.push(host.ipAddress);
+      if (monitorsWereTruncated) {
+        result.isTruncated = true;
+        break;
       }
     }
 
     return createdIpAddresses;
+  }
+
+  private async ensureMonitorsForDevice(data: {
+    projectId: ObjectID;
+    host: DiscoveredNetworkDevice;
+    networkDevice: NetworkDevice;
+    templateIds: Array<string>;
+    monitorTemplates: Map<string, MonitorTemplate>;
+    existingMonitors: ExistingMonitorProvisioningState;
+    result: AutoImportRuleRunResult;
+    attempts: ImportAttemptBudget;
+    isDryRun: boolean;
+  }): Promise<boolean> {
+    /*
+     * A Network Device monitor is evaluated from SNMP walks. A ping-only
+     * import intentionally has polling disabled and can never supply those
+     * results. Rule validation prevents this combination, while this guard
+     * keeps legacy or directly-written rows from creating inert monitors.
+     */
+    if (
+      monitoringMethodForDiscoveredHost(data.host) ===
+        NetworkDeviceMonitoringMethod.Monitor ||
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        data.networkDevice.monitoringMethod,
+      )
+    ) {
+      data.result.monitorsSkippedUnsupportedHost += data.templateIds.length;
+      return false;
+    }
+
+    if (!data.networkDevice.id) {
+      data.result.monitorsFailed += data.templateIds.length;
+      logger.error(
+        `Auto-import: cannot provision monitor(s) for ${data.host.ipAddress} because the Network Device has no id.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
+
+    const networkDeviceId: ObjectID = data.networkDevice.id;
+    const networkDeviceIdString: string = networkDeviceId.toString();
+    const pendingTemplateIds: Array<string> = [];
+
+    /*
+     * The project-wide snapshot is complete and indexed. Settle everything
+     * it already covers before issuing the narrow JSON race-check query; an
+     * established fleet whose monitors are already reconciled must not do one
+     * full monitor-table search per discovered device on every scan.
+     */
+    for (const templateId of data.templateIds) {
+      const key: string =
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          networkDeviceId,
+          templateId,
+        );
+
+      if (data.existingMonitors.autoProvisionedKeys.has(key)) {
+        data.result.monitorsSkippedAlreadyExisting++;
+        continue;
+      }
+
+      if (data.existingMonitors.attemptedProvisioningKeys.has(key)) {
+        continue;
+      }
+
+      pendingTemplateIds.push(templateId);
+    }
+
+    if (pendingTemplateIds.length === 0) {
+      return false;
+    }
+
+    if (
+      data.existingMonitors.manuallyMonitoredDeviceIds.has(
+        networkDeviceIdString,
+      )
+    ) {
+      data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
+      return false;
+    }
+
+    /*
+     * Do not run the unindexed JSON race-check after this run's monitor-work
+     * budget is already exhausted. The device remains unreconciled and the
+     * truncated marker protocol brings it back on the next bounded pass.
+     */
+    if (data.attempts.monitorCount >= MAX_MONITORS_PER_AUTO_IMPORT_RUN) {
+      return true;
+    }
+
+    if (!data.isDryRun) {
+      await this.refreshExistingMonitorsForDevice({
+        projectId: data.projectId,
+        networkDeviceId: networkDeviceId,
+        state: data.existingMonitors,
+      });
+    }
+
+    if (
+      data.existingMonitors.manuallyMonitoredDeviceIds.has(
+        networkDeviceIdString,
+      )
+    ) {
+      data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
+      return false;
+    }
+
+    for (const templateId of pendingTemplateIds) {
+      const key: string =
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          networkDeviceId,
+          templateId,
+        );
+
+      /* The race-check may have found this key after the initial snapshot. */
+      if (data.existingMonitors.autoProvisionedKeys.has(key)) {
+        data.result.monitorsSkippedAlreadyExisting++;
+        continue;
+      }
+
+      if (data.attempts.monitorCount >= MAX_MONITORS_PER_AUTO_IMPORT_RUN) {
+        return true;
+      }
+
+      data.attempts.monitorCount++;
+      data.existingMonitors.attemptedProvisioningKeys.add(key);
+
+      /*
+       * Invalid or concurrently deleted templates are failed attempts too.
+       * Count them inside the same cap before looking up the cached template;
+       * otherwise one stale rule could walk and log an unbounded estate in a
+       * single API request or worker tick.
+       */
+      const template: MonitorTemplate | undefined =
+        data.monitorTemplates.get(templateId);
+
+      if (!template) {
+        data.result.monitorsFailed++;
+        logger.error(
+          `Auto-import: Network Device monitor template ${templateId} is missing, deleted, or not valid for project ${data.projectId.toString()}.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        continue;
+      }
+
+      if (data.isDryRun) {
+        data.result.monitorsWouldCreate++;
+        data.existingMonitors.autoProvisionedKeys.add(key);
+        continue;
+      }
+
+      try {
+        const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+          template: template,
+          networkDevice: data.networkDevice,
+        });
+
+        await MonitorService.create({
+          data: monitor,
+          props: {
+            isRoot: true,
+            tenantId: data.projectId,
+          },
+        });
+
+        data.existingMonitors.autoProvisionedKeys.add(key);
+        data.result.monitorsCreated++;
+      } catch (error) {
+        /*
+         * The partial unique index is the final race backstop. If another
+         * writer won between our cache read and create, classify that as an
+         * idempotent skip; otherwise expose a real provisioning failure and
+         * leave the key absent so a later scan or Run Now can retry it.
+         */
+        const createdMeanwhile: Monitor | null = await MonitorService.findOneBy(
+          {
+            query: {
+              projectId: data.projectId,
+              monitorType: MonitorType.NetworkDevice,
+              monitorTemplateId: new ObjectID(templateId),
+              autoProvisionedNetworkDeviceId: networkDeviceId,
+            },
+            select: {
+              _id: true,
+              monitorType: true,
+              monitorSteps: true,
+              monitorTemplateId: true,
+              autoProvisionedNetworkDeviceId: true,
+            },
+            props: { isRoot: true },
+          },
+        );
+
+        if (createdMeanwhile) {
+          this.recordExistingMonitor(data.existingMonitors, createdMeanwhile);
+
+          if (data.existingMonitors.autoProvisionedKeys.has(key)) {
+            data.result.monitorsSkippedAlreadyExisting++;
+            continue;
+          }
+        }
+
+        data.result.monitorsFailed++;
+        logger.error(
+          `Auto-import: could not create monitor from template ${templateId} for Network Device ${networkDeviceId.toString()} (${data.host.ipAddress}): ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    return false;
   }
 
   /*
@@ -769,15 +1399,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     projectId: ObjectID;
     scan: NetworkDeviceDiscoveryScan;
     host: DiscoveredNetworkDevice;
-    existingHostnames: Set<string>;
+    existingDevices: Map<string, NetworkDevice>;
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
-  }): Promise<boolean> {
-    data.attempts.count++;
+  }): Promise<{ device: NetworkDevice | null; wasCreated: boolean }> {
+    data.attempts.deviceCount++;
 
-    const attemptCreate: (name?: string) => Promise<void> = async (
+    const attemptCreate: (name?: string) => Promise<NetworkDevice> = async (
       name?: string,
-    ): Promise<void> => {
+    ): Promise<NetworkDevice> => {
       const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
         projectId: data.projectId,
         host: data.host,
@@ -792,16 +1422,20 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         autoApplyVendorHealthTemplate: true,
       });
 
-      await NetworkDeviceService.create({
+      const created: NetworkDevice = await NetworkDeviceService.create({
         data: device,
         props: {
           isRoot: true,
         },
       });
+
+      return created || device;
     };
 
+    let createdDevice: NetworkDevice;
+
     try {
-      await attemptCreate();
+      createdDevice = await attemptCreate();
     } catch (firstError) {
       const registeredMeanwhile: NetworkDevice | null =
         await NetworkDeviceService.findOneBy({
@@ -809,33 +1443,39 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             projectId: data.projectId,
             hostname: data.host.ipAddress,
           },
-          select: { _id: true },
+          select: {
+            _id: true,
+            projectId: true,
+            name: true,
+            hostname: true,
+            monitoringMethod: true,
+          },
           props: { isRoot: true },
         });
 
       if (registeredMeanwhile) {
         // Skipped is a sub-bucket of matched, same as the other run results.
         data.result.hostsSkippedAlreadyRegistered++;
-        data.existingHostnames.add(data.host.ipAddress);
-        return false;
+        data.existingDevices.set(data.host.ipAddress, registeredMeanwhile);
+        return { device: registeredMeanwhile, wasCreated: false };
       }
 
       try {
-        await attemptCreate(buildFallbackDeviceName(data.host));
+        createdDevice = await attemptCreate(buildFallbackDeviceName(data.host));
       } catch (secondError) {
         data.result.devicesFailed++;
         logger.error(
           `Auto-import: could not create a device for ${data.host.ipAddress} (scan ${data.scan.id?.toString()}): ${firstError} / retry: ${secondError}`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
-        return false;
+        return { device: null, wasCreated: false };
       }
     }
 
     data.result.devicesCreated++;
-    data.existingHostnames.add(data.host.ipAddress);
+    data.existingDevices.set(data.host.ipAddress, createdDevice);
 
-    return true;
+    return { device: createdDevice, wasCreated: true };
   }
 
   /*

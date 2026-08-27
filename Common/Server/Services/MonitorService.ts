@@ -44,6 +44,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
@@ -89,6 +90,14 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import MonitorTemplateService from "./MonitorTemplateService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+
+const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
+  "monitorTemplateId",
+  "monitorTemplate",
+];
 
 export interface MonitorDestinationInfo {
   monitorDestination: string;
@@ -99,6 +108,55 @@ export interface MonitorDestinationInfo {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  private async validateMonitorTemplateReference(data: {
+    monitorTemplateId: ObjectID;
+    projectId: ObjectID | undefined;
+    monitorType: MonitorType | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "Project ID is required when linking a monitor template.",
+      );
+    }
+
+    const monitorTemplate: MonitorTemplate | null =
+      await MonitorTemplateService.findOneById({
+        id: data.monitorTemplateId,
+        select: {
+          _id: true,
+          projectId: true,
+          monitorType: true,
+        },
+        /*
+         * Linking is also a read of the template. Keep the caller's tenant,
+         * ownership and label scopes so a generic Monitor write cannot attach
+         * a hidden template and expose its configuration through a later sync.
+         * Internal callers already use root props and retain that behavior.
+         */
+        props: data.props,
+      });
+
+    if (!monitorTemplate) {
+      throw new BadDataException("Monitor template not found.");
+    }
+
+    if (
+      !monitorTemplate.projectId ||
+      monitorTemplate.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "Monitor template must belong to the same project as the monitor.",
+      );
+    }
+
+    if (!data.monitorType || monitorTemplate.monitorType !== data.monitorType) {
+      throw new BadDataException(
+        "Monitor template type must match the monitor type.",
+      );
+    }
   }
 
   public getMonitorDestinationInfo(monitor: Model): MonitorDestinationInfo {
@@ -407,7 +465,15 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
       resolveReferenceId(updateBy.data.currentMonitorStatus);
 
-    if (updateBy.data.monitorSteps) {
+    const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
+    const isMonitorStepsWritten: boolean =
+      updateDataKeys.includes("monitorSteps");
+    const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
+      updateDataKeys,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+    );
+
+    if (isMonitorStepsWritten || isMonitorTemplateWritten) {
       /*
        * Validated per matched monitor rather than per distinct project, because
        * the check needs that monitor's CURRENT monitorSteps: a reference id it
@@ -416,10 +482,16 @@ export class Service extends DatabaseService<Model> {
        * MonitorStepsProjectValidator.
        */
       const monitors: Array<Model> = await this.findBy({
-        query: updateBy.query,
+        query:
+          !updateBy.props.isRoot && updateBy.props.tenantId
+            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+            : updateBy.query,
         select: {
           projectId: true,
+          monitorType: true,
           monitorSteps: true,
+          monitorTemplateId: true,
+          autoProvisionedNetworkDeviceId: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -429,16 +501,66 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      const writtenMonitorTemplateId: ObjectID | null =
+        RelationIdUtil.readConsistent(
+          updateBy.data as unknown as Record<string, unknown>,
+          MONITOR_TEMPLATE_RELATION_KEYS,
+          "Monitor Template",
+        );
+
       for (const monitor of monitors) {
-        await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
-          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-          /*
-           * Root/API updates do not always carry a tenantId, so fall back to
-           * the project of the monitor being updated.
-           */
-          projectId: updateBy.props.tenantId || monitor.projectId,
-          alreadyStoredMonitorSteps: monitor.monitorSteps,
-        });
+        if (isMonitorStepsWritten) {
+          if (updateBy.data.monitorSteps) {
+            await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
+              {
+                monitorSteps: updateBy.data.monitorSteps as
+                  | MonitorSteps
+                  | JSONObject,
+                /*
+                 * Root/API updates do not always carry a tenantId, so fall back
+                 * to the project of the monitor being updated.
+                 */
+                projectId: updateBy.props.tenantId || monitor.projectId,
+                alreadyStoredMonitorSteps: monitor.monitorSteps,
+              },
+            );
+          }
+
+          if (monitor.autoProvisionedNetworkDeviceId) {
+            NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice(
+              {
+                monitorSteps: updateBy.data.monitorSteps as
+                  | MonitorSteps
+                  | JSONObject,
+                networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+              },
+            );
+          }
+        }
+
+        if (isMonitorTemplateWritten) {
+          if (monitor.autoProvisionedNetworkDeviceId) {
+            const storedTemplateId: string =
+              monitor.monitorTemplateId?.toString() || "";
+            const writtenTemplateId: string =
+              writtenMonitorTemplateId?.toString() || "";
+
+            if (storedTemplateId !== writtenTemplateId) {
+              throw new BadDataException(
+                "An auto-provisioned monitor cannot be relinked or unlinked from its template. Delete it and let the intended rule recreate it, or create a manual monitor instead.",
+              );
+            }
+          }
+
+          if (writtenMonitorTemplateId) {
+            await this.validateMonitorTemplateReference({
+              monitorTemplateId: writtenMonitorTemplateId,
+              projectId: updateBy.props.tenantId || monitor.projectId,
+              monitorType: monitor.monitorType,
+              props: updateBy.props,
+            });
+          }
+        }
       }
     }
 
@@ -1072,6 +1194,40 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    const monitorTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+      "Monitor Template",
+    );
+
+    if (monitorTemplateId) {
+      await this.validateMonitorTemplateReference({
+        monitorTemplateId: monitorTemplateId,
+        projectId: createBy.props.tenantId,
+        monitorType: createBy.data.monitorType,
+        props: createBy.props,
+      });
+    }
+
+    if (createBy.data.autoProvisionedNetworkDeviceId) {
+      if (!monitorTemplateId) {
+        throw new BadDataException(
+          "An auto-provisioned Network Device monitor must be linked to a monitor template.",
+        );
+      }
+
+      if (createBy.data.monitorType !== MonitorType.NetworkDevice) {
+        throw new BadDataException(
+          "Only Network Device monitors can carry auto-provisioning provenance.",
+        );
+      }
+
+      NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
+        monitorSteps: createBy.data.monitorSteps,
+        networkDeviceId: createBy.data.autoProvisionedNetworkDeviceId,
+      });
     }
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({

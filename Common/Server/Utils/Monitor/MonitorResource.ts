@@ -25,7 +25,12 @@ import MonitorType, {
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
-import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeApiIngestResponse, {
+  MatchedCriteriaResult,
+  PerSeriesCriteriaMatch,
+} from "../../../Types/Probe/ProbeApiIngestResponse";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe, {
@@ -966,6 +971,67 @@ export default class MonitorResourceUtil {
         }
 
         /*
+         * The criteria this evaluation is going to act on.
+         *
+         * Grouped monitors evaluate every criteria and can match several
+         * at once — host A critical while host B is only warning — so
+         * they hand back a list. Everything else keeps the historical
+         * single-winner shape, reconstructed here so both cases go down
+         * exactly the same code path below.
+         */
+        const criteriaFanOut: Array<MatchedCriteriaResult> =
+          response.matchedCriteria ?? [
+            {
+              criteriaId: response.criteriaMetId!,
+              rootCause: response.rootCause,
+              perSeriesMatches: response.perSeriesMatches ?? [],
+            },
+          ];
+
+        const isPerSeriesEvaluation: boolean =
+          response.perSeriesMatches !== undefined;
+
+        /*
+         * Every series breaching anything on this tick, and the same
+         * broken out per criteria.
+         *
+         * The resolve pass needs the per-criteria view: "is host B still
+         * breaching?" has to be answered against the criteria that
+         * raised host B's alert, not against whichever criteria happened
+         * to win the tick. Answering it against the winner resolved a
+         * still-valid warning alert the moment another host went
+         * critical. A criteria that ran and matched nothing maps to an
+         * empty set — that is what lets a recovered series resolve —
+         * while a criteria that never ran is absent, and its records are
+         * left alone.
+         */
+        const breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>> =
+          {};
+
+        if (response.evaluatedCriteriaIds) {
+          for (const evaluatedCriteriaId of response.evaluatedCriteriaIds) {
+            breachingSeriesFingerprintsByCriteriaId[evaluatedCriteriaId] =
+              new Set<string>();
+          }
+        }
+
+        const allBreachingSeriesFingerprints: Set<string> = new Set<string>();
+
+        for (const matched of criteriaFanOut) {
+          const forCriteria: Set<string> =
+            breachingSeriesFingerprintsByCriteriaId[matched.criteriaId] ||
+            new Set<string>();
+
+          breachingSeriesFingerprintsByCriteriaId[matched.criteriaId] =
+            forCriteria;
+
+          for (const seriesMatch of matched.perSeriesMatches) {
+            forCriteria.add(seriesMatch.fingerprint);
+            allBreachingSeriesFingerprints.add(seriesMatch.fingerprint);
+          }
+        }
+
+        /*
          * For grouped metric monitors, work out which breaching series
          * belong to a resource that is currently inside an ongoing
          * scheduled maintenance window. Those series are suppressed
@@ -977,7 +1043,11 @@ export default class MonitorResourceUtil {
         const suppressedSeriesFingerprints: Set<string> =
           await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
             projectId: monitor.projectId!,
-            matchesPerSeries: response.perSeriesMatches,
+            matchesPerSeries: isPerSeriesEvaluation
+              ? criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
+                  return matched.perSeriesMatches;
+                })
+              : undefined,
           });
 
         /*
@@ -1011,54 +1081,130 @@ export default class MonitorResourceUtil {
             probeName: probeName,
           });
 
-        await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
-          monitor: monitor,
-          rootCause: response.rootCause,
-          dataToProcess: dataToProcess,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-          criteriaInstance: matchedCriteriaInstance,
-          evaluationSummary: evaluationSummary,
-          monitorSummary: monitorSummary,
-          props: {
-            telemetryQuery: telemetryQuery,
-          },
-          matchesPerSeries: response.perSeriesMatches,
-          suppressedSeriesFingerprints,
-          dependencySuppression,
-          /*
-           * Incoming-request grouping is event-driven: a webhook describes
-           * only the keys in its payload, so absence from this tick is not
-           * recovery. Skip the snapshot absence-resolve pass; grouped
-           * incidents are resolved explicitly via the resolution block
-           * above. Per-key create + dedupe still run from matchesPerSeries.
-           */
-          disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
-        });
+        /*
+         * Incoming-request grouping is event-driven: a webhook describes
+         * only the keys in its payload, so absence from this tick is not
+         * recovery. Skip the snapshot absence-resolve pass; grouped
+         * incidents/alerts are resolved explicitly via the resolution
+         * block above. Per-key create + dedupe still run from
+         * matchesPerSeries.
+         */
+        const disableSeriesAbsenceResolution: boolean =
+          monitor.monitorType === MonitorType.IncomingRequest;
 
-        await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
-          monitor: monitor,
-          rootCause: response.rootCause,
-          dataToProcess: dataToProcess,
-          autoResolveCriteriaInstanceIdAlertIdsDictionary,
-          criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
-          evaluationSummary: evaluationSummary,
-          monitorSummary: monitorSummary,
-          props: {
-            telemetryQuery: telemetryQuery,
-          },
-          matchesPerSeries: response.perSeriesMatches,
-          suppressedSeriesFingerprints,
-          dependencySuppression,
-          /*
-           * Incoming-request grouping is event-driven (see the incident
-           * create call above): skip the snapshot absence-resolve pass for
-           * webhooks; grouped alerts are resolved explicitly via the
-           * resolution block above. Per-key create + dedupe still run.
-           */
-          disableSeriesAbsenceResolution:
-            monitor.monitorType === MonitorType.IncomingRequest,
-        });
+        const breachingSeriesFingerprints: Set<string> | undefined =
+          isPerSeriesEvaluation && !disableSeriesAbsenceResolution
+            ? allBreachingSeriesFingerprints
+            : undefined;
+
+        /*
+         * Resolve first, once, for the whole evaluation — then create.
+         *
+         * The resolve pass has to see every criteria's breaching set at
+         * the same time. Running it once per matching criteria would let
+         * each criteria absence-resolve the records the others just
+         * justified. The creators are handed the survivors so they never
+         * dedupe a new alert against one this pass has already closed.
+         */
+        const openIncidents: Array<Incident> =
+          await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+            monitorId: monitor.id!,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            rootCause: response.rootCause,
+            criteriaInstance: matchedCriteriaInstance,
+            dataToProcess: dataToProcess,
+            evaluationSummary: evaluationSummary,
+            breachingSeriesFingerprints,
+            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
+              ? breachingSeriesFingerprintsByCriteriaId
+              : undefined,
+            disableSeriesAbsenceResolution,
+          });
+
+        const openAlerts: Array<Alert> =
+          await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+            monitorId: monitor.id!,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            rootCause: response.rootCause,
+            criteriaInstance: matchedCriteriaInstance,
+            dataToProcess: dataToProcess,
+            evaluationSummary: evaluationSummary,
+            breachingSeriesFingerprints,
+            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
+              ? breachingSeriesFingerprintsByCriteriaId
+              : undefined,
+            disableSeriesAbsenceResolution,
+          });
+
+        /*
+         * De-escalation: a host that breaches both "critical" and
+         * "warning" gets one record, from the first (highest priority)
+         * criteria that claims it — criteria are in user-defined order
+         * and the first match is the one that also sets the monitor's
+         * status. Tracked separately for incidents and alerts because a
+         * criteria can create one without the other.
+         */
+        const seriesClaimedByIncidentCriteria: Set<string> = new Set<string>();
+        const seriesClaimedByAlertCriteria: Set<string> = new Set<string>();
+
+        for (const matched of criteriaFanOut) {
+          const criteriaInstance: MonitorCriteriaInstance | undefined =
+            criteriaInstanceMap[matched.criteriaId];
+
+          if (!criteriaInstance) {
+            continue;
+          }
+
+          await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus(
+            {
+              monitor: monitor,
+              rootCause: matched.rootCause,
+              dataToProcess: dataToProcess,
+              autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+              criteriaInstance: criteriaInstance,
+              evaluationSummary: evaluationSummary,
+              monitorSummary: monitorSummary,
+              props: {
+                telemetryQuery: telemetryQuery,
+              },
+              matchesPerSeries: isPerSeriesEvaluation
+                ? MonitorResourceUtil.claimUnclaimedSeries({
+                    matches: matched.perSeriesMatches,
+                    claimed: seriesClaimedByIncidentCriteria,
+                    isClaiming: criteriaInstance.data?.createIncidents === true,
+                  })
+                : undefined,
+              openIncidents,
+              suppressedSeriesFingerprints,
+              dependencySuppression,
+              disableSeriesAbsenceResolution,
+            },
+          );
+
+          await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+            monitor: monitor,
+            rootCause: matched.rootCause,
+            dataToProcess: dataToProcess,
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+            criteriaInstance: criteriaInstanceAlertMap[matched.criteriaId]!,
+            evaluationSummary: evaluationSummary,
+            monitorSummary: monitorSummary,
+            props: {
+              telemetryQuery: telemetryQuery,
+            },
+            matchesPerSeries: isPerSeriesEvaluation
+              ? MonitorResourceUtil.claimUnclaimedSeries({
+                  matches: matched.perSeriesMatches,
+                  claimed: seriesClaimedByAlertCriteria,
+                  isClaiming: criteriaInstance.data?.createAlerts === true,
+                })
+              : undefined,
+            openAlerts,
+            suppressedSeriesFingerprints,
+            dependencySuppression,
+            disableSeriesAbsenceResolution,
+          });
+        }
       } else if (
         !response.criteriaMetId &&
         /*
@@ -1361,6 +1507,37 @@ export default class MonitorResourceUtil {
   }
 
   @CaptureSpan()
+  /**
+   * Take the series this criteria may act on, given what earlier
+   * (higher-priority) criteria have already claimed.
+   *
+   * A host breaching both "critical" and "warning" should page once,
+   * from the more severe band. Criteria that create nothing claim
+   * nothing, so a passive recovery criteria never steals a series from
+   * the criteria that would have alerted on it.
+   */
+  private static claimUnclaimedSeries(input: {
+    matches: Array<PerSeriesCriteriaMatch>;
+    claimed: Set<string>;
+    isClaiming: boolean;
+  }): Array<PerSeriesCriteriaMatch> {
+    if (!input.isClaiming) {
+      return input.matches;
+    }
+
+    const unclaimed: Array<PerSeriesCriteriaMatch> = input.matches.filter(
+      (match: PerSeriesCriteriaMatch) => {
+        return !input.claimed.has(match.fingerprint);
+      },
+    );
+
+    for (const match of unclaimed) {
+      input.claimed.add(match.fingerprint);
+    }
+
+    return unclaimed;
+  }
+
   private static async checkProbeAgreement(input: {
     monitor: Monitor;
     monitorStep: MonitorStep;

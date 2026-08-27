@@ -1,5 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -43,7 +44,14 @@ export default class SnmpMonitorCriteria {
       .trim()
       .toLowerCase();
 
-    if (!scope) {
+    /*
+     * Empty has always meant "every interface". "*" means the same
+     * thing, and additionally opts the criteria into raising one alert
+     * per interface — see PerEntityCriteriaFanOut. Scoping treats them
+     * identically; only the fan-out tells them apart, so existing
+     * monitors that leave this blank keep their single combined alert.
+     */
+    if (!scope || PerEntityCriteriaFanOut.isWildcard(scope)) {
       return interfaces;
     }
 

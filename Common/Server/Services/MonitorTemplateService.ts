@@ -9,11 +9,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/MonitorTemplate";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import Query from "../Types/Database/Query";
 
 export interface SyncLinkedMonitorsResult {
   totalLinkedMonitors: number;
@@ -189,6 +194,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        monitorType: true,
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
@@ -226,6 +232,93 @@ export class Service extends DatabaseService<Model> {
         totalLinkedMonitors,
         syncedMonitors: 0,
       };
+    }
+
+    /*
+     * A Network Device template contains a design-time device reference,
+     * while each linked monitor has its own device. A bulk JSON assignment
+     * would retarget the entire fleet to the template editor's device. Sync
+     * those rows individually and rebind cloned template steps to each
+     * monitor's current (or provenance-backed) device instead.
+     */
+    if (
+      template.monitorType === MonitorType.NetworkDevice &&
+      fields.includes("monitorSteps")
+    ) {
+      let syncedMonitors: number = 0;
+      const linkedMonitorQuery: Query<Monitor> = {
+        monitorTemplateId: template.id!,
+        projectId: template.projectId,
+      };
+
+      /*
+       * Resolve the caller's complete update-authorized set before the first
+       * per-monitor write. Root-enumerating every linked row made a mixed
+       * label scope order-dependent: accessible rows could update before a
+       * later hidden row threw. This is the same permission-narrowed subset
+       * the ordinary bulk update path applies atomically.
+       */
+      const authorizedMonitorQuery: Query<Monitor> =
+        await ModelPermission.checkUpdateQueryPermissions(
+          Monitor,
+          linkedMonitorQuery,
+          updateData as any,
+          data.props,
+        );
+      const monitorsToSync: Array<Monitor> = [];
+
+      for (let skip: number = 0; ; skip += LIMIT_MAX) {
+        const monitors: Array<Monitor> = await MonitorService.findBy({
+          query: authorizedMonitorQuery,
+          select: {
+            _id: true,
+            monitorSteps: true,
+            autoProvisionedNetworkDeviceId: true,
+          },
+          sort: { createdAt: SortOrder.Ascending },
+          limit: LIMIT_MAX,
+          skip: skip,
+          props: { isRoot: true },
+        });
+
+        monitorsToSync.push(...monitors);
+
+        if (monitors.length < LIMIT_MAX) {
+          break;
+        }
+      }
+
+      /* Validate and materialize every instance-specific rebind first. */
+      const updates: Array<{
+        monitor: Monitor;
+        data: Partial<Monitor>;
+      }> = monitorsToSync.map((monitor: Monitor) => {
+        return {
+          monitor,
+          data: {
+            ...updateData,
+            monitorSteps: monitor.autoProvisionedNetworkDeviceId
+              ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
+                  monitorSteps: template.monitorSteps,
+                  networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+                })
+              : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
+                  templateMonitorSteps: template.monitorSteps,
+                  currentMonitorSteps: monitor.monitorSteps,
+                }),
+          },
+        };
+      });
+
+      for (const update of updates) {
+        syncedMonitors += await MonitorService.updateOneById({
+          id: update.monitor.id!,
+          data: update.data as any,
+          props: data.props,
+        });
+      }
+
+      return { totalLinkedMonitors, syncedMonitors };
     }
 
     const syncedMonitors: number = await MonitorService.updateBy({
@@ -270,6 +363,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        monitorType: true,
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
@@ -294,6 +388,8 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         monitorTemplateId: true,
+        monitorSteps: true,
+        autoProvisionedNetworkDeviceId: true,
       },
       props: { isRoot: true },
     });
@@ -319,6 +415,21 @@ export class Service extends DatabaseService<Model> {
     }
 
     const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
+
+    if (
+      template.monitorType === MonitorType.NetworkDevice &&
+      fields.includes("monitorSteps")
+    ) {
+      updateData.monitorSteps = monitor.autoProvisionedNetworkDeviceId
+        ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
+            monitorSteps: template.monitorSteps,
+            networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+          })
+        : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
+            templateMonitorSteps: template.monitorSteps,
+            currentMonitorSteps: monitor.monitorSteps,
+          });
+    }
 
     if (Object.keys(updateData).length === 0) {
       return;

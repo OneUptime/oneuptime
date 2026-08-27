@@ -1,5 +1,6 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../Types/ObjectID";
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import RulePatternMatchUtil from "../Rules/RulePatternMatchUtil";
 import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
@@ -32,6 +33,7 @@ import ScanTargetUtil from "./ScanTargetUtil";
  * this structurally, and tests can build literals.
  */
 export interface AutoImportRuleCandidate {
+  monitorTemplateId?: ObjectID | string | null | undefined;
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;

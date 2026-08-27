@@ -8,8 +8,9 @@ import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -18,6 +19,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
@@ -25,6 +27,8 @@ import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleR
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 /*
  * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
@@ -116,6 +120,155 @@ function toRuleMatchTarget(device: Model): {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The provenance FK uses RESTRICT as a final race backstop: PostgreSQL must
+   * never silently remove an active monitor with its device. An ordinary
+   * service deletion therefore authorizes and resolves the exact device rows
+   * first, then deletes their automatic monitors through MonitorService so
+   * Monitor delete permissions, workspace cleanup, workflows, audit,
+   * realtime, and billing hooks all run before the devices are removed.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const authorizedQuery: Query<Model> =
+      await ModelPermission.checkDeleteQueryPermission(
+        Model,
+        deleteBy.query,
+        deleteBy.props,
+      );
+
+    const devices: Array<Model> = await this.findBy({
+      query: authorizedQuery,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      limit: deleteBy.limit,
+      skip: deleteBy.skip,
+      props: { isRoot: true },
+    });
+
+    const countAutomaticMonitors: (
+      query: Query<Monitor>,
+    ) => Promise<number> = async (query: Query<Monitor>): Promise<number> => {
+      return (
+        await MonitorService.countBy({
+          query,
+          props: { isRoot: true },
+        })
+      ).toNumber();
+    };
+    const cleanupPlans: Array<{
+      automaticMonitorQuery: Query<Monitor>;
+      monitorDeleteProps: DatabaseCommonInteractionProps;
+      monitorCount: number;
+    }> = [];
+
+    /*
+     * Preflight every device in the bulk request before deleting the first
+     * monitor. Otherwise a later inaccessible device could abort the request
+     * after earlier devices had already lost their automatic monitors.
+     */
+    for (const device of devices) {
+      if (!device.id || !device.projectId) {
+        continue;
+      }
+
+      const automaticMonitorQuery: Query<Monitor> = {
+        projectId: device.projectId,
+        autoProvisionedNetworkDeviceId: device.id,
+      };
+      const monitorDeleteProps: DatabaseCommonInteractionProps = {
+        ...deleteBy.props,
+        tenantId: device.projectId,
+      };
+      const monitorCount: number = await countAutomaticMonitors(
+        automaticMonitorQuery,
+      );
+
+      if (monitorCount === 0) {
+        continue;
+      }
+
+      /*
+       * Prove access BEFORE deleting anything. Without this preflight an
+       * access-control query could delete only the monitors visible to the
+       * caller before the RESTRICT constraint rejects the device deletion,
+       * leaving a partially cleaned-up request. The authorized query is a
+       * subset of automaticMonitorQuery, so equal counts prove that it covers
+       * the full set at this instant.
+       */
+      const authorizedMonitorQuery: Query<Monitor> =
+        await ModelPermission.checkDeleteQueryPermission(
+          Monitor,
+          automaticMonitorQuery,
+          monitorDeleteProps,
+        );
+      const authorizedMonitorCount: number = await countAutomaticMonitors(
+        authorizedMonitorQuery,
+      );
+
+      if (authorizedMonitorCount !== monitorCount) {
+        throw new NotAuthorizedException(
+          "You do not have permission to delete every auto-provisioned monitor linked to this Network Device.",
+        );
+      }
+
+      cleanupPlans.push({
+        automaticMonitorQuery,
+        monitorDeleteProps,
+        monitorCount,
+      });
+    }
+
+    for (const cleanupPlan of cleanupPlans) {
+      /*
+       * LIMIT_MAX is a per-service-call cap, not a lifecycle cap. Always
+       * delete from offset zero because each successful batch shrinks the
+       * result set. Recount as root after every batch: a permission change or
+       * concurrent inaccessible insert must fail closed, with the FK's
+       * RESTRICT policy remaining the last guard before device deletion.
+       */
+      let remainingMonitorCount: number = cleanupPlan.monitorCount;
+      while (remainingMonitorCount > 0) {
+        await MonitorService.deleteBy({
+          query: cleanupPlan.automaticMonitorQuery,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: cleanupPlan.monitorDeleteProps,
+        });
+
+        const previousMonitorCount: number = remainingMonitorCount;
+        remainingMonitorCount = await countAutomaticMonitors(
+          cleanupPlan.automaticMonitorQuery,
+        );
+
+        if (remainingMonitorCount >= previousMonitorCount) {
+          throw new NotAuthorizedException(
+            "Could not delete every auto-provisioned monitor linked to this Network Device.",
+          );
+        }
+      }
+    }
+
+    return {
+      deleteBy: {
+        ...deleteBy,
+        query: {
+          _id: QueryHelper.any(
+            devices.flatMap((device: Model): Array<ObjectID> => {
+              return device.id ? [device.id] : [];
+            }),
+          ),
+        },
+        skip: 0,
+      },
+      carryForward: null,
+    };
   }
 
   /*

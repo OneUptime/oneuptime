@@ -940,6 +940,18 @@ const ATTRIBUTE_OPERATOR_CASES: Array<AttributeOperatorCase> = [
     rendersAs: "ends with web",
   },
   {
+    label: "matches",
+    operator: DictionaryFilterOperator.Matches,
+    rawValue: "web-*",
+    rendersAs: "matches web-*",
+  },
+  {
+    label: "does not match",
+    operator: DictionaryFilterOperator.NotMatches,
+    rawValue: "web-*",
+    rendersAs: "does not match web-*",
+  },
+  {
     label: "greater than",
     operator: DictionaryFilterOperator.GreaterThan,
     rawValue: "500",

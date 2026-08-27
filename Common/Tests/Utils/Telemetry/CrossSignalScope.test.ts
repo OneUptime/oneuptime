@@ -9,6 +9,12 @@ import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "../../../Utils/Metrics/MetricExplorerUrl";
 import TimeRange from "../../../Types/Time/TimeRange";
+import {
+  SearchToken,
+  SearchTokenType,
+  SearchValueOperator,
+  parseSearchQuery,
+} from "../../../Types/Telemetry/TelemetrySearchQuery";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -43,11 +49,11 @@ function fullScope(): TelemetryCrossSignalScope {
 }
 
 /*
- * Minimal replica of the traces explorer's search parsing — the tokenizer
- * regex, quote merging, `@attr:value` / `field:value` branches and the `~`
- * contains marker are copied from TracesViewer.tsx parseSearch (~L515-624)
- * so a grammar drift over there fails these fixtures instead of silently
- * breaking deep links.
+ * The traces explorer parses its search bar with the SHARED grammar
+ * (Common/Types/Telemetry/TelemetrySearchQuery), so these fixtures read the
+ * emitted search string back through that same parser rather than through a
+ * copy of a tokenizer that can drift. Only the trace-side vocabulary is local:
+ * which bare names are columns (TracesViewer's TRACE_FIELD_ALIAS_MAP).
  */
 interface ParsedTraceSearch {
   fieldFilters: Record<string, Array<string>>;
@@ -56,13 +62,17 @@ interface ParsedTraceSearch {
   freeText: Array<string>;
 }
 
-const TRACE_KNOWN_FIELD_KEYS: Record<string, string> = {
+const TRACE_FIELD_ALIASES: Record<string, string> = {
   service: "primaryEntityId",
   trace: "traceId",
   span: "spanId",
 };
 
-function parseTraceSearchReplica(raw: string): ParsedTraceSearch {
+const TRACE_KNOWN_FIELD_KEYS: Set<string> = new Set(
+  Object.keys(TRACE_FIELD_ALIASES),
+);
+
+function parseTraceSearch(raw: string): ParsedTraceSearch {
   const result: ParsedTraceSearch = {
     fieldFilters: {},
     attributes: {},
@@ -70,50 +80,37 @@ function parseTraceSearchReplica(raw: string): ParsedTraceSearch {
     freeText: [],
   };
 
-  const rawTokens: Array<string> =
-    raw.match(/@?\S+:~?"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
+  const tokens: Array<SearchToken> = parseSearchQuery(raw, {
+    knownFieldKeys: TRACE_KNOWN_FIELD_KEYS,
+    fieldAliases: TRACE_FIELD_ALIASES,
+  });
 
-  const stripQuotes: (s: string) => string = (s: string): string => {
-    if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
-      return s.slice(1, -1);
-    }
-    return s;
-  };
-
-  for (const token of rawTokens) {
-    const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-
-    if (attrMatch) {
-      const attrValue: string = stripQuotes(attrMatch[2]!);
-
-      if (attrValue.startsWith("~")) {
-        result.attributeSearches[attrMatch[1]!] = stripQuotes(
-          attrValue.substring(1),
-        );
-      } else if (attrValue.length > 0) {
-        result.attributes[attrMatch[1]!] = attrValue;
-      }
+  for (const token of tokens) {
+    if (token.type === SearchTokenType.FreeText) {
+      result.freeText.push(token.predicate.value);
       continue;
     }
 
-    const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
-
-    if (fieldMatch) {
-      const fieldName: string = fieldMatch[1]!.toLowerCase();
-      const fieldValue: string = stripQuotes(fieldMatch[2]!);
-      const backendField: string | undefined =
-        TRACE_KNOWN_FIELD_KEYS[fieldName];
-
-      if (backendField && fieldValue.length > 0) {
-        if (!result.fieldFilters[backendField]) {
-          result.fieldFilters[backendField] = [];
-        }
-        result.fieldFilters[backendField]!.push(fieldValue);
-        continue;
-      }
+    /*
+     * A serialized scope only ever emits exact values, so anything else means
+     * the escaping let an operator through — bucketed separately so a fixture
+     * that asserts an exact match cannot pass on a contains.
+     */
+    if (token.predicate.operator !== SearchValueOperator.Equals) {
+      result.attributeSearches[token.key] = token.predicate.value;
+      continue;
     }
 
-    result.freeText.push(token);
+    if (token.type === SearchTokenType.Attribute) {
+      result.attributes[token.key] = token.predicate.value;
+      continue;
+    }
+
+    if (!result.fieldFilters[token.key]) {
+      result.fieldFilters[token.key] = [];
+    }
+
+    result.fieldFilters[token.key]!.push(token.predicate.value);
   }
 
   return result;
@@ -347,7 +344,7 @@ describe("toTracesExplorerQueryParams", () => {
       const result: CrossSignalQueryParams =
         toTracesExplorerQueryParams(fullScope());
 
-      const parsed: ParsedTraceSearch = parseTraceSearchReplica(
+      const parsed: ParsedTraceSearch = parseTraceSearch(
         result.params["search"] as string,
       );
 
@@ -397,7 +394,7 @@ describe("toTracesExplorerQueryParams", () => {
 
       expect(result.params["search"]).toBe('@db.statement:"SELECT wp_options"');
 
-      const parsed: ParsedTraceSearch = parseTraceSearchReplica(
+      const parsed: ParsedTraceSearch = parseTraceSearch(
         result.params["search"] as string,
       );
 
@@ -415,7 +412,7 @@ describe("toTracesExplorerQueryParams", () => {
         "@url.full:https://oneuptime.com:443/status",
       );
 
-      const parsed: ParsedTraceSearch = parseTraceSearchReplica(
+      const parsed: ParsedTraceSearch = parseTraceSearch(
         result.params["search"] as string,
       );
 
@@ -431,7 +428,7 @@ describe("toTracesExplorerQueryParams", () => {
 
       expect(result.params["search"]).toBe("@user.email:ünïcødé@example.com");
 
-      const parsed: ParsedTraceSearch = parseTraceSearchReplica(
+      const parsed: ParsedTraceSearch = parseTraceSearch(
         result.params["search"] as string,
       );
 
@@ -440,33 +437,59 @@ describe("toTracesExplorerQueryParams", () => {
       });
     });
 
-    test("values containing a double quote fall back to a filters chip (the DSL has no escape)", () => {
+    test("values containing a double quote ride an escaped token", () => {
       const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
         attributes: { "db.statement": 'SELECT "id" FROM users' },
       });
 
-      expect(result.params["search"]).toBeUndefined();
-      expect(JSON.parse(result.params["filters"] as string)).toEqual([
-        ["attributes.db.statement", 'SELECT "id" FROM users'],
-      ]);
-      // A fallback is a carried filter, not a dropped one.
+      expect(result.params["search"]).toBe(
+        '@db.statement:"SELECT \\"id\\" FROM users"',
+      );
+      expect(result.params["filters"]).toBeUndefined();
       expect(result.dropped).toEqual([]);
+
+      const parsed: ParsedTraceSearch = parseTraceSearch(
+        result.params["search"] as string,
+      );
+
+      expect(parsed.attributes).toEqual({
+        "db.statement": 'SELECT "id" FROM users',
+      });
     });
 
-    test("values starting with ~ fall back to a chip (quoting cannot protect the contains marker)", () => {
+    test("a leading ~ is escaped rather than flipping the operator", () => {
       /*
-       * parseSearch strips quotes BEFORE the startsWith("~") check
-       * (TracesViewer.tsx), so `@home:"~/dir"` would flip the exact match
-       * into a contains match on "/dir".
+       * The grammar reads a bare leading `~` as "contains", and quoting does
+       * NOT protect it — quotes are stripped before the operator is read. The
+       * escape is what keeps `~/logs/app.log` an exact match.
        */
       const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
         attributes: { "file.path": "~/logs/app.log" },
       });
 
-      expect(result.params["search"]).toBeUndefined();
-      expect(JSON.parse(result.params["filters"] as string)).toEqual([
-        ["attributes.file.path", "~/logs/app.log"],
-      ]);
+      expect(result.params["search"]).toBe("@file.path:\\~/logs/app.log");
+      expect(result.params["filters"]).toBeUndefined();
+
+      const parsed: ParsedTraceSearch = parseTraceSearch(
+        result.params["search"] as string,
+      );
+
+      expect(parsed.attributes).toEqual({ "file.path": "~/logs/app.log" });
+      expect(parsed.attributeSearches).toEqual({});
+    });
+
+    test("a wildcard in the value is escaped so the scope does not widen", () => {
+      const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
+        attributes: { "http.route": "/api/*" },
+      });
+
+      expect(result.params["search"]).toBe("@http.route:/api/\\*");
+
+      const parsed: ParsedTraceSearch = parseTraceSearch(
+        result.params["search"] as string,
+      );
+
+      expect(parsed.attributes).toEqual({ "http.route": "/api/*" });
     });
 
     test("values containing % fall back to a chip (the viewer double-decodes search)", () => {
@@ -501,22 +524,19 @@ describe("toTracesExplorerQueryParams", () => {
       ]);
     });
 
-    test("trace ids with spaces are quoted; ids with quotes fall back to chips", () => {
+    test("trace ids with spaces or quotes both ride escaped tokens", () => {
       const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
         traceIds: ["spaced trace", 'quoted"trace'],
         spanIds: ["span-ok"],
       });
 
-      expect(result.params["search"]).toBe('trace:"spaced trace" span:span-ok');
-      expect(JSON.parse(result.params["filters"] as string)).toEqual([
-        ["traceId", 'quoted"trace'],
-      ]);
+      expect(result.params["filters"]).toBeUndefined();
 
-      const parsed: ParsedTraceSearch = parseTraceSearchReplica(
+      const parsed: ParsedTraceSearch = parseTraceSearch(
         result.params["search"] as string,
       );
       expect(parsed.fieldFilters).toEqual({
-        traceId: ["spaced trace"],
+        traceId: ["spaced trace", 'quoted"trace'],
         spanId: ["span-ok"],
       });
     });

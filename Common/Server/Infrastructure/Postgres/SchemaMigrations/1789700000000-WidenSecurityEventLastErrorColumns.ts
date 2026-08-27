@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * it on upgrade. Same end state, same shape as the MonitorSecret
  * secretValue widening in 1720024126646.
  */
-export class WidenSecurityEventLastErrorColumns1789600000000
+export class WidenSecurityEventLastErrorColumns1789700000000
   implements MigrationInterface
 {
-  public name: string = "WidenSecurityEventLastErrorColumns1789600000000";
+  public name: string = "WidenSecurityEventLastErrorColumns1789700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

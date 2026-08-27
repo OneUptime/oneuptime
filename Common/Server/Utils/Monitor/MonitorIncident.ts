@@ -63,6 +63,20 @@ export default class MonitorIncident {
      */
     breachingSeriesFingerprints?: Set<string> | undefined;
     /**
+     * The breaching fingerprints of EACH criteria evaluated on this
+     * tick, keyed by criteria id — a criteria that ran and matched
+     * nothing maps to an empty set.
+     *
+     * Without this, "is this series still breaching?" was answered from
+     * the winning criteria's set alone, so a host held critical by
+     * criteria A silently auto-resolved another host's still-valid
+     * incident from criteria B. A criteria absent from this dictionary
+     * was not evaluated at all, and its open incidents are left alone.
+     */
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+    /**
      * Event-driven (incoming-request / webhook) mode. When true, an open
      * incident carrying a seriesFingerprint is never auto-resolved here —
      * webhooks resolve per-key only via resolveSeriesIncidentsByFingerprint,
@@ -100,6 +114,8 @@ export default class MonitorIncident {
 
     // check if should close the incident.
 
+    const resolvedIncidentIds: Set<string> = new Set<string>();
+
     for (const openIncident of openIncidents) {
       const shouldClose: boolean = this.shouldCloseIncident({
         openIncident,
@@ -107,10 +123,14 @@ export default class MonitorIncident {
           input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         criteriaInstance: input.criteriaInstance,
         breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+        breachingSeriesFingerprintsByCriteriaId:
+          input.breachingSeriesFingerprintsByCriteriaId,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
       });
 
       if (shouldClose) {
+        resolvedIncidentIds.add(openIncident.id!.toString());
+
         // then resolve incident.
         await this.resolveOpenIncident({
           openIncident: openIncident,
@@ -133,7 +153,20 @@ export default class MonitorIncident {
       }
     }
 
-    return openIncidents;
+    /*
+     * Return the incidents still open AFTER this pass. The create path
+     * dedupes against this list, and an incident this pass just resolved
+     * must not count as "already active" — that combination resolved a
+     * stale whole-monitor incident and then refused to create the
+     * per-series incidents meant to replace it.
+     */
+    if (resolvedIncidentIds.size === 0) {
+      return openIncidents;
+    }
+
+    return openIncidents.filter((openIncident: Incident) => {
+      return !resolvedIncidentIds.has(openIncident.id!.toString());
+    });
   }
 
   /**
@@ -265,6 +298,26 @@ export default class MonitorIncident {
      */
     matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
     /**
+     * The still-open incidents, when the caller has already run the
+     * resolve pass itself.
+     *
+     * A single evaluation can fan out across several matching criteria
+     * (host A critical while host B is only warning). The resolve pass
+     * has to run exactly once, with every criteria's breaching set in
+     * hand — running it once per criteria would let each criteria
+     * absence-resolve the others' incidents. So MonitorResource runs it
+     * up front and hands the survivors here.
+     */
+    openIncidents?: Array<Incident> | undefined;
+    /**
+     * Per-criteria breaching fingerprints, forwarded to the resolve pass
+     * when this method runs it itself. See
+     * checkOpenIncidentsAndCloseIfResolved.
+     */
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+    /**
      * Series fingerprints whose underlying resource (host, docker host,
      * kubernetes cluster, or service) is inside an ongoing scheduled
      * maintenance window. The monitor itself keeps evaluating — it is
@@ -318,19 +371,42 @@ export default class MonitorIncident {
 
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> =
-      await this.checkOpenIncidentsAndCloseIfResolved({
-        monitorId: input.monitor.id!,
-        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
-          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-        rootCause: input.rootCause,
-        criteriaInstance: input.criteriaInstance,
-        dataToProcess: input.dataToProcess,
-        evaluationSummary: input.evaluationSummary,
-        breachingSeriesFingerprints,
-        disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
-      });
+      input.openIncidents !== undefined
+        ? input.openIncidents
+        : await this.checkOpenIncidentsAndCloseIfResolved({
+            monitorId: input.monitor.id!,
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+              input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+            rootCause: input.rootCause,
+            criteriaInstance: input.criteriaInstance,
+            dataToProcess: input.dataToProcess,
+            evaluationSummary: input.evaluationSummary,
+            breachingSeriesFingerprints,
+            breachingSeriesFingerprintsByCriteriaId:
+              input.breachingSeriesFingerprintsByCriteriaId,
+            disableSeriesAbsenceResolution:
+              input.disableSeriesAbsenceResolution,
+          });
 
     if (!input.criteriaInstance.data?.createIncidents) {
+      return;
+    }
+
+    /*
+     * Checked once, up front. It used to be tested deep inside the
+     * template x series loops with a `return`, which on a grouped
+     * monitor abandoned every series after the first.
+     */
+    if (DisableAutomaticIncidentCreation) {
+      input.evaluationSummary?.events.push({
+        type: "incident-skipped",
+        title: "Incident creation skipped",
+        message:
+          "Automatic incident creation is disabled by environment configuration.",
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
       return;
     }
 
@@ -406,434 +482,455 @@ export default class MonitorIncident {
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
-        const seriesFingerprint: string | undefined = seriesMatch?.fingerprint;
-        const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
-        const seriesRootCause: string =
-          seriesMatch?.rootCause || input.rootCause;
+        try {
+          const seriesFingerprint: string | undefined =
+            seriesMatch?.fingerprint;
+          const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+          const seriesRootCause: string =
+            seriesMatch?.rootCause || input.rootCause;
 
-        /*
-         * Per-series scheduled-maintenance suppression: this series'
-         * resource is inside an ongoing maintenance window, so skip
-         * creating an incident for it. Other series on the same monitor
-         * whose resources are not under maintenance still get incidents.
-         * Note: we only suppress *new* creation — any incident already
-         * open for this series is left to the normal resolve path
-         * (checkOpenIncidentsAndCloseIfResolved still sees the full
-         * breaching set), so a real incident raised before maintenance
-         * is not silently closed.
-         */
-        if (
-          seriesFingerprint &&
-          input.suppressedSeriesFingerprints?.has(seriesFingerprint)
-        ) {
-          logger.debug(
-            `${input.monitor.id?.toString()} - Skipping incident for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
-            incidentLogAttributes,
-          );
-
-          input.evaluationSummary?.events.push({
-            type: "incident-skipped",
-            title: "Incident suppressed by scheduled maintenance",
-            message:
-              "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
-            relatedCriteriaId: input.criteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-          continue;
-        }
-
-        /*
-         * Dedupe match must mirror the create path below (which sets
-         * `createdCriteriaId` / `createdIncidentTemplateId` only when the
-         * corresponding id is present). A criteria incident template can be
-         * missing its `id` (legacy/API-authored criteria), so guard the
-         * `.toString()` with `?.` — an unguarded call previously threw
-         * "Cannot read properties of undefined (reading 'toString')" here and
-         * failed the probe/telemetry queue job on every cycle for the affected
-         * monitor. Normalise both sides to `undefined` on missing so a created
-         * incident (whose template id was left NULL) still matches itself next
-         * cycle instead of being recreated as a duplicate.
-         */
-        const alreadyOpenIncident: Incident | undefined = openIncidents.find(
-          (incident: Incident) => {
-            return (
-              (incident.createdCriteriaId || undefined) ===
-                (input.criteriaInstance.data?.id?.toString() || undefined) &&
-              (incident.createdIncidentTemplateId || undefined) ===
-                (criteriaIncident.id?.toString() || undefined) &&
-              (incident.seriesFingerprint || undefined) === seriesFingerprint
-            );
-          },
-        );
-
-        const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Open Incident ${alreadyOpenIncident?.id?.toString()}`,
-          incidentLogAttributes,
-        );
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Has open incident ${hasAlreadyOpenIncident}`,
-          incidentLogAttributes,
-        );
-
-        if (hasAlreadyOpenIncident) {
           /*
-           * Use the open incident's already-rendered title when
-           * available — the template (`criteriaIncident.title`) still
-           * contains unresolved `{{…}}` placeholders because it's the
-           * criterion's template string, not the instance's rendered
-           * output. Falling back to the template only when the open
-           * incident somehow has no title.
+           * Per-series scheduled-maintenance suppression: this series'
+           * resource is inside an ongoing maintenance window, so skip
+           * creating an incident for it. Other series on the same monitor
+           * whose resources are not under maintenance still get incidents.
+           * Note: we only suppress *new* creation — any incident already
+           * open for this series is left to the normal resolve path
+           * (checkOpenIncidentsAndCloseIfResolved still sees the full
+           * breaching set), so a real incident raised before maintenance
+           * is not silently closed.
            */
-          const renderedTitle: string =
-            alreadyOpenIncident?.title || criteriaIncident.title;
-
-          input.evaluationSummary?.events.push({
-            type: "incident-skipped",
-            title: `Incident already active: ${renderedTitle}`,
-            message:
-              "Skipped creating a new incident because an active incident exists for this criteria.",
-            relatedCriteriaId: input.criteriaInstance.data?.id,
-            relatedIncidentId: alreadyOpenIncident?.id?.toString(),
-            relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
-            relatedIncidentNumberWithPrefix:
-              alreadyOpenIncident?.incidentNumberWithPrefix,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-          continue;
-        }
-
-        logger.debug(
-          `${input.monitor.id?.toString()} - Create incident.`,
-          incidentLogAttributes,
-        );
-
-        const incident: Incident = new Incident();
-        const storageMap: JSONObject =
-          MonitorTemplateUtil.buildTemplateStorageMap({
-            monitorType: input.monitor.monitorType!,
-            dataToProcess: input.dataToProcess,
-            monitor: input.monitor,
-            seriesLabels,
-          });
-
-        incident.title = MonitorTemplateUtil.processTemplateString({
-          value: criteriaIncident.title,
-          storageMap,
-        });
-        incident.description = MonitorTemplateUtil.processTemplateString({
-          value: criteriaIncident.description,
-          storageMap,
-        });
-
-        /*
-         * Resolve the incident severity. `criteriaIncident.incidentSeverityId`
-         * can be a truthy-but-EMPTY ObjectID (id === "") — a stored
-         * `{"_type":"ObjectID","value":""}` deserializes to `new ObjectID("")`,
-         * which is an object so `!incidentSeverityId` is false. That empty id
-         * serializes to "" for the `uuid` (not-null) column and lands as NULL,
-         * throwing 23502 inside the probe-ingest worker and retrying forever.
-         * Use `?.toString()` truthiness so an empty/blank ObjectID is treated
-         * the same as "missing" and falls through to the project-default lookup.
-         */
-        /*
-         * A criteria severity that belongs to *another* project is rejected by
-         * IncidentService on create. Throwing here would fail the whole
-         * probe/telemetry ingest job for this monitor — no incident, and no
-         * payload or monitor log persisted either, because those run after the
-         * create. Treat it as "missing" and fall back to this project's own
-         * default, which is also what stops the bad id spreading onto new
-         * incidents. monitorSteps can still hold one: the 1785240000000
-         * repair skipped ids it could not resolve.
-         */
-        const isCriteriaSeverityUsable: boolean =
-          await ProjectScopedReferenceValidator.isUsableInProject({
-            projectId: input.monitor.projectId!,
-            id: criteriaIncident.incidentSeverityId,
-            service: IncidentSeverityService,
-          });
-
-        if (
-          criteriaIncident.incidentSeverityId?.toString() &&
-          !isCriteriaSeverityUsable
-        ) {
-          logger.error(
-            `${input.monitor.id?.toString()} - Criteria "${
-              input.criteriaInstance.data?.name
-            }" references incident severity ${criteriaIncident.incidentSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
-          );
-        }
-
-        if (!isCriteriaSeverityUsable) {
-          // pick the critical (first/lowest-order root) severity.
-
-          const severity: IncidentSeverity | null =
-            await IncidentSeverityService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-              },
-            });
-
-          if (!severity?.id?.toString()) {
-            /*
-             * The project has no incident severity configured. Throwing here
-             * would fail the entire probe/telemetry ingest job, which then
-             * retries forever for a misconfiguration the worker cannot fix.
-             * Skip incident creation gracefully and log instead.
-             */
-            logger.error(
-              `${input.monitor.id?.toString()} - Cannot create incident: project ${input.monitor.projectId?.toString()} has no incident severity configured. Skipping incident creation for criteria "${
-                input.criteriaInstance.data?.name
-              }".`,
+          if (
+            seriesFingerprint &&
+            input.suppressedSeriesFingerprints?.has(seriesFingerprint)
+          ) {
+            logger.debug(
+              `${input.monitor.id?.toString()} - Skipping incident for series ${seriesFingerprint}: its resource is under an active scheduled maintenance window.`,
+              incidentLogAttributes,
             );
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
-              title: "Incident creation skipped",
+              title: "Incident suppressed by scheduled maintenance",
               message:
-                "Skipped creating an incident because the project has no incident severity configured.",
+                "Skipped creating an incident because the resource for this series is under an active scheduled maintenance window.",
               relatedCriteriaId: input.criteriaInstance.data?.id,
               at: OneUptimeDate.getCurrentDate(),
             });
             continue;
           }
 
-          incident.incidentSeverityId = severity.id!;
-        } else {
-          incident.incidentSeverityId = criteriaIncident.incidentSeverityId!;
-        }
-
-        incident.monitors = [input.monitor];
-        incident.projectId = input.monitor.projectId!;
-        incident.rootCause = seriesRootCause;
-        incident.createdStateLog = JSON.parse(
-          JSON.stringify(input.dataToProcess, null, 2),
-        );
-
-        /*
-         * Same capture on every incident this evaluation opens - they all
-         * came from the one check.
-         */
-        const serializedMonitorSummary: JSONObject | null =
-          MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
-
-        if (serializedMonitorSummary) {
-          incident.monitorSummary = serializedMonitorSummary;
-        }
-
-        /*
-         * Guard against missing ids — these are optional reference fields and
-         * must not crash incident creation (which runs inside the probe /
-         * telemetry queue workers). A missing id previously threw
-         * "Cannot read properties of undefined (reading 'toString')" and failed
-         * the job on every cycle for the affected monitor.
-         */
-        if (input.criteriaInstance.data?.id) {
-          incident.createdCriteriaId =
-            input.criteriaInstance.data.id.toString();
-        }
-
-        if (criteriaIncident.id) {
-          incident.createdIncidentTemplateId = criteriaIncident.id.toString();
-        }
-
-        if (seriesFingerprint) {
-          incident.seriesFingerprint = seriesFingerprint;
-        }
-        if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-          incident.seriesLabels = seriesLabels;
-
-          await SeriesResourceLinker.linkSeriesResourcesToModel({
-            model: incident,
-            seriesLabels,
-            projectId: input.monitor.projectId!,
-            monitorType: input.monitor.monitorType,
-          });
-        }
-
-        /*
-         * Deterministic resource link from the monitor's step config
-         * (resolved once above). Runs for both grouped and ungrouped
-         * incidents and merges with anything the series-label path
-         * resolved, so the per-resource Activity tabs always see
-         * monitor-created incidents.
-         */
-        SeriesResourceLinker.attachResolvedResources({
-          model: incident,
-          resolved: resourceContext,
-        });
-
-        incident.onCallDutyPolicies =
-          criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
-            const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
-            onCallPolicy._id = id.toString();
-            return onCallPolicy;
-          }) || [];
-
-        // Set labels from criteria
-        incident.labels =
-          criteriaIncident.labelIds?.map((id: ObjectID) => {
-            const label: Label = new Label();
-            label._id = id.toString();
-            return label;
-          }) || [];
-
-        incident.isCreatedAutomatically = true;
-
-        // Set status page visibility (defaults to true if not specified)
-        if (criteriaIncident.showIncidentOnStatusPage !== undefined) {
-          incident.isVisibleOnStatusPage =
-            criteriaIncident.showIncidentOnStatusPage;
-        }
-
-        if (criteriaIncident.isPrivate === true) {
-          incident.isPrivate = true;
-        }
-
-        if (input.props.telemetryQuery) {
-          incident.telemetryQuery = input.props.telemetryQuery;
-        }
-
-        if (
-          input.dataToProcess &&
-          (input.dataToProcess as ProbeMonitorResponse).probeId
-        ) {
-          incident.createdByProbeId = (
-            input.dataToProcess as ProbeMonitorResponse
-          ).probeId;
-        }
-
-        if (criteriaIncident.remediationNotes) {
-          incident.remediationNotes = MonitorTemplateUtil.processTemplateString(
-            {
-              value: criteriaIncident.remediationNotes,
-              storageMap,
+          /*
+           * Dedupe match must mirror the create path below (which sets
+           * `createdCriteriaId` / `createdIncidentTemplateId` only when the
+           * corresponding id is present). A criteria incident template can be
+           * missing its `id` (legacy/API-authored criteria), so guard the
+           * `.toString()` with `?.` — an unguarded call previously threw
+           * "Cannot read properties of undefined (reading 'toString')" here and
+           * failed the probe/telemetry queue job on every cycle for the affected
+           * monitor. Normalise both sides to `undefined` on missing so a created
+           * incident (whose template id was left NULL) still matches itself next
+           * cycle instead of being recreated as a duplicate.
+           */
+          const alreadyOpenIncident: Incident | undefined = openIncidents.find(
+            (incident: Incident) => {
+              return (
+                (incident.createdCriteriaId || undefined) ===
+                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
+                (incident.createdIncidentTemplateId || undefined) ===
+                  (criteriaIncident.id?.toString() || undefined) &&
+                (incident.seriesFingerprint || undefined) === seriesFingerprint
+              );
             },
           );
-        }
 
-        if (DisableAutomaticIncidentCreation) {
-          input.evaluationSummary?.events.push({
-            type: "incident-skipped",
-            title: "Incident creation skipped",
-            message:
-              "Automatic incident creation is disabled by environment configuration.",
-            relatedCriteriaId: input.criteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
-          return;
-        }
+          const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
 
-        const createdIncident: Incident = await IncidentService.create({
-          data: incident,
-          props: {
-            isRoot: true,
-          },
-        });
+          logger.debug(
+            `${input.monitor.id?.toString()} - Open Incident ${alreadyOpenIncident?.id?.toString()}`,
+            incidentLogAttributes,
+          );
 
-        /*
-         * Add owner teams and users after incident creation. Owners
-         * configured on the criteria template are merged (deduped) with the
-         * owners of the network device this monitor watches, so device
-         * ownership flows into the incidents its monitor raises.
-         */
-        if (networkDeviceOwners === null) {
-          networkDeviceOwners =
-            await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
-              monitor: input.monitor,
-              monitorStepId: (
-                input.dataToProcess as ProbeMonitorResponse
-              ).monitorStepId?.toString(),
+          logger.debug(
+            `${input.monitor.id?.toString()} - Has open incident ${hasAlreadyOpenIncident}`,
+            incidentLogAttributes,
+          );
+
+          if (hasAlreadyOpenIncident) {
+            /*
+             * Use the open incident's already-rendered title when
+             * available — the template (`criteriaIncident.title`) still
+             * contains unresolved `{{…}}` placeholders because it's the
+             * criterion's template string, not the instance's rendered
+             * output. Falling back to the template only when the open
+             * incident somehow has no title.
+             */
+            const renderedTitle: string =
+              alreadyOpenIncident?.title || criteriaIncident.title;
+
+            input.evaluationSummary?.events.push({
+              type: "incident-skipped",
+              title: `Incident already active: ${renderedTitle}`,
+              message:
+                "Skipped creating a new incident because an active incident exists for this criteria.",
+              relatedCriteriaId: input.criteriaInstance.data?.id,
+              relatedIncidentId: alreadyOpenIncident?.id?.toString(),
+              relatedIncidentNumber: alreadyOpenIncident?.incidentNumber,
+              relatedIncidentNumberWithPrefix:
+                alreadyOpenIncident?.incidentNumberWithPrefix,
+              at: OneUptimeDate.getCurrentDate(),
             });
-        }
+            continue;
+          }
 
-        const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
-          criteriaIncident.ownerUserIds || [],
-          networkDeviceOwners.ownerUserIds,
-        );
+          logger.debug(
+            `${input.monitor.id?.toString()} - Create incident.`,
+            incidentLogAttributes,
+          );
 
-        const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
-          criteriaIncident.ownerTeamIds || [],
-          networkDeviceOwners.ownerTeamIds,
-        );
+          const incident: Incident = new Incident();
+          const storageMap: JSONObject =
+            MonitorTemplateUtil.buildTemplateStorageMap({
+              monitorType: input.monitor.monitorType!,
+              dataToProcess: input.dataToProcess,
+              monitor: input.monitor,
+              seriesLabels,
+            });
 
-        if (ownerTeamIds.length || ownerUserIds.length) {
-          await IncidentService.addOwners(
-            input.monitor.projectId!,
-            createdIncident.id!,
-            ownerUserIds,
-            ownerTeamIds,
-            true, // notify owners
-            {
+          incident.title = MonitorTemplateUtil.processTemplateString({
+            value: criteriaIncident.title,
+            storageMap,
+          });
+          incident.description = MonitorTemplateUtil.processTemplateString({
+            value: criteriaIncident.description,
+            storageMap,
+          });
+
+          /*
+           * Resolve the incident severity. `criteriaIncident.incidentSeverityId`
+           * can be a truthy-but-EMPTY ObjectID (id === "") — a stored
+           * `{"_type":"ObjectID","value":""}` deserializes to `new ObjectID("")`,
+           * which is an object so `!incidentSeverityId` is false. That empty id
+           * serializes to "" for the `uuid` (not-null) column and lands as NULL,
+           * throwing 23502 inside the probe-ingest worker and retrying forever.
+           * Use `?.toString()` truthiness so an empty/blank ObjectID is treated
+           * the same as "missing" and falls through to the project-default lookup.
+           */
+          /*
+           * A criteria severity that belongs to *another* project is rejected by
+           * IncidentService on create. Throwing here would fail the whole
+           * probe/telemetry ingest job for this monitor — no incident, and no
+           * payload or monitor log persisted either, because those run after the
+           * create. Treat it as "missing" and fall back to this project's own
+           * default, which is also what stops the bad id spreading onto new
+           * incidents. monitorSteps can still hold one: the 1785240000000
+           * repair skipped ids it could not resolve.
+           */
+          const isCriteriaSeverityUsable: boolean =
+            await ProjectScopedReferenceValidator.isUsableInProject({
+              projectId: input.monitor.projectId!,
+              id: criteriaIncident.incidentSeverityId,
+              service: IncidentSeverityService,
+            });
+
+          if (
+            criteriaIncident.incidentSeverityId?.toString() &&
+            !isCriteriaSeverityUsable
+          ) {
+            logger.error(
+              `${input.monitor.id?.toString()} - Criteria "${
+                input.criteriaInstance.data?.name
+              }" references incident severity ${criteriaIncident.incidentSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
+            );
+          }
+
+          if (!isCriteriaSeverityUsable) {
+            // pick the critical (first/lowest-order root) severity.
+
+            const severity: IncidentSeverity | null =
+              await IncidentSeverityService.findOneBy({
+                query: {
+                  projectId: input.monitor.projectId!,
+                },
+                sort: {
+                  order: SortOrder.Ascending,
+                },
+                props: {
+                  isRoot: true,
+                },
+                select: {
+                  _id: true,
+                },
+              });
+
+            if (!severity?.id?.toString()) {
+              /*
+               * The project has no incident severity configured. Throwing here
+               * would fail the entire probe/telemetry ingest job, which then
+               * retries forever for a misconfiguration the worker cannot fix.
+               * Skip incident creation gracefully and log instead.
+               */
+              logger.error(
+                `${input.monitor.id?.toString()} - Cannot create incident: project ${input.monitor.projectId?.toString()} has no incident severity configured. Skipping incident creation for criteria "${
+                  input.criteriaInstance.data?.name
+                }".`,
+              );
+
+              input.evaluationSummary?.events.push({
+                type: "incident-skipped",
+                title: "Incident creation skipped",
+                message:
+                  "Skipped creating an incident because the project has no incident severity configured.",
+                relatedCriteriaId: input.criteriaInstance.data?.id,
+                at: OneUptimeDate.getCurrentDate(),
+              });
+              continue;
+            }
+
+            incident.incidentSeverityId = severity.id!;
+          } else {
+            incident.incidentSeverityId = criteriaIncident.incidentSeverityId!;
+          }
+
+          incident.monitors = [input.monitor];
+          incident.projectId = input.monitor.projectId!;
+          incident.rootCause = seriesRootCause;
+          incident.createdStateLog = JSON.parse(
+            JSON.stringify(input.dataToProcess, null, 2),
+          );
+
+          /*
+           * Same capture on every incident this evaluation opens - they all
+           * came from the one check.
+           */
+          const serializedMonitorSummary: JSONObject | null =
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+
+          if (serializedMonitorSummary) {
+            incident.monitorSummary = serializedMonitorSummary;
+          }
+
+          /*
+           * Guard against missing ids — these are optional reference fields and
+           * must not crash incident creation (which runs inside the probe /
+           * telemetry queue workers). A missing id previously threw
+           * "Cannot read properties of undefined (reading 'toString')" and failed
+           * the job on every cycle for the affected monitor.
+           */
+          if (input.criteriaInstance.data?.id) {
+            incident.createdCriteriaId =
+              input.criteriaInstance.data.id.toString();
+          }
+
+          if (criteriaIncident.id) {
+            incident.createdIncidentTemplateId = criteriaIncident.id.toString();
+          }
+
+          if (seriesFingerprint) {
+            incident.seriesFingerprint = seriesFingerprint;
+          }
+          if (seriesLabels && Object.keys(seriesLabels).length > 0) {
+            incident.seriesLabels = seriesLabels;
+
+            await SeriesResourceLinker.linkSeriesResourcesToModel({
+              model: incident,
+              seriesLabels,
+              projectId: input.monitor.projectId!,
+              monitorType: input.monitor.monitorType,
+            });
+          }
+
+          /*
+           * Deterministic resource link from the monitor's step config
+           * (resolved once above). Runs for both grouped and ungrouped
+           * incidents and merges with anything the series-label path
+           * resolved, so the per-resource Activity tabs always see
+           * monitor-created incidents.
+           */
+          SeriesResourceLinker.attachResolvedResources({
+            model: incident,
+            resolved: resourceContext,
+          });
+
+          incident.onCallDutyPolicies =
+            criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
+              const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
+              onCallPolicy._id = id.toString();
+              return onCallPolicy;
+            }) || [];
+
+          // Set labels from criteria
+          incident.labels =
+            criteriaIncident.labelIds?.map((id: ObjectID) => {
+              const label: Label = new Label();
+              label._id = id.toString();
+              return label;
+            }) || [];
+
+          incident.isCreatedAutomatically = true;
+
+          // Set status page visibility (defaults to true if not specified)
+          if (criteriaIncident.showIncidentOnStatusPage !== undefined) {
+            incident.isVisibleOnStatusPage =
+              criteriaIncident.showIncidentOnStatusPage;
+          }
+
+          if (criteriaIncident.isPrivate === true) {
+            incident.isPrivate = true;
+          }
+
+          if (input.props.telemetryQuery) {
+            incident.telemetryQuery = input.props.telemetryQuery;
+          }
+
+          if (
+            input.dataToProcess &&
+            (input.dataToProcess as ProbeMonitorResponse).probeId
+          ) {
+            incident.createdByProbeId = (
+              input.dataToProcess as ProbeMonitorResponse
+            ).probeId;
+          }
+
+          if (criteriaIncident.remediationNotes) {
+            incident.remediationNotes =
+              MonitorTemplateUtil.processTemplateString({
+                value: criteriaIncident.remediationNotes,
+                storageMap,
+              });
+          }
+
+          const createdIncident: Incident = await IncidentService.create({
+            data: incident,
+            props: {
               isRoot: true,
             },
+          });
+
+          /*
+           * Add owner teams and users after incident creation. Owners
+           * configured on the criteria template are merged (deduped) with the
+           * owners of the network device this monitor watches, so device
+           * ownership flows into the incidents its monitor raises.
+           */
+          if (networkDeviceOwners === null) {
+            networkDeviceOwners =
+              await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+                monitor: input.monitor,
+                monitorStepId: (
+                  input.dataToProcess as ProbeMonitorResponse
+                ).monitorStepId?.toString(),
+              });
+          }
+
+          const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+            criteriaIncident.ownerUserIds || [],
+            networkDeviceOwners.ownerUserIds,
           );
-        }
 
-        // Add incident member role assignments after incident creation
-        if (
-          criteriaIncident.incidentMemberRoles &&
-          criteriaIncident.incidentMemberRoles.length > 0
-        ) {
-          for (const roleAssignment of criteriaIncident.incidentMemberRoles) {
-            try {
-              const assignment: IncidentMemberRoleAssignment =
-                roleAssignment as IncidentMemberRoleAssignment;
+          const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+            criteriaIncident.ownerTeamIds || [],
+            networkDeviceOwners.ownerTeamIds,
+          );
 
-              if (assignment.roleId && assignment.userId) {
-                const incidentMember: IncidentMember = new IncidentMember();
-                incidentMember.incidentId = createdIncident.id!;
-                incidentMember.projectId = input.monitor.projectId!;
-                incidentMember.userId = new ObjectID(
-                  assignment.userId.toString(),
-                );
-                incidentMember.incidentRoleId = new ObjectID(
-                  assignment.roleId.toString(),
-                );
+          if (ownerTeamIds.length || ownerUserIds.length) {
+            await IncidentService.addOwners(
+              input.monitor.projectId!,
+              createdIncident.id!,
+              ownerUserIds,
+              ownerTeamIds,
+              true, // notify owners
+              {
+                isRoot: true,
+              },
+            );
+          }
 
-                await IncidentMemberService.create({
-                  data: incidentMember,
-                  props: {
-                    isRoot: true,
-                  },
-                });
+          // Add incident member role assignments after incident creation
+          if (
+            criteriaIncident.incidentMemberRoles &&
+            criteriaIncident.incidentMemberRoles.length > 0
+          ) {
+            for (const roleAssignment of criteriaIncident.incidentMemberRoles) {
+              try {
+                const assignment: IncidentMemberRoleAssignment =
+                  roleAssignment as IncidentMemberRoleAssignment;
 
-                logger.debug(
-                  `${input.monitor.id?.toString()} - Assigned incident member role ${assignment.roleId.toString()} to user ${assignment.userId.toString()}`,
+                if (assignment.roleId && assignment.userId) {
+                  const incidentMember: IncidentMember = new IncidentMember();
+                  incidentMember.incidentId = createdIncident.id!;
+                  incidentMember.projectId = input.monitor.projectId!;
+                  incidentMember.userId = new ObjectID(
+                    assignment.userId.toString(),
+                  );
+                  incidentMember.incidentRoleId = new ObjectID(
+                    assignment.roleId.toString(),
+                  );
+
+                  await IncidentMemberService.create({
+                    data: incidentMember,
+                    props: {
+                      isRoot: true,
+                    },
+                  });
+
+                  logger.debug(
+                    `${input.monitor.id?.toString()} - Assigned incident member role ${assignment.roleId.toString()} to user ${assignment.userId.toString()}`,
+                    incidentLogAttributes,
+                  );
+                }
+              } catch (memberError) {
+                logger.error(
+                  `${input.monitor.id?.toString()} - Failed to assign incident member role: ${memberError}`,
                   incidentLogAttributes,
                 );
               }
-            } catch (memberError) {
-              logger.error(
-                `${input.monitor.id?.toString()} - Failed to assign incident member role: ${memberError}`,
-                incidentLogAttributes,
-              );
             }
           }
-        }
 
-        input.evaluationSummary?.events.push({
-          type: "incident-created",
-          title: `Incident created: ${createdIncident.title || criteriaIncident.title}`,
-          message: `Incident triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
-          relatedCriteriaId: input.criteriaInstance.data?.id,
-          relatedIncidentId: createdIncident.id?.toString(),
-          relatedIncidentNumber: createdIncident.incidentNumber,
-          relatedIncidentNumberWithPrefix:
-            createdIncident.incidentNumberWithPrefix,
-          at: OneUptimeDate.getCurrentDate(),
-        });
+          input.evaluationSummary?.events.push({
+            type: "incident-created",
+            title: `Incident created: ${createdIncident.title || criteriaIncident.title}`,
+            message: `Incident triggered from criteria "${input.criteriaInstance.data?.name || "Unnamed criteria"}".`,
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            relatedIncidentId: createdIncident.id?.toString(),
+            relatedIncidentNumber: createdIncident.incidentNumber,
+            relatedIncidentNumberWithPrefix:
+              createdIncident.incidentNumberWithPrefix,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        } catch (err) {
+          /*
+           * One series must not take the rest of the fleet down with it.
+           * Everything in this loop happens per host/container/key and
+           * touches the database; an error thrown from here used to
+           * propagate out of MonitorResource (which has no catch, only a
+           * `finally` that releases the lock) and abandon every series
+           * after the failing one, plus the monitor log for the tick.
+           */
+          logger.error(
+            `${input.monitor.id?.toString()} - Failed to create incident${
+              seriesMatch?.fingerprint
+                ? ` for series ${seriesMatch.fingerprint}`
+                : ""
+            }.`,
+          );
+          logger.error(err);
+
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            title: "Incident creation failed",
+            message: `Could not create an incident${
+              seriesMatch?.fingerprint
+                ? ` for series ${seriesMatch.fingerprint}`
+                : ""
+            }: ${err instanceof Error ? err.message : String(err)}`,
+            relatedCriteriaId: input.criteriaInstance.data?.id,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+
+          continue;
+        }
       }
     }
   }
@@ -929,6 +1026,106 @@ export default class MonitorIncident {
     }
   }
 
+  /**
+   * Is `openIncident`'s series still breaching the criteria that raised
+   * it?
+   *
+   * Prefers the per-criteria dictionary, which answers the question for
+   * the criteria that actually owns this incident. The single-set
+   * fallback only knows the winning criteria's breaches, so it has to
+   * approximate with `createIncidents` — a criteria that creates no
+   * incidents is a recovery criteria whose "matches" are healthy series,
+   * and counting those as breaches would pin an offline incident open
+   * forever.
+   */
+  private static isSeriesStillBreaching(input: {
+    openIncident: Incident;
+    criteriaInstance: MonitorCriteriaInstance | null;
+    openSeriesFingerprint: string;
+    breachingSeriesFingerprints: Set<string>;
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
+  }): boolean {
+    const owningCriteriaId: string | undefined =
+      input.openIncident.createdCriteriaId?.toString() || undefined;
+
+    if (input.breachingSeriesFingerprintsByCriteriaId && owningCriteriaId) {
+      return Boolean(
+        input.breachingSeriesFingerprintsByCriteriaId[owningCriteriaId]?.has(
+          input.openSeriesFingerprint,
+        ),
+      );
+    }
+
+    const matchedCriteriaCreatesIncidents: boolean =
+      input.criteriaInstance?.data?.createIncidents === true;
+
+    return (
+      matchedCriteriaCreatesIncidents &&
+      input.breachingSeriesFingerprints.has(input.openSeriesFingerprint)
+    );
+  }
+
+  private static wasCriteriaEvaluated(input: {
+    openIncident: Incident;
+    breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>>;
+  }): boolean {
+    const owningCriteriaId: string | undefined =
+      input.openIncident.createdCriteriaId?.toString() || undefined;
+
+    if (!owningCriteriaId) {
+      return true;
+    }
+
+    return (
+      input.breachingSeriesFingerprintsByCriteriaId[owningCriteriaId] !==
+      undefined
+    );
+  }
+
+  /**
+   * Did the criteria that raised this incident opt into auto-resolve for
+   * the template that raised it?
+   *
+   * An incident whose `createdIncidentTemplateId` is missing (legacy or
+   * API-authored criteria whose template carries no id) is matched
+   * against the criteria as a whole. Requiring an exact template id
+   * there meant such an incident could never auto-resolve — and, because
+   * it stayed open, its criteria could never raise a new one either.
+   */
+  private static isAutoResolveConfiguredForIncident(input: {
+    openIncident: Incident;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+  }): boolean {
+    const createdCriteriaId: string | undefined =
+      input.openIncident.createdCriteriaId?.toString() || undefined;
+
+    if (!createdCriteriaId) {
+      return false;
+    }
+
+    const autoResolveTemplates: Array<string> | undefined =
+      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+        createdCriteriaId
+      ];
+
+    if (!autoResolveTemplates || autoResolveTemplates.length === 0) {
+      return false;
+    }
+
+    const createdTemplateId: string | undefined =
+      input.openIncident.createdIncidentTemplateId?.toString() || undefined;
+
+    if (!createdTemplateId) {
+      return true;
+    }
+
+    return autoResolveTemplates.includes(createdTemplateId);
+  }
+
   private static shouldCloseIncident(input: {
     openIncident: Incident;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
@@ -936,6 +1133,9 @@ export default class MonitorIncident {
     >;
     criteriaInstance: MonitorCriteriaInstance | null; // null if no criteia met.
     breachingSeriesFingerprints?: Set<string> | undefined;
+    breachingSeriesFingerprintsByCriteriaId?:
+      | Dictionary<Set<string>>
+      | undefined;
     disableSeriesAbsenceResolution?: boolean | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
@@ -956,69 +1156,75 @@ export default class MonitorIncident {
       return false;
     }
 
-    /*
-     * Per-series auto-resolve: when the monitor emits a breaching-
-     * series set and this open incident has a fingerprint, resolve
-     * whenever the fingerprint is no longer in the set — regardless
-     * of whether some *other* series is still breaching the same
-     * criteria. This is the whole point of per-host incidents.
-     */
-    if (
-      input.breachingSeriesFingerprints !== undefined &&
-      openSeriesFingerprint
-    ) {
+    // Per-series mode: this evaluation knows which series are breaching.
+    if (input.breachingSeriesFingerprints !== undefined) {
       /*
-       * The breaching set is the matched criteria's per-series matches.
-       * Only ONE criteria wins per evaluation tick, so on a recovery
-       * tick the matched criteria is the RECOVERY criteria (e.g.
-       * Min(iot_device_up) >= 1) and its "matches" are healthy series —
-       * NOT breaches. Treating them as breaching would leave the open
-       * offline incident's fingerprint in the set and pin it open
-       * forever once no other series is down. So membership only counts
-       * as still-breaching when the matched criteria actually creates
-       * incidents (an offline/breach criteria); a recovery criteria
-       * (createIncidents=false) contributes no breaches and lets the
-       * per-series incident auto-resolve.
+       * A whole-monitor incident (no fingerprint) on a monitor that now
+       * raises incidents per series. It was raised before the monitor
+       * was grouped, and nothing can ever dedupe against it again —
+       * every incident from here on carries a fingerprint. Left alone it
+       * stays open forever while its replacements come and go. Resolve
+       * it, on the same auto-resolve terms as any other incident from
+       * its criteria.
        */
-      const matchedCriteriaCreatesIncidents: boolean =
-        input.criteriaInstance?.data?.createIncidents === true;
+      if (!openSeriesFingerprint) {
+        if (input.disableSeriesAbsenceResolution) {
+          return false;
+        }
 
-      const stillBreaching: boolean =
-        matchedCriteriaCreatesIncidents &&
-        input.breachingSeriesFingerprints.has(openSeriesFingerprint);
-
-      if (stillBreaching) {
-        return false;
+        return MonitorIncident.isAutoResolveConfiguredForIncident({
+          openIncident: input.openIncident,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        });
       }
 
       /*
-       * Series no longer breaching. Only auto-close if the criteria
-       * was configured to auto-resolve in the first place; otherwise
-       * stay open so a human can acknowledge.
+       * Per-series auto-resolve: resolve whenever this fingerprint is no
+       * longer breaching the criteria that raised it — regardless of
+       * whether some *other* series is still breaching. That is the
+       * whole point of per-host incidents.
        */
-      if (!input.openIncident.createdCriteriaId?.toString()) {
-        return false;
-      }
-
-      if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-        return false;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId.toString()
-        ];
-
       if (
-        autoResolveTemplates &&
-        autoResolveTemplates.includes(
-          input.openIncident.createdIncidentTemplateId.toString(),
-        )
+        MonitorIncident.isSeriesStillBreaching({
+          openIncident: input.openIncident,
+          criteriaInstance: input.criteriaInstance,
+          openSeriesFingerprint,
+          breachingSeriesFingerprints: input.breachingSeriesFingerprints,
+          breachingSeriesFingerprintsByCriteriaId:
+            input.breachingSeriesFingerprintsByCriteriaId,
+        })
       ) {
-        return true;
+        return false;
       }
 
-      return false;
+      /*
+       * The criteria that raised this incident was not evaluated on this
+       * tick at all (disabled, deleted, or the monitor stops at its
+       * first match). Absence of a breaching set for it is not evidence
+       * of recovery, so leave the incident alone.
+       */
+      if (
+        input.breachingSeriesFingerprintsByCriteriaId &&
+        !MonitorIncident.wasCriteriaEvaluated({
+          openIncident: input.openIncident,
+          breachingSeriesFingerprintsByCriteriaId:
+            input.breachingSeriesFingerprintsByCriteriaId,
+        })
+      ) {
+        return false;
+      }
+
+      /*
+       * Series no longer breaching. Only auto-close if the criteria was
+       * configured to auto-resolve in the first place; otherwise stay
+       * open so a human can acknowledge.
+       */
+      return MonitorIncident.isAutoResolveConfiguredForIncident({
+        openIncident: input.openIncident,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+      });
     }
 
     if (

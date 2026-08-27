@@ -1,9 +1,10 @@
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import MetricService from "./MetricService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -18,9 +19,39 @@ export interface FacetValue {
   displayName?: string | undefined;
 }
 
+/*
+ * A serialized QueryOperator (`{_type: "Wildcard", value: ["api-*"]}` and
+ * friends) — how an attribute filter row that uses any operator other than
+ * the implicit `=` arrives over the wire, since every QueryOperator's
+ * toJSON() emits this shape. See appendAttributeOperatorFilter.
+ */
+export interface SerializedAttributeOperator {
+  _type: string;
+  value?: unknown;
+}
+
+/*
+ * An attribute predicate. A single string is `= value`; an array is
+ * `IN (...)`; an object is any other operator (contains, matches, is empty,
+ * ...). Mirrors LogAttributeFilterValue / TraceAttributeFilterValue so every
+ * explorer filters identically.
+ */
+export type MetricAttributeFilterValue =
+  | string
+  | Array<string>
+  | SerializedAttributeOperator;
+export type MetricAttributeFilters = Record<string, MetricAttributeFilterValue>;
+
 export interface MetricFilters {
   serviceIds?: Array<ObjectID> | undefined;
   metricNames?: Array<string> | undefined;
+  /*
+   * Attribute predicates over the `attributes` map, same shapes as the log
+   * and trace explorers. Metrics had no attribute channel at all, so no
+   * selection could narrow the facet counts — every facet counted the whole
+   * window no matter what else was selected beside it.
+   */
+  attributes?: MetricAttributeFilters | undefined;
 }
 
 export interface FacetRequest extends MetricFilters {
@@ -402,6 +433,72 @@ export class MetricAggregationService {
           value: new Includes(request.metricNames),
         }})`,
       );
+    }
+
+    if (request.attributes && Object.keys(request.attributes).length > 0) {
+      for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
+        MetricAggregationService.validateFacetKey(attrKey);
+
+        /*
+         * Match attribute keys case-insensitively — see the matching note in
+         * LogAggregationService.appendCommonFilters. Casings vary across
+         * OTEL conventions and app-emitted attributes.
+         */
+        if (Array.isArray(attrValue)) {
+          /*
+           * An empty selection means "no selection", which must widen to
+           * everything rather than compile to `IN ()` and match nothing.
+           */
+          if (attrValue.length === 0) {
+            continue;
+          }
+          statement.append(
+            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              type: TableColumnType.Text,
+              value: attrKey,
+            }}) AND v IN (${{
+              type: TableColumnType.Text,
+              value: new Includes(attrValue),
+            }}), mapKeys(attributes), mapValues(attributes))`,
+          );
+          continue;
+        }
+
+        if (typeof attrValue === "object" && attrValue !== null) {
+          appendAttributeOperatorFilter({
+            statement,
+            attributeKey: attrKey,
+            operator: attrValue as unknown as Record<string, unknown>,
+          });
+          continue;
+        }
+
+        if (attrValue === "") {
+          /*
+           * A blank equality value is "missing or empty", not "present and
+           * empty": a ClickHouse Map subscript returns the type default for a
+           * key the row does not carry, so rows without the attribute match
+           * too. Routed through the operator builder so a bare "" and an
+           * explicit EqualTo("") cannot disagree.
+           */
+          appendAttributeOperatorFilter({
+            statement,
+            attributeKey: attrKey,
+            operator: { _type: ObjectType.IsNull },
+          });
+          continue;
+        }
+
+        statement.append(
+          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+            type: TableColumnType.Text,
+            value: attrKey,
+          }}) AND v = ${{
+            type: TableColumnType.Text,
+            value: attrValue,
+          }}, mapKeys(attributes), mapValues(attributes))`,
+        );
+      }
     }
   }
 
