@@ -12,6 +12,8 @@ import IncludesNone from "./BaseDatabase/IncludesNone";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
+import Wildcard from "./BaseDatabase/Wildcard";
+import NotWildcard from "./BaseDatabase/NotWildcard";
 import IsNull from "./BaseDatabase/IsNull";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
@@ -164,6 +166,12 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.NotContains](): any {
     return NotContains;
+  },
+  get [ObjectType.Wildcard](): any {
+    return Wildcard;
+  },
+  get [ObjectType.NotWildcard](): any {
+    return NotWildcard;
   },
   get [ObjectType.NotNull](): any {
     return NotNull;
