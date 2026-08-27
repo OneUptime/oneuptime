@@ -312,6 +312,13 @@ interface InitialUrlState {
   pageSize: number;
   viewMode: "spans" | "analytics";
   rootOnly: boolean;
+  /*
+   * The saved view the link named. Written by this explorer when one is
+   * selected, and carried onto the Insights tab and back so a round trip
+   * through Insights returns to the same named view rather than to its
+   * filters with the view deselected.
+   */
+  savedViewId: string | null;
 }
 
 /*
@@ -408,7 +415,22 @@ function readInitialUrlState(): InitialUrlState {
    */
   const rootOnly: boolean = params.get("rootOnly") === "true";
 
-  return { search, filters, timeRange, page, pageSize, viewMode, rootOnly };
+  const savedViewIdRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewIdRaw && savedViewIdRaw.trim().length > 0
+      ? savedViewIdRaw.trim()
+      : null;
+
+  return {
+    search,
+    filters,
+    timeRange,
+    page,
+    pageSize,
+    viewMode,
+    rootOnly,
+    savedViewId,
+  };
 }
 
 interface Props {
@@ -489,10 +511,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         pageSize: DEFAULT_PAGE_SIZE,
         viewMode: "spans",
         rootOnly: false,
+        savedViewId: null,
       };
     }
     return readInitialUrlState();
   });
+
+  /*
+   * The saved view currently selected in the control below, mirrored up here
+   * so it can travel in the URL alongside the filters it produced.
+   */
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
+    initialUrlState.savedViewId,
+  );
 
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -960,9 +991,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       );
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the Viewer and
+     * Insights tabs now hand their scope to each other through these params,
+     * and a window that is not written down cannot be carried — "absent
+     * means my default" quietly changes the window whenever the two tabs
+     * start from different ones.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
@@ -979,6 +1015,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (rootOnly) {
       params.set("rootOnly", "true");
     }
+    if (selectedSavedViewId) {
+      params.set("savedView", selectedSavedViewId);
+    }
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
@@ -990,6 +1029,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     pageSize,
     viewMode,
     rootOnly,
+    selectedSavedViewId,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -2375,6 +2415,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             savedViewNoun="Trace"
             explorerLabel="traces"
             hasInitialUrlState={hasInitialUrlState}
+            initialSavedViewId={initialUrlState.savedViewId}
+            onSelectionChange={setSelectedSavedViewId}
             captureCurrentState={captureCurrentState}
             applyState={applySavedViewState}
             onError={setError}

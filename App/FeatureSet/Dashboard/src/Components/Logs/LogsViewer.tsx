@@ -94,6 +94,10 @@ import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRa
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  InitialSavedViewResolution,
+  resolveInitialSavedView,
+} from "../../Utils/InitialSavedView";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
@@ -202,6 +206,46 @@ interface InitialUrlState {
   timeRange: RangeStartAndEndDateTime;
   page: number;
   pageSize: number;
+  /*
+   * The saved view the link named, if any — written by this viewer when one
+   * is selected, and carried onto the Insights tab and back so a round trip
+   * through Insights returns to the same named view rather than to its
+   * filters with the view deselected.
+   */
+  savedViewId: string | null;
+  /*
+   * Whether the link described a slice of its own (chips or a window). The
+   * project's default saved view must not auto-apply over one: a
+   * cross-signal pivot, an AI-investigation link or a hand-off from the
+   * Insights tab all arrive this way, and overwriting them a tick after
+   * mount is what made those links appear to work and then not.
+   */
+  hasScope: boolean;
+  /*
+   * Which halves of that slice the link actually spelled out. A link
+   * carrying chips but no window is not saying "use the default window" —
+   * it is saying nothing about the window, and a saved view named in the
+   * same link should keep its own.
+   */
+  hasFilters: boolean;
+  hasRange: boolean;
+}
+
+/*
+ * How a saved view is applied when the URL that named it also describes a
+ * slice of its own.
+ *
+ * That happens on the way back from the Insights tab: the link says "the
+ * DV-IMS view, but with the window and the services I ended up on". The URL
+ * is the more recent statement of the two, so it wins over the view's own
+ * window and chips — while the view still supplies everything the URL does
+ * not carry (columns, sort, page size) and, crucially, its own identity, so
+ * the user lands back inside the view they started in rather than on its
+ * filters with nothing selected.
+ */
+interface ApplySavedViewOptions {
+  overrideTimeRange?: RangeStartAndEndDateTime | undefined;
+  overrideFacetFilters?: Map<string, Set<string>> | undefined;
 }
 
 const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
@@ -280,7 +324,31 @@ function readInitialUrlState(defaultPageSize: number): InitialUrlState {
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : defaultPageSize;
 
-  return { facetFilters, timeRange, page, pageSize };
+  const savedViewIdRaw: string | null = params.get("savedView");
+  const savedViewId: string | null =
+    savedViewIdRaw && savedViewIdRaw.trim().length > 0
+      ? savedViewIdRaw.trim()
+      : null;
+
+  /*
+   * Read from the raw params rather than from the parsed values above: a
+   * `range` the parser rejected (an unknown enum) still means the link was
+   * trying to describe a window, and `timeRange` has already fallen back to
+   * the default by this point.
+   */
+  const hasFilters: boolean = facetFilters.size > 0;
+  const hasRange: boolean = Boolean(params.get("range"));
+
+  return {
+    facetFilters,
+    timeRange,
+    page,
+    pageSize,
+    savedViewId,
+    hasScope: hasFilters || hasRange,
+    hasFilters,
+    hasRange,
+  };
 }
 
 function getColumnsStorageKey(viewerId: string): string {
@@ -577,6 +645,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     LogSavedView | undefined
   >(undefined);
   const [isSavedViewLoading, setIsSavedViewLoading] = useState<boolean>(false);
+  /*
+   * Set once the saved-view fetch has settled, however it settled.
+   *
+   * The initial-view effect used to gate on `!isSavedViewLoading`, which it
+   * reads out of the same commit that STARTS the fetch — the flag is still
+   * false there, so the effect ran against an empty list, marked itself done,
+   * and no default view was ever applied. Gating on "has the fetch finished"
+   * instead of "is it not running" removes the race.
+   */
+  const [hasFetchedSavedViews, setHasFetchedSavedViews] =
+    useState<boolean>(false);
   const [viewMode, setViewMode] = useState<LogsViewMode>("list");
 
   const liveRequestInFlight: React.MutableRefObject<boolean> =
@@ -686,9 +765,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       });
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_HOUR) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the Viewer and
+     * Insights tabs now hand their scope to each other through these params,
+     * and a window that is not written down cannot be carried — "absent
+     * means my default" quietly changes the window whenever the two tabs
+     * start from different ones.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());
@@ -699,6 +783,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (pageSize !== effectiveDefaultPageSize) {
       params.set("pageSize", String(pageSize));
     }
+    /*
+     * The selected saved view travels with the filters it produced. Without
+     * it the Insights tab could inherit the right slice but not the name of
+     * the view it came from, and coming back would leave the user with a
+     * view's filters and no view selected — which looks like the selection
+     * was lost.
+     */
+    if (selectedSavedViewId) {
+      params.set("savedView", selectedSavedViewId);
+    }
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
@@ -708,6 +802,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     page,
     pageSize,
     effectiveDefaultPageSize,
+    selectedSavedViewId,
   ]);
 
   const select: Select<Log> = useMemo(() => {
@@ -889,6 +984,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         setError(API.getFriendlyMessage(err));
       } finally {
         setIsSavedViewLoading(false);
+        setHasFetchedSavedViews(true);
       }
     }, []);
 
@@ -1137,8 +1233,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [isLiveEnabled]);
 
-  const applySavedView: (savedView: LogSavedView) => void = useCallback(
-    (savedView: LogSavedView): void => {
+  const applySavedView: (
+    savedView: LogSavedView,
+    options?: ApplySavedViewOptions | undefined,
+  ) => void = useCallback(
+    (
+      savedView: LogSavedView,
+      options?: ApplySavedViewOptions | undefined,
+    ): void => {
       const baseQuery: Query<Log> = buildBaseQuery(props);
       const rawQuery: JSONObject =
         (savedView.query as unknown as JSONObject) || {};
@@ -1153,25 +1255,55 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
        * window it produced on the day it was saved.
        */
       const nextTimeRange: RangeStartAndEndDateTime =
+        options?.overrideTimeRange ||
         resolveLogSavedViewTimeRange({
           timeRange: savedView.timeRange,
           query: savedQuery,
         });
 
+      const merged: JSONObject = {
+        ...(savedQuery as unknown as JSONObject),
+        ...(baseQuery as unknown as JSONObject),
+      };
+
+      if (options?.overrideFacetFilters) {
+        /*
+         * Chip-able keys the override does not mention are cleared off the
+         * saved query first. applyLogsFacetFiltersToQuery only ever WRITES
+         * the keys a selection holds — it cannot know that a service the
+         * saved view carried was deselected somewhere else — so without this
+         * a scope narrowed on the Insights tab would come back widened by
+         * whatever the view originally had. Keys the host imposed through
+         * baseQuery are left alone: those are the page's scope, not the
+         * view's.
+         */
+        for (const facetKey of FACET_FILTER_KEYS) {
+          if ((baseQuery as any)[facetKey] === undefined) {
+            delete merged[facetKey];
+          }
+        }
+        delete merged["resourceFilters"];
+      }
+
       const mergedQuery: Query<Log> = withResolvedTime(
-        {
-          ...(savedQuery as unknown as JSONObject),
-          ...(baseQuery as unknown as JSONObject),
-        } as unknown as Query<Log>,
+        merged as unknown as Query<Log>,
         nextTimeRange,
       );
 
+      const nextFacetFilters: Map<
+        string,
+        Set<string>
+      > = options?.overrideFacetFilters ||
+      buildFacetFiltersFromQuery(mergedQuery, baseQuery);
+
       setTimeRange(nextTimeRange);
 
-      setAppliedFacetFilters(
-        buildFacetFiltersFromQuery(mergedQuery, baseQuery),
+      setAppliedFacetFilters(nextFacetFilters);
+      setFilterOptions(
+        options?.overrideFacetFilters
+          ? applyLogsFacetFiltersToQuery(mergedQuery, nextFacetFilters)
+          : mergedQuery,
       );
-      setFilterOptions(mergedQuery);
       setPage(1);
       setPageSize(savedView.pageSize || DEFAULT_PAGE_SIZE);
       setSortField((savedView.sortField as LogsSortField) || "time");
@@ -1269,38 +1401,60 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.id, selectedColumns]);
 
   useEffect(() => {
-    if (hasAppliedInitialSavedView.current || isSavedViewLoading) {
+    if (hasAppliedInitialSavedView.current || !hasFetchedSavedViews) {
       return;
     }
 
     hasAppliedInitialSavedView.current = true;
 
     /*
-     * A pinned window came from the host, not from the user browsing logs, and
-     * a saved view carries its own time range — auto-applying the project
-     * default here would move an incident's preview off the moment it is
-     * about. A controlled window (the entity telemetry hub) owns the view the
-     * same way. The user can still pick a saved view by hand.
+     * Precedence lives in resolveInitialSavedView so it can be pinned in
+     * tests: a view the link named wins; a link that carries its own scope
+     * is left alone; a host-owned window (an incident's pinned moment, the
+     * entity hub's cursor) is left alone; otherwise the project default
+     * applies as it always has.
      */
-    if (pinnedTimeRange || props.timeRangeOverride) {
-      return;
-    }
+    const resolution: InitialSavedViewResolution<LogSavedView> =
+      resolveInitialSavedView<LogSavedView>({
+        savedViews,
+        getId: (savedView: LogSavedView): string | null => {
+          return savedView.id?.toString() || null;
+        },
+        isDefault: (savedView: LogSavedView): boolean => {
+          return Boolean(savedView.isDefault);
+        },
+        urlSavedViewId: initialUrlState?.savedViewId,
+        hasUrlScope: Boolean(initialUrlState?.hasScope),
+        hostOwnsView: Boolean(pinnedTimeRange || props.timeRangeOverride),
+      });
 
-    const defaultSavedView: LogSavedView | undefined = savedViews.find(
-      (savedView: LogSavedView) => {
-        return Boolean(savedView.isDefault);
-      },
-    );
-
-    if (defaultSavedView) {
-      applySavedView(defaultSavedView);
+    if (resolution.savedView) {
+      applySavedView(
+        resolution.savedView,
+        /*
+         * A view the URL named is applied UNDER the scope the same URL
+         * carries; a project default (nobody asked for it) is applied as
+         * saved.
+         */
+        resolution.source === "url" && initialUrlState?.hasScope
+          ? {
+              overrideTimeRange: initialUrlState.hasRange
+                ? initialUrlState.timeRange
+                : undefined,
+              overrideFacetFilters: initialUrlState.hasFilters
+                ? initialUrlState.facetFilters
+                : undefined,
+            }
+          : undefined,
+      );
     }
   }, [
     applySavedView,
-    isSavedViewLoading,
+    hasFetchedSavedViews,
     savedViews,
     pinnedTimeRange,
     props.timeRangeOverride,
+    initialUrlState,
   ]);
 
   useEffect(() => {

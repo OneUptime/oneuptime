@@ -28,6 +28,10 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
+import {
+  InitialSavedViewResolution,
+  resolveInitialSavedView,
+} from "../../Utils/InitialSavedView";
 
 const SAVED_VIEWS_LIMIT: number = 100;
 
@@ -56,6 +60,21 @@ export interface ComponentProps<T extends TelemetrySavedViewModel> {
    * saved view is NOT auto-applied so the deep link is not clobbered.
    */
   hasInitialUrlState: boolean;
+  /*
+   * A saved view the URL named — set on the way back from the Insights tab,
+   * which carries the view's id alongside the scope it produced. Applied in
+   * preference to the project default, and in preference to the
+   * hasInitialUrlState skip: a link that names a view is the user asking for
+   * that view, not a deep link to protect.
+   */
+  initialSavedViewId?: string | null | undefined;
+  /*
+   * Fired whenever the selection changes, so the host can mirror it into the
+   * URL. Without it the Insights tab can inherit the right scope but not the
+   * name of the view it came from, and the trip back leaves the user on a
+   * view's filters with nothing selected.
+   */
+  onSelectionChange?: ((savedViewId: string | null) => void) | undefined;
   // Read the explorer's current state for Save / Update.
   captureCurrentState: () => TelemetrySavedViewState;
   // Apply a saved view's state back into the explorer.
@@ -85,8 +104,13 @@ export interface ComponentProps<T extends TelemetrySavedViewModel> {
 function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
   props: ComponentProps<T>,
 ): ReactElement {
-  const { modelType, captureCurrentState, applyState, hasInitialUrlState } =
-    props;
+  const {
+    modelType,
+    captureCurrentState,
+    applyState,
+    hasInitialUrlState,
+    initialSavedViewId,
+  } = props;
 
   const [savedViews, setSavedViews] = useState<Array<T>>([]);
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
@@ -106,6 +130,16 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     ((error: string) => void) | undefined
   > = useRef<((error: string) => void) | undefined>(props.onError);
   onErrorRef.current = props.onError;
+  /*
+   * Held in a ref for the same reason: hosts pass a fresh closure on every
+   * render, and listing it in the effects below would re-fire them.
+   */
+  const onSelectionChangeRef: React.MutableRefObject<
+    ((savedViewId: string | null) => void) | undefined
+  > = useRef<((savedViewId: string | null) => void) | undefined>(
+    props.onSelectionChange,
+  );
+  onSelectionChangeRef.current = props.onSelectionChange;
 
   /*
    * Latest additionalQuery/additionalSaveFields without re-creating the
@@ -205,8 +239,11 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
   }, [applyState]);
 
   /*
-   * Apply the default view once, after the first fetch resolves (so savedViews
-   * is populated). Skipped when the URL already carried filter state.
+   * Apply the initial view once, after the first fetch resolves (so savedViews
+   * is populated). Precedence — a view the URL named, then the project
+   * default when the URL carried no scope of its own — lives in
+   * resolveInitialSavedView so it can be pinned in tests and so the Logs
+   * explorer, which has its own saved-view UI, answers it the same way.
    */
   useEffect(() => {
     if (hasAppliedInitialDefault.current || !hasFetchedOnce) {
@@ -215,18 +252,68 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
 
     hasAppliedInitialDefault.current = true;
 
-    if (hasInitialUrlState) {
+    const resolution: InitialSavedViewResolution<T> =
+      resolveInitialSavedView<T>({
+        savedViews,
+        getId: (view: T): string => {
+          return getViewId(view);
+        },
+        isDefault: (view: T): boolean => {
+          return Boolean(view.isDefault);
+        },
+        urlSavedViewId: initialSavedViewId,
+        hasUrlScope: hasInitialUrlState,
+        /*
+         * The host-owned case is already folded into hasInitialUrlState by
+         * both explorers (they include a controlled window in it), so there
+         * is nothing extra to report here.
+         */
+        hostOwnsView: false,
+      });
+
+    if (resolution.savedView) {
+      applySavedView(resolution.savedView);
       return;
     }
 
-    const defaultView: T | undefined = savedViews.find((view: T): boolean => {
-      return Boolean(view.isDefault);
-    });
-
-    if (defaultView) {
-      applySavedView(defaultView);
+    if (resolution.isUrlSavedViewMissing) {
+      /*
+       * The link named a view that is gone. Tell the host so the stale id
+       * stops travelling in the URL, promising a view nothing can produce.
+       */
+      onSelectionChangeRef.current?.(null);
     }
-  }, [hasFetchedOnce, savedViews, hasInitialUrlState, applySavedView]);
+  }, [
+    hasFetchedOnce,
+    savedViews,
+    hasInitialUrlState,
+    initialSavedViewId,
+    applySavedView,
+  ]);
+
+  /*
+   * Mirror the selection out to the host. An effect rather than a call inside
+   * each setter, so every path that changes the selection — apply, clear,
+   * delete, the not-found sweep below — is reported exactly once.
+   *
+   * The FIRST fire is skipped: it would report "nothing selected" before the
+   * saved views have even been fetched, which would knock a view named by
+   * the URL straight back out of the host's state (and out of the URL) in
+   * the gap before the fetch resolves. The host seeded itself from that same
+   * URL, so the initial value is never news to it. A view the link named
+   * that turns out not to exist is reported explicitly, above.
+   */
+  const hasMirroredSelection: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!hasMirroredSelection.current) {
+      hasMirroredSelection.current = true;
+      return;
+    }
+
+    onSelectionChangeRef.current?.(selectedSavedViewId);
+  }, [selectedSavedViewId]);
 
   // Clear the selection if the selected view no longer exists (e.g. deleted).
   useEffect(() => {

@@ -37,6 +37,24 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import Navigation from "Common/UI/Utils/Navigation";
+import HintChip from "./HintChip";
+import {
+  ServiceScopedInsightsUrlScope,
+  TelemetryFilterTuple,
+  buildServiceScopedInsightsUrlParams,
+  describeUnappliedScopeFilters,
+  readServiceScopedInsightsUrlScope,
+  toPresentParams,
+  withTelemetryTabScopeParams,
+} from "../../Utils/TelemetryTabScope";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 interface MetricCategory {
   name: string;
@@ -139,9 +157,34 @@ function timeRangeLabel(range: RangeStartAndEndDateTime): string {
 }
 
 const MetricsDashboard: FunctionComponent = (): ReactElement => {
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
+  /*
+   * The slice the Viewer tab handed over, read once on mount. Without this
+   * the Insights tab silently widened back out to the whole project every
+   * time the user switched lens on a scoped view.
+   */
+  const [initialUrlScope] = useState<ServiceScopedInsightsUrlScope>(() => {
+    return readServiceScopedInsightsUrlScope(Navigation.getQueryString());
   });
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(() => {
+    return initialUrlScope.timeRange || { range: TimeRange.PAST_ONE_HOUR };
+  });
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Array<string>>(
+    initialUrlScope.serviceIds,
+  );
+  /*
+   * Viewer chips with no counterpart here — a metric-name search, an
+   * attribute filter, a host selection. Carried so the trip back does not
+   * drop them, and announced so the numbers on this page are not mistaken
+   * for having honoured them.
+   */
+  const [unappliedFilters] = useState<Array<TelemetryFilterTuple>>(
+    initialUrlScope.unappliedFilters,
+  );
+  const [savedViewId, setSavedViewId] = useState<string | null>(
+    initialUrlScope.savedViewId,
+  );
+  const [savedViewName, setSavedViewName] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
@@ -189,6 +232,16 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                 dateRange.startValue,
                 dateRange.endValue,
               ),
+              /*
+               * The service scope carried from the Viewer tab. Applied to
+               * the fetch rather than filtered client-side: the fetch is
+               * capped, so filtering after it would leave the numbers
+               * describing whichever 5000 points came back rather than the
+               * services the user selected.
+               */
+              ...(selectedServiceIds.length > 0
+                ? { primaryEntityId: new Includes(selectedServiceIds) }
+                : {}),
             } as Query<Metric>,
             limit: 5000,
             skip: 0,
@@ -213,11 +266,134 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
     } finally {
       setIsLoading(false);
     }
-  }, [timeRange]);
+  }, [timeRange, selectedServiceIds]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  /*
+   * Mirror this page's scope into the URL, in the Metrics Viewer's own
+   * grammar — so the tab link back needs no translation, and a refresh or a
+   * shared link restores what the user was looking at.
+   */
+  useEffect(() => {
+    writeTelemetryViewerUrlState(
+      buildServiceScopedInsightsUrlParams({
+        timeRange,
+        serviceIds: selectedServiceIds,
+        unappliedFilters,
+        savedViewId,
+        grammar: "pairs",
+      }),
+    );
+  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+
+  /*
+   * The name behind the carried saved-view id, so the page can say where its
+   * scope came from. Best-effort: a deleted view drops the reference rather
+   * than surfacing an error, since the scope itself arrived in the URL.
+   */
+  useEffect(() => {
+    if (!savedViewId) {
+      setSavedViewName("");
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    ModelAPI.getItem({
+      modelType: MetricSavedView,
+      id: new ObjectID(savedViewId),
+      select: { name: true },
+    })
+      .then((savedView: MetricSavedView | null): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        const name: string = savedView?.name?.toString() || "";
+
+        if (name) {
+          setSavedViewName(name);
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      })
+      .catch((): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [savedViewId]);
+
+  /*
+   * Built from the same state the URL write above is, not by reading the
+   * query string: that write happens in an effect, so during this render the
+   * URL is still one change behind.
+   */
+  const viewerRoute: Route = useMemo(() => {
+    return withTelemetryTabScopeParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      toPresentParams(
+        buildServiceScopedInsightsUrlParams({
+          timeRange,
+          serviceIds: selectedServiceIds,
+          unappliedFilters,
+          savedViewId,
+          grammar: "pairs",
+        }),
+      ),
+    );
+  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+
+  const unappliedFiltersHint: string = useMemo(() => {
+    return describeUnappliedScopeFilters(unappliedFilters);
+  }, [unappliedFilters]);
+
+  const serviceOptions: Array<DropdownOption> = useMemo(() => {
+    return services.map((service: Service): DropdownOption => {
+      return {
+        value: service.id?.toString() || "",
+        label: service.name?.toString() || "Unknown Service",
+      };
+    });
+  }, [services]);
+
+  const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
+    return selectedServiceIds.map((serviceId: string): DropdownOption => {
+      /*
+       * A carried selection has to render even before the service list has
+       * loaded — and even for a service that stopped reporting — or the user
+       * would have a filter they can see the effect of but not remove.
+       */
+      return (
+        serviceOptions.find((option: DropdownOption): boolean => {
+          return option.value === serviceId;
+        }) || { value: serviceId, label: serviceId }
+      );
+    });
+  }, [selectedServiceIds, serviceOptions]);
+
+  /*
+   * Editing the scope by hand means it is no longer the saved view's scope,
+   * so the provenance chip goes and the id stops travelling.
+   */
+  const applyServiceSelection: (serviceIds: Array<string>) => void = (
+    serviceIds: Array<string>,
+  ): void => {
+    setSelectedServiceIds(serviceIds);
+    setSavedViewId(null);
+  };
 
   // Aggregate client-side from analytics result
   const stats: {
@@ -345,14 +521,72 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   // -- Render --
 
   const headerBar: ReactElement = (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Insights</h2>
         <p className="text-xs text-gray-500">
           What your services are reporting in {rangeLabel}.
         </p>
+        {(savedViewName || unappliedFiltersHint) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {savedViewName && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+                <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+                <span>
+                  Scoped by saved view{" "}
+                  <span className="font-medium">{savedViewName}</span>
+                </span>
+                <button
+                  type="button"
+                  className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+                  title="Stop scoping by this saved view"
+                  aria-label="Stop scoping by this saved view"
+                  onClick={() => {
+                    applyServiceSelection([]);
+                  }}
+                >
+                  <Icon icon={IconProp.Close} className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {unappliedFiltersHint && (
+              <HintChip>{unappliedFiltersHint}</HintChip>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-[16rem]">
+          <Dropdown
+            options={serviceOptions}
+            value={selectedServiceOptions}
+            isMultiSelect={true}
+            placeholder="All services"
+            ariaLabel="Scope insights to a service"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (!value) {
+                applyServiceSelection([]);
+                return;
+              }
+
+              const values: Array<DropdownValue> = Array.isArray(value)
+                ? value
+                : [value];
+
+              applyServiceSelection(
+                values
+                  .map((item: DropdownValue): string => {
+                    return String(item);
+                  })
+                  .filter((item: string): boolean => {
+                    return item.length > 0;
+                  }),
+              );
+            }}
+          />
+        </div>
         <TelemetryTimeRangePicker
           value={timeRange}
           onChange={(value: RangeStartAndEndDateTime): void => {
@@ -422,9 +656,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.METRICS] as Route,
-              )}
+              to={viewerRoute}
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
@@ -559,7 +791,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         </div>
         <AppLink
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-          to={RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route)}
+          to={viewerRoute}
         >
           <span>Open Viewer</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />

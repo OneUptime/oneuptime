@@ -19,6 +19,7 @@ const LogsNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       label: "Viewer",
       icon: IconProp.List,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      carriesScope: true,
     },
     {
       key: "insights",
@@ -27,6 +28,7 @@ const LogsNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.LOGS_INSIGHTS] as Route,
       ),
+      carriesScope: true,
     },
     {
       key: "setup",
