@@ -38,6 +38,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ProbeApiIngestResponse, {
+  MatchedCriteriaResult,
   PerSeriesCriteriaMatch,
 } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
@@ -114,7 +115,62 @@ export default class MonitorCriteriaEvaluator {
       return input.probeApiIngestResponse;
     }
 
+    /*
+     * Is this monitor configured to raise one alert/incident per series
+     * (per host, per container, per key) rather than one for the whole
+     * monitor? Answered from the monitor's own configuration, NOT from
+     * whether this tick happened to produce per-series matches — that
+     * distinction is the entire fix for "the second host never alerts".
+     *
+     * When a grouped monitor produced no per-series match, the old code
+     * left `perSeriesMatches` undefined, which the creators read as
+     * "legacy whole-monitor mode" and deduped on criteria id alone. The
+     * first breaching host opened an alert with no series attached and
+     * every host that started breaching afterwards was skipped with
+     * "an active alert exists for this criteria" for as long as that
+     * first alert stayed open.
+     */
+    const isPerSeriesMonitor: boolean =
+      MonitorCriteriaEvaluator.isPerSeriesMonitor({
+        monitor: input.monitor,
+        monitorStep: input.monitorStep,
+        criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+      });
+
+    /*
+     * Grouped metric monitors additionally evaluate EVERY criteria
+     * rather than stopping at the first match, because their series can
+     * sit in different bands simultaneously.
+     *
+     * Incoming-request grouping is deliberately excluded: a webhook is
+     * event-driven and its criteria pick one interpretation of one
+     * payload, so first-match-wins is the correct reading there and
+     * changing it would alter established webhook behaviour.
+     */
+    const fanOutAcrossCriteria: boolean =
+      isPerSeriesMonitor &&
+      input.monitor.monitorType !== MonitorType.IncomingRequest;
+
+    const matchedCriteria: Array<MatchedCriteriaResult> = [];
+    const evaluatedCriteriaIds: Array<string> = [];
+
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
+      /*
+       * Ungrouped monitors keep the historical semantics exactly: the
+       * first criteria that matches wins and nothing after it is even
+       * looked at. Grouped monitors evaluate every criteria, because
+       * different series can legitimately sit in different bands at the
+       * same time (host A critical, host B warning) and stopping at the
+       * first match silently drops every other band.
+       */
+      if (matchedCriteria.length > 0 && !fanOutAcrossCriteria) {
+        MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
+          criteriaInstance,
+          evaluationSummary: input.evaluationSummary,
+        });
+        continue;
+      }
+
       /*
        * Record disabled criteria in the summary (so the user can see why
        * nothing happened) but skip evaluation, status changes, incidents,
@@ -177,87 +233,211 @@ export default class MonitorCriteriaEvaluator {
 
       input.evaluationSummary.events.push(criteriaEvent);
 
-      if (rootCause) {
-        input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
-        input.probeApiIngestResponse.rootCause = `
+      if (criteriaInstance.data?.id) {
+        evaluatedCriteriaIds.push(criteriaInstance.data.id.toString());
+      }
+
+      if (!rootCause) {
+        continue;
+      }
+
+      /*
+       * When this is a monitor with per-series results, compute the
+       * per-series match list so MonitorResource can fan out one
+       * incident + one alert per affected series.
+       */
+      const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
+        await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+          criteriaInstance,
+        });
+
+      /*
+       * A grouped monitor whose scalar verdict says "met" but which
+       * cannot name a single breaching series is NOT a match.
+       *
+       * The scalar verdict evaluates each filter independently and each
+       * one collapses to its own first breaching series, so under
+       * FilterCondition.All two filters can be satisfied by two
+       * different hosts and report the criteria met even though no
+       * single host satisfies all of them. Honouring that verdict opened
+       * one unattributed whole-monitor alert that then blocked every
+       * real per-host alert. Skip the criteria instead and let the next
+       * one decide.
+       */
+      if (fanOutAcrossCriteria && perSeriesMatches.length === 0) {
+        criteriaResult.met = false;
+        criteriaResult.message =
+          "Criteria was not met: no single series satisfied it. " +
+          "This monitor raises one alert per series, so a criteria that " +
+          "only holds across different series combined does not fire.";
+
+        input.evaluationSummary.events.push({
+          type: "criteria-not-met",
+          title: `Criteria not met: ${criteriaResult.criteriaName || "Unnamed criteria"}`,
+          message: criteriaResult.message,
+          relatedCriteriaId: criteriaResult.criteriaId,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+
+        continue;
+      }
+
+      const isFirstMatch: boolean = matchedCriteria.length === 0;
+
+      const contextBlock: string | null =
+        await MonitorCriteriaEvaluator.buildRootCauseContext({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          criteriaInstance: criteriaInstance,
+        });
+
+      /*
+       * For metric monitors, render the metric identity (name, unit,
+       * filter attrs, breaching series) before the comparison line so
+       * the reader has context when they reach "Filter Conditions Met".
+       */
+      const isMetricMonitor: boolean =
+        input.monitor.monitorType === MonitorType.Metrics;
+
+      let renderedRootCause: string = `
 **Created because the following criteria was met**:
 
 **Criteria Name**: ${criteriaInstance.data?.name}
 `;
 
-        const contextBlock: string | null =
-          await MonitorCriteriaEvaluator.buildRootCauseContext({
-            dataToProcess: input.dataToProcess,
-            monitorStep: input.monitorStep,
-            monitor: input.monitor,
-            criteriaInstance: criteriaInstance,
-          });
-
-        /*
-         * For metric monitors, render the metric identity (name, unit,
-         * filter attrs, breaching series) before the comparison line so
-         * the reader has context when they reach "Filter Conditions Met".
-         */
-        const isMetricMonitor: boolean =
-          input.monitor.monitorType === MonitorType.Metrics;
-
-        if (contextBlock && isMetricMonitor) {
-          input.probeApiIngestResponse.rootCause += `
+      if (contextBlock && isMetricMonitor) {
+        renderedRootCause += `
 ${contextBlock}
 `;
-        }
+      }
 
-        input.probeApiIngestResponse.rootCause += `
+      renderedRootCause += `
 **Filter Conditions Met**: ${rootCause}
 `;
 
-        if (contextBlock && !isMetricMonitor) {
-          input.probeApiIngestResponse.rootCause += `
+      if (contextBlock && !isMetricMonitor) {
+        renderedRootCause += `
 ${contextBlock}
 `;
-        }
+      }
 
-        if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
-          input.probeApiIngestResponse.rootCause += `
+      if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
+        renderedRootCause += `
 **Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
 `;
-        }
+      }
 
-        /*
-         * When this is a metric-style monitor with per-series results,
-         * compute the per-series match list so MonitorResource can fan
-         * out one incident per affected series. We do this *after* the
-         * scalar criteriaMetId/rootCause is populated so legacy readers
-         * still see a usable response if perSeriesMatches is ignored.
-         */
-        const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
-          await MonitorCriteriaEvaluator.collectPerSeriesMatches({
-            dataToProcess: input.dataToProcess,
-            monitor: input.monitor,
-            monitorStep: input.monitorStep,
-            criteriaInstance,
-          });
+      /*
+       * The monitor has exactly one status, and the FIRST matching
+       * criteria owns it — unchanged from before this became a list.
+       * `perSeriesMatches` likewise keeps pointing at the first match so
+       * any reader that only knows the scalar fields still behaves the
+       * way it always did.
+       */
+      if (isFirstMatch) {
+        input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
+        input.probeApiIngestResponse.rootCause = renderedRootCause;
 
-        if (perSeriesMatches.length > 0) {
-          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
-        } else if (
-          input.monitor.monitorType === MonitorType.IncomingRequest &&
-          IncomingRequestIncidentGrouping.isGroupingConfigured(criteriaInstance)
-        ) {
+        if (perSeriesMatches.length > 0 || isPerSeriesMonitor) {
           /*
-           * Grouped incoming-request criteria that produced no firing key
-           * (e.g. a pure "resolved" webhook). Force per-series mode with an
-           * empty set so the create path does NOT fall back to opening a
-           * single whole-monitor incident.
+           * A per-series monitor always publishes an array, even an
+           * empty one: a defined array is what tells the creators
+           * "per-series mode — dedupe on (criteria, series)" instead of
+           * silently degrading to one alert for the whole monitor.
            */
-          input.probeApiIngestResponse.perSeriesMatches = [];
+          input.probeApiIngestResponse.perSeriesMatches = perSeriesMatches;
         }
+      }
 
-        break;
+      if (criteriaInstance.data?.id) {
+        matchedCriteria.push({
+          criteriaId: criteriaInstance.data.id.toString(),
+          rootCause: renderedRootCause,
+          perSeriesMatches: perSeriesMatches,
+        });
       }
     }
 
+    /*
+     * Only grouped monitors fan out across several criteria. Leaving
+     * this undefined for everything else keeps MonitorResource on the
+     * single-criteria path it has always taken.
+     */
+    if (fanOutAcrossCriteria) {
+      input.probeApiIngestResponse.matchedCriteria = matchedCriteria;
+      input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
+    }
+
     return input.probeApiIngestResponse;
+  }
+
+  /**
+   * Does this monitor raise one alert/incident per series rather than
+   * one for the whole monitor?
+   *
+   * Answered from configuration only — group-by attributes on a
+   * metric-backed step, or incident grouping on an incoming-request
+   * criteria — never from whether this particular tick produced
+   * matches. A tick that produces none must still be treated as
+   * per-series, otherwise the creators fall back to whole-monitor
+   * dedupe and swallow every series after the first.
+   */
+  private static isPerSeriesMonitor(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+  }): boolean {
+    const monitorType: MonitorType | undefined = input.monitor.monitorType;
+
+    if (!monitorType) {
+      return false;
+    }
+
+    if (monitorType === MonitorType.IncomingRequest) {
+      return input.criteriaInstances.some(
+        (criteriaInstance: MonitorCriteriaInstance) => {
+          return IncomingRequestIncidentGrouping.isGroupingConfigured(
+            criteriaInstance,
+          );
+        },
+      );
+    }
+
+    if (MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType)) {
+      return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
+    }
+
+    return false;
+  }
+
+  /**
+   * Record a criteria that the evaluator never got to, so "why did
+   * nothing happen for host B" is answerable from the monitor log
+   * instead of being an unexplained gap in the summary.
+   */
+  private static pushNotEvaluatedCriteriaResult(input: {
+    criteriaInstance: MonitorCriteriaInstance;
+    evaluationSummary: MonitorEvaluationSummary;
+  }): void {
+    const skipReason: string =
+      "An earlier criteria already matched. This monitor raises a single " +
+      "alert for the whole monitor, so evaluation stops at the first match.";
+
+    input.evaluationSummary.criteriaResults.push({
+      criteriaId: input.criteriaInstance.data?.id,
+      criteriaName: input.criteriaInstance.data?.name,
+      filterCondition:
+        input.criteriaInstance.data?.filterCondition || FilterCondition.All,
+      met: false,
+      message: skipReason,
+      filters: [],
+      skipped: true,
+      skipReason: skipReason,
+    });
   }
 
   /**
@@ -288,16 +468,15 @@ ${contextBlock}
       });
     }
 
+    /*
+     * Same list as MonitorCriteriaInstance.isMetricBackedMonitorType,
+     * which is where it now lives so the two cannot drift apart.
+     */
     if (
-      input.monitor.monitorType !== MonitorType.Metrics &&
-      input.monitor.monitorType !== MonitorType.Kubernetes &&
-      input.monitor.monitorType !== MonitorType.Docker &&
-      input.monitor.monitorType !== MonitorType.Host &&
-      input.monitor.monitorType !== MonitorType.Podman &&
-      input.monitor.monitorType !== MonitorType.DockerSwarm &&
-      input.monitor.monitorType !== MonitorType.Proxmox &&
-      input.monitor.monitorType !== MonitorType.Ceph &&
-      input.monitor.monitorType !== MonitorType.IoTDevice
+      !input.monitor.monitorType ||
+      !MonitorCriteriaInstance.isMetricBackedMonitorType(
+        input.monitor.monitorType,
+      )
     ) {
       return [];
     }
