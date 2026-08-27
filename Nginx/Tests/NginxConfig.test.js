@@ -722,3 +722,145 @@ test("the status-page server blocks are not given immutable caching", () => {
     assert.ok(!block.body.includes("max-age=31536000"));
   }
 });
+
+// ---------------------------------------------------------------------------
+// proxy read/send timeouts (GH#3434)
+// ---------------------------------------------------------------------------
+
+/*
+ * Every location in the primary ingress that overrides nginx's 60s default
+ * proxy_read_timeout/proxy_send_timeout, and why it needs to. Pinned exactly,
+ * in both directions.
+ *
+ * It must not quietly shrink: dropping /api reintroduces GH#3434. The
+ * "Generate with AI" endpoints (incident and episode postmortems, and
+ * incident/alert/scheduled-maintenance notes) hold the browser's connection
+ * open across an entire LLM completion and write nothing until it finishes,
+ * so nginx sees one uninterrupted idle read. A self-hosted Ollama routinely
+ * needs more than 60s, and nginx answered with a 504 the dashboard could only
+ * render as "Error connecting to server. Please try again in few minutes."
+ *
+ * It must not quietly grow either: a location that does not hold connections
+ * open for minutes should not be allowed to, because every second of raised
+ * timeout is a second a hung upstream can pin a client connection.
+ */
+const PROXY_TIMEOUT_LOCATIONS = {
+  "/api": "300s", // synchronous LLM generation endpoints — GH#3434
+  "/mqtt": "300s", // device-controlled keepalive intervals
+  "/mcp": "86400s", // long-lived SSE streams
+};
+
+/*
+ * Mirrors INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS in
+ * Common/Server/Services/AIService.ts, which is the source of truth. These
+ * tests are node:test JavaScript and cannot import a TypeScript constant, so
+ * the value is restated here and the matching assertion — that the app's
+ * ceiling stays inside this proxy budget — is duplicated in
+ * Common/Tests/Server/API/AIGenerationRequestBudget.test.ts.
+ */
+const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS = 4 * 60 * 1000;
+
+function getProxyTimeoutMap(directiveName) {
+  const map = {};
+
+  for (const location of getLocationBlocks(primaryServerBlock.body)) {
+    const [directive] = getDirectives(location.body, directiveName);
+
+    if (directive) {
+      map[location.spec] = directive
+        .replace(new RegExp(`^\\s*${directiveName}\\s+`), "")
+        .replace(/;$/, "");
+    }
+  }
+
+  return map;
+}
+
+test("the /api ingress waits out a synchronous AI generation", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+
+  // No other location may shadow the path that was failing.
+  assert.equal(
+    resolveLocation(
+      locations,
+      "/api/incident/generate-postmortem-from-ai/00000000-0000-4000-8000-000000000000",
+    ).spec,
+    "/api",
+    "the postmortem generation request must land in location /api",
+  );
+
+  const apiLocation = locations.find((location) => {
+    return location.spec === "/api";
+  });
+
+  assert.ok(apiLocation, "missing location /api");
+
+  assert.deepEqual(
+    getDirectives(apiLocation.body, "proxy_read_timeout"),
+    ["proxy_read_timeout 300s;"],
+    "/api would inherit nginx's 60s default: a postmortem generation against a self-hosted Ollama 504s and the dashboard shows 'Error connecting to server' (GH#3434)",
+  );
+
+  assert.deepEqual(
+    getDirectives(apiLocation.body, "proxy_send_timeout"),
+    ["proxy_send_timeout 300s;"],
+    "/api must also be allowed to spend more than 60s writing the request upstream",
+  );
+});
+
+test("only the locations that need minutes override the 60s proxy default", () => {
+  assert.deepEqual(
+    getProxyTimeoutMap("proxy_read_timeout"),
+    PROXY_TIMEOUT_LOCATIONS,
+  );
+
+  // Each of the three raises both halves — a read budget without a matching
+  // send budget still strands a large request body at 60s.
+  assert.deepEqual(
+    getProxyTimeoutMap("proxy_send_timeout"),
+    PROXY_TIMEOUT_LOCATIONS,
+  );
+});
+
+test("nothing above the location blocks overrides the proxy timeouts", () => {
+  /*
+   * A proxy_read_timeout at http or server level would be inherited by every
+   * location, making the per-location assertions above vacuous — and would
+   * hand a five-minute budget to ingest endpoints that should fail fast.
+   */
+  assert.deepEqual(getDirectives(nginxConf, "proxy_read_timeout"), []);
+  assert.deepEqual(getDirectives(nginxConf, "proxy_send_timeout"), []);
+
+  for (const block of serverBlocks) {
+    let outsideLocations = stripComments(block.body);
+
+    for (const location of getLocationBlocks(block.body)) {
+      outsideLocations = outsideLocations.replace(location.body, "");
+    }
+
+    assert.deepEqual(getDirectives(outsideLocations, "proxy_read_timeout"), []);
+    assert.deepEqual(getDirectives(outsideLocations, "proxy_send_timeout"), []);
+  }
+});
+
+test("the /api proxy budget stays above the app's own AI generation ceiling", () => {
+  /*
+   * The two bounds are a pair: the app must give up first so the browser gets
+   * the provider's real error, and the proxy must not give up first because
+   * all it can produce is a 504 the UI renders as a generic connection error.
+   * Whichever of these two numbers moves, it has to stay on its own side.
+   */
+  const [directive] = getDirectives(
+    getLocationBlocks(primaryServerBlock.body).find((location) => {
+      return location.spec === "/api";
+    }).body,
+    "proxy_read_timeout",
+  );
+
+  const proxyBudgetInMs = parseInt(directive.match(/(\d+)s;/)[1], 10) * 1000;
+
+  assert.ok(
+    proxyBudgetInMs > INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+    `location /api gives a request ${proxyBudgetInMs}ms but the app allows an LLM call ${INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS}ms — the proxy would time out first and the user would see a 504 instead of the provider's error`,
+  );
+});

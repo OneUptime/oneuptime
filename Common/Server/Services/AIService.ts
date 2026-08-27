@@ -278,6 +278,33 @@ export interface AutonomousBudgetStatus {
   usedTokensToday: number;
 }
 
+/*
+ * How long a synchronous "Generate with AI" endpoint may spend inside the
+ * provider on a single attempt.
+ *
+ * These endpoints — incident and episode postmortems, and incident, alert and
+ * scheduled-maintenance notes — hold the browser's HTTP connection open across
+ * the whole completion and write nothing until it returns. nginx gives the
+ * request 300s (`location /api` in Nginx/default.conf.template), so this MUST
+ * stay strictly below that: whichever side gives up first decides what the
+ * user reads. When the server wins, the browser gets the provider's own
+ * explanation ("model not found", "connection refused", a rate limit). When
+ * the proxy wins, it synthesizes a gateway error — a 504, or a 502 when the
+ * app's hostname resolves to more than one address and nginx's retry also
+ * fails — and getFriendlyMessage in Common/UI/Utils/API/API.ts turns BOTH of
+ * those, and only those, into the generic "Error connecting to server. Please
+ * try again in few minutes." That is exactly the report in GH#3434.
+ *
+ * The remaining ~60s of headroom pays for building the incident context and
+ * writing the response. Callers pair this with `requestRetries: 0`: a second
+ * full-length attempt cannot fit inside the proxy budget, and by the time it
+ * began the browser would already have been handed a 504. The retry ladder is
+ * still the right default for unattended work (LLMService.DEFAULT_REQUEST_
+ * ATTEMPTS), which nothing here changes — a person watching a spinner can
+ * simply press the button again, and now sees why they need to.
+ */
+export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
+
 export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -722,9 +749,20 @@ export class Service extends BaseService {
           ? "The AI provider request failed. Review the provider configuration and try again."
           : rawErrorMessage;
 
-      // Log the error without persisting private provider details when asked.
+      /*
+       * Log the error without persisting private provider details when asked.
+       *
+       * statusMessage is varchar(500) (ColumnLength.LongText), and
+       * DatabaseService rejects an over-length value BEFORE any SQL runs — so
+       * an untruncated provider error does not just fail to be logged, its
+       * BadDataException about column length replaces the real failure on the
+       * way out and the operator never learns what the provider said. Provider
+       * errors are routinely longer than 500 characters (an echoed request
+       * body, an HTML error page). Truncate the same way the budget path
+       * above does.
+       */
       logEntry.status = LlmLogStatus.Error;
-      logEntry.statusMessage = errorMessage;
+      logEntry.statusMessage = errorMessage.substring(0, 490);
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 

@@ -19,7 +19,11 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIService, { AILogRequest, AILogResponse } from "../Services/AIService";
+import AIService, {
+  AILogRequest,
+  AILogResponse,
+  INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+} from "../Services/AIService";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -247,6 +251,15 @@ export default class IncidentAPI extends BaseAPI<
       maxTokens: 8192,
       temperature: 0.2,
       /*
+       * This request holds the browser's connection open across the whole
+       * completion, behind nginx's 300s budget for /api. Bound the provider
+       * call below that and take a single attempt, so a slow or broken
+       * provider answers with its own error instead of the proxy's gateway
+       * timeout — see INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS.
+       */
+      requestTimeoutInMs: INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+      requestRetries: 0,
+      /*
        * G8: the prompt embeds incident/alert/maintenance context whose read
        * ACLs are narrower than LlmLog's — do not store previews.
        */
@@ -380,6 +393,15 @@ export default class IncidentAPI extends BaseAPI<
       messages: aiContext.messages,
       maxTokens: 4096,
       temperature: 0.2,
+      /*
+       * This request holds the browser's connection open across the whole
+       * completion, behind nginx's 300s budget for /api. Bound the provider
+       * call below that and take a single attempt, so a slow or broken
+       * provider answers with its own error instead of the proxy's gateway
+       * timeout — see INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS.
+       */
+      requestTimeoutInMs: INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+      requestRetries: 0,
       /*
        * G8: the prompt embeds incident/alert/maintenance context whose read
        * ACLs are narrower than LlmLog's — do not store previews.
