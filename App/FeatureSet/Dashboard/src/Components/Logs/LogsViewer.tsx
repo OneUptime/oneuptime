@@ -1425,7 +1425,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         },
         urlSavedViewId: initialUrlState?.savedViewId,
         hasUrlScope: Boolean(initialUrlState?.hasScope),
-        hostOwnsView: Boolean(pinnedTimeRange || props.timeRangeOverride),
+        /*
+         * `!syncUrlState` is this viewer's marker for "embedded in another
+         * page" — an incident, an alert, a service's Logs tab. The project
+         * default view is a standalone-explorer idea (it is what the Traces
+         * and Metrics explorers already mean by enableSavedViews): applying
+         * one inside a service's Logs tab would silently re-window and
+         * re-filter a panel the user opened to see that service's logs. A
+         * view the URL NAMES still applies anywhere, because that is the
+         * user asking for it.
+         */
+        hostOwnsView: Boolean(
+          pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState,
+        ),
       });
 
     if (resolution.savedView) {
@@ -1454,6 +1466,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     savedViews,
     pinnedTimeRange,
     props.timeRangeOverride,
+    props.syncUrlState,
     initialUrlState,
   ]);
 

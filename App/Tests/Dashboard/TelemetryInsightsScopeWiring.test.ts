@@ -178,6 +178,23 @@ describe("the initial saved view no longer clobbers a deep link", () => {
     expect(source).toContain("setHasFetchedSavedViews(true);");
   });
 
+  test("the project default stays a standalone-explorer idea", () => {
+    /*
+     * Un-breaking the race above means the default view now genuinely
+     * applies where it never used to. That is right on /logs and wrong
+     * inside an embedded panel: applying one on a service's Logs tab would
+     * silently re-window and re-filter a panel the user opened to see that
+     * service's logs. `!syncUrlState` is this viewer's marker for embedded,
+     * and it is the same line the Traces and Metrics explorers already draw
+     * with enableSavedViews.
+     */
+    const source: string = readSquashed("Components/Logs/LogsViewer.tsx");
+
+    expect(source).toContain(
+      "hostOwnsView: Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, )",
+    );
+  });
+
   test("a URL-named view is applied under the scope the same URL carries", () => {
     /*
      * The trip back from Insights says "the DV-IMS view, but with the window
