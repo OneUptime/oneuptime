@@ -1380,3 +1380,47 @@ html.dark ::backdrop {
     animation: ou-pop-in 120ms ease-out;
   }
 }
+
+/*
+ * Project colour.
+ *
+ * Two marks, both small: a bar along the very top of the shared chrome, and a
+ * dot in the project picker. Together they answer "which project am I in"
+ * from anywhere in the product.
+ *
+ * Deliberately nothing else. Repainting buttons, links and tabs makes the
+ * colour compete with the interface instead of labelling it, and filling the
+ * picker outright reads as an alarm rather than a label — a solid red control
+ * on a monitoring tool says something is wrong. A dot carries the same
+ * information at a size that cannot shout, next to the project name where the
+ * eye already goes.
+ *
+ * Applied only when a colour is configured, so the default appearance is
+ * untouched.
+ */
+html.ou-has-project-color .oneuptime-top-section {
+  border-top: 4px solid var(--ou-project-color);
+}
+
+/*
+ * Shared by the picker button and the rows of its dropdown. The button takes
+ * its colour from the token; each dropdown row carries its own project's
+ * colour inline, which is the whole point of showing it there.
+ */
+.oneuptime-project-color-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* The button's dot is hidden unless a colour is set, so it costs nothing. */
+.oneuptime-project-color-dot--current {
+  display: none;
+  margin-right: 0.5rem;
+}
+
+html.ou-has-project-color .oneuptime-project-color-dot--current {
+  display: block;
+  background-color: var(--ou-project-color);
+}

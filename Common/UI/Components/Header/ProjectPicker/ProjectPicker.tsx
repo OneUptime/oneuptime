@@ -5,6 +5,7 @@ import ProjectPickerMenu from "./ProjectPickerMenu";
 import ProjectPickerMenuItem from "./ProjectPickerMenuItem";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Project from "../../../../Models/DatabaseModels/Project";
+import ProjectColorUtil from "../../../Utils/ProjectColor";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -31,6 +32,16 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   const [filterValue, setFilterValue] = useState<string>("");
 
+  /*
+   * Reserve the colour slot on every row as soon as one project uses it,
+   * so the names stay on a single left edge instead of stepping in and out.
+   */
+  const showColorSlot: boolean =
+    Boolean(ProjectColorUtil.getDefaultProjectColor()) ||
+    props.projects.some((project: Project) => {
+      return Boolean(ProjectColorUtil.normalize(project.color?.toString()));
+    });
+
   useEffect(() => {
     setDropdownVisible(isComponentVisible);
     setFilterValue("");
@@ -50,6 +61,15 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
           aria-labelledby="listbox-label"
         >
           <span className="flex items-center">
+            {/*
+             * Carries the resolved project colour when one is configured, and
+             * is hidden entirely when none is. Rendered here rather than as a
+             * ::before on the button so it sits inside this flex row.
+             */}
+            <span
+              className="oneuptime-project-color-dot oneuptime-project-color-dot--current"
+              aria-hidden="true"
+            />
             <Icon
               icon={props.selectedProjectIcon}
               className="h-5 w-5 flex-shrink-0 text-gray-500"
@@ -95,6 +115,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                             props.onProjectSelected(project);
                           }}
                           icon={IconProp.Folder}
+                          showColorSlot={showColorSlot}
                         />
                       );
                     })

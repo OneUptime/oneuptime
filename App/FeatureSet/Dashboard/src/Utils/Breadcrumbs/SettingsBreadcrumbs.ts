@@ -101,6 +101,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Feature Flags",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_APPEARANCE, [
+      "Project",
+      "Settings",
+      "Appearance",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING, [
       "Project",
       "Settings",

@@ -18,6 +18,10 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ProjectColorUtil from "Common/UI/Utils/ProjectColor";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "Common/UI/Utils/GlobalConfig";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { useEffect, useState, Suspense, lazy } from "react";
@@ -261,6 +265,29 @@ const App: () => JSX.Element = () => {
       setError(API.getFriendlyMessage(e));
     }
   }, [selectedProject?._id]);
+
+  /*
+   * Mark the dashboard with the selected project's colour.
+   *
+   * Kept apart from the effect above, and deliberately swallowing its own
+   * errors: the colour is decoration, and a failed lookup must never surface
+   * as a page-level error or block the dashboard from rendering. Falling back
+   * to no colour is a complete, correct outcome.
+   */
+  useAsyncEffect(async () => {
+    try {
+      const globalVars: GlobalConfigVars = await GlobalConfigUtil.fetchVars();
+
+      ProjectColorUtil.setColor(
+        ProjectColorUtil.resolve({
+          projectColor: selectedProject?.color?.toString() || null,
+          defaultProjectColor: globalVars.defaultProjectColor,
+        }),
+      );
+    } catch {
+      // Keep whatever is already painted.
+    }
+  }, [selectedProject?._id, selectedProject?.color?.toString()]);
 
   const onProjectSelected: (project: Project) => void = (
     project: Project,

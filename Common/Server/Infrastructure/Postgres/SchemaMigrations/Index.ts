@@ -552,6 +552,7 @@ import { AddNameToNetworkDeviceDiscoveryScan1789400000000 } from "./178940000000
 import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./1789512000000-AddDetectionRuleDistinctCountColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
+import { AddProjectColor1789600000000 } from "./1789600000000-AddProjectColor";
 
 export default [
   InitialMigration,
@@ -1108,4 +1109,5 @@ export default [
   AddNameToNetworkDeviceDiscoveryScan1789400000000,
   AddCampaignUtmFields1789500000000,
   AddDetectionRuleDistinctCountColumns1789512000000,
+  AddProjectColor1789600000000,
 ];
