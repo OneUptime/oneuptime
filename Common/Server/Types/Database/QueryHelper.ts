@@ -6,6 +6,7 @@ import Text from "../../../Types/Text";
 import Typeof from "../../../Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
+import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
 
@@ -245,6 +246,45 @@ export default class QueryHelper {
       },
       {
         [rid]: `%${name}`,
+      },
+    );
+  }
+
+  /*
+   * Glob matching (`api-*`, `*.internal`). The pattern comes from
+   * `toLikePattern`, which is also what the ClickHouse side uses, so a
+   * wildcard filter means the same thing on a Postgres model and on a
+   * telemetry model. Unlike the helpers above, the value is NOT lowercased
+   * first: `ILIKE` is already case-insensitive, and lowercasing would corrupt
+   * a `\A` escape into `\a`.
+   */
+  @CaptureSpan()
+  public static wildcard(glob: string): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) ILIKE :${rid})`;
+      },
+      {
+        [rid]: toLikePattern(glob.trim()),
+      },
+    );
+  }
+
+  /*
+   * The negation lets NULL through explicitly: a row with no value at all
+   * trivially does not match a glob, but `NULL ILIKE ...` is NULL, which
+   * would filter it out. Mirrors `notContains` above.
+   */
+  @CaptureSpan()
+  public static notWildcard(glob: string): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(CAST(${alias} AS TEXT) NOT ILIKE :${rid} OR ${alias} IS NULL)`;
+      },
+      {
+        [rid]: toLikePattern(glob.trim()),
       },
     );
   }

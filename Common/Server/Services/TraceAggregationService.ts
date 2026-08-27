@@ -1,8 +1,13 @@
-import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "../Utils/AnalyticsDatabase/Statement";
+import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import SpanService from "./SpanService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -27,11 +32,27 @@ export interface HistogramBucket {
 }
 
 /*
- * An exact attribute predicate. A single string is `= value`; an array is
- * `IN (...)`, which is what a multi-select dashboard variable resolves to.
- * Mirrors LogAttributeFilterValue so both explorers filter identically.
+ * A serialized QueryOperator (`{_type: "Wildcard", value: ["api-*"]}` and
+ * friends) — how an attribute filter row that uses any operator other than
+ * the implicit `=` arrives over the wire, since every QueryOperator's
+ * toJSON() emits this shape. See appendAttributeOperatorFilter.
  */
-export type TraceAttributeFilterValue = string | Array<string>;
+export interface SerializedAttributeOperator {
+  _type: string;
+  value?: unknown;
+}
+
+/*
+ * An attribute predicate. A single string is `= value`; an array is
+ * `IN (...)`, which is what a multi-select dashboard variable resolves to;
+ * an object is any other operator (contains, matches, is empty, ...), which
+ * the span list already compiles through StatementGenerator. Mirrors
+ * LogAttributeFilterValue so both explorers filter identically.
+ */
+export type TraceAttributeFilterValue =
+  | string
+  | Array<string>
+  | SerializedAttributeOperator;
 export type TraceAttributeFilters = Record<string, TraceAttributeFilterValue>;
 
 export interface TraceFilters {
@@ -1058,6 +1079,12 @@ export class TraceAggregationService {
      * Values are kept verbatim (no trim) — the list-side Search serialization
      * wraps the raw value in %...%, and quoted search values deliberately
      * preserve whitespace. Only blank entries are skipped.
+     *
+     * Every ILIKE below escapes the user's `%` and `_` so they match
+     * literally. The list query escapes centrally (Statement.serializseValue);
+     * without the same treatment here a span name like `GET /100%` counted
+     * every span in the chart while the table beside it counted only the
+     * matching ones.
      */
     if (request.spanNameSearches && request.spanNameSearches.length > 0) {
       for (const search of request.spanNameSearches) {
@@ -1067,7 +1094,7 @@ export class TraceAggregationService {
         statement.append(
           SQL` AND name ILIKE ${{
             type: TableColumnType.Text,
-            value: `%${search}%`,
+            value: `%${escapeIlikePattern(search)}%`,
           }}`,
         );
       }
@@ -1095,7 +1122,7 @@ export class TraceAggregationService {
       statement.append(
         SQL` AND name ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${request.nameSearchText.trim()}%`,
+          value: `%${escapeIlikePattern(request.nameSearchText.trim())}%`,
         }}`,
       );
     }
@@ -1107,7 +1134,7 @@ export class TraceAggregationService {
       statement.append(
         SQL` AND statusMessage ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${request.statusMessageSearchText}%`,
+          value: `%${escapeIlikePattern(request.statusMessageSearchText)}%`,
         }}`,
       );
     }
@@ -1199,6 +1226,38 @@ export class TraceAggregationService {
           continue;
         }
 
+        if (typeof attrValue === "object" && attrValue !== null) {
+          /*
+           * An operator row (`@k:api-*`, `@k:~web`, `@k:>5`, ...). The span
+           * list compiles these through StatementGenerator, so without this
+           * branch the object bound as "[object Object]" and the histogram
+           * beside a narrowed list showed either nothing or everything.
+           */
+          TraceAggregationService.appendAttributeOperatorFilter(
+            statement,
+            attrKey,
+            attrValue as unknown as Record<string, unknown>,
+          );
+          continue;
+        }
+
+        if (attrValue === "") {
+          /*
+           * A blank equality value is "missing or empty", not "present and
+           * empty": the list query compares `attributes['k'] = ''`, and a Map
+           * subscript returns the type default for a key the row does not
+           * carry, so rows without the attribute match too. Routed through the
+           * operator builder so a bare "" and an explicit EqualTo("") — the
+           * same filter written two ways — cannot disagree.
+           */
+          TraceAggregationService.appendAttributeOperatorFilter(
+            statement,
+            attrKey,
+            { _type: ObjectType.IsNull },
+          );
+          continue;
+        }
+
         statement.append(
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,
@@ -1224,18 +1283,49 @@ export class TraceAggregationService {
           continue;
         }
 
-        // Same key matching as `attributes`, contains-match on the value.
+        /*
+         * Same key matching as `attributes`, contains-match on the value,
+         * `%`/`_` escaped so they match literally (see spanNameSearches).
+         *
+         * Kept alongside the operator dispatch above because saved views and
+         * existing deep links still send this channel; a Search operator in
+         * `attributes` compiles to exactly the same predicate.
+         */
         statement.append(
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,
             value: attrKey,
           }}) AND v ILIKE ${{
             type: TableColumnType.Text,
-            value: `%${attrValue}%`,
+            value: `%${escapeIlikePattern(attrValue)}%`,
           }}, mapKeys(attributes), mapValues(attributes))`,
         );
       }
     }
+  }
+
+  /*
+   * Attribute filter rows carry an operator (`contains`, `matches`,
+   * `is any of`, `is empty`, ...) as well as a value, and the operator
+   * travels over the wire as the serialized `{_type, value}` shape every
+   * QueryOperator's toJSON() produces. The span list compiles those through
+   * StatementGenerator; the histogram, facets and analytics used to treat
+   * anything non-array as a plain string, so a wildcard filter narrowed the
+   * list and left the chart above it unfiltered.
+   *
+   * The compilation itself lives in AttributeFilterStatement so the log and
+   * metric builders answer identically — see the comment there.
+   */
+  private static appendAttributeOperatorFilter(
+    statement: Statement,
+    attrKey: string,
+    attrValue: Record<string, unknown>,
+  ): void {
+    appendAttributeOperatorFilter({
+      statement,
+      attributeKey: attrKey,
+      operator: attrValue,
+    });
   }
 
   private static readonly DEFAULT_ANALYTICS_LIMIT: number = 10;

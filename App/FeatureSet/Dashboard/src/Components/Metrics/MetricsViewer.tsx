@@ -63,7 +63,21 @@ import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
 import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
-import Search from "Common/Types/BaseDatabase/Search";
+import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import {
+  ATTRIBUTE_FACET_PREFIX,
+  METRICS_FIELD_ALIAS_MAP,
+  METRICS_KNOWN_FIELD_KEYS,
+  MetricNameFilter,
+  MetricsAttributeFilters,
+  MetricsTextMatcher,
+  ParsedMetricsSearch,
+  mergeMetricsAttributeFilters,
+  parseMetricsSearch,
+  valueCarriesSearchSyntax,
+} from "./MetricsSearchQuery";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -98,7 +112,7 @@ async function postApi(
  */
 async function fetchEntityScopedSparklineAggregates(data: {
   metricNames: Array<string>;
-  attributes: Record<string, string>;
+  attributes: MetricsAttributeFilters;
   startAndEndDate: InBetween<Date>;
   entityKeys: Array<string>;
   entityScope?: EntityScopeFilter | undefined;
@@ -156,11 +170,28 @@ async function fetchEntityScopedSparklineAggregates(data: {
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
+/*
+ * The syntax table. Every row here is honoured by the shared search grammar
+ * in Common/Types/Telemetry/TelemetrySearchQuery — the table used to list
+ * three rows for a parser that supported exact match and nothing else, so a
+ * user who typed the wildcard every other search box teaches got an empty
+ * list with no way to tell that the syntax, not the data, was missing.
+ */
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
+    syntax: "free text",
+    description: "Search metric names",
+    example: "http.server",
+  },
+  {
     syntax: "name:<fragment>",
-    description: "Filter by metric name",
+    description: "Metric name contains",
     example: "name:http.server",
+  },
+  {
+    syntax: "name:<glob>",
+    description: "Metric name matches — * is any text, ? is one character",
+    example: "name:http.server.*",
   },
   {
     syntax: "service:<name>",
@@ -168,18 +199,41 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
     example: "service:api",
   },
   {
-    syntax: "@<attribute>:<value>",
+    syntax: "@<attr>:<value>",
     description: "Filter by attribute",
     example: "@container.name:postgres",
   },
+  {
+    syntax: "@<attr>:<value>*",
+    description: "Wildcard — * is any text, ? is one character",
+    example: "@k8s.pod.name:api-*",
+  },
+  {
+    syntax: "@<attr>:*",
+    description: "Attribute is present",
+    example: "@host.name:*",
+  },
+  {
+    syntax: "@<attr>:~<text>",
+    description: "Attribute contains",
+    example: "@container.name:~postgres",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude — works with every filter above",
+    example: "-@container.name:postgres",
+  },
+  {
+    syntax: "@<attr>:(a OR b)",
+    description: "Any of these values",
+    example: "@http.method:(GET OR POST)",
+  },
+  {
+    syntax: "@<attr>:>N",
+    description: "Numeric comparison (also >=, <, <=)",
+    example: "@http.status_code:>=500",
+  },
 ];
-
-const FIELD_ALIAS_MAP: Record<string, string> = {
-  name: "name",
-  service: "services.name",
-};
-
-const KNOWN_FIELD_KEYS: Set<string> = new Set(["name", "service"]);
 
 interface InitialUrlState {
   search: string;
@@ -590,7 +644,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
     if (
       !attrKey ||
-      KNOWN_FIELD_KEYS.has(attrKey) ||
+      METRICS_KNOWN_FIELD_KEYS.has(attrKey.toLowerCase()) ||
       attrKey === lastValueSuggestionKeyRef.current
     ) {
       return;
@@ -621,128 +675,29 @@ const MetricsViewer: FunctionComponent<Props> = (
   }, [searchValue]);
 
   /*
-   * Parse search string
-   * Follows log syntax: name:value, service:value (no @) for fields;
-   * @attribute:value (with @) for attributes
+   * The typed search string, compiled. The grammar is the one every explorer
+   * shares (see MetricsSearchQuery), which is what makes `@platform.team:a*`
+   * a prefix match here as well: this used to be a hand-rolled tokenizer that
+   * understood exact match and nothing else, so a glob was matched against
+   * the literal characters `a` and `*` and found nothing.
    */
-  const parseSearch: (raw: string) => {
-    freeText: string;
-    nameFragment: string | null;
-    serviceFragment: string | null;
-    attributes: Record<string, string>;
-  } = useCallback((raw: string) => {
-    let nameFragment: string | null = null;
-    let serviceFragment: string | null = null;
-    const attributes: Record<string, string> = {};
-    const freeTextParts: Array<string> = [];
-    /*
-     * Tokenizer also matches `field:"value with spaces"` so users can search
-     * metric names that include spaces. See the matching block in
-     * TracesViewer for details.
-     */
-    const rawTokens: Array<string> =
-      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
-    const tokens: Array<string> = [];
-    for (let i: number = 0; i < rawTokens.length; i++) {
-      const token: string = rawTokens[i]!;
-      if (token.endsWith(":") && i + 1 < rawTokens.length) {
-        const prefix: string = token.slice(0, -1);
-        const isAttr: boolean = prefix.startsWith("@");
-        const fieldName: string = isAttr
-          ? prefix.slice(1).toLowerCase()
-          : prefix.toLowerCase();
-        if (isAttr || KNOWN_FIELD_KEYS.has(fieldName)) {
-          let merged: string = token + rawTokens[i + 1]!;
-          i++;
-          if (merged.includes(':"') && !merged.endsWith('"')) {
-            while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-              i++;
-              merged = merged + " " + rawTokens[i]!;
-            }
-          }
-          tokens.push(merged);
-          continue;
-        }
-      }
-      if (token.includes(':"') && !token.endsWith('"')) {
-        let merged: string = token;
-        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-          i++;
-          merged = merged + " " + rawTokens[i]!;
-        }
-        tokens.push(merged);
-        continue;
-      }
-      tokens.push(token);
-    }
-    const stripQuotes: (s: string) => string = (s: string): string => {
-      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
-        return s.slice(1, -1);
-      }
-      return s;
-    };
-    for (const token of tokens) {
-      // @attribute:value → attribute filter
-      const attrMatch: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (attrMatch) {
-        const attrKey: string = attrMatch[1]!;
-        const attrValue: string = stripQuotes(attrMatch[2]!);
-        if (attrValue.length > 0) {
-          attributes[attrKey] = attrValue;
-        }
-        continue;
-      }
-      // field:value (no @) → known field filter
-      const fieldMatch: RegExpMatchArray | null = token.match(/^([^:]+):(.*)$/);
-      if (fieldMatch) {
-        const fieldName: string = fieldMatch[1]!.toLowerCase();
-        const fieldValue: string = stripQuotes(fieldMatch[2]!);
-        if (fieldName === "name" && fieldValue.length > 0) {
-          nameFragment = fieldValue;
-        } else if (fieldName === "service" && fieldValue.length > 0) {
-          serviceFragment = fieldValue;
-        } else {
-          freeTextParts.push(token);
-        }
-        continue;
-      }
-      freeTextParts.push(token);
-    }
-    return {
-      freeText: freeTextParts.join(" ").trim(),
-      nameFragment,
-      serviceFragment,
-      attributes,
-    };
-  }, []);
-
-  // Parsed search (memoized from submitted search)
-  const parsedSearch: ReturnType<typeof parseSearch> = useMemo(() => {
-    return parseSearch(submittedSearch);
-  }, [submittedSearch, parseSearch]);
+  const parsedSearch: ParsedMetricsSearch = useMemo(() => {
+    return parseMetricsSearch(submittedSearch);
+  }, [submittedSearch]);
 
   /*
-   * Merge attribute filters from two sources:
+   * Merge attribute filters from three sources:
    *   1. Tokens parsed from the typed search string (`@key:value`).
    *   2. Chips in `activeFilters` whose key starts with `attributes.`
    *      (added when the user picks a value from the dropdown / hits Enter).
+   *   3. The scope pinned by the host page (`props.attributeFilters`).
    */
-  const effectiveAttributes: Record<string, string> = useMemo(() => {
-    const attrs: Record<string, string> = { ...parsedSearch.attributes };
-    for (const filter of activeFilters) {
-      if (filter.facetKey.startsWith("attributes.")) {
-        const attrKey: string = filter.facetKey.substring("attributes.".length);
-        attrs[attrKey] = filter.value;
-      }
-    }
-    if (props.attributeFilters) {
-      for (const [key, value] of Object.entries(props.attributeFilters)) {
-        if (value) {
-          attrs[key] = value;
-        }
-      }
-    }
-    return attrs;
+  const effectiveAttributes: MetricsAttributeFilters = useMemo(() => {
+    return mergeMetricsAttributeFilters({
+      parsed: parsedSearch.attributes,
+      chips: activeFilters,
+      ...(props.attributeFilters ? { pinned: props.attributeFilters } : {}),
+    });
   }, [parsedSearch.attributes, activeFilters, props.attributeFilters]);
 
   /*
@@ -872,21 +827,22 @@ const MetricsViewer: FunctionComponent<Props> = (
     ];
 
     /*
-     * `service:<fragment>` search token — resolve to service ids by
-     * case-insensitive substring match against the loaded service names.
-     * When the fragment matches nothing, force empty results instead of
-     * silently ignoring the filter. Skipped when the service list hasn't
-     * loaded (scoped views don't load it and scope services via props).
+     * `service:<fragment>` search token — resolved to service ids against the
+     * loaded service names, because the metric list filters by id. When the
+     * token matches nothing, force empty results instead of silently ignoring
+     * the filter. Skipped when the service list hasn't loaded (scoped views
+     * don't load it and scope services via props).
      */
     let serviceFragmentMatchedNothing: boolean = false;
-    if (parsedSearch.serviceFragment && services.length > 0) {
-      const fragment: string = parsedSearch.serviceFragment.toLowerCase();
+    const serviceMatcher: MetricsTextMatcher | null =
+      parsedSearch.serviceMatcher;
+    if (serviceMatcher && services.length > 0) {
       const fragmentServiceIds: Array<ObjectID> = [];
       for (const service of services) {
         if (
           service.id &&
           service.name &&
-          service.name.toString().toLowerCase().includes(fragment)
+          serviceMatcher(service.name.toString())
         ) {
           fragmentServiceIds.push(service.id);
         }
@@ -904,9 +860,8 @@ const MetricsViewer: FunctionComponent<Props> = (
       );
     }
 
-    // Name search (freeText + @name:)
-    const nameQuery: string | null =
-      parsedSearch.nameFragment || parsedSearch.freeText;
+    // Name search (free text, or an explicit `name:`)
+    const nameFilter: MetricNameFilter | null = parsedSearch.nameFilter;
 
     if (serviceFragmentMatchedNothing) {
       // No service matched `service:<fragment>` — force empty results
@@ -915,12 +870,16 @@ const MetricsViewer: FunctionComponent<Props> = (
       if (attributeMatchedNames.length === 0) {
         // No metrics match the attribute filter — force empty results
         (query as Record<string, unknown>)["name"] = "__no_match__";
-      } else if (nameQuery) {
-        // Intersect: only show attribute-matched names that also contain the name fragment
-        const lowerNameQuery: string = nameQuery.toLowerCase();
+      } else if (nameFilter) {
+        /*
+         * Intersect. The names came back from ClickHouse already, so the name
+         * restriction is applied to that list rather than to the column — by
+         * the SAME predicate the column would have used, so the two paths
+         * cannot disagree about what `name:http.server.*` means.
+         */
         const filtered: Array<string> = attributeMatchedNames.filter(
-          (n: string): boolean => {
-            return n.toLowerCase().includes(lowerNameQuery);
+          (metricName: string): boolean => {
+            return nameFilter.matches(metricName);
           },
         );
         if (filtered.length === 0) {
@@ -933,12 +892,14 @@ const MetricsViewer: FunctionComponent<Props> = (
           attributeMatchedNames,
         );
       }
-    } else if (nameQuery) {
+    } else if (nameFilter) {
       /*
-       * Use substring matching so @name:container.blockio matches
-       * container.blockio.io_service_bytes_recursive
+       * A plain `name:container.blockio` is a FRAGMENT — it has to match
+       * container.blockio.io_service_bytes_recursive. A glob says exactly
+       * where it may match instead, so `name:http.server.*` anchors at the
+       * start rather than matching anywhere in the name.
        */
-      (query as Record<string, unknown>)["name"] = new Search(nameQuery);
+      (query as Record<string, unknown>)["name"] = nameFilter.queryValue;
     }
 
     return query;
@@ -1059,7 +1020,8 @@ const MetricsViewer: FunctionComponent<Props> = (
             })
           : await MetricUtil.fetchSparklineAggregates({
               metricNames: visibleNames,
-              attributes: effectiveAttributes as Record<string, string>,
+              attributes:
+                effectiveAttributes as Dictionary<DictionaryEntryValue>,
               startAndEndDate: new InBetween<Date>(
                 dateRange.startValue,
                 dateRange.endValue,
@@ -1213,8 +1175,8 @@ const MetricsViewer: FunctionComponent<Props> = (
             },
           );
           // Attribute chips (`attributes.<key>`) display as just `<key>`.
-          const displayKey: string = facetKey.startsWith("attributes.")
-            ? facetKey.substring("attributes.".length)
+          const displayKey: string = facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)
+            ? facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)
             : config?.title || facetKey;
           const displayValue: string =
             config?.valueDisplayMap?.[value] || value;
@@ -1250,16 +1212,26 @@ const MetricsViewer: FunctionComponent<Props> = (
           return c.key === chip.facetKey;
         },
       );
-      const displayKey: string = chip.facetKey.startsWith("attributes.")
-        ? chip.facetKey.substring("attributes.".length)
+      const isAttributeChip: boolean = chip.facetKey.startsWith(
+        ATTRIBUTE_FACET_PREFIX,
+      );
+      const displayKey: string = isAttributeChip
+        ? chip.facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)
         : config?.title || chip.displayKey || chip.facetKey;
-      const displayValue: string =
-        config?.valueDisplayMap?.[chip.value] ||
-        (chip.facetKey === "primaryEntityId"
-          ? scopedServiceNameMap[chip.value]
-          : undefined) ||
-        chip.displayValue ||
-        chip.value;
+      /*
+       * An attribute chip stores its value in the search grammar, so a
+       * literal asterisk arrives escaped (`a\*b`) and an any-of list arrives
+       * bracketed. The chip has to show the value the user typed, not its
+       * escaping.
+       */
+      const displayValue: string = isAttributeChip
+        ? describeSearchValue(chip.value)
+        : config?.valueDisplayMap?.[chip.value] ||
+          (chip.facetKey === "primaryEntityId"
+            ? scopedServiceNameMap[chip.value]
+            : undefined) ||
+          chip.displayValue ||
+          chip.value;
       return { ...chip, displayKey, displayValue };
     };
 
@@ -1324,7 +1296,7 @@ const MetricsViewer: FunctionComponent<Props> = (
        * scoped to the same entity the list was, instead of aggregating the
        * metric across every service in the project.
        */
-      const presetAttributes: Record<string, string> = {};
+      const presetAttributes: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(effectiveAttributes)) {
         if (value) {
           presetAttributes[key] = value;
@@ -1497,7 +1469,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search metrics — e.g. name:http service:api @container.name:postgres"
+      searchPlaceholder="Search metrics — e.g. name:http.server.* service:api @container.name:postgres"
       searchSuggestions={["name", "service"]}
       searchAttributeSuggestions={telemetryAttributes}
       searchValueSuggestions={attributeValueSuggestions}
@@ -1509,36 +1481,48 @@ const MetricsViewer: FunctionComponent<Props> = (
       ): boolean | void => {
         /*
          * `name` and `service` are handled via the typed search path
-         * (substring + service fragment), so they stay in the search
+         * (fragment match + service resolution), so they stay in the search
          * string — return false so the search bar keeps the token in the
          * input and submits the search as-is. (Setting the search state
          * here instead doesn't work: the bar clears the token right after
          * this callback, which empties the input and resets the submitted
          * search, silently dropping the filter.)
          *
-         * Unknown keys are telemetry attributes — turn them into chips
-         * with the `attributes.` prefix so they live in `activeFilters`
-         * and are routed through the analytics query. Known-field
-         * detection is case-insensitive; attribute keys keep their
-         * original case (the backend matches map keys case-insensitively
-         * at query time).
+         * Anything carrying grammar — a glob, `~contains`, an any-of list,
+         * a comparison — stays in the input too. The bar resolves a typed
+         * value against the suggestion list before calling this, so a glob
+         * with exactly one matching suggestion would arrive here already
+         * replaced by that one literal value: `@k:a*` silently chipped as
+         * `@k:abc`.
          *
-         * For the attribute (chip) branch, strip surrounding quotes so a
-         * value like `"my-value"` doesn't get stored literally as a chip.
-         * The known-field branch preserves quotes because the search
-         * string is re-parsed by `parseSearch`, which strips them.
+         * Everything else is a telemetry attribute — turn it into a chip
+         * with the `attributes.` prefix so it lives in `activeFilters` and
+         * is routed through the analytics query. Known-field detection is
+         * case-insensitive; the attribute key keeps its original case,
+         * because ClickHouse resolves a plain equality with a direct map
+         * subscript (`attributes['k']`) and that lookup IS case-sensitive.
+         * Only the substring and glob operators reach the backend's
+         * case-insensitive key match.
+         *
+         * For the chip branch, strip surrounding quotes so a value like
+         * `"my-value"` doesn't get stored with them. The known-field branch
+         * preserves them because the search string is re-parsed, and the
+         * parser strips them itself.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
-        if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
+        if (METRICS_KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
+          return false;
+        }
+        if (valueCarriesSearchSyntax(value)) {
           return false;
         }
         const cleanValue: string =
           value.length >= 2 && value.startsWith('"') && value.endsWith('"')
             ? value.slice(1, -1)
             : value;
-        handleFacetInclude(`attributes.${fieldKey}`, cleanValue);
+        handleFacetInclude(`${ATTRIBUTE_FACET_PREFIX}${fieldKey}`, cleanValue);
       }}
-      searchFieldAliasMap={FIELD_ALIAS_MAP}
+      searchFieldAliasMap={METRICS_FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}
       searchHelpCombinedExample="service:api @container.name:postgres http.server.duration"
       // Time (drives sparkline range)

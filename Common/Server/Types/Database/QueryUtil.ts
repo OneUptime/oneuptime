@@ -11,6 +11,8 @@ import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
+import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
@@ -258,6 +260,22 @@ export default class QueryUtil {
       ) {
         query[key] = QueryHelper.endsWith(
           (query[key] as EndsWith<string>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof Wildcard &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.wildcard(
+          (query[key] as Wildcard<string>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof NotWildcard &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.notWildcard(
+          (query[key] as NotWildcard<string>).toString() as any,
         ) as any;
       } else if (
         query[key] &&
@@ -602,6 +620,14 @@ export default class QueryUtil {
           } else if (nestedValue instanceof NotContains) {
             relationQuery[relationKey] = QueryHelper.notContains(
               (nestedValue as NotContains<string>).toString(),
+            ) as any;
+          } else if (nestedValue instanceof Wildcard) {
+            relationQuery[relationKey] = QueryHelper.wildcard(
+              (nestedValue as Wildcard<string>).toString(),
+            ) as any;
+          } else if (nestedValue instanceof NotWildcard) {
+            relationQuery[relationKey] = QueryHelper.notWildcard(
+              (nestedValue as NotWildcard<string>).toString(),
             ) as any;
           }
         }

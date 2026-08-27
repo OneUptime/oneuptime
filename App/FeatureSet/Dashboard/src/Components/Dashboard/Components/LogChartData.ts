@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import QueryOperator from "Common/Types/BaseDatabase/QueryOperator";
 import DashboardLogChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardLogChartComponent";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { JSONObject } from "Common/Types/JSON";
@@ -86,15 +87,21 @@ export function resolveLogChartType(chartType: unknown): DashboardChartType {
 }
 
 /*
- * The histogram endpoint supports exact attribute equality. New widgets
- * store a structured key/value record; the query string remains only as a
- * fallback for widgets saved before the friendly editor existed.
+ * Attribute filters for the histogram endpoint. New widgets store a
+ * structured key/value record; the query string remains only as a fallback
+ * for widgets saved before the friendly editor existed.
+ *
+ * Operators travel as their own `{_type, value}` JSON, which the endpoint
+ * compiles into the same predicate the logs list uses. They used to be
+ * DROPPED here — only scalars and Includes survived — so a widget whose
+ * filter was `@platform.team:a*`, or any "contains" / "is not" row, rendered
+ * completely unfiltered while its editor showed the filter applied.
  */
 export function getExactAttributeFilters(data: {
   attributeFilters?: LogChartArguments["attributeFilters"] | undefined;
   attributeFilterQuery?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
-}): Record<string, string | Array<string>> {
+}): Record<string, string | Array<string> | JSONObject> {
   let parsedAttributes: Record<string, unknown> = {};
 
   if (data.attributeFilters !== undefined) {
@@ -112,7 +119,8 @@ export function getExactAttributeFilters(data: {
       data.variables,
     );
 
-  const exactAttributes: Record<string, string | Array<string>> = {};
+  const exactAttributes: Record<string, string | Array<string> | JSONObject> =
+    {};
   for (const [key, value] of Object.entries(interpolatedAttributes)) {
     if (
       typeof value === "string" ||
@@ -129,6 +137,13 @@ export function getExactAttributeFilters(data: {
       if (values.length > 0) {
         exactAttributes[key] = values;
       }
+    } else if (value instanceof QueryOperator) {
+      /*
+       * Every other operator — Search, Wildcard, NotEqual, GreaterThan, ... —
+       * goes over the wire as its own JSON. The endpoint understands all of
+       * them; refusing them here was the only reason they did not work.
+       */
+      exactAttributes[key] = value.toJSON();
     }
   }
 
@@ -163,7 +178,7 @@ export function buildLogHistogramRequest(data: {
     request["bodySearchText"] = bodyContains;
   }
 
-  const attributes: Record<string, string | Array<string>> =
+  const attributes: Record<string, string | Array<string> | JSONObject> =
     getExactAttributeFilters({
       attributeFilters: data.arguments.attributeFilters,
       attributeFilterQuery: data.arguments.attributeFilterQuery,
