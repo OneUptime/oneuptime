@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class UniqueOwnerRows1789600000000 implements MigrationInterface {
-  public name: string = "UniqueOwnerRows1789600000000";
+export class UniqueOwnerRows1789700000000 implements MigrationInterface {
+  public name: string = "UniqueOwnerRows1789700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*
