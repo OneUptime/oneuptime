@@ -18,6 +18,7 @@ import {
   hasWildcard,
   unescapeWildcards,
 } from "../BaseDatabase/WildcardPattern";
+import ObjectID from "../ObjectID";
 import { JSONObject } from "../JSON";
 
 /*
@@ -129,6 +130,18 @@ const WHITESPACE_REGEX: RegExp = /\s/;
 const RESERVED_PREFIX_REGEX: RegExp = /(["~!<>()[\]])/g;
 
 const LEADING_DASH_REGEX: RegExp = /^-/;
+
+/*
+ * What a bare (unprefixed) key has to look like before `key:value` is read as
+ * a filter rather than as prose. Without it every colon in a message became a
+ * filter on an invented field that matched nothing: `12:30` filtered a field
+ * called "12", and `https://example.com` one called "https". An explicit
+ * `@key:` bypasses this — the user has said what they mean.
+ */
+const BARE_FIELD_KEY_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9._\-/]*$/;
+
+/** A `//` after the colon is a URL scheme, never a filter value. */
+const URL_SCHEME_VALUE_REGEX: RegExp = /^\/\//;
 
 type StripQuotesFunction = (value: string) => string;
 
@@ -546,6 +559,19 @@ export const parseSearchQuery: ParseSearchQueryFunction = (
       continue;
     }
 
+    /*
+     * Prose that happens to contain a colon stays prose. Only a bare key is
+     * held to this; `@12:30` is an explicit instruction and is honoured.
+     */
+    if (
+      !isAttribute &&
+      (!BARE_FIELD_KEY_REGEX.test(rawKey) ||
+        URL_SCHEME_VALUE_REGEX.test(rawValue))
+    ) {
+      freeTextParts.push(unescapeWildcards(stripQuotes(rawToken)));
+      continue;
+    }
+
     flushFreeText();
 
     const key: string = isAttribute
@@ -798,4 +824,112 @@ export const describeSearchValue: DescribeSearchValueFunction = (
     default:
       return value;
   }
+};
+
+type QueryValueToChipValuesFunction = (value: unknown) => Array<string>;
+
+/**
+ * The inverse of {@link compileAttributeChipValues}: turn a stored attribute
+ * predicate back into the chip values that would produce it.
+ *
+ * A saved view stores the compiled query, not the chips, so without this an
+ * attribute filter comes back applied but invisible — and the next chip edit,
+ * which recompiles the query from the chips it can see, silently drops it.
+ */
+export const queryValueToChipValues: QueryValueToChipValuesFunction = (
+  value: unknown,
+): Array<string> => {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry: unknown) => {
+      return queryValueToChipValues(entry);
+    });
+  }
+
+  if (typeof value === "string") {
+    return value.length > 0 ? [buildSearchTokenValue(value)] : [];
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return [String(value)];
+  }
+
+  if (value instanceof Wildcard || value instanceof NotWildcard) {
+    const prefix: string = value instanceof NotWildcard ? "-" : "";
+
+    return value.values.map((glob: string) => {
+      return `${prefix}${glob}`;
+    });
+  }
+
+  if (value instanceof Includes) {
+    return value.values.map((entry: string | number | ObjectID) => {
+      return buildSearchTokenValue(entry.toString());
+    });
+  }
+
+  if (value instanceof IncludesNone) {
+    return [
+      `-(${value.values
+        .map((entry: string | number | ObjectID) => {
+          return buildSearchTokenValue(entry.toString());
+        })
+        .join(" OR ")})`,
+    ];
+  }
+
+  if (value instanceof NotNull) {
+    return ["*"];
+  }
+
+  if (value instanceof IsNull) {
+    return ["-*"];
+  }
+
+  if (value instanceof Search) {
+    return [`~${value.toString()}`];
+  }
+
+  if (value instanceof NotContains) {
+    return [`-~${value.toString()}`];
+  }
+
+  if (value instanceof StartsWith) {
+    return [`${escapeWildcards(value.toString())}*`];
+  }
+
+  if (value instanceof EndsWith) {
+    return [`*${escapeWildcards(value.toString())}`];
+  }
+
+  if (value instanceof NotEqual) {
+    return [`!${String(value.value ?? "")}`];
+  }
+
+  if (value instanceof GreaterThanOrEqual) {
+    return [`>=${String(value.value ?? "")}`];
+  }
+
+  if (value instanceof GreaterThan) {
+    return [`>${String(value.value ?? "")}`];
+  }
+
+  if (value instanceof LessThanOrEqual) {
+    return [`<=${String(value.value ?? "")}`];
+  }
+
+  if (value instanceof LessThan) {
+    return [`<${String(value.value ?? "")}`];
+  }
+
+  /*
+   * An operator with no chip rendering would come back as "[object Object]"
+   * on a chip. Returning nothing leaves the filter applied but unchipped,
+   * which is the lesser of the two evils and matches how the viewer already
+   * treats a base-query filter it cannot edit.
+   */
+  return [];
 };

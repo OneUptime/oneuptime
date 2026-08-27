@@ -21,7 +21,10 @@ import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefre
 import useLogsHistogram, {
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
-import { buildLogsHistogramRequest } from "./LogsHistogramRequest";
+import {
+  ATTRIBUTE_FACET_PREFIX,
+  buildLogsHistogramRequest,
+} from "./LogsHistogramRequest";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
@@ -41,6 +44,10 @@ import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
+import {
+  describeSearchValue,
+  queryValueToChipValues,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -352,6 +359,36 @@ function buildFacetFiltersFromQuery(
 
     if (values.length > 0) {
       nextFilters.set(facetKey, new Set(values));
+    }
+  }
+
+  /*
+   * `attributes.<key>` chips, the same way. Attribute filters were the one
+   * group applyLogsFacetFiltersToQuery compiled INTO a query and nothing read
+   * back out, so a saved view carrying `@platform.team:a*` reopened with the
+   * filter applied and no chip showing it — and the next chip edit, which
+   * recompiles from the chips it can see, silently dropped it.
+   */
+  const savedAttributes: Record<string, unknown> =
+    ((query as any)["attributes"] as Record<string, unknown>) || {};
+  const baseAttributes: Record<string, unknown> =
+    ((baseQuery as any)["attributes"] as Record<string, unknown>) || {};
+
+  for (const attributeKey of Object.keys(savedAttributes)) {
+    // A filter pinned by the host page is not the user's to edit or remove.
+    if (baseAttributes[attributeKey] !== undefined) {
+      continue;
+    }
+
+    const chipValues: Array<string> = queryValueToChipValues(
+      savedAttributes[attributeKey],
+    );
+
+    if (chipValues.length > 0) {
+      nextFilters.set(
+        `${ATTRIBUTE_FACET_PREFIX}${attributeKey}`,
+        new Set(chipValues),
+      );
     }
   }
 
@@ -1988,6 +2025,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         ? facetKey.substring("attributes.".length)
         : facetKeyDisplayNames[facetKey] || facetKey;
 
+      const isAttributeFacet: boolean = facetKey.startsWith(
+        ATTRIBUTE_FACET_PREFIX,
+      );
+
       for (const value of values) {
         const openRoute: Route | undefined =
           facetKey === "traceId"
@@ -2000,7 +2041,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           facetKey,
           value,
           displayKey,
-          displayValue: value,
+          /*
+           * An attribute chip stores the value in the search grammar, so a
+           * literal asterisk arrives escaped (`a\*b`). The chip has to show
+           * the value the user typed, not its escaping.
+           */
+          displayValue: isAttributeFacet ? describeSearchValue(value) : value,
           openRoute,
         });
       }
