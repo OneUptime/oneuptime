@@ -43,6 +43,7 @@ import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/Teleme
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { Statement } from "../AnalyticsDatabase/Statement";
+import ConnectorErrorMessage from "./ConnectorErrorMessage";
 import SigmaClickhouseCompiler, {
   buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
@@ -142,15 +143,29 @@ export default class DetectionRuleEvaluator {
         );
         logger.error(error);
 
+        /*
+         * Best-effort bookkeeping, guarded for the same reason as the
+         * SecOps poller's: one rule whose error will not store must not
+         * throw its way out of this loop and stop every other rule in
+         * the project from being evaluated. ClickHouse errors echo the
+         * failing query back, so they are the long ones.
+         */
         if (rule.id) {
-          await DetectionRuleService.updateOneById({
-            id: rule.id,
-            data: {
-              lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
-              lastError: error instanceof Error ? error.message : String(error),
-            },
-            props: {
-              isRoot: true,
+          const ruleId: ObjectID = rule.id;
+
+          await ConnectorErrorMessage.recordFailure({
+            label: `DetectionRuleEvaluator: rule ${ruleId.toString()}`,
+            write: async (): Promise<void> => {
+              await DetectionRuleService.updateOneById({
+                id: ruleId,
+                data: {
+                  lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
+                  lastError: ConnectorErrorMessage.toMessage(error),
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
             },
           });
         }

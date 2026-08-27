@@ -21,6 +21,9 @@ const getActiveSecurityEventsTab: (path: string) => SecurityEventsTabKey = (
   if (path.includes("/security-events/monitors")) {
     return "monitors";
   }
+  if (path.includes("/security-events/connections")) {
+    return "connections";
+  }
   if (path.includes("/security-events/documentation")) {
     return "setup";
   }
