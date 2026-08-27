@@ -30,6 +30,18 @@ export interface PodmanAlertTemplate {
   getMonitorStep: (args: PodmanAlertTemplateArgs) => MonitorStep;
 }
 
+/*
+ * Filter contract: the Podman agent stamps container identity as OTLP
+ * RESOURCE attributes, so ClickHouse stores them `resource.`-prefixed:
+ * `resource.container.name`, `resource.container.image.name`,
+ * `resource.container.runtime` ("podman") and `resource.host.name`. The
+ * worker adds the host scope (`resource.host.name` from hostIdentifier)
+ * and the runtime filter itself. Every template groups by
+ * `resource.container.name` so each container on the host is evaluated
+ * independently — one incident per container instead of one incident for
+ * the whole host, where the busiest container silences every other one.
+ */
+
 export function buildPodmanMonitorStep(args: {
   podmanMonitor: MonitorStepPodmanMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
@@ -184,6 +196,7 @@ export function buildPodmanMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKey?: string | undefined;
 }): MonitorStepPodmanMonitor {
   return {
     hostIdentifier: args.hostIdentifier,
@@ -205,6 +218,9 @@ export function buildPodmanMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
           },
         },
       ],
@@ -219,7 +235,8 @@ export function buildPodmanMonitorConfig(args: {
 const highCpuTemplate: PodmanAlertTemplate = {
   id: "podman-high-cpu",
   name: "High Container CPU Usage",
-  description: "Alert when container CPU usage exceeds 80% sustained.",
+  description:
+    "Alert when container CPU usage exceeds 80% sustained. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -232,10 +249,12 @@ const highCpuTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single hot container trips the threshold instead of
-         * being diluted by idle containers on the host.
+         * Max WITHIN each container's series: any scrape in the window over
+         * the threshold trips that container. Grouping by container name
+         * already keeps a hot container from being diluted by idle ones.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -264,7 +283,8 @@ const highCpuTemplate: PodmanAlertTemplate = {
 const highMemoryTemplate: PodmanAlertTemplate = {
   id: "podman-high-memory",
   name: "High Container Memory Usage",
-  description: "Alert when container memory usage exceeds 85% of its limit.",
+  description:
+    "Alert when container memory usage exceeds 85% of its limit. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -277,10 +297,12 @@ const highMemoryTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single container breaching its limit trips the
-         * threshold instead of being diluted by idle containers.
+         * Max WITHIN each container's series: any scrape in the window over
+         * the limit trips that container. Grouping by container name already
+         * keeps a container at its limit from being diluted by idle ones.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -310,7 +332,7 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
   id: "podman-restart-loop",
   name: "Container Restart Loop",
   description:
-    "Alert when a container has restarted more than 5 times, indicating a crash loop.",
+    "Alert when a container has restarted more than 5 times, indicating a crash loop. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -323,6 +345,7 @@ const containerRestartLoopTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -352,7 +375,7 @@ const highCpuThrottlingTemplate: PodmanAlertTemplate = {
   id: "podman-cpu-throttling",
   name: "Container CPU Throttling",
   description:
-    "Alert when a container is being CPU-throttled, indicating it needs more CPU resources.",
+    "Alert when a container is being CPU-throttled, indicating it needs more CPU resources. One alert per container.",
   category: "Resource",
   severity: "Warning",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -365,10 +388,12 @@ const highCpuThrottlingTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single throttled container trips the threshold,
-         * rather than summing throttled time across all containers.
+         * Max WITHIN each container's series, so throttled time is never
+         * summed across containers — grouping by container name attributes
+         * the throttling to the container that actually suffered it.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -398,7 +423,7 @@ const highProcessCountTemplate: PodmanAlertTemplate = {
   id: "podman-high-pids",
   name: "High Container Process Count",
   description:
-    "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak.",
+    "Alert when a container has an unusually high number of processes, which may indicate a fork bomb or resource leak. One alert per container.",
   category: "Container",
   severity: "Warning",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -411,6 +436,7 @@ const highProcessCountTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -440,7 +466,7 @@ const containerUptimeTemplate: PodmanAlertTemplate = {
   id: "podman-container-down",
   name: "Container Down (Low Uptime)",
   description:
-    "Alert when a container's uptime drops to zero, indicating it has stopped or crashed.",
+    "Alert when a container's uptime drops to zero, indicating it has stopped or crashed. One alert per container.",
   category: "Container",
   severity: "Critical",
   getMonitorStep: (args: PodmanAlertTemplateArgs): MonitorStep => {
@@ -453,6 +479,7 @@ const containerUptimeTemplate: PodmanAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past1Minute,
         aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKey: "resource.container.name",
       }),
       offlineCriteriaInstance: buildPodmanOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

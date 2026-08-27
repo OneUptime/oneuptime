@@ -73,7 +73,23 @@ resource "oneuptime_monitor" "website" {
     monitor_destination_type = "URL"                 # URL | Hostname | IP
     request_type             = "GET"                 # HTTP method for Website/API monitors
 
-    criteria = [ # evaluated in order; first match wins
+    criteria = [ # evaluated in order; first match wins, so alerting first and healthy last
+      {
+        name                  = "Offline"
+        description           = "Check if website is offline"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      },
       {
         name                  = "Online"
         description           = "Check if website is online"
@@ -92,22 +108,6 @@ resource "oneuptime_monitor" "website" {
             check_on    = "Response Status Code"
             filter_type = "Equal To"
             value       = "200" # comparison values are strings
-          }
-        ]
-      },
-      {
-        name                  = "Offline"
-        description           = "Check if website is offline"
-        filter_condition      = "Any"
-        change_monitor_status = true
-        create_incidents      = false
-        create_alerts         = false
-        monitor_status_id     = oneuptime_monitor_status.offline.id
-
-        filters = [
-          {
-            check_on    = "Is Online"
-            filter_type = "False"
           }
         ]
       }
@@ -175,7 +175,13 @@ These escape hatches mirror the dashboard's JSON for each monitor type — an es
 
 ## Criteria attributes
 
-Each entry of `criteria` is one rule: *if these filters match, do these things.* Criteria are evaluated in order and the first matching one wins, so put your "healthy" criteria first and your "down" criteria after it.
+Each entry of `criteria` is one rule: *if these filters match, do these things.*
+
+**Order matters, and the order is alerting first.** Criteria are evaluated top to bottom and the first one that matches wins — evaluation stops there, and every criteria below it is never looked at on that check. So list your alerting criteria first, most severe first (critical, then warning), and put the "healthy" / recovery criteria **last**.
+
+Putting a "healthy" criteria first is the most common way to build a monitor that never alerts. A broad healthy rule — `Is Online` is `True`, or a metric value `Greater Than` `0` — matches on almost every check, claims the evaluation, and the "down" criteria underneath it never runs. Ordered the other way round, the down criteria gets its chance first and the healthy criteria only matches when nothing above it did, which is exactly what you want.
+
+**Grouped metric monitors are the one exception to first-match-wins.** When a metric monitor's query is grouped — `groupByAttributeKeys` set inside the escape-hatch JSON, at `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys` — the monitor raises one alert/incident *per group* (per host, per container, per mountpoint) and every criteria is evaluated, so a "critical" and a "warning" criteria can fire on different hosts on the same check. A host that breaches both still pages once, from the first matching criteria, so most-severe-first still applies. See [Metrics Monitor](/docs/monitor/metrics-monitor).
 
 | Attribute | Type | Meaning |
 |-----------|------|---------|

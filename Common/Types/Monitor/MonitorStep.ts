@@ -79,6 +79,7 @@ import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "./MonitorStepIoTMonitor";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
+import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 /*
@@ -387,6 +388,54 @@ export default class MonitorStep extends DatabaseProperty {
       data.proxmoxMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig
     );
+  }
+
+  /**
+   * The union of `groupByAttributeKeys` across every metric query config
+   * on this step — i.e. the attributes the monitor is grouped by.
+   *
+   * This is the single source of truth for "is this monitor grouped?".
+   * The telemetry worker uses it to decide whether to build a
+   * `seriesBreakdown`, and the criteria evaluator uses it to decide
+   * whether a criteria is *meant* to fan out one alert/incident per
+   * series. Those two answers must never disagree: when they did, a
+   * grouped monitor that produced no per-series match silently fell
+   * back to a single whole-monitor alert whose dedupe key carries no
+   * series, and every host after the first was skipped for as long as
+   * that alert stayed open.
+   */
+  public static getGroupByAttributeKeys(
+    monitorStep: MonitorStep | undefined,
+  ): Array<string> {
+    return MonitorStep.getGroupByAttributeKeysFromQueryConfigs(
+      MonitorStep.getMetricsViewConfig(monitorStep)?.queryConfigs || [],
+    );
+  }
+
+  /**
+   * The query-config-level half of `getGroupByAttributeKeys`, for the
+   * telemetry worker which already holds the configs and never
+   * reconstructs the step. Per-series alerting needs a consistent key
+   * set across queries so formula series line up — otherwise `a + b`
+   * would split differently for `a` and for `b` and the per-series
+   * formula evaluation would not align — hence the union rather than
+   * per-query keys.
+   */
+  public static getGroupByAttributeKeysFromQueryConfigs(
+    queryConfigs: Array<MetricQueryConfigData>,
+  ): Array<string> {
+    const keys: Set<string> = new Set<string>();
+
+    for (const queryConfig of queryConfigs) {
+      for (const key of queryConfig?.metricQueryData?.groupByAttributeKeys ||
+        []) {
+        if (key) {
+          keys.add(key);
+        }
+      }
+    }
+
+    return Array.from(keys);
   }
 
   public get id(): ObjectID {
