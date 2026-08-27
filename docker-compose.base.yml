@@ -29,6 +29,12 @@ x-common-variables: &common-variables
 
   ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN: ${ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN}
 
+  # Outbound webhook egress policy — see config.example.env for the full
+  # explanation. Both are off by default and both need a matching per-project
+  # opt-in in Project Settings before they grant anything.
+  ALLOW_PRIVATE_NETWORK_WEBHOOKS: ${ALLOW_PRIVATE_NETWORK_WEBHOOKS:-false}
+  PRIVATE_NETWORK_WEBHOOK_ALLOWLIST: ${PRIVATE_NETWORK_WEBHOOK_ALLOWLIST:-}
+
   SERVER_APP_HOSTNAME: app
   SERVER_HOME_HOSTNAME: home
   #Ports. Usually they don't need to change.

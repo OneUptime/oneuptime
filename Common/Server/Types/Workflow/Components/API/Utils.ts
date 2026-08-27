@@ -10,6 +10,7 @@ import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
 import { RequestOptions } from "../../../../../Utils/API";
+import ProjectService from "../../../../Services/ProjectService";
 import SSRFProtection from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
@@ -147,8 +148,21 @@ export class ApiComponentUtils {
      * unrecognized scheme to https, so "file:///etc/passwd" would reach the
      * check already rewritten as host "file".
      */
+    /*
+     * A self-hosted install may legitimately point a workflow at an internal
+     * service (issue #3424). That is the ONE case the blocklist widens for,
+     * and only when the instance operator configured the exception AND this
+     * project opted in — see ProjectService.isPrivateNetworkWebhookAllowed.
+     * Everywhere else, and on every SaaS deployment, this resolves to false
+     * and the policy above is unchanged.
+     */
+    const allowPrivateNetworkTargets: boolean =
+      await ProjectService.isPrivateNetworkWebhookAllowed(options.projectId);
+
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string);
+      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string, {
+        allowPrivateNetworkTargets,
+      });
     } catch (err) {
       throw options.onError(
         new BadDataException(

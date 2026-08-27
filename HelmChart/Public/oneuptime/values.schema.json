@@ -1600,6 +1600,21 @@
             },
             "additionalProperties": false
         },
+        "webhooks": {
+            "type": "object",
+            "properties": {
+                "allowPrivateNetwork": {
+                    "type": "boolean"
+                },
+                "privateNetworkAllowlist": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "vapid": {
             "type": "object",
             "properties": {

@@ -61,6 +61,14 @@ export default class VMRunner {
     options: {
       timeout?: number;
       args?: JSONObject | undefined;
+      /*
+       * Passed straight through to the SSRF guard on the axios bridge below.
+       * Resolved by the CALLER, never here: this runner also executes custom
+       * code monitors inside the Probe, which has no database to read the
+       * project flag from. Absent ⇒ the strict policy, which is what every
+       * caller that does not deliberately opt in should get.
+       */
+      allowPrivateNetworkRequests?: boolean | undefined;
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
@@ -419,7 +427,10 @@ export default class VMRunner {
           config,
         });
 
-        await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl);
+        await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl, {
+          allowPrivateNetworkTargets:
+            options.allowPrivateNetworkRequests === true,
+        });
 
         /*
          * The URL that was just validated has to be the URL that gets

@@ -6,7 +6,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { BILLING_ENABLED } from "Common/UI/Config";
+import {
+  BILLING_ENABLED,
+  PRIVATE_NETWORK_WEBHOOKS_ALLOWED_ON_INSTANCE,
+} from "Common/UI/Config";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
@@ -91,6 +94,57 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 fieldType: FieldType.Boolean,
                 title: "Let Customer Support Access Project",
+                placeholder: "No",
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
+      )}
+
+      {/*
+        Project half of the private-network webhook opt-in (issue #3424).
+
+        Only rendered when the instance operator configured the exception
+        (ALLOW_PRIVATE_NETWORK_WEBHOOKS / PRIVATE_NETWORK_WEBHOOK_ALLOWLIST) —
+        on every other deployment, SaaS included, the toggle would be a switch
+        wired to nothing. Hiding it is presentation only: the server re-derives
+        both halves of the policy on every outbound webhook.
+      */}
+      {PRIVATE_NETWORK_WEBHOOKS_ALLOWED_ON_INSTANCE && (
+        <CardModelDetail
+          name="Private Network Webhooks"
+          cardProps={{
+            title: "Private Network Webhooks",
+            description:
+              "Your OneUptime instance permits webhooks to private network addresses. Turn this on to let workflows, project webhooks and on-call user webhooks in this project reach internal services — for example a self-hosted Mattermost on your private network. Status page subscriber webhooks are never included, because anyone can register one. Leave it off unless you need it.",
+          }}
+          isEditable={true}
+          formFields={[
+            {
+              field: {
+                allowPrivateNetworkWebhooks: true,
+              },
+              title: "Allow Private Network Webhooks",
+              description:
+                "Which internal addresses become reachable is decided by your instance configuration, not by this project.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+          ]}
+          onSaveSuccess={() => {
+            Navigation.reload();
+          }}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-private-network-webhooks",
+            fields: [
+              {
+                field: {
+                  allowPrivateNetworkWebhooks: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Allow Private Network Webhooks",
                 placeholder: "No",
               },
             ],

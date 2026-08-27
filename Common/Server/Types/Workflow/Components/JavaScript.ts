@@ -1,4 +1,5 @@
 import { WorkflowScriptTimeoutInMS } from "../../../../Server/EnvironmentConfig";
+import ProjectService from "../../../Services/ProjectService";
 import VMUtil from "../../../Utils/VM/VMAPI";
 import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -66,11 +67,21 @@ export default class JavaScriptCode extends ComponentCode {
 
       const code: string = (args["code"] as string) || "";
 
+      /*
+       * The sandbox's axios bridge is guarded by the same SSRF blocklist as
+       * the API components, and widens for the same reason: a self-hosted
+       * install whose operator configured the exception and whose project
+       * opted in may reach its own internal services (issue #3424).
+       */
+      const allowPrivateNetworkRequests: boolean =
+        await ProjectService.isPrivateNetworkWebhookAllowed(options.projectId);
+
       const returnResult: ReturnResult = await VMUtil.runCodeInSandbox({
         code,
         options: {
           args: scriptArgs as JSONObject,
           timeout: WorkflowScriptTimeoutInMS,
+          allowPrivateNetworkRequests,
         },
       });
 

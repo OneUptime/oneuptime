@@ -11,6 +11,7 @@ import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import ProjectService from "Common/Server/Services/ProjectService";
 import SSRFProtection from "Common/Server/Utils/SSRFProtection";
 import crypto from "crypto";
 
@@ -95,7 +96,17 @@ export default class WebhookService {
         throw new BadDataException("Webhook eventType is required");
       }
 
-      await SSRFProtection.validateWebhookTargetIsSafe(message.url);
+      /*
+       * Self-hosted installs can opt a project in to internal targets
+       * (issue #3424); resolves to false without both the instance setting and
+       * the project flag, which is every SaaS deployment.
+       */
+      const allowPrivateNetworkTargets: boolean =
+        await ProjectService.isPrivateNetworkWebhookAllowed(options.projectId);
+
+      await SSRFProtection.validateWebhookTargetIsSafe(message.url, {
+        allowPrivateNetworkTargets,
+      });
 
       const bodyString: string = JSON.stringify(message.payload || {});
 

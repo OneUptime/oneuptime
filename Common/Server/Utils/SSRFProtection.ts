@@ -1,5 +1,6 @@
 import URL from "../../Types/API/URL";
 import BadDataException from "../../Types/Exception/BadDataException";
+import PrivateNetworkWebhookConfig from "./PrivateNetworkWebhookConfig";
 import dns from "dns";
 import net from "net";
 
@@ -16,7 +17,49 @@ import net from "net";
  * different address between validation and the actual request (DNS rebinding).
  * Callers should therefore ALSO disable redirect-following on the request so a
  * validated public host cannot 3xx-redirect the server to an internal target.
+ *
+ * Blocked targets fall into two tiers, because a self-hosted install has a
+ * legitimate reason to reach one of them and none at all to reach the other:
+ *
+ *   FORBIDDEN — loopback, unspecified, link-local (the 169.254.169.254 cloud
+ *     metadata endpoint lives here), multicast, reserved, broadcast, and the
+ *     hostnames that name them. Refused in every deployment. The only way past
+ *     is an exact entry in the instance's PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.
+ *
+ *   PRIVATE — RFC-1918, CGNAT, IPv6 unique-local and site-local. Refused by
+ *     default, which is the only correct answer for multi-tenant SaaS, but a
+ *     self-hosted operator can permit it with ALLOW_PRIVATE_NETWORK_WEBHOOKS
+ *     (see PrivateNetworkWebhookConfig for why, and for the project half of
+ *     the opt-in).
+ *
+ * The tier only widens for callers that pass
+ * `allowPrivateNetworkTargets: true`, which means "this URL was authored by an
+ * authenticated member of a project that opted in". Sinks whose target can be
+ * chosen by an unauthenticated visitor — status page subscriber webhooks —
+ * pass nothing and get the strict policy, so the exception can never be
+ * reached from outside the tenant.
  */
+
+export enum WebhookAddressTier {
+  Public = "Public",
+  Private = "Private",
+  Forbidden = "Forbidden",
+}
+
+export interface WebhookTargetValidationOptions {
+  /*
+   * Opt-in gate. True only when BOTH halves are satisfied by the caller:
+   * the URL comes from an authenticated project context, and that project has
+   * `allowPrivateNetworkWebhooks` set (ProjectService.isPrivateNetworkWebhookAllowed).
+   * What the opt-in actually unlocks is decided here, from the instance
+   * configuration — the flag on its own grants nothing.
+   */
+  allowPrivateNetworkTargets?: boolean | undefined;
+}
+
+const PRIVATE_NETWORK_HINT: string =
+  " Self-hosted instances can allow this by setting ALLOW_PRIVATE_NETWORK_WEBHOOKS or PRIVATE_NETWORK_WEBHOOK_ALLOWLIST, and enabling private network webhooks in Project Settings.";
+
 export default class SSRFProtection {
   /*
    * Returns the bare, lowercased host of a URL — no port, no brackets — or an
@@ -80,6 +123,7 @@ export default class SSRFProtection {
 
   public static async validateWebhookTargetIsSafe(
     rawUrl: string | URL,
+    options?: WebhookTargetValidationOptions,
   ): Promise<void> {
     /*
      * URL.fromString only knows http/https/ws/wss/mongodb/mailto/tel/sms and
@@ -159,16 +203,58 @@ export default class SSRFProtection {
         ? [hostname, whatwgHostname]
         : [hostname];
 
+    /*
+     * The caller's opt-in only ever reaches the instance configuration through
+     * here. With it false — the default, and every sink whose URL an
+     * unauthenticated visitor can choose — `isPrivateTierAllowed` and every
+     * allowlist lookup below are false too, and the policy is bit-for-bit what
+     * it was before the exception existed.
+     */
+    const isOptedIn: boolean = options?.allowPrivateNetworkTargets === true;
+    const isPrivateTierAllowed: boolean =
+      isOptedIn && PrivateNetworkWebhookConfig.isPrivateNetworkAllowed();
+
+    /*
+     * A host the operator named outright needs no further inspection — not the
+     * tier check, and not DNS. That is the whole point of naming
+     * "mattermost.internal": it resolves into a range the blocklist refuses,
+     * and the operator has said to trust it anyway.
+     */
+    const isHostAllowlisted: (host: string) => boolean = (
+      host: string,
+    ): boolean => {
+      if (!isOptedIn) {
+        return false;
+      }
+
+      return SSRFProtection.isIpLiteral(host)
+        ? PrivateNetworkWebhookConfig.isAddressAllowed(host)
+        : PrivateNetworkWebhookConfig.isHostnameAllowed(host);
+    };
+
     for (const host of hostnames) {
-      if (SSRFProtection.isBlockedHostnameLiteral(host)) {
+      if (isHostAllowlisted(host)) {
+        continue;
+      }
+
+      const tier: WebhookAddressTier =
+        SSRFProtection.classifyHostnameLiteral(host);
+
+      if (tier === WebhookAddressTier.Forbidden) {
         throw new BadDataException(
           "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
+        );
+      }
+
+      if (tier === WebhookAddressTier.Private && !isPrivateTierAllowed) {
+        throw new BadDataException(
+          `Webhook URL points to a private network address and is not allowed.${PRIVATE_NETWORK_HINT}`,
         );
       }
     }
 
     for (const host of hostnames) {
-      if (SSRFProtection.isIpLiteral(host)) {
+      if (SSRFProtection.isIpLiteral(host) || isHostAllowlisted(host)) {
         continue;
       }
 
@@ -182,11 +268,27 @@ export default class SSRFProtection {
       }
 
       for (const entry of resolved) {
+        const address: string = entry.address.toLowerCase();
+
         if (
-          SSRFProtection.isBlockedHostnameLiteral(entry.address.toLowerCase())
+          isOptedIn &&
+          PrivateNetworkWebhookConfig.isAddressAllowed(address)
         ) {
+          continue;
+        }
+
+        const tier: WebhookAddressTier =
+          SSRFProtection.classifyHostnameLiteral(address);
+
+        if (tier === WebhookAddressTier.Forbidden) {
           throw new BadDataException(
             "Webhook URL resolves to a private, loopback, or link-local address and is not allowed.",
+          );
+        }
+
+        if (tier === WebhookAddressTier.Private && !isPrivateTierAllowed) {
+          throw new BadDataException(
+            `Webhook URL resolves to a private network address and is not allowed.${PRIVATE_NETWORK_HINT}`,
           );
         }
       }
@@ -343,19 +445,21 @@ export default class SSRFProtection {
   }
 
   /*
-   * True when an IPv6 literal points somewhere the server must never be made
-   * to reach. Ranges, not spellings: loopback, unspecified, link-local
-   * (fe80::/10), unique-local (fc00::/7) and multicast (ff00::/8), plus the
-   * ways IPv6 can embed IPv4 routing endpoints - IPv4-mapped (::ffff:0:0/96),
+   * Tier of an IPv6 literal. Ranges, not spellings: loopback, unspecified,
+   * link-local (fe80::/10) and multicast (ff00::/8) are FORBIDDEN;
+   * unique-local (fc00::/7) and site-local (fec0::/10) are PRIVATE. The ways
+   * IPv6 can embed IPv4 routing endpoints - IPv4-mapped (::ffff:0:0/96),
    * IPv4-compatible (::/96), NAT64 (64:ff9b::/96), 6to4 (2002::/16), and
-   * Teredo (2001:0000::/32) - which are handed to the IPv4 blocklist.
+   * Teredo (2001:0000::/32) - are handed to the IPv4 classifier, so an
+   * embedded 10.0.0.1 is PRIVATE and an embedded 169.254.169.254 is FORBIDDEN
+   * exactly as the bare forms are.
    */
-  private static isBlockedIpv6(address: string): boolean {
+  private static classifyIpv6(address: string): WebhookAddressTier {
     const groups: Array<number> | null = SSRFProtection.expandIpv6(address);
 
     if (!groups) {
       // Not parseable as IPv6; the caller's other checks decide.
-      return false;
+      return WebhookAddressTier.Public;
     }
 
     const isZeroThrough: (endExclusive: number) => boolean = (
@@ -384,17 +488,17 @@ export default class SSRFProtection {
 
     // ::  — unspecified. Connecting here lands on the local host.
     if (isZeroThrough(8)) {
-      return true;
+      return WebhookAddressTier.Forbidden;
     }
 
     // ::1 — loopback.
     if (isZeroThrough(7) && groups[7] === 1) {
-      return true;
+      return WebhookAddressTier.Forbidden;
     }
 
     // ::ffff:0:0/96 — IPv4-mapped.
     if (isZeroThrough(5) && groups[5] === 0xffff) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
+      return SSRFProtection.classifyIpv4(embeddedIpv4(6));
     }
 
     // 64:ff9b::/96 — NAT64 well-known prefix.
@@ -406,27 +510,28 @@ export default class SSRFProtection {
       groups[4] === 0 &&
       groups[5] === 0
     ) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
+      return SSRFProtection.classifyIpv4(embeddedIpv4(6));
     }
 
     // ::/96 — IPv4-compatible (deprecated, still routable by some stacks).
     if (isZeroThrough(6)) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
+      return SSRFProtection.classifyIpv4(embeddedIpv4(6));
     }
 
     // 2002::/16 — 6to4 stores the IPv4 gateway in bits 16-48.
     if (groups[0] === 0x2002) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4(1));
+      return SSRFProtection.classifyIpv4(embeddedIpv4(1));
     }
 
     /*
      * 2001:0000::/32 — Teredo stores its server IPv4 in bits 32-64 and
-     * an inverted client IPv4 in the last 32 bits.
+     * an inverted client IPv4 in the last 32 bits. Either one landing
+     * somewhere blocked condemns the address, so take the stricter verdict.
      */
     if (groups[0] === 0x2001 && groups[1] === 0) {
-      return (
-        SSRFProtection.isBlockedIpv4(embeddedIpv4(2)) ||
-        SSRFProtection.isBlockedIpv4(embeddedIpv4(6, true))
+      return SSRFProtection.strictestTier(
+        SSRFProtection.classifyIpv4(embeddedIpv4(2)),
+        SSRFProtection.classifyIpv4(embeddedIpv4(6, true)),
       );
     }
 
@@ -434,28 +539,49 @@ export default class SSRFProtection {
 
     // fe80::/10 — link-local.
     if ((first & 0xffc0) === 0xfe80) {
-      return true;
-    }
-
-    // fc00::/7 — unique-local.
-    if ((first & 0xfe00) === 0xfc00) {
-      return true;
-    }
-
-    // fec0::/10 — site-local. Deprecated by RFC 3879, still routed on some networks.
-    if ((first & 0xffc0) === 0xfec0) {
-      return true;
+      return WebhookAddressTier.Forbidden;
     }
 
     // ff00::/8 — multicast.
     if ((first & 0xff00) === 0xff00) {
-      return true;
+      return WebhookAddressTier.Forbidden;
     }
 
-    return false;
+    // fc00::/7 — unique-local. A self-hosted install's own internal network.
+    if ((first & 0xfe00) === 0xfc00) {
+      return WebhookAddressTier.Private;
+    }
+
+    // fec0::/10 — site-local. Deprecated by RFC 3879, still routed on some networks.
+    if ((first & 0xffc0) === 0xfec0) {
+      return WebhookAddressTier.Private;
+    }
+
+    return WebhookAddressTier.Public;
   }
 
-  private static isBlockedIpv4(address: string): boolean {
+  private static strictestTier(
+    left: WebhookAddressTier,
+    right: WebhookAddressTier,
+  ): WebhookAddressTier {
+    if (
+      left === WebhookAddressTier.Forbidden ||
+      right === WebhookAddressTier.Forbidden
+    ) {
+      return WebhookAddressTier.Forbidden;
+    }
+
+    if (
+      left === WebhookAddressTier.Private ||
+      right === WebhookAddressTier.Private
+    ) {
+      return WebhookAddressTier.Private;
+    }
+
+    return WebhookAddressTier.Public;
+  }
+
+  private static classifyIpv4(address: string): WebhookAddressTier {
     const octets: Array<number> = address.split(".").map((part: string) => {
       return Number(part);
     });
@@ -466,47 +592,59 @@ export default class SSRFProtection {
         return Number.isNaN(octet) || octet < 0 || octet > 255;
       })
     ) {
-      return true;
+      /*
+       * Unparseable. Refuse outright rather than fall through to "public":
+       * whatever produced this is not something to hand to an HTTP client, and
+       * it must not become reachable by opting in to the private tier either.
+       */
+      return WebhookAddressTier.Forbidden;
     }
 
     const [first, second] = octets as [number, number, number, number];
 
     if (first === 0) {
-      return true; // 0.0.0.0/8 — "this host".
+      return WebhookAddressTier.Forbidden; // 0.0.0.0/8 — "this host".
     }
     if (first === 127) {
-      return true; // loopback
-    }
-    if (first === 10) {
-      return true; // RFC-1918
-    }
-    if (first === 172 && (second & 0xf0) === 16) {
-      return true; // RFC-1918 172.16/12
-    }
-    if (first === 192 && second === 168) {
-      return true; // RFC-1918
+      return WebhookAddressTier.Forbidden; // loopback
     }
     if (first === 169 && second === 254) {
-      return true; // link-local, incl. the 169.254.169.254 metadata endpoint
-    }
-    if (first === 100 && (second & 0xc0) === 64) {
-      return true; // CGNAT 100.64/10
+      // link-local, incl. the 169.254.169.254 metadata endpoint
+      return WebhookAddressTier.Forbidden;
     }
     if (first >= 224) {
-      return true; // multicast, reserved, and 255.255.255.255
+      // multicast, reserved, and 255.255.255.255
+      return WebhookAddressTier.Forbidden;
+    }
+    if (first === 10) {
+      return WebhookAddressTier.Private; // RFC-1918
+    }
+    if (first === 172 && (second & 0xf0) === 16) {
+      return WebhookAddressTier.Private; // RFC-1918 172.16/12
+    }
+    if (first === 192 && second === 168) {
+      return WebhookAddressTier.Private; // RFC-1918
+    }
+    if (first === 100 && (second & 0xc0) === 64) {
+      return WebhookAddressTier.Private; // CGNAT 100.64/10
     }
 
-    return false;
+    return WebhookAddressTier.Public;
   }
 
-  private static isBlockedHostnameLiteral(hostname: string): boolean {
+  /*
+   * Tier of a bare host — an IP literal in either family, or a hostname that
+   * names the local machine on its own. Anything else is Public here and is
+   * decided later on what DNS answers for it.
+   */
+  private static classifyHostnameLiteral(hostname: string): WebhookAddressTier {
     if (
       hostname === "localhost" ||
       hostname === "localhost." ||
       hostname.endsWith(".localhost") ||
       hostname === "metadata.google.internal"
     ) {
-      return true;
+      return WebhookAddressTier.Forbidden;
     }
 
     const address: string = SSRFProtection.stripZoneId(
@@ -514,13 +652,13 @@ export default class SSRFProtection {
     );
 
     if (net.isIPv4(address)) {
-      return SSRFProtection.isBlockedIpv4(address);
+      return SSRFProtection.classifyIpv4(address);
     }
 
     if (net.isIPv6(address)) {
-      return SSRFProtection.isBlockedIpv6(address);
+      return SSRFProtection.classifyIpv6(address);
     }
 
-    return false;
+    return WebhookAddressTier.Public;
   }
 }

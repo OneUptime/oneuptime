@@ -102,6 +102,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import PrivateNetworkWebhookConfig from "../Utils/PrivateNetworkWebhookConfig";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -157,6 +158,13 @@ export class ProjectService extends DatabaseService<Model> {
    * 60s staleness window is acceptable.
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
+    new InMemoryTTLCache(10_000);
+  /*
+   * Caches the private-network webhook opt-in per project. Every outbound
+   * webhook, workflow API step and sandboxed axios call asks for it, and a
+   * project's answer changes only when an admin toggles the setting.
+   */
+  private allowPrivateNetworkWebhooksCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
 
   public constructor() {
@@ -458,6 +466,10 @@ export class ProjectService extends DatabaseService<Model> {
 
     if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
       this.requireSsoWithSsoProviderIdCache.clear();
+    }
+
+    if (updateBy.data.allowPrivateNetworkWebhooks !== undefined) {
+      this.allowPrivateNetworkWebhooksCache.clear();
     }
 
     if (IsBillingEnabled) {
@@ -2234,6 +2246,64 @@ These are no longer recorded against the project and have to be cancelled by han
     const populated: string | null | undefined =
       this.requireSsoWithSsoProviderIdCache.get(key);
     return populated ? new ObjectID(populated) : null;
+  }
+
+  /**
+   * Whether this project may point workflows and webhooks at private network
+   * addresses (issue #3424).
+   *
+   * BOTH halves have to agree. The instance decides whether the exception
+   * exists at all (ALLOW_PRIVATE_NETWORK_WEBHOOKS /
+   * PRIVATE_NETWORK_WEBHOOK_ALLOWLIST); the project decides whether to use it.
+   * The instance check runs first and short-circuits, so a deployment that
+   * configured neither — every SaaS one — never pays a query for a flag that
+   * cannot grant anything.
+   *
+   * Fails closed: an unreadable or missing project answers false rather than
+   * throwing, because the caller is a webhook sender and a lookup failure must
+   * narrow the policy, never widen it.
+   */
+  @CaptureSpan()
+  public async isPrivateNetworkWebhookAllowed(
+    projectId: ObjectID | null | undefined,
+  ): Promise<boolean> {
+    if (!projectId) {
+      return false;
+    }
+
+    if (!PrivateNetworkWebhookConfig.isConfiguredOnInstance()) {
+      return false;
+    }
+
+    const key: string = projectId.toString();
+    const cached: boolean | undefined =
+      this.allowPrivateNetworkWebhooksCache.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let value: boolean = false;
+
+    try {
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: { allowPrivateNetworkWebhooks: true },
+        props: { isRoot: true },
+      });
+
+      value = Boolean(project?.allowPrivateNetworkWebhooks);
+    } catch (err) {
+      logger.warn(
+        `ProjectService: could not read the private network webhook setting for project ${key}. Defaulting to not allowed.`,
+      );
+      logger.warn(err);
+      return false;
+    }
+
+    this.allowPrivateNetworkWebhooksCache.set(key, value, 60_000);
+
+    return value;
   }
 
   @CaptureSpan()

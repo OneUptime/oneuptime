@@ -998,6 +998,23 @@ captcha:
   siteKey:
   secretKey:
 
+# Outbound webhook egress policy.
+#
+# OneUptime refuses to send workflow requests, project webhooks, on-call user
+# webhooks and sandboxed HTTP calls to targets that resolve into private,
+# loopback or link-local ranges. Both settings below relax that for self-hosted
+# installs and both are off by default. Neither grants anything on its own:
+# each project must ALSO enable "Allow Private Network Webhooks" in
+# Settings -> Project. Status page subscriber webhooks are never covered.
+webhooks:
+  # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
+  # link-local (169.254.169.254) and multicast stay blocked.
+  allowPrivateNetwork: false
+  # Comma-separated hosts and CIDRs allowed regardless of range, e.g.
+  # "mattermost.internal,*.svc.cluster.local,10.20.0.0/16". Never list
+  # 169.254.169.254 or a range containing it.
+  privateNetworkAllowlist: ""
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:

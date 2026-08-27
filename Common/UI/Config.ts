@@ -53,6 +53,17 @@ export const IS_ENTERPRISE_EDITION: boolean =
 export const BILLING_PUBLIC_KEY: string = env("BILLING_PUBLIC_KEY") || "";
 
 export const CAPTCHA_ENABLED: boolean = env("CAPTCHA_ENABLED") === "true";
+
+/*
+ * True when this instance's operator configured the private-network webhook
+ * exception (ALLOW_PRIVATE_NETWORK_WEBHOOKS or
+ * PRIVATE_NETWORK_WEBHOOK_ALLOWLIST). Derived server-side in
+ * EnvironmentConfig.getFrontendEnvVars — the allowlist itself is never sent to
+ * the browser. Purely presentational: the server re-derives the policy on
+ * every outbound webhook, so this cannot loosen anything.
+ */
+export const PRIVATE_NETWORK_WEBHOOKS_ALLOWED_ON_INSTANCE: boolean =
+  env("PRIVATE_NETWORK_WEBHOOKS_ALLOWED_ON_INSTANCE") === "true";
 export const CAPTCHA_SITE_KEY: string = env("CAPTCHA_SITE_KEY") || "";
 
 // VAPID Configuration for Push Notifications
