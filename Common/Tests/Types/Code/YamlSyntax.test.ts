@@ -322,9 +322,17 @@ describe("checkYamlSyntax — tabs used for indentation", () => {
   test.each([
     ["a tab indenting a sequence entry", "a:\n\t- 1\n", 2],
     ["spaces followed by a tab", "a:\n  \tb: 1\n", 2],
-    ["a tab on a line after a block scalar closes", "a: |\n  body\nb:\n\tc: 1\n", 4],
+    [
+      "a tab on a line after a block scalar closes",
+      "a: |\n  body\nb:\n\tc: 1\n",
+      4,
+    ],
     ["a CRLF document", "a:\r\n\tb: 1\r\n", 2],
-    ["a tab several levels into the document", "a:\n  b:\n    c: 1\n\td: 2\n", 4],
+    [
+      "a tab several levels into the document",
+      "a:\n  b:\n    c: 1\n\td: 2\n",
+      4,
+    ],
   ])("rejects %s", (_label: string, document: string, line: number) => {
     const result: YamlSyntaxCheckResult = checkYamlSyntax(document);
 
@@ -339,16 +347,31 @@ describe("checkYamlSyntax — tabs used for indentation", () => {
    */
   test.each([
     ["a tab inside block scalar content", "a: |\n  line\twith tab\n"],
-    ["a block scalar line that starts with a tab", "a: |\n  first\n  \tindented more\n"],
-    ["a block scalar with an explicit indent indicator", "a: |2\n  \tcontent\n"],
+    [
+      "a block scalar line that starts with a tab",
+      "a: |\n  first\n  \tindented more\n",
+    ],
+    [
+      "a block scalar with an explicit indent indicator",
+      "a: |2\n  \tcontent\n",
+    ],
     ["a block scalar with chomping indicators", "a: |-\n  \tx\nb: >+\n  \ty\n"],
-    ["a block scalar containing a blank line", "a: |\n  one\n\n  \ttwo\nb: 2\n"],
+    [
+      "a block scalar containing a blank line",
+      "a: |\n  one\n\n  \ttwo\nb: 2\n",
+    ],
     ["a block scalar inside a sequence", "- |\n  \tx\n- 2\n"],
-    ["YAML embedded in a block scalar, as a ConfigMap does", "data:\n  app.yaml: |\n    outer:\n    \tinner: 1\n"],
+    [
+      "YAML embedded in a block scalar, as a ConfigMap does",
+      "data:\n  app.yaml: |\n    outer:\n    \tinner: 1\n",
+    ],
     ["a block scalar line shaped like a mapping key", "a: |\n  x:\n  \ty: 1\n"],
     ["a double-quoted scalar continued on a tabbed line", 'a: "one\n\ttwo"\n'],
     ["a single-quoted scalar continued on a tabbed line", "a: 'one\n\ttwo'\n"],
-    ["a quoted continuation that looks like a mapping key", 'a: "one\n\ttwo: three"\n'],
+    [
+      "a quoted continuation that looks like a mapping key",
+      'a: "one\n\ttwo: three"\n',
+    ],
     ["a flow mapping spanning lines", "a: {\n\tb: 1 }\n"],
     ["a tab inside a quoted value", 'a: "x\ty"\n'],
     ["a tab inside a comment", "a: 1 #\tcomment\n"],

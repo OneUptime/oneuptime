@@ -167,7 +167,6 @@ describe("MonitorCriteriaInstance.getValidationError - per-action gating", () =>
         ),
       ).toBeNull();
     });
-
   });
 
   describe("the two actions are independent", () => {

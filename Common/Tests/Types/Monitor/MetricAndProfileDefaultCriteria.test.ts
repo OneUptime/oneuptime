@@ -787,7 +787,7 @@ describe("Default criteria for metric-backed and profile monitors", () => {
             sampleValues,
           });
 
-          expect(Boolean(online)).toBe(!Boolean(offline));
+          expect(Boolean(online)).toBe(!offline);
         }
       },
     );

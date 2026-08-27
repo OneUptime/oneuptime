@@ -116,36 +116,26 @@ const MONITOR_TYPES_WITH_CRITERIA: Array<MonitorType> =
   });
 
 /*
- * Monitor types that seed no real criteria: they fall through
- * getDefaultOfflineMonitorCriteriaInstance to a blank criteria carrying
- * the constructor's placeholder "Is Online" filter, which their own
- * narrowed option lists do not offer, and their online half is null.
+ * Monitor types that seed no real criteria. Only Manual: nothing polls a
+ * manual monitor, so getCheckOnOptionsByMonitorType returns an empty list
+ * for it and there is no check its criteria form could ever draw.
  *
- * That gap is not this change's to close, and closing it here would be
- * the wrong place: it reproduces with no monitor type change at all -
- * create a Docker monitor, open its criteria, and the Filter Type
- * dropdown is already blank - so it is a defect in the seeds, not in what
- * happens when the type changes underneath them. CriteriaFilterDefaults
- * .test.ts documents it and skips the same types, pinned from both sides
- * so a type cannot quietly join or leave the list.
+ * The metric-backed family (Docker, Host, Podman, Docker Swarm, Proxmox,
+ * Ceph and IoT Device) and Profiles once belonged here too - they fell
+ * through getDefaultOfflineMonitorCriteriaInstance to the constructor's
+ * blank "Is Online" placeholder their own narrowed option lists did not
+ * offer. That gap was closed in "seed real criteria for the metric and
+ * profile monitor types": they now seed a real default on the one check
+ * their evaluator reads (MetricValue for the metric family, ProfileCount
+ * for Profiles), so they seed something the form can draw and have moved to
+ * the WITH list, swept as both sources and targets like every other type.
  *
- * They are excluded as SOURCES below. As targets they are fine and are
- * swept: aligning a Website's criteria to Docker does produce something
- * renderable. What does not work is aligning BETWEEN two of them, because
- * they all seed the identical blank placeholder - so each one is already
- * "the untouched default" for the other, and the criteria are handed back
- * untouched by the no-churn contract, still carrying the placeholder.
+ * This list pins the gap from both sides - the assertions below fail if a
+ * type here quietly grows a real default, and if a type not here quietly
+ * loses one.
  */
 const MONITOR_TYPES_WITHOUT_SEEDED_CRITERIA: Array<MonitorType> = [
   MonitorType.Manual,
-  MonitorType.Docker,
-  MonitorType.Host,
-  MonitorType.Podman,
-  MonitorType.DockerSwarm,
-  MonitorType.Proxmox,
-  MonitorType.Ceph,
-  MonitorType.IoTDevice,
-  MonitorType.Profiles,
 ];
 
 const MONITOR_TYPES_WITH_SEEDED_CRITERIA: Array<MonitorType> =

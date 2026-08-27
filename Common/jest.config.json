@@ -32,6 +32,7 @@
     "^i18next$": "<rootDir>/node_modules/i18next",
     "^use-async-effect$": "<rootDir>/node_modules/use-async-effect",
     "^reactflow$": "<rootDir>/node_modules/reactflow",
+    "^react-beautiful-dnd$": "<rootDir>/node_modules/react-beautiful-dnd",
     "^i18next-browser-languagedetector$": "<rootDir>/Tests/__mocks__/i18next-browser-languagedetector.js",
     "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
