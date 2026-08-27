@@ -191,10 +191,24 @@ export const LlmAgentNameAttributeKeys: Array<string> = [
  *   - enduser.id   Also still an ACTIVE semconv attribute — the 1.25
  *                  deprecation removed enduser.role and enduser.scope only,
  *                  so this remains a legitimate, widely-emitted spelling.
- *   - litellm.metadata.user_api_key_user_id
+ *   - litellm.metadata.user_api_key_user_id  /  metadata.user_api_key_user_id
  *                  LiteLLM proxy: the internal user who OWNS the virtual key
  *                  the request authenticated with. Note the sibling key
  *                  user_api_key_end_user_id is the CUSTOMER and is excluded.
+ *
+ *                  BOTH spellings are required, and the bare one is the one
+ *                  that actually fires for most deployments. LiteLLM's
+ *                  default `otel` callback (v1) stamps its metadata with a
+ *                  bare "metadata." prefix — see METRIC_METADATA_KEYS and the
+ *                  `common_attrs[f"metadata.{key}"]` assignment in
+ *                  litellm/integrations/opentelemetry.py. The "litellm."
+ *                  namespace only appears under OpenTelemetry v2, which is
+ *                  OFF by default (LITELLM_OTEL_V2, `enabled: default=False`).
+ *                  Recognizing only the v2 spelling meant a stock LiteLLM
+ *                  proxy — the exact "one virtual key per employee" setup our
+ *                  docs recommend as the cleanest chargeback architecture —
+ *                  produced ZERO attribution, silently, with every gateway
+ *                  dollar landing in Unattributed and no error to explain it.
  *   - traceloop.association.properties.user_id   OpenLLMetry.
  *   - langfuse.user.id                           Langfuse.
  *   - user.account_uuid / user.account_id        Claude Code (and Codex for
@@ -211,7 +225,9 @@ export const LlmAgentNameAttributeKeys: Array<string> = [
 export const LlmUserIdBaseAttributeKeys: Array<string> = [
   "user.id",
   "enduser.id",
+  // LiteLLM OTel v2 spelling, then the v1 default. Both are needed — see above.
   "litellm.metadata.user_api_key_user_id",
+  "metadata.user_api_key_user_id",
   "traceloop.association.properties.user_id",
   "langfuse.user.id",
   "user.account_uuid",
@@ -232,6 +248,15 @@ export const LlmUserIdAttributeKeys: Array<string> = withResourcePrefixedKeys(
  * Claude Code, Gemini CLI and OpenAI Codex, so for the coding-agent fleet
  * this list is usually the one that hits.
  *
+ * The two LiteLLM spellings matter more than their position suggests: the
+ * proxy carries the key owner's email in its metadata (user_api_key_user_email
+ * is in METRIC_METADATA_KEYS), so a gateway issuing one virtual key per
+ * employee yields a real, human-readable email with no lookup table and no
+ * per-application instrumentation. That is the cleanest chargeback setup
+ * available today, and it is what our AI-gateway guide recommends. As with
+ * the id list, the bare "metadata." spelling is the DEFAULT one and the
+ * "litellm." namespace only appears under the opt-in OpenTelemetry v2 mode.
+ *
  * Because this column holds real PII, TraceScrubRuleService scrubs it under
  * the Attributes scope exactly as it scrubs the attribute it was derived from
  * — see the identity-column pass in scrubSpan. A denormalized column that
@@ -240,6 +265,9 @@ export const LlmUserIdAttributeKeys: Array<string> = withResourcePrefixedKeys(
  */
 export const LlmUserEmailBaseAttributeKeys: Array<string> = [
   "user.email",
+  // LiteLLM OTel v2 spelling, then the v1 default. Both are needed — see above.
+  "litellm.metadata.user_api_key_user_email",
+  "metadata.user_api_key_user_email",
   "traceloop.association.properties.user_email",
   "enduser.email",
 ];
@@ -268,8 +296,10 @@ export const LlmTeamBaseAttributeKeys: Array<string> = [
   "team",
   "cost_center",
   "department",
+  // LiteLLM OTel v2 spellings, then the v1 default. See the id list above.
   "litellm.metadata.user_api_key_team_id",
   "litellm.team.id",
+  "metadata.user_api_key_team_id",
   "cursor.team.id",
 ];
 
@@ -287,9 +317,16 @@ export const LlmTeamAttributeKeys: Array<string> = withResourcePrefixedKeys(
  *       Both carry the OpenAI `user` REQUEST PARAMETER, which the API
  *       documents as the caller's own end user, sent for abuse monitoring. On
  *       a SaaS product's spans this is the SaaS product's customer.
- *   - litellm.metadata.user_api_key_end_user_id
+ *   - litellm.metadata.user_api_key_end_user_id  /
+ *     metadata.user_api_key_end_user_id  /  litellm.end_user.id
  *       LiteLLM's explicit end-user id, distinct from the key-owner id above
- *       (which IS the employee and IS recognized).
+ *       (which IS the employee and IS recognized). All three spellings are
+ *       listed for the same reason the employee lists carry two: the bare
+ *       "metadata." form is what the DEFAULT v1 otel callback emits, while
+ *       "litellm.end_user.id" is the dedicated attribute the opt-in v2 mode
+ *       defines in litellm/integrations/otel/model/semconv.py. Excluding only
+ *       the v2 metadata spelling would leave the two spellings a real
+ *       deployment actually produces free to be mistaken for an employee.
  *
  * None of these is denormalized into a column by this change. They remain
  * available in the raw attributes map for anyone who queries them directly.
@@ -306,6 +343,8 @@ export const LlmEndUserBaseAttributeKeys: Array<string> = [
   "gen_ai.user",
   "llm.user",
   "litellm.metadata.user_api_key_end_user_id",
+  "metadata.user_api_key_end_user_id",
+  "litellm.end_user.id",
 ];
 
 export const LlmEndUserAttributeKeys: Array<string> = withResourcePrefixedKeys(

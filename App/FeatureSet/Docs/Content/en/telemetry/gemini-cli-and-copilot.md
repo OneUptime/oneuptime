@@ -4,7 +4,7 @@ Both tools emit OpenTelemetry natively, so neither needs a proxy or a wrapper �
 
 They differ on the thing that decides whether the data is useful for chargeback:
 
-- **[Gemini CLI](#gemini-cli)** puts `user.email` on every record it emits, so per-employee attribution needs no stitching and no configuration. Turn its `traces` signal on as well: Gemini CLI publishes no cost metric, so spans are what get its calls priced.
+- **[Gemini CLI](#gemini-cli)** puts `user.email` on every record it emits, so per-employee attribution needs no stitching and no configuration. Turn its `traces` setting on as well: it is off by default, and with it off the spans Gemini CLI exports carry no model name and no token counts, so there is nothing for OneUptime to price — and Gemini CLI publishes no cost metric either.
 - **[GitHub Copilot](#github-copilot)** emits **no user attribute at all**. You have to inject one yourself, per machine, or Copilot's spend is unattributable.
 
 ## Before you start
@@ -17,7 +17,7 @@ OneUptime's endpoint speaks **OTLP over HTTP** (protobuf and JSON). Neither tool
 
 ## Gemini CLI
 
-Gemini CLI is the most complete OpenTelemetry emitter of any coding CLI, and the one to start with if you are evaluating per-employee AI spend. It ships traces, metrics and structured log events, and — uniquely among the coding CLIs — every record carries **`user.email`** when the user is authenticated. OneUptime reads `user.email` directly as the employee identity, so attribution works with zero identity mapping, no join table, and no per-machine configuration. Turn `traces` on (it is off by default): Gemini CLI emits no cost metric, so its spans are what let OneUptime price the calls at ingest.
+Gemini CLI is the most complete OpenTelemetry emitter of any coding CLI, and the one to start with if you are evaluating per-employee AI spend. It ships traces, metrics and structured log events, and — uniquely among the coding CLIs — every record carries **`user.email`** when the user is authenticated. OneUptime reads `user.email` directly as the employee identity, so attribution works with zero identity mapping, no join table, and no per-machine configuration. Turn `traces` on (it is off by default). Spans are exported whenever telemetry is enabled, but with `traces` off they carry only `gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.agent.description` and `gen_ai.conversation.id` — no model, no token counts, nothing priceable. Gemini CLI emits no cost metric either, so `traces: true` is what lets OneUptime price the calls at ingest.
 
 ### Turn telemetry on
 
@@ -40,17 +40,17 @@ That points Gemini CLI at a local OpenTelemetry Collector, which is the path we 
 
 Every key in the block, with its environment-variable override:
 
-| Key            | Env override                      | Default                 | What it does                                                                                                               |
-| -------------- | --------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `enabled`      | `GEMINI_TELEMETRY_ENABLED`        | `false`                 | Master switch. Nothing is emitted until this is true.                                                                      |
-| `target`       | `GEMINI_TELEMETRY_TARGET`         | —                       | `"local"` or `"gcp"`. Use `"local"` for OneUptime — it means "my own OTLP endpoint", not "write to disk".                  |
-| `otlpEndpoint` | `GEMINI_TELEMETRY_OTLP_ENDPOINT`  | `http://localhost:4317` | Where telemetry is exported.                                                                                               |
-| `otlpProtocol` | `GEMINI_TELEMETRY_OTLP_PROTOCOL`  | `grpc`                  | `"grpc"` or `"http"`. **Exporting straight to OneUptime requires `"http"`** — the default gRPC will not connect.           |
-| `traces`       | `GEMINI_TELEMETRY_TRACES_ENABLED` | `false`                 | The trace signal, off by default. Turn it on to get spans as well as metrics and logs.                                     |
-| `logPrompts`   | `GEMINI_TELEMETRY_LOG_PROMPTS`    | **`true`**              | Whether prompt text is included in log events. See the warning below.                                                      |
-| `outfile`      | `GEMINI_TELEMETRY_OUTFILE`        | —                       | Write telemetry to a file instead. Useful for inspecting exactly what would be shipped before you ship it.                 |
-| `useCollector` | `GEMINI_TELEMETRY_USE_COLLECTOR`  | —                       | Accepted, but not needed for a OneUptime export. Check your Gemini CLI version's own settings reference before setting it. |
-| `useCliAuth`   | `GEMINI_TELEMETRY_USE_CLI_AUTH`   | —                       | Same — it concerns the `gcp` target's authentication, not an OTLP export to OneUptime.                                     |
+| Key            | Env override                      | Default                 | What it does                                                                                                                                                                                                                                                                                                           |
+| -------------- | --------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`      | `GEMINI_TELEMETRY_ENABLED`        | `false`                 | Master switch. Nothing is emitted until this is true.                                                                                                                                                                                                                                                                  |
+| `target`       | `GEMINI_TELEMETRY_TARGET`         | `"local"`               | `"local"` or `"gcp"`. Use `"local"` for OneUptime — it means "my own OTLP endpoint", not "write to disk".                                                                                                                                                                                                              |
+| `otlpEndpoint` | `GEMINI_TELEMETRY_OTLP_ENDPOINT`  | `http://localhost:4317` | Where telemetry is exported.                                                                                                                                                                                                                                                                                           |
+| `otlpProtocol` | `GEMINI_TELEMETRY_OTLP_PROTOCOL`  | `grpc`                  | `"grpc"` or `"http"`. **Exporting straight to OneUptime requires `"http"`** — the default gRPC will not connect.                                                                                                                                                                                                       |
+| `traces`       | `GEMINI_TELEMETRY_TRACES_ENABLED` | `false`                 | Detailed span attributes, off by default. Spans are exported whenever telemetry is enabled; with this off they carry only `gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.agent.description` and `gen_ai.conversation.id`. Turn it on to get the model name, token counts and prompt/tool payloads on the spans. |
+| `logPrompts`   | `GEMINI_TELEMETRY_LOG_PROMPTS`    | **`true`**              | Whether prompt text is included in log events. See the warning below.                                                                                                                                                                                                                                                  |
+| `outfile`      | `GEMINI_TELEMETRY_OUTFILE`        | —                       | Write telemetry to a file instead. Useful for inspecting exactly what would be shipped before you ship it.                                                                                                                                                                                                             |
+| `useCollector` | `GEMINI_TELEMETRY_USE_COLLECTOR`  | `false`                 | Use an external OTLP collector (advanced). Not needed with `target: "local"` — it only switches the `gcp` target away from direct GCP export.                                                                                                                                                                          |
+| `useCliAuth`   | `GEMINI_TELEMETRY_USE_CLI_AUTH`   | `false`                 | Use the CLI's own credentials for telemetry. GCP target only — irrelevant to an OTLP export to OneUptime.                                                                                                                                                                                                              |
 
 `OTLP_GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_PROJECT` apply only when `target` is `"gcp"`. `GEMINI_CLI_SURFACE` tags which surface the CLI is running as.
 
@@ -125,7 +125,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 
 ### What Gemini CLI emits
 
-**Metrics.** Gemini CLI is unusual in emitting both a vendor token metric and the semantic-convention one for the same tokens. OneUptime rolls up the **semantic-convention** series, `gen_ai.client.token.usage`, and deliberately ignores `gemini_cli.token.usage` — recognizing both would sum the same tokens twice and report double the real figure, silently. Nothing is lost: `gen_ai.client.token.usage` is emitted by Gemini CLI itself, so its tokens are counted, once.
+**Metrics.** Gemini CLI is unusual in emitting both a vendor token metric and the semantic-convention one for the same tokens. OneUptime rolls up the **semantic-convention** series, `gen_ai.client.token.usage`, and deliberately ignores `gemini_cli.token.usage` — recognizing both would sum the same tokens twice and report double the real figure, silently. Input and output tokens are fully covered: `gen_ai.client.token.usage` carries exactly those two types. But Gemini CLI's `thought`, `cache` and `tool` token types are recorded only under `gemini_cli.token.usage`, so chart that series directly if you need them — they are not part of OneUptime's token roll-up.
 
 | Metric                                                                                | What it carries                                                                                                |
 | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -164,35 +164,36 @@ Others include `gemini_cli.tool_output_truncated`, `gemini_cli.tool_output_maski
 `user.email` is read as the employee identity on both the span stream and the metric stream, so nothing else is required for per-person spend. To get team and cost-centre rollups, add resource attributes — this is the one piece Gemini CLI cannot know:
 
 ```bash
-export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform Engineering,cost_center=eng-tools,department=Engineering"
+export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost_center=eng-tools,department=Engineering"
 ```
 
 `OTEL_RESOURCE_ATTRIBUTES` sets _resource_ attributes, which reach OneUptime prefixed — `resource.team.id`, `resource.cost_center` and so on. OneUptime recognizes `team.id`, `team`, `cost_center` and `department` in both the bare and the `resource.`-prefixed spelling, on spans and on metric datapoints alike, so the Team / cost centre breakdown in the **Usage** tab works whichever way your exporter carries them.
 
 Two things decide what the Usage tab can actually show for Gemini CLI:
 
-- **With `traces` off (the default), Gemini CLI is a metrics-only source.** GenAI spans are authoritative and metrics are a fallback consulted only when the span stream reported nothing — the two are never summed. So if this project already has GenAI spans reporting the same figure, Gemini CLI's metric contribution will not appear; give the fleet its own project if you need them to stand alone. Turning `traces` on removes the problem entirely, because then Gemini CLI produces real GenAI spans.
+- **With `traces` off (the default), Gemini CLI still exports spans, but they carry no model or token attributes** — so OneUptime cannot price them, and in practice the project sees Gemini CLI as a metrics-only source for spend. GenAI spans are authoritative and metrics are a fallback consulted only when the span stream reported nothing — the two are never summed. So if this project already has GenAI spans reporting the same figure, Gemini CLI's metric contribution will not appear; give the fleet its own project if you need them to stand alone. Turning `traces` on removes the problem entirely, because then Gemini CLI's spans carry the model and token counts that make them priceable GenAI spans.
 - **On the metrics-only path, the Employee, Team and Model breakdowns work; Provider and Application / Service do not**, and a metric-sourced row carries cost only — its Calls and token columns render as `—`. Full detail in [AI / LLM Observability](/docs/telemetry/ai-llm-observability). Note that Gemini CLI emits no cost metric at all, so on the metrics-only path the Usage table has no spend to rank; its tokens still reach the Overview page's token tiles. Running `traces` is what gets you costed Gemini CLI calls, priced at ingest from the model and token counts.
 
 ## GitHub Copilot
 
 ### What emits telemetry, and what does not
 
-Copilot's OpenTelemetry support is real but **scoped to the agent surfaces only**:
+GitHub documents Copilot's OpenTelemetry support **for the agent surfaces only** — the concept page is titled "OpenTelemetry for agent monitoring" and the VS Code guide covers agent interactions. It never states outright that the other surfaces emit nothing; what follows is our reading of which surfaces are covered:
 
-| Surface                                    | Emits OTel                                                          |
-| ------------------------------------------ | ------------------------------------------------------------------- |
-| VS Code Copilot Chat / agent mode          | Yes                                                                 |
-| The agent host process behind Copilot CLI  | Yes                                                                 |
-| Copilot SDK                                | Yes                                                                 |
-| JetBrains Copilot plugin (agent workflows) | Yes — configured under **Settings → Tools → GitHub Copilot → Chat** |
-| Inline code completions                    | **No**                                                              |
-| Copilot on github.com                      | **No**                                                              |
-| Copilot code review                        | **No**                                                              |
+| Surface                                    | Emits OTel                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| VS Code Copilot Chat / agent mode          | Yes                                                                                   |
+| The agent host process behind Copilot CLI  | Yes                                                                                   |
+| Copilot SDK                                | Yes                                                                                   |
+| JetBrains Copilot plugin (agent workflows) | Yes — configured under **Settings → Tools → GitHub Copilot → Chat**                   |
+| Copilot cloud (coding) agent               | Not supported — GitHub's managed-settings matrix marks `telemetry` unsupported for it |
+| Inline code completions                    | Not documented as emitting                                                            |
+| Copilot on github.com                      | Not documented as emitting                                                            |
+| Copilot code review                        | Not documented as emitting                                                            |
 
-Set expectations inside your org accordingly. A team that lives in inline completions will look idle in OneUptime no matter how the export is configured, because there is nothing to export. Copilot's coverage of those surfaces lives in the REST APIs instead — see [Seats and billing are API-only](#seats-and-billing-are-api-only).
+Set expectations inside your org accordingly. A team that lives in inline completions will look idle in OneUptime no matter how the export is configured, because GitHub documents no OTel for that surface. Copilot's coverage of those surfaces lives in the REST APIs instead — see [Seats and billing are API-only](#seats-and-billing-are-api-only).
 
-The JetBrains plugin's OTel settings exist, but GitHub's changelog does not publish the setting key names, so **we cannot confirm they match the VS Code keys**. Configure it from the plugin UI and verify data arrives rather than assuming the keys below transfer.
+The JetBrains plugin's OTel settings exist, but GitHub's changelog does not publish the setting key names, so **we cannot confirm they match the VS Code keys**. Configure it from the plugin UI and verify data arrives rather than assuming the keys below transfer. The managed-settings route is confirmed to work there — GitHub's support matrix marks `telemetry` as supported for JetBrains IDEs — even though the local key names are not published.
 
 ### VS Code settings
 
@@ -208,13 +209,19 @@ User-level `settings.json` keys for the Copilot Chat extension:
 }
 ```
 
-`exporterType` accepts `"otlp-http"` or `"otlp-grpc"` — use `"otlp-http"`, since OneUptime's endpoint is HTTP. There is also `github.copilot.chat.otel.dbSpanExporter.enabled` for local span storage.
+`exporterType` accepts `"otlp-http"`, `"otlp-grpc"`, `"console"` or `"file"`, and defaults to `"otlp-http"` — which is what you want, since OneUptime's endpoint is HTTP. There is also `github.copilot.chat.otel.dbSpanExporter.enabled` for local span storage.
 
 The agent host behind Copilot CLI has its own equivalents: `chat.agentHost.otel.enabled`, `chat.agentHost.otel.otlpEndpoint`, `chat.agentHost.otel.exporterType`, `chat.agentHost.otel.captureContent`, `chat.agentHost.otel.serviceName`, `chat.agentHost.otel.resourceAttributes` and `chat.agentHost.otel.headers`.
 
-Note what is missing from the user-level Chat keys: **there is no headers key**, so those settings alone cannot carry `x-oneuptime-token`. Either use enterprise managed settings below, use the agent-host `headers` key, or point `otlpEndpoint` at a local OpenTelemetry Collector that attaches the header (the same collector config as in the [Gemini CLI section](#getting-the-token-in) works).
+Note what is missing from the user-level Chat keys: **there is no headers key**, so those settings alone cannot carry `x-oneuptime-token`. Four ways out, simplest first:
 
-Environment variables Copilot reads: `COPILOT_OTEL_ENABLED`, `COPILOT_OTEL_CAPTURE_CONTENT`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_RESOURCE_ATTRIBUTES`.
+```bash
+export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
+```
+
+...or use enterprise managed settings below, use the agent-host `headers` key, or point `otlpEndpoint` at a local OpenTelemetry Collector that attaches the header (the same collector config as in the [Gemini CLI section](#getting-the-token-in) works).
+
+Environment variables Copilot reads include `COPILOT_OTEL_ENABLED`, `COPILOT_OTEL_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL` / `COPILOT_OTEL_PROTOCOL`, `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_HEADERS`, `COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS`, `COPILOT_OTEL_LOG_LEVEL`, `COPILOT_OTEL_FILE_EXPORTER_PATH` and `COPILOT_OTEL_HTTP_INSTRUMENTATION` — plus, for content capture, `COPILOT_OTEL_CAPTURE_CONTENT` in VS Code or `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` in the Copilot CLI.
 
 ### Enterprise managed settings
 
@@ -225,7 +232,7 @@ For a fleet, push a `telemetry` block through Copilot's enterprise managed setti
   "telemetry": {
     "enabled": true,
     "endpoint": "https://oneuptime.com/otlp",
-    "protocol": "otlp-http",
+    "protocol": "http/protobuf",
     "serviceName": "github-copilot",
     "captureContent": false,
     "lockCaptureContent": true,
@@ -242,15 +249,17 @@ For a fleet, push a `telemetry` block through Copilot's enterprise managed setti
 }
 ```
 
-`headers` and `resourceAttributes` are JSON objects. `protocol` is `"otlp-http"` or `"otlp-grpc"`. `captureContent` with `lockCaptureContent: true` turns prompt and completion capture off and prevents an individual developer from turning it back on locally.
+`headers` and `resourceAttributes` are JSON objects. `protocol` here is the OTLP **wire encoding**, not an exporter name: GitHub's managed-settings reference accepts `"http/json"` and `"http/protobuf"`, and its own example uses `"http/protobuf"`. (VS Code's enterprise docs describe the same managed key as mapping onto the `chat.agentHost.otel.exporterType` setting, whose vocabulary is `otlp-http` / `otlp-grpc` — but GitHub's managed-settings reference is the authority for what the managed block accepts, so write `http/protobuf`.) `captureContent` with `lockCaptureContent: true` turns prompt and completion capture off and prevents an individual developer from turning it back on locally.
 
-One behaviour to plan around: per GitHub's documentation, headers set in managed settings apply to the Copilot Chat extension's OTLP exporter only, and are not exposed to the process as environment variables. So a mixed setup — env vars for the endpoint, managed settings for the token — will not work the way you expect. Configure the export in one place.
+One behaviour to plan around: managed `telemetry.headers` apply to the Copilot Chat extension's OTLP exporter only, and are never passed through environment variables — deliberately, so that a header value such as an auth token cannot leak into the tool subprocesses the agent host spawns. So a mixed setup — env vars for the endpoint, managed settings for the token — will not work the way you expect. Configure the export in one place.
 
-The managed-settings block covers both the VS Code Chat extension and the agent host process behind Copilot CLI.
+**And the consequence you have to handle:** in this release, managed headers are **not delivered to the agent host process** at all. The agent host behind Copilot CLI will therefore export without `x-oneuptime-token`, and OneUptime will reject its data. Set `chat.agentHost.otel.headers` directly, set `OTEL_EXPORTER_OTLP_HEADERS` in the agent host's environment, or point the agent host at a local collector that attaches the header.
+
+The rest of the managed-settings block — `enabled`, `endpoint`, `protocol`, `captureContent`, `serviceName`, `resourceAttributes` — does apply to the VS Code Chat extension, the Copilot CLI agent host, and the JetBrains plugin.
 
 ### Attribution: Copilot names no user, so you must
 
-**Copilot emits no user attribute of any kind.** No `user.email`, no `user.id`, no `enduser.id`. Spans arrive with a model, token counts and a service name and nothing that says who ran them. Without intervention, every Copilot dollar in OneUptime lands in one anonymous bucket.
+**Copilot emits no usable human identity.** There is no `user.email`, no `user.id` and no `enduser.id`. The Copilot CLI agent host does put `enduser.pseudo.id` on its `invoke_agent` spans — a pseudonymous identifier derived from `analytics_tracking_id` — but it is not an email, it is not emitted by the VS Code extension, and OneUptime cannot map it to an employee. Otherwise spans arrive with a model, token counts and a service name and nothing that says who ran them. Without intervention, every Copilot dollar in OneUptime lands in one anonymous bucket.
 
 The fix is to inject the identity yourself as a resource attribute, per machine. In managed settings, that is the `resourceAttributes` object shown above. Where you provision developer machines through a shell profile or an MDM script instead:
 
@@ -281,15 +290,17 @@ Span names:
 
 Attributes include `gen_ai.agent.name`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.cache_read.input_tokens`, `gen_ai.conversation.id`, `gen_ai.response.finish_reasons`, `gen_ai.tool.name`, `gen_ai.tool.call.id`, plus `copilot_chat.time_to_first_token`.
 
-Metrics: `gen_ai.client.operation.duration` (histogram), `gen_ai.client.token.usage` (histogram), `copilot_chat.tool.call.count` (counter) and `copilot_chat.agent.invocation.duration` (histogram).
+Metrics from both surfaces: `gen_ai.client.operation.duration` and `gen_ai.client.token.usage`, both histograms. The vendor metrics differ by surface — the VS Code extension emits the legacy `copilot_chat.*` namespace (`copilot_chat.tool.call.count`, `copilot_chat.tool.call.duration`, `copilot_chat.agent.invocation.duration`), while the Copilot CLI agent host emits the canonical `github.copilot.*` namespace (`github.copilot.tool.call.count`, `github.copilot.tool.call.duration`, `github.copilot.agent.turn.count`, `github.copilot.code.lines_added` / `lines_removed`). GitHub says `github.copilot.*` is the namespace to build new dashboards on.
 
-Copilot emits traces and metrics; there is no separate log signal documented.
+Copilot emits traces, metrics and **events** — delivered on the OTLP logs signal, so keep a `logs` pipeline in any collector you put in front of OneUptime. VS Code Copilot Chat events include `gen_ai.client.inference.operation.details`, `copilot_chat.session.start`, `copilot_chat.tool.call`, `copilot_chat.agent.turn`, `copilot_chat.edit.feedback` and `copilot_chat.user.feedback`. The Copilot CLI agent host records its lifecycle as span events instead (`github.copilot.hook.start`, `github.copilot.session.truncation`, `github.copilot.session.shutdown`, and so on).
 
 Because `gen_ai.conversation.id` is present, OneUptime groups a whole Copilot agent turn as one conversation in the LLM calls list. And because token counts use the standard attribute names, cost is [computed at ingest](/docs/telemetry/ai-llm-observability) from the model and token counts for models in the catalog.
 
+Copilot's own agent host also reports spend directly: `github.copilot.cost` (monetary cost) and `github.copilot.aiu` (AI units) sit on both the `invoke_agent` and `chat` spans. OneUptime prices calls at ingest from the model and token counts rather than reading those attributes, so a OneUptime figure and GitHub's own `github.copilot.cost` can differ — query the attribute directly if you need GitHub's number.
+
 ### Copilot SDK
 
-If you embed the Copilot SDK, its `TelemetryConfig` carries its own keys: `otlpEndpoint` (also accepted as `otlp_endpoint` / `OTLPEndpoint` depending on language), `otlpProtocol` (`"http/json"` or `"http/protobuf"`), `exporterType` (`"otlp-http"` or `"file"`), `filePath`, `sourceName` and `captureContent`. It propagates W3C `traceparent` and `tracestate` over JSON-RPC, so SDK spans join your application's traces rather than floating on their own, and it emits an `assistant.usage` event carrying an `apiEndpoint` attribute for cost attribution.
+If you embed the Copilot SDK, its `TelemetryConfig` carries its own keys: `otlpEndpoint` (also accepted as `otlp_endpoint` / `OTLPEndpoint` depending on language), `otlpProtocol` (`"http/json"` or `"http/protobuf"`), `exporterType` (`"otlp-http"` or `"file"`), `filePath`, `sourceName` and `captureContent`. It propagates W3C `traceparent` and `tracestate` over JSON-RPC, so SDK spans join your application's traces rather than floating on their own, and it exposes an `assistant.usage` streaming event you can subscribe to, whose `apiEndpoint` field supports cost attribution — GitHub documents this as an SDK event subscription, not as something exported over OTLP.
 
 ### Seats and billing are API-only
 

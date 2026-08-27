@@ -593,6 +593,7 @@ const EXPECTED_USER_ID_KEY_ORDER: Array<string> = [
   "user.id",
   "enduser.id",
   "litellm.metadata.user_api_key_user_id",
+  "metadata.user_api_key_user_id",
   "traceloop.association.properties.user_id",
   "langfuse.user.id",
   "user.account_uuid",
@@ -601,6 +602,7 @@ const EXPECTED_USER_ID_KEY_ORDER: Array<string> = [
   "resource.user.id",
   "resource.enduser.id",
   "resource.litellm.metadata.user_api_key_user_id",
+  "resource.metadata.user_api_key_user_id",
   "resource.traceloop.association.properties.user_id",
   "resource.langfuse.user.id",
   "resource.user.account_uuid",
@@ -610,9 +612,13 @@ const EXPECTED_USER_ID_KEY_ORDER: Array<string> = [
 
 const EXPECTED_USER_EMAIL_KEY_ORDER: Array<string> = [
   "user.email",
+  "litellm.metadata.user_api_key_user_email",
+  "metadata.user_api_key_user_email",
   "traceloop.association.properties.user_email",
   "enduser.email",
   "resource.user.email",
+  "resource.litellm.metadata.user_api_key_user_email",
+  "resource.metadata.user_api_key_user_email",
   "resource.traceloop.association.properties.user_email",
   "resource.enduser.email",
 ];
@@ -624,6 +630,7 @@ const EXPECTED_TEAM_KEY_ORDER: Array<string> = [
   "department",
   "litellm.metadata.user_api_key_team_id",
   "litellm.team.id",
+  "metadata.user_api_key_team_id",
   "cursor.team.id",
   "resource.team.id",
   "resource.team",
@@ -631,6 +638,7 @@ const EXPECTED_TEAM_KEY_ORDER: Array<string> = [
   "resource.department",
   "resource.litellm.metadata.user_api_key_team_id",
   "resource.litellm.team.id",
+  "resource.metadata.user_api_key_team_id",
   "resource.cursor.team.id",
 ];
 
@@ -677,6 +685,93 @@ describe("LlmSpanUtil.extract — employee identity", () => {
       expect(LlmSpanUtil.extract(attrs).llmTeam).toBe("platform");
     },
   );
+
+  /*
+   * LiteLLM proxy, DEFAULT configuration.
+   *
+   * This block exists because we shipped the wrong spelling once. The
+   * "litellm."-namespaced attributes only appear under LiteLLM's opt-in
+   * OpenTelemetry v2 mode (LITELLM_OTEL_V2, which defaults to false). The
+   * default `otel` callback stamps its metadata with a bare "metadata."
+   * prefix instead — every key in METRIC_METADATA_KEYS, assigned as
+   * `common_attrs[f"metadata.{key}"]` in
+   * litellm/integrations/opentelemetry.py.
+   *
+   * The consequence of recognizing only the v2 spelling was silent and total:
+   * a stock LiteLLM proxy issuing one virtual key per employee — the exact
+   * architecture our AI-gateway guide recommends as the cleanest chargeback
+   * setup — produced no attribution at all, with every gateway dollar landing
+   * in the Unattributed row and nothing anywhere to explain why.
+   *
+   * The end-user assertions are the other half: LiteLLM carries the DOWNSTREAM
+   * CUSTOMER in the sibling key user_api_key_end_user_id (and, in v2, in the
+   * dedicated litellm.end_user.id). Those must never reach an employee column,
+   * or a SaaS customer's id gets billed to an engineer.
+   */
+  test("a default LiteLLM proxy attributes the key owner, not nobody", () => {
+    const fields: LlmSpanFields = LlmSpanUtil.extract({
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "metadata.user_api_key_user_id": "user_42",
+      "metadata.user_api_key_user_email": "engineer@example.com",
+      "metadata.user_api_key_team_id": "team_platform",
+    });
+
+    expect(fields.llmUserId).toBe("user_42");
+    expect(fields.llmUserEmail).toBe("engineer@example.com");
+    expect(fields.llmTeam).toBe("team_platform");
+  });
+
+  test("a LiteLLM v2 proxy attributes the key owner too", () => {
+    const fields: LlmSpanFields = LlmSpanUtil.extract({
+      "gen_ai.system": "anthropic",
+      "gen_ai.request.model": "claude-sonnet-4",
+      "litellm.metadata.user_api_key_user_id": "user_42",
+      "litellm.metadata.user_api_key_user_email": "engineer@example.com",
+      "litellm.team.id": "team_platform",
+    });
+
+    expect(fields.llmUserId).toBe("user_42");
+    expect(fields.llmUserEmail).toBe("engineer@example.com");
+    expect(fields.llmTeam).toBe("team_platform");
+  });
+
+  test.each([
+    ["metadata.user_api_key_end_user_id", "v1 default spelling"],
+    ["litellm.metadata.user_api_key_end_user_id", "v2 metadata spelling"],
+    ["litellm.end_user.id", "v2 dedicated attribute"],
+  ])(
+    "LiteLLM's downstream customer never becomes the employee (%s — %s)",
+    (key: string) => {
+      const fields: LlmSpanFields = LlmSpanUtil.extract({
+        "gen_ai.system": "openai",
+        "gen_ai.request.model": "gpt-4o",
+        [key]: "customer_abc",
+      });
+
+      expect(fields.llmUserId).toBe("");
+      expect(fields.llmUserEmail).toBe("");
+      expect(fields.llmTeam).toBe("");
+    },
+  );
+
+  test("the key owner is billed even when a customer id rides along", () => {
+    /*
+     * The realistic shape: a SaaS product routing its own customers' traffic
+     * through a per-engineer virtual key. Both ids are present on one span and
+     * they must land in different places — the employee in the identity
+     * columns, the customer nowhere near them.
+     */
+    const fields: LlmSpanFields = LlmSpanUtil.extract({
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "metadata.user_api_key_user_id": "user_42",
+      "metadata.user_api_key_end_user_id": "customer_abc",
+    });
+
+    expect(fields.llmUserId).toBe("user_42");
+    expect(fields.llmUserEmail).toBe("");
+  });
 
   /*
    * Preference order, pinned to LITERAL key strings in a LITERAL order.

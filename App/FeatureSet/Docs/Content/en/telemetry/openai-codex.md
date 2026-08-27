@@ -11,7 +11,7 @@ Two things to know before you start:
 
 In a release build of Codex, `metrics_exporter` defaults to `"statsig"`. With **no `[otel]` block at all**, Codex exports its metrics to OpenAI at `https://ab.chatgpt.com/otlp/v1/metrics` with a hardcoded `statsig-api-key` header.
 
-Setting `metrics_exporter` to `otlp-http` (as below) or to `none` is what stops that. Traces and logs are not affected — their exporters default to `none`, so nothing leaves the machine until you configure them.
+Setting `metrics_exporter` to `otlp-http` (as below) or to `none` stops it — as does turning analytics off entirely with an `[analytics]` block and `enabled = false`, which forces the metrics exporter to `none` no matter what `metrics_exporter` says. Traces and logs are not affected — their exporters default to `none`, so nothing leaves the machine until you configure them.
 
 ## Before you start
 
@@ -57,20 +57,24 @@ Giving all three the base `https://oneuptime.com/otlp` will not work. Nothing wi
 
 ### `[otel]` keys
 
-| Key                | Type                            | Default     | What it does                                                    |
-| ------------------ | ------------------------------- | ----------- | --------------------------------------------------------------- |
-| `environment`      | string                          | `"dev"`     | Becomes the resource attribute `env`                            |
-| `log_user_prompt`  | bool                            | `false`     | When `false`, `codex.user_prompt` carries `prompt="[REDACTED]"` |
-| `exporter`         | exporter                        | `none`      | The **logs** exporter                                           |
-| `trace_exporter`   | exporter                        | `none`      | The **traces** exporter                                         |
-| `metrics_exporter` | exporter                        | `"statsig"` | The **metrics** exporter — override it                          |
-| `span_attributes`  | map<string,string>              | —           | Added to every exported span                                    |
-| `tracestate`       | map<string, map<string,string>> | —           | W3C `tracestate` members                                        |
-| `tool_result`      | byte cap                        | —           | Caps the tool-result payload on log records                     |
+| Key                | Type                            | Default                | What it does                                                                            |
+| ------------------ | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| `environment`      | string                          | `"dev"`                | Becomes the resource attribute `env`                                                    |
+| `log_user_prompt`  | bool                            | `false`                | When `false`, `codex.user_prompt` carries `prompt="[REDACTED]"`                         |
+| `exporter`         | exporter                        | `none`                 | The **logs** exporter                                                                   |
+| `trace_exporter`   | exporter                        | `none`                 | The **traces** exporter                                                                 |
+| `metrics_exporter` | exporter                        | `"statsig"`            | The **metrics** exporter — override it                                                  |
+| `span_attributes`  | map<string,string>              | —                      | Added to every exported span                                                            |
+| `tracestate`       | map<string, map<string,string>> | —                      | W3C `tracestate` members                                                                |
+| `tool_result`      | table `{ max_bytes = int }`     | `{ max_bytes = 2048 }` | Caps the tool-result payload on log records, in UTF-8 bytes, before a truncation notice |
 
 Exporter variants are `none`, `statsig`, `otlp-http` and `otlp-grpc`. `otlp-http` takes `endpoint`, `headers`, `protocol` (`"binary"` or `"json"`) and `tls { ca-certificate, client-certificate, client-private-key }`. `otlp-grpc` takes `endpoint`, `headers` and `tls`. OneUptime accepts both protobuf (`"binary"`) and JSON over OTLP/HTTP.
 
-Codex parses this table with `deny_unknown_fields`, so a misspelled key is a hard config error rather than a silently ignored line. Keys are kebab-case where they contain a separator (`otlp-http`, `ca-certificate`).
+`tool_result` is written as a sub-table — `[otel.tool_result]` with `max_bytes = 8192` — not as a bare integer.
+
+**Unknown keys under `[otel]` are silently ignored.** Only the generated `config.schema.json` marks this table as closed (`#[schemars(deny_unknown_fields)]`); serde itself drops keys it does not recognize, so a misspelling produces no error, no warning and no telemetry. Double-check spelling, because there is nothing to catch you.
+
+Two naming conventions are in play, which makes that easy to get wrong: the `[otel]` keys themselves are **snake_case** (`log_user_prompt`, `trace_exporter`, `metrics_exporter`, `span_attributes`, `tool_result`), while the exporter variant names and the TLS fields are **kebab-case** (`otlp-http`, `otlp-grpc`, `ca-certificate`, `client-certificate`, `client-private-key`). Writing `trace-exporter` disables traces with no error at all.
 
 ## Attributing Codex usage to a person
 
@@ -78,11 +82,11 @@ Codex's identity handling has a structural quirk you have to design around:
 
 - **Log records carry identity.** Every Codex log event gets `user.account_id` and `user.email` attached.
 - **Spans deliberately do not.** The trace path omits both, by design — the code calls it "trace-safe".
-- **Metrics do not either.** The metric tag set is exactly `auth_mode`, `session_source`, `originator`, `service_name`, `model`, `app.version`.
+- **Metrics do not either.** Every Codex metric carries the session tags `auth_mode`, `session_source`, `originator`, `service_name`, `model` and `app.version`, plus per-metric tags — `codex.turn.cost_microusd` also carries `turn.id`, `conversation.id`, `turn.interrupted` and, when known, `speed` and `reasoning_effort`; `codex.turn.token_usage` also carries `token_type` and `tmp_mem_enabled`. None of them is a user identity.
 
 So on the Codex side, the log stream is the only signal that knows who ran the turn. That is why the config above enables the logs exporter.
 
-**On the OneUptime side, employee attribution is read off spans and metric datapoints — never off log records.** On spans OneUptime denormalizes the human actor into queryable columns from `user.id` (the OpenTelemetry canonical key), `enduser.id`, `litellm.metadata.user_api_key_user_id`, `traceloop.association.properties.user_id`, `langfuse.user.id`, `user.account_uuid`, `user.account_id` and `cursor.user.id`, plus the email from `user.email`; each is also matched in its `resource.`-prefixed form, for tools that stamp identity once on the process. None of those appear on a Codex span unless you put them there, and Codex has no resource-attribute mechanism to put them there for you — hence the span-attributes block. Codex's metric tag set carries no identity either, so the log stream really is the only place Codex itself names the developer, and that is the signal OneUptime does not yet read.
+**On the OneUptime side, employee attribution is read off spans and metric datapoints — never off log records.** On spans OneUptime denormalizes the human actor into queryable columns from `user.id` (the OpenTelemetry canonical key), `enduser.id`, LiteLLM's key-owner ids (`litellm.metadata.user_api_key_user_id`, `metadata.user_api_key_user_id`), `traceloop.association.properties.user_id`, `langfuse.user.id`, `user.account_uuid`, `user.account_id` and `cursor.user.id`, plus the email from `user.email`; each is also matched in its `resource.`-prefixed form, for tools that stamp identity once on the process. None of those appear on a Codex span unless you put them there, and Codex has no resource-attribute mechanism to put them there for you — hence the span-attributes block. Codex's metric tag set carries no identity either, so the log stream really is the only place Codex itself names the developer, and that is the signal OneUptime does not yet read.
 
 The practical recommendation is therefore the `[otel.span_attributes]` block above: stamp a per-developer identity onto every Codex span yourself.
 
@@ -137,25 +141,21 @@ The micro-USD unit is handled for you. `codex.turn.cost_microusd` is queried sep
 
 Three smaller consequences of the same rule, for the case where the spans are absent and the metric fallback does engage:
 
-- **Codex's metrics name nobody.** Its tag set is `auth_mode`, `session_source`, `originator`, `service_name`, `model`, `app.version` — no user attribute of any kind, and no resource-attribute mechanism to add one. So metric-sourced Codex spend lands in the Usage tab's single **Unattributed** row. Per-employee Codex attribution comes from `[otel.span_attributes]` and the span path, which is exactly why that block is the recommendation on this page.
+- **Codex's metrics name nobody.** The session tags are `auth_mode`, `session_source`, `originator`, `service_name`, `model` and `app.version`, and the per-metric tags are turn, conversation and token-type keys — no user attribute of any kind, and no resource-attribute mechanism to add one. So metric-sourced Codex spend lands in the Usage tab's single **Unattributed** row. Per-employee Codex attribution comes from `[otel.span_attributes]` and the span path, which is exactly why that block is the recommendation on this page.
 - The **Model** breakdown does work off the metrics — Codex tags its counters with a bare `model`, which OneUptime reads. **Provider** and **Application / Service** do not: those counters carry no `gen_ai.system` and are not attached to a OneUptime telemetry service.
 - Metric-sourced rows carry **cost only** — the Calls and token columns render as `—`. Rows sourced from spans do not have this limitation.
 
-Note this cuts the other way for `codex exec`, which emits traces and logs but no metrics at all: there the spans are the only source, and there is no metric fallback to catch anything they miss.
+## Coverage is uniform across entry points
 
-## Coverage gaps
+All three entry points build the same OpenTelemetry provider from your `[otel]` block and install all three exporters:
 
-Codex's OTel coverage is not uniform across entry points, and the gaps are worth knowing before you build a dashboard on top of a signal that is empty:
+| Entry point           | Traces | Logs | Metrics |
+| --------------------- | ------ | ---- | ------- |
+| `codex` (interactive) | Yes    | Yes  | Yes     |
+| `codex exec`          | Yes    | Yes  | Yes     |
+| `codex mcp-server`    | Yes    | Yes  | Yes     |
 
-| Entry point           | Traces   | Logs     | Metrics  |
-| --------------------- | -------- | -------- | -------- |
-| `codex` (interactive) | Yes      | Yes      | Yes      |
-| `codex exec`          | Yes      | Yes      | **None** |
-| `codex mcp-server`    | **None** | **None** | **None** |
-
-Interactive `codex` is the only fully covered entry point. `codex mcp-server` never initializes OpenTelemetry at all, so it exports nothing regardless of your config.
-
-The practical consequence: CI pipelines run `codex exec`, which emits no metrics — so a cost dashboard built purely on `codex.turn.cost_microusd` will under-report CI spend. For those runs, the log stream (`codex.turn_cost` / `usage.estimated_usd`) and the spans' `gen_ai.usage.*` attributes are the sources that actually have data.
+`codex exec` records its process start under the originator tag `codex_exec`, and `codex mcp-server` exports under the service name `codex_mcp_server` — so you can tell CI runs and MCP-server runs apart from interactive sessions by filtering on those, not by which signals are missing. A cost dashboard built on `codex.turn.cost_microusd` sees CI spend from `codex exec` like any other spend.
 
 ## Privacy
 
@@ -178,21 +178,20 @@ Nothing showing up?
 
 - Check the endpoints first. All three must be full URLs ending in `/v1/logs`, `/v1/traces` and `/v1/metrics`. This is the most common mistake.
 - Check the token — a wrong `x-oneuptime-token` is rejected at ingest.
-- Check you are not in `codex exec` or `codex mcp-server` (see the coverage gaps above).
-- Check for a config parse error on startup: `[otel]` rejects unknown keys, so one typo disables the whole block.
+- Check your key spelling. Unknown keys under `[otel]` are **silently ignored** — a typo'd `trace-exporter` (instead of `trace_exporter`) produces no error and no traces. See [`[otel]` keys](#otel-keys).
 
 ## Using the OpenAI platform API instead of Codex
 
-If you call OpenAI through the SDK rather than through Codex, none of the above applies — **OpenAI's platform API emits no OpenTelemetry**. `api.openai.com` does not accept `traceparent` for trace continuation, returns no span or trace IDs, and pushes nothing to your collector. Responses carry only proprietary correlation headers (`x-request-id`, `openai-processing-ms`, `x-ratelimit-*`). Every span you get comes from instrumenting your own client.
+If you call OpenAI through the SDK rather than through Codex, none of the above applies — **OpenAI's platform API emits no OpenTelemetry**. OpenAI's API reference defines no `traceparent` request header and no trace or span id on any response, and nothing is pushed to your collector. The correlation headers it does document are proprietary (`x-request-id`, `openai-processing-ms`, `x-ratelimit-*`). Every span you get comes from instrumenting your own client.
 
 Three instrumentation families work with OneUptime:
 
 - **Official OpenTelemetry** — `opentelemetry-instrumentation-genai-openai` (Python). It supersedes `opentelemetry-instrumentation-openai-v2`. Instrument with `from opentelemetry.instrumentation.genai.openai import OpenAIInstrumentor; OpenAIInstrumentor().instrument()`. Message capture is controlled by `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (`span_only`, `event_only`, `span_and_event`, `no_content`). Covers `chat`, the Responses API, `embeddings` and `fetch_response`, and emits `gen_ai.client.token.usage` and `gen_ai.client.operation.duration`.
-- **OpenLLMetry** (Traceloop) — `opentelemetry-instrumentation-openai`. Emits `gen_ai.*` plus indexed message attributes (`gen_ai.prompt.{i}.content`, `gen_ai.completion.{i}.content`), all of which OneUptime reads.
-- **OpenInference** (Arize) — `openinference-instrumentation-openai`. Uses its own `llm.*` namespace, and — the reason to pick it — **defines `user.id` as a first-class attribute**. The GenAI semantic conventions define no user identity at all, so with the official instrumentation you must stamp `user.id` yourself; with OpenInference, per-employee attribution works out of the box.
+- **OpenLLMetry** (Traceloop) — `opentelemetry-instrumentation-openai`. Emits `gen_ai.*` plus indexed message attributes in the `gen_ai.prompt.{i}.content` / `gen_ai.completion.{i}.content` shape, all of which OneUptime reads. Check Traceloop's own docs for the exact attribute names your version emits.
+- **OpenInference** (Arize) — `openinference-instrumentation-openai`. Uses its own `llm.*` namespace, and OneUptime reads `user.id` from it as an employee key. The GenAI semantic conventions define no user identity at all, so with the official instrumentation you must stamp `user.id` yourself; check OpenInference's semantic-conventions spec for how your version populates it.
 
 Point any of them at `https://oneuptime.com/otlp` with the `x-oneuptime-token` header — see [AI / LLM Observability](/docs/telemetry/ai-llm-observability) for the exporter setup.
 
-Using the **OpenAI Agents SDK**? Its built-in tracing is proprietary and posts to `platform.openai.com/traces`, not OTLP. Bridge it by registering a `TracingProcessor` that converts SDK spans to OpenTelemetry spans and hands them to a normal `OTLPSpanExporter`; `opentelemetry-instrumentation-openai-agents-v2` and `openinference-instrumentation-openai-agents` both do this.
+Using the **OpenAI Agents SDK**? Its built-in tracing is proprietary and posts to `https://api.openai.com/v1/traces/ingest`, not OTLP. Bridge it by registering a `TracingProcessor` that converts SDK spans to OpenTelemetry spans and hands them to a normal `OTLPSpanExporter`; `opentelemetry-instrumentation-openai-agents-v2` and `openinference-instrumentation-openai-agents` both do this.
 
-**Admin usage and cost API:** OpenAI exposes org-wide usage and cost at `https://api.openai.com/v1/organization/usage/*` and `/v1/organization/costs`, authenticated with an admin key. A OneUptime connector that polls these is planned, but **it is not implemented today** — there is nothing to enable in the product yet. Note also that when it does ship it will not close every gap: `/v1/organization/costs` cannot be grouped by user at all, and `user_id` is null for anything called with a service-account key. Client-side instrumentation remains the way to attribute OpenAI SDK spend to a person.
+**Admin usage and cost API:** OpenAI exposes org-wide usage and cost at `https://api.openai.com/v1/organization/usage/*` and `/v1/organization/costs`, authenticated with an admin key. A OneUptime connector that polls these is planned, but **it is not implemented today** — there is nothing to enable in the product yet. Note also that when it does ship it will not close every gap: `/v1/organization/costs` cannot be grouped by user at all, and `user_id` is only populated on the usage endpoints when you pass `group_by=user_id` — OpenAI's schema allows it to be null, and does not say which calls it is null for. Client-side instrumentation remains the way to attribute OpenAI SDK spend to a person.
