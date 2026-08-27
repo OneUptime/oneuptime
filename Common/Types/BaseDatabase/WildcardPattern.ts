@@ -23,6 +23,18 @@
  * interpolated — so this is a correctness concern, not an injection one.
  */
 
+/*
+ * How many globs one wildcard filter may carry.
+ *
+ * Unlike `IN (...)`, which binds one array parameter, each glob is its own
+ * ILIKE predicate — the cost is multiplicative in the number of patterns and
+ * the filter comes straight off a request body. A user typing an any-of list
+ * will never approach this; a request that does is refused with a 400 that
+ * names the limit rather than being silently truncated into a filter that
+ * means something narrower than what was asked for.
+ */
+export const MAX_WILDCARD_PATTERNS: number = 50;
+
 type EscapeLiteralCharFunction = (character: string) => string;
 
 /** Escape one literal character so LIKE reads it as itself. */

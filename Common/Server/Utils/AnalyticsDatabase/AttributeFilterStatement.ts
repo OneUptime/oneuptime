@@ -2,7 +2,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { ObjectType } from "../../../Types/JSON";
-import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
+import {
+  MAX_WILDCARD_PATTERNS,
+  toLikePattern,
+} from "../../../Types/BaseDatabase/WildcardPattern";
 import { SQL, Statement, escapeIlikePattern } from "./Statement";
 
 /*
@@ -323,6 +326,12 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
           return;
         }
 
+        if (patterns.length > MAX_WILDCARD_PATTERNS) {
+          throw new BadDataException(
+            `The attribute filter for "${attributeKey}" has more than ${MAX_WILDCARD_PATTERNS} patterns`,
+          );
+        }
+
         const disjunction: Statement = SQL`(`;
 
         patterns.forEach((pattern: string, index: number) => {
@@ -336,8 +345,10 @@ export const appendAttributeOperatorFilter: AppendAttributeOperatorFilterFunctio
         disjunction.append(SQL`)`);
 
         statement.append(
-          (operatorType === ObjectType.Wildcard ? SQL` AND ` : SQL` AND NOT `)
-            .append(matches(disjunction)),
+          (operatorType === ObjectType.Wildcard
+            ? SQL` AND `
+            : SQL` AND NOT `
+          ).append(matches(disjunction)),
         );
         return;
       }

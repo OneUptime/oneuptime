@@ -46,6 +46,7 @@ import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import { MAX_WILDCARD_PATTERNS } from "../../../Types/BaseDatabase/WildcardPattern";
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
@@ -135,6 +136,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     patterns: Array<string>;
     subject: Statement;
   }): Statement {
+    if (input.patterns.length > MAX_WILDCARD_PATTERNS) {
+      throw new BadDataException(
+        `A wildcard filter cannot carry more than ${MAX_WILDCARD_PATTERNS} patterns`,
+      );
+    }
+
     const disjunction: Statement = SQL`(`;
 
     input.patterns.forEach((pattern: string, index: number) => {
@@ -1377,10 +1384,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             continue;
           }
 
-          if (
-            mapEntry instanceof Wildcard ||
-            mapEntry instanceof NotWildcard
-          ) {
+          if (mapEntry instanceof Wildcard || mapEntry instanceof NotWildcard) {
             /*
              * Glob matching on an attribute value — `@platform.team:a*`.
              *

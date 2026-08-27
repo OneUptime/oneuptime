@@ -307,6 +307,45 @@ describe("StatementGenerator - Wildcard / NotWildcard", () => {
     });
   });
 
+  describe("resource guards", () => {
+    test("an absurd number of globs is refused rather than compiled", () => {
+      /*
+       * Every glob is its own ILIKE predicate, so unlike `IN (...)` the cost
+       * is multiplicative — and the filter arrives straight off a request
+       * body. Refusing with a 400 that names the limit beats either building
+       * the query or silently truncating it into a narrower filter than the
+       * one that was asked for.
+       */
+      const tooMany: Array<string> = Array.from(
+        { length: 51 },
+        (_v: unknown, index: number) => {
+          return `p${index}*`;
+        },
+      );
+
+      expect(() => {
+        return generator.toWhereStatement({
+          attributes: { k: new Wildcard(tooMany) },
+        } as any);
+      }).toThrow(BadDataException);
+    });
+
+    test("exactly at the limit still compiles", () => {
+      const atLimit: Array<string> = Array.from(
+        { length: 50 },
+        (_v: unknown, index: number) => {
+          return `p${index}*`;
+        },
+      );
+
+      expect(
+        generator.toWhereStatement({
+          attributes: { k: new Wildcard(atLimit) },
+        } as any).query,
+      ).toContain("ILIKE");
+    });
+  });
+
   describe("column-type guards", () => {
     test("a whole-map wildcard is refused rather than compiled to nonsense", () => {
       /*
