@@ -419,6 +419,24 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -1012,6 +1030,24 @@
                 },
                 "priorityClassName": {
                     "type": "string"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -1140,6 +1176,24 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -1999,6 +2053,24 @@
                                 }
                             },
                             "additionalProperties": false
+                        },
+                        "extraEnv": {
+                            "type": [
+                                "array",
+                                "null"
+                            ]
+                        },
+                        "extraVolumes": {
+                            "type": [
+                                "array",
+                                "null"
+                            ]
+                        },
+                        "extraVolumeMounts": {
+                            "type": [
+                                "array",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -2068,6 +2140,24 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -2181,6 +2271,24 @@
                         "failedWebhookUrl": {
                             "type": [
                                 "string",
+                                "null"
+                            ]
+                        },
+                        "extraEnv": {
+                            "type": [
+                                "array",
+                                "null"
+                            ]
+                        },
+                        "extraVolumes": {
+                            "type": [
+                                "array",
+                                "null"
+                            ]
+                        },
+                        "extraVolumeMounts": {
+                            "type": [
+                                "array",
                                 "null"
                             ]
                         }
@@ -2674,6 +2782,24 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -2944,6 +3070,24 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -3144,6 +3288,24 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -3345,6 +3507,24 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -3674,6 +3854,24 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                },
+                "extraEnv": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -3952,6 +4150,18 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "extraVolumes": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "extraVolumeMounts": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -4008,6 +4218,24 @@
                 }
             },
             "additionalProperties": false
+        },
+        "extraEnv": {
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "extraVolumes": {
+            "type": [
+                "array",
+                "null"
+            ]
+        },
+        "extraVolumeMounts": {
+            "type": [
+                "array",
+                "null"
+            ]
         }
     },
     "additionalProperties": false

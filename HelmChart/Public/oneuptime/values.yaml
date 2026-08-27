@@ -134,6 +134,11 @@ nginx:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # Kernel networking tuning for the ingress gateway. The ingress proxies a very
   # high volume of short-lived upstream connections (OTLP/telemetry ingest, API,
   # dashboard) out to a single backend Service IP. Without tuning, a pod can
@@ -754,6 +759,11 @@ migrate:
   affinity: {}
   # Optional PriorityClass so the migration run isn't preempted under pressure.
   priorityClassName: ""
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 # =============================================================================
 # PgBouncer connection pooler (opt-in). Orthogonal to the Postgres backend:
@@ -846,6 +856,11 @@ pgbouncer:
   # Optional: override global security contexts just for the pgbouncer pod/container
   podSecurityContext: {}
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 redis:
   enabled: true
@@ -1228,6 +1243,11 @@ probes:
     podSecurityContext: {}
     hostAliases: []
     containerSecurityContext: {}
+    # Extra env / volumes for this service only. A non-empty list REPLACES the
+    # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
 #   additionalContainers:
 # two:
 #   name: "Probe 2"
@@ -1310,6 +1330,11 @@ testServer:
   nodeSelector: {}
   podSecurityContext: {}
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 openTelemetryExporter:
   endpoint:
@@ -1322,6 +1347,33 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+
+# Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
+# app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
+# the migrate Job, test-server, the e2e cron, and vLLM. Empty by default, so an
+# install that leaves them alone renders exactly the manifests it always did.
+#
+# A service that sets its own extraEnv / extraVolumes / extraVolumeMounts
+# REPLACES the chart-wide list for that service — the two are NOT merged. That
+# is the same precedence the chart already uses for hostAliases, nodeSelector
+# and the security contexts above.
+#
+# The usual reason to reach for these: make every service trust an internal CA.
+#
+# extraVolumes:
+#   - name: internal-ca
+#     configMap:
+#       name: internal-ca-bundle   # kubectl create configmap internal-ca-bundle --from-file=ca.crt
+# extraVolumeMounts:
+#   - name: internal-ca
+#     mountPath: /etc/ssl/internal
+#     readOnly: true
+# extraEnv:
+#   - name: NODE_EXTRA_CA_CERTS
+#     value: /etc/ssl/internal/ca.crt
+extraEnv: []
+extraVolumes: []
+extraVolumeMounts: []
 
 # Chart-wide fallback DNS settings. Services that support DNS overrides (currently
 # the probes) use their per-service dnsConfig/dnsPolicy if set, otherwise these.
@@ -1380,6 +1432,11 @@ cronJobs:
     # This is the URL of the status page you want to test. This is used to check if the status page is up and running.
     statusPageUrl:
     failedWebhookUrl:
+    # Extra env / volumes for this service only. A non-empty list REPLACES the
+    # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+    extraEnv: []
+    extraVolumes: []
+    extraVolumeMounts: []
 
 # Please add this information if you want to generate SSL certificates for your status page custom domains.
 # This is only required if you're using custom domains for status pages.
@@ -1538,6 +1595,11 @@ home:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 app:
   enabled: true
@@ -1608,6 +1670,11 @@ app:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling configuration based on combined queue metrics (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
@@ -1698,6 +1765,11 @@ worker:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling based on combined queue depth (worker + workflow + telemetry + runbook)
   keda:
     enabled: false
@@ -1830,6 +1902,11 @@ telemetryWriter:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
 
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
@@ -1867,6 +1944,11 @@ runner:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Extra env / volumes for this service only. A non-empty list REPLACES the
+  # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
   # KEDA autoscaling configuration based on queue metrics
   keda:
     enabled: false
@@ -1943,6 +2025,10 @@ vllm:
   extraArgs: []
   # Extra environment variables, e.g. [{name: VLLM_LOGGING_LEVEL, value: DEBUG}]
   extraEnv: []
+  # Extra volumes / mounts for the vLLM pod only. A non-empty list REPLACES the
+  # chart-wide extraVolumes/extraVolumeMounts (they are not merged).
+  extraVolumes: []
+  extraVolumeMounts: []
   ports:
     http: 8000
   service:

@@ -3,7 +3,7 @@
 # OneUptime test-server Deployment
 {{- $testServerPorts := $.Values.testServer.ports -}}
 {{- $testServerEnv := dict "PORT"  $.Values.testServer.ports.http  "DISABLE_TELEMETRY" $.Values.testServer.disableTelemetryCollection  "ENABLE_PROFILING" $.Values.testServer.enableProfiling -}}
-{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources "NodeSelector" $.Values.testServer.nodeSelector "PodSecurityContext" $.Values.testServer.podSecurityContext "ContainerSecurityContext" $.Values.testServer.containerSecurityContext "DisableAutoscaler" $.Values.testServer.disableAutoscaler "AutoscalingOverride" $.Values.testServer.autoscaling "ReplicaCount" $.Values.testServer.replicaCount -}}
+{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources "NodeSelector" $.Values.testServer.nodeSelector "PodSecurityContext" $.Values.testServer.podSecurityContext "ContainerSecurityContext" $.Values.testServer.containerSecurityContext "DisableAutoscaler" $.Values.testServer.disableAutoscaler "AutoscalingOverride" $.Values.testServer.autoscaling "ReplicaCount" $.Values.testServer.replicaCount "ExtraEnv" (default $.Values.extraEnv $.Values.testServer.extraEnv) "ExtraVolumes" (default $.Values.extraVolumes $.Values.testServer.extraVolumes) "ExtraVolumeMounts" (default $.Values.extraVolumeMounts $.Values.testServer.extraVolumeMounts) -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}
 ---
 

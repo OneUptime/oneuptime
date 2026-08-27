@@ -1,0 +1,522 @@
+# extraEnv / extraVolumes / extraVolumeMounts are the chart's escape hatch for
+# the things it cannot enumerate. Trusting an internal CA — a bundle mounted
+# from a ConfigMap plus NODE_EXTRA_CA_CERTS pointing at it — is the case that
+# motivated them, and it is the one this suite renders end to end.
+#
+# Three properties have to hold, and none of them is visible from reading a
+# single template:
+#
+#   - They are a NO-OP when unset. Every workload has to render the manifest it
+#     rendered before, with no empty `volumes:` / `volumeMounts:` key left
+#     behind. A stray key is not cosmetic: it shows up as a change in
+#     `helm diff` for every existing install on the upgrade that ships this.
+#   - The chart-wide list has to reach EVERY workload. The whole point is that
+#     an operator sets the CA once; a service the wiring was forgotten on is a
+#     partial TLS failure that surfaces at runtime, not at install time. So
+#     there is one case per workload here rather than one case for `app`.
+#   - Services that already mount something of their own — probe, nginx,
+#     pgbouncer, vllm — must APPEND. Clobbering probe's synthetic-runtime-tmp
+#     or nginx's conf volume would break the pod outright.
+suite: extra env, volumes and volume mounts
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  # ---------------------------------------------------------------------------
+  # Unset is a no-op: no key, not an empty one.
+  # ---------------------------------------------------------------------------
+  - it: leaves app untouched when nothing is set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves worker untouched when nothing is set
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves runner untouched when nothing is set
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves home untouched when nothing is set
+    templates:
+      - templates/home.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      home:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves telemetry-writer untouched when nothing is set
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      telemetryWriter:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves test-server untouched when nothing is set
+    templates:
+      - templates/test-server.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      testServer:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves the migrate Job untouched when nothing is set
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: leaves the e2e cron untouched when nothing is set
+    templates:
+      - templates/e2e-cron.yml
+    set:
+      cronJobs:
+        e2e:
+          enabled: true
+    asserts:
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.volumes
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+
+  # The four workloads that already carry volumes keep exactly the ones they
+  # shipped with — a count, so an accidental extra entry fails too.
+  - it: leaves the probe's own volumes alone when nothing is set
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 1
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: synthetic-runtime-tmp
+            emptyDir:
+              sizeLimit: "2Gi"
+
+  - it: leaves nginx's own volumes alone when nothing is set
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 5
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 5
+
+  - it: leaves pgbouncer's own volumes alone when nothing is set
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pgbouncer:
+        enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 2
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 2
+
+  - it: leaves vllm's own volumes alone when nothing is set
+    templates:
+      - templates/vllm.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      vllm:
+        enabled: true
+    asserts:
+      # `data` is a volumeClaimTemplate while persistence is on, so only `shm`
+      # is a pod volume here; both are mounted.
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 2
+
+  # ---------------------------------------------------------------------------
+  # One chart-wide setting has to reach every workload — the CA-bundle case.
+  # ---------------------------------------------------------------------------
+  - it: mounts the chart-wide CA bundle on app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &ca
+      extraEnv:
+        - name: NODE_EXTRA_CA_CERTS
+          value: /etc/ssl/internal/ca.crt
+      extraVolumes:
+        - name: internal-ca
+          configMap:
+            name: internal-ca-bundle
+      extraVolumeMounts:
+        - name: internal-ca
+          mountPath: /etc/ssl/internal
+          readOnly: true
+    asserts: &caAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_EXTRA_CA_CERTS
+            value: /etc/ssl/internal/ca.crt
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: internal-ca
+            configMap:
+              name: internal-ca-bundle
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: internal-ca
+            mountPath: /etc/ssl/internal
+            readOnly: true
+
+  - it: mounts the chart-wide CA bundle on worker
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      worker:
+        enabled: true
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on every probe
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *ca
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on runner
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *ca
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on home
+    templates:
+      - templates/home.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      home:
+        enabled: true
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on telemetry-writer
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      telemetryWriter:
+        enabled: true
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on nginx
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *ca
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on test-server
+    templates:
+      - templates/test-server.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      testServer:
+        enabled: true
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on pgbouncer
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      pgbouncer:
+        enabled: true
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on vllm
+    templates:
+      - templates/vllm.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      <<: *ca
+      vllm:
+        enabled: true
+    asserts: *caAsserts
+
+  # The migrate Job talks to Postgres and ClickHouse before any app pod does,
+  # so a CA it cannot see fails the install rather than degrading it.
+  - it: mounts the chart-wide CA bundle on the migrate Job
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *ca
+    asserts: *caAsserts
+
+  - it: mounts the chart-wide CA bundle on the e2e cron
+    templates:
+      - templates/e2e-cron.yml
+    set:
+      <<: *ca
+      cronJobs:
+        e2e:
+          enabled: true
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: NODE_EXTRA_CA_CERTS
+            value: /etc/ssl/internal/ca.crt
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: internal-ca
+            configMap:
+              name: internal-ca-bundle
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          content:
+            name: internal-ca
+            mountPath: /etc/ssl/internal
+            readOnly: true
+
+  # ---------------------------------------------------------------------------
+  # Append, never clobber.
+  # ---------------------------------------------------------------------------
+  - it: keeps the probe's synthetic-monitor scratch volume alongside the extra
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *ca
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 2
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: synthetic-runtime-tmp
+            emptyDir:
+              sizeLimit: "2Gi"
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: synthetic-runtime-tmp
+            mountPath: /tmp
+
+  - it: keeps all five of nginx's own volumes alongside the extra
+    templates:
+      - templates/nginx.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *ca
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 6
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 6
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: conf
+            mountPath: /etc/nginx/conf.d
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: run
+            mountPath: /var/run
+
+  - it: keeps pgbouncer's config and tmp volumes alongside the extra
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      pgbouncer:
+        enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 3
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: config
+            mountPath: /etc/pgbouncer
+            readOnly: true
+
+  # pgbouncer already mounts a CA of its own when externalPostgres uses TLS;
+  # the extra has to land next to it, not instead of it.
+  - it: keeps pgbouncer's external-postgres CA alongside the extra
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *ca
+      pgbouncer:
+        enabled: true
+      postgresql:
+        enabled: false
+      postgresOperator:
+        cnpg:
+          enabled: false
+      externalPostgres:
+        host: postgres.example.com
+        ssl:
+          enabled: true
+          ca: |
+            -----BEGIN CERTIFICATE-----
+            -----END CERTIFICATE-----
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 4
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: server-tls
+            mountPath: /etc/pgbouncer/tls
+            readOnly: true
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: internal-ca
+            mountPath: /etc/ssl/internal
+            readOnly: true
+
+  - it: keeps vllm's shm and data volumes alongside the extra
+    templates:
+      - templates/vllm.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      <<: *ca
+      vllm:
+        enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 2
+      - lengthEqual:
+          path: spec.template.spec.containers[0].volumeMounts
+          count: 3
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: shm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 2Gi

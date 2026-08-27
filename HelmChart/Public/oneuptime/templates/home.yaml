@@ -60,6 +60,10 @@ spec:
       {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" ($.Values.home.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
+      {{- with (default $.Values.extraVolumes $.Values.home.extraVolumes) }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "home") }}
           name: {{ printf "%s-%s" $.Release.Name "home"  }}
@@ -111,6 +115,13 @@ spec:
               value: {{ $.Values.home.disableTelemetryCollection | quote }}
             - name: ENABLE_PROFILING
               value: {{ $.Values.home.enableProfiling | quote }}
+            {{- with (default $.Values.extraEnv $.Values.home.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with (default $.Values.extraVolumeMounts $.Values.home.extraVolumeMounts) }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - containerPort: {{ $.Values.home.ports.http }}
               protocol: TCP

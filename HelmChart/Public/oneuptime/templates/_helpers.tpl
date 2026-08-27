@@ -964,12 +964,15 @@ spec:
       {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" ($.NodeSelector | default $.Values.nodeSelector) | nindent 8 }}
-      {{- if $.Volumes }}
+      {{- if or $.Volumes $.ExtraVolumes }}
       volumes:
       {{- range $key, $val := $.Volumes }}
         - name: {{ $key }}
           emptyDir:
             sizeLimit: {{ $val.SizeLimit }}
+      {{- end }}
+      {{- with $.ExtraVolumes }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- end }}
       containers:
@@ -996,11 +999,17 @@ spec:
               value: {{ $val | squote }}
             {{- end }}
             {{- end }}
-          {{- if $.Volumes }}
+            {{- with $.ExtraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or $.Volumes $.ExtraVolumeMounts }}
           volumeMounts:
             {{- range $key, $val := $.Volumes }}
             - name: {{ $key }}
               mountPath: {{ $val.MountPath }}
+            {{- end }}
+            {{- with $.ExtraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
           {{- if $.Ports }}
