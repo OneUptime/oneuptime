@@ -1820,6 +1820,9 @@
                         "automountServiceAccountToken": {
                             "type": "boolean"
                         },
+                        "allowPrivateNetworkMonitors": {
+                            "type": "boolean"
+                        },
                         "syntheticMonitorScriptTimeoutInMs": {
                             "type": "integer",
                             "minimum": 1,

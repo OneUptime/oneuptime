@@ -10,10 +10,8 @@ import net from "net";
  * ticketing system that only exists on 10.x / 192.168.x (issue #3424).
  *
  * This module owns the two instance knobs that can widen that policy. It is
- * deliberately dependency-free apart from node's `net` - SSRFProtection is
- * reachable from the Probe bundle, which has no database - so the *project*
- * half of the opt-in lives in ProjectService instead
- * (`isPrivateNetworkWebhookAllowed`).
+ * deliberately dependency-free apart from node's `net`, because SSRFProtection
+ * is reachable from the Probe bundle, which has no database.
  *
  *   ALLOW_PRIVATE_NETWORK_WEBHOOKS=true
  *     Permits the PRIVATE tier - RFC-1918, CGNAT, IPv6 unique-local and
@@ -32,10 +30,16 @@ import net from "net";
  *     instance's IAM credentials.
  *
  * BOTH are off by default, so an instance that sets neither behaves exactly as
- * it did before this existed. Neither one is enough on its own either: the
- * project must also opt in (Project.allowPrivateNetworkWebhooks), and sinks
- * whose URL can be chosen by an unauthenticated visitor - status page
- * subscriber webhooks - never consult any of this.
+ * it did before this existed. And neither reaches every sink: a caller has to
+ * declare itself eligible (SSRFProtection's `allowPrivateNetworkTargets`),
+ * which the sinks whose URL an unauthenticated visitor can choose - status
+ * page subscriber webhooks - never do.
+ *
+ * These two are read by the API SERVER. The probe's equivalent switch,
+ * PROBE_ALLOW_PRIVATE_NETWORK_MONITORS, is read by the probe process from its
+ * own environment and lives in Probe/Config.ts: a probe is usually a different
+ * machine, often deployed by a different person, and never reads the API
+ * server's configuration.
  */
 
 const ALLOW_PRIVATE_NETWORK_ENV_VAR: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";

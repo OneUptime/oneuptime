@@ -1,5 +1,4 @@
 import ApiPost from "../../../../../Server/Types/Workflow/Components/API/Post";
-import ProjectService from "../../../../../Server/Services/ProjectService";
 import ComponentCode, {
   RunOptions,
 } from "../../../../../Server/Types/Workflow/ComponentCode";
@@ -24,11 +23,13 @@ import dns from "dns";
  * Mattermost and got "Webhook URL resolves to a private, loopback, or
  * link-local address".
  *
- * The exception that unblocks them is per-PROJECT, so what matters here is
- * that the component asks ProjectService for the answer and passes it on —
- * and, more importantly, that a project which has NOT opted in sees exactly
- * the behaviour it saw before, with no way for a workflow author to change
- * that from inside the workflow.
+ * A workflow URL is written by a member of the project it runs in, so these
+ * components declare themselves eligible for the instance's private-network
+ * exception. What matters here is what that eligibility does and does not
+ * buy: nothing at all on an instance that configured nothing (every SaaS
+ * deployment, and the default everywhere else), and never the forbidden tier
+ * — a workflow author must not be able to read the cloud metadata endpoint,
+ * however permissively the operator configured the instance.
  */
 
 jest.mock("../../../../../Utils/API", () => {
@@ -72,27 +73,18 @@ function postMock(): jest.Mock {
   return API.post as unknown as jest.Mock;
 }
 
-describe("API workflow component — private network opt-in", () => {
+describe("API workflow component — private network exception", () => {
   let lookupSpy: LookupSpy;
-  let allowedSpy: jest.SpiedFunction<
-    (projectId: ObjectID | null | undefined) => Promise<boolean>
-  >;
   let originalAllow: string | undefined;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     originalAllow = process.env[ALLOW_ENV];
-    process.env[ALLOW_ENV] = "true";
+    delete process.env[ALLOW_ENV];
 
     lookupSpy = jest.spyOn(dns.promises, "lookup") as unknown as LookupSpy;
     lookupSpy.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
-
-    allowedSpy = jest.spyOn(
-      ProjectService,
-      "isPrivateNetworkWebhookAllowed",
-    ) as unknown as typeof allowedSpy;
-    allowedSpy.mockResolvedValue(false);
 
     postMock().mockResolvedValue(
       new HTTPResponse<JSONObject>(200, { ok: true }, {}),
@@ -109,20 +101,7 @@ describe("API workflow component — private network opt-in", () => {
     }
   });
 
-  test("asks about the project the workflow is running in", async () => {
-    const component: ComponentCode = new ApiPost();
-
-    await expect(
-      component.run(
-        { url: "http://mattermost.internal/hooks/abc" },
-        makeOptions(),
-      ),
-    ).rejects.toThrow();
-
-    expect(allowedSpy).toHaveBeenCalledWith(PROJECT_ID);
-  });
-
-  test("a project that has not opted in is still refused", async () => {
+  test("an unconfigured instance still refuses an internal target", async () => {
     const component: ComponentCode = new ApiPost();
 
     await expect(
@@ -135,8 +114,8 @@ describe("API workflow component — private network opt-in", () => {
     expect(postMock()).not.toHaveBeenCalled();
   });
 
-  test("a project that opted in reaches its internal host", async () => {
-    allowedSpy.mockResolvedValue(true);
+  test("a configured instance reaches the internal host", async () => {
+    process.env[ALLOW_ENV] = "true";
 
     const component: ComponentCode = new ApiPost();
 
@@ -150,16 +129,19 @@ describe("API workflow component — private network opt-in", () => {
   });
 
   /*
-   * The whole point of the two-tier split. A workflow author in an opted-in
-   * project must not be able to read the instance's IAM credentials.
+   * The whole point of the two-tier split. A workflow author must not be able
+   * to read the instance's IAM credentials on the most permissive setting
+   * the boolean offers.
    */
   test.each([
     "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
     "http://127.0.0.1:8080/admin",
     "http://localhost:3000/api/status",
     "http://metadata.google.internal/computeMetadata/v1/",
-  ])("an opted-in project still cannot reach %s", async (url: string) => {
-    allowedSpy.mockResolvedValue(true);
+    "http://0.0.0.0/",
+    "http://[::1]:9200/_cluster/health",
+  ])("a configured instance still cannot reach %s", async (url: string) => {
+    process.env[ALLOW_ENV] = "true";
 
     const component: ComponentCode = new ApiPost();
 
@@ -167,18 +149,15 @@ describe("API workflow component — private network opt-in", () => {
     expect(postMock()).not.toHaveBeenCalled();
   });
 
-  test("an opted-in project is still refused when the instance allows nothing", async () => {
-    delete process.env[ALLOW_ENV];
-    allowedSpy.mockResolvedValue(true);
-
+  test("an ordinary public URL is unaffected either way", async () => {
     const component: ComponentCode = new ApiPost();
 
-    await expect(
-      component.run(
-        { url: "http://mattermost.internal/hooks/abc" },
-        makeOptions(),
-      ),
-    ).rejects.toThrow();
-    expect(postMock()).not.toHaveBeenCalled();
+    lookupSpy.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+
+    await component.run(
+      { url: "https://api.example.com/v1/deploy" },
+      makeOptions(),
+    );
+    expect(postMock()).toHaveBeenCalledTimes(1);
   });
 });

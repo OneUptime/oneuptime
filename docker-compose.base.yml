@@ -372,6 +372,11 @@ services:
       # falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      # Whether Custom JavaScript Code monitors on this probe may reach
+      # private network addresses. Every other monitor type already can; this
+      # one inherits the API server's SSRF guard through the shared sandbox.
+      # See config.example.env.
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_1_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       HTTP_PROXY_URL: ${GLOBAL_PROBE_1_HTTP_PROXY_URL:-${GLOBAL_PROBE_1_PROXY_URL:-}}
@@ -417,6 +422,11 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      # Whether Custom JavaScript Code monitors on this probe may reach
+      # private network addresses. Every other monitor type already can; this
+      # one inherits the API server's SSRF guard through the shared sandbox.
+      # See config.example.env.
+      PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
       PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: ${GLOBAL_PROBE_2_NETWORK_DEVICE_POLL_CONCURRENCY:-}
       HTTP_PROXY_URL: ${GLOBAL_PROBE_2_HTTP_PROXY_URL:-${GLOBAL_PROBE_2_PROXY_URL:-}}

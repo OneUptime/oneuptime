@@ -45,7 +45,30 @@ const apiSource: string = fs.readFileSync(
 describe("VMRunner — private network policy plumbing", () => {
   test("the sandbox axios guard is called with the caller's flag", () => {
     expect(runnerSource).toMatch(
-      /validateWebhookTargetIsSafe\(\s*effectiveUrl,\s*\{[\s\S]{0,200}?allowPrivateNetworkTargets:\s*\n?\s*options\.allowPrivateNetworkRequests === true,?\s*\}/,
+      /validateWebhookTargetIsSafe\(\s*effectiveUrl,\s*\{[\s\S]{0,600}?allowPrivateNetworkTargets:\s*\n?\s*options\.allowPrivateNetworkRequests === true,/,
+    );
+  });
+
+  /*
+   * "Webhook URL" is the guard's default noun and is wrong for both of this
+   * runner's callers — one is a workflow script, the other is a monitor.
+   */
+  test("the guard is told this is a request, not a webhook", () => {
+    expect(runnerSource).toMatch(/targetLabel:\s*"Request URL"/);
+  });
+
+  /*
+   * The sentence telling an operator how to permit a private target has to
+   * come from the caller: the workflow component's setting lives on the API
+   * server and the probe's lives on the probe, which is usually a different
+   * machine owned by a different person.
+   */
+  test("the refusal hint is passed through from the caller", () => {
+    expect(runnerSource).toMatch(
+      /privateNetworkHint:\s*options\.privateNetworkHint/,
+    );
+    expect(runnerSource).toMatch(
+      /privateNetworkHint\?:\s*string \| undefined;/,
     );
   });
 
@@ -77,10 +100,11 @@ describe("VMRunner — private network policy plumbing", () => {
     );
   });
 
-  test("VMAPI passes the option through rather than dropping it", () => {
+  test("VMAPI passes both options through rather than dropping them", () => {
     expect(apiSource).toMatch(
       /allowPrivateNetworkRequests\?:\s*boolean \| undefined;/,
     );
+    expect(apiSource).toMatch(/privateNetworkHint\?:\s*string \| undefined;/);
     // VMAPI forwards `data` wholesale; anything else would silently drop it.
     expect(apiSource).toContain("return VMRunner.runCodeInSandbox(data);");
   });

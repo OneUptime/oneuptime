@@ -1,5 +1,4 @@
 import WebhookService from "../../FeatureSet/Notification/Services/WebhookService";
-import ProjectService from "Common/Server/Services/ProjectService";
 import WebhookLogService from "Common/Server/Services/WebhookLogService";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -16,31 +15,33 @@ import {
 import dns from "dns";
 
 /*
- * WebhookService is what actually delivers project webhooks — on-call
- * escalations, incident notifications, workflow "send webhook" steps. It is
- * the sink a self-hosted operator hits when they point an alert at an internal
- * Mattermost (issue #3424), so it resolves the per-project opt-in and hands it
- * to the SSRF guard.
+ * WebhookService delivers project webhooks — on-call escalations, incident
+ * notifications, workflow "send webhook" steps. It is the sink a self-hosted
+ * operator hits when they point an alert at an internal Mattermost
+ * (issue #3424), and its URLs are configured by members of the project, so it
+ * declares itself eligible for the instance's private-network exception.
  *
- * The properties worth pinning are the negative ones: a project that did not
- * opt in behaves exactly as before, and an opted-in project still cannot reach
- * the cloud metadata endpoint or the app server's own loopback.
+ * The properties worth pinning are the negative ones: an instance that
+ * configured nothing behaves exactly as before, and a configured instance
+ * still cannot be made to reach the cloud metadata endpoint or the app
+ * server's own loopback.
  */
 
 const ALLOW_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
+const ALLOWLIST_ENV: string = "PRIVATE_NETWORK_WEBHOOK_ALLOWLIST";
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
-describe("WebhookService — private network opt-in", () => {
+describe("WebhookService — private network exception", () => {
   let postSpy: jest.SpiedFunction<typeof API.post>;
-  let allowedSpy: jest.SpiedFunction<
-    (projectId: ObjectID | null | undefined) => Promise<boolean>
-  >;
   let originalAllow: string | undefined;
+  let originalAllowlist: string | undefined;
 
   beforeEach(() => {
     originalAllow = process.env[ALLOW_ENV];
-    process.env[ALLOW_ENV] = "true";
+    originalAllowlist = process.env[ALLOWLIST_ENV];
+    delete process.env[ALLOW_ENV];
+    delete process.env[ALLOWLIST_ENV];
 
     jest
       .spyOn(dns.promises, "lookup")
@@ -56,12 +57,6 @@ describe("WebhookService — private network opt-in", () => {
     jest
       .spyOn(WebhookLogService, "create")
       .mockResolvedValue({} as never) as unknown as jest.SpyInstance;
-
-    allowedSpy = jest.spyOn(
-      ProjectService,
-      "isPrivateNetworkWebhookAllowed",
-    ) as unknown as typeof allowedSpy;
-    allowedSpy.mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -71,6 +66,12 @@ describe("WebhookService — private network opt-in", () => {
       delete process.env[ALLOW_ENV];
     } else {
       process.env[ALLOW_ENV] = originalAllow;
+    }
+
+    if (originalAllowlist === undefined) {
+      delete process.env[ALLOWLIST_ENV];
+    } else {
+      process.env[ALLOWLIST_ENV] = originalAllowlist;
     }
   });
 
@@ -85,22 +86,23 @@ describe("WebhookService — private network opt-in", () => {
     );
   };
 
-  test("resolves the opt-in for the project the webhook belongs to", async () => {
-    await expect(
-      send("http://mattermost.internal/hooks/abc"),
-    ).rejects.toThrow();
-
-    expect(allowedSpy).toHaveBeenCalledWith(PROJECT_ID);
-  });
-
-  test("a project that has not opted in never issues the request", async () => {
+  test("an unconfigured instance never issues the request", async () => {
     await expect(send("http://10.0.0.5/hooks/abc")).rejects.toThrow();
 
     expect(postSpy).not.toHaveBeenCalled();
   });
 
-  test("a project that opted in reaches its internal host", async () => {
-    allowedSpy.mockResolvedValue(true);
+  test("a configured instance reaches the internal host", async () => {
+    process.env[ALLOW_ENV] = "true";
+
+    await expect(
+      send("http://mattermost.internal/hooks/abc"),
+    ).resolves.toBeUndefined();
+    expect(postSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("an allowlisted host is reached without the blanket setting", async () => {
+    process.env[ALLOWLIST_ENV] = "mattermost.internal";
 
     await expect(
       send("http://mattermost.internal/hooks/abc"),
@@ -112,18 +114,22 @@ describe("WebhookService — private network opt-in", () => {
     "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
     "http://127.0.0.1:8080/admin",
     "http://localhost/api/status",
-  ])("an opted-in project still cannot reach %s", async (url: string) => {
-    allowedSpy.mockResolvedValue(true);
+    "http://[::1]/",
+  ])("a configured instance still cannot reach %s", async (url: string) => {
+    process.env[ALLOW_ENV] = "true";
 
     await expect(send(url)).rejects.toThrow();
     expect(postSpy).not.toHaveBeenCalled();
   });
 
-  test("an opted-in project is still refused when the instance allows nothing", async () => {
-    delete process.env[ALLOW_ENV];
-    allowedSpy.mockResolvedValue(true);
+  test("a public target is unaffected either way", async () => {
+    jest
+      .spyOn(dns.promises, "lookup")
+      .mockResolvedValue([{ address: "93.184.216.34", family: 4 }] as never);
 
-    await expect(send("http://10.0.0.5/hooks/abc")).rejects.toThrow();
-    expect(postSpy).not.toHaveBeenCalled();
+    await expect(
+      send("https://hooks.example.com/abc"),
+    ).resolves.toBeUndefined();
+    expect(postSpy).toHaveBeenCalledTimes(1);
   });
 });

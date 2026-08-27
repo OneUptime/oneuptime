@@ -456,6 +456,117 @@ describe("SSRFProtection — private network opt-in", () => {
     });
   });
 
+  /*
+   * The same guard runs on the sandboxed axios bridge, which is shared between
+   * the workflow Custom JavaScript component (settings on the API server) and
+   * the Probe's custom code monitor (settings on the probe — a different
+   * machine, often a different owner). A refusal that names the wrong noun or
+   * the wrong machine sends an operator to the wrong config file, which is how
+   * the bug behind this feature got filed in the first place.
+   */
+  describe("caller-supplied label and hint", () => {
+    test("the label replaces the noun in every refusal", async () => {
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://127.0.0.1/x", {
+          targetLabel: "Request URL",
+        }),
+      ).rejects.toThrow(
+        "Request URL points to a private, loopback, or link-local address and is not allowed.",
+      );
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("ftp://example.com/x", {
+          targetLabel: "Request URL",
+        }),
+      ).rejects.toThrow("Request URL must use http or https protocol.");
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http:///no-host", {
+          targetLabel: "Request URL",
+        }),
+      ).rejects.toThrow(/^Request URL /);
+    });
+
+    test("the label reaches the DNS-resolution refusals too", async () => {
+      lookupSpy.mockResolvedValue([{ address: "10.1.2.3", family: 4 }]);
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe(
+          "http://mattermost.internal/",
+          { targetLabel: "Request URL" },
+        ),
+      ).rejects.toThrow(/^Request URL resolves to a private network address/);
+
+      lookupSpy.mockRejectedValue(new Error("ENOTFOUND"));
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://nope.invalid/", {
+          targetLabel: "Request URL",
+        }),
+      ).rejects.toThrow("Request URL hostname could not be resolved via DNS.");
+    });
+
+    test("the hint replaces the default webhook advice", async () => {
+      const probeHint: string =
+        " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
+
+      const error: Error = await SSRFProtection.validateWebhookTargetIsSafe(
+        "http://10.0.0.5/health",
+        { targetLabel: "Request URL", privateNetworkHint: probeHint },
+      ).then(
+        (): Error => {
+          throw new Error("Expected the private target to be refused.");
+        },
+        (err: Error): Error => {
+          return err;
+        },
+      );
+
+      expect(error.message).toContain("PROBE_ALLOW_PRIVATE_NETWORK_MONITORS");
+      expect(error.message).not.toContain("ALLOW_PRIVATE_NETWORK_WEBHOOKS");
+    });
+
+    test("an empty hint suppresses the advice entirely", async () => {
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/health", {
+          privateNetworkHint: "",
+        }),
+      ).rejects.toThrow(
+        "Webhook URL points to a private network address and is not allowed.",
+      );
+    });
+
+    /*
+     * A label is cosmetic. If it could reach the policy, a caller could relabel
+     * its way past the blocklist.
+     */
+    test("neither option changes what is allowed", async () => {
+      process.env[ALLOW_ENV] = "true";
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/health", {
+          targetLabel: "Request URL",
+          privateNetworkHint: "anything",
+        }),
+      ).rejects.toThrow();
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://169.254.169.254/", {
+          ...OPTED_IN,
+          targetLabel: "Request URL",
+          privateNetworkHint: "anything",
+        }),
+      ).rejects.toThrow();
+
+      await expect(
+        SSRFProtection.validateWebhookTargetIsSafe("http://10.0.0.5/health", {
+          ...OPTED_IN,
+          targetLabel: "Request URL",
+        }),
+      ).resolves.toBeUndefined();
+    });
+  });
+
   describe("error messages", () => {
     test("a private-tier refusal points at the settings that would allow it", async () => {
       await expect(

@@ -63,12 +63,20 @@ export default class VMRunner {
       args?: JSONObject | undefined;
       /*
        * Passed straight through to the SSRF guard on the axios bridge below.
-       * Resolved by the CALLER, never here: this runner also executes custom
-       * code monitors inside the Probe, which has no database to read the
-       * project flag from. Absent ⇒ the strict policy, which is what every
-       * caller that does not deliberately opt in should get.
+       * Decided by the CALLER, never here: this runner is shared between the
+       * workflow Custom JavaScript component, where the policy comes from the
+       * API server's environment, and the Probe's custom code monitor, where
+       * it comes from the probe's own environment — a different process on a
+       * different machine, usually owned by a different person. Absent ⇒ the
+       * strict policy, which is what a caller that says nothing should get.
        */
       allowPrivateNetworkRequests?: boolean | undefined;
+      /*
+       * Overrides the sentence a private-tier refusal appends, telling the
+       * operator which setting would permit it. Whoever runs this sandbox
+       * knows which process's environment that is; the guard does not.
+       */
+      privateNetworkHint?: string | undefined;
     };
   }): Promise<ReturnResult> {
     const { code, options } = data;
@@ -430,6 +438,13 @@ export default class VMRunner {
         await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl, {
           allowPrivateNetworkTargets:
             options.allowPrivateNetworkRequests === true,
+          /*
+           * "Webhook URL" is wrong here in both directions: sandboxed code
+           * requests whatever it likes, and one of this runner's two callers
+           * is a monitor, not a webhook.
+           */
+          targetLabel: "Request URL",
+          privateNetworkHint: options.privateNetworkHint,
         });
 
         /*

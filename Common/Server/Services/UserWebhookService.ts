@@ -13,8 +13,6 @@ import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/UserWebhook";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
-import PrivateNetworkWebhookConfig from "../Utils/PrivateNetworkWebhookConfig";
-import ProjectService from "./ProjectService";
 import SSRFProtection from "../Utils/SSRFProtection";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -45,11 +43,13 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Webhook name is required");
     }
 
+    /*
+     * An on-call webhook is registered by the user it pages, from inside a
+     * project, so a self-hosted instance may allow it to reach an internal
+     * service (issue #3424). Off unless the operator configured it.
+     */
     await SSRFProtection.validateWebhookTargetIsSafe(createBy.data.webhookUrl, {
-      allowPrivateNetworkTargets:
-        await ProjectService.isPrivateNetworkWebhookAllowed(
-          createBy.data.projectId,
-        ),
+      allowPrivateNetworkTargets: true,
     });
 
     return {
@@ -70,8 +70,7 @@ export class Service extends DatabaseService<Model> {
 
     if (typeof webhookUrl === "string" || webhookUrl instanceof URL) {
       await SSRFProtection.validateWebhookTargetIsSafe(webhookUrl, {
-        allowPrivateNetworkTargets:
-          await this.isPrivateNetworkAllowedForUpdate(updateBy),
+        allowPrivateNetworkTargets: true,
       });
     }
 
@@ -79,51 +78,6 @@ export class Service extends DatabaseService<Model> {
       updateBy,
       carryForward: null,
     };
-  }
-
-  /*
-   * Whether an UPDATE may repoint a webhook at a private network address
-   * (issue #3424).
-   *
-   * The project has to come from the rows being updated, not from the payload:
-   * `updateBy.data.projectId` is caller-supplied, so reading it there would
-   * let a request borrow another project's opt-in by naming its id. An update
-   * matching rows in several projects only gets the exception if EVERY one of
-   * them opted in, and one matching no rows gets nothing.
-   *
-   * The instance check comes first so the extra read only happens on the
-   * deployments where the answer can be anything but false.
-   */
-  private async isPrivateNetworkAllowedForUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<boolean> {
-    if (!PrivateNetworkWebhookConfig.isConfiguredOnInstance()) {
-      return false;
-    }
-
-    const webhooks: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: { projectId: true },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true, ignoreHooks: true },
-    });
-
-    if (webhooks.length === 0) {
-      return false;
-    }
-
-    for (const webhook of webhooks) {
-      if (
-        !(await ProjectService.isPrivateNetworkWebhookAllowed(
-          webhook.projectId,
-        ))
-      ) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   @CaptureSpan()

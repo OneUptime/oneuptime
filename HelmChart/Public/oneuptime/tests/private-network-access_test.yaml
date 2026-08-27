@@ -14,7 +14,7 @@
 # idiom in _helpers.tpl is what keeps the whole `webhooks:` block optional for
 # values files written before it existed; the "block absent" cases below are
 # what that idiom is for.
-suite: private network webhooks
+suite: private network access
 release:
   name: oneuptime
   namespace: oneuptime
@@ -137,3 +137,78 @@ tests:
           content:
             name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
             value: "mattermost.internal"
+
+  # The probe half is a SEPARATE switch on a SEPARATE process. It must not be
+  # driven by the webhooks block: a self-hosted operator who opens their API
+  # server's egress has not thereby decided anything about what their probes
+  # may reach, and on Kubernetes the two are different pods.
+  - it: the probe switch defaults off and is independent of the webhook settings
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      webhooks:
+        allowPrivateNetwork: true
+        privateNetworkAllowlist: "10.0.0.0/8"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+
+  - it: the probe switch turns on per probe
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"
+
+  # `default true .Values...` would be wrong here for the same reason as above:
+  # false is empty in a Go template and would fall back to the default.
+  - it: an explicit false on a probe stays off
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "false"
+
+  # The API server has no business carrying the probe's switch, and vice versa.
+  - it: the two switches do not leak into each other's workloads
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes:
+        one:
+          allowPrivateNetworkMonitors: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+            value: "true"

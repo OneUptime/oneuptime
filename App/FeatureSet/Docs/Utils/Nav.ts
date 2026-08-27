@@ -769,8 +769,8 @@ DocsNav.push({
       url: "/docs/self-hosted/sendgrid-inbound-email",
     },
     {
-      title: "Private Network Webhooks",
-      url: "/docs/self-hosted/private-network-webhooks",
+      title: "Private Network Access",
+      url: "/docs/self-hosted/private-network-access",
     },
     {
       title: "Architecture",

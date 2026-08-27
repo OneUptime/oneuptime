@@ -1,5 +1,4 @@
 import JavaScriptCode from "../../../../../Server/Types/Workflow/Components/JavaScript";
-import ProjectService from "../../../../../Server/Services/ProjectService";
 import { RunOptions } from "../../../../../Server/Types/Workflow/ComponentCode";
 import VMUtil from "../../../../../Server/Utils/VM/VMAPI";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -15,14 +14,15 @@ import {
 
 /*
  * The Custom JavaScript workflow component hands user code the host's real
- * axios, so its SSRF guard lives inside VMRunner. That guard cannot resolve
- * the project opt-in itself — the same runner executes custom code monitors
- * inside the Probe, which has no database — so the component has to resolve it
- * and pass it down.
+ * axios, so its SSRF guard lives inside VMRunner rather than in the component.
+ * That guard cannot read the instance policy through the component either —
+ * the same runner executes custom code monitors inside the Probe — so the
+ * component has to declare, as it starts the sandbox, that this script came
+ * from a project member and is therefore eligible for the exception.
  *
- * These tests pin that hand-off. If the option stops being passed, the sandbox
- * silently keeps the strict policy (a bug, but a safe one); if it starts being
- * passed unconditionally, every project gets the exception (not safe at all).
+ * These tests pin that hand-off. If the option stops being passed the sandbox
+ * silently keeps the strict policy (a bug, but a safe one); if it is passed
+ * from somewhere other than a constant, a workflow author could set it.
  */
 
 jest.mock("../../../../../Server/Utils/VM/VMAPI", () => {
@@ -34,14 +34,12 @@ jest.mock("../../../../../Server/Utils/VM/VMAPI", () => {
   };
 });
 
-const PROJECT_ID: ObjectID = ObjectID.generate();
-
 function makeOptions(): RunOptions {
   return {
     log: jest.fn() as RunOptions["log"],
     workflowLogId: ObjectID.generate(),
     workflowId: ObjectID.generate(),
-    projectId: PROJECT_ID,
+    projectId: ObjectID.generate(),
     onError: ((exception: Exception): Exception => {
       return exception;
     }) as RunOptions["onError"],
@@ -53,19 +51,16 @@ function sandboxMock(): jest.Mock {
   return VMUtil.runCodeInSandbox as unknown as jest.Mock;
 }
 
-describe("JavaScript workflow component — private network opt-in", () => {
-  let allowedSpy: jest.SpiedFunction<
-    (projectId: ObjectID | null | undefined) => Promise<boolean>
-  >;
+function sandboxOptions(): Record<string, unknown> {
+  const call: Array<Record<string, unknown>> = sandboxMock().mock
+    .calls[0] as Array<Record<string, unknown>>;
 
+  return call[0]?.["options"] as Record<string, unknown>;
+}
+
+describe("JavaScript workflow component — private network exception", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    allowedSpy = jest.spyOn(
-      ProjectService,
-      "isPrivateNetworkWebhookAllowed",
-    ) as unknown as typeof allowedSpy;
-    allowedSpy.mockResolvedValue(false);
 
     sandboxMock().mockResolvedValue({
       returnValue: { ok: true },
@@ -78,41 +73,52 @@ describe("JavaScript workflow component — private network opt-in", () => {
     jest.restoreAllMocks();
   });
 
-  test("asks about the project the workflow is running in", async () => {
-    await new JavaScriptCode().run(
-      { code: "return {};", arguments: {} },
-      makeOptions(),
-    );
-
-    expect(allowedSpy).toHaveBeenCalledWith(PROJECT_ID);
-  });
-
-  test("runs the sandbox with the strict policy when the project has not opted in", async () => {
+  test("declares the sandbox eligible for the exception", async () => {
     await new JavaScriptCode().run(
       { code: "return {};", arguments: {} },
       makeOptions(),
     );
 
     expect(sandboxMock()).toHaveBeenCalledTimes(1);
-    expect(
-      (sandboxMock().mock.calls[0] as Array<Record<string, unknown>>)[0]?.[
-        "options"
-      ],
-    ).toMatchObject({ allowPrivateNetworkRequests: false });
+    expect(sandboxOptions()).toMatchObject({
+      allowPrivateNetworkRequests: true,
+    });
   });
 
-  test("passes the opt-in through when the project has it", async () => {
-    allowedSpy.mockResolvedValue(true);
-
+  /*
+   * The eligibility is a property of the call site, not of anything the
+   * workflow supplies. A script that names the flag in its own arguments must
+   * not be able to reach the option the runner reads.
+   */
+  test("does not take the flag from the workflow's own arguments", async () => {
     await new JavaScriptCode().run(
-      { code: "return {};", arguments: {} },
+      {
+        code: "return {};",
+        arguments: { allowPrivateNetworkRequests: false },
+      },
       makeOptions(),
     );
 
-    expect(
-      (sandboxMock().mock.calls[0] as Array<Record<string, unknown>>)[0]?.[
-        "options"
-      ],
-    ).toMatchObject({ allowPrivateNetworkRequests: true });
+    expect(sandboxOptions()).toMatchObject({
+      allowPrivateNetworkRequests: true,
+    });
+    expect(sandboxOptions()["args"]).toMatchObject({
+      allowPrivateNetworkRequests: false,
+    });
+  });
+
+  test("still passes the script and its timeout through unchanged", async () => {
+    await new JavaScriptCode().run(
+      { code: "return 1;", arguments: { a: 1 } },
+      makeOptions(),
+    );
+
+    const options: Record<string, unknown> = sandboxOptions();
+
+    expect(sandboxMock().mock.calls[0]?.[0]).toMatchObject({
+      code: "return 1;",
+    });
+    expect(options["args"]).toEqual({ a: 1 });
+    expect(typeof options["timeout"]).toBe("number");
   });
 });

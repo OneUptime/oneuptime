@@ -2952,53 +2952,6 @@ export default class Project extends TenantModel {
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
 
   /*
-   * Project half of the private-network webhook opt-in (issue #3424).
-   *
-   * SSRFProtection refuses every outbound webhook that resolves into a
-   * private, loopback or link-local range, which is the only safe default for
-   * multi-tenant SaaS but blocks the ordinary self-hosted case of posting an
-   * alert to an internal Mattermost on 10.x. Turning this on asks for the
-   * exception; whether it grants anything is decided by the INSTANCE, from
-   * ALLOW_PRIVATE_NETWORK_WEBHOOKS / PRIVATE_NETWORK_WEBHOOK_ALLOWLIST (see
-   * PrivateNetworkWebhookConfig). On an instance that sets neither — every
-   * SaaS deployment — this column changes nothing at all, so a tenant can
-   * never widen an operator's egress policy by flipping it.
-   *
-   * Owner/Admin only on update, without Permission.EditProject: this widens
-   * what the server can be made to reach on the operator's network, which is
-   * not the same kind of decision as the rest of what "edit this project"
-   * covers. Same reasoning as letCustomerSupportAccessProject above.
-   */
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-    ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Boolean,
-    isDefaultValueColumn: false,
-    title: "Allow Private Network Webhooks",
-    description:
-      "If enabled, workflows and webhooks in this project may target private network addresses. Requires your OneUptime instance to permit it as well.",
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    nullable: false,
-    unique: false,
-    default: false,
-  })
-  public allowPrivateNetworkWebhooks?: boolean = undefined;
-
-  /*
    * GitHub App Installation ID for this project.
    *
    * This column IS the authority on which GitHub App installation a project

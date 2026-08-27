@@ -29,15 +29,20 @@ import net from "net";
  *   PRIVATE — RFC-1918, CGNAT, IPv6 unique-local and site-local. Refused by
  *     default, which is the only correct answer for multi-tenant SaaS, but a
  *     self-hosted operator can permit it with ALLOW_PRIVATE_NETWORK_WEBHOOKS
- *     (see PrivateNetworkWebhookConfig for why, and for the project half of
- *     the opt-in).
+ *     (see PrivateNetworkWebhookConfig).
+ *
+ * The same guard runs on the sandboxed axios bridge (VMRunner), which is
+ * shared with the Probe's custom code monitor. That caller reads its policy
+ * from the PROBE's environment, not the API server's, and overrides
+ * `targetLabel` and `privateNetworkHint` so its refusals name the right noun
+ * and the right machine.
  *
  * The tier only widens for callers that pass
  * `allowPrivateNetworkTargets: true`, which means "this URL was authored by an
- * authenticated member of a project that opted in". Sinks whose target can be
- * chosen by an unauthenticated visitor — status page subscriber webhooks —
- * pass nothing and get the strict policy, so the exception can never be
- * reached from outside the tenant.
+ * authenticated member of a project". Sinks whose target can be chosen by an
+ * unauthenticated visitor — status page subscriber webhooks — pass nothing and
+ * get the strict policy, so the exception can never be reached from outside
+ * the tenant however the instance is configured.
  */
 
 export enum WebhookAddressTier {
@@ -48,17 +53,44 @@ export enum WebhookAddressTier {
 
 export interface WebhookTargetValidationOptions {
   /*
-   * Opt-in gate. True only when BOTH halves are satisfied by the caller:
-   * the URL comes from an authenticated project context, and that project has
-   * `allowPrivateNetworkWebhooks` set (ProjectService.isPrivateNetworkWebhookAllowed).
-   * What the opt-in actually unlocks is decided here, from the instance
-   * configuration — the flag on its own grants nothing.
+   * A statement about the CALLER, not a permission: "this URL was written by
+   * an authenticated member of a project, not by a passing visitor". It is
+   * therefore a constant at each call site, never derived from request data.
+   *
+   * On its own it grants nothing — the instance configuration decides what, if
+   * anything, it unlocks (PrivateNetworkWebhookConfig), and an instance that
+   * configured neither knob is unaffected by it entirely. Its job is to keep
+   * the exception out of reach of the one sink whose target an unauthenticated
+   * visitor chooses.
+   *
+   * Absent means strict, so a new call site that says nothing is safe by
+   * default.
    */
   allowPrivateNetworkTargets?: boolean | undefined;
+
+  /*
+   * What to call the thing in error messages. Defaults to "Webhook URL",
+   * which is what most callers guard — but the same guard also sits on the
+   * sandboxed axios bridge, and telling the author of a monitor that their
+   * "webhook" was refused is simply wrong.
+   */
+  targetLabel?: string | undefined;
+
+  /*
+   * The sentence appended to a PRIVATE-tier refusal saying how to permit it.
+   * It has to be per-caller: the setting that would allow a workflow webhook
+   * lives on the API server, and the setting that would allow a probe's
+   * monitor lives on the probe — usually a different machine, often owned by
+   * a different person. Naming the wrong one is how an operator ends up
+   * filing the bug this feature came from.
+   */
+  privateNetworkHint?: string | undefined;
 }
 
-const PRIVATE_NETWORK_HINT: string =
-  " Self-hosted instances can allow this by setting ALLOW_PRIVATE_NETWORK_WEBHOOKS or PRIVATE_NETWORK_WEBHOOK_ALLOWLIST, and enabling private network webhooks in Project Settings.";
+const DEFAULT_TARGET_LABEL: string = "Webhook URL";
+
+const DEFAULT_PRIVATE_NETWORK_HINT: string =
+  " Self-hosted instances can allow this by setting ALLOW_PRIVATE_NETWORK_WEBHOOKS or PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.";
 
 export default class SSRFProtection {
   /*
@@ -125,6 +157,10 @@ export default class SSRFProtection {
     rawUrl: string | URL,
     options?: WebhookTargetValidationOptions,
   ): Promise<void> {
+    const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
+    const privateNetworkHint: string =
+      options?.privateNetworkHint ?? DEFAULT_PRIVATE_NETWORK_HINT;
+
     /*
      * URL.fromString only knows http/https/ws/wss/mongodb/mailto/tel/sms and
      * silently DEFAULTS anything else to https - "file:///etc/passwd" comes
@@ -145,29 +181,25 @@ export default class SSRFProtection {
       schemeMatch[1] &&
       !["http", "https"].includes(schemeMatch[1].toLowerCase())
     ) {
-      throw new BadDataException(
-        "Webhook URL must use http or https protocol.",
-      );
+      throw new BadDataException(`${label} must use http or https protocol.`);
     }
 
     let parsed: URL;
     try {
       parsed = URL.fromString(rawUrl.toString());
     } catch {
-      throw new BadDataException("Webhook URL is not a valid URL");
+      throw new BadDataException(`${label} is not a valid URL`);
     }
 
     const protocolValue: string = parsed.protocol.toString().toLowerCase();
     if (protocolValue !== "http://" && protocolValue !== "https://") {
-      throw new BadDataException(
-        "Webhook URL must use http or https protocol.",
-      );
+      throw new BadDataException(`${label} must use http or https protocol.`);
     }
 
     const rawHost: string = parsed.hostname.hostname.toLowerCase();
 
     if (!rawHost) {
-      throw new BadDataException("Webhook URL must include a host.");
+      throw new BadDataException(`${label} must include a host.`);
     }
 
     /*
@@ -181,7 +213,7 @@ export default class SSRFProtection {
     const hostname: string = SSRFProtection.extractHost(rawHost);
 
     if (!hostname) {
-      throw new BadDataException("Webhook URL must include a host.");
+      throw new BadDataException(`${label} must include a host.`);
     }
 
     /*
@@ -204,8 +236,8 @@ export default class SSRFProtection {
         : [hostname];
 
     /*
-     * The caller's opt-in only ever reaches the instance configuration through
-     * here. With it false — the default, and every sink whose URL an
+     * The caller's declaration only ever reaches the instance configuration
+     * through here. With it false — the default, and every sink whose URL an
      * unauthenticated visitor can choose — `isPrivateTierAllowed` and every
      * allowlist lookup below are false too, and the policy is bit-for-bit what
      * it was before the exception existed.
@@ -242,13 +274,13 @@ export default class SSRFProtection {
 
       if (tier === WebhookAddressTier.Forbidden) {
         throw new BadDataException(
-          "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
+          `${label} points to a private, loopback, or link-local address and is not allowed.`,
         );
       }
 
       if (tier === WebhookAddressTier.Private && !isPrivateTierAllowed) {
         throw new BadDataException(
-          `Webhook URL points to a private network address and is not allowed.${PRIVATE_NETWORK_HINT}`,
+          `${label} points to a private network address and is not allowed.${privateNetworkHint}`,
         );
       }
     }
@@ -263,7 +295,7 @@ export default class SSRFProtection {
         resolved = await dns.promises.lookup(host, { all: true });
       } catch {
         throw new BadDataException(
-          "Webhook URL hostname could not be resolved via DNS.",
+          `${label} hostname could not be resolved via DNS.`,
         );
       }
 
@@ -282,13 +314,13 @@ export default class SSRFProtection {
 
         if (tier === WebhookAddressTier.Forbidden) {
           throw new BadDataException(
-            "Webhook URL resolves to a private, loopback, or link-local address and is not allowed.",
+            `${label} resolves to a private, loopback, or link-local address and is not allowed.`,
           );
         }
 
         if (tier === WebhookAddressTier.Private && !isPrivateTierAllowed) {
           throw new BadDataException(
-            `Webhook URL resolves to a private network address and is not allowed.${PRIVATE_NETWORK_HINT}`,
+            `${label} resolves to a private network address and is not allowed.${privateNetworkHint}`,
           );
         }
       }

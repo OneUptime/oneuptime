@@ -19,7 +19,6 @@ import ObjectID from "../Types/ObjectID";
 import Port from "../Types/Port";
 import Hostname from "../Types/API/Hostname";
 import ConfigLogLevel from "./Types/ConfigLogLevel";
-import PrivateNetworkWebhookConfig from "./Utils/PrivateNetworkWebhookConfig";
 
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
   return process.env;
@@ -79,15 +78,6 @@ export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
       frontendEnv[key] = value;
     }
   }
-
-  /*
-   * Derived, not copied. The dashboard needs to know WHETHER the operator
-   * configured the private-network webhook exception so it can show (or hide)
-   * the per-project toggle, but PRIVATE_NETWORK_WEBHOOK_ALLOWLIST itself names
-   * internal hosts and has no business being served to a browser.
-   */
-  frontendEnv["PRIVATE_NETWORK_WEBHOOKS_ALLOWED_ON_INSTANCE"] =
-    PrivateNetworkWebhookConfig.isConfiguredOnInstance() ? "true" : "false";
 
   return frontendEnv;
 };
