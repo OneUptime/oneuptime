@@ -1,22 +1,13 @@
-import { describeAutoImportRun } from "../../FeatureSet/Dashboard/src/Components/NetworkAutomation/RunAutoImportRuleModal";
+import { describeAutoImportRun } from "../../FeatureSet/Dashboard/src/Components/NetworkAutomation/AutoImportRunSummary";
 import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunResult";
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 /*
- * The summary helper lives beside the browser component, whose import graph
- * reads APP_API_URL. Keep this pure text test in Node by replacing only that
- * browser-time configuration value.
+ * No module mock any more: describeAutoImportRun now lives in a React-free
+ * sibling module, so this test imports it directly instead of dragging the
+ * modal's browser import graph (and react, which App does not install) in
+ * behind it.
  */
-jest.mock("Common/UI/Config", () => {
-  const { default: MockURL } = jest.requireActual("Common/Types/API/URL") as {
-    default: { fromString: (value: string) => unknown };
-  };
-
-  return {
-    __esModule: true,
-    APP_API_URL: MockURL.fromString("http://localhost/api"),
-  };
-});
 
 function result(
   overrides: Partial<AutoImportRuleRunResult>,
