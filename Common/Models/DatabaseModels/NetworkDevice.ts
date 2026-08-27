@@ -103,14 +103,33 @@ import {
  * agree with it. `isReachable` partitions the fleet into up / down / never
  * polled, and it only changes when a device actually changes state, so it is
  * cheap to keep sorted.
+ *
+ * `lastSeenAt` rides along as a fourth column for the Overview's "devices
+ * needing attention" list, which asks for the unreachable devices LONGEST out
+ * of contact. Without it the ordering cannot come from the index and every
+ * down device in the project is fetched and top-N sorted to return eight.
  */
-@Index(["projectId", "isArchived", "isReachable"])
+@Index(["projectId", "isArchived", "isReachable", "lastSeenAt"])
 /*
  * Every per-site rollup, the hierarchy drill-down, and the "unassigned
  * devices" count. A device's site almost never changes, so this is close to
  * free to maintain and the alternative is a full scan per rollup.
  */
 @Index(["projectId", "siteId"])
+/*
+ * The other half of the Overview's attention list: reachable devices with the
+ * most dark ports.
+ *
+ * PARTIAL, and that is the point — `interfacesDown > 0` is true for a small
+ * minority of a healthy fleet, so the index is a fraction of the table's size
+ * and, more importantly, an interface flap on a device that has none only
+ * touches it when the count crosses zero. A full index on a column every SNMP
+ * walk rewrites would be write amplification on the hottest table in the
+ * product for the sake of one eight-row list.
+ */
+@Index(["projectId", "interfacesDown"], {
+  where: '"interfacesDown" > 0 AND "isArchived" = false',
+})
 /*
  * The polling claim loop — `claimDevicesForPolling`, which every probe runs
  * on every cycle: "my devices whose nextPollAt has come, oldest first".
@@ -1530,15 +1549,34 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
-    required: false,
+    required: true,
     type: TableColumnType.Date,
     title: "Next Poll At",
     description:
-      "When the assigned probe should next poll this device. Advanced by the claim cycle; NULL means poll as soon as possible.",
+      "When the assigned probe should next poll this device. Advanced by the claim cycle; a device created now is due immediately.",
   })
+  /*
+   * NOT NULL, defaulting to now — and that is a performance decision as much
+   * as a modelling one.
+   *
+   * It used to be nullable, with NULL meaning "poll as soon as possible", so
+   * the claim query had to read `(nextPollAt IS NULL OR nextPollAt <= now)`
+   * ordered `ASC NULLS FIRST`. A btree is ASC NULLS LAST, so that ordering
+   * could not be served by the (probeId, nextPollAt) index no matter what:
+   * every claim cycle sequentially scanned the probe's whole slice of the
+   * fleet and top-N sorted it — 117ms and 2,702 buffers for one probe with
+   * 40,000 devices, measured, once a minute, forever, inside a transaction
+   * already holding FOR UPDATE row locks.
+   *
+   * `now()` says exactly what NULL said — this device is due — in a value the
+   * index can order. The same claim is 0.85ms and 86 buffers.
+   */
   @Column({
-    nullable: true,
+    nullable: false,
     type: ColumnType.Date,
+    default: () => {
+      return "now()";
+    },
   })
   public nextPollAt?: Date = undefined;
 

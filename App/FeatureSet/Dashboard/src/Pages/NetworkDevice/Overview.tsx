@@ -31,7 +31,6 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import ObjectIDType from "Common/Types/ObjectID";
 import React, {
   Fragment,
   FunctionComponent,
@@ -71,7 +70,7 @@ const NetworkOverview: FunctionComponent<
 
   const fetchOverviewData: PromiseVoidFunction = async (): Promise<void> => {
     try {
-      const projectId: ObjectIDType = ProjectUtil.getCurrentProjectId()!;
+      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
       /*
        * The rollups in one request, and the scan list in the other.

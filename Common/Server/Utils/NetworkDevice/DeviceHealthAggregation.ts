@@ -1,4 +1,9 @@
-import { AggregateColumn, AggregateRow } from "../../Types/Database/AggregateBy";
+import {
+  AggregateColumn,
+  AggregateOrder,
+  AggregateRow,
+} from "../../Types/Database/AggregateBy";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import AggregateResultUtil from "../../Types/Database/AggregateResultUtil";
 import { DeviceHealthStateInput } from "../../../Utils/NetworkDevice/DeviceHealthStateUtil";
 import {
@@ -57,7 +62,7 @@ const STALE_WINDOW_IN_MINUTES_SQL: string = `GREATEST(
       OR ${column("pollingIntervalInMinutes")} <= 0
     THEN ${DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES}
     ELSE GREATEST(${column("pollingIntervalInMinutes")}, 1)
-  END) * ${DEVICE_MISSED_POLL_ALLOWANCE},
+  END)::numeric * ${DEVICE_MISSED_POLL_ALLOWANCE},
   ${DEVICE_MIN_STALE_WINDOW_IN_MINUTES}
 )`;
 
@@ -116,9 +121,20 @@ const DEVICE_HEALTH_DISCRIMINATOR_COLUMNS: Array<AggregateColumn> = [
    * The column only ever holds a handful of distinct values, so the raw form
    * costs nothing in bucket count.
    *
-   * `deviceHealthState` ignores this; `DeviceReachabilityUtil` does not, and
-   * a fleet tally that dropped it would report every ping-only device as
-   * Pending forever.
+   * Note carefully WHO reads it: `deviceHealthState` never receives it (it is
+   * not part of `DeviceHealthStateInput`, and `deviceHealthInputForGroup` does
+   * not emit it), so the per-site health rollups are indifferent to it. Its
+   * one consumer is the Overview's fleet tally, which re-attaches it and calls
+   * `DeviceReachabilityUtil` directly — and a tally that dropped it would
+   * report every ping-only device as Pending forever (issue #3392, one level
+   * up).
+   *
+   * It therefore costs the rollup path a discriminator it does not use. On a
+   * real fleet that costs nothing, because `monitoringMethod` is almost
+   * perfectly correlated with whether the device carries a stamped monitor
+   * status — which is already a group key — so it splits no bucket that
+   * `currentMonitorStatusId` had not split anyway. Keeping one discriminator
+   * set is worth more than saving that.
    */
   {
     expression: column("monitoringMethod"),
@@ -136,11 +152,48 @@ const DEVICE_HEALTH_DISCRIMINATOR_COLUMNS: Array<AggregateColumn> = [
     expression: `(${column("lastSeenAt")} IS NOT NULL)`,
     alias: DeviceHealthGroupAlias.HasBeenSeen,
   },
+  /*
+   * Guarded by the only branch that can read it.
+   *
+   * `DeviceReachabilityUtil` lets staleness decide up-vs-down in exactly one
+   * case — a row with no recorded poll outcome that has nevertheless been seen
+   * (`isReachable IS NULL AND lastSeenAt IS NOT NULL`), which is a row written
+   * before the outcome column existed. Everywhere else staleness is an
+   * annotation the health rule ignores entirely.
+   *
+   * So the interval arithmetic is skipped for every row that cannot be
+   * affected by it — which, after the backfill migration, is essentially all
+   * of them. The guard is not an optimisation that changes the answer: for any
+   * row outside that branch the classifier's verdict is identical whether this
+   * says true or false, and constant-false keeps the buckets from splitting on
+   * a fact nothing reads.
+   */
   {
+    /*
+     * Written as "how many minutes since last contact, compared against the
+     * window" rather than as "before now minus an interval", which is both
+     * the shape `DeviceReachabilityUtil` uses and the one that cannot
+     * overflow.
+     *
+     * The interval form — `now - make_interval(mins => window)` — takes an
+     * `int` parameter, and `pollingIntervalInMinutes` is an unbounded `integer`
+     * column with no CHECK behind it. Any value above 214,748,364 overflows
+     * `int4` on the `* 10`, and Postgres aborts the STATEMENT: one absurd row
+     * would 500 the overview, the hierarchy drill-down and every rollup for
+     * the whole project. The TypeScript twin is a double and has no such
+     * ceiling, so that was a genuine divergence rather than a shared limit.
+     * `::numeric` and a subtraction have neither.
+     */
     expression: `(
-      ${LAST_CONTACT_AT_SQL} IS NOT NULL
-      AND ${LAST_CONTACT_AT_SQL} < :${DEVICE_HEALTH_NOW_PARAMETER}::timestamptz
-        - make_interval(mins => ${STALE_WINDOW_IN_MINUTES_SQL})
+      CASE WHEN ${column("isReachable")} IS NULL
+                AND ${column("lastSeenAt")} IS NOT NULL
+      THEN (
+        ${LAST_CONTACT_AT_SQL} IS NOT NULL
+        AND EXTRACT(
+          EPOCH FROM (:${DEVICE_HEALTH_NOW_PARAMETER}::timestamptz - ${LAST_CONTACT_AT_SQL})
+        ) / 60 > ${STALE_WINDOW_IN_MINUTES_SQL}
+      )
+      ELSE false END
     )`,
     alias: DeviceHealthGroupAlias.IsStale,
   },
@@ -184,6 +237,30 @@ export const DEVICE_HEALTH_GROUP_COLUMNS: Array<AggregateColumn> = [
 export const DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE: Array<AggregateColumn> = [
   { expression: column("siteId"), alias: DeviceHealthGroupAlias.SiteId },
   ...DEVICE_HEALTH_DISCRIMINATOR_COLUMNS,
+];
+
+/**
+ * A stable order for the buckets.
+ *
+ * `SiteStatusRollupUtil.worstStatus` documents that a priority tie keeps the
+ * FIRST contributor. Buckets arrive in whatever order a HashAggregate produces
+ * them, which is not merely unspecified but can differ between two executions
+ * of the same statement — so without this, a project that ever defined two
+ * MonitorStatus rows at the same priority could see a site's rolled-up status
+ * flip between page loads with nothing having changed.
+ *
+ * Sorting a few thousand already-aggregated rows costs nothing next to the
+ * scan that produced them.
+ */
+export const DEVICE_HEALTH_GROUP_ORDER: Array<AggregateOrder> = [
+  {
+    expression: `"${DeviceHealthGroupAlias.MonitorStatusId}"`,
+    sortOrder: SortOrder.Ascending,
+  },
+  {
+    expression: `"${DeviceHealthGroupAlias.DeviceCount}"`,
+    sortOrder: SortOrder.Descending,
+  },
 ];
 
 /** One bucket, as read back out of an aggregate row. */

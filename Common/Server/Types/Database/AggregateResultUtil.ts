@@ -4,12 +4,18 @@ import { AggregateRow } from "./AggregateBy";
  * Reading values back out of an aggregate row.
  *
  * Postgres returns COUNT and SUM as `bigint`/`numeric`, and node-postgres
- * hands those to JavaScript as STRINGS rather than numbers — a bigint does not
- * fit a double in the general case, so parsing it for you would be lossy. Every
- * `counts.devicesDown` in the product would otherwise be a string that renders
- * fine, compares wrong ("10" < "9"), and adds by concatenating.
+ * hands those to JavaScript as STRINGS rather than numbers, because a bigint
+ * does not fit a double in the general case. Left alone, every
+ * `counts.devicesDown` in the product would be a string that renders fine,
+ * compares wrong ("10" < "9"), and adds by concatenating.
  *
  * So aggregate rows are read through here, never indexed into directly.
+ *
+ * `toNumber` returns a JavaScript number, which means it IS lossy above
+ * 2^53 — 9007199254740993 comes back as 9007199254740992. That is the right
+ * trade for what these aggregates count (devices, sites, interfaces; a fleet
+ * of nine quadrillion is not the problem to solve), but it is a real ceiling:
+ * a future caller summing bytes or nanoseconds needs the string, not this.
  */
 export default class AggregateResultUtil {
   /**

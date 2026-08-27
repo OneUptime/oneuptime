@@ -230,12 +230,40 @@ async function getDevicesNeedingAttention(data: {
     },
   };
 
+  /*
+   * Devices that have been polled and have NEVER ONCE answered come first, and
+   * they need their own read.
+   *
+   * `ORDER BY "lastSeenAt" ASC` is NULLS LAST in Postgres, so a device with no
+   * `lastSeenAt` at all sorts behind every device that answered once years
+   * ago — and `LIMIT 8` then truncates it away before the sort below (which
+   * reads a missing timestamp as epoch 0 and would put it first) ever sees it.
+   * The list would quietly never show a device that has never responded, which
+   * is the single most alarming row it can have. Two reads, no NULL ordering
+   * to get wrong.
+   */
+  const neverAnsweredPromise: Promise<Array<NetworkDevice>> =
+    NetworkDeviceService.findBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+        isReachable: false,
+        lastSeenAt: QueryHelper.isNull(),
+      },
+      select: selectColumns,
+      sort: {},
+      limit: ATTENTION_LIST_LIMIT,
+      skip: 0,
+      props: data.props,
+    });
+
   const unreachablePromise: Promise<Array<NetworkDevice>> =
     NetworkDeviceService.findBy({
       query: {
         projectId: data.projectId,
         isArchived: false,
         isReachable: false,
+        lastSeenAt: QueryHelper.notNull(),
       },
       select: selectColumns,
       sort: {
@@ -287,11 +315,13 @@ async function getDevicesNeedingAttention(data: {
       props: data.props,
     });
 
-  const [unreachable, monitorOffline, degraded]: [
+  const [neverAnswered, unreachable, monitorOffline, degraded]: [
+    Array<NetworkDevice>,
     Array<NetworkDevice>,
     Array<NetworkDevice>,
     Array<NetworkDevice>,
   ] = await Promise.all([
+    neverAnsweredPromise,
     unreachablePromise,
     monitorOfflinePromise,
     degradedPromise,
@@ -320,7 +350,7 @@ async function getDevicesNeedingAttention(data: {
   const seenDeviceIds: Set<string> = new Set<string>();
   const downDevices: Array<NetworkDevice> = [];
 
-  for (const device of [...unreachable, ...monitorOffline]) {
+  for (const device of [...neverAnswered, ...unreachable, ...monitorOffline]) {
     const deviceId: string | undefined = device.id?.toString();
 
     if (!deviceId || seenDeviceIds.has(deviceId)) {
@@ -445,11 +475,25 @@ function tallySites(data: {
     );
 
     /*
-     * A status id the project no longer defines counts as unhealthy for the
-     * same reason the browser tally it replaces did: the relation would not
-     * hydrate, so `isOperationalState` read as falsy.
+     * A stamped id that resolves to no live MonitorStatus row counts as NO
+     * DATA, not as unhealthy — and that is not a nicety, it is what the
+     * browser tally this replaces did.
+     *
+     * It happens: MonitorStatus is soft-deleted, so the `ON DELETE SET NULL`
+     * foreign key never fires and the site keeps pointing at a row that no
+     * longer answers a read. The old code fetched the status through the
+     * relation, got nothing back, and fell into its `!site.currentMonitorStatus`
+     * branch. Counting it as unhealthy here would light the Unhealthy tile over
+     * sites whose only problem is a status somebody retired — and the chip that
+     * tile sets could never produce them, because getUnhealthyStatusIdsInUse
+     * (correctly) will not offer an id it cannot name.
      */
-    if (!status || !status.isOperationalState) {
+    if (!status) {
+      sitesWithNoData += statusCount.siteCount;
+      continue;
+    }
+
+    if (!status.isOperationalState) {
       unhealthySites += statusCount.siteCount;
     }
   }
@@ -482,7 +526,8 @@ function getUnhealthyStatusIdsInUse(data: {
       statusCount.monitorStatusId,
     );
 
-    if (!status || !status.isOperationalState) {
+    // Unresolvable ids are counted as "no data" above — see tallySites.
+    if (status && !status.isOperationalState) {
       ids.push(statusCount.monitorStatusId);
     }
   }
@@ -584,6 +629,48 @@ export default class NetworkSummaryAPI {
               statusCounts: statusCounts,
               statuses: statuses,
             }),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Per-site device counts for the Sites page's hierarchy tree — one row per
+     * site that has any devices, instead of every device in the project.
+     */
+    router.post(
+      "/network-site/device-counts",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          if (!props.tenantId) {
+            throw new BadDataException("Project not found in request");
+          }
+
+          const counts: Array<{ siteId: string; deviceCount: number }> =
+            await NetworkDeviceService.getDeviceCountsBySite({
+              projectId: props.tenantId,
+              props: props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            counts: counts.map(
+              (count: { siteId: string; deviceCount: number }): JSONObject => {
+                return {
+                  siteId: count.siteId,
+                  deviceCount: count.deviceCount,
+                };
+              },
+            ),
           });
         } catch (err) {
           next(err);
@@ -703,14 +790,43 @@ export default class NetworkSummaryAPI {
             siteCount: siteTally.totalSites,
             unhealthySiteCount: siteTally.unhealthySites,
             endpointCount: endpointCount,
-            vendors: vendors.map(
-              (vendor: { vendor: string; count: number }): JSONObject => {
+            vendors: vendors
+              .map(
+                (vendor: {
+                  vendor: string;
+                  count: number;
+                }): { vendor: string; count: number } => {
+                  return {
+                    vendor: vendor.vendor || UNKNOWN_VENDOR_LABEL,
+                    count: vendor.count,
+                  };
+                },
+              )
+              /*
+               * Re-sorted after the label is applied, so a tie breaks on what
+               * the reader sees. The database orders on the raw grouped value,
+               * where unenriched devices are the empty string and therefore
+               * sort ahead of every named vendor — which would put "Unknown"
+               * first on an exact tie and read as a ranking decision nobody
+               * made. Six rows; the cost is nothing.
+               */
+              .sort(
+                (
+                  first: { vendor: string; count: number },
+                  second: { vendor: string; count: number },
+                ): number => {
+                  if (second.count !== first.count) {
+                    return second.count - first.count;
+                  }
+                  return first.vendor.localeCompare(second.vendor);
+                },
+              )
+              .map((vendor: { vendor: string; count: number }): JSONObject => {
                 return {
-                  vendor: vendor.vendor || UNKNOWN_VENDOR_LABEL,
+                  vendor: vendor.vendor,
                   count: vendor.count,
                 };
-              },
-            ),
+              }),
             attentionDevices: attentionDevices,
             attentionSites: attentionSites,
           });

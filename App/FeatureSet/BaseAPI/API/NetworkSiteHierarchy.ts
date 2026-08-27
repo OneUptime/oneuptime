@@ -2,6 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -256,40 +257,78 @@ function toLinkStatusJson(
 }
 
 /*
- * Every site-attached device in the project, as HEALTH BUCKETS per site.
+ * How many sites a drill-down may name explicitly before the rollup stops
+ * trying to scope itself and just aggregates the project.
+ *
+ * Scoping is the cheap option right up until the id list stops being cheap: a
+ * franchise root with twenty thousand stores under it would turn into twenty
+ * thousand UUIDs of SQL text to parse and plan, which costs more than the scan
+ * it was meant to avoid. Past this many, the whole-project aggregate is both
+ * simpler and faster — and it is a superset, so the answer is identical either
+ * way.
+ */
+const MAX_SCOPED_ROLLUP_SITES: number = 1000;
+
+/*
+ * Site-attached devices as HEALTH BUCKETS per site, over the subtree in view.
  *
  * This used to read the devices themselves, in 10,000-row pages, up to a
  * 200,000-row ceiling — because issue #3320 reports an estate of 21,713
- * devices and one page would have rolled up less than half of it. Paging
- * fixed the honesty problem and left the cost: eight-plus sequential queries
- * whose OFFSET grows with every page, tens of thousands of hydrated model
- * objects per request, and a ceiling that is still a lie for anyone past it.
+ * devices and one page would have rolled up less than half of it. Paging fixed
+ * the honesty problem and left the cost: eight-plus sequential queries whose
+ * OFFSET grows with every page, tens of thousands of hydrated model objects
+ * per request, and a ceiling that is still a lie for anyone past it.
  *
  * The rollup never wanted the devices. It wanted, per site, how many devices
  * are down / degraded / healthy / unknown. `getHealthGroups` asks Postgres to
- * bucket the fleet by the facts the classifier reads, so 80,000 devices come
+ * bucket the fleet by the facts the classifier reads, so a large fleet comes
  * back as a few rows per site — one query, no ceiling, and the counts are
  * exact for an estate of any size.
  *
- * The verdicts are still decided here, by the shared classifier, from the
- * facts in each bucket. See DeviceHealthAggregation.
+ * The verdicts are still decided by the shared classifier, from the facts in
+ * each bucket. See DeviceHealthAggregation.
  *
  * Archived devices are decommissioned: they keep their siteId but must not
  * count. An archived, never-monitored device otherwise falls through to the
  * freshness fallback and pins its whole ancestor chain red for ever, with the
  * drill-down showing zero devices because that query excludes archived rows.
  */
-async function fetchDeviceHealthBySite(
-  projectId: ObjectID,
-  props: DatabaseCommonInteractionProps,
-  now: Date,
-): Promise<Array<DeviceHealthGroup>> {
+async function fetchDeviceHealthBySite(data: {
+  projectId: ObjectID;
+  /*
+   * The sites this level's rollups can possibly draw from: the drilled site
+   * and its whole subtree. Empty when listing roots, where the answer really
+   * is the project.
+   */
+  scopedSiteIds: Array<ObjectID>;
+  props: DatabaseCommonInteractionProps;
+  now: Date;
+}): Promise<Array<DeviceHealthGroup>> {
+  if (
+    data.scopedSiteIds.length > 0 &&
+    data.scopedSiteIds.length <= MAX_SCOPED_ROLLUP_SITES
+  ) {
+    /*
+     * Drilling into one region should not aggregate every other region. The
+     * ids are exactly the sites whose devices can appear in this response, so
+     * scoping changes nothing about the answer — only how much of the fleet is
+     * read to produce it.
+     */
+    return NetworkDeviceService.getHealthGroupsForSites({
+      projectId: data.projectId,
+      siteIds: data.scopedSiteIds,
+      groupBySite: true,
+      now: data.now,
+      props: data.props,
+    });
+  }
+
   return NetworkDeviceService.getHealthGroups({
-    projectId: projectId,
+    projectId: data.projectId,
     onlyAttachedToSite: true,
     groupBySite: true,
-    now: now,
-    props: props,
+    now: data.now,
+    props: data.props,
   });
 }
 
@@ -378,10 +417,9 @@ export default class NetworkSiteHierarchyAPI {
            */
           const now: Date = OneUptimeDate.getCurrentDate();
 
-          const [childRows, subtreeRows, deviceGroups, linkRows, ancestorRows]: [
+          const [childRows, subtreeRows, linkRows, ancestorRows]: [
             Array<NetworkSite>,
             Array<NetworkSite>,
-            Array<DeviceHealthGroup>,
             Array<NetworkSiteLink>,
             Array<NetworkSite>,
           ] = await Promise.all([
@@ -436,7 +474,6 @@ export default class NetworkSiteHierarchyAPI {
               skip: 0,
               props: props,
             }),
-            fetchDeviceHealthBySite(projectId, props, now),
             NetworkSiteLinkService.findBy({
               query: {
                 projectId: projectId,
@@ -568,6 +605,37 @@ export default class NetworkSiteHierarchyAPI {
             ),
           ]);
 
+          /*
+           * The device rollup runs after the batch above rather than inside
+           * it, because the sites it should be scoped to are what that batch
+           * just fetched. One extra round trip buys reading one region's
+           * devices instead of the whole project's on every drill-down.
+           *
+           * The drilled site itself is in the list: its OWN devices (the
+           * distribution centre's core switches above a dozen stores) belong
+           * to no child's subtree and are tallied separately below.
+           */
+          const scopedSiteIds: Array<ObjectID> = siteId
+            ? [
+                new ObjectID(siteId),
+                ...subtreeRows
+                  .filter((row: NetworkSite): boolean => {
+                    return Boolean(row._id);
+                  })
+                  .map((row: NetworkSite): ObjectID => {
+                    return new ObjectID(row._id!.toString());
+                  }),
+              ]
+            : [];
+
+          const deviceGroups: Array<DeviceHealthGroup> =
+            await fetchDeviceHealthBySite({
+              projectId: projectId,
+              scopedSiteIds: scopedSiteIds,
+              props: props,
+              now: now,
+            });
+
           // Every status id any part of the response needs, fetched once.
           const statusIds: Set<string> = new Set<string>();
           for (const child of childRows) {
@@ -658,17 +726,11 @@ export default class NetworkSiteHierarchyAPI {
                 ),
               };
             })
-            .filter((row: DeviceAttachmentRow | null): row is DeviceAttachmentRow => {
-              return row !== null;
-            });
-
-          // The attached fleet's true size, summed from the buckets.
-          const attachedDeviceCount: number = deviceAttachments.reduce(
-            (total: number, row: DeviceAttachmentRow): number => {
-              return total + row.deviceCount;
-            },
-            0,
-          );
+            .filter(
+              (row: DeviceAttachmentRow | null): row is DeviceAttachmentRow => {
+                return row !== null;
+              },
+            );
 
           const aggregates: Map<string, ChildAggregate> =
             NetworkSiteHierarchyUtil.aggregateChildStats({
@@ -829,33 +891,53 @@ export default class NetworkSiteHierarchyAPI {
             : emptyDeviceHealthCounts();
 
           /*
-           * How the project splits between sites and nothing: the topology
+           * How the PROJECT splits between sites and nothing: the topology
            * explorer opens on the hierarchy only when devices are actually
            * attached to sites, and falls back to the flat device map when
            * they are not. `attachedDeviceCount` is what it reads to decide,
            * and `unattachedDeviceCount` is what the hierarchy tells the user
            * it is NOT showing them.
+           *
+           * Both are counted here rather than summed from the buckets above,
+           * and that is load-bearing now that the rollup is scoped to the
+           * subtree in view: summing the buckets would answer "devices under
+           * THIS level", and the explorer would fall back to the flat map on
+           * every drill into an empty branch of a fully-populated estate.
+           * Two indexed counts, no rows.
+           *
+           * Deliberately NO limit on either. countBy applies limit as a
+           * `.take()` on the counted set (DatabaseService.countBy), so
+           * passing LIMIT_PER_PROJECT here would cap the ANSWER at 10,000 — a
+           * project with fifty thousand unattached devices would be told ten
+           * thousand of them are missing from the hierarchy, which is exactly
+           * the kind of quietly wrong number this note exists to prevent.
+           * Omitted, it defaults to Infinity.
            */
-          const unattachedDeviceCount: number = (
-            await NetworkDeviceService.countBy({
-              query: {
-                projectId: projectId,
-                siteId: QueryHelper.isNull(),
-                isArchived: false,
-              },
-              /*
-               * Deliberately NO limit. countBy applies limit as a `.take()`
-               * on the counted set (DatabaseService.countBy), so passing
-               * LIMIT_PER_PROJECT here would cap the ANSWER at 10,000 — a
-               * project with fifty thousand unattached devices would be told
-               * ten thousand of them are missing from the hierarchy, which is
-               * exactly the kind of quietly wrong number this note exists to
-               * prevent. Omitted, it defaults to Infinity.
-               */
-              skip: 0,
-              props: props,
-            })
-          ).toNumber();
+          const [attachedDeviceCount, unattachedDeviceCount]: [number, number] =
+            await Promise.all([
+              NetworkDeviceService.countBy({
+                query: {
+                  projectId: projectId,
+                  siteId: QueryHelper.notNull(),
+                  isArchived: false,
+                },
+                skip: 0,
+                props: props,
+              }).then((count: PositiveNumber): number => {
+                return count.toNumber();
+              }),
+              NetworkDeviceService.countBy({
+                query: {
+                  projectId: projectId,
+                  siteId: QueryHelper.isNull(),
+                  isArchived: false,
+                },
+                skip: 0,
+                props: props,
+              }).then((count: PositiveNumber): number => {
+                return count.toNumber();
+              }),
+            ]);
 
           return Response.sendJsonObjectResponse(req, res, {
             breadcrumb: breadcrumb,

@@ -95,10 +95,18 @@ const decimalTransformer: ValueTransformer = {
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "parentSiteId"])
 /*
- * The grouped status count behind the Sites summary strip, and the query that
- * lists the sites rolling up unhealthy. Both are "this project's sites, by
- * rolled-up status"; the standalone `currentMonitorStatusId` index cannot
- * serve them because it has no project to narrow by first.
+ * "This project's sites that are rolling up one of these statuses" — the
+ * Overview's unhealthy-sites list, and the Sites page's status chip.
+ *
+ * The standalone `currentMonitorStatusId` index cannot serve them: it has no
+ * project to narrow by first, and a status id is shared across every tenant's
+ * sites.
+ *
+ * Measured note, so nobody widens the claim: this does NOT speed up the
+ * grouped status COUNT behind the summary strip. That query has to visit the
+ * heap for `deletedAt` either way, so it cannot go index-only, and the
+ * planner reasonably prefers the smaller single-column `projectId` index for
+ * it.
  */
 @Index(["projectId", "currentMonitorStatusId"])
 @TableMetadata({

@@ -73,9 +73,13 @@ function readObjectArray(json: JSONObject, key: string): Array<JSONObject> {
     return [];
   }
 
-  return (value as JSONArray).filter((entry: JSONValue): entry is JSONObject => {
-    return Boolean(entry) && typeof entry === "object" && !Array.isArray(entry);
-  });
+  return (value as JSONArray).filter(
+    (entry: JSONValue): entry is JSONObject => {
+      return (
+        Boolean(entry) && typeof entry === "object" && !Array.isArray(entry)
+      );
+    },
+  );
 }
 
 export interface DeviceSummaryCounts {
@@ -182,9 +186,15 @@ export interface NetworkOverviewSummary {
 export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
   const json: JSONObject = await postSummary("/network-device/overview");
 
+  /*
+   * `typeof [] === "object"`, so the array check is not redundant — an array
+   * would read every field as undefined and produce the same zeroed fleet, but
+   * saying so here keeps this guard the same shape as readObjectArray's.
+   */
+  const fleetValue: JSONValue | undefined = json["fleet"];
   const fleetJson: JSONObject =
-    json["fleet"] && typeof json["fleet"] === "object"
-      ? (json["fleet"] as JSONObject)
+    fleetValue && typeof fleetValue === "object" && !Array.isArray(fleetValue)
+      ? (fleetValue as JSONObject)
       : {};
 
   return {
@@ -206,8 +216,17 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
         };
       },
     ),
-    attentionDevices: readObjectArray(json, "attentionDevices").map(
-      (entry: JSONObject): OverviewAttentionDevice => {
+    /*
+     * Entries with no id are dropped, not rendered as blanks.
+     *
+     * The page keys these rows on `id` and builds a link out of it, so an
+     * entry that arrived without one would give two rows the same React key
+     * and send both to a device view with an empty modelId — a broken link
+     * that looks like a real row. Nothing the server sends today can produce
+     * that; this is the boundary's job regardless.
+     */
+    attentionDevices: readObjectArray(json, "attentionDevices")
+      .map((entry: JSONObject): OverviewAttentionDevice => {
         return {
           id: readString(entry, "_id"),
           name: readString(entry, "name"),
@@ -215,10 +234,12 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
           interfacesDown: readNumber(entry, "interfacesDown"),
           isDown: entry["isDown"] === true,
         };
-      },
-    ),
-    attentionSites: readObjectArray(json, "attentionSites").map(
-      (entry: JSONObject): OverviewAttentionSite => {
+      })
+      .filter((device: OverviewAttentionDevice): boolean => {
+        return device.id.length > 0;
+      }),
+    attentionSites: readObjectArray(json, "attentionSites")
+      .map((entry: JSONObject): OverviewAttentionSite => {
         return {
           id: readString(entry, "_id"),
           name: readString(entry, "name"),
@@ -226,7 +247,32 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
           statusName: readString(entry, "statusName") || null,
           statusColor: readString(entry, "statusColor") || null,
         };
-      },
-    ),
+      })
+      .filter((site: OverviewAttentionSite): boolean => {
+        return site.id.length > 0;
+      }),
   };
+}
+
+/**
+ * How many devices are attached to each site, keyed by site id.
+ *
+ * Sites with no devices are absent rather than zero — the tree already reads
+ * this with a `|| 0` fallback, and sending a row per empty site would put back
+ * a payload proportional to the estate for no information.
+ */
+export async function fetchSiteDeviceCounts(): Promise<Record<string, number>> {
+  const json: JSONObject = await postSummary("/network-site/device-counts");
+
+  const counts: Record<string, number> = {};
+
+  for (const entry of readObjectArray(json, "counts")) {
+    const siteId: string = readString(entry, "siteId");
+
+    if (siteId) {
+      counts[siteId] = readNumber(entry, "deviceCount");
+    }
+  }
+
+  return counts;
 }

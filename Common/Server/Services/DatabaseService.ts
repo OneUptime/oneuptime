@@ -1533,6 +1533,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         seenAliases.add(column.alias);
       }
 
+      /*
+       * Validated here rather than in the loop that applies them, so every
+       * expression in the request is checked BEFORE anything reaches the
+       * database — and so the check is reachable without a live connection,
+       * which is what makes it testable.
+       */
+      for (const order of aggregateBy.orderBy || []) {
+        DatabaseService.assertSafeAggregateExpression(order.expression);
+      }
+
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadQueryPermission(
           this.modelType,
@@ -1541,23 +1551,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           aggregateBy.props,
         );
 
-      const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
-        this.modelName,
-      );
-
-      /*
-       * setFindOptions rather than `.where(...)`, and that is load-bearing:
-       * the permission pipeline can hand back a NESTED condition on the
-       * access-control relation (`{ labels: { _id: NotIn([...]) } }` for a
-       * user with a label-blocked permission). `.where(object)` renders flat
-       * conditions only and would silently drop that clause — turning a
-       * restricted user's count into a count over rows they cannot list.
-       * setFindOptions goes through the same FindOptions machinery `findBy`
-       * uses, so the relation is joined and the condition applied.
-       */
-      queryBuilder.setFindOptions({
-        where: checkReadPermissionType.query as any,
-      });
+      const queryBuilder: SelectQueryBuilder<TBaseModel> =
+        this.buildAggregateScope(checkReadPermissionType.query);
 
       let isFirstColumn: boolean = true;
 
@@ -1575,8 +1570,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       for (const order of aggregateBy.orderBy || []) {
-        DatabaseService.assertSafeAggregateExpression(order.expression);
-
         queryBuilder.addOrderBy(
           order.expression,
           order.sortOrder === SortOrder.Ascending ? "ASC" : "DESC",
@@ -1588,6 +1581,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       if (aggregateBy.limit !== undefined) {
+        if (!Number.isInteger(aggregateBy.limit) || aggregateBy.limit < 0) {
+          throw new BadDataException(
+            `Invalid aggregate limit: ${aggregateBy.limit}. It must be a non-negative integer.`,
+          );
+        }
+
         /*
          * `.limit`, not `.take`: this is a raw read, and `take` is the
          * entity-hydrating pagination that would wrap the whole aggregate in
@@ -1601,6 +1600,110 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onCountError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /**
+   * A query builder scoped to exactly the rows this read may see, and — this
+   * is the whole point — scoped so that each of them appears ONCE.
+   *
+   * The permission pipeline expresses a label-scoped read as a condition on
+   * the access-control RELATION: `{ labels: [permittedIds] }` for an allow
+   * permission, `{ labels: { _id: NotIn([...]) } }` for a block. Handed to
+   * TypeORM's FindOptions machinery those become a join through the
+   * many-to-many junction table — and a join multiplies rows. A device
+   * carrying two permitted labels comes back twice.
+   *
+   * `findBy` never notices, because entity hydration de-duplicates by primary
+   * key on the way out. An aggregate has no such step: COUNT(*) would report
+   * that device as two devices and SUM("interfacesDown") would double its dark
+   * ports — silently, and only for the label-scoped enterprise users who are
+   * least able to spot it. (Verified against Postgres: one device, two
+   * permitted labels, `COUNT(*) = 2`, `SUM = 2` for a stored value of 1.)
+   *
+   * `COUNT(DISTINCT _id)` would fix the counts and do nothing for the sums, so
+   * the de-duplication happens one level down instead: when the scoped query
+   * touches a relation at all, the aggregate runs over the base table filtered
+   * by a DISTINCT subquery of ids. The joins live inside that subquery, where
+   * duplicate rows collapse before anything is added up.
+   *
+   * The subquery is skipped when the query is flat — which is every read by a
+   * user whose permissions are not label-scoped, i.e. the hot path — so the
+   * ordinary full-fleet aggregate stays a single sequential scan.
+   */
+  private buildAggregateScope(
+    query: Query<TBaseModel>,
+  ): SelectQueryBuilder<TBaseModel> {
+    if (!this.queryTouchesARelation(query)) {
+      const flatBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
+        this.modelName,
+      );
+
+      flatBuilder.setFindOptions({ where: query as any });
+
+      return flatBuilder;
+    }
+
+    /*
+     * A separate alias, so the subquery's joins cannot collide with the outer
+     * statement's table reference.
+     */
+    const scopeAlias: string = `${this.modelName}_aggregate_scope`;
+
+    const scopeBuilder: SelectQueryBuilder<TBaseModel> =
+      this.getQueryBuilder(scopeAlias);
+
+    scopeBuilder.setFindOptions({ where: query as any });
+    scopeBuilder.select(`DISTINCT "${scopeAlias}"."_id"`, "_id");
+
+    const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(
+      this.modelName,
+    );
+
+    /*
+     * The alias is QUOTED. TypeORM renders it quoted everywhere else, and an
+     * unquoted `NetworkDevice."_id"` in a raw fragment is folded to lower case
+     * by Postgres — which then does not match the quoted alias at all.
+     */
+    queryBuilder.where(
+      `"${this.modelName}"."_id" IN (${scopeBuilder.getQuery()})`,
+    );
+    /*
+     * The subquery's own bound values. Its placeholders are auto-named
+     * (`orm_param_N`) and the outer builder generates none of its own here —
+     * its only WHERE is the raw string above — so there is nothing to clash
+     * with. Caller-supplied parameters are named and applied later.
+     */
+    queryBuilder.setParameters(scopeBuilder.getParameters());
+
+    return queryBuilder;
+  }
+
+  /*
+   * Whether any top-level key of the query names a RELATION rather than a
+   * column — the shape that turns into a join.
+   *
+   * Deliberately conservative in both directions: a many-to-one relation joins
+   * at most one row and would not actually multiply anything, and metadata
+   * being unavailable is treated as "yes, there might be one". Both err
+   * towards the de-duplicating path, which is always correct and merely
+   * slower.
+   */
+  private queryTouchesARelation(query: Query<TBaseModel>): boolean {
+    let metadata: EntityMetadata;
+
+    try {
+      metadata = this.getRepository().metadata;
+    } catch {
+      return true;
+    }
+
+    for (const key of Object.keys(query as Record<string, unknown>)) {
+      if (metadata.findRelationWithPropertyPath(key)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /*

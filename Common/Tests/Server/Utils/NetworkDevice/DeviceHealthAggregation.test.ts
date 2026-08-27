@@ -12,7 +12,10 @@ import {
   deviceRollupStateForGroup,
   parseDeviceHealthGroup,
 } from "../../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
-import { AggregateColumn, AggregateRow } from "../../../../Server/Types/Database/AggregateBy";
+import {
+  AggregateColumn,
+  AggregateRow,
+} from "../../../../Server/Types/Database/AggregateBy";
 import {
   DeviceHealthStateInput,
   NetworkDeviceHealthState,
@@ -59,8 +62,17 @@ interface DeviceRow {
  * Postgres in production and here in the test — so it is written against the
  * shared util rather than against a hard-coded window, and a separate test
  * below pins the SQL to the same three constants.
+ *
+ * `guardStaleness` mirrors the CASE the SQL wraps the staleness predicate in:
+ * it is only computed for the one branch of the reachability rule that can
+ * read it. Being able to build a bucket both ways is what lets the test below
+ * prove that guard changes no verdict.
  */
-function bucketFor(device: DeviceRow, now: Date): DeviceHealthGroup {
+function bucketFor(
+  device: DeviceRow,
+  now: Date,
+  guardStaleness: boolean = true,
+): DeviceHealthGroup {
   const contactTimes: Array<number> = [device.lastPolledAt, device.lastSeenAt]
     .filter((value: Date | null): value is Date => {
       return value !== null;
@@ -87,6 +99,8 @@ function bucketFor(device: DeviceRow, now: Date): DeviceHealthGroup {
     hasBeenPolled: device.lastPolledAt !== null,
     hasBeenSeen: device.lastSeenAt !== null,
     isStale:
+      (!guardStaleness ||
+        (device.isReachable === null && device.lastSeenAt !== null)) &&
       lastContactAt !== null &&
       lastContactAt < now.getTime() - staleWindowInMinutes * 60 * 1000,
     hasDownInterfaces: device.interfacesDown > 0,
@@ -213,6 +227,65 @@ describe("bucketing a device loses nothing the classifier reads", () => {
       "healthy",
       "unknown",
     ]);
+  });
+
+  /*
+   * The SQL only computes staleness for the branch of the reachability rule
+   * that can read it (`isReachable IS NULL AND lastSeenAt IS NOT NULL`), so
+   * that the interval arithmetic is skipped for the rest of the fleet and the
+   * buckets do not split on a fact nothing consults.
+   *
+   * That is only safe if it changes no verdict. Proved here rather than
+   * argued: every device is classified through a bucket built with the guard
+   * and through one built without it, and the two must agree.
+   */
+  test("guarding the staleness predicate changes no verdict", () => {
+    const disagreements: Array<string> = [];
+
+    for (const device of devices) {
+      const guarded: NetworkDeviceHealthState = deviceHealthState(
+        deviceHealthInputForGroup({
+          group: bucketFor(device, NOW, true),
+          monitorStatusIsOffline: device.monitorStatusIsOffline,
+          now: NOW,
+        }),
+        NOW,
+      );
+
+      const unguarded: NetworkDeviceHealthState = deviceHealthState(
+        deviceHealthInputForGroup({
+          group: bucketFor(device, NOW, false),
+          monitorStatusIsOffline: device.monitorStatusIsOffline,
+          now: NOW,
+        }),
+        NOW,
+      );
+
+      if (guarded !== unguarded) {
+        disagreements.push(
+          `${JSON.stringify(device)}: guarded=${guarded} unguarded=${unguarded}`,
+        );
+      }
+    }
+
+    expect(disagreements).toEqual([]);
+  });
+
+  /*
+   * ...and the guard is not vacuous: the matrix has to contain rows the two
+   * forms actually disagree about, or the test above proves nothing.
+   */
+  test("the guard really does suppress staleness for some rows", () => {
+    const suppressed: Array<DeviceRow> = devices.filter(
+      (device: DeviceRow): boolean => {
+        return (
+          bucketFor(device, NOW, false).isStale &&
+          !bucketFor(device, NOW, true).isStale
+        );
+      },
+    );
+
+    expect(suppressed.length).toBeGreaterThan(0);
   });
 
   /*
@@ -397,7 +470,10 @@ describe("bucketing a device loses nothing the classifier reads", () => {
 });
 
 describe("the SQL the buckets are built from", () => {
-  function expressionFor(alias: string, columns: Array<AggregateColumn>): string {
+  function expressionFor(
+    alias: string,
+    columns: Array<AggregateColumn>,
+  ): string {
     const column: AggregateColumn | undefined = columns.find(
       (candidate: AggregateColumn): boolean => {
         return candidate.alias === alias;
@@ -447,6 +523,41 @@ describe("the SQL the buckets are built from", () => {
    * on a response — and the classifier that reads them — is measured against
    * one instant.
    */
+  /*
+   * The guard itself. Without it every row in the fleet pays a GREATEST() and
+   * a make_interval(), and — worse — buckets split on a staleness flag that,
+   * for all but the legacy rows, no classifier will ever read.
+   */
+  test("staleness is only computed for the branch that can read it", () => {
+    expect(staleExpression).toContain(
+      `CASE WHEN "NetworkDevice"."isReachable" IS NULL`,
+    );
+    expect(staleExpression).toContain(
+      `"NetworkDevice"."lastSeenAt" IS NOT NULL`,
+    );
+    expect(staleExpression).toContain("ELSE false END");
+  });
+
+  /*
+   * No `make_interval`, and that is a correctness rule rather than a style one.
+   *
+   * Its `mins` parameter is an `int`, and `pollingIntervalInMinutes` is an
+   * unbounded `integer` column with no CHECK behind it — so an interval above
+   * 214,748,364 overflows on the allowance multiply and Postgres ABORTS THE
+   * STATEMENT. One absurd row would 500 the overview, the hierarchy
+   * drill-down and every site rollup in the project. The TypeScript twin is a
+   * double with no such ceiling, so it was a divergence, not a shared limit.
+   *
+   * The subtraction form has no ceiling either, which is why it is the one
+   * used — and why an edit back to `make_interval` has to fail here.
+   */
+  test("the window is compared by subtraction, not by building an interval", () => {
+    expect(staleExpression).not.toContain("make_interval");
+    expect(staleExpression).toContain("EXTRACT(");
+    // The cast is what keeps the allowance multiply out of int4.
+    expect(staleExpression).toContain("::numeric");
+  });
+
   test('"now" is a bound parameter, not NOW()', () => {
     expect(staleExpression).toContain(`:${DEVICE_HEALTH_NOW_PARAMETER}`);
     expect(staleExpression).not.toContain("NOW()");
