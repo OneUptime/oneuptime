@@ -1354,14 +1354,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      const uniqueColumnValue: JSONValue = (createBy.data as any)[key];
+
+      /*
+       * `findWithSameText` compares with `LOWER(column) = ...`, which is what
+       * a name or domain wants but is invalid SQL against a uuid column —
+       * Postgres has no `lower(uuid)`. Columns declared as ObjectID are
+       * therefore matched exactly, and normalising through `new ObjectID()`
+       * keeps that true whether the caller handed us a hydrated ObjectID or a
+       * bare uuid string.
+       */
+      const isObjectIDColumn: boolean =
+        createBy.data.getTableColumnMetadata(key)?.type ===
+        TableColumnType.ObjectID;
+
+      if (isObjectIDColumn && !uniqueColumnValue) {
+        // Nothing to compare — a required column missing here fails validation.
+        continue;
+      }
+
       existingItemsWithSameNameCount = (
         await this.countBy({
           query: {
-            [key]: QueryHelper.findWithSameText(
-              (createBy.data as any)[key]
-                ? ((createBy.data as any)[key]! as string)
-                : "",
-            ),
+            [key]: isObjectIDColumn
+              ? new ObjectID(uniqueColumnValue!.toString())
+              : QueryHelper.findWithSameText(
+                  uniqueColumnValue ? (uniqueColumnValue as string) : "",
+                ),
             ...query,
           },
           props: {

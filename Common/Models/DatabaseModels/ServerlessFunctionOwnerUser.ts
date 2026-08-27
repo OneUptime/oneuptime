@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -72,6 +73,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @Entity({
   name: "ServerlessFunctionOwnerUser",
+})
+@Index(["serverlessFunctionId", "userId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
 })
 export default class ServerlessFunctionOwnerUser extends BaseModel {
   @ColumnAccessControl({
@@ -229,6 +234,7 @@ export default class ServerlessFunctionOwnerUser extends BaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
+  @UniqueColumnBy(["serverlessFunctionId", "projectId"])
   public userId?: ObjectID = undefined;
 
   @ColumnAccessControl({

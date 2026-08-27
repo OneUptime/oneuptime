@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -73,7 +74,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ScheduledMaintenanceOwnerUser",
 })
-@Index(["scheduledMaintenanceId", "userId", "projectId"])
+@Index(["scheduledMaintenanceId", "userId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export default class ScheduledMaintenanceOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -234,6 +238,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
+  @UniqueColumnBy(["scheduledMaintenanceId", "projectId"])
   public userId?: ObjectID = undefined;
 
   @ColumnAccessControl({

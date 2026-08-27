@@ -1,3 +1,4 @@
+import ArrayUtil from "../../Utils/Array";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -175,6 +176,16 @@ export class Service extends DatabaseService<Model> {
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
+    /*
+     * The same id can arrive twice in one call: criteria incident templates,
+     * owner rule-engine results and workflow inputs are all user-authored
+     * lists. An owner row is unique per (resource, owner, project), so the
+     * repeat would be rejected on its own insert and abort the rest of the
+     * call, silently dropping every owner after it. Collapse them first.
+     */
+    userIds = ArrayUtil.removeDuplicatesFromObjectIDArray(userIds);
+    teamIds = ArrayUtil.removeDuplicatesFromObjectIDArray(teamIds);
+
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
         teamId = new ObjectID(teamId.toString());

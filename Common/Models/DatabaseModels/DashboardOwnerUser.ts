@@ -13,6 +13,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -64,7 +65,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "DashboardOwnerUser",
 })
-@Index(["dashboardId", "userId", "projectId"])
+@Index(["dashboardId", "userId", "projectId"], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export default class DashboardOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -201,6 +205,7 @@ export default class DashboardOwnerUser extends BaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
+  @UniqueColumnBy(["dashboardId", "projectId"])
   public userId?: ObjectID = undefined;
 
   @ColumnAccessControl({
