@@ -151,6 +151,7 @@ describe("BaseAPI", () => {
   } as OneUptimeRequest;
 
   beforeAll(async () => {
+    mockRouter.routes.length = 0;
     mockRouter.post.mockClear();
     mockRouter.get.mockClear();
     mockRouter.put.mockClear();
@@ -208,11 +209,49 @@ describe("BaseAPI", () => {
         expect.any(Function),
       );
 
+      expect(Express.getRouter().post).toHaveBeenCalledWith(
+        "/mock/:id/update-item",
+        UserMiddleware.getUserMiddleware,
+        expect.any(Function),
+      );
+
       expect(Express.getRouter().delete).toHaveBeenCalledWith(
         "/mock/:id",
         UserMiddleware.getUserMiddleware,
         expect.any(Function),
       );
+
+      expect(Express.getRouter().post).toHaveBeenCalledWith(
+        "/mock/:id/delete-item",
+        UserMiddleware.getUserMiddleware,
+        expect.any(Function),
+      );
+    });
+
+    it("does not register state-changing GET aliases", () => {
+      const registeredGetPaths: Array<string> = mockRouter.routes
+        .filter((route: { method: string }) => {
+          return route.method === "GET";
+        })
+        .map((route: { uri: string }) => {
+          return route.uri;
+        });
+
+      expect(registeredGetPaths).not.toContain("/mock/:id/update-item");
+      expect(registeredGetPaths).not.toContain("/mock/:id/delete-item");
+    });
+
+    it("keeps read-only GET compatibility routes", () => {
+      const registeredGetPaths: Array<string> = mockRouter.routes
+        .filter((route: { method: string }) => {
+          return route.method === "GET";
+        })
+        .map((route: { uri: string }) => {
+          return route.uri;
+        });
+
+      expect(registeredGetPaths).toContain("/mock/get-list");
+      expect(registeredGetPaths).toContain("/mock/:id/get-item");
     });
   });
 
@@ -226,7 +265,9 @@ describe("BaseAPI", () => {
       ["POST", "/mock/:id/get-item", "getItem"],
       ["GET", "/mock/:id/get-item", "getItem"],
       ["PUT", "/mock/:id", "updateItem"],
+      ["POST", "/mock/:id/update-item", "updateItem"],
       ["DELETE", "/mock/:id", "deleteItem"],
+      ["POST", "/mock/:id/delete-item", "deleteItem"],
     ] as [string, string, string][];
 
     for (const [method, uri, shouldBeCalled] of checkRoutes) {

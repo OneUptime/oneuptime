@@ -419,6 +419,25 @@ describe("endpoints", () => {
     }
   });
 
+  it("documents POST compatibility aliases without advertising GET mutations", () => {
+    for (const alias of [
+      "/api/monitor/:id/update-item",
+      "/api/monitor/:id/delete-item",
+    ]) {
+      expect(countOccurrences(html, alias)).toBe(1);
+
+      const aliasPosition: number = html.indexOf(alias);
+      expect(aliasPosition).toBeGreaterThan(-1);
+      expect(
+        html.slice(Math.max(0, aliasPosition - 500), aliasPosition),
+      ).toMatch(/>POST<\/span>/);
+    }
+
+    expect(html).not.toMatch(
+      />GET<\/span>\s*<code[^>]*>\/api\/monitor\/:id\/(?:update|delete)-item<\/code>/,
+    );
+  });
+
   it("colours each method through the shared badge", () => {
     expect(html).toContain("bg-success-soft text-success");
     expect(html).toContain("bg-info-soft text-info");
