@@ -722,19 +722,71 @@ describe("WidenSecurityEventLastErrorColumns1789600000000 registration", () => {
     expect(occurrences).toBe(1);
   });
 
-  test("runs after the migration that created both tables", () => {
+  /*
+   * Ordering is by TIMESTAMP, not by position in the array. TypeORM's
+   * MigrationExecutor.getMigrations() parses the trailing 13 digits off
+   * each class name and sorts by that, ignoring the order the classes were
+   * registered in — and this repo's array genuinely does deviate from
+   * timestamp order in places, so array position is not even accidentally
+   * the same thing. Asserting on indexOf would therefore pass for a
+   * migration appended to the end of the array with a timestamp that sorts
+   * it BEFORE the table it alters, which is exactly the mistake worth
+   * catching: widening a column on a table that does not exist yet fails
+   * outright, and the generator stamps new migrations with Date.now(),
+   * which is behind the hand-picked timestamps already in this directory.
+   */
+  function migrationTimestamp(migration: unknown): number {
     /*
-     * TypeORM executes registered migrations in array order, and widening
-     * a column on a table that does not exist yet fails outright.
+     * Resolve the name the way MigrationExecutor does: it instantiates each
+     * registered class and reads `instance.name || instance.constructor.name`.
+     * That distinction is load-bearing here — InitialMigration's class name
+     * carries no timestamp at all and only its instance `name` property does,
+     * so reading the constructor's own `.name` would parse NaN for it.
      */
-    const createIndex: number = SchemaMigrations.indexOf(
+    const Migration: new () => { name?: string } = migration as new () => {
+      name?: string;
+    };
+    const instance: { name?: string } = new Migration();
+    const className: string = instance.name || Migration.name;
+
+    return Number(className.slice(-13));
+  }
+
+  test("sorts after the migration that created both tables", () => {
+    const createTimestamp: number = migrationTimestamp(
       AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
     );
-    const widenIndex: number = SchemaMigrations.indexOf(
+    const widenTimestamp: number = migrationTimestamp(
       WidenSecurityEventLastErrorColumns1789600000000,
     );
 
-    expect(createIndex).toBeGreaterThanOrEqual(0);
-    expect(widenIndex).toBeGreaterThan(createIndex);
+    // NaN would silently satisfy neither comparison below; rule it out first.
+    expect(Number.isFinite(createTimestamp)).toBe(true);
+    expect(Number.isFinite(widenTimestamp)).toBe(true);
+
+    expect(widenTimestamp).toBeGreaterThan(createTimestamp);
+  });
+
+  /*
+   * And nothing registered anywhere sorts between the two by accident
+   * while claiming the same timestamp — a duplicate would make the
+   * relative order of those two migrations depend on Array.prototype.sort
+   * stability rather than on anything intentional.
+   */
+  test("does not collide with another registered migration's timestamp", () => {
+    const widenTimestamp: number = migrationTimestamp(
+      WidenSecurityEventLastErrorColumns1789600000000,
+    );
+
+    const collisions: Array<unknown> = SchemaMigrations.filter(
+      (migration: unknown) => {
+        return (
+          migration !== WidenSecurityEventLastErrorColumns1789600000000 &&
+          migrationTimestamp(migration) === widenTimestamp
+        );
+      },
+    );
+
+    expect(collisions).toHaveLength(0);
   });
 });

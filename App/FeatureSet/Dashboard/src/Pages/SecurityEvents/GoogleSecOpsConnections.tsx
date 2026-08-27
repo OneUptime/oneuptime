@@ -44,7 +44,7 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
 
 - **Last Polled: Never** means the poll job has not run for this connection yet. A connection created moments ago shows this until the next tick — but one that has sat at "Never" for longer than its poll interval is not being polled at all.
 - A recent **Last Polled** with an empty **Last Error** is a healthy connector.
-- **Last Error** carries verbatim whatever the Chronicle API returned on the last failed poll: an authentication failure, a wrong instance resource name, a quota rejection. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state.
+- **Last Error** holds the last poll failure as OneUptime recorded it — a prefix naming the step that failed and its HTTP status, then the first 500 characters of the response body, clamped and marked \`... (truncated)\` if it is still too long. Read the prefix first: \`Google token exchange failed\` is the credential being rejected before Chronicle is reached, \`Google SecOps alerts fetch failed\` is Chronicle rejecting the request, and anything else means you should read the message rather than assume a side — a non-JSON body or a missing access_token is Google answering with something unusable, a missing-fields message is this connection row being incomplete, and otherwise the alerts arrived and the failure was on OneUptime's side (most often writing them to the telemetry store). It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state.
 
 A disabled connection is skipped entirely, so neither field advances while it is off.
 `;
