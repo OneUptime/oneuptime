@@ -38,6 +38,7 @@ Azure Account - You can create one by going to https://azure.com.
    - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
    - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
    - **Channel.Create** - Required to create new channels for organizing notifications (e.g., separate channels for incidents, alerts)
+   - **TeamsAppInstallation.ReadForTeam.All** - Required for diagnosis. Lets OneUptime read which app package is actually installed in a team and compare it to this deployment's client id. Without it, a failed notification can only list the possible causes; with it, OneUptime tells you which one it is. This is the difference between a one-minute fix and a multi-day investigation, so grant it.
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
    - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
@@ -108,7 +109,9 @@ Restart your OneUptime server after adding these environment variables so they t
 
 ##### Step 8: Upload Teams App Manifest
 
-1. Go to project Settings -> Integrations -> Microsoft Teams
+> **Do not install "OneUptime" from the Microsoft Teams store for a self-hosted deployment.** That package's bot belongs to OneUptime Cloud. Teams will install it happily and show it under **Manage team → Apps**, and every notification this deployment sends will then be refused with *"The bot is not part of the conversation roster."* Only the manifest you download below carries your \`MICROSOFT_TEAMS_APP_CLIENT_ID\` as its bot id.
+
+1. Go to project Settings -> Workspace -> Microsoft Teams
 2. Download the Teams app manifest from there
 3. Go to Microsoft Teams, click on "Apps" in the sidebar
 4. At the bottom, click "Manage your apps"
@@ -116,14 +119,39 @@ Restart your OneUptime server after adding these environment variables so they t
 6. Select "Upload for me or my teams"
 7. Upload the manifest zip file you downloaded earlier
 
+##### Step 9: Add the App to Every Team You Want Notifications In
+
+Uploading the manifest is not enough on its own — installation is per team.
+
+1. In Microsoft Teams, click the "..." next to the **team name** (not the channel)
+2. Choose **Manage team → Apps → More apps**, find OneUptime and click **Add**
+3. For a **private** channel, also open the channel → "..." → **Manage channel → Apps → Add an app**. A team-level install does not cover private channels
+4. Microsoft Teams does not allow bots in **shared** channels, so those cannot receive notifications
+
+Connecting the integration grants tenant-wide Graph **read** access, which is why the channel picker can list channels in teams the bot cannot post to. Seeing a channel in OneUptime does not mean OneUptime can post to it.
+
 ##### Troubleshooting
 
-If you encounter issues:
+**"The bot is not part of the conversation roster" / "the OneUptime bot is not a member of that conversation"**
 
-- Ensure your app has the correct permissions granted
+In order of likelihood:
+
+1. **The installed app is a different package.** A tile named "OneUptime" under Manage team → Apps is not enough — what matters is whether its bot id equals this deployment's \`MICROSOFT_TEAMS_APP_CLIENT_ID\`. Remove it and upload your own manifest (Step 8).
+2. **The Azure Bot has no Microsoft Teams channel.** Complete Step 6. Without it the bot is never provisioned into Teams conversations, so it is in no channel's roster — even though the app installs cleanly.
+3. **The app is installed for you, but not in the team.** Complete Step 9.
+4. **The channel is private.** See Step 9.
+
+Grant **TeamsAppInstallation.ReadForTeam.All** (Step 3) and OneUptime will tell you which of these it is instead of listing them.
+
+**No chats appear under Microsoft Teams Chats**
+
+Chats register only when the bot receives a message. If the installed package points at a different deployment, its activities never reach this server and the list stays empty no matter how many times you click Refresh Chats. Verify the installed package first (Step 8).
+
+**Other checks**
+
+- Ensure your app has the correct permissions granted, including admin consent
 - Check that the redirect URI matches exactly
-- Verify your environment variables are set correctly
-- Make sure the bot is added to the channels you want to post to
+- Verify your environment variables are set correctly, and restart the server after changing them
 
 We would like to improve this integration, so feedback is more than welcome. Please send us any at hello@oneuptime.com
 
