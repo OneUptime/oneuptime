@@ -21,6 +21,7 @@ import SettingsGlobalSSOView from "./Pages/Settings/GlobalSSO/View";
 import SettingsGlobalOIDC from "./Pages/Settings/GlobalOIDC/Index";
 import SettingsGlobalOIDCView from "./Pages/Settings/GlobalOIDC/View";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
+import SettingsAppearance from "./Pages/Settings/Appearance/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
 import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
 import SettingsTelegram from "./Pages/Settings/Telegram/Index";
@@ -306,6 +307,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_DATA_RETENTION]?.toString() || ""}
           element={<SettingsDataRetention />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.SETTINGS_APPEARANCE]?.toString() || ""}
+          element={<SettingsAppearance />}
         />
 
         <PageRoute

@@ -3,6 +3,7 @@ import Hostname from "../../Types/API/Hostname";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import Color from "../../Types/Color";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -1457,4 +1458,25 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: 10,
   })
   public postgresRetainedWalLimitInGb?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Color,
+    title: "Default Project Color",
+    description:
+      "Color used to mark projects that have not chosen one of their own. Leave empty for no color.",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.Color,
+    length: ColumnLength.Color,
+    nullable: true,
+    unique: false,
+    transformer: Color.getDatabaseTransformer(),
+  })
+  public defaultProjectColor?: Color = undefined;
 }

@@ -43,6 +43,7 @@ export default class GlobalConfigAPI extends BaseAPI<
               id: ObjectID.getZeroObjectID(),
               select: {
                 disableUserProjectCreation: true,
+                defaultProjectColor: true,
               },
               props: {
                 isRoot: true,
@@ -53,6 +54,13 @@ export default class GlobalConfigAPI extends BaseAPI<
             disableUserProjectCreation: Boolean(
               globalConfig?.disableUserProjectCreation,
             ),
+            /*
+             * Rides along on this route, which is already unauthenticated for
+             * the flag above. A hex colour for the dashboard chrome is
+             * cosmetic and carries nothing sensitive.
+             */
+            defaultProjectColor:
+              globalConfig?.defaultProjectColor?.toString() || null,
           });
         } catch (err) {
           next(err);

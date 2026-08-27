@@ -86,6 +86,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_DATA_RETENTION]: new Route(
     `/admin/settings/data-retention`,
   ),
+  [PageMap.SETTINGS_APPEARANCE]: new Route(`/admin/settings/appearance`),
 
   [PageMap.SEND_EMAIL]: new Route(`/admin/send-email`),
 
