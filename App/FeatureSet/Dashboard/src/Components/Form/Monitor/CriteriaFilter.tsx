@@ -280,10 +280,13 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
             <div className="mt-1">
-              <FieldLabelElement title="Disk Path" />
+              <FieldLabelElement
+                title="Disk Path"
+                description="The mount point or device to check. Enter * to check every disk the agent reports and raise a separate alert for each one — otherwise a second disk filling up is silenced while the first disk's alert is open."
+              />
 
               <Input
-                placeholder={"C:\\ or /mnt/data or /dev/sda1"}
+                placeholder={"* or C:\\ or /mnt/data or /dev/sda1"}
                 value={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
                 onChange={(value: string) => {
                   props.onChange?.({
@@ -359,11 +362,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             <div className="mt-1">
               <FieldLabelElement
                 title="Interface (Optional)"
-                description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface on the device."
+                description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or enter * to evaluate every interface and raise a separate alert for each one."
               />
               <Input
                 value={criteriaFilter?.snmpMonitorOptions?.interfaceName || ""}
-                placeholder="Gi0/1"
+                placeholder="* or Gi0/1"
                 onChange={(value: string) => {
                   props.onChange?.({
                     ...criteriaFilter,

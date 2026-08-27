@@ -51,6 +51,9 @@ spec:
         - name: run
           emptyDir:
             sizeLimit: "1Gi"
+        {{- with (default $.Values.extraVolumes $.Values.nginx.extraVolumes) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- if $.Values.nginx.podSecurityContext }}
       securityContext:
         {{- toYaml $.Values.nginx.podSecurityContext | nindent 8 }}
@@ -155,6 +158,9 @@ spec:
               mountPath: /etc/nginx/conf.d
             - name: run
               mountPath: /var/run
+            {{- with (default $.Values.extraVolumeMounts $.Values.nginx.extraVolumeMounts) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if $.Values.nginx.containerSecurityContext }}
           securityContext:
             {{- toYaml $.Values.nginx.containerSecurityContext | nindent 12 }}
@@ -195,6 +201,9 @@ spec:
               value: "7851" # Port for the nodejs server for live and ready status
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.nginx.disableTelemetryCollection | quote }}
+            {{- with (default $.Values.extraEnv $.Values.nginx.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - containerPort: 7849
               protocol: TCP

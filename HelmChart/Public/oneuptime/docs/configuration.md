@@ -205,6 +205,101 @@ Bitnami charts — you will need to set the security context for those as well.
 | `tolerations`              | Tolerations.               | `[]`    |
 | `affinity`                 | Affinity.                  | `{}`    |
 
+## Extra environment variables and volumes
+
+Every workload the chart runs takes `extraEnv`, `extraVolumes` and
+`extraVolumeMounts`. They are passed through to the pod spec verbatim, so
+anything Kubernetes accepts in an `EnvVar`, `Volume` or `VolumeMount` works.
+They are empty by default and render nothing at all, so an install that does not
+set them is unaffected.
+
+Set them at the top level to apply to every workload, or under a single service
+to apply to just that one:
+
+| Parameter                        | Description                                                                      | Default |
+|----------------------------------|----------------------------------------------------------------------------------|---------|
+| `extraEnv`                       | Extra environment variables added to every workload.                             | `[]`    |
+| `extraVolumes`                   | Extra pod volumes added to every workload.                                       | `[]`    |
+| `extraVolumeMounts`              | Extra container volume mounts added to every workload.                           | `[]`    |
+| `<service>.extraEnv`             | Extra environment variables for one service. Replaces the chart-wide list.        | `[]`    |
+| `<service>.extraVolumes`         | Extra pod volumes for one service. Replaces the chart-wide list.                  | `[]`    |
+| `<service>.extraVolumeMounts`    | Extra container volume mounts for one service. Replaces the chart-wide list.      | `[]`    |
+
+`<service>` is any of `app`, `worker`, `probes.<name>`, `runner`, `home`,
+`telemetryWriter`, `nginx`, `pgbouncer`, `testServer`, `migrate`, `vllm` or
+`cronJobs.e2e`.
+
+A service's list **replaces** the chart-wide one — the two are not merged. That
+is the precedence the chart already uses for `hostAliases`, `nodeSelector` and
+the security contexts, and for volumes it is the only safe one: concatenating
+would produce two volumes with the same `name` as soon as you narrowed a
+chart-wide volume for one service, and the API server rejects that pod outright.
+Setting a service's list to `[]` inherits the chart-wide list rather than
+clearing it, so a service cannot opt out of a chart-wide entry — scope the entry
+per-service instead of chart-wide when only some services should get it.
+
+`extraEnv` entries are appended after the variables the chart sets itself, so
+Kubernetes — which applies the last entry for a repeated name — uses yours. Two
+names are worth not repeating: `DISABLE_QUEUE_WORKERS` is what makes a pod a
+`worker` rather than an API pod (and the reverse on `telemetryWriter`), so
+setting it chart-wide silently changes what those tiers do.
+
+
+The bundled databases (`postgresql`, `redis`, `clickhouse` and the ClickHouse
+Keeper) and the `cronJobs.cleanup` jobs deliberately do not take these. The
+databases are servers rather than clients, already expose their TLS and tuning
+settings as first-class values, and have operator-managed twins whose pods come
+from a CR rather than from these templates — so the setting would apply to only
+half of an install. The cleanup jobs run `bitnami/kubectl` against the
+in-cluster API server, which is trusted through the ServiceAccount CA.
+
+### Example: trust an internal CA
+
+The case these exist for. OneUptime's services are Node.js, so pointing
+`NODE_EXTRA_CA_CERTS` at a mounted bundle is enough for every outbound TLS call
+— webhooks, SMTP, custom monitors, an internal container registry, an
+OIDC provider with a private issuer.
+
+Put the bundle in a ConfigMap first:
+
+```console
+kubectl create configmap internal-ca-bundle -n oneuptime --from-file=ca.crt=/path/to/internal-ca.crt
+```
+
+Then, in your `values.yaml`:
+
+```yaml
+extraVolumes:
+  - name: internal-ca
+    configMap:
+      name: internal-ca-bundle
+extraVolumeMounts:
+  - name: internal-ca
+    mountPath: /etc/ssl/internal
+    readOnly: true
+extraEnv:
+  - name: NODE_EXTRA_CA_CERTS
+    value: /etc/ssl/internal/ca.crt
+```
+
+That reaches app, worker, every probe, runner, home, telemetry-writer, nginx,
+pgbouncer, test-server, the migrate Job and the e2e cron in one setting. The
+migrate Job matters here: it talks to Postgres and ClickHouse before any app pod
+does, so a CA it cannot see fails the install rather than degrading it.
+
+`NODE_EXTRA_CA_CERTS` covers Node.js, which is every outbound call OneUptime's
+own code makes. It does **not** reach the Chromium that probes drive for
+synthetic browser monitors, or the one the e2e cron uses: Chromium reads the OS
+trust store instead. Synthetic monitors against an internally-signed site need
+the certificate baked into the image's `/usr/local/share/ca-certificates` and
+`update-ca-certificates` run at build time.
+
+Confirm what an upgrade would actually change before you run it:
+
+```console
+helm template my-oneuptime oneuptime/oneuptime -f values.yaml | grep -c NODE_EXTRA_CA_CERTS
+```
+
 ## Local AI (vLLM)
 
 Run a local, OpenAI-compatible LLM server in-cluster for OneUptime's AI

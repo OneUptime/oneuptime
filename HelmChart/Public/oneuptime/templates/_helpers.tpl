@@ -207,6 +207,13 @@ its userlist at startup.
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY
   value: {{ default "" $.Values.captcha.siteKey | quote }}
+# Outbound webhook egress policy. Off by default; a project must also enable
+# "Allow Private Network Webhooks" in Project Settings before either grants
+# anything. See values.yaml for the full explanation.
+- name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+  value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}
+- name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+  value: {{ default "" (($.Values.webhooks).privateNetworkAllowlist) | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT
@@ -964,12 +971,15 @@ spec:
       {{- end }}
       nodeSelector:
         {{- include "oneuptime.nodeSelector" ($.NodeSelector | default $.Values.nodeSelector) | nindent 8 }}
-      {{- if $.Volumes }}
+      {{- if or $.Volumes $.ExtraVolumes }}
       volumes:
       {{- range $key, $val := $.Volumes }}
         - name: {{ $key }}
           emptyDir:
             sizeLimit: {{ $val.SizeLimit }}
+      {{- end }}
+      {{- with $.ExtraVolumes }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- end }}
       containers:
@@ -996,11 +1006,17 @@ spec:
               value: {{ $val | squote }}
             {{- end }}
             {{- end }}
-          {{- if $.Volumes }}
+            {{- with $.ExtraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or $.Volumes $.ExtraVolumeMounts }}
           volumeMounts:
             {{- range $key, $val := $.Volumes }}
             - name: {{ $key }}
               mountPath: {{ $val.MountPath }}
+            {{- end }}
+            {{- with $.ExtraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
           {{- if $.Ports }}

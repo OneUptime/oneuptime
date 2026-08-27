@@ -182,6 +182,29 @@ export function buildOnlineCriteriaInstance(args: {
   return instance;
 }
 
+/**
+ * Build a single-query monitor config.
+ *
+ * `groupByAttributeKey` makes the monitor PER-SERIES: the worker splits
+ * the metric by that attribute and every group is evaluated — and paged —
+ * on its own, so a cluster of 200 pods raises one incident per unhealthy
+ * pod rather than one incident for the whole cluster that then dedupes
+ * every later pod away. Omitting it keeps the monitor whole-cluster.
+ *
+ * Group by an object's own name whenever the metric is genuinely
+ * PER-OBJECT (per node, per pod, per deployment, ...). Leave it off for
+ * cluster-scalar signals — etcd leadership, API server throttling,
+ * scheduler backlog — where there is exactly one value for the cluster
+ * and splitting it would invent series that do not exist.
+ *
+ * The key is the ClickHouse-stored attribute name, which carries the
+ * `resource.` prefix for OTel resource attributes (see
+ * OtelMetricsIngestService — resource attributes are stamped with
+ * `prefixKeysWithString: "resource"`). So node grouping is
+ * `resource.k8s.node.name`, not the bare `k8s.node.name`; the bare key
+ * matches nothing and collapses the whole fleet into one mislabeled
+ * series that still renders and still alerts.
+ */
 export function buildKubernetesMonitorConfig(args: {
   clusterIdentifier: string;
   metricName: string;
@@ -190,6 +213,7 @@ export function buildKubernetesMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKey?: string | undefined;
 }): MonitorStepKubernetesMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -212,6 +236,9 @@ export function buildKubernetesMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
           },
         },
       ],
@@ -346,6 +373,13 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per pod: restarts are a property of one pod's containers, so a
+         * crash-looping pod must page on its own rather than dedupe behind
+         * whichever pod in the cluster crashed first. Max over the window
+         * therefore becomes "the worst container in THIS pod".
+         */
+        groupByAttributeKey: "resource.k8s.pod.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -390,6 +424,22 @@ const podPendingTemplate: KubernetesAlertTemplate = {
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Sum,
         attributes: { "resource.k8s.pod.phase": "Pending" },
+        /*
+         * Deliberately NOT grouped, unlike the other pod-level templates.
+         *
+         * This is a cluster-wide COUNT of unschedulable pods (Cluster
+         * scope, Sum, "Count > 0"), i.e. a statement about the cluster's
+         * scheduling capacity rather than about any one pod's health — the
+         * same signal as k8s-scheduler-backlog, seen from the pod side.
+         *
+         * Grouping it by `resource.k8s.pod.name` would fan out per pod
+         * name, and pending pod names are ephemeral: a stuck rollout burns
+         * a new replicaset-hash-suffixed name per attempt, so every retry
+         * would open a fresh incident and resolve it again the moment the
+         * name changed. That is an alert storm keyed on an identity that
+         * does not persist, which is the opposite of what per-series
+         * grouping is for (durable entities: nodes, deployments, jobs).
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -433,6 +483,12 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Min,
+        /*
+         * Per node: one incident per NotReady node. Ungrouped, the Min
+         * across the fleet is 0 as soon as ANY node is down, and the
+         * second node to fail dedupes behind the first one's incident.
+         */
+        groupByAttributeKey: "resource.k8s.node.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -584,6 +640,14 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per deployment: a stuck rollout is a property of one Deployment
+         * object, and the incident copy already names the deployment. The
+         * k8s_cluster receiver stamps `k8s.deployment.name` on this metric
+         * (the worker reads `resource.k8s.deployment.name` back off these
+         * rows to build the affected-resource breakdown).
+         */
+        groupByAttributeKey: "resource.k8s.deployment.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -626,6 +690,13 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per Job object — one failing Job must not hide the next one.
+         * Jobs are short-lived: when a Job is cleaned up its series stops
+         * arriving and the per-series pass auto-resolves that Job's alert
+         * by absence, which is the behaviour we want here.
+         */
+        groupByAttributeKey: "resource.k8s.job.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -669,6 +740,11 @@ const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past1Minute,
         aggregationType: MetricsAggregationType.Min,
+        /*
+         * Ungrouped: leadership is a property of the etcd cluster as a
+         * whole, not of any one object. "No leader" is one cluster-scalar
+         * fact and belongs in one incident.
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -712,6 +788,11 @@ const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Sum,
+        /*
+         * Ungrouped: this is the control plane's aggregate throttling
+         * rate. Splitting it would need a per-apiserver-instance identity
+         * that this metric does not carry in the shipped agent config.
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -755,6 +836,10 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Cluster,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Avg,
+        /*
+         * Ungrouped: a scheduler queue depth is one number for the
+         * cluster. There is no per-object series to split it into.
+         */
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -797,6 +882,13 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Node,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Avg,
+        /*
+         * Per node: filesystem usage is per node (kubeletstats reports the
+         * node's filesystem), and disk fills one node at a time. Ungrouped,
+         * the Avg across the fleet dilutes a single full node into the
+         * fleet mean and the alert never fires.
+         */
+        groupByAttributeKey: "resource.k8s.node.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -840,6 +932,12 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
         resourceScope: KubernetesResourceScope.Workload,
         rollingTime: RollingTime.Past5Minutes,
         aggregationType: MetricsAggregationType.Max,
+        /*
+         * Per DaemonSet object: the incident names the DaemonSet, so each
+         * one has to own its own alert instead of dedupeing behind
+         * whichever DaemonSet in the cluster misscheduled first.
+         */
+        groupByAttributeKey: "resource.k8s.daemonset.name",
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

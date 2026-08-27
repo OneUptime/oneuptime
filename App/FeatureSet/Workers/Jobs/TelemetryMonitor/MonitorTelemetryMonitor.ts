@@ -417,29 +417,20 @@ const loadNativeUnitsByMetricName: (input: {
 
 /**
  * Collect the union of attribute keys the user asked to group by
- * across every queryConfig on the monitor step. Per-series
- * alerting needs a consistent key set across queries so formula
- * series line up (otherwise `a + b` would split differently for a
- * and b and the per-series formula evaluation wouldn't align).
+ * across every queryConfig on the monitor step.
+ *
+ * Delegates to MonitorStep so that "is this monitor grouped?" has
+ * exactly one answer. The criteria evaluator asks the same question to
+ * decide whether a criteria must fan out per series, and the two
+ * answers disagreeing is what let a grouped monitor quietly open a
+ * single whole-monitor alert that then blocked every other host.
  */
 const collectGroupByAttributeKeys: (
   queryConfigs: Array<MetricQueryConfigData>,
 ) => Array<string> = (
   queryConfigs: Array<MetricQueryConfigData>,
 ): Array<string> => {
-  const keys: Set<string> = new Set<string>();
-  for (const queryConfig of queryConfigs) {
-    const groupKeys: Array<string> | undefined =
-      queryConfig.metricQueryData?.groupByAttributeKeys;
-    if (groupKeys) {
-      for (const key of groupKeys) {
-        if (key) {
-          keys.add(key);
-        }
-      }
-    }
-  }
-  return Array.from(keys);
+  return MonitorStep.getGroupByAttributeKeysFromQueryConfigs(queryConfigs);
 };
 
 /**

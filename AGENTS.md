@@ -22,6 +22,12 @@ Clickhouse migrations are written manually. Please write the migration code in D
 
 Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
 
+### Tests
+
+Please write extensive tests for your changes. If you are adding a new feature, please write unit tests and integration tests. If you are fixing a bug, please write a regression test. 
+
+There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes. 
+
 ### Helm chart
 
 The chart lives in `HelmChart/Public/oneuptime`. It has cluster-free unit tests in

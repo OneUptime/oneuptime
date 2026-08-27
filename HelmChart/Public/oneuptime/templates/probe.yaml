@@ -106,6 +106,9 @@ spec:
           volumeMounts:
             - name: synthetic-runtime-tmp
               mountPath: /tmp
+            {{- with (default $.Values.extraVolumeMounts $val.extraVolumeMounts) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           env:
             - name: BILLING_ENABLED
               value: {{ $.Values.billing.enabled | squote }}
@@ -147,6 +150,11 @@ spec:
               value: {{ printf "%.0f" (float64 (default 268435456 $val.syntheticMonitorMaxDiskBytes)) | squote }}
             - name: PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED
               value: {{ default false $val.syntheticMonitorChromiumSandboxEnabled | squote }}
+            # Whether Custom JavaScript Code monitors on this probe may reach
+            # private network addresses (issue #3424). Off by default; every
+            # other monitor type already reaches whatever host it is pointed at.
+            - name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
+              value: {{ default false $val.allowPrivateNetworkMonitors | squote }}
             - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.customCodeMonitorScriptTimeoutInMs | squote }}
             - name: PROBE_KEY
@@ -185,6 +193,9 @@ spec:
               value: {{ $val.proxy.noProxy | squote }}
             {{- end }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- with (default $.Values.extraEnv $val.extraEnv) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}
               protocol: TCP
@@ -200,6 +211,9 @@ spec:
         - name: synthetic-runtime-tmp
           emptyDir:
             sizeLimit: {{ default "2Gi" $val.syntheticMonitorTempStorageSizeLimit | quote }}
+        {{- with (default $.Values.extraVolumes $val.extraVolumes) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 

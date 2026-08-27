@@ -11,6 +11,9 @@ export default class VMUtil {
     options: {
       args?: JSONObject | undefined;
       timeout?: number;
+      // See VMRunner.runCodeInSandbox — decided by the caller, not here.
+      allowPrivateNetworkRequests?: boolean | undefined;
+      privateNetworkHint?: string | undefined;
     };
   }): Promise<ReturnResult> {
     return VMRunner.runCodeInSandbox(data);

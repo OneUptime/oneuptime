@@ -95,7 +95,14 @@ export default class WebhookService {
         throw new BadDataException("Webhook eventType is required");
       }
 
-      await SSRFProtection.validateWebhookTargetIsSafe(message.url);
+      /*
+       * Project webhook URLs are configured by members of the project, so a
+       * self-hosted instance may allow them to reach internal services
+       * (issue #3424). Off unless the operator configured it.
+       */
+      await SSRFProtection.validateWebhookTargetIsSafe(message.url, {
+        allowPrivateNetworkTargets: true,
+      });
 
       const bodyString: string = JSON.stringify(message.payload || {});
 

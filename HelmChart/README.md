@@ -21,6 +21,7 @@ not stop the others, so one run tells you everything that is broken.
 | ------------------- | --------------- | ------------------------------------------------------------------------------------ |
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |
 | `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests)        |
+| `extra-values`      | no              | `extraEnv`/`extraVolumes`/`extraVolumeMounts` reach every workload the chart renders, and no more |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
 | `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
 

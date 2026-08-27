@@ -261,11 +261,7 @@ describe("BaseAPI.updateItem payload validation", () => {
     });
   });
 
-  /*
-   * PUT /:id, POST /:id/update-item and GET /:id/update-item all land on this
-   * one handler, so none of them can be left answering 200 to a payload that
-   * writes nothing. GET carries no body at all.
-   */
+  /* PUT /:id and POST /:id/update-item both land on this one handler. */
   describe("across every route that reaches updateItem", () => {
     it("refuses the flat body on the POST update-item route", async () => {
       const request: OneUptimeRequest = requestWithBody({
@@ -278,15 +274,7 @@ describe("BaseAPI.updateItem payload validation", () => {
       );
     });
 
-    it("refuses the bodyless GET update-item route instead of quietly writing nothing", async () => {
-      await expect(
-        api.updateItem(requestWithBody({}), response),
-      ).rejects.toThrow(BadDataException);
-
-      expect(service.updateOneById).not.toHaveBeenCalled();
-    });
-
-    it("registers all three update routes", () => {
+    it("registers only non-GET update routes", () => {
       const crudPath: string = new Probe().getCrudApiPath()!.toString();
 
       expect(mockRouter.match("PUT", `${crudPath}/:id`)).toBeTruthy();
@@ -294,8 +282,13 @@ describe("BaseAPI.updateItem payload validation", () => {
         mockRouter.match("POST", `${crudPath}/:id/update-item`),
       ).toBeTruthy();
       expect(
-        mockRouter.match("GET", `${crudPath}/:id/update-item`),
-      ).toBeTruthy();
+        mockRouter.routes.some((route: { method: string; uri: string }) => {
+          return (
+            route.method === "GET" &&
+            route.uri === `${crudPath}/:id/update-item`
+          );
+        }),
+      ).toBe(false);
     });
   });
 

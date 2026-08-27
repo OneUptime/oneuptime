@@ -592,7 +592,6 @@ export default class SlackAPI {
           "Slack Interactive Auth Result: ",
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(authResult, getLogAttributesFromRequest(req as any));
 
         // if slack uninstall app then,
         if (authResult.payloadType === "app_uninstall") {
@@ -886,7 +885,6 @@ export default class SlackAPI {
           "Slack Events API Request received",
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(req.body, getLogAttributesFromRequest(req as any));
 
         const payload: JSONObject = req.body;
 
