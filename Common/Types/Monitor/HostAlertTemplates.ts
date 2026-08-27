@@ -30,6 +30,25 @@ export interface HostAlertTemplate {
   getMonitorStep: (args: HostAlertTemplateArgs) => MonitorStep;
 }
 
+/*
+ * Filter contract: a host monitor is already scoped to ONE host — the
+ * worker adds `resource.host.name` from the step's hostIdentifier — so
+ * host-scalar metrics (CPU utilization, memory utilization, load average,
+ * process count) stay UNGROUPED: there is exactly one series per host and
+ * grouping would buy nothing.
+ *
+ * Metrics that are per-entity WITHIN the host are grouped, because the
+ * hostmetrics receiver partitions them by unprefixed DATAPOINT labels
+ * (never `resource.`-prefixed):
+ *
+ *   - `system.filesystem.*` -> `mountpoint` (also `device`, `state`)
+ *   - `system.disk.*` / `system.network.*` -> `device` (also `direction`)
+ *
+ * Without a group-by, one full mount raises a single incident for the
+ * whole host and every other mount that fills up afterwards is silenced
+ * for as long as that incident stays open.
+ */
+
 export function buildHostMonitorStep(args: {
   hostMonitor: MonitorStepHostMonitor;
   offlineCriteriaInstance: MonitorCriteriaInstance;
@@ -184,6 +203,7 @@ export function buildHostMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
+  groupByAttributeKey?: string | undefined;
 }): MonitorStepHostMonitor {
   return {
     hostIdentifier: args.hostIdentifier,
@@ -204,6 +224,9 @@ export function buildHostMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
+            ...(args.groupByAttributeKey
+              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              : {}),
           },
         },
       ],
@@ -302,7 +325,8 @@ const highMemoryTemplate: HostAlertTemplate = {
 const highFilesystemUsageTemplate: HostAlertTemplate = {
   id: "host-high-filesystem",
   name: "High Filesystem Usage",
-  description: "Alert when host filesystem utilization exceeds 90%.",
+  description:
+    "Alert when host filesystem utilization exceeds 90%. One alert per mountpoint.",
   category: "Resource",
   severity: "Critical",
   getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
@@ -315,10 +339,14 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
         metricAlias,
         rollingTime: RollingTime.Past5Minutes,
         /*
-         * Use Max so a single full filesystem trips the threshold instead of
-         * being diluted by averaging across multiple mounted filesystems.
+         * Max WITHIN each mountpoint's series: the peak utilization that
+         * mount reached during the window. Grouping by `mountpoint` already
+         * keeps mounts from being averaged together, and gives one incident
+         * per mount so a second mount filling up is not silenced by the
+         * first one's open incident.
          */
         aggregationType: MetricsAggregationType.Max,
+        groupByAttributeKey: "mountpoint",
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

@@ -459,7 +459,12 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
           evaluationSummary: summary,
         });
 
-      expect(openAlerts).toHaveLength(1);
+      /*
+       * The return value is the set still open AFTER the pass, which the
+       * create path dedupes against — an alert this pass just resolved
+       * must not count as "already active" there.
+       */
+      expect(openAlerts).toHaveLength(0);
       expect(createdAlertStateTimelines).toHaveLength(1);
       expect(createdAlertStateTimelines[0]!.alertId?.toString()).toBe(
         openAlert.id!.toString(),
@@ -595,7 +600,12 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
           evaluationSummary: summary,
         });
 
-      expect(openIncidents).toHaveLength(1);
+      /*
+       * The return value is the set still open AFTER the pass, which the
+       * create path dedupes against — an incident this pass just resolved
+       * must not count as "already active" there.
+       */
+      expect(openIncidents).toHaveLength(0);
       expect(createdIncidentStateTimelines).toHaveLength(1);
       expect(createdIncidentStateTimelines[0]!.incidentId?.toString()).toBe(
         openIncident.id!.toString(),
