@@ -789,6 +789,10 @@ DocsNav.push({
       url: "/docs/self-hosted/sendgrid-inbound-email",
     },
     {
+      title: "Private Network Access",
+      url: "/docs/self-hosted/private-network-access",
+    },
+    {
       title: "Architecture",
       url: "/docs/self-hosted/architecture",
     },

@@ -71,6 +71,14 @@ export default class JavaScriptCode extends ComponentCode {
         options: {
           args: scriptArgs as JSONObject,
           timeout: WorkflowScriptTimeoutInMS,
+          /*
+           * The sandbox's axios bridge is guarded by the same SSRF blocklist
+           * as the API components, and is eligible for the same exception for
+           * the same reason: this script was authored by a member of the
+           * project the workflow runs in (issue #3424). The instance
+           * configuration decides whether that unlocks anything.
+           */
+          allowPrivateNetworkRequests: true,
         },
       });
 

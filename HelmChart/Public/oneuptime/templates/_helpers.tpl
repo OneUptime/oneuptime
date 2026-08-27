@@ -207,6 +207,13 @@ its userlist at startup.
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY
   value: {{ default "" $.Values.captcha.siteKey | quote }}
+# Outbound webhook egress policy. Off by default; a project must also enable
+# "Allow Private Network Webhooks" in Project Settings before either grants
+# anything. See values.yaml for the full explanation.
+- name: ALLOW_PRIVATE_NETWORK_WEBHOOKS
+  value: {{ ternary "true" "false" (default false (($.Values.webhooks).allowPrivateNetwork)) | quote }}
+- name: PRIVATE_NETWORK_WEBHOOK_ALLOWLIST
+  value: {{ default "" (($.Values.webhooks).privateNetworkAllowlist) | quote }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
 - name: VAPID_SUBJECT

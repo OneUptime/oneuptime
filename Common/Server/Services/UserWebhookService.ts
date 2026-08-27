@@ -43,7 +43,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Webhook name is required");
     }
 
-    await SSRFProtection.validateWebhookTargetIsSafe(createBy.data.webhookUrl);
+    /*
+     * An on-call webhook is registered by the user it pages, from inside a
+     * project, so a self-hosted instance may allow it to reach an internal
+     * service (issue #3424). Off unless the operator configured it.
+     */
+    await SSRFProtection.validateWebhookTargetIsSafe(createBy.data.webhookUrl, {
+      allowPrivateNetworkTargets: true,
+    });
 
     return {
       createBy,
@@ -62,7 +69,9 @@ export class Service extends DatabaseService<Model> {
     const webhookUrl: unknown = updateBy.data.webhookUrl;
 
     if (typeof webhookUrl === "string" || webhookUrl instanceof URL) {
-      await SSRFProtection.validateWebhookTargetIsSafe(webhookUrl);
+      await SSRFProtection.validateWebhookTargetIsSafe(webhookUrl, {
+        allowPrivateNetworkTargets: true,
+      });
     }
 
     return {

@@ -1654,6 +1654,21 @@
             },
             "additionalProperties": false
         },
+        "webhooks": {
+            "type": "object",
+            "properties": {
+                "allowPrivateNetwork": {
+                    "type": "boolean"
+                },
+                "privateNetworkAllowlist": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "vapid": {
             "type": "object",
             "properties": {
@@ -1857,6 +1872,9 @@
                             "type": "integer"
                         },
                         "automountServiceAccountToken": {
+                            "type": "boolean"
+                        },
+                        "allowPrivateNetworkMonitors": {
                             "type": "boolean"
                         },
                         "syntheticMonitorScriptTimeoutInMs": {

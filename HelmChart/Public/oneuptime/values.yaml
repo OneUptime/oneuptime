@@ -1013,6 +1013,23 @@ captcha:
   siteKey:
   secretKey:
 
+# Outbound webhook egress policy.
+#
+# OneUptime refuses to send workflow requests, project webhooks, on-call user
+# webhooks and sandboxed HTTP calls to targets that resolve into private,
+# loopback or link-local ranges. Both settings below relax that for self-hosted
+# installs and both are off by default. Neither grants anything on its own:
+# each project must ALSO enable "Allow Private Network Webhooks" in
+# Settings -> Project. Status page subscriber webhooks are never covered.
+webhooks:
+  # Permit RFC-1918, CGNAT, IPv6 unique-local and site-local targets. Loopback,
+  # link-local (169.254.169.254) and multicast stay blocked.
+  allowPrivateNetwork: false
+  # Comma-separated hosts and CIDRs allowed regardless of range, e.g.
+  # "mattermost.internal,*.svc.cluster.local,10.20.0.0/16". Never list
+  # 169.254.169.254 or a range containing it.
+  privateNetworkAllowlist: ""
+
 # VAPID Configuration for Web Push Notifications
 # Generate VAPID keys using: npx web-push generate-vapid-keys
 vapid:
@@ -1153,6 +1170,14 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
+    # Whether Custom JavaScript Code monitors on this probe may reach private
+    # network addresses (10.x, 192.168.x, ...). Off by default. Every other
+    # monitor type this probe runs — API, Website, Ping, Port, SSL, DNS, SNMP,
+    # SQL, Synthetic — already reaches whatever host the monitor names; Custom
+    # Code is the one exception, because it executes in the same sandbox as the
+    # workflow Custom JavaScript component and inherits its SSRF guard. Turning
+    # this on does NOT open loopback, link-local or the cloud metadata endpoint.
+    allowPrivateNetworkMonitors: false
     syntheticMonitorScriptTimeoutInMs: 60000
     # Maximum number of isolated browser worker processes started concurrently
     # by this Probe. Additional executions wait in a bounded FIFO queue.
