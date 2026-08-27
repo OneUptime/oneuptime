@@ -1549,6 +1549,14 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    /*
+     * The database fills this in, and no caller may supply it (the create
+     * access control below is deliberately empty). Without this flag
+     * `DatabaseService.checkRequiredFields` rejects every create — from the
+     * dashboard form, the CRUD API and the discovery auto-import alike — for a
+     * column nobody is allowed to set. Same pairing as `isPollingEnabled`.
+     */
+    isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Date,
     title: "Next Poll At",
