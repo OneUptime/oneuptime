@@ -59,7 +59,9 @@ function makeDevice(data: {
   monitoringMethod?: string | undefined;
 }): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice(data.deviceId);
-  device.monitoringMethod = data.monitoringMethod;
+  if (data.monitoringMethod !== undefined) {
+    device.monitoringMethod = data.monitoringMethod;
+  }
   return device;
 }
 
@@ -193,18 +195,21 @@ describe("BackfillMonitorBackedDeviceStatus", () => {
     ["a NULL method, from before the column existed", undefined],
     ["an empty string", ""],
     ["a typo", "Monitorr"],
-  ])("leaves a device with %s alone", async (_label: string, method) => {
-    deviceService.findBy.mockResolvedValue([
-      makeDevice({
-        deviceId: ObjectID.generate(),
-        monitoringMethod: method as string | undefined,
-      }),
-    ] as never);
+  ])(
+    "leaves a device with %s alone",
+    async (_label: string, method: string | undefined) => {
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          deviceId: ObjectID.generate(),
+          monitoringMethod: method as string | undefined,
+        }),
+      ] as never);
 
-    await migration.migrate();
+      await migration.migrate();
 
-    expect(deviceService.refreshStampedMonitorStatus).not.toHaveBeenCalled();
-  });
+      expect(deviceService.refreshStampedMonitorStatus).not.toHaveBeenCalled();
+    },
+  );
 
   test.each(["Monitor", "monitor", "  MONITOR  "])(
     "walks a device whose method reads as %p",

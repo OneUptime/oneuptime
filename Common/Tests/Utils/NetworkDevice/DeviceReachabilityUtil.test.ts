@@ -826,18 +826,21 @@ describe("which rows count as monitor-backed", () => {
   test.each([
     ["null", null],
     ["undefined", undefined],
-  ])("a %s method is a polled device, unchanged", (_label: string, value) => {
-    const result: DeviceReachabilityResult = reachabilityOf({
-      monitoringMethod: value as string | null | undefined,
-      monitorStatusIsOffline: true,
-      isReachable: true,
-      lastPolledAt: minutesAgo(1),
-      lastSeenAt: minutesAgo(1),
-    });
+  ])(
+    "a %s method is a polled device, unchanged",
+    (_label: string, value: string | null | undefined) => {
+      const result: DeviceReachabilityResult = reachabilityOf({
+        monitoringMethod: value as string | null | undefined,
+        monitorStatusIsOffline: true,
+        isReachable: true,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(1),
+      });
 
-    expect(result.isMonitorBacked).toBe(false);
-    expect(result.status).toBe(NetworkDeviceReachability.Up);
-  });
+      expect(result.isMonitorBacked).toBe(false);
+      expect(result.status).toBe(NetworkDeviceReachability.Up);
+    },
+  );
 
   /*
    * A caller that selects neither new column gets precisely the old
