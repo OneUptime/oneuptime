@@ -127,9 +127,22 @@ const NUMERIC_REGEX: RegExp = /^-?\d+(\.\d+)?$/;
 
 const WHITESPACE_REGEX: RegExp = /\s/;
 
-const RESERVED_PREFIX_REGEX: RegExp = /(["~!<>()[\]])/g;
+/*
+ * A quote is escaped wherever it appears: the tokenizer toggles on any of
+ * them, so an unescaped one mid-value would swallow the following space and
+ * silently merge two tokens.
+ */
+const QUOTE_REGEX: RegExp = /(")/g;
 
-const LEADING_DASH_REGEX: RegExp = /^-/;
+/*
+ * `~ ! > <` are operators ONLY as the first character of a value, and a
+ * bracket pair only when it wraps the whole value. Escaping them everywhere
+ * would be safe but noisy — a service name like `svc~canary` would round-trip
+ * through a shared URL as `svc\~canary`, which is what the reader sees.
+ */
+const LEADING_OPERATOR_REGEX: RegExp = /^([-~!<>])/;
+
+const WRAPPED_LIST_REGEX: RegExp = /^(\()(.*)(\))$|^(\[)(.*)(\])$/;
 
 /*
  * What a bare (unprefixed) key has to look like before `key:value` is read as
@@ -712,8 +725,9 @@ export const buildSearchTokenValue: BuildSearchTokenValueFunction = (
   literal: string,
 ): string => {
   const escaped: string = escapeWildcards(literal)
-    .replace(RESERVED_PREFIX_REGEX, "\\$1")
-    .replace(LEADING_DASH_REGEX, "\\-");
+    .replace(QUOTE_REGEX, "\\$1")
+    .replace(LEADING_OPERATOR_REGEX, "\\$1")
+    .replace(WRAPPED_LIST_REGEX, "\\$&");
 
   return WHITESPACE_REGEX.test(escaped) ? `"${escaped}"` : escaped;
 };

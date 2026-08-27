@@ -35,17 +35,38 @@ import AnalyticsModelAPI, {
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import {
   EXCEPTION_ATTRIBUTE_FACET_PREFIX,
-  ExceptionAttributeSelections,
-  KNOWN_EXCEPTION_SEARCH_FIELDS,
+  ExceptionInstanceScope,
   NO_MATCH_FINGERPRINT,
   MAX_SCOPED_FINGERPRINTS,
   applyExceptionFingerprintScope,
-  buildExceptionInstanceAttributeQuery,
-  getExceptionAttributeScopeKey,
+  buildExceptionInstanceScopeQuery,
   getExceptionAttributeSelections,
-  hasExceptionAttributeSelections,
+  getExceptionInstanceScopeKey,
+  hasExceptionInstanceScope,
   isExceptionAttributeFacetKey,
 } from "../../Utils/ExceptionsAttributeScope";
+import {
+  EXCEPTION_FIELD_ALIASES,
+  EXCEPTION_SERVICE_COLUMN,
+  ExceptionFieldFilters,
+  ExceptionSearchFilters,
+  ExceptionServiceOption,
+  NO_MATCH_ENTITY_ID,
+  ResolvedExceptionServices,
+  hasSearchDsl,
+  parseExceptionSearch,
+  resolveExceptionServiceChipId,
+  resolveExceptionServiceIds,
+  splitExceptionFieldPredicates,
+} from "../../Utils/ExceptionsSearchQuery";
+import {
+  SearchQueryValue,
+  SearchValuePredicate,
+  predicateToQueryValue,
+} from "Common/Types/Telemetry/TelemetrySearchQuery";
+import Dictionary from "Common/Types/Dictionary";
+import Search from "Common/Types/BaseDatabase/Search";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -103,29 +124,88 @@ function computeBucketSizeInMinutes(startTime: Date, endTime: Date): number {
   return Math.max(1, Math.ceil(raw / 60000));
 }
 
+/*
+ * The syntax table. Every row is honoured by the shared grammar in
+ * Common/Types/Telemetry/TelemetrySearchQuery and pinned by a test, so the
+ * help cannot drift back into advertising syntax the parser never had — the
+ * three rows this replaces described the ONLY three filters that worked, and
+ * one of them (`@service:api`) matched nothing at all.
+ */
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
-    syntax: "@type:<type>",
+    syntax: "free text",
+    description: "Search exception messages",
+    example: "connection refused",
+  },
+  {
+    syntax: '"quoted phrase"',
+    description: "Keep spaces together",
+    example: '"out of memory"',
+  },
+  {
+    syntax: "type:<type>",
     description: "Filter by exception type",
-    example: "@type:TypeError",
+    example: "type:TypeError",
   },
   {
-    syntax: "@service:<name>",
+    syntax: "service:<name>",
     description: "Filter by service",
-    example: "@service:api",
+    example: "service:api",
   },
   {
-    syntax: "@env:<environment>",
+    syntax: "env:<environment>",
     description: "Filter by environment",
-    example: "@env:production",
+    example: "env:production",
+  },
+  {
+    syntax: "@<attr>:<value>",
+    description: "Filter by attribute",
+    example: "@http.status_code:500",
+  },
+  {
+    syntax: "@<attr>:<value>*",
+    description: "Wildcard — * is any text, ? is one character",
+    example: "@platform.team:a*",
+  },
+  {
+    syntax: "@<attr>:*",
+    description: "Attribute is present",
+    example: "@user.id:*",
+  },
+  {
+    syntax: "@<attr>:~<text>",
+    description: "Attribute contains",
+    example: "@url.host:~internal",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude — works with every filter above",
+    example: "-type:TypeError",
+  },
+  {
+    syntax: "@<attr>:(a OR b)",
+    description: "Any of these values",
+    example: "@http.method:(GET OR POST)",
+  },
+  {
+    syntax: "@<attr>:>N",
+    description: "Numeric comparison (also >=, <, <=)",
+    example: "@duration:>1000",
   },
 ];
 
-const FIELD_ALIAS_MAP: Record<string, string> = {
-  type: "exceptionType",
-  service: "primaryEntityId",
-  env: "environment",
-};
+/*
+ * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map to
+ * the same underlying `primaryEntityId` column — the discriminator only
+ * matters at facet bucketing time.
+ */
+const RESOURCE_FACET_KEYS: Set<string> = new Set<string>([
+  "primaryEntityId",
+  "hostId",
+  "dockerHostId",
+  "podmanHostId",
+  "kubernetesClusterId",
+]);
 
 export type ExceptionStatus = "unresolved" | "resolved" | "archived" | "all";
 
@@ -531,120 +611,172 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return map;
   }, [services]);
 
-  // Parse search
-  const parseSearch: (raw: string) => {
-    freeText: string;
-    fieldFilters: Record<string, Array<string>>;
-  } = useCallback((raw: string) => {
-    const fieldFilters: Record<string, Array<string>> = {};
-    const freeTextParts: Array<string> = [];
-    /*
-     * Tokenizer also matches `@attr:"value with spaces"`. See the matching
-     * block in TracesViewer for details on the merge logic that handles
-     * `@type: "..."` (space after colon) and unclosed quotes.
-     */
-    const rawTokens: Array<string> =
-      raw.match(/@?\S+:"[^"]*"|@\S+:[^\s]+|\S+/g) || [];
-    const tokens: Array<string> = [];
-    for (let i: number = 0; i < rawTokens.length; i++) {
-      const token: string = rawTokens[i]!;
-      if (
-        token.endsWith(":") &&
-        token.startsWith("@") &&
-        i + 1 < rawTokens.length
-      ) {
-        let merged: string = token + rawTokens[i + 1]!;
-        i++;
-        if (merged.includes(':"') && !merged.endsWith('"')) {
-          while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-            i++;
-            merged = merged + " " + rawTokens[i]!;
-          }
-        }
-        tokens.push(merged);
-        continue;
+  /*
+   * Parse the search bar with the shared telemetry grammar, so a filter
+   * typed here means what the same filter means on logs, traces and metrics.
+   * The hand-rolled tokenizer this replaces supported exact match only,
+   * matched aliases case-sensitively (`@Type:X` became an attribute filter on
+   * a key called "Type"), and had no bare `type:X` form at all.
+   */
+  const parsedSearch: ExceptionSearchFilters = useMemo(() => {
+    return parseExceptionSearch(submittedSearch);
+  }, [submittedSearch]);
+
+  const searchFieldFilters: ExceptionFieldFilters = useMemo(() => {
+    return splitExceptionFieldPredicates(parsedSearch.fieldPredicates);
+  }, [parsedSearch]);
+
+  const serviceOptions: Array<ExceptionServiceOption> = useMemo(() => {
+    return services
+      .filter((service: Service): boolean => {
+        return Boolean(service.id);
+      })
+      .map((service: Service): ExceptionServiceOption => {
+        return {
+          id: service.id!.toString(),
+          name: service.name?.toString() || "",
+        };
+      });
+  }, [services]);
+
+  /*
+   * `@service:` is documented as taking a service NAME while the column
+   * stores a uuid, so the name resolves against the service list this
+   * component already loads — the same resolution MetricsViewer does. Bound
+   * straight to the column, as it was, `@service:api` asked for an exception
+   * whose service id is the literal string "api", which no row has.
+   */
+  const resolvedServices: ResolvedExceptionServices = useMemo(() => {
+    return resolveExceptionServiceIds({
+      predicates: parsedSearch.fieldPredicates["primaryEntityId"] || [],
+      services: serviceOptions,
+    });
+  }, [parsedSearch, serviceOptions]);
+
+  const facetGroups: Record<string, Array<string>> = useMemo(() => {
+    const groups: Record<string, Array<string>> = {};
+    for (const filter of activeFilters) {
+      if (!groups[filter.facetKey]) {
+        groups[filter.facetKey] = [];
       }
-      if (token.includes(':"') && !token.endsWith('"')) {
-        let merged: string = token;
-        while (i + 1 < rawTokens.length && !merged.endsWith('"')) {
-          i++;
-          merged = merged + " " + rawTokens[i]!;
-        }
-        tokens.push(merged);
-        continue;
-      }
-      tokens.push(token);
+      groups[filter.facetKey]!.push(filter.value);
     }
-    const stripQuotes: (s: string) => string = (s: string): string => {
-      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
-        return s.slice(1, -1);
+    return groups;
+  }, [activeFilters]);
+
+  /*
+   * Chip and typed values on one column are ONE any-of filter, shared by the
+   * list, the chart and the facet counts. Written in sequence — as the list
+   * used to — a typed `@type:` silently overwrote an exceptionType chip the
+   * chart above it was still counting.
+   */
+  const columnLiterals: Record<string, Array<string>> = useMemo(() => {
+    const merged: Record<string, Array<string>> = {};
+
+    const add: (column: string, values: Array<string>) => void = (
+      column: string,
+      values: Array<string>,
+    ): void => {
+      for (const value of values) {
+        if (!merged[column]) {
+          merged[column] = [];
+        }
+        if (!merged[column]!.includes(value)) {
+          merged[column]!.push(value);
+        }
       }
-      return s;
     };
-    for (const token of tokens) {
-      const match: RegExpMatchArray | null = token.match(/^@([^:]+):(.*)$/);
-      if (match) {
-        const alias: string = match[1]!;
-        const value: string = stripQuotes(match[2]!);
-        if (value.length === 0) {
-          continue;
-        }
-        const backendField: string = FIELD_ALIAS_MAP[alias] || alias;
-        if (!fieldFilters[backendField]) {
-          fieldFilters[backendField] = [];
-        }
-        fieldFilters[backendField]!.push(value);
-      } else {
-        freeTextParts.push(token);
+
+    for (const facetKey of Object.keys(facetGroups)) {
+      if (
+        RESOURCE_FACET_KEYS.has(facetKey) ||
+        isExceptionAttributeFacetKey(facetKey)
+      ) {
+        continue;
+      }
+      add(facetKey, facetGroups[facetKey]!);
+    }
+
+    for (const column of Object.keys(searchFieldFilters.literals)) {
+      add(column, searchFieldFilters.literals[column]!);
+    }
+
+    return merged;
+  }, [facetGroups, searchFieldFilters]);
+
+  const resourceIds: Array<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>(resolvedServices.serviceIds);
+    for (const facetKey of RESOURCE_FACET_KEYS) {
+      for (const value of facetGroups[facetKey] || []) {
+        ids.add(value);
       }
     }
-    return { freeText: freeTextParts.join(" ").trim(), fieldFilters };
-  }, []);
+    return Array.from(ids);
+  }, [facetGroups, resolvedServices]);
 
   // Build query
   /*
-   * Attribute facet scope. TelemetryException has no attributes column —
-   * `attributes.<key>` chips (and unknown `@key:value` search tokens)
-   * resolve against the ClickHouse instance rows first, and the matching
-   * fingerprints narrow the Postgres list below (the ExceptionsTable
-   * entity-scope pattern).
+   * Instance scope. TelemetryException has no attributes column, and the
+   * histogram/facet endpoints take literal lists only — so `attributes.<key>`
+   * chips, `@key:value` attribute tokens and any field filter carrying an
+   * operator (`@type:Type*`) all resolve against the ClickHouse instance rows
+   * first, and the matching fingerprints narrow the list, the chart and the
+   * counts together (the ExceptionsTable entity-scope pattern).
    */
-  const attributeSelections: ExceptionAttributeSelections = useMemo(() => {
-    const facetGroups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!facetGroups[f.facetKey]) {
-        facetGroups[f.facetKey] = [];
-      }
-      facetGroups[f.facetKey]!.push(f.value);
-    }
-    const { fieldFilters } = parseSearch(submittedSearch);
-    return getExceptionAttributeSelections({
-      facetGroups,
-      searchFieldFilters: fieldFilters,
-    });
-  }, [activeFilters, submittedSearch, parseSearch]);
+  const instanceScope: ExceptionInstanceScope = useMemo(() => {
+    const attributePredicates: Dictionary<Array<SearchQueryValue>> = {};
 
-  const attributeScopeKey: string | null = useMemo(() => {
-    if (!hasExceptionAttributeSelections(attributeSelections)) {
+    for (const attributeKey of Object.keys(parsedSearch.attributePredicates)) {
+      attributePredicates[attributeKey] = (
+        parsedSearch.attributePredicates[attributeKey] || []
+      ).map((predicate: SearchValuePredicate): SearchQueryValue => {
+        return predicateToQueryValue(predicate);
+      });
+    }
+
+    const columnPredicates: Dictionary<Array<SearchQueryValue>> = {
+      ...searchFieldFilters.operators,
+    };
+
+    /*
+     * A negated `@service:` cannot ride the `serviceIds` payloads — those
+     * only include — so it resolves through the instance query like every
+     * other operator.
+     */
+    if (resolvedServices.excludedServiceIds.length > 0) {
+      columnPredicates["primaryEntityId"] = [
+        new IncludesNone(resolvedServices.excludedServiceIds),
+      ];
+    }
+
+    return {
+      attributeSelections: getExceptionAttributeSelections({ facetGroups }),
+      attributePredicates,
+      columnPredicates,
+    };
+  }, [facetGroups, parsedSearch, searchFieldFilters, resolvedServices]);
+
+  const instanceScopeKey: string | null = useMemo(() => {
+    if (!hasExceptionInstanceScope(instanceScope)) {
       return null;
     }
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    return getExceptionAttributeScopeKey({
-      selections: attributeSelections,
+    return getExceptionInstanceScopeKey({
+      scope: instanceScope,
       windowStartMs: dateRange.startValue.getTime(),
       windowEndMs: dateRange.endValue.getTime(),
     });
-  }, [attributeSelections, timeRange]);
+  }, [instanceScope, timeRange]);
 
-  const [attributeScope, setAttributeScope] = useState<{
+  const [scopeResolution, setScopeResolution] = useState<{
     key: string;
     fingerprints: Array<string>;
   } | null>(null);
 
   useEffect(() => {
-    if (!attributeScopeKey) {
-      setAttributeScope(null);
+    if (!instanceScopeKey) {
+      setScopeResolution(null);
       return;
     }
 
@@ -664,13 +796,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           const instances: AnalyticsModelListResult<ExceptionInstance> =
             await AnalyticsModelAPI.getList<ExceptionInstance>({
               modelType: ExceptionInstance,
-              query: buildExceptionInstanceAttributeQuery({
+              query: buildExceptionInstanceScopeQuery({
                 projectId,
                 window: new InBetween<Date>(
                   dateRange.startValue,
                   dateRange.endValue,
                 ),
-                selections: attributeSelections,
+                scope: instanceScope,
               }),
               groupBy: {
                 fingerprint: true,
@@ -697,7 +829,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             }
           }
 
-          setAttributeScope({ key: attributeScopeKey, fingerprints });
+          setScopeResolution({ key: instanceScopeKey, fingerprints });
         } catch {
           if (!isCancelled) {
             /*
@@ -705,7 +837,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
              * rather than quietly showing unfiltered exceptions under an
              * active-looking chip.
              */
-            setAttributeScope({ key: attributeScopeKey, fingerprints: [] });
+            setScopeResolution({ key: instanceScopeKey, fingerprints: [] });
           }
         }
       };
@@ -715,15 +847,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [attributeScopeKey, attributeSelections, timeRange]);
+  }, [instanceScopeKey, instanceScope, timeRange]);
 
   /*
    * Fingerprints to carry into the histogram/facets payloads — only once
    * the resolution matches the CURRENT selections+window.
    */
   const resolvedScopeFingerprints: Array<string> | null =
-    attributeScopeKey && attributeScope?.key === attributeScopeKey
-      ? attributeScope.fingerprints
+    instanceScopeKey && scopeResolution?.key === instanceScopeKey
+      ? scopeResolution.fingerprints
       : null;
 
   const query: Query<TelemetryException> = useMemo(() => {
@@ -747,79 +879,48 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       q.isArchived = true;
     }
 
-    // Facet filters
-    const facetGroups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!facetGroups[f.facetKey]) {
-        facetGroups[f.facetKey] = [];
-      }
-      facetGroups[f.facetKey]!.push(f.value);
+    // Facet + search filters on the resource column, as one any-of.
+    if (resourceIds.length > 0) {
+      (q as Record<string, unknown>)["primaryEntityId"] =
+        resourceIds.length === 1 ? resourceIds[0]! : new Includes(resourceIds);
     }
 
     /*
-     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all map
-     * to the same underlying `primaryEntityId` column on TelemetryException —
-     * the discriminator only matters at facet bucketing time.
+     * A `@service:` naming no existing service must show NOTHING. Dropping
+     * the filter instead answers "exceptions from a service that does not
+     * exist" with every exception in the project.
      */
-    const resourceFacetKeys: Set<string> = new Set<string>([
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]);
-    const resourceIds: Set<string> = new Set<string>();
-    for (const key of resourceFacetKeys) {
-      const values: Array<string> | undefined = facetGroups[key];
-      if (values) {
-        for (const v of values) {
-          resourceIds.add(v);
-        }
-      }
-    }
-    if (resourceIds.size > 0) {
-      (q as Record<string, unknown>)["primaryEntityId"] =
-        resourceIds.size === 1
-          ? Array.from(resourceIds)[0]!
-          : new Includes(Array.from(resourceIds));
+    if (resolvedServices.matchedNothing) {
+      (q as Record<string, unknown>)["primaryEntityId"] = NO_MATCH_ENTITY_ID;
     }
 
-    for (const key of Object.keys(facetGroups)) {
-      if (resourceFacetKeys.has(key)) {
-        continue;
-      }
-      // Instance-attribute chips narrow via the fingerprint scope below.
-      if (isExceptionAttributeFacetKey(key)) {
-        continue;
-      }
-      const values: Array<string> = facetGroups[key]!;
-      if (values.length === 1) {
-        (q as Record<string, unknown>)[key] = values[0]!;
-      } else {
-        (q as Record<string, unknown>)[key] = new Includes(values);
-      }
+    /*
+     * Literal column filters (`type:TypeError`, an environment chip). Filters
+     * carrying an operator, and every attribute filter, narrow through the
+     * fingerprint scope below instead — one filter cannot be split across two
+     * stores and still mean one thing.
+     */
+    for (const column of Object.keys(columnLiterals)) {
+      const values: Array<string> = columnLiterals[column]!;
+      (q as Record<string, unknown>)[column] =
+        values.length === 1 ? values[0]! : new Includes(values);
     }
 
-    // Search field filters
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
-      /*
-       * Unknown fields (e.g. @http.method:GET) are instance attributes —
-       * previously they landed on the Postgres query as nonexistent
-       * columns; now they narrow via the fingerprint scope below.
-       */
-      if (!KNOWN_EXCEPTION_SEARCH_FIELDS.includes(key)) {
-        continue;
-      }
-      const values: Array<string> = fieldFilters[key]!;
-      if (values.length === 1) {
-        (q as Record<string, unknown>)[key] = values[0]!;
-      } else {
-        (q as Record<string, unknown>)[key] = new Includes(values);
-      }
-    }
-    if (freeText) {
-      (q as Record<string, unknown>)["exceptionType"] = freeText;
+    /*
+     * Free text is a contains-match on the message — what the histogram and
+     * the facet counts have always made of it, and what the placeholder
+     * promises. It used to be assigned to `exceptionType` here, an EXACT
+     * match on a different column, and assigned AFTER the field loop: typing
+     * a word searched the wrong thing AND erased an explicit `@type:` filter
+     * the chart above was still applying.
+     *
+     * Unlike attributes, this needs no cross-store join: TelemetryException
+     * carries the group's own `message` column.
+     */
+    if (parsedSearch.freeText.length > 0) {
+      (q as Record<string, unknown>)["message"] = new Search(
+        parsedSearch.freeText,
+      );
     }
 
     /*
@@ -834,12 +935,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     );
 
     /*
-     * Attribute scope: resolved fingerprints narrow the list; while the
+     * Instance scope: resolved fingerprints narrow the list; while the
      * resolution is still in flight the sentinel keeps the list EMPTY —
      * a flash of unfiltered exceptions under an active chip would be a
      * lie.
      */
-    if (attributeScopeKey) {
+    if (instanceScopeKey) {
       applyExceptionFingerprintScope(q, resolvedScopeFingerprints || []);
     }
 
@@ -847,11 +948,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [
     props.primaryEntityId,
     status,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     timeRange,
-    attributeScopeKey,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
@@ -910,68 +1012,39 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       bucketSizeInMinutes,
     };
 
-    // Collect filter values from active facets + parsed search
-    const groups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!groups[f.facetKey]) {
-        groups[f.facetKey] = [];
-      }
-      groups[f.facetKey]!.push(f.value);
-    }
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key]!.push(...fieldFilters[key]!);
-    }
-
-    // Scope histogram by the primaryEntityId prop, if present
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
-      }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
-    }
-
     /*
-     * Union primaryEntityId / hostId / dockerHostId / kubernetesClusterId
-     * into a single serviceIds list — they all filter the underlying
-     * `primaryEntityId` column.
+     * The chart reads the SAME filters as the list — chips and search
+     * unioned per column, resource keys unioned into one serviceIds list
+     * (they all filter the underlying `primaryEntityId` column), and the
+     * prop-level scope on top.
      */
-    const histogramResourceIds: Set<string> = new Set<string>();
-    for (const k of [
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]) {
-      const values: Array<string> | undefined = groups[k];
-      if (values) {
-        for (const v of values) {
-          histogramResourceIds.add(v);
-        }
-      }
+    const histogramResourceIds: Array<string> = [...resourceIds];
+    if (
+      props.primaryEntityId &&
+      !histogramResourceIds.includes(props.primaryEntityId.toString())
+    ) {
+      histogramResourceIds.push(props.primaryEntityId.toString());
     }
-    if (histogramResourceIds.size > 0) {
-      payload["serviceIds"] = Array.from(histogramResourceIds);
+    if (resolvedServices.matchedNothing) {
+      payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
+    } else if (histogramResourceIds.length > 0) {
+      payload["serviceIds"] = histogramResourceIds;
     }
-    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
-      payload["exceptionTypes"] = groups["exceptionType"];
+    if (columnLiterals["exceptionType"]) {
+      payload["exceptionTypes"] = columnLiterals["exceptionType"];
     }
-    if (groups["environment"] && groups["environment"].length > 0) {
-      payload["environments"] = groups["environment"];
+    if (columnLiterals["environment"]) {
+      payload["environments"] = columnLiterals["environment"];
     }
-    if (freeText && freeText.length > 0) {
-      payload["messageSearchText"] = freeText;
+    if (parsedSearch.freeText.length > 0) {
+      payload["messageSearchText"] = parsedSearch.freeText;
     }
     /*
-     * Attribute scope: the endpoint has no attribute dimension, but it
-     * accepts `fingerprints` — the resolved scope keeps the histogram
-     * aligned with the narrowed list.
+     * Instance scope: the endpoint has no attribute dimension and takes
+     * literal lists only, but it accepts `fingerprints` — the resolved scope
+     * is what carries an attribute or wildcard filter to the chart.
      */
-    if (attributeScopeKey) {
+    if (instanceScopeKey) {
       payload["fingerprints"] =
         resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
           ? resolvedScopeFingerprints
@@ -994,11 +1067,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
   }, [
     timeRange,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     props.primaryEntityId,
-    attributeScopeKey,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
@@ -1155,57 +1229,30 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     };
 
     /*
-     * Collect filter values from active facets + parsed search (same shape
-     * as the histogram payload above — keeps facet counts aligned with the
-     * list scope).
+     * The same filters the list and the chart read (see fetchHistogram) —
+     * facet counts that disagree with the list are how a user learns not to
+     * trust either.
      */
-    const groups: Record<string, Array<string>> = {};
-    for (const f of activeFilters) {
-      if (!groups[f.facetKey]) {
-        groups[f.facetKey] = [];
-      }
-      groups[f.facetKey]!.push(f.value);
+    const facetResourceIds: Array<string> = [...resourceIds];
+    if (
+      props.primaryEntityId &&
+      !facetResourceIds.includes(props.primaryEntityId.toString())
+    ) {
+      facetResourceIds.push(props.primaryEntityId.toString());
     }
-    const { fieldFilters, freeText } = parseSearch(submittedSearch);
-    for (const key of Object.keys(fieldFilters)) {
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key]!.push(...fieldFilters[key]!);
+    if (resolvedServices.matchedNothing) {
+      payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
+    } else if (facetResourceIds.length > 0) {
+      payload["serviceIds"] = facetResourceIds;
     }
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
-      }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
+    if (columnLiterals["exceptionType"]) {
+      payload["exceptionTypes"] = columnLiterals["exceptionType"];
     }
-
-    const resourceIds: Set<string> = new Set<string>();
-    for (const k of [
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]) {
-      const values: Array<string> | undefined = groups[k];
-      if (values) {
-        for (const v of values) {
-          resourceIds.add(v);
-        }
-      }
+    if (columnLiterals["environment"]) {
+      payload["environments"] = columnLiterals["environment"];
     }
-    if (resourceIds.size > 0) {
-      payload["serviceIds"] = Array.from(resourceIds);
-    }
-    if (groups["exceptionType"] && groups["exceptionType"].length > 0) {
-      payload["exceptionTypes"] = groups["exceptionType"];
-    }
-    if (groups["environment"] && groups["environment"].length > 0) {
-      payload["environments"] = groups["environment"];
-    }
-    if (freeText && freeText.length > 0) {
-      payload["messageSearchText"] = freeText;
+    if (parsedSearch.freeText.length > 0) {
+      payload["messageSearchText"] = parsedSearch.freeText;
     }
 
     const facetSearchTextActive: Record<string, string> = {};
@@ -1217,8 +1264,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (Object.keys(facetSearchTextActive).length > 0) {
       payload["facetSearchText"] = facetSearchTextActive;
     }
-    // Attribute scope narrows facet counts too (see fetchHistogram).
-    if (attributeScopeKey) {
+    // The instance scope narrows facet counts too (see fetchHistogram).
+    if (instanceScopeKey) {
       payload["fingerprints"] =
         resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
           ? resolvedScopeFingerprints
@@ -1241,12 +1288,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     }
   }, [
     timeRange,
-    activeFilters,
-    submittedSearch,
-    parseSearch,
+    columnLiterals,
+    resourceIds,
+    resolvedServices,
+    parsedSearch,
     props.primaryEntityId,
     facetSearchText,
-    attributeScopeKey,
+    instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
 
@@ -1468,11 +1516,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setSubmittedSearch(searchValue);
         setPage(1);
       }}
-      searchPlaceholder="Search exceptions — e.g. @type:TypeError @service:api"
+      searchPlaceholder="Search exceptions — e.g. type:TypeError @http.status_code:5*"
       /*
-       * Exceptions treats every filter as `@alias:value` (no plain `field:value`
-       * form), so the well-known aliases live alongside the user's attribute
-       * keys in the @-mode dropdown.
+       * The well-known aliases live alongside the user's attribute keys in the
+       * @-mode dropdown. `@type:` has meant the exception type here since this
+       * explorer shipped, so both `@type:` and the bare `type:` resolve to the
+       * column (see parseExceptionSearch).
        */
       searchAttributeSuggestions={[
         "type",
@@ -1487,46 +1536,76 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       searchValuesLoading={attributeValuesLoading}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
-         * Known fields (type/service/env) become chips via their canonical
-         * column name (e.g. `type` → `exceptionType`) so they filter
-         * correctly. The TelemetryException model has no JSON attributes
-         * column, so unknown keys go back through the search string path
-         * — preserving the previous behavior rather than silently breaking
-         * the filter. Alias detection is case-insensitive so users can type
-         * `Type:` or `SERVICE:`; attribute keys keep their original case.
-         *
-         * Strip surrounding quotes before storing the chip so `type:"My Type"`
-         * doesn't store `"My Type"` literally (which would never match).
-         * The unknown-field branch keeps the quotes because the resulting
-         * search string is re-parsed by `parseSearch`, which strips them.
+         * Enter turns `key:value` into a chip. A chip stores its value
+         * verbatim and compiles it as ONE predicate, so a value carrying
+         * operator syntax (`a*`, `~foo`, `(a OR b)`) must NOT be chipped —
+         * returning false leaves the token in the input, where the parser
+         * reads it as the operator the user typed. Chipping it would have
+         * searched for a literal asterisk.
          */
-        const aliased: string | undefined =
-          FIELD_ALIAS_MAP[fieldKey.toLowerCase()];
-        if (aliased) {
-          const cleanValue: string =
-            value.length >= 2 && value.startsWith('"') && value.endsWith('"')
-              ? value.slice(1, -1)
-              : value;
-          handleFacetInclude(aliased, cleanValue);
-          return;
+        if (hasSearchDsl(value)) {
+          return false;
         }
+
         /*
-         * Unknown keys are instance attributes: chip them under the
-         * attributes. prefix so they narrow via the fingerprint scope —
-         * previously they fell back into the raw search string.
+         * Strip surrounding quotes before storing the chip so `type:"My Type"`
+         * doesn't store `"My Type"` literally (which would never match) —
+         * a chip value is never re-tokenized, so it needs no quoting to keep
+         * its spaces.
          */
-        const cleanAttributeValue: string =
+        const cleanValue: string =
           value.length >= 2 && value.startsWith('"') && value.endsWith('"')
             ? value.slice(1, -1)
             : value;
+
+        /*
+         * Known fields (type/service/env) chip under their canonical column
+         * name (e.g. `type` → `exceptionType`) so they filter correctly.
+         * Alias detection is case-insensitive so users can type `Type:` or
+         * `SERVICE:`; attribute keys keep their original case.
+         */
+        const aliased: string | undefined =
+          EXCEPTION_FIELD_ALIASES[fieldKey.toLowerCase()];
+
+        if (aliased === EXCEPTION_SERVICE_COLUMN) {
+          /*
+           * A service chip stores the id the column holds, so a typed NAME
+           * has to resolve first. A name that is unknown, or that matches
+           * several services, goes back to the search string instead — where
+           * it resolves against every service at query time, rather than
+           * chipping a `primaryEntityId = 'api'` filter no row can match.
+           */
+          const chipId: string | null = resolveExceptionServiceChipId({
+            value: cleanValue,
+            services: serviceOptions,
+          });
+
+          if (!chipId) {
+            return false;
+          }
+
+          handleFacetInclude(EXCEPTION_SERVICE_COLUMN, chipId);
+          return true;
+        }
+
+        if (aliased) {
+          handleFacetInclude(aliased, cleanValue);
+          return true;
+        }
+
+        /*
+         * Unknown keys are instance attributes: chip them under the
+         * attributes. prefix so they narrow via the fingerprint scope.
+         */
         handleFacetInclude(
           `${EXCEPTION_ATTRIBUTE_FACET_PREFIX}${fieldKey}`,
-          cleanAttributeValue,
+          cleanValue,
         );
+        return true;
       }}
-      searchFieldAliasMap={FIELD_ALIAS_MAP}
+      searchFieldAliasMap={EXCEPTION_FIELD_ALIASES}
       searchHelpRows={SEARCH_HELP_ROWS}
-      searchHelpCombinedExample="@service:api @env:production TypeError"
+      searchHelpCombinedExample="service:api env:production connection refused"
       // Time — drives both the list (via lastSeenAt) and the histogram window
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
