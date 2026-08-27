@@ -218,7 +218,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return null;
     }
 
-    const existingHostnames: Set<string> = await this.getExistingHostnames({
+    const existingHostnames: Set<string> = this.getExistingHostnames({
       projectId: projectId,
       cache: data.existingHostnamesByProjectId,
     });
@@ -384,9 +384,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       ...exclusionRules,
     ];
 
-    const existingHostnames: Set<string> = await this.loadExistingHostnames(
-      data.projectId,
-    );
+    /*
+     * Starts empty and is primed per scan from the addresses that scan found.
+     * See getExistingHostnames.
+     */
+    const existingHostnames: Set<string> = new Set<string>();
 
     const result: AutoImportRuleRunResult = this.emptyResult(data.isDryRun);
     const attempts: ImportAttemptBudget = { count: 0 };
@@ -573,10 +575,22 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     );
   }
 
-  private async getExistingHostnames(data: {
+  /*
+   * The project's running set of "this address already has a device", shared
+   * across every scan in one sweep.
+   *
+   * It starts EMPTY and is filled per scan by `primeRegisteredHostnames`,
+   * from the addresses that scan actually found. It used to start full — a
+   * copy of every hostname in the project, paged out of the database — which
+   * was both a full-table read per sweep and, on a fleet whose devices share
+   * one `createdAt` (what a bulk import produces), an unstable page walk that
+   * SKIPPED hostnames and let this engine create duplicates. See
+   * NetworkDeviceService.getRegisteredHostnames.
+   */
+  private getExistingHostnames(data: {
     projectId: ObjectID;
     cache: ExistingHostnamesByProjectId;
-  }): Promise<Set<string>> {
+  }): Set<string> {
     const key: string = data.projectId.toString();
 
     const cached: Set<string> | undefined = data.cache.get(key);
@@ -585,55 +599,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return cached;
     }
 
-    const loaded: Set<string> = await this.loadExistingHostnames(
-      data.projectId,
-    );
-    data.cache.set(key, loaded);
+    const fresh: Set<string> = new Set<string>();
+    data.cache.set(key, fresh);
 
-    return loaded;
-  }
-
-  /*
-   * Every device address in the project — the same paged walk the probe
-   * ingest endpoint does to stamp isAlreadyRegistered, for the same reason:
-   * a truncated answer produces duplicate devices, which is worse than a
-   * slow answer. Sorted for stable paging.
-   */
-  private async loadExistingHostnames(
-    projectId: ObjectID,
-  ): Promise<Set<string>> {
-    const existingHostnames: Set<string> = new Set<string>();
-
-    for (let skip: number = 0; ; skip += LIMIT_MAX) {
-      const existing: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          hostname: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        limit: LIMIT_MAX,
-        skip: skip,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      for (const device of existing) {
-        if (device.hostname) {
-          existingHostnames.add(device.hostname);
-        }
-      }
-
-      if (existing.length < LIMIT_MAX) {
-        break;
-      }
-    }
-
-    return existingHostnames;
+    return fresh;
   }
 
   /*
@@ -667,6 +636,29 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     const hosts: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts(
       (scan.discoveredDevices as Array<DiscoveredNetworkDevice>) || [],
     );
+
+    /*
+     * Ask the database about THESE addresses, once, before the loop.
+     *
+     * Only the found ones are recorded, so an address that is not registered
+     * is looked up again if a later scan in the same sweep also carries it —
+     * one indexed lookup, and the alternative (recording absence) would go
+     * stale the moment this run creates the device.
+     */
+    const registered: Set<string> =
+      await NetworkDeviceService.getRegisteredHostnames({
+        projectId: scan.projectId,
+        hostnames: hosts.map((host: DiscoveredNetworkDevice): string => {
+          return host.ipAddress || "";
+        }),
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const hostname of registered) {
+      data.existingHostnames.add(hostname);
+    }
 
     const createdIpAddresses: Array<string> = [];
 

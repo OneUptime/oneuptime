@@ -25,6 +25,32 @@ import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleR
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import {
+  DEVICE_HEALTH_AGGREGATES,
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DEVICE_HEALTH_GROUP_ORDER,
+  DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE,
+  DEVICE_HEALTH_NOW_PARAMETER,
+  DeviceHealthGroup,
+  parseDeviceHealthGroup,
+} from "../Utils/NetworkDevice/DeviceHealthAggregation";
+
+/**
+ * The fleet-wide numbers the device summary strip and the network overview
+ * both print. Counted in Postgres — see `Service.getFleetSummary`.
+ */
+export interface DeviceFleetSummary {
+  devicesUp: number;
+  devicesDown: number;
+  devicesPending: number;
+  // Interfaces, not devices: a switch with three dark ports contributes three.
+  interfacesDown: number;
+  totalDevices: number;
+  devicesWithoutSite: number;
+}
 
 /*
  * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
@@ -93,6 +119,12 @@ export const MAX_DEVICES_PER_RULE_RUN: number = LIMIT_PER_PROJECT;
 const RULE_RUN_PAGE_SIZE: number = 1000;
 
 /*
+ * How many addresses one "are these already registered" lookup asks about.
+ * Bounded because the list is rendered into the statement as a literal IN.
+ */
+const HOSTNAME_LOOKUP_CHUNK_SIZE: number = 500;
+
+/*
  * The identity a rule is matched against. The hostname column holds an IP
  * address or a DNS name depending on how the device got here, so it is passed
  * as both — ipInCidr rejects non-IP strings safely. Mirrors the single-device
@@ -116,6 +148,346 @@ function toRuleMatchTarget(device: Model): {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * The four numbers in the summary strip above the device list, in one
+   * round trip and one SQL statement.
+   *
+   * The three status counts partition the fleet exactly — `isReachable` is
+   * true, false, or NULL — which is what lets the strip agree with the rows
+   * underneath it: the Status chip filters on the same column, so clicking a
+   * tile opens exactly the devices it counted.
+   *
+   * `interfacesDown` is a real SUM over the whole fleet. It used to be
+   * computed by fetching every device with a down interface and adding them
+   * up in the browser, which was not only slow but WRONG past ten thousand
+   * such devices — the fetch was capped, so the tile understated the fleet
+   * without saying so.
+   */
+  @CaptureSpan()
+  public async getFleetSummary(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DeviceFleetSummary> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      select: [
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true)`,
+          alias: "devicesUp",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = false)`,
+          alias: "devicesDown",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" IS NULL)`,
+          alias: "devicesPending",
+        },
+        {
+          expression: `COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)`,
+          alias: "interfacesDown",
+        },
+        {
+          expression: `COUNT(*)`,
+          alias: "totalDevices",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."siteId" IS NULL)`,
+          alias: "devicesWithoutSite",
+        },
+      ],
+      props: data.props,
+    });
+
+    const row: AggregateRow | undefined = rows[0];
+
+    return {
+      devicesUp: AggregateResultUtil.toNumber(row, "devicesUp"),
+      devicesDown: AggregateResultUtil.toNumber(row, "devicesDown"),
+      devicesPending: AggregateResultUtil.toNumber(row, "devicesPending"),
+      interfacesDown: AggregateResultUtil.toNumber(row, "interfacesDown"),
+      totalDevices: AggregateResultUtil.toNumber(row, "totalDevices"),
+      devicesWithoutSite: AggregateResultUtil.toNumber(
+        row,
+        "devicesWithoutSite",
+      ),
+    };
+  }
+
+  /**
+   * How many devices of each vendor, biggest first.
+   *
+   * `GROUP BY vendor` in the database rather than a Map built over every
+   * device row in the browser. Unenriched devices — no SNMP walk yet, so no
+   * vendor — group under the empty string here and are named by the caller,
+   * because "Unknown" is a label rather than a fact about the row.
+   */
+  @CaptureSpan()
+  public async getVendorBreakdown(data: {
+    projectId: ObjectID;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ vendor: string; count: number }>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: [
+        {
+          expression: `COALESCE(NULLIF(TRIM("NetworkDevice"."vendor"), ''), '')`,
+          alias: "vendor",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "deviceCount",
+        },
+      ],
+      orderBy: [
+        // Ties break by name so the list is stable across refreshes.
+        { expression: `"deviceCount"`, sortOrder: SortOrder.Descending },
+        { expression: `"vendor"`, sortOrder: SortOrder.Ascending },
+      ],
+      limit: data.limit,
+      props: data.props,
+    });
+
+    return rows.map((row: AggregateRow) => {
+      return {
+        vendor: AggregateResultUtil.toStringOrNull(row, "vendor") || "",
+        count: AggregateResultUtil.toNumber(row, "deviceCount"),
+      };
+    });
+  }
+
+  /**
+   * Which of these addresses already have a device in this project.
+   *
+   * Answers "is 10.4.2.17 already registered" for the few hundred hosts a
+   * discovery sweep actually found, rather than by loading every hostname in
+   * the project into a Set and asking the Set.
+   *
+   * That walk was not just expensive — it was WRONG in the exact scenario it
+   * served. It paged `ORDER BY createdAt`, and a bulk discovery import stamps
+   * every device it creates with the same `createdAt`: on a fleet of 80,000
+   * devices, all 80,000 shared one value, so `LIMIT 10000 OFFSET n` over a
+   * single-valued sort key returned an arbitrary, non-deterministic slice per
+   * call. Pages overlapped and skipped, and a skipped hostname reads as "not
+   * registered" — which creates a duplicate device, the very thing the paging
+   * was added to prevent.
+   *
+   * `hostname` is indexed, so each chunk here is an index lookup.
+   */
+  @CaptureSpan()
+  public async getRegisteredHostnames(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Set<string>> {
+    const registered: Set<string> = new Set<string>();
+
+    const wanted: Array<string> = Array.from(
+      new Set<string>(
+        data.hostnames.filter((hostname: string): boolean => {
+          return Boolean(hostname);
+        }),
+      ),
+    );
+
+    /*
+     * Chunked, because the whole list becomes a literal `IN (...)` in the
+     * statement text. A scan may cover tens of thousands of addresses
+     * (ScanTargetUtil.MAX_SCAN_HOSTS), and a single IN list that long costs
+     * more to parse and plan than the lookups it saves.
+     */
+    for (
+      let offset: number = 0;
+      offset < wanted.length;
+      offset += HOSTNAME_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = wanted.slice(
+        offset,
+        offset + HOSTNAME_LOOKUP_CHUNK_SIZE,
+      );
+
+      const found: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+          hostname: QueryHelper.any(chunk),
+        },
+        select: {
+          hostname: true,
+        },
+        sort: {},
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+
+      for (const device of found) {
+        if (device.hostname) {
+          registered.add(device.hostname);
+        }
+      }
+    }
+
+    return registered;
+  }
+
+  /**
+   * How many live devices are attached to each site in the project — one row
+   * per site that has any, counted in the database.
+   *
+   * The Sites page's hierarchy tree used to work this out by fetching every
+   * device in the project and tallying `siteId` in the browser. Capped at
+   * LIMIT_PER_PROJECT, that is not slow so much as WRONG: on a fleet of
+   * 80,000 devices across 1,188 sites it returned an arbitrary 10,000 of them
+   * — no ORDER BY, so which 10,000 was up to Postgres — and every store in the
+   * tree read "8 devices" when it had 65.
+   *
+   * Sites with no devices are simply absent, which is what the caller's
+   * `count || 0` already assumed.
+   */
+  @CaptureSpan()
+  public async getDeviceCountsBySite(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ siteId: string; deviceCount: number }>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+        siteId: QueryHelper.notNull(),
+      },
+      groupBy: [
+        {
+          expression: `"NetworkDevice"."siteId"`,
+          alias: "siteId",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "deviceCount",
+        },
+      ],
+      props: data.props,
+    });
+
+    const counts: Array<{ siteId: string; deviceCount: number }> = [];
+
+    for (const row of rows) {
+      const siteId: string | null = AggregateResultUtil.toStringOrNull(
+        row,
+        "siteId",
+      );
+
+      if (!siteId) {
+        continue;
+      }
+
+      counts.push({
+        siteId: siteId,
+        deviceCount: AggregateResultUtil.toNumber(row, "deviceCount"),
+      });
+    }
+
+    return counts;
+  }
+
+  /**
+   * Device health, bucketed by the discriminating columns and broken down by
+   * site — the input a per-site rollup needs, without reading the devices.
+   *
+   * The buckets are NOT verdicts: they are the raw facts
+   * `DeviceHealthStateUtil` classifies, so the caller runs the one real
+   * classifier over a few hundred buckets instead of eighty thousand rows.
+   * See DeviceHealthAggregation for why the rule is not reimplemented in SQL.
+   */
+  @CaptureSpan()
+  public async getHealthGroups(data: {
+    projectId: ObjectID;
+    // Restricts to devices attached to a site. Off by default.
+    onlyAttachedToSite?: boolean | undefined;
+    groupBySite: boolean;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    const query: Query<Model> = {
+      projectId: data.projectId,
+      isArchived: false,
+    };
+
+    if (data.onlyAttachedToSite) {
+      query.siteId = QueryHelper.notNull();
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: query,
+      groupBy: data.groupBySite
+        ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE
+        : DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      orderBy: DEVICE_HEALTH_GROUP_ORDER,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
+  }
+
+  /**
+   * Health buckets for the devices attached to a specific set of sites — the
+   * subtree read the persisted rollup engine runs on.
+   *
+   * Not broken down by site: the caller wants one verdict for the whole
+   * subtree, so bucketing across all of it produces the fewest rows that can
+   * still answer the question.
+   */
+  @CaptureSpan()
+  public async getHealthGroupsForSites(data: {
+    projectId: ObjectID;
+    siteIds: Array<ObjectID>;
+    /*
+     * Whether each bucket is labelled with the site it came from. The site
+     * rollup engine wants one verdict for the whole subtree and does not care
+     * (fewer buckets); the hierarchy drill-down needs a breakdown per site.
+     */
+    groupBySite?: boolean | undefined;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    if (data.siteIds.length === 0) {
+      return [];
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        siteId: QueryHelper.any(data.siteIds),
+        isArchived: false,
+      },
+      groupBy: data.groupBySite
+        ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE
+        : DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      orderBy: DEVICE_HEALTH_GROUP_ORDER,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
   }
 
   /*
@@ -1086,13 +1458,18 @@ export class Service extends DatabaseService<Model> {
           -- A monitor-backed device has no credentials to walk with. NULL is
           -- every device created before the column existed: those are SNMP.
           AND (nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')
-          AND (nd."nextPollAt" IS NULL OR nd."nextPollAt" <= $2)
+          AND nd."nextPollAt" <= $2
           AND p."deletedAt" IS NULL
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
-        ORDER BY nd."nextPollAt" ASC NULLS FIRST
+        -- Plain ASC, which is the order the (probeId, nextPollAt) btree is
+        -- already in, so this is a range scan that stops at LIMIT rather than
+        -- a scan-and-sort of the probe's whole slice of the fleet. See the
+        -- column's NOT NULL note on the model for why there are no NULLs to
+        -- order around any more.
+        ORDER BY nd."nextPollAt" ASC
         LIMIT $3
         FOR UPDATE OF nd SKIP LOCKED
       `;
