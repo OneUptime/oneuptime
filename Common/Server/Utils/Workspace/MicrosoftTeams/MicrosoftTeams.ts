@@ -134,12 +134,32 @@ export interface MicrosoftTeamsTenantResolution {
  * Graph permission that deployments connected before it was documented have not
  * consented to, and a tenant that answers "I won't tell you" must never be
  * reported to an admin as "the app is not installed".
+ *
+ * PermissionDenied is that same "I won't tell you", separated out because it is
+ * the one flavour of Unknown the admin can fix in a minute — Microsoft is not
+ * failing, it is refusing, and it names the grant that would stop it. Folding it
+ * in with transport errors is what left admins reading a list of four possible
+ * causes when OneUptime could have told them which one it was.
  */
 export enum MicrosoftTeamsAppInstallState {
   Installed = "Installed",
   NotInstalled = "NotInstalled",
+  PermissionDenied = "PermissionDenied",
   Unknown = "Unknown",
 }
+
+/*
+ * The Graph application permission that lets OneUptime read a team's installed
+ * apps, and so tell "the app is missing" apart from "the app is there but is a
+ * different package".
+ *
+ * Server-side error text builds off this constant. The setup documentation and
+ * the docs site still spell it out literally, because prose there explains the
+ * permission rather than just naming it — if you rename it here, grep for the
+ * literal too.
+ */
+export const MICROSOFT_TEAMS_INSTALL_READ_PERMISSION: string =
+  "TeamsAppInstallation.ReadForTeam.All";
 
 /*
  * Microsoft's wording when the Bot Framework refuses a proactive post because
@@ -1861,11 +1881,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     channelName: string;
     membershipType?: string | undefined;
   }): string {
+    /*
+     * "Not installed" here means no installed app carries THIS deployment's
+     * app id — which is also what a OneUptime tile from the Teams store looks
+     * like. Saying only "add OneUptime" to an admin who is looking straight at
+     * a OneUptime tile reads as nonsense and sends them round the loop again,
+     * so name that case explicitly.
+     */
+    const wrongPackageNote: string = `If a tile named OneUptime is already listed there, it is a different package — the app from the Teams store points at OneUptime Cloud's bot and will never accept posts from this deployment. Remove it, then upload the manifest from Project Settings > Workspace > Microsoft Teams, which is the only package built with this deployment's MICROSOFT_TEAMS_APP_CLIENT_ID.`;
+
+    /*
+     * No wrong-package note for private channels. The install check reads
+     * /teams/{id}/installedApps — team scope — and a private channel needs its
+     * own channel-scope install, so a correct channel install still reads as
+     * "not installed" here. Telling that admin their package is the wrong one
+     * and to remove it would destroy a working install to fix nothing.
+     */
     if (data.membershipType === "private") {
       return `The OneUptime app is not installed in the private channel "${data.channelName}". In Microsoft Teams, open the channel, click the "..." menu, then Manage channel > Apps > Add an app, and add OneUptime. Installing OneUptime in the parent team does not cover private channels.`;
     }
 
-    return `The OneUptime app is not installed in the Microsoft Teams team that owns "${data.channelName}". In Microsoft Teams, click the "..." next to the team name, then Manage team > Apps > More apps, and add OneUptime. Installing OneUptime for yourself or in a chat is not the same as adding it to the team.`;
+    return `The OneUptime app is not installed in the Microsoft Teams team that owns "${data.channelName}". In Microsoft Teams, click the "..." next to the team name, then Manage team > Apps > More apps, and add OneUptime. Installing OneUptime for yourself or in a chat is not the same as adding it to the team. ${wrongPackageNote}`;
   }
 
   /*
@@ -1889,8 +1925,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         `"${data.channelName}" is a private channel, which needs the app installed into the channel itself (channel "..." > Manage channel > Apps > Add an app) — a team-level install does not cover it`,
       );
     } else if (data.installState === MicrosoftTeamsAppInstallState.Installed) {
+      /*
+       * Graph confirmed a package carrying THIS deployment's app id is in the
+       * team, so the usual suspect — a OneUptime package from somewhere else —
+       * is largely ruled out and should not lead. "Largely", not "entirely":
+       * the check matches teamsApp.externalId, which is the manifest id, and
+       * only OneUptime's own generator guarantees that equals the bot id. A
+       * hand-edited manifest can satisfy this and still carry a foreign bot, so
+       * the wording stays probabilistic rather than promising the admin the
+       * package is fine.
+       */
       causes.push(
-        "the app is installed in this team, so the bot behind it may not be the one this OneUptime deployment uses — check that the Teams app package was built from this deployment (Project Settings > Workspace > Microsoft Teams) and that its bot id matches MICROSOFT_TEAMS_APP_CLIENT_ID",
+        "the app installed in this team already matches this deployment's MICROSOFT_TEAMS_APP_CLIENT_ID, so the package is probably not the problem — the most likely remaining cause is the Azure Bot resource, below",
       );
     } else {
       causes.push(
@@ -1902,6 +1948,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       "the Azure Bot resource for this deployment does not have the Microsoft Teams channel enabled",
     );
 
+    /*
+     * The list above is a guess, and it only has to be a guess because Graph
+     * would not tell us. Say so, and say what turns it into an answer — this is
+     * the single cheapest step an admin reading this can take.
+     *
+     * The promise is hedged for private channels: the grant unlocks a
+     * team-scope read, and for a private channel the deciding fact is the
+     * channel-scope install, which that read cannot see. Worth granting anyway,
+     * just not worth promising it settles this particular send.
+     */
+    const suffixHint: string =
+      data.installState === MicrosoftTeamsAppInstallState.PermissionDenied
+        ? data.membershipType === "private"
+          ? ` OneUptime could not narrow this down because Microsoft Graph denied the installed-apps check: granting the ${MICROSOFT_TEAMS_INSTALL_READ_PERMISSION} application permission to this deployment's app registration restores that check for team-level installs, though a private channel's own install still has to be confirmed in Microsoft Teams.`
+          : ` OneUptime could not narrow this down because Microsoft Graph denied the installed-apps check: grant the ${MICROSOFT_TEAMS_INSTALL_READ_PERMISSION} application permission to this deployment's app registration, re-grant admin consent, and try again to be told which cause it is.`
+        : "";
+
     const microsoftMessage: string =
       data.microsoftError instanceof Error
         ? data.microsoftError.message
@@ -1911,7 +1974,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       ? ` Microsoft's response was: "${microsoftMessage}"`
       : "";
 
-    return `Microsoft Teams refused the message to "${data.channelName}" because the OneUptime bot is not a member of that conversation. Likely causes: ${causes.join("; ")}.${suffix}`;
+    return `Microsoft Teams refused the message to "${data.channelName}" because the OneUptime bot is not a member of that conversation. Likely causes: ${causes.join("; ")}.${suffixHint}${suffix}`;
+  }
+
+  /*
+   * True when Graph refused a read rather than failing it.
+   *
+   * 403 only, deliberately. Graph answers a missing application permission with
+   * 403 and reserves 401 for a token it would not accept — an expired secret, a
+   * cached app token we did not re-check (see getValidAccessToken, which returns
+   * a stored token unvalidated when miscData carries no expiry). Treating 401 as
+   * a permission problem would send an admin off to grant a Graph permission
+   * when their credential had simply gone stale, which is the same species of
+   * wrong-but-confident answer this whole diagnostic exists to stop producing.
+   *
+   * The error codes are still matched at any status, so a permission refusal
+   * that arrives with an unexpected status is not missed.
+   */
+  public static isGraphPermissionDeniedResponse(
+    response: HTTPErrorResponse,
+  ): boolean {
+    if (response.statusCode === 403) {
+      return true;
+    }
+
+    const message: string = (response.message || "").toLowerCase();
+
+    if (!message) {
+      return false;
+    }
+
+    return [
+      "authorization_requestdenied",
+      "accessdenied",
+      "insufficient privileges",
+    ].some((fragment: string) => {
+      return message.includes(fragment);
+    });
   }
 
   /*
@@ -1924,9 +2023,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * not the weaker one an admin can answer by eye ("is something called
    * OneUptime in the app list?").
    *
-   * Every failure is Unknown. The call needs TeamsAppInstallation.ReadForTeam.All,
-   * which deployments connected before it was documented have not granted, and a
-   * missing permission must not be reported as a missing install.
+   * No failure is ever reported as NotInstalled. The call needs
+   * TeamsAppInstallation.ReadForTeam.All, which deployments connected before it
+   * was documented have not granted, and a missing permission must not be
+   * reported as a missing install. A refusal comes back as PermissionDenied so
+   * the admin is told which grant to add; everything else is Unknown.
    */
   @CaptureSpan()
   public static async isAppInstalledInTeam(data: {
@@ -1968,6 +2069,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           });
 
         if (response instanceof HTTPErrorResponse) {
+          /*
+           * A refusal is not a failure. That distinction is the whole value of
+           * this call: it is the difference between "we cannot tell you which of
+           * four causes this is" and "grant this one permission and we will tell
+           * you".
+           */
+          if (this.isGraphPermissionDeniedResponse(response)) {
+            logger.warn(
+              `Cannot read installed apps for team ${data.teamId}: Microsoft Graph denied the request. Grant the ${MICROSOFT_TEAMS_INSTALL_READ_PERMISSION} application permission to this app registration and re-grant admin consent so OneUptime can verify Teams app installs.`,
+            );
+            return MicrosoftTeamsAppInstallState.PermissionDenied;
+          }
+
           logger.debug(
             `Could not read installed apps for team ${data.teamId}; treating installation as unknown.`,
           );
