@@ -33,13 +33,19 @@ function hosts(count: number): string {
   return `${count} ${count === 1 ? "host" : "hosts"}`;
 }
 
+function activeMonitors(count: number): string {
+  return `${count} active Network Device ${
+    count === 1 ? "monitor" : "monitors"
+  }`;
+}
+
 /*
  * The sentences the report shows, in the style of RuleRunSummary: a run
  * that imported nothing is the common case once a rule has been run, and
  * "0 imported" with no reason reads as a broken button. Every bucket the
  * server counted is reported only when it happened.
  */
-function describeAutoImportRun(result: AutoImportRuleRunResult): string {
+export function describeAutoImportRun(result: AutoImportRuleRunResult): string {
   const lines: Array<string> = [];
 
   if (result.isDryRun) {
@@ -80,6 +86,54 @@ function describeAutoImportRun(result: AutoImportRuleRunResult): string {
     );
   }
 
+  /*
+   * Device import and active-monitor provisioning are separate outcomes. A
+   * monitor can fail after its inventory record was safely created, and a dry
+   * run predicts monitor work without claiming anything was written.
+   */
+  if (result.isDryRun && result.monitorsWouldCreate > 0) {
+    lines.push(
+      `It would also create ${activeMonitors(
+        result.monitorsWouldCreate,
+      )} from the selected Monitor Template.`,
+    );
+  } else if (!result.isDryRun && result.monitorsCreated > 0) {
+    lines.push(
+      `Created ${activeMonitors(
+        result.monitorsCreated,
+      )} from the selected Monitor Template.`,
+    );
+  }
+
+  if (result.monitorsSkippedAlreadyExisting > 0) {
+    const skippedRequestedMonitors: string = `${
+      result.monitorsSkippedAlreadyExisting
+    } requested active Network Device ${
+      result.monitorsSkippedAlreadyExisting === 1 ? "monitor" : "monitors"
+    }`;
+    lines.push(
+      `${skippedRequestedMonitors} ${
+        result.monitorsSkippedAlreadyExisting === 1 ? "was" : "were"
+      } skipped because the device already had the requested automatic monitor or a manually configured Network Device monitor.`,
+    );
+  }
+
+  if (result.monitorsSkippedUnsupportedHost > 0) {
+    lines.push(
+      `${activeMonitors(
+        result.monitorsSkippedUnsupportedHost,
+      )} could not be provisioned because the discovery result was not SNMP-capable (for example, a ping-only host).`,
+    );
+  }
+
+  if (result.monitorsFailed > 0) {
+    lines.push(
+      `${activeMonitors(
+        result.monitorsFailed,
+      )} could not be created. Their network devices remain imported; check the server logs for the reason.`,
+    );
+  }
+
   if (result.hostsExcluded > 0) {
     lines.push(`An exclusion rule vetoed ${hosts(result.hostsExcluded)}.`);
   }
@@ -88,7 +142,7 @@ function describeAutoImportRun(result: AutoImportRuleRunResult): string {
     lines.push(
       `${hosts(
         result.hostsSkippedAlreadyRegistered,
-      )} skipped because a device with that address already exists.`,
+      )} already had network devices at those addresses, so no duplicate device records were imported.`,
     );
   }
 
@@ -112,7 +166,7 @@ function describeAutoImportRun(result: AutoImportRuleRunResult): string {
     );
   } else if (result.isTruncated) {
     lines.push(
-      "Stopped counting at the run cap — a real run imports this many at most per run.",
+      "Stopped counting at the run cap — a real run is bounded by the same device-import and active-monitor creation limits.",
     );
   }
 
@@ -225,8 +279,8 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
   }
 
   const description: string = props.isDryRun
-    ? 'Evaluate this rule against every completed discovery scan in the project and report what it would import. Nothing is written — no devices are created — so this is the safe way to answer "what would this rule import" before trusting it against live scans.\n\nHosts that already have a registered device are skipped, and exclusion rules still veto.'
-    : "Evaluate this rule against every completed discovery scan in the project and import every host it matches as a network device. This creates devices from ALL completed scans in the project, not just the most recent one — a broad rule can import a lot at once, so consider a Dry Run first.\n\nHosts that already have a registered device are skipped and exclusion rules still veto, so running this more than once is safe. Site assignment, owner, and label rules apply to the imported devices automatically.";
+    ? 'Evaluate this rule against every completed discovery scan in the project and report what it would import. Nothing is written — no devices or active monitors are created — so this is the safe way to answer "what would this rule import" before trusting it against live scans.\n\nIf the rule has a Monitor Template selected, the preview also reports how many eligible devices would receive an active Network Device monitor. Existing monitors are never duplicated, and exclusion rules still veto.'
+    : "Evaluate this rule against every completed discovery scan in the project and import every host it matches as a network device. This creates devices from ALL completed scans in the project, not just the most recent one — a broad rule can import a lot at once, so consider a Dry Run first.\n\nIf the rule has a Monitor Template selected, eligible devices also receive an active Network Device monitor. Existing monitors are never duplicated and exclusion rules still veto. Site assignment, owner, and label rules apply automatically.";
 
   return (
     <ConfirmModal

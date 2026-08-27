@@ -93,8 +93,30 @@ export interface AutoImportRuleRunResult {
   // Matched hosts whose create threw. Logged server-side, never fatal.
   devicesFailed: number;
   /*
-   * True when the run stopped at the DEVICE cap with matched hosts left
-   * over. Running again continues: already-imported hosts are skipped.
+   * Active Network Device monitors a dry run predicts it would create from
+   * the rule's selected Monitor Template. Always zero on a real run: real
+   * work is counted by monitorsCreated / monitorsFailed instead.
+   */
+  monitorsWouldCreate: number;
+  // Active Network Device monitors actually created and linked to a template.
+  monitorsCreated: number;
+  /*
+   * Matched devices left alone because a Network Device monitor already
+   * watches them. Existing manual monitors count too: automation must never
+   * add a duplicate simply because it did not create the first one.
+   */
+  monitorsSkippedAlreadyExisting: number;
+  /*
+   * Matched hosts that can become inventory records but cannot be backed by a
+   * Network Device monitor, such as a ping-only discovery result.
+   */
+  monitorsSkippedUnsupportedHost: number;
+  // Monitor creates that failed after the device was available.
+  monitorsFailed: number;
+  /*
+   * True when the run stopped at the device-create or monitor-create cap
+   * with work left over. Running again continues from idempotent inventory
+   * and provisioning keys.
    */
   isTruncated: boolean;
   /*
@@ -196,6 +218,17 @@ export class RuleRunResultUtil {
       ),
       devicesCreated: readCount(source, "devicesCreated"),
       devicesFailed: readCount(source, "devicesFailed"),
+      monitorsWouldCreate: readCount(source, "monitorsWouldCreate"),
+      monitorsCreated: readCount(source, "monitorsCreated"),
+      monitorsSkippedAlreadyExisting: readCount(
+        source,
+        "monitorsSkippedAlreadyExisting",
+      ),
+      monitorsSkippedUnsupportedHost: readCount(
+        source,
+        "monitorsSkippedUnsupportedHost",
+      ),
+      monitorsFailed: readCount(source, "monitorsFailed"),
       isTruncated: source["isTruncated"] === true,
       hasMoreScans: source["hasMoreScans"] === true,
       isDryRun: source["isDryRun"] === true,

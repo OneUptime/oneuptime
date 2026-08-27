@@ -1,7 +1,10 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import NetworkDeviceAutoImportRuleEngineService from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
+import NetworkDeviceAutoImportRuleService from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceLabelRuleEngineService from "Common/Server/Services/NetworkDeviceLabelRuleEngineService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import MonitorTemplateService from "Common/Server/Services/MonitorTemplateService";
 import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "Common/Types/JSON";
@@ -57,6 +60,30 @@ jest.mock("Common/Server/Services/NetworkDeviceLabelRuleEngineService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/NetworkDeviceAutoImportRuleService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Services/MonitorTemplateService", () => {
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn() },
+  };
+});
+
+jest.mock(
+  "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService",
+  () => {
+    return {
+      __esModule: true,
+      default: { applyRuleToCompletedScans: jest.fn() },
+    };
+  },
+);
+
 /*
  * Importing the API module registers both routes on the mocked router, so
  * each handler can be invoked directly with every service call observable.
@@ -81,6 +108,17 @@ const deviceService: {
 const labelRuleEngine: { applyRuleToExistingNetworkDevices: jest.Mock } =
   NetworkDeviceLabelRuleEngineService as unknown as {
     applyRuleToExistingNetworkDevices: jest.Mock;
+  };
+
+const autoImportRuleService: { findOneBy: jest.Mock } =
+  NetworkDeviceAutoImportRuleService as unknown as { findOneBy: jest.Mock };
+
+const monitorTemplateService: { findOneById: jest.Mock } =
+  MonitorTemplateService as unknown as { findOneById: jest.Mock };
+
+const autoImportRuleEngine: { applyRuleToCompletedScans: jest.Mock } =
+  NetworkDeviceAutoImportRuleEngineService as unknown as {
+    applyRuleToCompletedScans: jest.Mock;
   };
 
 const responseUtil: { sendJsonObjectResponse: jest.Mock } =
@@ -167,6 +205,8 @@ async function callRoute(data: {
 
 const SITE_RULE_URI: string = "/network-site-assignment-rule/:ruleId/run";
 const LABEL_RULE_URI: string = "/network-device-label-rule/:ruleId/run";
+const AUTO_IMPORT_RULE_URI: string =
+  "/network-device-auto-import-rule/:ruleId/run";
 
 function errorFrom(next: NextFunction): Error {
   const calls: Array<Array<unknown>> = (next as unknown as jest.Mock).mock
@@ -204,11 +244,35 @@ describe("Network automation rule run endpoints", () => {
       labelsFailed: 0,
       isTruncated: false,
     } as never);
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: undefined,
+    });
+    monitorTemplateService.findOneById.mockResolvedValue({
+      id: ObjectID.generate(),
+    });
+    autoImportRuleEngine.applyRuleToCompletedScans.mockResolvedValue({
+      hostsEvaluated: 3,
+      hostsMatched: 2,
+      hostsExcluded: 0,
+      hostsSkippedAlreadyRegistered: 0,
+      devicesCreated: 2,
+      devicesFailed: 0,
+      monitorsWouldCreate: 0,
+      monitorsCreated: 0,
+      monitorsSkippedAlreadyExisting: 0,
+      monitorsSkippedUnsupportedHost: 0,
+      monitorsFailed: 0,
+      isTruncated: false,
+      hasMoreScans: false,
+      isDryRun: false,
+      matchedIpAddressSample: ["10.0.0.1", "10.0.0.2"],
+    });
   });
 
   describe("route registration", () => {
-    test("both routes are registered behind the user middleware", () => {
-      for (const uri of [SITE_RULE_URI, LABEL_RULE_URI]) {
+    test("all routes are registered behind the user middleware", () => {
+      for (const uri of [SITE_RULE_URI, LABEL_RULE_URI, AUTO_IMPORT_RULE_URI]) {
         const route: { middlewares: Array<unknown> } = mockRouter.match(
           "post",
           uri,
@@ -348,6 +412,275 @@ describe("Network automation rule run endpoints", () => {
 
       expect(errorFrom(next).message).toBe("Assignment rule not found.");
       expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /network-device-auto-import-rule/:ruleId/run", () => {
+    test("resolves the selected rule in the caller's project and returns every counter", async () => {
+      autoImportRuleEngine.applyRuleToCompletedScans.mockResolvedValue({
+        hostsEvaluated: 4,
+        hostsMatched: 3,
+        hostsExcluded: 1,
+        hostsSkippedAlreadyRegistered: 1,
+        devicesCreated: 2,
+        devicesFailed: 0,
+        monitorsWouldCreate: 0,
+        monitorsCreated: 1,
+        monitorsSkippedAlreadyExisting: 1,
+        monitorsSkippedUnsupportedHost: 0,
+        monitorsFailed: 0,
+        isTruncated: false,
+        hasMoreScans: false,
+        isDryRun: false,
+        matchedIpAddressSample: ["10.0.0.1"],
+      });
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(autoImportRuleService.findOneBy).toHaveBeenCalledTimes(1);
+
+      const lookup: JSONObject = autoImportRuleService.findOneBy.mock
+        .calls[0]![0] as JSONObject;
+      const lookupQuery: JSONObject = lookup["query"] as JSONObject;
+      expect((lookupQuery["_id"] as ObjectID).toString()).toBe(
+        RULE_ID.toString(),
+      );
+      expect((lookupQuery["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(lookup["select"]).toEqual({
+        _id: true,
+        monitorTemplateId: true,
+      });
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect((run["ruleId"] as ObjectID).toString()).toBe(RULE_ID.toString());
+      expect((run["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(run["isDryRun"]).toBe(false);
+      expect(run["expectedMonitorTemplateId"]).toBeNull();
+
+      expect(
+        (responseUtil.sendJsonObjectResponse.mock.calls[0]![2] as JSONObject)[
+          "monitorsCreated"
+        ],
+      ).toBe(1);
+    });
+
+    test("passes a literal dryRun through after applying the existing create-permission policy", async () => {
+      await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+        body: { dryRun: true },
+      });
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect(run["isDryRun"]).toBe(true);
+    });
+
+    test.each([["true"], [1], ["yes"], [{}]])(
+      "refuses malformed dryRun (%p) rather than accidentally writing",
+      async (value: unknown) => {
+        const next: NextFunction = await callRoute({
+          uri: AUTO_IMPORT_RULE_URI,
+          body: { dryRun: value } as JSONObject,
+        });
+
+        expect(errorFrom(next).message).toContain("dryRun must be a boolean");
+        expect(
+          autoImportRuleEngine.applyRuleToCompletedScans,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects a rule that does not resolve inside the project", async () => {
+      autoImportRuleService.findOneBy.mockResolvedValue(null);
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(errorFrom(next).message).toBe("Auto-import rule not found.");
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("retains the device-only permission contract when no template is selected", async () => {
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+          ],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    test("requires Monitor create permission when the rule selects a template", async () => {
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: ObjectID.generate(),
+      });
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+          ],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(errorFrom(next).message).toContain(
+        "permission to create monitors",
+      );
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("passes the authorized Monitor Template snapshot to the engine", async () => {
+      const monitorTemplateId: ObjectID = ObjectID.generate();
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: monitorTemplateId,
+      });
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+            Permission.CreateProjectMonitor,
+          ],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).toHaveBeenCalledTimes(1);
+
+      const run: JSONObject = autoImportRuleEngine.applyRuleToCompletedScans
+        .mock.calls[0]![0] as JSONObject;
+      expect((run["expectedMonitorTemplateId"] as ObjectID).toString()).toBe(
+        monitorTemplateId.toString(),
+      );
+      expect(monitorTemplateService.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: monitorTemplateId,
+          props: expect.objectContaining({ tenantId: PROJECT_ID }),
+        }),
+      );
+    });
+
+    test("refuses Run Now when the selected Monitor Template is outside the caller's read scope", async () => {
+      const monitorTemplateId: ObjectID = ObjectID.generate();
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId,
+      });
+      monitorTemplateService.findOneById.mockResolvedValue(null);
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+            Permission.CreateProjectMonitor,
+          ],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(errorFrom(next).message).toContain(
+        "permission to read the Monitor Template",
+      );
+      expect(monitorTemplateService.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: monitorTemplateId,
+          props: expect.objectContaining({ tenantId: PROJECT_ID }),
+        }),
+      );
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("honours an explicit block on Monitor creation", async () => {
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: ObjectID.generate(),
+      });
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+            Permission.CreateProjectMonitor,
+          ],
+          blockedPermissions: [Permission.CreateProjectMonitor],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+      });
+
+      expect(errorFrom(next).message).toContain("block list");
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("keeps Monitor create permission checks on a dry run", async () => {
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: ObjectID.generate(),
+      });
+      mockProps(
+        propsWith({
+          permissions: [
+            Permission.EditNetworkDeviceAutoImportRule,
+            Permission.CreateNetworkDevice,
+          ],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({
+        uri: AUTO_IMPORT_RULE_URI,
+        body: { dryRun: true },
+      });
+
+      expect(errorFrom(next).message).toContain(
+        "permission to create monitors",
+      );
+      expect(
+        autoImportRuleEngine.applyRuleToCompletedScans,
+      ).not.toHaveBeenCalled();
     });
   });
 

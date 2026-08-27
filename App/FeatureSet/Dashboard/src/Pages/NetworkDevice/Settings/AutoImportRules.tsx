@@ -1,16 +1,25 @@
 import PageComponentProps from "../../PageComponentProps";
 import RunAutoImportRuleModal from "../../../Components/NetworkAutomation/RunAutoImportRuleModal";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Column from "Common/UI/Components/ModelTable/Column";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import ObjectID from "Common/Types/ObjectID";
 import React, {
   Fragment,
   FunctionComponent,
@@ -18,11 +27,18 @@ import React, {
   useState,
 } from "react";
 import { Blue, Green, Red } from "Common/Types/BrandColors";
+import {
+  canSelectAutoImportMonitorTemplate,
+  getReadableMonitorTemplateColumn,
+  updateMonitorIncompatibleBehavior,
+} from "./AutoImportRuleFormUtil";
 
 const networkDeviceAutoImportDocumentation: string = `
 ### How Auto Import Rules Work
 
-Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported the moment a scan completes, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically, so a rule here is the first link in a fully automatic pipeline from scan to labelled, owned, site-assigned device.
+Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported the moment a scan completes, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically.
+
+An import rule can also select a **Network Device Monitor Template**. That opt-in completes the alerting pipeline: OneUptime creates an active monitor for each matching SNMP device, copies the template's criteria, interval, minimum probe agreement, custom fields and monitor labels, and then applies the normal Monitor Label and Owner Rules. Existing rules with no template remain inventory-only.
 
 ### Match Criteria
 
@@ -34,18 +50,65 @@ A rule imports a discovered host only when **all** specified criteria pass — c
 
 By default only hosts that answered SNMP are imported. Enable **Include Ping-Only Hosts** to also import hosts that only answered ping — but beware: a wrong SNMP credential makes every host on a subnet report as ping-only.
 
+### Monitor Provisioning
+
+Selecting a monitor template creates active monitors and may affect plan usage or billing. The template must belong to this project and have the **Network Device** monitor type. Ping-only hosts cannot use this operation because they do not produce the SNMP walks a Network Device monitor evaluates.
+
+The monitor template is the alerting layer: it supplies evaluation criteria and monitor settings. SNMP Health OIDs, interface walking, and endpoint collection remain polling settings on the Network Device itself; auto-imported devices continue to use the existing vendor-health-template seeding behavior for those fields.
+
+Provisioning is reconciled and safe to repeat: a missing template monitor is added even when the Network Device was registered by an earlier scan, while an existing automatic or manually configured Network Device monitor is left alone. If several matching rules select the same template, OneUptime creates one monitor. If they deliberately select different templates, it creates one monitor per distinct template.
+
+Changing a rule's template does not delete or rewrite monitors created from its old template. This avoids destructive surprises; delete the old automatic monitor and let the intended rule recreate it, or replace it with a manual monitor if you are migrating templates.
+
 ### Exclusion Rules
 
 An exclusion rule inverts the match: hosts it matches are **never** auto-imported, even when another rule matches them. Use one to carve printers, phones, or other unwanted hosts out of a broader import rule. An exclusion rule cannot be run directly — it vetoes other rules instead of importing anything.
 
 ### Dry Run and Run Now
 
-Rules fire automatically when a discovery scan completes, so a rule written after your scans ran does not reach them. **Run Now** applies a rule to every completed scan already in the project. **Dry Run** does the same evaluation but writes nothing — it answers "what would this rule import" before you trust the rule, and it works on a **disabled** rule too, so you can preview a rule before the automatic path can ever see it. Hosts that already have a registered device are always skipped, so running a rule more than once is safe.
+Rules fire automatically when a discovery scan completes. **Run Now** applies a rule to completed scans already in the project, including backfilling a selected template monitor for an already-registered matching device. **Dry Run** performs the same reconciliation but writes nothing — it answers what would be imported and which monitors would be created before you trust the rule. It also works on a **disabled** rule. Device and monitor creation are idempotent, so running a rule more than once is safe.
 `;
 
 const NetworkDeviceAutoImportRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const monitorTemplateColumn: Column<NetworkDeviceAutoImportRule> | null =
+    getReadableMonitorTemplateColumn();
+  const canReadMonitorTemplate: boolean = Boolean(monitorTemplateColumn);
+
+  const fetchNetworkDeviceMonitorTemplates: () => Promise<
+    Array<DropdownOption>
+  > = async (): Promise<Array<DropdownOption>> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return [];
+    }
+
+    const result: ListResult<MonitorTemplate> =
+      await ModelAPI.getList<MonitorTemplate>({
+        modelType: MonitorTemplate,
+        query: {
+          projectId: projectId,
+          monitorType: MonitorType.NetworkDevice,
+        },
+        select: {
+          _id: true,
+          templateName: true,
+        },
+        sort: { templateName: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    return result.data.map((template: MonitorTemplate): DropdownOption => {
+      return {
+        value: template.id?.toString() || "",
+        label: template.templateName || "Unnamed Network Device template",
+      };
+    });
+  };
+
   // The rule a run is open for, by id, plus its name and which kind of run.
   const [ruleBeingRun, setRuleBeingRun] = useState<{
     id: string;
@@ -189,12 +252,22 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             title: "Host IP Is In",
             type: FieldType.Text,
           },
+          ...(monitorTemplateColumn ? [monitorTemplateColumn] : []),
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
           { title: "Behavior", id: "behavior" },
+          ...(canReadMonitorTemplate
+            ? [
+                {
+                  title: "Monitor",
+                  id: "monitor",
+                  showIf: canSelectAutoImportMonitorTemplate,
+                },
+              ]
+            : []),
         ]}
         formFields={[
           {
@@ -276,6 +349,21 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             required: false,
             description:
               "Also import hosts that answered ping but not SNMP. Off by default: a wrong SNMP credential makes every host on a subnet report as ping-only, and this rule would then import all of them as half-identified devices.",
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<NetworkDeviceAutoImportRule>,
+              setNewFormValues: (
+                values: FormValues<NetworkDeviceAutoImportRule>,
+              ) => void,
+            ): void => {
+              setNewFormValues(
+                updateMonitorIncompatibleBehavior(
+                  currentValues,
+                  "includePingOnlyHosts",
+                  value === true,
+                ),
+              );
+            },
           },
           {
             field: { isExclusion: true },
@@ -285,7 +373,41 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             required: false,
             description:
               "Invert this rule: matching hosts are NEVER auto-imported, even when another rule matches them. Use it to carve printers, phones, or other unwanted hosts out of a broader rule.",
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<NetworkDeviceAutoImportRule>,
+              setNewFormValues: (
+                values: FormValues<NetworkDeviceAutoImportRule>,
+              ) => void,
+            ): void => {
+              setNewFormValues(
+                updateMonitorIncompatibleBehavior(
+                  currentValues,
+                  "isExclusion",
+                  value === true,
+                ),
+              );
+            },
           },
+          ...(canReadMonitorTemplate
+            ? [
+                {
+                  field: { monitorTemplate: true },
+                  title: "Network Device Monitor Template",
+                  stepId: "monitor",
+                  sectionTitle: "Optional Alerting",
+                  sectionDescription:
+                    "Leave this empty for inventory-only import. Selecting a template creates active, potentially billable monitors and runs the normal Monitor Label and Owner Rules after creation.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
+                  required: false,
+                  placeholder: "Import device only (no monitor)",
+                  description:
+                    "Alert criteria, interval, minimum probe agreement, custom fields and monitor labels are copied from this template. Health OIDs and other polling settings remain on the Network Device. Matching rules that select different templates can create multiple monitors per device.",
+                  showIf: canSelectAutoImportMonitorTemplate,
+                },
+              ]
+            : []),
         ]}
         showRefreshButton={true}
       />
