@@ -188,15 +188,17 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
        * when the span stream reported nothing. Never summed — an SDK that emits
        * both signals would otherwise be counted twice.
        */
-      const safeMetricCost: () => Promise<number | null> = async (): Promise<
-        number | null
-      > => {
+      const safeMetricCost: (
+        query: Query<Metric>,
+      ) => Promise<number | null> = async (
+        query: Query<Metric>,
+      ): Promise<number | null> => {
         try {
           const result: AggregatedResult =
             await AnalyticsModelAPI.aggregate<Metric>({
               modelType: Metric,
               aggregateBy: {
-                query: LlmMetricQuery.buildCostQuery(metricScope),
+                query: query,
                 aggregationType: AggregationType.Sum,
                 aggregateColumnName: "value",
                 aggregationTimestampColumnName: "time",
@@ -275,7 +277,36 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
       let costSource: KpiSource = "spans";
 
       if (spanCost === 0) {
-        const metricCost: number | null = await safeMetricCost();
+        /*
+         * TWO cost streams, two units. Codex reports spend in MILLIONTHS of a
+         * dollar, so its counter cannot share a Sum with genuinely-USD
+         * counters — the unit is unrecoverable after the addition, and a $3
+         * turn folded into the USD list would read as $3,000,000.
+         * combineCostTotals applies the scale per list, before the addition,
+         * in the one place a test pins it.
+         *
+         * Querying only the USD list here (which this tile used to do) is not
+         * a rounding error: a Codex-only project saw $0 total cost on this
+         * page while the Usage tab and its budgets — which already query both
+         * — showed the real figure.
+         */
+        const [usdCost, microUsdCost] = await Promise.all([
+          safeMetricCost(LlmMetricQuery.buildCostQuery(metricScope)),
+          safeMetricCost(LlmMetricQuery.buildMicroUsdCostQuery(metricScope)),
+        ]);
+
+        /*
+         * A null is a FAILED read, not a zero. Only fall back when at least
+         * one of the two streams actually answered; combineCostTotals then
+         * treats the other as contributing nothing.
+         */
+        const metricCost: number | null =
+          usdCost === null && microUsdCost === null
+            ? null
+            : LlmMetricQuery.combineCostTotals({
+                usd: usdCost || 0,
+                microUsd: microUsdCost || 0,
+              });
 
         if (metricCost !== null && metricCost > 0) {
           cost = metricCost;

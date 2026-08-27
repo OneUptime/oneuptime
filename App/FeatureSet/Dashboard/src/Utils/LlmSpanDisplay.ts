@@ -7,6 +7,7 @@ import {
   LlmCompletionIndexedMessageConventions,
   LlmCompletionJsonAttributeKeys,
   LlmCostAttributeKeys,
+  LlmEndUserAttributeKeys,
   LlmFinishReasonAttributeKeys,
   LlmInputTokenAttributeKeys,
   LlmMaxTokensAttributeKeys,
@@ -18,10 +19,13 @@ import {
   LlmRequestModelAttributeKeys,
   LlmResponseModelAttributeKeys,
   LlmSystemAttributeKeys,
+  LlmTeamAttributeKeys,
   LlmTemperatureAttributeKeys,
   LlmToolNameAttributeKeys,
   LlmTopPAttributeKeys,
   LlmTotalTokenAttributeKeys,
+  LlmUserEmailAttributeKeys,
+  LlmUserIdAttributeKeys,
 } from "Common/Types/Telemetry/LlmConventions";
 
 /*
@@ -55,6 +59,24 @@ export interface LlmSpanDisplay {
   hasCost: boolean;
   agentName: string;
   toolName: string;
+  /*
+   * WHO ran the call — the EMPLOYEE / internal actor. These mirror the
+   * llmUserId / llmUserEmail / llmTeam columns the ingest extractor
+   * denormalizes, so the panel and the LLM calls table always name the same
+   * person for the same span. "" when the instrumentation reports none, which
+   * is still the common case for library-instrumented server code.
+   */
+  userId: string;
+  userEmail: string;
+  team: string;
+  /*
+   * The caller's own DOWNSTREAM CUSTOMER (OpenAI's `user` request parameter,
+   * LiteLLM's end-user id) — a DIFFERENT human from the employee above, and
+   * deliberately kept in its own field rather than folded in as a fallback.
+   * See the comment where it is populated in parse() for why conflating the
+   * two would corrupt internal chargeback.
+   */
+  endUser: string;
   temperature: string;
   maxTokens: string;
   topP: string;
@@ -89,6 +111,11 @@ export default class LlmSpanDisplayUtil {
       hasCost: false,
       agentName: this.firstString(flat, LlmAgentNameAttributeKeys),
       toolName: this.firstString(flat, LlmToolNameAttributeKeys),
+      // Resolved below, but only once the span is known to be an LLM span.
+      userId: "",
+      userEmail: "",
+      team: "",
+      endUser: "",
       temperature: this.firstString(flat, LlmTemperatureAttributeKeys),
       maxTokens: this.firstString(flat, LlmMaxTokensAttributeKeys),
       topP: this.firstString(flat, LlmTopPAttributeKeys),
@@ -126,6 +153,40 @@ export default class LlmSpanDisplayUtil {
     );
 
     display.isLlmSpan = this.detectIsLlm(flat, display);
+
+    /*
+     * Identity is resolved ONLY for LLM spans, gated exactly as the ingest
+     * extractor gates the llmUserId / llmUserEmail / llmTeam columns
+     * (Common/Server/Utils/Telemetry/LlmSpan.ts). "user.id", "user.email" and
+     * "team.id" are GENERIC OTel general-semconv keys that RUM browser spans
+     * and ordinary backend HTTP spans routinely carry: parsing them
+     * unconditionally would let this panel name an employee for a span whose
+     * stored columns are empty, so the span view and the LLM calls table
+     * would disagree about who made the call.
+     *
+     * Identity is also deliberately kept out of detectIsLlm above — an
+     * identity attribute is not evidence that a span talked to a model.
+     */
+    if (display.isLlmSpan) {
+      display.userId = this.firstString(flat, LlmUserIdAttributeKeys);
+      display.userEmail = this.firstString(flat, LlmUserEmailAttributeKeys);
+      display.team = this.firstString(flat, LlmTeamAttributeKeys);
+
+      /*
+       * The end user is the caller's own DOWNSTREAM CUSTOMER, not the
+       * employee — gen_ai.user / llm.user carry OpenAI's `user` REQUEST
+       * parameter, and litellm.metadata.user_api_key_end_user_id is
+       * LiteLLM's explicit end-user id (as opposed to the key-OWNER id,
+       * which IS the employee and is read above).
+       *
+       * It gets its own field and its own "End user (customer)" label, and
+       * is never a fallback for userId / userEmail: a support bot serving
+       * 40k customers would otherwise manufacture 40k phantom "employees"
+       * while the engineer who owns that spend appeared to have spent
+       * nothing. See LlmEndUserAttributeKeys for the full rationale.
+       */
+      display.endUser = this.firstString(flat, LlmEndUserAttributeKeys);
+    }
 
     return display;
   }

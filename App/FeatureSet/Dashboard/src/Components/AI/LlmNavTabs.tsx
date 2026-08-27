@@ -5,7 +5,13 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type LlmTabKey = "overview" | "calls" | "budgets" | "pricing" | "setup";
+export type LlmTabKey =
+  | "overview"
+  | "usage"
+  | "calls"
+  | "budgets"
+  | "pricing"
+  | "setup";
 
 interface Props {
   active: LlmTabKey;
@@ -21,6 +27,12 @@ const LlmNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.LLM_OVERVIEW] as Route,
       ),
+    },
+    {
+      key: "usage",
+      label: "Usage",
+      icon: IconProp.UserGroup,
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_USAGE] as Route),
     },
     {
       key: "calls",
