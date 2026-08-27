@@ -65,17 +65,12 @@ export default class SlackAuthAction {
     const { req } = data;
 
     logger.debug("Starting Slack request authorization");
-    logger.debug(`Request body: `);
-    logger.debug(req.body);
 
     let payload: JSONObject = req.body;
 
     if (payload["payload"] && typeof payload["payload"] === "string") {
       payload = JSON.parse(payload["payload"]);
     }
-
-    logger.debug(`Payload: `);
-    logger.debug(payload);
 
     let slackUserId: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
@@ -216,11 +211,6 @@ export default class SlackAuthAction {
       };
 
       actions.push(action);
-      logger.debug("View values: ");
-      logger.debug(viewValues);
-
-      logger.debug("Actions: ");
-      logger.debug(actions);
     }
 
     if (payload["callback_id"]) {
@@ -296,8 +286,6 @@ export default class SlackAuthAction {
     logger.debug("Slack request authorized successfully", {
       projectId: projectId.toString(),
     });
-    logger.debug("Slack request: ");
-    logger.debug(slackRequest);
 
     return slackRequest;
   }
