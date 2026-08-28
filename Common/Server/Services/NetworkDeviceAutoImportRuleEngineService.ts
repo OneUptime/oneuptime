@@ -261,11 +261,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return null;
     }
 
-    const existingDevices: Map<string, NetworkDevice> =
-      this.getExistingDevices({
+    const existingDevices: Map<string, NetworkDevice> = this.getExistingDevices(
+      {
         projectId: projectId,
         cache: data.existingHostnamesByProjectId,
-      });
+      },
+    );
 
     const hasMonitorProvisioningRules: boolean = rules.some(
       (rule: NetworkDeviceAutoImportRule): boolean => {

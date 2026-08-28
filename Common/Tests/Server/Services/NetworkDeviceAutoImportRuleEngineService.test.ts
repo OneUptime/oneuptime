@@ -409,7 +409,10 @@ beforeEach(() => {
         (await deviceFindByMock.mock.results[
           deviceFindByMock.mock.results.length - 1
         ]?.value) || (await deviceFindByMock());
-      const found: Map<string, NetworkDevice> = new Map<string, NetworkDevice>();
+      const found: Map<string, NetworkDevice> = new Map<
+        string,
+        NetworkDevice
+      >();
       for (const device of inventory) {
         if (device.hostname && wanted.has(device.hostname)) {
           found.set(device.hostname, device);
