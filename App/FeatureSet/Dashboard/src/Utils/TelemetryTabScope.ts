@@ -45,10 +45,17 @@ import {
  * the slice on the way there and destroyed the user's input on the way back.
  *
  * The rule for adding a param: if removing it would return MORE rows, it goes
- * in this list. TelemetryTabScope.test.ts pins that this set plus the three
- * presentation params covers everything the explorers write, so a new
- * predicate param cannot be added to a viewer without someone deciding which
- * side of the line it falls on.
+ * in this list — with ONE deliberate exception, `status`. That is the
+ * Exceptions explorer's resolved/unresolved/archived filter, and it is a
+ * genuine predicate, but it is also what DISTINGUISHES the three Exceptions
+ * tabs from each other. Carrying it would make every one of those tabs show
+ * whichever status the user came from, so it is selected by the destination
+ * rather than carried from the source.
+ *
+ * TelemetryTabScope.test.ts pins that this set, the presentation set below,
+ * and that one destination-selected name together cover everything the
+ * explorers write — so a new param cannot be added to a viewer without
+ * someone deciding which of the three it is.
  */
 export const TELEMETRY_TAB_SCOPE_PARAM_NAMES: ReadonlyArray<string> = [
   "filters",
