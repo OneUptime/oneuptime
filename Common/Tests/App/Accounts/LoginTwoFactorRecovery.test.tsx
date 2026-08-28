@@ -116,11 +116,19 @@ let secondStepMiscData: JSONObject = {};
 /* What the mocked /user-two-factor-backup-code/generate answers with. */
 let generatedCodes: Array<string> = [];
 
+/*
+ * Which account is signing in. Variable rather than a constant because the
+ * "skip for now" snooze is keyed on it, and the test that matters most about
+ * that keying is the one where a SECOND account signs in on the same browser
+ * and must still be asked.
+ */
+let signedInUserId: string = USER_ID;
+
 type UserJsonFunction = () => JSONObject;
 
 const userJson: UserJsonFunction = (): JSONObject => {
   return {
-    _id: USER_ID,
+    _id: signedInUserId,
     email: USER_EMAIL,
     name: "Ada Lovelace",
   };
@@ -289,6 +297,7 @@ const installMocks: InstallMocksFunction = (): void => {
     /* Nothing to clear is not a failure. */
   }
 
+  signedInUserId = USER_ID;
   loginCalls = [];
   postedUrls = [];
   loginMiscData = {};
@@ -807,5 +816,157 @@ describe("Finishing a two factor sign-in offers the codes that were missing", ()
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("backup-codes-list")).not.toBeInTheDocument();
     expect(screen.queryByText(LOST_ACCESS)).not.toBeInTheDocument();
+  });
+
+  /*
+   * SPENDING THE LAST CODE.
+   *
+   * The one user in the product who has just PROVED they needed a recovery
+   * route, and who now has none. The count on the challenge response was taken
+   * before the code was spent, so it is one too high by the time this runs --
+   * and this screen is only reachable when it was above zero, which means the
+   * obvious "is the count zero" test is false here forever. Nothing else on
+   * the response says so: the identity route's remaining-code count is
+   * computed on a detached promise that must never fail the login, so it
+   * cannot be waited on to put it in the body.
+   *
+   * Without the decrement this user is redirected into the dashboard and the
+   * product never mentions it again, which is precisely the state issue #3382
+   * was filed about, reached by the one path that is supposed to prevent it.
+   */
+  test("spending the last backup code offers a fresh set", async () => {
+    await startTwoFactorChallenge({
+      totpNames: ["Ada's phone"],
+      backupCodeCount: 1,
+    });
+
+    const user: UserEvent = setupUser();
+    await user.click(screen.getByText(LOST_ACCESS));
+    await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
+
+    await act(async () => {
+      await user.click(screen.getByTestId("Login"));
+    });
+
+    expect(
+      await screen.findByTestId("generate-backup-codes"),
+    ).toBeInTheDocument();
+
+    /* Held, not redirected -- the offer is the point. */
+    expect(loginCalls).toHaveLength(0);
+  });
+
+  /*
+   * And the same sign-in with codes still to spare goes straight through. A
+   * decrement applied too eagerly would stop every recovery sign-in with an
+   * offer the user does not need, on the screen they reached because they were
+   * already having a bad day.
+   */
+  test("spending a backup code with others left does not interrupt", async () => {
+    await startTwoFactorChallenge({
+      totpNames: ["Ada's phone"],
+      backupCodeCount: 4,
+    });
+
+    const user: UserEvent = setupUser();
+    await user.click(screen.getByText(LOST_ACCESS));
+    await user.type(await screen.findByTestId("backup-code"), "ABCDE-12345");
+
+    await act(async () => {
+      await user.click(screen.getByTestId("Login"));
+    });
+
+    await waitFor(() => {
+      expect(loginCalls).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("generate-backup-codes"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * "SKIP FOR NOW" HAS TO MEAN SOMETHING.
+   *
+   * The offer interrupts a sign-in that has already succeeded. Made once, that
+   * is a security prompt; made on every sign-in for the life of the account it
+   * is a toll, and it is worst on an instance where the generate route is
+   * failing -- a button that cannot work and a link that says "later", every
+   * time, with no way to mean it.
+   *
+   * Bounded rather than permanent, and keyed to the user id so a shared
+   * machine does not silence the prompt for the next person to sign in on it.
+   */
+  test("skipping the offer suppresses it on the next sign-in", async () => {
+    await startTwoFactorChallenge({
+      totpNames: ["Ada's phone"],
+      backupCodeCount: 0,
+    });
+
+    await enterTotpCode();
+    await screen.findByTestId("generate-backup-codes");
+
+    const user: UserEvent = setupUser();
+    await user.click(screen.getByText(SKIP_FOR_NOW));
+
+    await waitFor(() => {
+      expect(loginCalls).toHaveLength(1);
+    });
+
+    /* Sign in again on the same browser, same account, still no codes. */
+    cleanup();
+    loginCalls = [];
+
+    await startTwoFactorChallenge({
+      totpNames: ["Ada's phone"],
+      backupCodeCount: 0,
+    });
+    await enterTotpCode();
+
+    await waitFor(() => {
+      expect(loginCalls).toHaveLength(1);
+    });
+    expect(
+      screen.queryByTestId("generate-backup-codes"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A DIFFERENT ACCOUNT ON THE SAME BROWSER IS STILL ASKED.
+   *
+   * Scoping the snooze to the user id is what stops one person's "later" from
+   * hiding a security prompt from somebody who never dismissed it -- which on
+   * a shared or handed-down machine is somebody who then has no recovery route
+   * and was never told.
+   */
+  test("skipping for one account does not silence the offer for another", async () => {
+    await startTwoFactorChallenge({
+      totpNames: ["Ada's phone"],
+      backupCodeCount: 0,
+    });
+
+    await enterTotpCode();
+    await screen.findByTestId("generate-backup-codes");
+
+    const user: UserEvent = setupUser();
+    await user.click(screen.getByText(SKIP_FOR_NOW));
+
+    await waitFor(() => {
+      expect(loginCalls).toHaveLength(1);
+    });
+
+    cleanup();
+    loginCalls = [];
+    signedInUserId = "22222222-2222-4222-8222-222222222222";
+
+    await startTwoFactorChallenge({
+      totpNames: ["Grace's phone"],
+      backupCodeCount: 0,
+    });
+    await enterTotpCode();
+
+    expect(
+      await screen.findByTestId("generate-backup-codes"),
+    ).toBeInTheDocument();
+    expect(loginCalls).toHaveLength(0);
   });
 });
