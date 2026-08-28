@@ -191,6 +191,23 @@ export default class URL extends DatabaseProperty {
     this.setParamsFromQueryString(queryString);
   }
 
+  /*
+   * Everything after the FIRST "?". split("?")[1] stopped at the second one,
+   * so a query that legitimately contains "?" — an encoded redirect target,
+   * say — lost its tail. RFC 3986 3.4 lets "?" appear inside a query.
+   */
+  private static queryStringOf(url: string): string {
+    const separatorIndex: number = url.indexOf("?");
+    return separatorIndex === -1 ? "" : url.substring(separatorIndex + 1);
+  }
+
+  /*
+   * Each pair splits on its FIRST "=" only. Splitting on every "=" and taking
+   * element [1] silently dropped everything after the second one, so a Jira
+   * JQL search ("?jql=project = OPS"), an OData "$filter", or a base64
+   * signature padded with "==" went out as a different query than the caller
+   * wrote — and the request still reported success.
+   */
   private setParamsFromQueryString(queryString?: string): void {
     if (!queryString) {
       return;
@@ -198,13 +215,25 @@ export default class URL extends DatabaseProperty {
 
     const keyValues: Array<string> = queryString.split("&");
     for (const keyValue of keyValues) {
-      if (keyValue.split("=")[0] && keyValue.split("=")[1]) {
-        const key: string | undefined = keyValue.split("=")[0];
-        const value: string | undefined = keyValue.split("=")[1];
-        if (key && value) {
-          this._params[key] = value;
-        }
+      const separatorIndex: number = keyValue.indexOf("=");
+
+      /*
+       * No "=" at all is a value-less param ("?flag"). It is kept with an
+       * empty value instead of being dropped, and queryStringSuffix re-emits
+       * it bare. A pair with no key ("?=v", or the empty segment in "?a=1&&b=2")
+       * has nothing to key on, so it is skipped.
+       */
+      const key: string =
+        separatorIndex === -1
+          ? keyValue
+          : keyValue.substring(0, separatorIndex);
+
+      if (!key) {
+        continue;
       }
+
+      this._params[key] =
+        separatorIndex === -1 ? "" : keyValue.substring(separatorIndex + 1);
     }
   }
 
@@ -221,7 +250,13 @@ export default class URL extends DatabaseProperty {
       "?" +
       Object.keys(this.params)
         .map((key: string) => {
-          return key + "=" + this.params[key];
+          /*
+           * An empty value re-emits as a bare key, so "?flag" survives a round
+           * trip. Values go back out verbatim: whatever encoding the caller
+           * supplied is what reaches the wire.
+           */
+          const value: string | undefined = this.params[key];
+          return value ? key + "=" + value : key;
         })
         .join("&")
     );
@@ -354,7 +389,7 @@ export default class URL extends DatabaseProperty {
        * to accept an email address — and "?subject=..." along with it.
        */
       const address: string = url.split("?")[0] || "";
-      const mailQueryString: string = url.split("?")[1] || "";
+      const mailQueryString: string = URL.queryStringOf(url);
 
       return new URL(protocol, address, undefined, mailQueryString);
     }
@@ -366,7 +401,7 @@ export default class URL extends DatabaseProperty {
        * Hostname.
        */
       const number: string = url.split("?")[0] || "";
-      const opaqueQueryString: string = url.split("?")[1] || "";
+      const opaqueQueryString: string = URL.queryStringOf(url);
 
       return new URL(protocol, number, undefined, opaqueQueryString);
     }
@@ -390,7 +425,7 @@ export default class URL extends DatabaseProperty {
       route = new Route(paths.join("/").split("?")[0]);
     }
 
-    const queryString: string | undefined = url.split("?")[1] || "";
+    const queryString: string = URL.queryStringOf(url);
 
     return new URL(protocol, hostname, route, queryString);
   }
