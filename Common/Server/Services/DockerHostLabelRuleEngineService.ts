@@ -3,6 +3,9 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import DockerHostLabelRule from "../../Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostLabelRuleService from "./DockerHostLabelRuleService";
 import DockerHostService from "./DockerHostService";
+import DockerHostFeedService from "./DockerHostFeedService";
+import { DockerHostFeedEventType } from "../../Models/DatabaseModels/DockerHostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -59,6 +62,7 @@ class DockerHostLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesDockerHostMatchRule(
@@ -67,6 +71,11 @@ class DockerHostLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -122,6 +131,26 @@ class DockerHostLabelRuleEngineServiceClass {
         `DockerHostLabelRuleEngine attached ${newLabelIds.length} labels to Docker host ${dockerHost.id}`,
         { projectId: dockerHost.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await DockerHostFeedService.createDockerHostFeedItem({
+        dockerHostId: dockerHost.id,
+        projectId: dockerHost.projectId,
+        dockerHostFeedEventType: DockerHostFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await DockerHostService.getDockerHostMarkdownLink(
+          dockerHost.projectId,
+          dockerHost.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Docker host label rules: ${error}`, {
         projectId: dockerHost.projectId?.toString(),

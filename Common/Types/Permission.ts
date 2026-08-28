@@ -1028,6 +1028,43 @@ enum Permission {
   EditAlertFeed = "EditAlertFeed",
   ReadAlertFeed = "ReadAlertFeed",
 
+  // Feeds for infrastructure and catalog resources.
+  CreateKubernetesClusterFeed = "CreateKubernetesClusterFeed",
+  EditKubernetesClusterFeed = "EditKubernetesClusterFeed",
+  ReadKubernetesClusterFeed = "ReadKubernetesClusterFeed",
+
+  CreateDockerHostFeed = "CreateDockerHostFeed",
+  EditDockerHostFeed = "EditDockerHostFeed",
+  ReadDockerHostFeed = "ReadDockerHostFeed",
+
+  CreateDockerSwarmClusterFeed = "CreateDockerSwarmClusterFeed",
+  EditDockerSwarmClusterFeed = "EditDockerSwarmClusterFeed",
+  ReadDockerSwarmClusterFeed = "ReadDockerSwarmClusterFeed",
+
+  CreateCephClusterFeed = "CreateCephClusterFeed",
+  EditCephClusterFeed = "EditCephClusterFeed",
+  ReadCephClusterFeed = "ReadCephClusterFeed",
+
+  CreatePodmanHostFeed = "CreatePodmanHostFeed",
+  EditPodmanHostFeed = "EditPodmanHostFeed",
+  ReadPodmanHostFeed = "ReadPodmanHostFeed",
+
+  CreateProxmoxClusterFeed = "CreateProxmoxClusterFeed",
+  EditProxmoxClusterFeed = "EditProxmoxClusterFeed",
+  ReadProxmoxClusterFeed = "ReadProxmoxClusterFeed",
+
+  CreateHostFeed = "CreateHostFeed",
+  EditHostFeed = "EditHostFeed",
+  ReadHostFeed = "ReadHostFeed",
+
+  CreateCloudResourceFeed = "CreateCloudResourceFeed",
+  EditCloudResourceFeed = "EditCloudResourceFeed",
+  ReadCloudResourceFeed = "ReadCloudResourceFeed",
+
+  CreateServiceFeed = "CreateServiceFeed",
+  EditServiceFeed = "EditServiceFeed",
+  ReadServiceFeed = "ReadServiceFeed",
+
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
   EditMonitorStatusTimeline = "EditMonitorStatusTimeline",
@@ -3261,6 +3298,285 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      {
+        permission: Permission.CreateKubernetesClusterFeed,
+        title: "Create Kubernetes Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditKubernetesClusterFeed,
+        title: "Edit Kubernetes Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadKubernetesClusterFeed,
+        title: "Read Kubernetes Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Kubernetes cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerHostFeed,
+        title: "Create Docker Host Feed",
+        description:
+          "This permission can create the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerHostFeed,
+        title: "Edit Docker Host Feed",
+        description:
+          "This permission can edit the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerHostFeed,
+        title: "Read Docker Host Feed",
+        description:
+          "This permission can read the activity feed of a Docker host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateDockerSwarmClusterFeed,
+        title: "Create Docker Swarm Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditDockerSwarmClusterFeed,
+        title: "Edit Docker Swarm Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadDockerSwarmClusterFeed,
+        title: "Read Docker Swarm Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Docker Swarm cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCephClusterFeed,
+        title: "Create Ceph Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCephClusterFeed,
+        title: "Edit Ceph Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCephClusterFeed,
+        title: "Read Ceph Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreatePodmanHostFeed,
+        title: "Create Podman Host Feed",
+        description:
+          "This permission can create the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditPodmanHostFeed,
+        title: "Edit Podman Host Feed",
+        description:
+          "This permission can edit the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadPodmanHostFeed,
+        title: "Read Podman Host Feed",
+        description:
+          "This permission can read the activity feed of a Podman host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateProxmoxClusterFeed,
+        title: "Create Proxmox Cluster Feed",
+        description:
+          "This permission can create the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProxmoxClusterFeed,
+        title: "Edit Proxmox Cluster Feed",
+        description:
+          "This permission can edit the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProxmoxClusterFeed,
+        title: "Read Proxmox Cluster Feed",
+        description:
+          "This permission can read the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateHostFeed,
+        title: "Create Host Feed",
+        description:
+          "This permission can create the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditHostFeed,
+        title: "Edit Host Feed",
+        description:
+          "This permission can edit the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadHostFeed,
+        title: "Read Host Feed",
+        description:
+          "This permission can read the activity feed of a host in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateCloudResourceFeed,
+        title: "Create Cloud Resource Feed",
+        description:
+          "This permission can create the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditCloudResourceFeed,
+        title: "Edit Cloud Resource Feed",
+        description:
+          "This permission can edit the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadCloudResourceFeed,
+        title: "Read Cloud Resource Feed",
+        description:
+          "This permission can read the activity feed of a cloud resource in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateServiceFeed,
+        title: "Create Service Feed",
+        description:
+          "This permission can create the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.EditServiceFeed,
+        title: "Edit Service Feed",
+        description:
+          "This permission can edit the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
+      },
+      {
+        permission: Permission.ReadServiceFeed,
+        title: "Read Service Feed",
+        description:
+          "This permission can read the activity feed of a service in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ServiceCatalog,
       },
 
       {

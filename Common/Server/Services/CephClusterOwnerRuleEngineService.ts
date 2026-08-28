@@ -7,6 +7,9 @@ import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
 import CephClusterService from "./CephClusterService";
+import CephClusterFeedService from "./CephClusterFeedService";
+import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -142,6 +145,26 @@ class CephClusterOwnerRuleEngineServiceClass {
         `CephClusterOwnerRuleEngine added owners to Ceph cluster ${cephCluster.id}`,
         { projectId: cephCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await CephClusterFeedService.createCephClusterFeedItem({
+        cephClusterId: cephCluster.id,
+        projectId: cephCluster.projectId,
+        cephClusterFeedEventType: CephClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await CephClusterService.getCephClusterMarkdownLink(
+          cephCluster.projectId,
+          cephCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: CephClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Ceph cluster owner rules: ${error}`, {
         projectId: cephCluster.projectId?.toString(),

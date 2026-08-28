@@ -28,6 +28,7 @@ import ProxmoxClusterIncidents from "../Pages/Proxmox/View/Incidents";
 import ProxmoxClusterAlerts from "../Pages/Proxmox/View/Alerts";
 import ProxmoxClusterScheduledMaintenance from "../Pages/Proxmox/View/ScheduledMaintenance";
 import ProxmoxClusterOwners from "../Pages/Proxmox/View/Owners";
+import ProxmoxClusterFeed from "../Pages/Proxmox/View/Feed";
 import ProxmoxClusterAuditLogs from "../Pages/Proxmox/View/AuditLogs";
 import ProxmoxClusterSettings from "../Pages/Proxmox/View/Settings";
 import ProxmoxClusterDelete from "../Pages/Proxmox/View/Delete";
@@ -298,6 +299,17 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             <ProxmoxClusterOwners
               {...props}
               pageRoute={RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.PROXMOX_CLUSTER_VIEW_FEED)}
+          element={
+            <ProxmoxClusterFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_FEED] as Route}
             />
           }
         />

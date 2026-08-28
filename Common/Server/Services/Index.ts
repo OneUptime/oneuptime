@@ -135,6 +135,15 @@ import AIInsightService from "./AIInsightService";
 // Monitors
 import MonitorService from "./MonitorService";
 import MonitorFeedService from "./MonitorFeedService";
+import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import DockerHostFeedService from "./DockerHostFeedService";
+import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
+import CephClusterFeedService from "./CephClusterFeedService";
+import PodmanHostFeedService from "./PodmanHostFeedService";
+import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import HostFeedService from "./HostFeedService";
+import CloudResourceFeedService from "./CloudResourceFeedService";
+import ServiceFeedService from "./ServiceFeedService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -547,6 +556,15 @@ const services: Array<BaseService> = [
   RunbookSecretService,
   AIInsightService,
   MonitorFeedService,
+  KubernetesClusterFeedService,
+  DockerHostFeedService,
+  DockerSwarmClusterFeedService,
+  CephClusterFeedService,
+  PodmanHostFeedService,
+  ProxmoxClusterFeedService,
+  HostFeedService,
+  CloudResourceFeedService,
+  ServiceFeedService,
 
   NotificationService,
 

@@ -28,6 +28,7 @@ import ServiceViewDelete from "../Pages/Service/View/Delete";
 import ServiceViewSettings from "../Pages/Service/View/Settings";
 
 import ServiceViewOwners from "../Pages/Service/View/Owners";
+import ServiceViewFeed from "../Pages/Service/View/Feed";
 
 import ServiceViewAuditLogs from "../Pages/Service/View/AuditLogs";
 
@@ -195,6 +196,17 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_FEED)}
+          element={
+            <ServiceViewFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_FEED] as Route}
             />
           }
         />
