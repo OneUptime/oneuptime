@@ -1,6 +1,9 @@
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSiteStatusTimelineService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
+import { DeviceHealthGroup } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
+import DeviceReachabilityUtil from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
@@ -90,21 +93,94 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     updateColumns: jest.SpyInstance;
     timelineUpdateBy: jest.SpyInstance;
     timelineCreate: jest.SpyInstance;
-    deviceFindBy: jest.SpyInstance;
+    deviceHealthGroups: jest.SpyInstance;
     descendantSiteIds: jest.SpyInstance;
+    maintainedSiteIds: jest.SpyInstance;
+  }
+
+  /*
+   * One device row, as the health BUCKET the rollup actually reads.
+   *
+   * The engine stopped loading device rows when it started bucketing the
+   * subtree in SQL, so these tests hand it buckets. Each row becomes its own
+   * one-device bucket, which is what a bucketing query would emit for a set
+   * of devices with distinct health facts, and keeps the cases below reading
+   * as "a device that ...".
+   *
+   * `isStale` reproduces the SQL guard exactly: staleness is only ever
+   * consulted for a row with no recorded poll outcome that has nevertheless
+   * been seen, and is constant-false everywhere else.
+   */
+  function bucketFor(device: NetworkDevice): DeviceHealthGroup {
+    const anyDevice: {
+      currentMonitorStatusId?: ObjectID | undefined;
+      isReachable?: boolean | null | undefined;
+      lastPolledAt?: Date | null | undefined;
+      lastSeenAt?: Date | null | undefined;
+      pollingIntervalInMinutes?: number | null | undefined;
+    } = device as unknown as {
+      currentMonitorStatusId?: ObjectID | undefined;
+      isReachable?: boolean | null | undefined;
+      lastPolledAt?: Date | null | undefined;
+      lastSeenAt?: Date | null | undefined;
+      pollingIntervalInMinutes?: number | null | undefined;
+    };
+
+    const isReachable: boolean | null =
+      anyDevice.isReachable === undefined ? null : anyDevice.isReachable;
+
+    let isStale: boolean = false;
+    if (isReachable === null && anyDevice.lastSeenAt) {
+      const staleWindowInMinutes: number =
+        DeviceReachabilityUtil.getStaleWindowInMinutes(
+          anyDevice.pollingIntervalInMinutes,
+        );
+      isStale =
+        (Date.now() - anyDevice.lastSeenAt.getTime()) / 60000 >
+        staleWindowInMinutes;
+    }
+
+    return {
+      siteId: null,
+      monitorStatusId: anyDevice.currentMonitorStatusId
+        ? anyDevice.currentMonitorStatusId.toString()
+        : null,
+      monitoringMethod: null,
+      isReachable: isReachable,
+      hasBeenPolled: Boolean(anyDevice.lastPolledAt),
+      hasBeenSeen: Boolean(anyDevice.lastSeenAt),
+      isStale: isStale,
+      hasDownInterfaces: false,
+      deviceCount: 1,
+      interfacesDownTotal: 0,
+    };
   }
 
   function setupRollup(data: {
     site: NetworkSite | null;
     devices: Array<NetworkDevice>;
+    // Site ids an ongoing maintenance window is currently silencing.
+    maintainedSiteIds?: Array<ObjectID> | undefined;
   }): RollupSpies {
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(data.site);
     const descendantSiteIds: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "getDescendantSiteIds")
       .mockResolvedValue([]);
-    const deviceFindBy: jest.SpyInstance = jest
-      .spyOn(NetworkDeviceService, "findBy")
-      .mockResolvedValue(data.devices);
+    const deviceHealthGroups: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "getHealthGroupsForSites")
+      .mockResolvedValue(data.devices.map(bucketFor));
+    const maintainedSiteIds: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteMaintenanceSuppression,
+        "getSiteIdsUnderOngoingMaintenance",
+      )
+      .mockResolvedValue(
+        new Set<string>(
+          (data.maintainedSiteIds || []).map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ),
+      );
     jest
       .spyOn(MonitorStatusService, "findBy")
       .mockResolvedValue(fakeStatuses());
@@ -123,8 +199,9 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
       updateColumns,
       timelineUpdateBy,
       timelineCreate,
-      deviceFindBy,
+      deviceHealthGroups,
       descendantSiteIds,
+      maintainedSiteIds,
     };
   }
 
@@ -254,11 +331,17 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * The rollup reads four columns and the query has to fetch all four. A
-   * missing `isReachable` here compiles, runs, and silently drops the whole
-   * subtree back onto the legacy freshness path.
+   * Every device in the subtree is classified against ONE instant, passed in
+   * rather than read from the database's clock. Two devices measured against
+   * two different "now"s can disagree about staleness by a whole polling
+   * interval, and the rollup would then flip between runs with nothing
+   * having changed.
+   *
+   * WHICH columns the bucketing query reads is no longer this layer's
+   * decision — it belongs to DeviceHealthAggregation, and is pinned there by
+   * App/Tests/BaseAPI/NetworkSiteHierarchyDeviceRollup.test.ts.
    */
-  it("selects every column the reachability rule reads", async () => {
+  it("classifies the whole subtree against one instant", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [],
@@ -266,13 +349,8 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
 
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
-    const select: Record<string, unknown> =
-      spies.deviceFindBy.mock.calls[0]![0].select;
-
-    expect(select["isReachable"]).toBe(true);
-    expect(select["lastPolledAt"]).toBe(true);
-    expect(select["lastSeenAt"]).toBe(true);
-    expect(select["pollingIntervalInMinutes"]).toBe(true);
+    const args: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(args.now).toBeInstanceOf(Date);
   });
 
   it("does nothing when the site does not exist", async () => {
@@ -286,11 +364,13 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * An archived device is decommissioned: it keeps its siteId but must not
-   * vote. Without this filter an archived, never-monitored device hits the
-   * freshness fallback and pins its whole ancestor chain Offline forever.
+   * The bucketing query is scoped to the site's own project and to its own
+   * subtree — one statement, not one per site, and never another tenant's
+   * devices. (The archived-device filter lives inside
+   * getHealthGroupsForSites and is pinned by
+   * App/Tests/BaseAPI/NetworkSiteHierarchyDeviceRollup.test.ts.)
    */
-  it("excludes archived devices from the subtree scan", async () => {
+  it("buckets the subtree's devices in one project-scoped call", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [],
@@ -298,10 +378,41 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
 
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
-    expect(spies.deviceFindBy).toHaveBeenCalledTimes(1);
-    const deviceQuery: any = spies.deviceFindBy.mock.calls[0]![0].query;
-    expect(deviceQuery.isArchived).toBe(false);
-    expect(deviceQuery.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(spies.deviceHealthGroups).toHaveBeenCalledTimes(1);
+    const args: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(
+      args.siteIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SITE_ID.toString()]);
+  });
+
+  /*
+   * Issue #3431. A rollup must not fail because the maintenance lookup did —
+   * the util already degrades to "nothing suppressed", and this pins that
+   * the engine treats that as an ordinary answer rather than a reason to
+   * skip the run.
+   */
+  it("rolls up normally when nothing is under maintenance", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+        },
+      ] as unknown as Array<NetworkDevice>,
+      maintainedSiteIds: [],
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    expect(spies.maintainedSiteIds).toHaveBeenCalledTimes(1);
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
   });
 
   it("scopes the descendant lookup to the site's own project", async () => {

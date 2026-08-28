@@ -553,6 +553,7 @@ import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./17895120000
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 import { AddNetworkScaleIndexes1787841197034 } from "./1787841197034-AddNetworkScaleIndexes";
+import { AddNetworkSiteRollupPolicyAndMaintenance1787870907338 } from "./1787870907338-AddNetworkSiteRollupPolicyAndMaintenance";
 
 export default [
   InitialMigration,
@@ -1110,4 +1111,5 @@ export default [
   AddCampaignUtmFields1789500000000,
   AddDetectionRuleDistinctCountColumns1789512000000,
   AddNetworkScaleIndexes1787841197034,
+  AddNetworkSiteRollupPolicyAndMaintenance1787870907338,
 ];

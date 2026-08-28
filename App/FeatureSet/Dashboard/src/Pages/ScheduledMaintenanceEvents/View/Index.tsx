@@ -14,6 +14,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -530,7 +531,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             cardProps={{
               title: "Affected Resources",
               description:
-                "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this scheduled maintenance.",
+                "Monitors, hosts, Kubernetes clusters, Docker hosts, network sites, and services affected by this scheduled maintenance.",
             }}
             isEditable={true}
             formFields={[
@@ -540,7 +541,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 title: "",
                 description:
-                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
+                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -556,7 +557,17 @@ const ScheduledMaintenanceView: FunctionComponent<
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
                       podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      networkSites={values.networkSites as Array<NetworkSite>}
                       services={values.services as Array<Service>}
+                      resourceTypes={[
+                        "Monitor",
+                        "Host",
+                        "KubernetesCluster",
+                        "DockerHost",
+                        "PodmanHost",
+                        "NetworkSite",
+                        "Service",
+                      ]}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);
                       }}
@@ -580,6 +591,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
+                        networkSites: payload.networkSites,
                         services: payload.services,
                       } as FormValues<ScheduledMaintenance>);
                     });
@@ -588,7 +600,8 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               /*
                * Hidden registrations so ModelForm.getSelectFields includes
-               * hosts/kubernetesClusters/dockerHosts/services on load and submit.
+               * hosts/kubernetesClusters/dockerHosts/podmanHosts/
+               * networkSites/services on load and submit.
                */
               {
                 field: { hosts: true },
@@ -619,6 +632,15 @@ const ScheduledMaintenanceView: FunctionComponent<
               },
               {
                 field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { networkSites: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -663,6 +685,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    networkSites: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -679,6 +705,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
+                        networkSites={item.networkSites || []}
                         services={item.services || []}
                       />
                     );

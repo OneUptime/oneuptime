@@ -29,7 +29,13 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import SiteUptimeUtil from "Common/Utils/NetworkSite/SiteUptimeUtil";
+import SiteUptimeUtil, {
+  SiteMaintenanceWindow,
+} from "Common/Utils/NetworkSite/SiteUptimeUtil";
+import SiteMaintenanceUtil, {
+  MaintenanceEventWindow,
+} from "Common/Utils/NetworkSite/SiteMaintenanceUtil";
+import NetworkSiteMaintenanceSuppression from "Common/Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
@@ -439,6 +445,13 @@ export default class NetworkSiteHierarchyAPI {
                 latitude: true,
                 longitude: true,
                 currentMonitorStatusId: true,
+                /*
+                 * Needed to resolve which maintenance windows cover this
+                 * child: a window attached to an ancestor covers it, and the
+                 * path is the only place that ancestry is available here
+                 * without another query per child.
+                 */
+                materializedPath: true,
               },
               sort: {
                 name: SortOrder.Ascending,
@@ -571,9 +584,10 @@ export default class NetworkSiteHierarchyAPI {
            * at once, and the monitors backing the surviving links — both
            * batched, both dependent on the child set resolved above.
            */
-          const [timelineRows, statusIdByMonitorId]: [
+          const [timelineRows, statusIdByMonitorId, maintenanceEvents]: [
             Array<NetworkSiteStatusTimeline>,
             Map<string, string>,
+            Array<MaintenanceEventWindow>,
           ] = await Promise.all([
             childIds.length > 0
               ? NetworkSiteStatusTimelineService.findBy({
@@ -603,6 +617,26 @@ export default class NetworkSiteHierarchyAPI {
               linksBetweenChildren,
               props,
             ),
+            /*
+             * Maintenance windows overlapping the uptime window, for the
+             * whole project rather than per child: one query, and a window
+             * attached to an ancestor of a child has to be found anyway.
+             * Events with no sites attached are dropped by the util.
+             *
+             * Read under root props, deliberately. Uptime is a fact about
+             * the estate and must not change with who is looking - a viewer
+             * who cannot read maintenance events would otherwise see a
+             * DIFFERENT percentage for the same site than the colleague
+             * standing next to them. What crosses the wire is still only
+             * the resulting number, never the events themselves.
+             */
+            childIds.length > 0
+              ? NetworkSiteMaintenanceSuppression.getMaintenanceEventWindows({
+                  projectId: new ObjectID(projectId.toString()),
+                  windowStart: windowStart,
+                  windowEnd: windowEnd,
+                })
+              : Promise.resolve([]),
           ]);
 
           /*
@@ -801,6 +835,31 @@ export default class NetworkSiteHierarchyAPI {
             uptimeRowsBySiteId.set(rowSiteId, bucket);
           }
 
+          /*
+           * Which windows cover which child, resolved once for the whole
+           * page. Coverage is inherited DOWN the tree, so a child sits under
+           * a window attached to itself or to any of its ancestors.
+           */
+          const maintenanceWindowsBySiteId: Map<
+            string,
+            Array<SiteMaintenanceWindow>
+          > = SiteMaintenanceUtil.windowsBySite({
+            sites: childRows
+              .filter((child: NetworkSite) => {
+                return Boolean(child._id);
+              })
+              .map((child: NetworkSite) => {
+                return {
+                  id: child._id!.toString(),
+                  materializedPath: child.materializedPath,
+                };
+              }),
+            events: maintenanceEvents,
+          });
+
+          // The 24-hour slice the daily figure is measured over.
+          const dailyWindowStart: Date = OneUptimeDate.getSomeDaysAgo(1);
+
           const children: Array<JSONObject> = childRows.map(
             (child: NetworkSite): JSONObject => {
               const childId: string = child._id!.toString();
@@ -824,14 +883,43 @@ export default class NetworkSiteHierarchyAPI {
                     isOperationalState: boolean;
                   }>
                 | undefined = uptimeRowsBySiteId.get(childId);
-              const uptimePercent: number | null =
-                uptimeRows && uptimeRows.length > 0
-                  ? SiteUptimeUtil.calculateUptimePercent(
-                      uptimeRows,
-                      windowStart,
-                      windowEnd,
-                    )
-                  : null;
+              const childMaintenanceWindows: Array<SiteMaintenanceWindow> =
+                maintenanceWindowsBySiteId.get(childId) || [];
+
+              const hasUptimeRows: boolean = Boolean(
+                uptimeRows && uptimeRows.length > 0,
+              );
+
+              const uptimePercent: number | null = hasUptimeRows
+                ? SiteUptimeUtil.calculateUptimePercent(
+                    uptimeRows!,
+                    windowStart,
+                    windowEnd,
+                    childMaintenanceWindows,
+                  )
+                : null;
+
+              /*
+               * The same measurement over the last 24 hours. A bad Tuesday
+               * inside a healthy month is invisible in the 30-day figure -
+               * 24 hours of a 30-day window moves it by at most 3.3 points -
+               * so the two are shown side by side rather than one replacing
+               * the other.
+               */
+              const dailyUptimePercent: number | null = hasUptimeRows
+                ? SiteUptimeUtil.calculateUptimePercent(
+                    uptimeRows!,
+                    dailyWindowStart,
+                    windowEnd,
+                    childMaintenanceWindows,
+                  )
+                : null;
+
+              const isUnderMaintenance: boolean =
+                SiteUptimeUtil.isUnderMaintenanceAt(
+                  childMaintenanceWindows,
+                  windowEnd,
+                );
 
               return {
                 id: childId,
@@ -854,6 +942,8 @@ export default class NetworkSiteHierarchyAPI {
                 deviceStats: aggregate.deviceStats,
                 unitStats: aggregate.unitStats,
                 uptimePercent: uptimePercent,
+                dailyUptimePercent: dailyUptimePercent,
+                isUnderMaintenance: isUnderMaintenance,
               } as unknown as JSONObject;
             },
           );

@@ -1,7 +1,10 @@
 import SiteStatusRollupUtil, {
+  DeviceHealthShare,
   DeviceHealthState,
+  RollupStatusLadder,
   RollupStatusOption,
 } from "../../../Utils/NetworkSite/SiteStatusRollupUtil";
+import SiteHealthRollupPolicy from "../../../Types/NetworkSite/SiteHealthRollupPolicy";
 
 /*
  * MonitorStatus priority is HIGHER = WORSE (seeded: Operational 1,
@@ -286,5 +289,252 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
     expect(worst([{ lastSeenAt: minutesAgo(600) }])).toBe(
       OFFLINE.monitorStatusId,
     );
+  });
+});
+
+/*
+ * The percent-threshold policy (issue #3431).
+ *
+ * The complaint it answers: a Region above four hundred stores rolled up
+ * worst-of, so one dark switch in one store painted the whole region
+ * Offline and the region card could never be green. These pin the share
+ * arithmetic — including the two places it is easy to get wrong: buckets
+ * carry a COUNT (a bucket of 400 healthy devices is not one vote), and a
+ * threshold of zero must not make a perfectly healthy region offline.
+ */
+
+const LADDER: RollupStatusLadder = {
+  operationalStatus: OPERATIONAL,
+  degradedStatus: DEGRADED,
+  offlineStatus: OFFLINE,
+};
+
+// A bucket of `count` devices carrying a stamped, resolved status.
+function stamped(
+  status: RollupStatusOption,
+  isOperational: boolean,
+  count: number,
+): DeviceHealthState {
+  return {
+    currentMonitorStatusId: status.monitorStatusId,
+    monitorStatusPriority: status.priority,
+    monitorStatusIsOperational: isOperational,
+    deviceCount: count,
+  };
+}
+
+function percent(
+  deviceStates: Array<DeviceHealthState>,
+  offlineThresholdPercent?: number | null,
+  ladder: RollupStatusLadder = LADDER,
+): string | null {
+  return SiteStatusRollupUtil.percentThresholdStatus({
+    deviceStates: deviceStates,
+    ladder: ladder,
+    offlineThresholdPercent: offlineThresholdPercent,
+    now: NOW,
+  });
+}
+
+describe("SiteStatusRollupUtil.deviceHealthShare", () => {
+  it("counts DEVICES, not buckets", () => {
+    /*
+     * The whole point. Two buckets — 399 healthy, 1 down — is 0.25% down,
+     * not 50%. Reading the bucket count instead is what would reproduce
+     * the original complaint under a different name.
+     */
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        stamped(OPERATIONAL, true, 399),
+        stamped(OFFLINE, false, 1),
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(400);
+    expect(share.nonOperationalDeviceCount).toBe(1);
+    expect(share.nonOperationalPercent).toBeCloseTo(0.25, 10);
+  });
+
+  it("an entry with no deviceCount stands for exactly one device", () => {
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [answered(1), failed(1)],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(2);
+    expect(share.nonOperationalDeviceCount).toBe(1);
+    expect(share.nonOperationalPercent).toBe(50);
+  });
+
+  it("never-reported devices are in neither the numerator nor the denominator", () => {
+    /*
+     * A region half-way through its first discovery walk is scored on the
+     * half that has answered. Counting pending devices as down would pin it
+     * red for as long as the walk takes; counting them as up would inflate
+     * the denominator and mask a real outage.
+     */
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        answered(1),
+        failed(1),
+        { deviceCount: 500 },
+        { isReachable: null, lastPolledAt: null, lastSeenAt: null },
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(2);
+    expect(share.nonOperationalDeviceCount).toBe(1);
+  });
+
+  it("falls back to reachability when the stamped status could not be resolved", () => {
+    /*
+     * Same fallback worst-of takes when it cannot resolve the row's
+     * priority. If the two policies disagreed about which devices their
+     * stamped status speaks for, the same fleet would read differently
+     * depending on which policy a site happened to use.
+     */
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        {
+          currentMonitorStatusId: "status-deleted-since",
+          isReachable: true,
+          lastPolledAt: minutesAgo(1),
+          lastSeenAt: minutesAgo(1),
+          pollingIntervalInMinutes: 5,
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(1);
+    expect(share.nonOperationalDeviceCount).toBe(0);
+  });
+
+  it("reports a zero share rather than dividing by zero on an empty subtree", () => {
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(0);
+    expect(share.nonOperationalPercent).toBe(0);
+  });
+});
+
+describe("SiteStatusRollupUtil.percentThresholdStatus", () => {
+  it("one dark switch under four hundred stores leaves the region degraded, not offline", () => {
+    expect(
+      percent(
+        [stamped(OPERATIONAL, true, 399), stamped(OFFLINE, false, 1)],
+        50,
+      ),
+    ).toBe(DEGRADED.monitorStatusId);
+  });
+
+  it("goes offline once the share reaches the threshold", () => {
+    expect(
+      percent(
+        [stamped(OPERATIONAL, true, 200), stamped(OFFLINE, false, 200)],
+        50,
+      ),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("is operational when nothing is down", () => {
+    expect(percent([stamped(OPERATIONAL, true, 400)], 50)).toBe(
+      OPERATIONAL.monitorStatusId,
+    );
+  });
+
+  it("a zero threshold means 'any device down is offline', not 'always offline'", () => {
+    expect(percent([stamped(OPERATIONAL, true, 400)], 0)).toBe(
+      OPERATIONAL.monitorStatusId,
+    );
+    expect(
+      percent([stamped(OPERATIONAL, true, 399), stamped(OFFLINE, false, 1)], 0),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("clamps an out-of-range or missing threshold instead of refusing to roll up", () => {
+    // Above 100 can never be reached, so anything down is degraded.
+    expect(
+      percent(
+        [stamped(OPERATIONAL, true, 1), stamped(OFFLINE, false, 1)],
+        1000,
+      ),
+    ).toBe(DEGRADED.monitorStatusId);
+    // Below zero behaves as zero.
+    expect(
+      percent([stamped(OPERATIONAL, true, 1), stamped(OFFLINE, false, 1)], -5),
+    ).toBe(OFFLINE.monitorStatusId);
+    // Missing falls back to the default (50), so 50% down is offline.
+    expect(
+      percent(
+        [stamped(OPERATIONAL, true, 1), stamped(OFFLINE, false, 1)],
+        null,
+      ),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("falls back to offline when the project has no middle rung", () => {
+    expect(
+      percent(
+        [stamped(OPERATIONAL, true, 399), stamped(OFFLINE, false, 1)],
+        50,
+        {
+          operationalStatus: OPERATIONAL,
+          offlineStatus: OFFLINE,
+        },
+      ),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("returns null when nothing reported, so the caller leaves the status untouched", () => {
+    expect(percent([], 50)).toBeNull();
+    expect(percent([{ deviceCount: 10 }], 50)).toBeNull();
+  });
+});
+
+describe("SiteStatusRollupUtil.rollupStatus dispatch", () => {
+  const MIXED: Array<DeviceHealthState> = [
+    stamped(OPERATIONAL, true, 399),
+    stamped(OFFLINE, false, 1),
+  ];
+
+  it("WorstStatus reproduces the pre-policy behaviour exactly", () => {
+    expect(
+      SiteStatusRollupUtil.rollupStatus({
+        policy: SiteHealthRollupPolicy.WorstStatus,
+        deviceStates: MIXED,
+        ladder: LADDER,
+        offlineThresholdPercent: 50,
+        now: NOW,
+      }),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("PercentThreshold routes to the share calculation", () => {
+    expect(
+      SiteStatusRollupUtil.rollupStatus({
+        policy: SiteHealthRollupPolicy.PercentThreshold,
+        deviceStates: MIXED,
+        ladder: LADDER,
+        offlineThresholdPercent: 50,
+        now: NOW,
+      }),
+    ).toBe(DEGRADED.monitorStatusId);
+  });
+
+  it("an unrecognised policy string falls back to worst-of rather than leaving no verdict", () => {
+    expect(
+      SiteStatusRollupUtil.rollupStatus({
+        policy: "SomethingNobodyDefined" as SiteHealthRollupPolicy,
+        deviceStates: MIXED,
+        ladder: LADDER,
+        now: NOW,
+      }),
+    ).toBe(OFFLINE.monitorStatusId);
   });
 });

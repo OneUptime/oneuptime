@@ -40,6 +40,8 @@ import SiteStatusRollupUtil, {
   DeviceHealthState,
   RollupStatusOption,
 } from "../../Utils/NetworkSite/SiteStatusRollupUtil";
+import { parseSiteHealthRollupPolicy } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
+import NetworkSiteMaintenanceSuppression from "../Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
@@ -181,6 +183,32 @@ export class Service extends DatabaseService<Model> {
         [rid]: `${path}%`,
       },
     );
+  }
+
+  /*
+   * The same prefix predicate for SEVERAL paths at once, OR-ed together, so
+   * "every site under any of these" is one statement rather than one per
+   * root. Each prefix keeps its own bound parameter; an empty list would
+   * produce `()`, which is a syntax error, so callers must not reach here
+   * with one (getSubtreeSiteIds guards it).
+   */
+  private pathStartsWithAny(paths: Array<string>): FindWhereProperty<any> {
+    const parameters: Record<string, string> = {};
+    const names: Array<string> = [];
+
+    for (const path of paths) {
+      const rid: string = Text.generateRandomText(10);
+      parameters[rid] = `${path}%`;
+      names.push(rid);
+    }
+
+    return Raw((alias: string) => {
+      return `(${names
+        .map((name: string) => {
+          return `${alias} LIKE :${name}`;
+        })
+        .join(" OR ")})`;
+    }, parameters);
   }
 
   /*
@@ -856,16 +884,108 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Every site id in the subtrees rooted at `siteIds`, INCLUDING the roots
+   * themselves.
+   *
+   * Two statements regardless of how many roots are passed: one to read the
+   * roots' materialized paths, one prefix scan OR-ing those paths together.
+   * The obvious loop over getDescendantSiteIds is two statements PER root,
+   * and the caller that needs this - expanding a maintenance window attached
+   * to a Region into the units it covers - can legitimately be handed
+   * hundreds of roots.
+   *
+   * Roots whose row is missing or whose path is unset contribute only
+   * themselves: a site with no path has no discoverable subtree, and
+   * silently dropping it would quietly un-cover a maintenance window.
+   */
+  @CaptureSpan()
+  public async getSubtreeSiteIds(data: {
+    siteIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Set<string>> {
+    const result: Set<string> = new Set<string>();
+
+    for (const siteId of data.siteIds) {
+      result.add(siteId.toString());
+    }
+
+    if (result.size === 0) {
+      return result;
+    }
+
+    const roots: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(data.siteIds),
+      },
+      select: {
+        _id: true,
+        materializedPath: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const paths: Array<string> = [];
+
+    for (const root of roots) {
+      if (root.materializedPath) {
+        paths.push(root.materializedPath);
+      }
+    }
+
+    if (paths.length === 0) {
+      return result;
+    }
+
+    const descendants: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        materializedPath: this.pathStartsWithAny(paths),
+      },
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const descendant of descendants) {
+      if (descendant.id) {
+        result.add(descendant.id.toString());
+      }
+    }
+
+    return result;
+  }
+
+  /*
    * ------------------------------------------------------------------
    * Persisted rollup engine
    * ------------------------------------------------------------------
    */
 
   /*
-   * Recomputes the worst-of rollup for one site from the devices in its
-   * subtree, persisting currentMonitorStatusId + lastRollupAt and keeping
-   * the NetworkSiteStatusTimeline in sync (close the open row, open a new
-   * one) whenever the status actually changes.
+   * Recomputes the rollup for one site from the devices in its subtree,
+   * persisting currentMonitorStatusId + lastRollupAt and keeping the
+   * NetworkSiteStatusTimeline in sync (close the open row, open a new one)
+   * whenever the status actually changes.
+   *
+   * WHICH rule turns those devices into one status is the site's own
+   * healthRollupPolicy - worst-of by default, or a share-of-devices-down
+   * threshold. See Types/NetworkSite/SiteHealthRollupPolicy.
+   *
+   * Descendants inside an ongoing scheduled maintenance window are dropped
+   * from the subtree first, so planned work on one unit does not turn its
+   * region red. The maintained site's OWN rollup keeps every device,
+   * including its own: someone looking at that unit must still see it is
+   * down. See NetworkSiteMaintenanceSuppression.
    */
   @CaptureSpan()
   public async recomputeRollupForSite(siteId: ObjectID): Promise<void> {
@@ -879,6 +999,8 @@ export class Service extends DatabaseService<Model> {
         shouldAlertWhenUnhealthy: true,
         alertSeverityId: true,
         currentActiveAlertId: true,
+        healthRollupPolicy: true,
+        offlineThresholdPercent: true,
       },
       props: {
         isRoot: true,
@@ -893,6 +1015,28 @@ export class Service extends DatabaseService<Model> {
       site.id,
       ...(await this.getDescendantSiteIds(site.id, site.projectId)),
     ];
+
+    /*
+     * Sites silenced by an ongoing maintenance window. A site that is itself
+     * inside one suppresses nothing - not even its own descendants - because
+     * its rollup is supposed to show the planned outage. Only an ancestor
+     * looking down past a maintained subtree drops it.
+     */
+    const maintainedSiteIds: Set<string> =
+      await NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance(
+        site.projectId,
+      );
+
+    const isSiteUnderMaintenance: boolean = maintainedSiteIds.has(
+      site.id.toString(),
+    );
+
+    const contributingSiteIds: Array<ObjectID> =
+      isSiteUnderMaintenance || maintainedSiteIds.size === 0
+        ? subtreeSiteIds
+        : subtreeSiteIds.filter((id: ObjectID) => {
+            return !maintainedSiteIds.has(id.toString());
+          });
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -915,7 +1059,7 @@ export class Service extends DatabaseService<Model> {
     const deviceGroups: Array<DeviceHealthGroup> =
       await NetworkDeviceService.getHealthGroupsForSites({
         projectId: site.projectId,
-        siteIds: subtreeSiteIds,
+        siteIds: contributingSiteIds,
         now: now,
         props: {
           isRoot: true,
@@ -941,14 +1085,26 @@ export class Service extends DatabaseService<Model> {
     });
 
     const priorityByStatusId: Map<string, number> = new Map();
+    const isOperationalByStatusId: Map<string, boolean> = new Map();
     let operationalStatus: RollupStatusOption | null = null;
     let offlineStatus: RollupStatusOption | null = null;
+    /*
+     * The rung between the two, for the threshold policy: the WORST status
+     * that is neither operational nor offline (highest priority wins, the
+     * same direction worst-of reads the ladder). Projects that never created
+     * one leave this null and "some devices down" falls through to offline.
+     */
+    let degradedStatus: RollupStatusOption | null = null;
 
     for (const status of statuses) {
       if (!status.id || typeof status.priority !== "number") {
         continue;
       }
       priorityByStatusId.set(status.id.toString(), status.priority);
+      isOperationalByStatusId.set(
+        status.id.toString(),
+        Boolean(status.isOperationalState),
+      );
       if (status.isOperationalState && !operationalStatus) {
         operationalStatus = {
           monitorStatusId: status.id.toString(),
@@ -957,6 +1113,16 @@ export class Service extends DatabaseService<Model> {
       }
       if (status.isOfflineState && !offlineStatus) {
         offlineStatus = {
+          monitorStatusId: status.id.toString(),
+          priority: status.priority,
+        };
+      }
+      if (
+        !status.isOperationalState &&
+        !status.isOfflineState &&
+        (!degradedStatus || status.priority > degradedStatus.priority)
+      ) {
+        degradedStatus = {
           monitorStatusId: status.id.toString(),
           priority: status.priority,
         };
@@ -970,22 +1136,30 @@ export class Service extends DatabaseService<Model> {
           monitorStatusPriority: group.monitorStatusId
             ? priorityByStatusId.get(group.monitorStatusId)
             : undefined,
+          monitorStatusIsOperational: group.monitorStatusId
+            ? isOperationalByStatusId.get(group.monitorStatusId)
+            : undefined,
           now: now,
         });
       },
     );
 
-    const worstStatusId: string | null = SiteStatusRollupUtil.worstStatus({
+    const rolledUpStatusId: string | null = SiteStatusRollupUtil.rollupStatus({
+      policy: parseSiteHealthRollupPolicy(site.healthRollupPolicy),
       deviceStates: deviceStates,
-      operationalStatus: operationalStatus,
-      offlineStatus: offlineStatus,
+      ladder: {
+        operationalStatus: operationalStatus,
+        degradedStatus: degradedStatus,
+        offlineStatus: offlineStatus,
+      },
+      offlineThresholdPercent: site.offlineThresholdPercent,
       now: now,
     });
     const currentStatusId: string | null =
       site.currentMonitorStatusId?.toString() || null;
 
     // No devices contribute -> leave the status alone, just stamp the run.
-    if (!worstStatusId || worstStatusId === currentStatusId) {
+    if (!rolledUpStatusId || rolledUpStatusId === currentStatusId) {
       await this.updateColumnsByIdWithoutHooks({
         id: site.id,
         data: {
@@ -998,7 +1172,7 @@ export class Service extends DatabaseService<Model> {
     await this.updateColumnsByIdWithoutHooks({
       id: site.id,
       data: {
-        currentMonitorStatusId: new ObjectID(worstStatusId),
+        currentMonitorStatusId: new ObjectID(rolledUpStatusId),
         lastRollupAt: now,
       },
     });
@@ -1022,7 +1196,7 @@ export class Service extends DatabaseService<Model> {
     const timeline: NetworkSiteStatusTimeline = new NetworkSiteStatusTimeline();
     timeline.projectId = site.projectId;
     timeline.siteId = site.id;
-    timeline.monitorStatusId = new ObjectID(worstStatusId);
+    timeline.monitorStatusId = new ObjectID(rolledUpStatusId);
     timeline.startsAt = now;
 
     await NetworkSiteStatusTimelineService.create({
@@ -1041,7 +1215,7 @@ export class Service extends DatabaseService<Model> {
         site: site,
         newStatus:
           statuses.find((status: MonitorStatus) => {
-            return status.id?.toString() === worstStatusId;
+            return status.id?.toString() === rolledUpStatusId;
           }) || null,
       });
     } catch (err) {
@@ -1144,7 +1318,7 @@ export class Service extends DatabaseService<Model> {
     alert.title = `Network site ${site.name || site.id.toString()} is ${statusName}`;
     alert.description = `The health rollup of network site **${
       site.name || site.id.toString()
-    }** changed to **${statusName}** — the worst status of the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
+    }** changed to **${statusName}**, rolled up from the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
     alert.alertSeverityId = alertSeverityId;
     alert.rootCause = `Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`;
 
@@ -1223,6 +1397,67 @@ export class Service extends DatabaseService<Model> {
     // getAncestorIds returns root-first; recompute nearest ancestor first.
     for (let i: number = ancestorIds.length - 1; i >= 0; i--) {
       await this.recomputeRollupForSite(ancestorIds[i]!);
+    }
+  }
+
+  /*
+   * Re-rolls the chains a maintenance window just started or stopped
+   * covering.
+   *
+   * Only the attached sites and their ANCESTORS can have changed verdict:
+   * the maintained subtree keeps every one of its own devices either way
+   * (see recomputeRollupForSite), so nothing below an attached site needs
+   * recomputing. Each chain is deduplicated, because attaching a Region and
+   * one of its Markets to the same window would otherwise walk the shared
+   * ancestors twice.
+   *
+   * Errors are swallowed per site: the five-minute stale-rollup sweep is the
+   * backstop, and a maintenance event must not fail to start because one
+   * site's rollup did.
+   */
+  @CaptureSpan()
+  public async recomputeRollupsAfterMaintenanceChange(data: {
+    projectId: ObjectID;
+    siteIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.siteIds.length === 0) {
+      return;
+    }
+
+    /*
+     * The suppression set is cached for a few seconds; a window that has
+     * just flipped state must not be recomputed against the previous
+     * answer.
+     */
+    NetworkSiteMaintenanceSuppression.invalidateCache(data.projectId);
+
+    const recomputed: Set<string> = new Set<string>();
+
+    for (const siteId of data.siteIds) {
+      const chain: Array<ObjectID> = [
+        siteId,
+        ...(await this.getAncestorIds(siteId)).reverse(),
+      ];
+
+      for (const chainSiteId of chain) {
+        const key: string = chainSiteId.toString();
+        if (recomputed.has(key)) {
+          continue;
+        }
+        recomputed.add(key);
+
+        try {
+          await this.recomputeRollupForSite(chainSiteId);
+        } catch (error) {
+          logger.error(
+            `NetworkSiteService.recomputeRollupsAfterMaintenanceChange: rollup failed for site ${key}: ${error}`,
+            {
+              projectId: data.projectId.toString(),
+              siteId: key,
+            } as LogAttributes,
+          );
+        }
+      }
     }
   }
 

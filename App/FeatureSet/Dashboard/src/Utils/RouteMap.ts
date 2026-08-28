@@ -164,6 +164,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: `view/${RouteParams.ModelID}/child-sites`,
   [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: `view/${RouteParams.ModelID}/endpoints`,
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
+  [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: `view/${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_SITE_VIEW_DELETE]: `view/${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_SITE_MAP]: `map`,
@@ -2771,6 +2772,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]
     }`,
   ),
 

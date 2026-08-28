@@ -1,6 +1,9 @@
 import AlertSeverity from "./AlertSeverity";
 import MonitorStatus from "./MonitorStatus";
 import NetworkSiteType from "./NetworkSiteType";
+import SiteHealthRollupPolicy, {
+  DefaultSiteOfflineThresholdPercent,
+} from "../../Types/NetworkSite/SiteHealthRollupPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -860,6 +863,108 @@ export default class NetworkSite extends BaseModel {
     type: ColumnType.Date,
   })
   public lastRollupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  /*
+   * Which rule turns the health of every device under this site into ONE
+   * status for the site. See Types/NetworkSite/SiteHealthRollupPolicy for why
+   * a Unit and a Region want different answers, and why the default is the
+   * worst-of rule every site used before this column existed.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Health Rollup Policy",
+    description:
+      "How this site's status is derived from the devices beneath it: WorstStatus (any device offline makes the site offline) or PercentThreshold (the share of devices that are down decides).",
+    example: SiteHealthRollupPolicy.WorstStatus,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: SiteHealthRollupPolicy.WorstStatus,
+  })
+  public healthRollupPolicy?: SiteHealthRollupPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  /*
+   * Only read when healthRollupPolicy is PercentThreshold. Stored on every
+   * site regardless so switching policy does not also require picking a
+   * number in the same edit.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Offline Threshold (%)",
+    description:
+      "With the PercentThreshold rollup policy: the share of reporting devices beneath this site that must be non-operational before the site itself is marked offline. Below it (but above zero) the site is degraded.",
+    example: "50",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DefaultSiteOfflineThresholdPercent,
+  })
+  public offlineThresholdPercent?: number = undefined;
 
   @ColumnAccessControl({
     create: [
