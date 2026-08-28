@@ -28,7 +28,9 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import ModelField from "Common/UI/Components/Forms/Types/Field";
+import ModelField, {
+  CustomElementProps,
+} from "Common/UI/Components/Forms/Types/Field";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -38,12 +40,14 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+import SnmpConfigListEditor from "../../Components/NetworkDevice/SnmpConfigListEditor";
+import { DiscoveryScanSnmpConfig } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
   validateRescanInterval,
   validateScanName,
   validateScanTarget,
+  validateSnmpConfigs,
 } from "./DiscoveryScanFormValidation";
 import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import {
@@ -237,16 +241,62 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       placeholder: "Probe",
     },
     /*
-     * Shared SNMP fields (version, community, full v3 credential set
-     * with showIf reveal logic) — the same helper the NetworkDevice
-     * forms use, so a v3 subnet scan collects the same credentials a v3
-     * device needs and the two can never drift apart.
+     * The scan's ORDERED LIST of SNMP credential sets, first match wins.
+     *
+     * This step used to spread the nine flat fields from
+     * getSnmpConfigFormFields — the same helper the NetworkDevice forms
+     * still use — which allowed exactly one credential set per scan. Real
+     * subnets are mixed, so that scan quietly missed every device speaking
+     * a version or community it was not configured for, and the only
+     * workaround was one scan per credential (issue #3458).
+     *
+     * A repeated block cannot be expressed as Fields — a Field is one value
+     * at one key — so this is a CustomComponent bound to the `snmpConfigs`
+     * column, exactly like the device's Health OIDs list. The editor still
+     * takes its labels, dropdown options and v3 reveal chain FROM
+     * SnmpConfigFormFields, so it and the device forms cannot drift.
      */
-    ...getSnmpConfigFormFields({
-      communityStringDescription:
-        "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
+    {
+      field: {
+        snmpConfigs: true,
+      },
+      title: "SNMP Configs",
       stepId: "snmp",
-    }),
+      fieldType: FormFieldSchemaType.CustomComponent,
+      /*
+       * Required, and it is the editor that keeps the promise: it seeds one
+       * card and refuses to delete the last one. This is the backstop for a
+       * value that reaches the form some other way — an empty array
+       * stringifies to "" and fails required, and validateSnmpConfigs then
+       * replaces that message with one that says what to do about it.
+       */
+      required: true,
+      description:
+        "Every credential set this scan tries, in order, stopping at the first that answers each host. Add one per group of devices that share a version and community or v3 user.",
+      customValidation: validateSnmpConfigs,
+      getCustomElement: (
+        value: FormValues<NetworkDeviceDiscoveryScan>,
+        customElementProps: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <SnmpConfigListEditor
+            {...customElementProps}
+            /*
+             * Re-passed AFTER the spread on purpose. FormField hands a
+             * CustomComponent `currentValues[fieldName] || ""`, so an
+             * untouched create form supplies an empty STRING rather than an
+             * empty list — see DeviceHealthOidsFormField, which re-passes for
+             * the same reason.
+             */
+            initialValue={
+              (value.snmpConfigs as
+                | Array<DiscoveryScanSnmpConfig>
+                | undefined) || []
+            }
+          />
+        );
+      },
+    },
     {
       field: {
         isRecurring: true,
@@ -1198,6 +1248,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
           rescanIntervalInMinutes: true,
           nextScanAt: true,
           probeId: true,
+          /*
+           * The credential list, so the import below can build each device
+           * with the config that ACTUALLY answered that host rather than with
+           * the scan's first one. The flattened columns below it are still
+           * selected: they are what a legacy scan (and a scan saved by an API
+           * caller that only knows those fields) carries, and
+           * SnmpScanConfigUtil falls back to them.
+           */
+          snmpConfigs: true,
           snmpVersion: true,
           snmpCommunityString: true,
           snmpPort: true,

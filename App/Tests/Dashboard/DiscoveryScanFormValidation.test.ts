@@ -4,11 +4,18 @@ import {
   validateRescanInterval,
   validateScanName,
   validateScanTarget,
+  validateSnmpConfigs,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+  MAXIMUM_SNMP_PORT,
+  MAX_SNMP_CONFIGS_PER_SCAN,
+  MINIMUM_SNMP_PORT,
+} from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 
 /*
  * The client-side half of the Create Network Device Discovery Scan wizard's
@@ -52,6 +59,30 @@ function schedule(
     isRecurring: isRecurring,
     rescanIntervalInMinutes: rescanIntervalInMinutes,
   } as ScanTargetValues;
+}
+
+/*
+ * The SNMP step's value is a LIST, not a string, and it is written by a
+ * CustomComponent rather than by an input — so unlike every other field here
+ * it can hold literally any JSON shape the editor (or an initialValues object,
+ * or a future caller) puts there.
+ */
+function snmpConfigs(value: unknown): ScanTargetValues {
+  return { snmpConfigs: value } as ScanTargetValues;
+}
+
+/*
+ * The card the editor seeds a fresh form with: v2c, no community string. The
+ * probe falls back to "public" for that, which is a real answer for discovery
+ * — so an operator who clicks straight through the wizard still gets a scan
+ * that sweeps, exactly as the single-config form did.
+ */
+function validV2cConfig(id: string): DiscoveryScanSnmpConfig {
+  return {
+    id: id,
+    name: `Config ${id}`,
+    snmpVersion: "V2c",
+  };
 }
 
 describe("validateScanTarget — accepts everything the probe can actually sweep", () => {
@@ -584,5 +615,368 @@ describe("validateScanName delegates to the rule the server enforces", () => {
     expect(validateScanName(scanName(value))).toBe(
       ScanNameUtil.getValidationError(value),
     );
+  });
+});
+
+/*
+ * The SNMP step's credential LIST (issue #3458).
+ *
+ * A scan used to carry exactly one credential set in flattened columns, and
+ * the SNMP step was nine flat Fields. Real subnets are mixed — access switches
+ * on v2c with one community, the core on v3, a printer block on the factory
+ * default — so a single-credential scan silently missed everything speaking
+ * anything else and reported a confident zero. The step now collects an
+ * ORDERED LIST through a CustomComponent (SnmpConfigListEditor), and this
+ * validator is the gate on it.
+ *
+ * Two things make it worth its own set of tests rather than trusting
+ * SnmpScanConfigUtil's own suite:
+ *
+ *   - the VALUE is arbitrary JSON. Every other validator here reads a text
+ *     box; this one reads whatever a custom component last reported, so "not a
+ *     list" is a reachable state rather than a defensive one.
+ *   - it is the ONLY rule on the field that can say anything useful.
+ *     `required` on a CustomComponent is satisfied by any non-empty value, so
+ *     ten half-filled v3 cards with no usernames clear it — and Validation
+ *     runs customValidation last, so this message is the one the operator
+ *     reads.
+ */
+describe("validateSnmpConfigs — stays silent on EMPTY so `required` keeps its message", () => {
+  /*
+   * Same contract as validateScanTarget above, for the same reason:
+   * customValidation runs LAST and overwrites whatever validateRequired put on
+   * the field. If this spoke up for a field the editor has not reported into
+   * yet, "SNMP Configs is required." would be replaced by a sentence about
+   * list contents on a step the operator has not reached.
+   *
+   * The empty STRING is the case that actually happens: FormField hands a
+   * CustomComponent `currentValues[fieldName] || ""`, so an untouched create
+   * form carries "" here and not an empty list.
+   */
+  test.each([
+    ["an absent key", undefined],
+    ["an explicit null", null],
+    [
+      "the empty string FormField supplies for an untouched CustomComponent",
+      "",
+    ],
+  ])("%s produces no error", (_label: string, value: unknown) => {
+    expect(validateSnmpConfigs(snmpConfigs(value))).toBeNull();
+  });
+
+  test("a form with no snmpConfigs key at all is handled", () => {
+    expect(validateSnmpConfigs({} as ScanTargetValues)).toBeNull();
+  });
+
+  /*
+   * The short-circuit is doing real work for "", exactly as it is for the scan
+   * target: the shared rule itself calls an empty string "not a list", which
+   * would be a confusing thing to say about a box nobody has touched.
+   */
+  test("the shared rule would have complained about the empty string", () => {
+    expect(SnmpScanConfigUtil.getValidationError("")).toBe(
+      "SNMP configs must be a list.",
+    );
+  });
+});
+
+describe("validateSnmpConfigs — refuses a list the probe could not sweep", () => {
+  /*
+   * Deleting every card. Silently treating that as "fall back to the flattened
+   * columns" would leave the scan running credentials the operator can no
+   * longer see anywhere in the UI, which is how a scan nobody can explain gets
+   * created.
+   */
+  test("an empty list is refused, and says what to do about it", () => {
+    const message: string | null = validateSnmpConfigs(snmpConfigs([]));
+
+    expect(message).toBe(SnmpScanConfigUtil.getValidationError([]));
+    expect(message).toBe(
+      "Add at least one SNMP config, or the scan has no credentials to try.",
+    );
+  });
+
+  /*
+   * The cap is a time budget, not taste: every extra config costs another full
+   * SNMP timeout on each address that answers nothing, and a sweep that runs
+   * past the probe's deadline is reported Failed with no results at all.
+   */
+  test("a list past the cap is refused, and the message quotes both numbers", () => {
+    const tooMany: Array<DiscoveryScanSnmpConfig> = Array.from(
+      { length: MAX_SNMP_CONFIGS_PER_SCAN + 1 },
+      (_unused: unknown, index: number): DiscoveryScanSnmpConfig => {
+        return validV2cConfig(`config-${index}`);
+      },
+    );
+
+    const message: string | null = validateSnmpConfigs(snmpConfigs(tooMany));
+
+    expect(message).toBe(SnmpScanConfigUtil.getValidationError(tooMany));
+    expect(message).toContain(
+      `at most ${MAX_SNMP_CONFIGS_PER_SCAN} SNMP configs`,
+    );
+    expect(message).toContain(`This one has ${tooMany.length}.`);
+  });
+
+  /*
+   * A v3 session with no security name is rejected by every device, host after
+   * host, and the sweep reports zero rather than failing loudly — the exact
+   * invisible failure this feature exists to end. Caught here so it is a
+   * sentence under the editor instead.
+   */
+  test("a v3 config with no username is refused, and names the card", () => {
+    const missingUsername: Array<DiscoveryScanSnmpConfig> = [
+      { id: "core", snmpVersion: "V3" },
+    ];
+
+    const message: string | null = validateSnmpConfigs(
+      snmpConfigs(missingUsername),
+    );
+
+    expect(message).toBe(
+      SnmpScanConfigUtil.getValidationError(missingUsername),
+    );
+    expect(message).toBe(
+      "SNMP config 1: SNMP v3 needs a username (the security name configured on the device).",
+    );
+  });
+
+  /*
+   * The card is named by POSITION, which is the only actionable way to point
+   * at one of several identical-looking cards — and the reason the shared rule
+   * builds its messages with an index rather than just naming the field.
+   */
+  test("the position in the message follows the offending card", () => {
+    const secondCardIsBad: Array<DiscoveryScanSnmpConfig> = [
+      validV2cConfig("first"),
+      { id: "second", snmpVersion: "V3" },
+    ];
+
+    expect(validateSnmpConfigs(snmpConfigs(secondCardIsBad))).toContain(
+      "SNMP config 2:",
+    );
+  });
+
+  /*
+   * The port comes out of a Number input as TEXT, so "161.5" would parseInt to
+   * 161, clear both bounds and then be dialled as a port the probe cannot
+   * reach. The shared rule checks the raw value for exactly that reason.
+   */
+  test("a port outside the UDP range is refused, and names the range", () => {
+    const badPort: Array<DiscoveryScanSnmpConfig> = [
+      { id: "printers", snmpVersion: "V2c", snmpPort: MAXIMUM_SNMP_PORT + 1 },
+    ];
+
+    const message: string | null = validateSnmpConfigs(snmpConfigs(badPort));
+
+    expect(message).toBe(SnmpScanConfigUtil.getValidationError(badPort));
+    expect(message).toBe(
+      `SNMP config 1: the SNMP port must be between ${MINIMUM_SNMP_PORT} and ${MAXIMUM_SNMP_PORT}.`,
+    );
+  });
+
+  test("a fractional port is refused as not whole rather than truncated", () => {
+    const fractionalPort: Array<unknown> = [
+      { id: "printers", snmpVersion: "V2c", snmpPort: "161.5" },
+    ];
+
+    expect(validateSnmpConfigs(snmpConfigs(fractionalPort))).toBe(
+      "SNMP config 1: the SNMP port must be a whole number.",
+    );
+  });
+});
+
+describe("validateSnmpConfigs — accepts every list the probe can sweep", () => {
+  /*
+   * The single card the editor seeds a fresh form with. If this ever stopped
+   * validating, the wizard would refuse to advance past the SNMP step before
+   * the operator had typed anything at all.
+   */
+  test("one v2c config with nothing but a version passes", () => {
+    expect(
+      validateSnmpConfigs(snmpConfigs([{ id: "seeded", snmpVersion: "V2c" }])),
+    ).toBeNull();
+  });
+
+  /*
+   * No community string. The sweep falls back to "public", which is a real and
+   * very common answer for discovery — requiring one would refuse the single
+   * most useful default.
+   */
+  test("a v2c config with no community string passes", () => {
+    expect(validateSnmpConfigs(snmpConfigs([validV2cConfig("a")]))).toBeNull();
+  });
+
+  /*
+   * The whole point of the feature: one scan, several credential sets, tried
+   * in order. A mixed subnet — v2c access switches, a v3 core, a printer block
+   * on its own port — has to be expressible in one scan.
+   */
+  test("a mixed list of v1, v2c and authPriv v3 configs passes", () => {
+    const mixed: Array<DiscoveryScanSnmpConfig> = [
+      { id: "access", name: "Access switches", snmpVersion: "V2c" },
+      {
+        id: "core",
+        name: "Core",
+        snmpVersion: "V3",
+        snmpV3SecurityLevel: "authPriv",
+        snmpV3Username: "monitoring",
+        snmpV3AuthProtocol: "SHA",
+        snmpV3AuthKey: "authentication passphrase",
+        snmpV3PrivProtocol: "AES",
+        snmpV3PrivKey: "privacy passphrase",
+      },
+      {
+        id: "printers",
+        name: "Printers - factory default",
+        snmpVersion: "V1",
+        snmpCommunityString: "public",
+        snmpPort: 1161,
+      },
+    ];
+
+    expect(validateSnmpConfigs(snmpConfigs(mixed))).toBeNull();
+  });
+
+  test("a list exactly at the cap passes", () => {
+    const atCap: Array<DiscoveryScanSnmpConfig> = Array.from(
+      { length: MAX_SNMP_CONFIGS_PER_SCAN },
+      (_unused: unknown, index: number): DiscoveryScanSnmpConfig => {
+        return validV2cConfig(`config-${index}`);
+      },
+    );
+
+    expect(validateSnmpConfigs(snmpConfigs(atCap))).toBeNull();
+  });
+});
+
+describe("validateSnmpConfigs — agrees with the server, exactly", () => {
+  /*
+   * The same identity assertion validateScanTarget and validateScanName carry,
+   * and the reason validateSnmpConfigs delegates rather than restating the
+   * rules. The write hooks in NetworkDeviceDiscoveryScanService throw
+   * BadDataException with THIS function's message, so a divergence here means
+   * the editor accepting a list the API is about to refuse — with the refusal
+   * arriving as a banner on the last step of the wizard, which is the failure
+   * shape issue #3377 was about.
+   */
+  test.each([
+    ["an empty list", []],
+    ["a valid single config", [{ id: "a", snmpVersion: "V2c" }]],
+    [
+      "a valid pair",
+      [
+        { id: "a", snmpVersion: "V2c" },
+        { id: "b", snmpVersion: "V1" },
+      ],
+    ],
+    ["a v3 config with no username", [{ id: "a", snmpVersion: "V3" }]],
+    [
+      "a v3 config at authPriv with no privacy key",
+      [
+        {
+          id: "a",
+          snmpVersion: "V3",
+          snmpV3Username: "monitoring",
+          snmpV3SecurityLevel: "authPriv",
+          snmpV3AuthKey: "authentication passphrase",
+        },
+      ],
+    ],
+    [
+      "an unrecognized security level",
+      [
+        {
+          id: "a",
+          snmpVersion: "V3",
+          snmpV3Username: "monitoring",
+          snmpV3SecurityLevel: "authAndPriv",
+        },
+      ],
+    ],
+    ["a port out of range", [{ id: "a", snmpVersion: "V2c", snmpPort: 0 }]],
+    [
+      "two configs sharing an id",
+      [
+        { id: "same", snmpVersion: "V2c" },
+        { id: "same", snmpVersion: "V3", snmpV3Username: "monitoring" },
+      ],
+    ],
+    ["a non-object entry", ["not-a-config"]],
+    ["a value that is not a list at all", { id: "a" }],
+    ["a number", 161],
+    ["an explicit null", null],
+  ])(
+    "produces the server's own answer for %s",
+    (_label: string, value: unknown) => {
+      expect(validateSnmpConfigs(snmpConfigs(value))).toBe(
+        SnmpScanConfigUtil.getValidationError(value),
+      );
+    },
+  );
+
+  /*
+   * The ONE deliberate divergence, and it is the short-circuit rather than a
+   * disagreement about the rules: an untouched CustomComponent reports "", and
+   * the field's own `required` is what should speak for that. The server never
+   * sees an empty string here — the editor always reports a list — so nothing
+   * downstream depends on the two answers matching for this input.
+   */
+  test("the only place the two differ is the untouched empty string", () => {
+    expect(validateSnmpConfigs(snmpConfigs(""))).toBeNull();
+    expect(SnmpScanConfigUtil.getValidationError("")).not.toBeNull();
+  });
+});
+
+describe("validateSnmpConfigs — survives values that are not credential lists", () => {
+  /*
+   * validate() runs from a useEffect on EVERY value change, including the
+   * first render, so a validator that throws takes the whole wizard down
+   * rather than showing a message. This field is the most exposed one on the
+   * form: its value comes from a custom component and is stored in a jsonb
+   * column, so neither a form control nor a column type constrains its shape.
+   */
+  test.each([
+    ["a number", 42],
+    ["zero", 0],
+    ["a boolean", true],
+    ["a bare string", "V2c"],
+    ["an object rather than a list", { id: "a", snmpVersion: "V2c" }],
+    ["a list of numbers", [1, 2, 3]],
+    ["a list of nulls", [null, null]],
+    ["a nested list", [[{ id: "a" }]]],
+    ["a deeply nested list", [[[[{ id: "a" }]]]]],
+    ["a list holding a list of strings", [["V2c"]]],
+    ["a config whose name is not text", [{ id: "a", name: 1100 }]],
+    ["a config whose version is an object", [{ id: "a", snmpVersion: {} }]],
+  ])("%s does not throw", (_label: string, value: unknown) => {
+    expect(() => {
+      return validateSnmpConfigs(snmpConfigs(value));
+    }).not.toThrow();
+  });
+
+  /*
+   * Not throwing is only half of it — a shape the form cannot store has to be
+   * REFUSED rather than waved through to the API.
+   */
+  test.each([
+    ["a number", 42],
+    ["a bare string", "V2c"],
+    ["an object rather than a list", { id: "a", snmpVersion: "V2c" }],
+    ["a nested list", [[{ id: "a" }]]],
+    ["a list of numbers", [1, 2, 3]],
+    ["a list of nulls", [null, null]],
+  ])("%s is refused rather than accepted", (_label: string, value: unknown) => {
+    expect(validateSnmpConfigs(snmpConfigs(value))).not.toBeNull();
+  });
+
+  /*
+   * `0` is falsy. A guard written against the truthiness of the raw value
+   * rather than against undefined/null/"" would read it as "untouched" and let
+   * it through — the same falsy trap the scan target and rescan interval tests
+   * above pin.
+   */
+  test("zero is treated as a reported value, not as an untouched field", () => {
+    expect(validateSnmpConfigs(snmpConfigs(0))).not.toBeNull();
   });
 });

@@ -7,6 +7,7 @@ import SubnetScanner, {
   DiscoveredHost,
   type SubnetScanConfig,
   type SubnetScanResult,
+  type SubnetScanSnmpConfig,
 } from "../../Utils/Discovery/SubnetScanner";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -18,6 +19,10 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+} from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
+import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import SnmpSecurityLevel, {
   SnmpSecurityLevelUtil,
@@ -32,15 +37,21 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 
 /*
- * Assembles the SnmpV3Auth the scanner needs from the scan's flattened
- * snmpV3* columns. Mirrors NetworkDeviceHydrationUtil.buildSnmpV3Auth: no
- * username means no v3 config, so return undefined and let the scan run as
+ * Assembles the SnmpV3Auth the scanner needs from one credential set's
+ * snmpV3* fields. Mirrors NetworkDeviceHydrationUtil.buildSnmpV3Auth: no
+ * username means no v3 config, so return undefined and let that config run as
  * v1/v2c.
+ *
+ * `config` is typed as one entry of the scan's credential list, which a whole
+ * scan row also satisfies structurally — the list's fields are named exactly
+ * like the flattened columns it generalizes, so a legacy scan needs no
+ * translation.
  */
 export function buildSnmpV3Auth(
-  scan: NetworkDeviceDiscoveryScan,
+  config: DiscoveryScanSnmpConfig,
+  scanLabel?: string | undefined,
 ): SnmpV3Auth | undefined {
-  if (!scan.snmpV3Username) {
+  if (!config.snmpV3Username) {
     return undefined;
   }
 
@@ -52,31 +63,35 @@ export function buildSnmpV3Auth(
    * "successfully" having found nothing — indistinguishable from a subnet with
    * no SNMP devices on it.
    *
-   * One credential set is built per scan and reused for every host, so a
-   * single unreadable value silently blanks the entire sweep.
+   * Each credential set is built once and reused for every host, so a single
+   * unreadable value silently blanks that config across the entire sweep —
+   * and, now that a scan carries several, would do so while the OTHER configs
+   * kept answering, which is the version of this bug that is hardest to spot.
+   * The message therefore names the config as well as the scan.
    */
-  const scanLabel: string =
-    ScanNameUtil.getScanLabel(scan) || scan.id?.toString() || "scan";
+  const where: string =
+    (scanLabel ? `discovery scan ${scanLabel}, ` : "") +
+    SnmpScanConfigUtil.getConfigLabel(config);
 
-  if (SnmpSecurityLevelUtil.isUnrecognized(scan.snmpV3SecurityLevel)) {
+  if (SnmpSecurityLevelUtil.isUnrecognized(config.snmpV3SecurityLevel)) {
     throw new Error(
-      `SNMP v3 security level "${scan.snmpV3SecurityLevel}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+      `SNMP v3 security level "${config.snmpV3SecurityLevel}" configured for ${where} is not a recognized value. Expected one of: ${Object.values(
         SnmpSecurityLevel,
       ).join(", ")}.`,
     );
   }
 
-  if (SnmpAuthProtocolUtil.isUnrecognized(scan.snmpV3AuthProtocol)) {
+  if (SnmpAuthProtocolUtil.isUnrecognized(config.snmpV3AuthProtocol)) {
     throw new Error(
-      `SNMP v3 authentication protocol "${scan.snmpV3AuthProtocol}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+      `SNMP v3 authentication protocol "${config.snmpV3AuthProtocol}" configured for ${where} is not a recognized value. Expected one of: ${Object.values(
         SnmpAuthProtocol,
       ).join(", ")}.`,
     );
   }
 
-  if (SnmpPrivProtocolUtil.isUnrecognized(scan.snmpV3PrivProtocol)) {
+  if (SnmpPrivProtocolUtil.isUnrecognized(config.snmpV3PrivProtocol)) {
     throw new Error(
-      `SNMP v3 privacy protocol "${scan.snmpV3PrivProtocol}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+      `SNMP v3 privacy protocol "${config.snmpV3PrivProtocol}" configured for ${where} is not a recognized value. Expected one of: ${Object.values(
         SnmpPrivProtocol,
       ).join(", ")}.`,
     );
@@ -84,14 +99,133 @@ export function buildSnmpV3Auth(
 
   return {
     securityLevel:
-      SnmpSecurityLevelUtil.parse(scan.snmpV3SecurityLevel) ||
+      SnmpSecurityLevelUtil.parse(config.snmpV3SecurityLevel) ||
       SnmpSecurityLevel.NoAuthNoPriv,
-    username: scan.snmpV3Username,
-    authProtocol: SnmpAuthProtocolUtil.parse(scan.snmpV3AuthProtocol),
-    authKey: scan.snmpV3AuthKey || undefined,
-    privProtocol: SnmpPrivProtocolUtil.parse(scan.snmpV3PrivProtocol),
-    privKey: scan.snmpV3PrivKey || undefined,
+    username: config.snmpV3Username,
+    authProtocol: SnmpAuthProtocolUtil.parse(config.snmpV3AuthProtocol),
+    authKey: config.snmpV3AuthKey || undefined,
+    privProtocol: SnmpPrivProtocolUtil.parse(config.snmpV3PrivProtocol),
+    privKey: config.snmpV3PrivKey || undefined,
   };
+}
+
+/*
+ * Every credential set this scan sweeps with, in order, parsed into the shape
+ * the SNMP layer wants.
+ *
+ * Exported for tests, and the one place the server's stored shape meets the
+ * probe's runtime shape. Two conversions happen here and nowhere else:
+ *
+ *   - the stored version is the dropdown key ("V1"/"V2c"/"V3") while
+ *     SnmpMonitor branches on the enum VALUE ("1"/"2c"/"3"). A bare cast
+ *     leaves "V3" unequal to SnmpVersion.V3, so a v3 session silently
+ *     downgrades to v2c and goes out in cleartext.
+ *   - the v3 credential block is assembled and validated, so an unreadable
+ *     value fails the scan with a sentence instead of blanking it.
+ *
+ * SnmpScanConfigUtil.resolve() never returns an empty list — a scan with no
+ * stored list is described by its flattened columns — so neither does this.
+ */
+export function buildProbeSnmpConfigs(
+  scan: NetworkDeviceDiscoveryScan,
+): Array<SubnetScanSnmpConfig> {
+  const scanLabel: string =
+    ScanNameUtil.getScanLabel(scan) || scan.id?.toString() || "scan";
+
+  return SnmpScanConfigUtil.resolve(scan).map(
+    (config: DiscoveryScanSnmpConfig, index: number): SubnetScanSnmpConfig => {
+      return {
+        id: config.id || `config-${index + 1}`,
+        label: SnmpScanConfigUtil.getConfigLabel(config, index),
+        snmpVersion: SnmpVersionUtil.parse(config.snmpVersion),
+        /*
+         * "public" is the fallback the sweep has always used for a config
+         * with no community, and is a real answer for discovery rather than a
+         * placeholder.
+         */
+        communityString: config.snmpCommunityString || "public",
+        snmpV3Auth: buildSnmpV3Auth(config, scanLabel),
+        port: config.snmpPort || 161,
+      };
+    },
+  );
+}
+
+/*
+ * NetworkDeviceDiscoveryScan.statusMessage is a varchar(500), and the probe
+ * keeps ITSELF inside it rather than relying on the server's clip.
+ *
+ * The ingest endpoint does clip (see MAX_STATUS_MESSAGE_LENGTH there), so an
+ * over-long message is not lost data — but what it cuts is the TAIL, and the
+ * tail is where the credential summary lives. A multi-credential sweep would
+ * therefore be the one case that silently loses the sentence the
+ * multi-credential feature exists to print. Bounding here means the probe
+ * decides what to drop, and says that it dropped something.
+ */
+export const MAX_STATUS_MESSAGE_LENGTH: number = 500;
+
+/*
+ * How much of the message the credential summary may take.
+ *
+ * Config labels are operator-typed and may each be as long as a scan name
+ * (MAX_SNMP_CONFIG_NAME_LENGTH, 100 characters), and there may be ten of them
+ * — over 1,000 characters of names alone, in a 500-character column, ahead of
+ * the ICMP-filtered note and the quoted SNMP error that are the older and
+ * better-established diagnostics. This is the slice the summary gets; past it
+ * the remaining labels are counted rather than named, which still tells the
+ * operator that more credentials were tried.
+ */
+const MAX_CREDENTIAL_SUMMARY_LENGTH: number = 120;
+
+// A single label, short enough that one verbose name cannot fill the budget.
+const MAX_CREDENTIAL_LABEL_LENGTH: number = 40;
+
+function summarizeConfigLabel(label: string): string {
+  return label.length > MAX_CREDENTIAL_LABEL_LENGTH
+    ? label.substring(0, MAX_CREDENTIAL_LABEL_LENGTH - 1) + "\u2026"
+    : label;
+}
+
+/*
+ * As many entries as fit in the budget, then "+N more".
+ *
+ * Never empty-handed: the first entry is always named even when it alone
+ * exceeds the budget, because "+3 more" on its own says nothing at all.
+ */
+function joinWithinBudget(entries: Array<string>): string {
+  const kept: Array<string> = [];
+  let length: number = 0;
+
+  for (const entry of entries) {
+    const cost: number = entry.length + (kept.length > 0 ? 2 : 0);
+
+    if (kept.length > 0 && length + cost > MAX_CREDENTIAL_SUMMARY_LENGTH) {
+      break;
+    }
+
+    kept.push(entry);
+    length += cost;
+  }
+
+  const dropped: number = entries.length - kept.length;
+
+  return dropped > 0
+    ? `${kept.join(", ")} and ${dropped} more`
+    : kept.join(", ");
+}
+
+/*
+ * The last resort, after every sentence has had its say. Only reachable when
+ * several rare branches fire at once — an ICMP-filtered subnet, a 120-char
+ * quoted SNMP error and a long credential summary in the same sweep — and it
+ * marks the cut so a truncated message cannot be misread as a complete one.
+ */
+function clipStatusMessage(message: string): string {
+  if (message.length <= MAX_STATUS_MESSAGE_LENGTH) {
+    return message;
+  }
+
+  return message.substring(0, MAX_STATUS_MESSAGE_LENGTH - 1) + "\u2026";
 }
 
 /*
@@ -99,11 +233,18 @@ export function buildSnmpV3Auth(
  *
  * Exported for tests: every "the scan found nothing" support case is decided
  * by whether this sentence names the reason, so its content is asserted
- * rather than left to chance.
+ * rather than left to chance. It is also guaranteed to FIT the statusMessage
+ * column — see clipStatusMessage.
  */
 export function buildScanStatusMessage(
   scanResult: SubnetScanResult,
   snmpResponderCount: number,
+  /*
+   * The credential sets the sweep ran with, so the summary can say WHICH of
+   * them answered. Optional and defaulted, because a single-config sweep has
+   * nothing to disambiguate and its summary is unchanged.
+   */
+  snmpConfigs: Array<SubnetScanSnmpConfig> = [],
 ): string {
   const parts: Array<string> = [];
 
@@ -149,15 +290,60 @@ export function buildScanStatusMessage(
     );
   }
 
+  /*
+   * Which credentials actually worked, named, when the scan carries more than
+   * one. This is the half of a multi-credential sweep the operator cannot see
+   * any other way: a config that answered nobody is either wrong or aimed at
+   * gear that is not on this range, and either way it is costing every silent
+   * address another timeout on every run.
+   *
+   * Labels only — never a community string or a key. This sentence lands in
+   * statusMessage, which is readable by roles that are deliberately denied the
+   * credential columns.
+   */
+  if (snmpConfigs.length > 1) {
+    const answered: Array<string> = [];
+    const silent: Array<string> = [];
+
+    for (const config of snmpConfigs) {
+      const count: number =
+        scanResult.responderCountByConfigId?.[config.id] || 0;
+
+      if (count > 0) {
+        answered.push(`${summarizeConfigLabel(config.label)} on ${count}`);
+      } else {
+        silent.push(summarizeConfigLabel(config.label));
+      }
+    }
+
+    if (answered.length > 0) {
+      parts.push(`Answered by credentials: ${joinWithinBudget(answered)}.`);
+    }
+
+    if (silent.length > 0) {
+      parts.push(`No host answered: ${joinWithinBudget(silent)}.`);
+    }
+  }
+
   if (snmpResponderCount === 0 && snmpErrorHostCount === 0) {
-    const port: number = scanResult.scannedPort || 161;
+    /*
+     * Usually one port; a list when the scan's configs disagree, which is a
+     * real shape on estates that run an agent alongside the stock daemon.
+     */
+    const ports: Array<number> =
+      scanResult.scannedPorts && scanResult.scannedPorts.length > 0
+        ? scanResult.scannedPorts
+        : [161];
+    const portList: string = ports.join(", ");
+    const portLabel: string = ports.length > 1 ? "ports" : "port";
+
     parts.push(
-      `Nothing answered SNMP on port ${port}. Check that this probe can reach the range, ` +
-        `that UDP/${port} is permitted to it, and that the devices' SNMP ACL allows the probe's IP address.`,
+      `Nothing answered SNMP on ${portLabel} ${portList}. Check that this probe can reach the range, ` +
+        `that UDP/${portList} is permitted to it, and that the devices' SNMP ACL allows the probe's IP address.`,
     );
   }
 
-  return parts.join(" ");
+  return clipStatusMessage(parts.join(" "));
 }
 
 /*
@@ -363,6 +549,11 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
   );
 
   let scanResult: SubnetScanResult;
+  /*
+   * Built outside the try so the summary below can name the credential sets
+   * even though the parsing that builds them is what the try is guarding.
+   */
+  let snmpConfigs: Array<SubnetScanSnmpConfig> = [];
 
   try {
     logger.debug(
@@ -371,13 +562,12 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       }`,
     );
 
+    snmpConfigs = buildProbeSnmpConfigs(scan);
+
     scanResult = await scanWithDeadline(
       {
         cidr: scan.cidr || "",
-        snmpVersion: scan.snmpVersion,
-        snmpCommunityString: scan.snmpCommunityString,
-        snmpV3Auth: buildSnmpV3Auth(scan),
-        snmpPort: scan.snmpPort,
+        snmpConfigs: snmpConfigs,
       },
       scan.id?.toString() || "scan",
     );
@@ -447,6 +637,7 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
   const statusMessage: string = buildScanStatusMessage(
     scanResult,
     snmpResponderCount,
+    snmpConfigs,
   );
 
   /*

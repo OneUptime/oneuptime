@@ -224,6 +224,22 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
       const settingColumns: Array<string> = [
         "cidr",
         "probeId",
+        /*
+         * The ordered SNMP credential list (OneUptime issue #3458), and the
+         * column this list is likeliest to fall behind: it is the one the
+         * form actually posts now, the flattened columns below it are
+         * mirrored FROM it, and an update carrying it can retire the scan's
+         * run. If it ever stopped making the hook read the row, the claim's
+         * hookless write would be licensed by a disjointness this suite no
+         * longer checks.
+         *
+         * It needs no SETTING_VALUES entry, unlike `cidr` and `probeId`: a
+         * null list is not a refusal but a clear — the scan falls back to its
+         * flattened columns, which is exactly where a scan created before
+         * this column already is — so the empty box every other column here
+         * is given works for it too.
+         */
+        "snmpConfigs",
         "snmpVersion",
         "snmpCommunityString",
         "snmpPort",

@@ -75,6 +75,13 @@ router.post(
              */
             name: true,
             cidr: true,
+            /*
+             * The ordered credential list the sweep tries, first match wins.
+             * The flattened columns below it are still selected and still
+             * mirror this list's first entry: an older probe reads only those,
+             * and every scan written out of band has only those.
+             */
+            snmpConfigs: true,
             snmpVersion: true,
             snmpCommunityString: true,
             snmpPort: true,
@@ -160,6 +167,14 @@ router.post(
             status: "Pending",
             probeId: probeId,
             cidr: scan.cidr ?? null,
+            /*
+             * Compared as JSON. `IS NOT DISTINCT FROM` on a jsonb column is a
+             * value comparison, and the value handed to the probe is the value
+             * read out of this same column moments ago, so it round-trips
+             * exactly — a re-save that did not change the credentials does not
+             * fail the guard.
+             */
+            snmpConfigs: scan.snmpConfigs ?? null,
             snmpVersion: scan.snmpVersion ?? null,
             snmpCommunityString: scan.snmpCommunityString ?? null,
             snmpPort: scan.snmpPort ?? null,

@@ -77,6 +77,13 @@ export const AUTO_IMPORT_SCAN_CREDENTIAL_SELECT: {
   [key: string]: boolean;
 } = {
   probeId: true,
+  /*
+   * The ordered credential list, so an imported device is built with the
+   * config that ACTUALLY answered its address rather than with the scan's
+   * first one. The flattened columns below are what a scan written out of
+   * band carries, and are the fallback SnmpScanConfigUtil resolves to.
+   */
+  snmpConfigs: true,
   snmpVersion: true,
   snmpCommunityString: true,
   snmpPort: true,

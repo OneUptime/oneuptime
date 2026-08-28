@@ -1,7 +1,7 @@
 import SnmpMonitor from "../Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
-import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import logger from "Common/Server/Utils/Logger";
@@ -31,6 +31,45 @@ export interface DiscoveredHost {
    * cameras, POS terminals) still surfaces in discovery results.
    */
   snmpReachable: boolean;
+  /*
+   * The id of the SNMP config that answered this host, when one did. Absent
+   * for ping-only hosts, which no config found.
+   *
+   * A scan can carry several credential sets, so this is what lets the import
+   * path build the device with the credentials that ACTUALLY work for it
+   * rather than with the scan's first set — see
+   * SnmpScanConfigUtil.resolveForHost. It travels to the server on the result
+   * payload and is stored on the discovered-host record.
+   */
+  snmpConfigId?: string | undefined;
+}
+
+/*
+ * One credential set the sweep tries, already parsed into the shape the SNMP
+ * layer wants.
+ *
+ * Parsed by the CALLER (FetchScans.buildProbeSnmpConfigs) rather than here,
+ * because a credential that cannot be parsed has to fail the whole scan with a
+ * sentence the operator can read — not once per host inside the sweep's
+ * per-host error handling, where it would report as a subnet that answered
+ * nothing.
+ */
+export interface SubnetScanSnmpConfig {
+  /*
+   * Stamped onto every host this config finds, so the import path can look
+   * the credentials back up. Opaque to the scanner.
+   */
+  id: string;
+  /*
+   * Short, NON-SECRET description used only in log lines and in the scan's
+   * status message. Never contains a community string or a key — see
+   * SnmpScanConfigUtil.getConfigLabel, which builds it.
+   */
+  label: string;
+  snmpVersion: SnmpVersion;
+  communityString: string;
+  snmpV3Auth?: SnmpV3Auth | undefined;
+  port: number;
 }
 
 export interface SubnetScanConfig {
@@ -40,10 +79,13 @@ export interface SubnetScanConfig {
    * `cidr` to match the NetworkDeviceDiscoveryScan column it is read from.
    */
   cidr: string;
-  snmpVersion?: string | undefined;
-  snmpCommunityString?: string | undefined;
-  snmpV3Auth?: SnmpV3Auth | undefined;
-  snmpPort?: number | undefined;
+  /*
+   * The credential sets to try against each host, in the operator's declared
+   * order. Never empty — SnmpScanConfigUtil.resolve() synthesizes one from a
+   * legacy scan's flattened columns — and scan() refuses an empty list rather
+   * than sweeping a subnet with nothing to ask it.
+   */
+  snmpConfigs: Array<SubnetScanSnmpConfig>;
 }
 
 export interface SubnetScanResult {
@@ -54,8 +96,18 @@ export interface SubnetScanResult {
    */
   discoveredHosts: Array<DiscoveredHost>;
   scannedHostCount: number;
-  // The UDP port every host was probed on, so the summary can name it.
-  scannedPort: number;
+  /*
+   * The distinct UDP ports the sweep probed, ascending, so the summary can
+   * name them. Usually one; a list when the scan's configs disagree — an
+   * estate with an agent on 1161 beside the default 161 is a real shape.
+   */
+  scannedPorts: Array<number>;
+  /*
+   * How many hosts each config answered, keyed by config id. Zero-valued
+   * entries are present for configs that answered nothing, because "this
+   * credential found nobody" is exactly what the operator needs told.
+   */
+  responderCountByConfigId: Record<string, number>;
   /*
    * Hosts that answered the ICMP pre-sweep. undefined when the pre-sweep
    * could not run (e.g. no ping binary / ICMP privileges) and every host was
@@ -63,12 +115,19 @@ export interface SubnetScanResult {
    */
   respondedToPingCount?: number | undefined;
   /*
-   * Hosts whose SNMP probe failed with something OTHER than a timeout — an
-   * authentication failure, an unknown v3 user, a refused port, no route.
+   * Hosts that NO config could authenticate to, and whose failure was
+   * something OTHER than a timeout — an authentication failure, an unknown v3
+   * user, a refused port, no route.
+   *
    * A timeout is the ordinary "nothing at this address" answer and is not
    * counted; everything else is evidence the operator can act on, and used
    * to be swallowed by a debug-level log inside a sweep that then reported
    * a clean zero.
+   *
+   * Counted per HOST, not per attempt: with several configs a single
+   * mis-credentialed device produces one failure per config, and multiplying
+   * the count by the length of the credential list would make a subnet look
+   * several times worse than it is.
    */
   snmpErrorHostCount: number;
   /*
@@ -125,6 +184,21 @@ export default class SubnetScanner {
       throw new Error(validationError);
     }
 
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = config.snmpConfigs || [];
+
+    /*
+     * Refused rather than defaulted. Sweeping with an invented credential
+     * would report a subnet as empty on the strength of a guess nobody made,
+     * and the caller — which resolves the list from the scan row and always
+     * produces at least one entry — reaching here means the row is broken in
+     * a way the operator has to see.
+     */
+    if (snmpConfigs.length === 0) {
+      throw new Error(
+        "This scan has no SNMP configuration to try. Open the scan and add at least one SNMP config.",
+      );
+    }
+
     const hosts: Array<string> = SubnetScanner.expandTarget(config.cidr);
 
     if (hosts.length === 0) {
@@ -169,10 +243,24 @@ export default class SubnetScanner {
     );
 
     // Phase 2 — SNMP probe, plus the phase 3 fallback below.
-    const snmpPort: number = config.snmpPort || 161;
     const discoveredHosts: Array<DiscoveredHost> = [];
     const probedHosts: Set<string> = new Set<string>();
     const snmpErrorCounts: Map<string, number> = new Map<string, number>();
+    /*
+     * Successes per config, doubling as the adaptive ordering's input (see
+     * orderConfigsBySuccess) and as the per-config responder counts the
+     * status message reports. Seeded at zero for every config so a credential
+     * that found nothing is still named.
+     */
+    const successCountByConfigId: Map<string, number> = new Map<
+      string,
+      number
+    >();
+
+    for (const snmpConfig of snmpConfigs) {
+      successCountByConfigId.set(snmpConfig.id, 0);
+    }
+
     let snmpResponderCount: number = 0;
     let snmpErrorHostCount: number = 0;
 
@@ -181,73 +269,76 @@ export default class SubnetScanner {
     ): Promise<void> => {
       probedHosts.add(host);
 
-      const snmpConfig: MonitorStepSnmpMonitor = {
-        /*
-         * Parse, don't cast: the stored version is the dropdown key
-         * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
-         * ("1"/"2c"/"3"). A bare cast leaves "V3" unequal to SnmpVersion.V3,
-         * so the session would silently downgrade to v2c. parse() normalizes
-         * both spellings (and defaults to V2c when unset).
-         */
-        snmpVersion: SnmpVersionUtil.parse(config.snmpVersion),
-        hostname: host,
-        port: snmpPort,
-        communityString: config.snmpCommunityString || "public",
-        snmpV3Auth: config.snmpV3Auth,
-        oids: [],
-        timeout: 2000,
-        retries: 0,
-      };
-
-      let systemInfo: SnmpSystemInfo | null = null;
+      /*
+       * Try the credential sets IN SERIES and stop at the first that answers.
+       *
+       * Serial, not parallel, on purpose. Firing every config at once would
+       * cut the latency for a silent host but would also put a failed
+       * authentication attempt on the wire against every real device for
+       * every credential the scan carries — which is both rude to production
+       * gear and, on kit configured to lock a v3 user out after N failures,
+       * actively harmful. Stopping at the first success also means a host
+       * that answers costs exactly what it cost before this list existed.
+       *
+       * The ORDER is adaptive: whichever configs have answered most so far in
+       * this sweep are tried first. On a subnet that is mostly one credential
+       * — the common case even when it is mixed — that collapses the cost of
+       * a badly-ordered list from N timeouts per host back to roughly one.
+       */
+      const orderedConfigs: Array<SubnetScanSnmpConfig> =
+        SubnetScanner.orderConfigsBySuccess(
+          snmpConfigs,
+          successCountByConfigId,
+        );
 
       /*
-       * Anything the SNMP layer failed with that is NOT a timeout. A timeout
-       * is the ordinary answer for an empty address; an auth failure, an
-       * unknown v3 user, a refused port or an unreachable network is a
-       * diagnosis, and reporting nothing but "0 found" for a whole subnet of
-       * them is what makes this class of misconfiguration unfindable.
-       *
-       * Held on an object rather than in a bare `let` so the assignment made
-       * inside the callback below is not erased by control-flow narrowing.
+       * Distinct non-timeout errors this host produced, across all configs.
+       * A Set because a device that rejects three community strings reports
+       * "Authentication failure" three times and is ONE mis-credentialed
+       * host, not three.
        */
-      const probeFailure: { message?: string | undefined } = {};
+      const hostErrors: Set<string> = new Set<string>();
 
-      try {
-        systemInfo = await SnmpMonitor.probeSystemInfo(
-          snmpConfig,
-          (probeError: unknown) => {
-            probeFailure.message = SubnetScanner.describeSnmpError(probeError);
-          },
-        );
-      } catch (err) {
-        logger.debug("Discovery probe error for " + host + ": " + err);
-        probeFailure.message = SubnetScanner.describeSnmpError(err);
+      for (const snmpConfig of orderedConfigs) {
+        const attempt: {
+          systemInfo: SnmpSystemInfo | null;
+          error?: string | undefined;
+        } = await SubnetScanner.probeHostWithConfig(host, snmpConfig);
+
+        if (attempt.systemInfo) {
+          snmpResponderCount++;
+          successCountByConfigId.set(
+            snmpConfig.id,
+            (successCountByConfigId.get(snmpConfig.id) || 0) + 1,
+          );
+
+          discoveredHosts.push({
+            ipAddress: host,
+            sysName: attempt.systemInfo.sysName,
+            sysDescr: attempt.systemInfo.sysDescr,
+            sysObjectId: attempt.systemInfo.sysObjectId,
+            sysLocation: attempt.systemInfo.sysLocation,
+            sysContact: attempt.systemInfo.sysContact,
+            sysUpTimeSeconds: attempt.systemInfo.sysUpTimeSeconds,
+            snmpReachable: true,
+            snmpConfigId: snmpConfig.id,
+          });
+
+          return;
+        }
+
+        if (attempt.error) {
+          hostErrors.add(attempt.error);
+        }
       }
 
-      if (systemInfo) {
-        snmpResponderCount++;
-        discoveredHosts.push({
-          ipAddress: host,
-          sysName: systemInfo.sysName,
-          sysDescr: systemInfo.sysDescr,
-          sysObjectId: systemInfo.sysObjectId,
-          sysLocation: systemInfo.sysLocation,
-          sysContact: systemInfo.sysContact,
-          sysUpTimeSeconds: systemInfo.sysUpTimeSeconds,
-          snmpReachable: true,
-        });
-        return;
-      }
-
-      const snmpError: string | undefined = probeFailure.message;
-
-      if (snmpError) {
+      // No config answered.
+      if (hostErrors.size > 0) {
         snmpErrorHostCount++;
-        snmpErrorCounts.set(
-          snmpError,
-          (snmpErrorCounts.get(snmpError) || 0) + 1,
-        );
+
+        for (const message of hostErrors) {
+          snmpErrorCounts.set(message, (snmpErrorCounts.get(message) || 0) + 1);
+        }
       }
 
       if (pingAliveHosts.has(host)) {
@@ -316,7 +407,8 @@ export default class SubnetScanner {
       discoveredHosts: discoveredHosts,
       // Full sweep size — hosts skipped by the ICMP gate still count as scanned.
       scannedHostCount: hosts.length,
-      scannedPort: snmpPort,
+      scannedPorts: SubnetScanner.getScannedPorts(snmpConfigs),
+      responderCountByConfigId: Object.fromEntries(successCountByConfigId),
       /*
        * Only meaningful when the pre-sweep ran for the whole scan. If it was
        * disabled partway through, the count covers an unknown subset of the
@@ -329,6 +421,140 @@ export default class SubnetScanner {
       mostCommonSnmpError: SubnetScanner.getMostCommonError(snmpErrorCounts),
       icmpFilteredFallbackHostCount: icmpFilteredFallbackHostCount,
     };
+  }
+
+  /*
+   * One host, one credential set. Returns the system group if the device
+   * answered, or the reason it did not when that reason is worth reporting.
+   *
+   * Split out of probeHost so the per-config loop stays readable, and so the
+   * "an error escaped as a throw rather than through the callback" case is
+   * handled in exactly one place for every config.
+   */
+  private static async probeHostWithConfig(
+    host: string,
+    snmpConfig: SubnetScanSnmpConfig,
+  ): Promise<{
+    systemInfo: SnmpSystemInfo | null;
+    error?: string | undefined;
+  }> {
+    const monitorConfig: MonitorStepSnmpMonitor = {
+      /*
+       * Already parsed by the caller: the stored version is the dropdown key
+       * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
+       * ("1"/"2c"/"3"). A bare cast leaves "V3" unequal to SnmpVersion.V3, so
+       * the session would silently downgrade to v2c.
+       */
+      snmpVersion: snmpConfig.snmpVersion,
+      hostname: host,
+      port: snmpConfig.port,
+      communityString: snmpConfig.communityString,
+      snmpV3Auth: snmpConfig.snmpV3Auth,
+      oids: [],
+      timeout: 2000,
+      retries: 0,
+    };
+
+    /*
+     * Anything the SNMP layer failed with that is NOT a timeout. A timeout
+     * is the ordinary answer for an empty address; an auth failure, an
+     * unknown v3 user, a refused port or an unreachable network is a
+     * diagnosis, and reporting nothing but "0 found" for a whole subnet of
+     * them is what makes this class of misconfiguration unfindable.
+     *
+     * Held on an object rather than in a bare `let` so the assignment made
+     * inside the callback below is not erased by control-flow narrowing.
+     */
+    const probeFailure: { message?: string | undefined } = {};
+
+    try {
+      const systemInfo: SnmpSystemInfo | null =
+        await SnmpMonitor.probeSystemInfo(
+          monitorConfig,
+          (probeError: unknown) => {
+            probeFailure.message = SubnetScanner.describeSnmpError(probeError);
+          },
+        );
+
+      if (systemInfo) {
+        return { systemInfo: systemInfo };
+      }
+    } catch (err) {
+      logger.debug(
+        `Discovery probe error for ${host} with ${snmpConfig.label}: ${err}`,
+      );
+      probeFailure.message = SubnetScanner.describeSnmpError(err);
+    }
+
+    return { systemInfo: null, error: probeFailure.message };
+  }
+
+  /*
+   * The order to try credential sets in for the NEXT host: the ones that have
+   * already answered most often in this sweep first, ties broken by the
+   * operator's declared order.
+   *
+   * Exported through the class (and unit-tested directly) because it is the
+   * one piece of the multi-credential sweep whose behaviour is not obvious
+   * from the call site, and because it must be a PURE function of the two
+   * inputs — the sweep calls it once per host from 32 concurrent workers, and
+   * anything stateful in here would make the sweep order depend on scheduling.
+   *
+   * It cannot change WHAT is found: every config is still tried until one
+   * answers, so ordering only decides how many timeouts are paid on the way.
+   * That is why a race on the success counters is harmless — a worker reading
+   * a slightly stale count picks a slightly worse order, nothing more.
+   */
+  public static orderConfigsBySuccess(
+    configs: Array<SubnetScanSnmpConfig>,
+    successCountByConfigId: Map<string, number>,
+  ): Array<SubnetScanSnmpConfig> {
+    const declaredIndexById: Map<string, number> = new Map<string, number>();
+
+    configs.forEach((config: SubnetScanSnmpConfig, index: number) => {
+      declaredIndexById.set(config.id, index);
+    });
+
+    return [...configs].sort(
+      (a: SubnetScanSnmpConfig, b: SubnetScanSnmpConfig) => {
+        const successDifference: number =
+          (successCountByConfigId.get(b.id) || 0) -
+          (successCountByConfigId.get(a.id) || 0);
+
+        if (successDifference !== 0) {
+          return successDifference;
+        }
+
+        /*
+         * Declared order, read from a map rather than relying on Array.sort
+         * being stable for the ids: two configs can legitimately share a
+         * label, and this keeps the tie-break defined by position.
+         */
+        return (
+          (declaredIndexById.get(a.id) ?? 0) -
+          (declaredIndexById.get(b.id) ?? 0)
+        );
+      },
+    );
+  }
+
+  /*
+   * The distinct ports the sweep touches, ascending. Distinct because the
+   * common case is that every config uses 161 and the summary should say
+   * "port 161", not "ports 161, 161, 161".
+   */
+  private static getScannedPorts(
+    configs: Array<SubnetScanSnmpConfig>,
+  ): Array<number> {
+    const ports: Set<number> = new Set<number>();
+
+    for (const config of configs) {
+      ports.add(config.port || 161);
+    }
+
+    return [...ports].sort((a: number, b: number) => {
+      return a - b;
+    });
   }
 
   /*

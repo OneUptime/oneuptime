@@ -15,8 +15,10 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SubnetScanner, {
   SubnetScanResult,
+  SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import { fetchAndRunScans, runScan } from "../../../Jobs/Discovery/FetchScans";
 
@@ -56,13 +58,43 @@ function makeScanResult(
         sysName: "sw1",
         sysDescr: "Cisco IOS",
         snmpReachable: true,
+        snmpConfigId: "legacy",
       },
     ],
     scannedHostCount: 254,
+    /*
+     * A scan carries an ordered LIST of credential sets now, so the sweep
+     * reports the distinct ports it touched and how many hosts each credential
+     * answered. This default is the single-credential shape — the one a scan
+     * with only the flattened columns produces.
+     */
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 1 },
     respondedToPingCount: 12,
     ...overrides,
   } as SubnetScanResult;
 }
+
+/*
+ * The one credential set a legacy scan row resolves to, exactly as
+ * buildProbeSnmpConfigs hands it to the sweep.
+ *
+ * Written out in full rather than asserted field by field: this object IS the
+ * probe's half of the contract between the stored scan and the SNMP layer, and
+ * the two conversions it encodes are both silent when they go wrong — a
+ * version left as the stored spelling downgrades a v3 session to v2c in
+ * cleartext, and a missing community sweeps with nothing at all.
+ */
+const legacyResolvedConfig: SubnetScanSnmpConfig = {
+  // SnmpScanConfigUtil.LEGACY_SNMP_CONFIG_ID — the stable id for a flattened row.
+  id: "legacy",
+  label: "SNMP config 1 (V2c)",
+  // The PARSED enum value ("2c"), not the stored spelling ("V2c").
+  snmpVersion: SnmpVersion.V2c,
+  communityString: "public",
+  snmpV3Auth: undefined,
+  port: 161,
+};
 
 // eslint-disable-next-line @typescript-eslint/typedef
 let fetchSpy = jest.spyOn(API, "fetch");
@@ -144,10 +176,7 @@ describe("runScan — a successful sweep", () => {
 
     expect(scanSpy).toHaveBeenCalledWith({
       cidr: "10.0.0.0/24",
-      snmpVersion: "V2c",
-      snmpCommunityString: "public",
-      snmpV3Auth: undefined,
-      snmpPort: 161,
+      snmpConfigs: [legacyResolvedConfig],
     });
 
     const calls: Array<FetchCall> = fetchCalls();
@@ -194,6 +223,7 @@ describe("runScan — a successful sweep", () => {
             sysName: "sw1",
             sysDescr: "Cisco IOS",
             snmpReachable: true,
+            snmpConfigId: "legacy",
           },
           { ipAddress: "10.0.0.9", snmpReachable: false },
         ],
@@ -261,7 +291,8 @@ describe("runScan — a successful sweep", () => {
         discoveredHosts: [],
         respondedToPingCount: 0,
         snmpErrorHostCount: 0,
-        scannedPort: 161,
+        scannedPorts: [161],
+        responderCountByConfigId: { legacy: 0 },
       }) as never,
     );
 
@@ -321,9 +352,20 @@ describe("runScan — a successful sweep", () => {
       }),
     );
 
-    const scanArg: JSONObject = scanSpy.mock
-      .calls[0]![0] as unknown as JSONObject;
-    expect(scanArg["snmpV3Auth"]).toEqual({
+    /*
+     * The flattened columns still describe one credential set — they are how
+     * every scan written before the list column existed is configured — so the
+     * sweep gets a one-entry list, with the v3 block assembled on that entry.
+     */
+    const sweptConfigs: Array<SubnetScanSnmpConfig> = (
+      scanSpy.mock.calls[0]![0] as unknown as {
+        snmpConfigs: Array<SubnetScanSnmpConfig>;
+      }
+    ).snmpConfigs;
+
+    expect(sweptConfigs).toHaveLength(1);
+    expect(sweptConfigs[0]!.snmpVersion).toBe(SnmpVersion.V3);
+    expect(sweptConfigs[0]!.snmpV3Auth).toEqual({
       securityLevel: "authPriv",
       username: "monitoring",
       authProtocol: "SHA",

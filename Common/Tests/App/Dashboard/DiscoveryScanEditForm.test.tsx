@@ -112,6 +112,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
+import SnmpScanConfigUtil from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
@@ -257,6 +258,16 @@ describe("Editing a discovery scan after it was created", () => {
    * credentials and the schedule. Asserted as a set rather than a count, so a
    * new field on the create wizard that is not offered for editing is a
    * failure here rather than a discovery months later.
+   *
+   * The credentials are ONE key now, not nine. The SNMP step used to spread
+   * getSnmpConfigFormFields — snmpVersion, snmpCommunityString, snmpPort and
+   * the six v3 fields, flat — which allowed exactly one credential set per
+   * scan. A scan now carries an ORDERED LIST of them and tries each in turn
+   * (OneUptime issue #3458), and a repeated block cannot be expressed as
+   * Fields, so the nine are replaced by a single CustomComponent field bound
+   * to the `snmpConfigs` column. The list still has to be editable after
+   * creation — a rejected community string is exactly the kind of thing this
+   * dialog exists to correct — so it is named here like every other setting.
    */
   test("offers every setting the create wizard collects", async () => {
     await openEditDialog();
@@ -271,6 +282,28 @@ describe("Editing a discovery scan after it was created", () => {
       "name",
       "cidr",
       "probe",
+      "snmpConfigs",
+      "isRecurring",
+      "rescanIntervalInMinutes",
+    ]) {
+      expect(editFieldKeys()).toContain(key);
+    }
+  });
+
+  /*
+   * The other half of that change, stated as its own guarantee: the flattened
+   * columns are no longer collected ANYWHERE on this dialog.
+   *
+   * They still exist on the model — the server mirrors the first config onto
+   * them so that a probe a version behind keeps working — but they are derived
+   * now, not typed. Offering one of them here would give the operator a box
+   * whose value the next save silently overwrites from the list, which is
+   * worse than not offering it at all.
+   */
+  test("no longer offers the flattened SNMP columns the list replaced", async () => {
+    await openEditDialog();
+
+    for (const key of [
       "snmpVersion",
       "snmpCommunityString",
       "snmpPort",
@@ -280,10 +313,8 @@ describe("Editing a discovery scan after it was created", () => {
       "snmpV3AuthKey",
       "snmpV3PrivProtocol",
       "snmpV3PrivKey",
-      "isRecurring",
-      "rescanIntervalInMinutes",
     ]) {
-      expect(editFieldKeys()).toContain(key);
+      expect(editFieldKeys()).not.toContain(key);
     }
   });
 
@@ -372,6 +403,20 @@ describe("Editing a discovery scan after it was created", () => {
       editFieldNamed("rescanIntervalInMinutes").customValidation,
     ).toBeDefined();
     expect(editFieldNamed("name").customValidation).toBeDefined();
+
+    /*
+     * The credential list included. Its validator is `validateSnmpConfigs`, a
+     * MODULE-LEVEL const in DiscoveryScanFormValidation rather than an arrow
+     * written inline in the field factory — which is what makes the identity
+     * comparison above meaningful for it. An inline closure would be a fresh
+     * function object on each of the two calls the page makes to the factory,
+     * so this test would fail even though both forms enforced the same rule;
+     * the const is the fix, and this assertion is what would notice it being
+     * inlined again.
+     */
+    expect(
+      editFieldNamed("snmpConfigs").customValidation?.({ snmpConfigs: [] }),
+    ).toBe(SnmpScanConfigUtil.getValidationError([]));
   });
 
   test("offers the probes that were fetched for the create wizard", async () => {
@@ -409,6 +454,17 @@ describe("Editing a discovery scan after it was created", () => {
         },
       ),
     );
+
+    /*
+     * A heading is carried by the FIRST field of its group, so which field
+     * carries it is not decoration — it is where the group begins. The SNMP
+     * group used to begin at `snmpVersion`, the first of nine flat fields;
+     * it now begins at `snmpConfigs`, which is the only field on that step.
+     * Pinned because the heading silently moves to whatever field happens to
+     * come first, and a group that begins in the wrong place puts the
+     * credentials under the schedule's heading with no other symptom.
+     */
+    expect(editFieldNamed("snmpConfigs").sectionTitle).toBe("SNMP Credentials");
   });
 
   /*

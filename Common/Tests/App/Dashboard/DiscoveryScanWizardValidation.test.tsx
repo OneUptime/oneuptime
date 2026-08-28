@@ -34,6 +34,14 @@ type CapturedFormField = {
   stepId?: string | undefined;
   required?: boolean | undefined;
   placeholder?: string | undefined;
+  /*
+   * Captured because the SNMP step's single field is a CustomComponent rather
+   * than an input — see the SNMP describe blocks below. A field that keeps the
+   * key but loses the schema type renders as a text box over a jsonb column,
+   * which types cleanly and saves a string.
+   */
+  fieldType?: string | undefined;
+  getCustomElement?: unknown;
   validation?:
     | {
         maxLength?: number | undefined;
@@ -127,6 +135,11 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+  MAX_SNMP_CONFIGS_PER_SCAN,
+} from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
@@ -268,6 +281,62 @@ function renderRecurrenceCell(
 
   return container.textContent || "";
 }
+
+/*
+ * A credential list of one, carrying whatever the operator typed into that
+ * card's port box.
+ *
+ * The port is deliberately `unknown` rather than `number | undefined`: form
+ * values are JSONValues, a Number input posts its contents as TEXT, and the
+ * whole reason SnmpScanConfigUtil checks the raw value is that "161.5" would
+ * otherwise parseInt to 161, clear both bounds, and fail against a port the
+ * probe cannot dial. A helper typed to the stored interface could not express
+ * the very case under test.
+ */
+function oneSnmpConfigWithPort(port: unknown): Array<Record<string, unknown>> {
+  return [
+    {
+      id: "config-1",
+      name: "Access switches",
+      snmpVersion: "V2c",
+      snmpCommunityString: "public",
+      snmpPort: port,
+    },
+  ];
+}
+
+/*
+ * The shape this whole feature exists for: one subnet, three credential sets,
+ * tried in order until one answers. Typed as the stored interface so that a
+ * change to it that this list no longer satisfies is a compile error here
+ * rather than a runtime surprise on somebody's scan.
+ */
+const MIXED_SUBNET_SNMP_CONFIGS: Array<DiscoveryScanSnmpConfig> = [
+  {
+    id: "11111111-1111-4111-8111-aaaaaaaaaaaa",
+    name: "Access switches",
+    snmpVersion: "V2c",
+    snmpCommunityString: "public",
+    snmpPort: 161,
+  },
+  {
+    id: "22222222-2222-4222-8222-bbbbbbbbbbbb",
+    name: "Core - v3",
+    snmpVersion: "V3",
+    snmpV3SecurityLevel: "authPriv",
+    snmpV3Username: "discovery",
+    snmpV3AuthProtocol: "SHA",
+    snmpV3AuthKey: "authentication-key",
+    snmpV3PrivProtocol: "AES",
+    snmpV3PrivKey: "privacy-key",
+  },
+  {
+    // No community string at all: the sweep falls back to "public".
+    id: "33333333-3333-4333-8333-cccccccccccc",
+    name: "Printers",
+    snmpVersion: "V1",
+  },
+];
 
 function validate(key: string, values: Record<string, unknown>): string | null {
   const field: CapturedFormField = fieldNamed(key);
@@ -530,6 +599,198 @@ describe("Rescan Interval is validated on the Schedule step", () => {
   });
 });
 
+/*
+ * The SNMP step (OneUptime issue #3458).
+ *
+ * It used to spread the nine flat fields of getSnmpConfigFormFields, which
+ * gave a scan exactly ONE credential set. Real subnets are not shaped that
+ * way — access switches on v2c with one community, the core on v3, printers on
+ * the factory default — so such a scan silently missed every device speaking
+ * anything else, and the only workaround was one scan per credential.
+ *
+ * A repeated block cannot be expressed as Fields (a Field is one value at one
+ * key), so those nine became ONE CustomComponent field bound to the
+ * `snmpConfigs` column, rendering SnmpConfigListEditor. That is a lot of
+ * configuration to get subtly wrong in ways nothing else would notice:
+ *
+ *   - keep the key but lose `fieldType`, and the operator gets a plain text
+ *     box over a jsonb column, which types cleanly and saves a string;
+ *   - keep both but lose `required`, and a scan can be created carrying no
+ *     credentials at all;
+ *   - keep all three but move the field off the snmp step, and the editor's
+ *     own error message renders under the Schedule step, two clicks away from
+ *     the cards that caused it — the exact failure shape of issue #3377, which
+ *     this file exists to keep closed.
+ */
+describe("SNMP credentials are collected as one list, on the SNMP Credentials step", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  test("the step asks exactly one question, and it is the credential list", async () => {
+    await renderPage();
+
+    const onTheSnmpStep: Array<string> = (capturedTableProps?.formFields || [])
+      .filter((field: CapturedFormField): boolean => {
+        return field.stepId === STEP_SNMP;
+      })
+      .map(fieldKeyOf);
+
+    expect(onTheSnmpStep).toEqual(["snmpConfigs"]);
+  });
+
+  test("it is a repeated editor rather than an input, bound to the scan's own column", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed("snmpConfigs");
+
+    expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(typeof field.getCustomElement).toBe("function");
+
+    /*
+     * And the key is a real column on the model, not a name invented for the
+     * form. A CustomComponent field writes its value straight into the model
+     * payload under this key, so a typo here posts a property the API drops on
+     * the floor — the cards are edited, the form saves, and the scan sweeps
+     * with the credentials it had before.
+     */
+    expect(Object.keys(field.field || {})).toEqual(["snmpConfigs"]);
+    expect(new NetworkDeviceDiscoveryScan().hasColumn("snmpConfigs")).toBe(
+      true,
+    );
+  });
+
+  /*
+   * Required is not belt-and-braces here. The editor seeds one card and
+   * refuses to delete the last, so the only way to an empty list is a value
+   * that reaches the form some other way — but an empty list is a scan with no
+   * credentials to try, which runs to completion and reports a confident zero.
+   */
+  test("the list is required, so a scan cannot be created with nothing to try", async () => {
+    await renderPage();
+
+    expect(fieldNamed("snmpConfigs").required).toBe(true);
+  });
+
+  /*
+   * The nine flat fields are not merely unused, they are ABSENT. They still
+   * exist as columns — the server mirrors the first config onto them so a
+   * probe a version behind keeps working — but they are derived now. A leftover
+   * `snmpCommunityString` box beside the list would be a box whose value the
+   * very next save overwrites from the list, silently.
+   */
+  test("the nine flat SNMP fields the list replaced are gone from the wizard", async () => {
+    await renderPage();
+
+    const keys: Array<string> = (capturedTableProps?.formFields || []).map(
+      fieldKeyOf,
+    );
+
+    for (const key of [
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+    ]) {
+      expect(keys).not.toContain(key);
+    }
+  });
+
+  /*
+   * The gate itself, written the way this file writes the cidr and interval
+   * gates: the rule lives on the field, the field lives on the step, and the
+   * rule really fires — which together are what stop "Next".
+   *
+   * BasicForm validates only the fields belonging to the step being submitted
+   * (the currentFormStepId guard in Common/UI/Components/Forms/Validation), so
+   * a validator that returns a message from a field on THIS step is exactly
+   * what refuses to advance past it. A list that cannot be stored must not be
+   * allowed to walk to the Schedule step and fail on the final submit, as one
+   * combined banner quoting cards the operator can no longer see.
+   */
+  test("an unstorable list is refused on this step rather than at the end", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed("snmpConfigs");
+
+    expect(field.stepId).toBe(STEP_SNMP);
+    expect(typeof field.customValidation).toBe("function");
+
+    /*
+     * Every message is the one SnmpScanConfigUtil returns, not a second
+     * sentence written for the form — the server validates the write with that
+     * same function, so a list the form accepts is a list the API accepts.
+     */
+    for (const invalid of [
+      // Every card deleted, which the editor prevents but an API caller can do.
+      [],
+      // More configs than the sweep's time budget allows.
+      new Array(MAX_SNMP_CONFIGS_PER_SCAN + 1).fill({ snmpVersion: "V2c" }),
+      // v3 with nobody to authenticate as.
+      [{ snmpVersion: "V3" }],
+      // Two cards that would be indistinguishable to the import path.
+      [
+        { id: "same", snmpVersion: "V2c" },
+        { id: "same", snmpVersion: "V1" },
+      ],
+    ]) {
+      const message: string | null = validate("snmpConfigs", {
+        snmpConfigs: invalid,
+      });
+
+      expect(message).not.toBeNull();
+      expect(message).toBe(SnmpScanConfigUtil.getValidationError(invalid));
+    }
+  });
+
+  test("a real mixed-subnet list walks straight through", async () => {
+    await renderPage();
+
+    expect(
+      validate("snmpConfigs", { snmpConfigs: MIXED_SUBNET_SNMP_CONFIGS }),
+    ).toBeNull();
+  });
+
+  /*
+   * An untouched form says nothing. SnmpConfigListEditor reports its seeded
+   * card through onChange in a mount effect, so this is the window before that
+   * effect runs — and FormField hands a CustomComponent `values[name] || ""`,
+   * so the value seen here really can be an empty string rather than a list.
+   * `required` owns emptiness, exactly as it does for every other field on
+   * this page.
+   */
+  test("an untouched step is left to the field's own required rule", async () => {
+    await renderPage();
+
+    for (const value of [undefined, null, ""]) {
+      expect(validate("snmpConfigs", { snmpConfigs: value })).toBeNull();
+    }
+
+    expect(validate("snmpConfigs", {})).toBeNull();
+  });
+});
+
+/*
+ * The port rule survived the move to a list — it is now enforced PER CONFIG,
+ * by SnmpScanConfigUtil.getPortValidationError, reached through the
+ * snmpConfigs field's own validator. These are the same values the old
+ * `snmpPort` field's tests asserted, driven through the field that replaced
+ * it, because the rule they pin is the one that matters: a port the probe
+ * cannot dial must be refused on the step it was typed on, not by the INSERT.
+ */
 describe("SNMP Port is bounded on the SNMP Credentials step", () => {
   beforeEach(() => {
     capturedTableProps = null;
@@ -546,7 +807,7 @@ describe("SNMP Port is bounded on the SNMP Credentials step", () => {
   test("carries a validator on the SNMP step", async () => {
     await renderPage();
 
-    const field: CapturedFormField = fieldNamed("snmpPort");
+    const field: CapturedFormField = fieldNamed("snmpConfigs");
 
     expect(field.stepId).toBe(STEP_SNMP);
     expect(typeof field.customValidation).toBe("function");
@@ -555,19 +816,71 @@ describe("SNMP Port is bounded on the SNMP Credentials step", () => {
   test.each([
     ["zero", 0],
     ["a port past the top of the range", 65536],
-    ["a fractional port", 161.5],
+    /*
+     * As TEXT, which is how it arrives: the port is typed into a Number input
+     * and posted as a string, so a value that parseInt would happily round
+     * down to 161 has to be caught as written.
+     */
+    ["a fractional port", "161.5"],
   ])("%s is rejected right there", async (_label: string, value: unknown) => {
     await renderPage();
 
-    expect(validate("snmpPort", { snmpPort: value })).not.toBeNull();
+    const message: string | null = validate("snmpConfigs", {
+      snmpConfigs: oneSnmpConfigWithPort(value),
+    });
+
+    expect(message).not.toBeNull();
+    /*
+     * Word for word the server's own sentence, and it names WHICH card is
+     * wrong — with several credential sets on screen, "the SNMP port must be
+     * between 1 and 65535" on its own is not an actionable message.
+     */
+    expect(message).toBe(
+      SnmpScanConfigUtil.getPortValidationError(value, "SNMP config 1"),
+    );
+    expect(message).toContain("SNMP config 1");
   });
 
   test("the SNMP default is accepted, and an empty box says nothing", async () => {
     await renderPage();
 
-    expect(validate("snmpPort", { snmpPort: 161 })).toBeNull();
-    expect(validate("snmpPort", { snmpPort: "" })).toBeNull();
-    expect(validate("snmpPort", {})).toBeNull();
+    expect(
+      validate("snmpConfigs", { snmpConfigs: oneSnmpConfigWithPort(161) }),
+    ).toBeNull();
+    expect(
+      validate("snmpConfigs", { snmpConfigs: oneSnmpConfigWithPort("") }),
+    ).toBeNull();
+    /*
+     * Absent entirely — the card the editor seeds. The column defaults to 161,
+     * so a config that never mentions a port is the normal case rather than an
+     * incomplete one.
+     */
+    expect(
+      validate("snmpConfigs", {
+        snmpConfigs: [{ id: "config-1", snmpVersion: "V2c" }],
+      }),
+    ).toBeNull();
+  });
+
+  /*
+   * And the rule reaches past the first card. The list is validated entry by
+   * entry, so a bad port on the fourth credential set is refused as loudly as
+   * one on the first — and says "SNMP config 4", which is the only way to find
+   * it among five identical-looking cards.
+   */
+  test("a bad port on a later config is named by its position", async () => {
+    await renderPage();
+
+    const message: string | null = validate("snmpConfigs", {
+      snmpConfigs: [
+        { id: "config-1", snmpVersion: "V2c" },
+        { id: "config-2", snmpVersion: "V2c" },
+        { id: "config-3", snmpVersion: "V2c" },
+        { id: "config-4", snmpVersion: "V2c", snmpPort: 70000 },
+      ],
+    });
+
+    expect(message).toContain("SNMP config 4");
   });
 });
 

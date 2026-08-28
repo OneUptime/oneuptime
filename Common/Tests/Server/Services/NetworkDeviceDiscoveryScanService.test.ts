@@ -6,6 +6,11 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+  LEGACY_SNMP_CONFIG_ID,
+  MAX_SNMP_CONFIGS_PER_SCAN,
+} from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import OneUptimeDate from "../../../Types/Date";
@@ -493,6 +498,7 @@ interface StoredScanOverrides {
   status?: string;
   cidr?: string;
   probeId?: ObjectID;
+  snmpConfigs?: Array<DiscoveryScanSnmpConfig> | null | undefined;
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | null | undefined;
   snmpPort?: number | undefined;
@@ -504,9 +510,43 @@ interface StoredScanOverrides {
 }
 
 /*
+ * The stored row's credential list, in the EXACT shape the flattened columns
+ * below it mirror to.
+ *
+ * That correspondence is the whole point of the fixture, not incidental
+ * tidiness. `unchangedSave()` posts this list straight back, so the "does
+ * nothing at all when the whole form is re-posted unchanged" test only proves
+ * anything if the list the form sends and the list the row holds are the same
+ * credentials expressed the same way. If they drifted apart, that test would
+ * still pass for the wrong reason — every save would look like a credential
+ * change, and the assertion that is supposed to catch it would be measuring
+ * a fixture bug instead of the hook.
+ *
+ * The id is `LEGACY_SNMP_CONFIG_ID`, which is what the backfill migration
+ * stamped onto every row that predates the column, so this is a real row's
+ * shape rather than an invented one. Returned from a function rather than
+ * held as a module constant because the hooks normalize the payload IN PLACE
+ * and `saveSettings` copies it onto the stored row — a shared array would let
+ * one test's write leak into the next test's pre-image.
+ */
+function storedSnmpConfigs(): Array<DiscoveryScanSnmpConfig> {
+  return [
+    {
+      id: LEGACY_SNMP_CONFIG_ID,
+      name: "Access switches",
+      snmpVersion: "V2c",
+      snmpCommunityString: "public",
+      snmpPort: 161,
+    },
+  ];
+}
+
+/*
  * A scan as it sits in the database: completed, one-time, sweeping a /24 with
- * a v2c community string. Every test below starts from this and changes the
- * one thing it is about.
+ * a v2c community string — held both as the ordered credential list the
+ * product writes now and, mirrored from its first entry, in the flattened
+ * columns an older probe still reads. Every test below starts from this and
+ * changes the one thing it is about.
  */
 function storedScan(
   overrides?: StoredScanOverrides,
@@ -518,6 +558,7 @@ function storedScan(
   scan.probeId = PROBE_ID;
   scan.cidr = "192.168.1.0/24";
   scan.status = "Completed";
+  scan.snmpConfigs = storedSnmpConfigs();
   scan.snmpVersion = "V2c";
   scan.snmpCommunityString = "public";
   scan.snmpPort = 161;
@@ -676,6 +717,35 @@ async function saveSettings(
   return reconcileWrites;
 }
 
+type HasSweepChangedFunction = (
+  scan: NetworkDeviceDiscoveryScan,
+  data: Record<string, unknown>,
+) => boolean;
+
+/*
+ * The "did this save change what the probe sweeps?" comparison, asked on its
+ * own rather than through a whole save.
+ *
+ * Used for exactly one question, and only because that question cannot be
+ * reached the other way: an EMPTY credential list is refused by validation
+ * (`applySnmpConfigs` throws before any comparison happens), so a save can
+ * never carry one down to here. The comparison still has to answer it
+ * correctly, because the shapes it must treat as equal — an unset column, a
+ * null the hook writes for a cleared list, and an empty array — are decided
+ * by the same normalizer, and a normalizer that disagreed with itself would
+ * turn a no-op save into a run-retiring one.
+ */
+const hasSweepChanged: HasSweepChangedFunction = (
+  scan: NetworkDeviceDiscoveryScan,
+  data: Record<string, unknown>,
+): boolean => {
+  return (NetworkDeviceDiscoveryScanService as any).hasSweepChanged(
+    scan,
+    data,
+    Object.keys(data),
+  );
+};
+
 /*
  * Everything the create wizard posts, unchanged from the stored row. This is
  * what the Edit dialog actually sends when the operator opens it and saves
@@ -686,6 +756,19 @@ function unchangedSave(): Record<string, unknown> {
     name: "Region 1100",
     cidr: "192.168.1.0/24",
     probe: { _id: PROBE_ID.toString() },
+    /*
+     * The SAME list the stored row holds, posted back verbatim — which is
+     * exactly what the Edit dialog does, because its only SNMP control seeds
+     * itself from this column and ModelForm posts every field it declares
+     * whether the operator touched it or not.
+     *
+     * This entry is the single most load-bearing line in the fixture. If
+     * `normalizeSweepValue` ever stopped comparing two structurally-equal
+     * lists as equal, every visit to the Edit dialog would end in a save that
+     * retired the scan's run and deleted the hosts it had found — silently,
+     * with the operator having changed nothing.
+     */
+    snmpConfigs: storedSnmpConfigs(),
     snmpVersion: "V2c",
     snmpCommunityString: "public",
     snmpPort: 161,
@@ -785,6 +868,31 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
   it("re-queues the scan when any single setting of the sweep changes", async () => {
     const changes: Record<string, unknown> = {
       cidr: "10.0.0.0/24",
+      /*
+       * A DIFFERENT list, not a differently-spelled one: the stored config is
+       * kept as entry one and a second credential set is appended, which is
+       * the commonest real edit ("the core switches are on v3 as well"). The
+       * flattened columns therefore mirror to the same values they already
+       * hold, so the only thing that changed is the list itself — and if the
+       * comparison for this column were the `String(value)` fall-through the
+       * others use, both lists would stringify to "[object Object]" and the
+       * scan would keep advertising hosts found with credentials it no longer
+       * tries.
+       */
+      snmpConfigs: [
+        ...storedSnmpConfigs(),
+        {
+          id: "core-routers",
+          name: "Core routers",
+          snmpVersion: "V3",
+          snmpV3SecurityLevel: "authPriv",
+          snmpV3Username: "netops",
+          snmpV3AuthProtocol: "sha",
+          snmpV3AuthKey: "auth-secret",
+          snmpV3PrivProtocol: "aes",
+          snmpV3PrivKey: "priv-secret",
+        },
+      ],
       snmpVersion: "V3",
       snmpCommunityString: "private",
       snmpPort: 1161,
@@ -841,6 +949,61 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     });
 
     expect(writes).toEqual([]);
+  });
+
+  /*
+   * The same rule for the credential LIST, on the row shape it actually
+   * matters for: a scan created before `snmpConfigs` existed, whose column is
+   * still NULL, edited by an API caller that clears the list rather than
+   * sending one. "No list" and "a list that was cleared" are the same
+   * statement — the scan falls back to its flattened columns either way — so
+   * neither may read as a change and throw away the run.
+   */
+  it("does not re-queue a scan with no stored list when the save clears the list", async () => {
+    storedScans = [storedScan({ snmpConfigs: undefined })];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      snmpConfigs: null,
+    });
+
+    expect(writes).toEqual([]);
+  });
+
+  /*
+   * And the shape the hooks refuse to let through, asked of the comparison
+   * directly (see `hasSweepChanged` above for why it cannot be asked through
+   * a save). An empty array from a form is the third spelling of "this scan
+   * has no list of its own", and the normalizer folds all three onto the same
+   * answer.
+   */
+  it("reads an empty credential list and an unset column as the same setting", () => {
+    const scanWithNoList: NetworkDeviceDiscoveryScan = storedScan({
+      snmpConfigs: undefined,
+    });
+
+    const emptyShapes: Array<[string, unknown]> = [
+      ["an empty array", []],
+      ["null", null],
+      ["undefined", undefined],
+      ["an empty string", ""],
+    ];
+
+    for (const [label, value] of emptyShapes) {
+      expect({
+        posted: label,
+        changed: hasSweepChanged(scanWithNoList, { snmpConfigs: value }),
+      }).toEqual({ posted: label, changed: false });
+    }
+  });
+
+  /*
+   * The negative control the test above needs to mean anything: the
+   * comparison is not simply answering "no" for every list. A scan that DOES
+   * hold credentials, handed an empty list, has genuinely lost them.
+   */
+  it("reads an emptied credential list as a change on a scan that had one", () => {
+    expect(hasSweepChanged(storedScan(), { snmpConfigs: [] })).toBe(true);
   });
 
   /*
@@ -1309,5 +1472,778 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
     expect(writes).toHaveLength(1);
     expect(writes[0]!.data["status"]).toBe("Pending");
     expect(writes[0]!.data["nextScanAt"]).toBeNull();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The ordered SNMP credential list (OneUptime issue #3458).
+ * ---------------------------------------------------------------------------
+ *
+ * A scan used to carry exactly ONE credential set, in the flattened
+ * snmpVersion / snmpCommunityString / snmpPort / snmpV3* columns, and the
+ * probe reused it for every address in the sweep. Real segments are not
+ * shaped that way — access switches on v2c with one community, the core on
+ * v3, printers on the factory default — so such a scan silently missed every
+ * device speaking a version it was not configured for and reported "0
+ * discovered" with no indication that anything had been skipped.
+ *
+ * The `snmpConfigs` column is that list. Everything below pins the four
+ * things the service does with it, each of which is a way the column could
+ * quietly go wrong:
+ *
+ *   1. Every scan the product CREATES ends up with a list, even one posted
+ *      through the flattened columns alone. The Edit dialog's only SNMP
+ *      control reads this column, so a scan without one would open showing an
+ *      empty card over credentials the operator cannot see.
+ *   2. A bad list is refused with the SHARED validator's sentence, as a 400 —
+ *      not as the TypeError an unguarded `.map()` over a posted string would
+ *      raise, which is a 500 for what is plainly a client mistake.
+ *   3. A stored list is mirrored back onto the flattened columns, for probes
+ *      that have never heard of it.
+ *   4. An update written through the flattened columns alone is reconciled
+ *      rather than silently ignored.
+ */
+
+/*
+ * A create payload with a valid target and probe, plus whatever the caller
+ * wants to post on top.
+ *
+ * `extra` is Record<string, unknown> for the same reason `cidr` is unknown at
+ * the top of this file: the hook runs before the model's own type checks and
+ * is the first thing to see the raw request JSON, so a jsonb column really
+ * can arrive holding a string, a number or an object rather than a list.
+ */
+function makeCreateByWith(
+  extra: Record<string, unknown>,
+): CreateBy<NetworkDeviceDiscoveryScan> {
+  const createBy: CreateBy<NetworkDeviceDiscoveryScan> =
+    makeCreateBy("192.168.1.0/24");
+
+  Object.assign(createBy.data as unknown as Record<string, unknown>, extra);
+
+  return createBy;
+}
+
+type CreatedRowFunction = (
+  extra: Record<string, unknown>,
+) => Promise<Record<string, unknown>>;
+
+/*
+ * The row as the create hook would hand it to the database. The hook rewrites
+ * its input in place — the list is validated, normalized and given ids — so
+ * what is asserted on is the payload AFTER the hook, not the one posted.
+ */
+const createdRow: CreatedRowFunction = async (
+  extra: Record<string, unknown>,
+): Promise<Record<string, unknown>> => {
+  const createBy: CreateBy<NetworkDeviceDiscoveryScan> =
+    makeCreateByWith(extra);
+
+  await onBeforeCreate(createBy);
+
+  return createBy.data as unknown as Record<string, unknown>;
+};
+
+type UpdatedRowFunction = (
+  data: Record<string, unknown>,
+) => Promise<Record<string, unknown>>;
+
+/*
+ * The same thing for an update: the payload the write would actually carry,
+ * once the hook has normalized the list and mirrored it onto the flattened
+ * columns.
+ */
+const updatedRow: UpdatedRowFunction = async (
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> => {
+  await onBeforeUpdate(makeUpdateBy(data));
+
+  return data;
+};
+
+type CaptureErrorFunction = (
+  run: () => Promise<unknown>,
+) => Promise<Error | null>;
+
+/*
+ * The error a hook threw, as a value rather than as a matcher.
+ *
+ * `rejects.toThrow` proves that SOMETHING was thrown; the loops below have to
+ * prove two harder things about the same throw at once. That it is a
+ * BadDataException — a 400 — rather than the TypeError an unguarded
+ * `.map()`/`.length` over a posted string or number would raise, which is a
+ * 500 in answer to a client mistake. And that its sentence is the shared
+ * validator's own, so the wizard's inline error and the API's 400 are the
+ * same words rather than two descriptions of the same rule that can drift
+ * apart.
+ *
+ * Returning the error also lets each case name itself in the assertion, which
+ * is what makes a failure inside a table-driven loop readable.
+ */
+const captureError: CaptureErrorFunction = async (
+  run: () => Promise<unknown>,
+): Promise<Error | null> => {
+  try {
+    await run();
+  } catch (error) {
+    return error as Error;
+  }
+
+  return null;
+};
+
+/*
+ * One v3 credential set, complete. Used wherever a test needs a config whose
+ * every flattened counterpart has a value, so that "was this mirrored?" can
+ * be asked of all nine columns rather than of the two a v2c config fills in.
+ */
+function coreRoutersConfig(): DiscoveryScanSnmpConfig {
+  return {
+    id: "core-routers",
+    name: "Core routers",
+    snmpVersion: "V3",
+    snmpPort: 1161,
+    snmpV3SecurityLevel: "authPriv",
+    snmpV3Username: "netops",
+    snmpV3AuthProtocol: "SHA",
+    snmpV3AuthKey: "auth-secret",
+    snmpV3PrivProtocol: "AES",
+    snmpV3PrivKey: "priv-secret",
+  };
+}
+
+describe("NetworkDeviceDiscoveryScanService: the credential list on create", () => {
+  /*
+   * The invariant the Edit dialog depends on. That form's only SNMP control
+   * is the list editor, so it selects `snmpConfigs` and nothing else — a scan
+   * whose list were NULL would open with one empty card, and saving it would
+   * replace credentials the operator never saw. The reader still falls back
+   * to the flattened columns, because rows written out of band exist; this
+   * only means the product never creates one.
+   */
+  it("derives a one-entry list from the flattened columns when the payload has none", async () => {
+    const row: Record<string, unknown> = await createdRow({
+      snmpVersion: "V3",
+      snmpCommunityString: "private",
+      snmpPort: 1161,
+      snmpV3SecurityLevel: "authPriv",
+      snmpV3Username: "netops",
+      snmpV3AuthProtocol: "SHA",
+      snmpV3AuthKey: "auth-secret",
+      snmpV3PrivProtocol: "AES",
+      snmpV3PrivKey: "priv-secret",
+    });
+
+    /*
+     * The id is the synthetic "legacy" one, which is the same id the backfill
+     * migration wrote onto every historical row and the same one the reader
+     * synthesizes for a scan with no list — so a scan created this way is
+     * indistinguishable from one that predates the column.
+     */
+    expect(row["snmpConfigs"]).toEqual([
+      {
+        id: LEGACY_SNMP_CONFIG_ID,
+        snmpVersion: "V3",
+        snmpCommunityString: "private",
+        snmpPort: 1161,
+        snmpV3SecurityLevel: "authPriv",
+        snmpV3Username: "netops",
+        snmpV3AuthProtocol: "SHA",
+        snmpV3AuthKey: "auth-secret",
+        snmpV3PrivProtocol: "AES",
+        snmpV3PrivKey: "priv-secret",
+      },
+    ]);
+  });
+
+  /*
+   * The bare case, which is the one an integration written before this column
+   * existed actually posts: a target and a probe and nothing else. The
+   * version defaults to the same v2c the probe would have swept with.
+   */
+  it("gives even a scan created with no SNMP settings at all a list", async () => {
+    const row: Record<string, unknown> = await createdRow({});
+
+    expect(row["snmpConfigs"]).toEqual([
+      { id: LEGACY_SNMP_CONFIG_ID, snmpVersion: "V2c" },
+    ]);
+  });
+
+  it("leaves a supplied list alone rather than deriving over it", async () => {
+    const row: Record<string, unknown> = await createdRow({
+      snmpConfigs: [
+        {
+          id: "access-switches",
+          name: "Access switches",
+          snmpVersion: "V2c",
+          snmpCommunityString: "public",
+        },
+        coreRoutersConfig(),
+      ],
+    });
+
+    const configs: Array<DiscoveryScanSnmpConfig> = row[
+      "snmpConfigs"
+    ] as Array<DiscoveryScanSnmpConfig>;
+
+    /*
+     * Both entries survive, in the order they were posted. Order is not
+     * cosmetic: it is the order the probe tries them in per host, and the
+     * first entry is the one mirrored onto the flattened columns.
+     */
+    expect(
+      configs.map((config: DiscoveryScanSnmpConfig): string | undefined => {
+        return config.id;
+      }),
+    ).toEqual(["access-switches", "core-routers"]);
+  });
+
+  /*
+   * THE CREATE-PATH MIRROR, and a regression test for a bug that shipped
+   * nowhere but got as far as review.
+   *
+   * `createBy.data` is a model INSTANCE, and every column on this model is
+   * declared as a class field with `= undefined` — so `Object.keys()` on a
+   * freshly built scan returns all thirty-seven column names no matter what
+   * the client posted. The hook originally handed that straight to the mirror,
+   * whose "the payload wins where it speaks for itself" guard then fired for
+   * all nine flattened columns on every create, and the mirror became a
+   * permanent no-op on the one path that needs it most.
+   *
+   * What that cost: the wizard's SNMP step posts `snmpConfigs` and nothing
+   * else, so a scan created through the product stored a v3 credential set in
+   * the list while its flattened columns kept the bare Postgres defaults —
+   * and every probe running a version that predates the list swept it with
+   * v2c/"public"/161 and reported the confident zero the whole feature exists
+   * to stop. Invisible in the UI, invisible in the row, visible only as a
+   * subnet that finds nothing.
+   *
+   * The fix is to pass the keys the client actually SUPPLIED (a posted column
+   * carries a defined value; an untouched one does not), which is the
+   * distinction the guard wanted in the first place. This test is written
+   * against the observable behaviour rather than the key list, so it stays
+   * true whatever shape the payload arrives in.
+   */
+  it("mirrors the first config onto the flattened columns, for probes that predate the list", async () => {
+    const row: Record<string, unknown> = await createdRow({
+      snmpConfigs: [coreRoutersConfig(), ...storedSnmpConfigs()],
+    });
+
+    expect({
+      snmpVersion: row["snmpVersion"],
+      snmpCommunityString: row["snmpCommunityString"],
+      snmpPort: row["snmpPort"],
+      snmpV3SecurityLevel: row["snmpV3SecurityLevel"],
+      snmpV3Username: row["snmpV3Username"],
+      snmpV3AuthProtocol: row["snmpV3AuthProtocol"],
+      snmpV3AuthKey: row["snmpV3AuthKey"],
+      snmpV3PrivProtocol: row["snmpV3PrivProtocol"],
+      snmpV3PrivKey: row["snmpV3PrivKey"],
+    }).toEqual({
+      snmpVersion: "V3",
+      snmpCommunityString: null,
+      snmpPort: 1161,
+      snmpV3SecurityLevel: "authPriv",
+      snmpV3Username: "netops",
+      snmpV3AuthProtocol: "SHA",
+      snmpV3AuthKey: "auth-secret",
+      snmpV3PrivProtocol: "AES",
+      snmpV3PrivKey: "priv-secret",
+    });
+  });
+
+  /*
+   * The other half of the same guard, and the reason the fix tests for a
+   * DEFINED value rather than simply mirroring everything: a caller that
+   * really did send a flattened column meant it, and must read back what it
+   * sent.
+   */
+  it("still leaves a flattened column the create payload named for itself alone", async () => {
+    const row: Record<string, unknown> = await createdRow({
+      snmpConfigs: [coreRoutersConfig()],
+      snmpCommunityString: "operator-typed",
+    });
+
+    expect(row["snmpCommunityString"]).toBe("operator-typed");
+    // ...while the columns the payload said nothing about are still mirrored.
+    expect(row["snmpVersion"]).toBe("V3");
+    expect(row["snmpV3Username"]).toBe("netops");
+  });
+
+  /*
+   * A scan created with no SNMP settings at all: the derived list and the
+   * flattened columns have to agree, or the two readers (a current probe on
+   * the list, an older one on the columns) would sweep the same subnet
+   * differently.
+   */
+  it("leaves the flattened columns to their own defaults when the list was derived from them", async () => {
+    const row: Record<string, unknown> = await createdRow({});
+
+    expect(row["snmpConfigs"]).toEqual([
+      { id: LEGACY_SNMP_CONFIG_ID, snmpVersion: "V2c" },
+    ]);
+    /*
+     * Untouched — the derive path has nothing to mirror BACK, since the list
+     * it just built came from these columns. They stay undefined so Postgres
+     * applies the same "V2c"/161 defaults the derived config already names.
+     */
+    expect(row["snmpVersion"]).toBeUndefined();
+    expect(row["snmpCommunityString"]).toBeUndefined();
+  });
+});
+
+/*
+ * Every shape the column can arrive holding that must be refused, with the
+ * sentence the operator would have seen on the form.
+ *
+ * These are not hypothetical shapes. A jsonb column has no type check of its
+ * own, this hook runs before the model's, and the list is the one field of
+ * this form that is not a plain input — so "the client sent a string" is the
+ * ordinary failure of an API caller reading the docs, not an attack.
+ */
+const INVALID_LISTS: Array<[string, unknown]> = [
+  ["a bare string where a list belongs", "V2c"],
+  ["an object where a list belongs", { snmpVersion: "V2c" }],
+  ["a number where a list belongs", 161],
+  ["an empty list", []],
+  ["a v3 config with no username", [{ id: "core-routers", snmpVersion: "V3" }]],
+];
+
+/*
+ * The ceiling, built rather than written out: every extra config costs
+ * another SNMP timeout on each address that answers nothing, so a long list
+ * can push a large sweep past the probe's time limit.
+ */
+const OVERSIZED_LIST: Array<DiscoveryScanSnmpConfig> = [];
+
+for (let index: number = 0; index < MAX_SNMP_CONFIGS_PER_SCAN + 1; index++) {
+  OVERSIZED_LIST.push({
+    id: `config-${index}`,
+    snmpVersion: "V2c",
+    snmpCommunityString: "public",
+  });
+}
+
+INVALID_LISTS.push([
+  `a list of ${MAX_SNMP_CONFIGS_PER_SCAN + 1} configs`,
+  OVERSIZED_LIST,
+]);
+
+describe("NetworkDeviceDiscoveryScanService: validating the credential list", () => {
+  it("rejects an invalid list on create with the shared validator's own message", async () => {
+    for (const [label, value] of INVALID_LISTS) {
+      const error: Error | null = await captureError((): Promise<unknown> => {
+        return onBeforeCreate(makeCreateByWith({ snmpConfigs: value }));
+      });
+
+      expect({
+        posted: label,
+        isBadData: error instanceof BadDataException,
+        message: error?.message,
+      }).toEqual({
+        posted: label,
+        isBadData: true,
+        message: SnmpScanConfigUtil.getValidationError(value),
+      });
+    }
+  });
+
+  it("rejects an invalid list on update with the shared validator's own message", async () => {
+    for (const [label, value] of INVALID_LISTS) {
+      const error: Error | null = await captureError((): Promise<unknown> => {
+        return onBeforeUpdate(makeUpdateBy({ snmpConfigs: value }));
+      });
+
+      expect({
+        posted: label,
+        isBadData: error instanceof BadDataException,
+        message: error?.message,
+      }).toEqual({
+        posted: label,
+        isBadData: true,
+        message: SnmpScanConfigUtil.getValidationError(value),
+      });
+    }
+  });
+
+  /*
+   * A v3 config whose security level asks for authentication with nothing to
+   * authenticate with does not fail loudly: the session is simply rejected by
+   * every device, host after host, and the scan reports zero. Named
+   * separately from the loop above because it is the failure mode this
+   * validation exists for.
+   */
+  it("rejects a v3 config whose security level has no key to go with it", async () => {
+    const error: Error | null = await captureError((): Promise<unknown> => {
+      return onBeforeUpdate(
+        makeUpdateBy({
+          snmpConfigs: [
+            {
+              id: "core-routers",
+              snmpVersion: "V3",
+              snmpV3Username: "netops",
+              snmpV3SecurityLevel: "authPriv",
+              snmpV3AuthKey: "auth-secret",
+            },
+          ],
+        }),
+      );
+    });
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toContain("privacy key");
+  });
+
+  /*
+   * The message names WHICH card is wrong. With five credential sets on
+   * screen, "SNMP v3 Username is required" on its own is not something an
+   * operator can act on.
+   */
+  it("names the offending config's position in the list", async () => {
+    const error: Error | null = await captureError((): Promise<unknown> => {
+      return onBeforeUpdate(
+        makeUpdateBy({
+          snmpConfigs: [
+            { id: "access-switches", snmpVersion: "V2c" },
+            { id: "core-routers", snmpVersion: "V3" },
+          ],
+        }),
+      );
+    });
+
+    expect(error?.message).toContain("SNMP config 2");
+  });
+
+  // A valid list is accepted, so the rejections above are not vacuous.
+  it("accepts a well-formed multi-config list", async () => {
+    await expect(
+      onBeforeUpdate(
+        makeUpdateBy({
+          snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("NetworkDeviceDiscoveryScanService: normalizing the credential list on write", () => {
+  /*
+   * An id has to be minted rather than left positional. The probe stamps the
+   * answering config's id onto each discovered host and the importer resolves
+   * the host's credentials back out of the list by that id — so an id derived
+   * from a config's POSITION would re-point every host below a deleted card
+   * at a different credential set, and those hosts would then be imported
+   * with a community string that does not work.
+   */
+  it("mints a real id for a config that arrives without one", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [{ snmpVersion: "V2c", snmpCommunityString: "public" }],
+    });
+
+    const configs: Array<DiscoveryScanSnmpConfig> = row[
+      "snmpConfigs"
+    ] as Array<DiscoveryScanSnmpConfig>;
+
+    expect(configs).toHaveLength(1);
+    expect(ObjectID.isValidUUID(configs[0]!.id as string)).toBe(true);
+    // Specifically NOT the index-derived id the reader falls back to.
+    expect(configs[0]!.id).not.toBe("config-1");
+  });
+
+  /*
+   * And the other half of the same rule: an id that arrived is kept, because
+   * results the probe has already stamped name it.
+   */
+  it("keeps the id a config arrived with", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [coreRoutersConfig()],
+    });
+
+    expect((row["snmpConfigs"] as Array<DiscoveryScanSnmpConfig>)[0]!.id).toBe(
+      "core-routers",
+    );
+  });
+
+  /*
+   * Everything a form can post loosely, tightened once at the write rather
+   * than at each of the four readers (probe, importer, form, service). The
+   * version in particular is normalized to the stored spelling, so a
+   * hand-written "3" cannot make the same credentials read as a CHANGE the
+   * next time the form posts "V3" back.
+   */
+  it("trims every string, coerces the port and normalizes the version", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [
+        {
+          id: "  core-routers  ",
+          name: "  Core routers  ",
+          snmpVersion: "3",
+          snmpCommunityString: "  private  ",
+          snmpPort: "1161",
+          snmpV3SecurityLevel: "  authPriv  ",
+          snmpV3Username: "  netops  ",
+          snmpV3AuthProtocol: "  SHA  ",
+          snmpV3AuthKey: "  auth-secret  ",
+          snmpV3PrivProtocol: "  AES  ",
+          snmpV3PrivKey: "  priv-secret  ",
+        },
+      ],
+    });
+
+    expect(row["snmpConfigs"]).toEqual([
+      {
+        id: "core-routers",
+        name: "Core routers",
+        snmpVersion: "V3",
+        snmpCommunityString: "private",
+        snmpPort: 1161,
+        snmpV3SecurityLevel: "authPriv",
+        snmpV3Username: "netops",
+        snmpV3AuthProtocol: "SHA",
+        snmpV3AuthKey: "auth-secret",
+        snmpV3PrivProtocol: "AES",
+        snmpV3PrivKey: "priv-secret",
+      },
+    ]);
+  });
+});
+
+/*
+ * THE MIRROR.
+ *
+ * A probe is deployed separately from the server and is routinely a version
+ * behind. A probe that has never heard of `snmpConfigs` reads the flattened
+ * columns and NOTHING ELSE — so without this, saving a multi-config scan
+ * would leave those columns holding whatever the scan was created with, or
+ * the bare column defaults (v2c / "public" / 161), and every older probe in
+ * the fleet would sweep with credentials nobody chose and report a confident
+ * zero. The operator would see a scan that finds nothing and no indication
+ * anywhere that the credentials it advertises are not the ones it is using.
+ *
+ * The FIRST config specifically, because that is the one such a probe would
+ * have been handed under the old single-config UI, and because the list is
+ * ordered by the operator's own preference.
+ */
+describe("NetworkDeviceDiscoveryScanService: mirroring the list onto the flattened columns", () => {
+  it("writes the nine flattened columns from the list's first config", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [coreRoutersConfig(), ...storedSnmpConfigs()],
+    });
+
+    /*
+     * All nine asserted together, and the second config's own community
+     * string ("public") must NOT appear among them — that is the assertion
+     * that the FIRST entry is the one mirrored, rather than the last one
+     * written or a merge of the two.
+     */
+    expect({
+      snmpVersion: row["snmpVersion"],
+      snmpCommunityString: row["snmpCommunityString"],
+      snmpPort: row["snmpPort"],
+      snmpV3SecurityLevel: row["snmpV3SecurityLevel"],
+      snmpV3Username: row["snmpV3Username"],
+      snmpV3AuthProtocol: row["snmpV3AuthProtocol"],
+      snmpV3AuthKey: row["snmpV3AuthKey"],
+      snmpV3PrivProtocol: row["snmpV3PrivProtocol"],
+      snmpV3PrivKey: row["snmpV3PrivKey"],
+    }).toEqual({
+      snmpVersion: "V3",
+      snmpCommunityString: null,
+      snmpPort: 1161,
+      snmpV3SecurityLevel: "authPriv",
+      snmpV3Username: "netops",
+      snmpV3AuthProtocol: "SHA",
+      snmpV3AuthKey: "auth-secret",
+      snmpV3PrivProtocol: "AES",
+      snmpV3PrivKey: "priv-secret",
+    });
+  });
+
+  /*
+   * A caller that sends BOTH the list and a flattened column meant the
+   * flattened one. Overwriting it would make the payload and the row disagree
+   * in a way only the database could reveal — the caller would be told the
+   * write succeeded and would then read back a value it never sent.
+   */
+  it("leaves a flattened column the payload named for itself alone", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [coreRoutersConfig()],
+      snmpCommunityString: "operator-typed",
+    });
+
+    expect(row["snmpCommunityString"]).toBe("operator-typed");
+    // ...while the columns the payload said nothing about are still mirrored.
+    expect(row["snmpVersion"]).toBe("V3");
+    expect(row["snmpV3Username"]).toBe("netops");
+  });
+
+  /*
+   * Clearing the list puts the scan back on its flattened columns, exactly
+   * where a scan created before this feature already is. Mirroring anything
+   * here would erase the very credentials the fallback just landed on: there
+   * is no first config to mirror FROM, so the mirror would write the column
+   * defaults over whatever the row actually holds.
+   */
+  it("clears the column and mirrors nothing when the list is cleared", async () => {
+    for (const clearedValue of [null, ""]) {
+      const row: Record<string, unknown> = await updatedRow({
+        snmpConfigs: clearedValue,
+      });
+
+      // The whole payload, so "mirrors nothing" is a real assertion.
+      expect(row).toEqual({ snmpConfigs: null });
+    }
+  });
+});
+
+/*
+ * An update written through the FLATTENED columns alone, on a scan that has a
+ * credential list.
+ *
+ * The list shadows those columns — the reader consults it and ignores them —
+ * so such a write would land in the database and change nothing about the
+ * sweep. That is the worst of both outcomes: the caller is told it succeeded
+ * and the scan keeps the credentials it had. Which of the two honest answers
+ * applies depends only on how many configs the row holds.
+ */
+describe("NetworkDeviceDiscoveryScanService: an update through the flattened columns alone", () => {
+  it("clears the list on a single-config scan, so the flattened columns are authoritative again", async () => {
+    storedScans = [storedScan()];
+
+    const row: Record<string, unknown> = await updatedRow({
+      snmpCommunityString: "private",
+    });
+
+    /*
+     * Precisely the behaviour this API had before the list existed. The next
+     * save through the form rebuilds the list from what the operator sees.
+     */
+    expect(row["snmpConfigs"]).toBeNull();
+    expect(row["snmpCommunityString"]).toBe("private");
+  });
+
+  it("refuses the same update on a multi-config scan, naming the field to use instead", async () => {
+    storedScans = [
+      storedScan({
+        snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+      }),
+    ];
+
+    const error: Error | null = await captureError((): Promise<unknown> => {
+      return onBeforeUpdate(makeUpdateBy({ snmpCommunityString: "private" }));
+    });
+
+    /*
+     * There is no set of flattened columns that could express a two-config
+     * scan, and picking one config to overwrite would silently discard the
+     * other — so the only honest answer is a refusal that says what to send.
+     */
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toContain("snmpConfigs");
+    expect(error?.message).toContain("2");
+  });
+
+  it("leaves an update that sends the list itself alone, even on a multi-config scan", async () => {
+    storedScans = [
+      storedScan({
+        snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+      }),
+    ];
+
+    const row: Record<string, unknown> = await updatedRow({
+      snmpConfigs: [coreRoutersConfig()],
+      snmpCommunityString: "operator-typed",
+    });
+
+    expect(row["snmpConfigs"]).toHaveLength(1);
+    expect(row["snmpCommunityString"]).toBe("operator-typed");
+  });
+
+  /*
+   * The reconciliation must not reach for a payload that never mentions SNMP
+   * at all. Adding `snmpConfigs: null` to a rename or a target change would
+   * throw away the credential list of every scan that got renamed.
+   */
+  it("leaves an update that touches no SNMP column at all completely alone", async () => {
+    const row: Record<string, unknown> = await updatedRow({
+      cidr: "10.0.0.0/24",
+    });
+
+    expect(Object.prototype.hasOwnProperty.call(row, "snmpConfigs")).toBe(
+      false,
+    );
+  });
+});
+
+describe("NetworkDeviceDiscoveryScanService: the credential list retires a run like any other sweep column", () => {
+  /*
+   * The results on the row were found with the OLD credentials. Once the list
+   * changes they describe a sweep that no longer exists — and, worse than
+   * merely being stale, the Review Results dialog would offer them for import
+   * under the new credentials and the auto-import worker would create devices
+   * from them.
+   */
+  it("retires the run and clears the results when a config is added to the list", async () => {
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.data).toEqual({
+      status: "Pending",
+      statusMessage: expect.stringContaining("queued to run again"),
+      startedAt: null,
+      completedAt: null,
+      nextScanAt: null,
+      discoveredDevices: null,
+      scannedHostCount: null,
+      respondedHostCount: null,
+      autoImportProcessedAt: null,
+    });
+  });
+
+  /*
+   * Reordering alone is a real change, not a cosmetic one: the order is the
+   * order the probe tries the configs in per host, and the first entry is
+   * what an older probe sweeps with. A scan whose preferred credential moved
+   * can find a different set of hosts, so its previous results are no more
+   * trustworthy than they would be after an edit.
+   */
+  it("retires the run when the list is only reordered", async () => {
+    storedScans = [
+      storedScan({
+        snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+      }),
+    ];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      snmpConfigs: [coreRoutersConfig(), ...storedSnmpConfigs()],
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.data["status"]).toBe("Pending");
+  });
+
+  /*
+   * And the assertion the whole fixture is built around, restated for a
+   * multi-config scan: re-posting the same list in the same order is not a
+   * change. ModelForm posts every field it declares on every save, so this is
+   * what an operator who opens Edit and presses Save actually sends — and if
+   * it read as a change, every such visit would delete the scan's results.
+   */
+  it("does not retire the run when the same multi-config list is re-posted", async () => {
+    storedScans = [
+      storedScan({
+        snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+      }),
+    ];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      snmpConfigs: [...storedSnmpConfigs(), coreRoutersConfig()],
+    });
+
+    expect(writes).toEqual([]);
   });
 });

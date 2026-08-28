@@ -247,6 +247,15 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
       // Both spellings: the dashboard posts `probe`, API clients post `probeId`.
       "probe",
       "probeId",
+      /*
+       * The ordered credential list (issue #3458) is a SETTING of the sweep,
+       * not something the scan reported, so it belongs on this side of the
+       * line — and it has to be here specifically because the Edit dialog
+       * renders it: ModelForm drops a field whose column grants no update
+       * permission, so a create-only `snmpConfigs` would leave the operator
+       * an editor that silently cannot save the one thing it edits.
+       */
+      "snmpConfigs",
       "snmpVersion",
       "snmpCommunityString",
       "snmpPort",
@@ -291,19 +300,46 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
         update: scan.getColumnAccessControlFor(column)?.update,
       }).toEqual({ column: column, update: [] });
     }
+
+    /*
+     * And the column that looks like it belongs on this side but must not be
+     * moved here. `snmpConfigs` holds community strings and v3 passphrases,
+     * so the instinct on reading it is to lock it down beside the results —
+     * but it is the operator's own input, not something the scan reported,
+     * and an empty update list is precisely what makes a column unsavable
+     * from the Edit dialog. Its secrets are guarded by a narrow READ list
+     * instead, which the test below pins.
+     *
+     * Asserted in both directions so the two halves of this divide cannot be
+     * quietly edited into agreeing with each other: the name is absent from
+     * the list AND the model really does grant updates on it.
+     */
+    expect(resultColumns).not.toContain("snmpConfigs");
+    expect(scan.getColumnAccessControlFor("snmpConfigs")?.update).not.toEqual(
+      [],
+    );
   });
 
   /*
-   * Widening `update` must not have widened `read`. The three credential
-   * columns are read by a narrower list than the rest of the model on purpose
-   * — a passphrase is not something every reader of the scans list should be
+   * Widening `update` must not have widened `read`. The credential columns are
+   * read by a narrower list than the rest of the model on purpose — a
+   * passphrase is not something every reader of the scans list should be
    * handed — and every editor is already inside it, so the Edit dialog can
    * still prefill them.
+   *
+   * `snmpConfigs` is the fourth, and the one most easily got wrong. It is a
+   * jsonb column, so it has ONE permission for the whole value, and the value
+   * contains the community strings and v3 passphrases of every credential set
+   * the scan tries. A jsonb column therefore has to take the STRICTEST of the
+   * permissions of what it contains: granting it the model's usual read list
+   * would hand a Viewer, in one array, every secret the three flattened
+   * columns beside it are narrowed to keep from them.
    */
   test("does not widen read access to the credentials", () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
 
     const credentialColumns: Array<string> = [
+      "snmpConfigs",
       "snmpCommunityString",
       "snmpV3AuthKey",
       "snmpV3PrivKey",

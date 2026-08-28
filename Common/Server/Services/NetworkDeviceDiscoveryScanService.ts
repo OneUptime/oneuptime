@@ -14,6 +14,10 @@ import Probe from "../../Models/DatabaseModels/Probe";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+  SnmpScanConfigSource,
+} from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
 
 /*
@@ -34,6 +38,14 @@ const PROBE_RELATION_KEYS: Array<string> = ["probeId", "probe"];
 const SWEEP_COLUMNS: Array<string> = [
   "cidr",
   "probeId",
+  /*
+   * The ordered credential list. Listed FIRST among the SNMP columns because
+   * it is the one the form actually posts now; the flattened columns below it
+   * are mirrored from its first entry (see mirrorLegacySnmpColumns) and remain
+   * here so a scan edited through the API with only those fields still retires
+   * its run.
+   */
+  "snmpConfigs",
   "snmpVersion",
   "snmpCommunityString",
   "snmpPort",
@@ -64,6 +76,23 @@ const NULLABLE_NUMBER_COLUMNS: Array<string> = [
  * The columns that decide WHEN the scan runs again, and nothing else. They
  * never retire a result — they only re-derive nextScanAt.
  */
+/*
+ * The single credential set a scan carried before `snmpConfigs` existed. Still
+ * written — mirrored from the list's first entry — so a probe that predates
+ * the list keeps sweeping with real credentials; see applySnmpConfigs.
+ */
+const LEGACY_SNMP_COLUMNS: Array<string> = [
+  "snmpVersion",
+  "snmpCommunityString",
+  "snmpPort",
+  "snmpV3SecurityLevel",
+  "snmpV3Username",
+  "snmpV3AuthProtocol",
+  "snmpV3AuthKey",
+  "snmpV3PrivProtocol",
+  "snmpV3PrivKey",
+];
+
 const SCHEDULE_COLUMNS: Array<string> = [
   "isRecurring",
   "rescanIntervalInMinutes",
@@ -174,6 +203,59 @@ export class Service extends DatabaseService<Model> {
       Object.keys(createBy.data || {}),
     );
 
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The keys the CLIENT actually supplied, not the keys the object has.
+     *
+     * `createBy.data` is a model INSTANCE, and every column on it is declared
+     * as a class field with `= undefined` — so `Object.keys()` returns all 37
+     * column names on a brand-new scan no matter what was posted. Handing that
+     * to applySnmpConfigs made its "the payload wins where it speaks for
+     * itself" guard fire for all nine flattened columns, every time, and the
+     * mirror it protects became a permanent no-op on this path: a scan created
+     * through the wizard (which posts `snmpConfigs` and nothing else) stored
+     * its credentials in the list while its flattened columns kept the bare
+     * Postgres defaults, and every probe a version behind swept it with
+     * v2c/"public"/161 and reported the confident zero the mirror exists to
+     * prevent.
+     *
+     * A column the client really did send carries a DEFINED value — including
+     * an explicit null, which is a caller clearing it — so testing for
+     * definedness is exactly the distinction the guard wanted in the first
+     * place. The update path never had this problem: BaseAPI builds a plain
+     * partial there, holding only the posted keys.
+     */
+    const suppliedCreateKeys: Array<string> = Object.keys(
+      createData || {},
+    ).filter((key: string): boolean => {
+      return createData[key] !== undefined;
+    });
+
+    this.applySnmpConfigs(createData, suppliedCreateKeys);
+
+    /*
+     * Every scan leaves this hook WITH a credential list, even one created
+     * through the flattened columns alone (an API caller, an integration
+     * written before this column existed).
+     *
+     * The invariant is what the Edit dialog depends on. That form's only SNMP
+     * control is the list editor, so it selects `snmpConfigs` and nothing else
+     * — a scan whose list were NULL would open with an empty card, and saving
+     * it would replace the credentials the operator could not see. The reader
+     * (SnmpScanConfigUtil.resolve) still falls back to the flattened columns,
+     * because rows written out of band exist; this just means the product
+     * never creates one.
+     */
+    if (!SnmpScanConfigUtil.readStoredList(createData["snmpConfigs"])) {
+      createData["snmpConfigs"] = SnmpScanConfigUtil.normalizeForStorage(
+        SnmpScanConfigUtil.resolve(
+          createData as unknown as SnmpScanConfigSource,
+        ),
+      );
+    }
+
     await this.validateProbeIsUsable({
       data: createBy.data as unknown as Record<string, unknown>,
       dataKeys: Object.keys(createBy.data || {}),
@@ -224,15 +306,26 @@ export class Service extends DatabaseService<Model> {
 
     this.nullEmptyNumbers(data, dataKeys);
 
+    /*
+     * Runs BEFORE isSweepWritten is computed, because it can ADD the flattened
+     * SNMP columns to the payload — and those are sweep columns. A mirror
+     * written after that flag was read would be invisible to the
+     * reconciliation and could hand the probe one credential while the row
+     * advertised another.
+     */
+    this.applySnmpConfigs(data, dataKeys);
+
+    const dataKeysAfterMirror: Array<string> = Object.keys(data);
+
     const isSweepWritten: boolean =
-      RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS) ||
+      RelationIdUtil.isWritten(dataKeysAfterMirror, PROBE_RELATION_KEYS) ||
       SWEEP_COLUMNS.some((column: string) => {
-        return dataKeys.includes(column);
+        return dataKeysAfterMirror.includes(column);
       });
 
     const isScheduleWritten: boolean = SCHEDULE_COLUMNS.some(
       (column: string) => {
-        return dataKeys.includes(column);
+        return dataKeysAfterMirror.includes(column);
       },
     );
 
@@ -274,6 +367,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         cidr: true,
         probeId: true,
+        snmpConfigs: true,
         snmpVersion: true,
         snmpCommunityString: true,
         snmpPort: true,
@@ -308,13 +402,19 @@ export class Service extends DatabaseService<Model> {
        */
       await this.validateProbeIsUsable({
         data: data,
-        dataKeys: dataKeys,
+        dataKeys: dataKeysAfterMirror,
         projectId: scan.projectId,
+      });
+
+      this.reconcileLegacySnmpUpdate({
+        data: data,
+        dataKeys: dataKeysAfterMirror,
+        scan: scan,
       });
 
       plans[scanId] = {
         isSweepChanged: isSweepWritten
-          ? this.hasSweepChanged(scan, data, dataKeys)
+          ? this.hasSweepChanged(scan, data, dataKeysAfterMirror)
           : false,
         isScheduleWritten: isScheduleWritten,
       };
@@ -624,7 +724,175 @@ export class Service extends DatabaseService<Model> {
       return value.trim();
     }
 
+    /*
+     * The credential LIST, and the reason the fall-through below cannot be
+     * left to speak for it: `String([{ ... }])` is "[object Object]" for every
+     * possible list, so two completely different sets of credentials would
+     * compare equal and a save that swapped them would leave the row
+     * advertising hosts found with the old ones.
+     *
+     * Compared through the same normalizer the probe and the importer read the
+     * column with, so the comparison is of the credentials that will actually
+     * be USED — an empty box against an unset field, "161" against 161, "V3"
+     * against "3" — rather than of the shape the form happened to post. That
+     * is what stops a no-op Save (ModelForm posts every field, dirty or not)
+     * from retiring a good result set on every visit to the Edit dialog.
+     *
+     * An empty array normalizes to "" — the same answer as an unset column —
+     * because both mean "this scan has no list of its own". A list is refused
+     * as empty at validation time anyway; this only decides whether the two
+     * shapes read as a CHANGE.
+     */
+    if (Array.isArray(value)) {
+      /*
+       * Through resolve(), NOT normalizeForStorage(): the latter MINTS a fresh
+       * random id for an entry that has none, so two identical id-less lists
+       * would normalize to different strings and every save would read as a
+       * change. resolve() falls back to a positional id instead, which is a
+       * pure function of the input — which is what a comparison needs.
+       */
+      const configs: Array<DiscoveryScanSnmpConfig> =
+        SnmpScanConfigUtil.resolve({
+          snmpConfigs: value as Array<DiscoveryScanSnmpConfig>,
+        });
+
+      return value.length === 0 ? "" : JSON.stringify(configs);
+    }
+
     return String(value);
+  }
+
+  /*
+   * An update written through the FLATTENED columns alone, on a scan that has
+   * a credential list.
+   *
+   * The list shadows those columns — SnmpScanConfigUtil.resolve reads it and
+   * ignores them — so such a write would land in the database and change
+   * nothing about the sweep, which is the worst of both outcomes: the caller
+   * is told it succeeded and the scan keeps the credentials it had.
+   *
+   * There are exactly two honest answers, and which one applies depends only
+   * on how many configs the row holds:
+   *
+   *   - ONE (or none): the scan is single-credential, so the flattened columns
+   *     can describe it completely. The list is cleared and they become
+   *     authoritative again — precisely the behaviour this API had before the
+   *     list existed. The next save through the form rebuilds the list.
+   *   - MORE THAN ONE: there is no flattened column set that could express the
+   *     scan, and picking one config to overwrite would silently discard the
+   *     others. Refused, naming the field to use instead.
+   *
+   * Both branches are decided from the row but WRITTEN row-independently (the
+   * clear is the same value for every matched row), because `data` is one
+   * payload shared by every row an update query matches.
+   */
+  private reconcileLegacySnmpUpdate(input: {
+    data: Record<string, unknown>;
+    dataKeys: Array<string>;
+    scan: Model;
+  }): void {
+    if (input.dataKeys.includes("snmpConfigs")) {
+      return;
+    }
+
+    const isLegacyColumnWritten: boolean = LEGACY_SNMP_COLUMNS.some(
+      (column: string) => {
+        return input.dataKeys.includes(column);
+      },
+    );
+
+    if (!isLegacyColumnWritten) {
+      return;
+    }
+
+    const stored: Array<DiscoveryScanSnmpConfig> | null =
+      SnmpScanConfigUtil.readStoredList(input.scan.snmpConfigs);
+
+    if (stored && stored.length > 1) {
+      throw new BadDataException(
+        `This scan tries ${stored.length} SNMP configs, which the single snmp* fields cannot describe. ` +
+          `Send the whole "snmpConfigs" list instead.`,
+      );
+    }
+
+    input.data["snmpConfigs"] = null;
+  }
+
+  /*
+   * The scan's ordered SNMP credential list: validated, normalized, and
+   * mirrored into the flattened columns.
+   *
+   * Called from BOTH write hooks, and a no-op for a payload that does not
+   * mention `snmpConfigs` — which is every server-side writer of this model
+   * (the probe claim, the result ingest, the requeue worker) and every API
+   * caller still using the flattened columns alone.
+   *
+   * THE MIRROR IS THE POINT. A probe is deployed separately from the server
+   * and is routinely a version behind, and a probe that has never heard of
+   * `snmpConfigs` reads the flattened columns and nothing else. Without this,
+   * saving a multi-config scan would leave those columns holding whatever the
+   * scan was created with — or, for a scan created after this feature, the
+   * bare column defaults — and every older probe in the fleet would sweep with
+   * "public"/v2c and report a confident zero. Mirroring the FIRST config keeps
+   * such a probe doing exactly what it would have done under the old
+   * single-config UI.
+   */
+  private applySnmpConfigs(
+    data: Record<string, unknown>,
+    dataKeys: Array<string>,
+  ): void {
+    if (!dataKeys.includes("snmpConfigs")) {
+      return;
+    }
+
+    const raw: unknown = data["snmpConfigs"];
+
+    /*
+     * An absent list is not the same as a bad one. The edit form always posts
+     * the key, so a null/empty value here is an API caller clearing the column
+     * — which puts the scan back on its flattened columns, exactly where a
+     * scan created before this feature already is. Nothing is mirrored in that
+     * case: there is no first config to mirror from, and overwriting the
+     * flattened columns with defaults would erase the credentials that clearing
+     * the list just fell back to.
+     */
+    if (raw === undefined || raw === null || raw === "") {
+      data["snmpConfigs"] = null;
+      return;
+    }
+
+    const validationError: string | null =
+      SnmpScanConfigUtil.getValidationError(raw);
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+
+    const configs: Array<DiscoveryScanSnmpConfig> | null =
+      SnmpScanConfigUtil.normalizeForStorage(raw);
+
+    data["snmpConfigs"] = configs;
+
+    if (!configs || configs.length === 0) {
+      return;
+    }
+
+    const mirrored: Record<string, string | number | null> =
+      SnmpScanConfigUtil.getMirroredLegacyColumns(configs);
+
+    for (const column of Object.keys(mirrored)) {
+      /*
+       * The payload wins where it speaks for itself. An API caller that sends
+       * BOTH the list and a flattened column meant the flattened one, and
+       * silently overwriting it would make the two disagree in a way only the
+       * database could reveal.
+       */
+      if (dataKeys.includes(column)) {
+        continue;
+      }
+
+      data[column] = mirrored[column] ?? null;
+    }
   }
 
   /*

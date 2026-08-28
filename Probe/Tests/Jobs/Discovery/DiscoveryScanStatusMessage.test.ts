@@ -4,7 +4,11 @@ process.env["PROBE_KEY"] = "test-probe-key";
 process.env["PROBE_ID"] = "11111111-2222-3333-4444-555555555555";
 
 import { buildScanStatusMessage } from "../../../Jobs/Discovery/FetchScans";
-import { SubnetScanResult } from "../../../Utils/Discovery/SubnetScanner";
+import {
+  SubnetScanResult,
+  SubnetScanSnmpConfig,
+} from "../../../Utils/Discovery/SubnetScanner";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -28,13 +32,47 @@ function makeResult(overrides?: Partial<SubnetScanResult>): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    /*
+     * A sweep now reports the DISTINCT ports it touched rather than the single
+     * port a scan used to carry, because a scan can hold several credential
+     * sets and they are allowed to disagree about the port. The default here
+     * is the one-port shape, which is still what almost every sweep produces.
+     */
+    scannedPorts: [161],
+    /*
+     * Present and empty rather than absent: the sweep seeds a zero for every
+     * config it ran with, so an empty record is "this sweep declared no
+     * credential sets", which is exactly the single-config shape these tests
+     * describe.
+     */
+    responderCountByConfigId: {},
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     mostCommonSnmpError: undefined,
     icmpFilteredFallbackHostCount: 0,
     ...overrides,
   } as SubnetScanResult;
+}
+
+/*
+ * One credential set as the sweep reports it back — already parsed, and
+ * carrying the NON-SECRET label that is the only thing the status message is
+ * allowed to print. Built with a community string and v3 keys on purpose, so
+ * the "no secret reaches statusMessage" assertions below have something real
+ * to look for.
+ */
+function makeSnmpConfig(
+  overrides?: Partial<SubnetScanSnmpConfig>,
+): SubnetScanSnmpConfig {
+  return {
+    id: "config-1",
+    label: "Access switches (V2c)",
+    snmpVersion: SnmpVersion.V2c,
+    communityString: "s3cret-community",
+    snmpV3Auth: undefined,
+    port: 161,
+    ...overrides,
+  } as SubnetScanSnmpConfig;
 }
 
 describe("buildScanStatusMessage — the headline", () => {
@@ -181,7 +219,7 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
 
   test("names the non-default port a scan actually used", () => {
     const message: string = buildScanStatusMessage(
-      makeResult({ scannedPort: 1610 }),
+      makeResult({ scannedPorts: [1610] }),
       0,
     );
 
@@ -190,13 +228,15 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
   });
 
   /*
-   * Defensive: a result from an older probe carries no scannedPort. Naming
-   * "port undefined" in the one message meant to tell an operator what to
-   * check would be worse than useless.
+   * Defensive: a result from an older probe carries no scannedPorts (and one
+   * from a probe older still carried a single scannedPort under a different
+   * name, which reads as absent here). Naming "port undefined" in the one
+   * message meant to tell an operator what to check would be worse than
+   * useless.
    */
-  test("falls back to the SNMP default when the probe sent no port", () => {
+  test("falls back to the SNMP default when the probe sent no ports", () => {
     const message: string = buildScanStatusMessage(
-      makeResult({ scannedPort: undefined } as never),
+      makeResult({ scannedPorts: undefined } as never),
       0,
     );
 
@@ -224,6 +264,65 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
   });
 });
 
+/*
+ * A scan carries an ordered LIST of credential sets now, and they are allowed
+ * to disagree about the UDP port — an estate running a vendor agent on 1161
+ * beside the stock daemon on 161 is a real shape, not a hypothetical one. The
+ * checklist below is the operator's instruction to go and open a firewall
+ * port, so naming only one of the two ports the sweep actually dialled would
+ * send them to fix half the problem.
+ */
+describe("buildScanStatusMessage — the ports the sweep actually touched", () => {
+  test("one port reads as a singular 'port'", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on port 161.");
+    expect(message).not.toContain("on ports");
+  });
+
+  test("two ports are both named, as a plural list, in the order swept", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161, 1161] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on ports 161, 1161.");
+  });
+
+  /*
+   * The same list has to reach the firewall half of the sentence. An operator
+   * who opens UDP/161 because that is the only port the message named will
+   * re-run the scan and get the identical zero back.
+   */
+  test("every port swept is also named in the UDP checklist", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161, 1161] }),
+      0,
+    );
+
+    expect(message).toContain("UDP/161, 1161 is permitted to it");
+  });
+
+  /*
+   * An empty array is the same state as a missing one — no probe should send
+   * it, since the sweep derives the list from the configs it ran with and
+   * refuses to run with none, but the fallback must not be reachable only
+   * through `undefined`.
+   */
+  test("an empty port list falls back to the SNMP default rather than printing nothing", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on port 161.");
+    expect(message).not.toContain("on port .");
+  });
+});
+
 describe("buildScanStatusMessage — fits the column it is stored in", () => {
   /*
    * The message goes into a varchar(500). Postgres rejects an over-long value
@@ -245,6 +344,174 @@ describe("buildScanStatusMessage — fits the column it is stored in", () => {
     );
 
     expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  /*
+   * The per-credential sentences are new, and they are the part of this
+   * message that grows with the operator's configuration rather than with the
+   * subnet. Four credential sets is the realistic shape of a mixed segment
+   * (the ceiling is ten), and every one of them contributes a label to either
+   * "Answered by credentials" or "No host answered".
+   *
+   * The two shapes asserted below are the expensive ones a multi-credential
+   * sweep actually produces, and the pathological one at the end of this
+   * describe is the ceiling the operator is allowed to configure. All three
+   * are bounded by the probe itself: the credential summary gets a fixed
+   * slice of the message (MAX_CREDENTIAL_SUMMARY_LENGTH in FetchScans.ts),
+   * naming as many credentials as fit and counting the rest, and the whole
+   * message is clipped as a last resort.
+   *
+   * The ingest endpoint clips too, but that is a backstop, not the plan: what
+   * it cuts is the TAIL, and the tail is where the credential summary lives —
+   * so relying on it would make a multi-credential sweep the one case that
+   * silently loses the sentence this feature exists to print.
+   */
+  test("a multi-credential sweep that found nothing still fits the column", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [
+      makeSnmpConfig({ id: "core", label: "Core switches (V3)" }),
+      makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+      makeSnmpConfig({ id: "printers", label: "Printers (V1)" }),
+      makeSnmpConfig({ id: "vendor", label: "Vendor block (V2c)" }),
+    ];
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 0,
+        icmpFilteredFallbackHostCount: 4096,
+        snmpErrorHostCount: 0,
+        scannedPorts: [161, 1161],
+        responderCountByConfigId: {},
+      }),
+      0,
+      snmpConfigs,
+    );
+
+    // Every credential is named, and so is the port checklist — the long shape.
+    expect(message).toContain("No host answered: Core switches (V3)");
+    expect(message).toContain("Nothing answered SNMP on ports 161, 1161.");
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  test("a multi-credential sweep that found devices stays well inside the column", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [
+      makeSnmpConfig({ id: "core", label: "Core switches (V3)" }),
+      makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+      makeSnmpConfig({ id: "printers", label: "Printers (V1)" }),
+      makeSnmpConfig({ id: "vendor", label: "Vendor block (V2c)" }),
+    ];
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 4096,
+        snmpErrorHostCount: 4096,
+        scannedPorts: [161, 1161],
+        mostCommonSnmpError: "E".repeat(120),
+        responderCountByConfigId: { core: 4096, access: 4096 },
+      }),
+      4096,
+      snmpConfigs,
+    );
+
+    expect(message).toContain("Answered by credentials:");
+    expect(message).toContain("No host answered:");
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  /*
+   * The ceiling the product actually permits: ten credential sets
+   * (MAX_SNMP_CONFIGS_PER_SCAN), each named to the full length a config name
+   * may be (MAX_SNMP_CONFIG_NAME_LENGTH, 100 characters), with every other
+   * branch firing at the same time. Unbounded, this is over 1,500 characters
+   * of operator-typed names in a 500-character column.
+   *
+   * The assertion is not only that it fits, but that it still SAYS something:
+   * at least one credential is named — never a bare "and 10 more" — and the
+   * older diagnostics that share the message survive alongside it.
+   */
+  test("ten fully-named credentials with every branch firing still fits", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [];
+
+    for (let index: number = 0; index < 10; index++) {
+      snmpConfigs.push(
+        makeSnmpConfig({
+          id: `config-${index}`,
+          label: `${"N".repeat(100)} (V2c)`,
+        }),
+      );
+    }
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 4096,
+        icmpFilteredFallbackHostCount: 4096,
+        snmpErrorHostCount: 4096,
+        scannedPorts: [161, 1161],
+        mostCommonSnmpError: "E".repeat(120),
+        responderCountByConfigId: { "config-0": 12 },
+      }),
+      12,
+      snmpConfigs,
+    );
+
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+
+    /*
+     * Two guarantees, and it is worth being precise about which is which.
+     *
+     * The credential summary is BOUNDED — a single 100-character name is cut
+     * to 40 so one verbose label cannot swallow the slice — so the sentence
+     * that says which credential is doing the work survives even here.
+     *
+     * The whole message is CLIPPED as a last resort, and in this extreme it
+     * does fire: the ICMP-filtered note and the 120-character quoted SNMP
+     * error take most of the column before the credentials are reached. The
+     * ellipsis is the point — a truncated message must not be readable as a
+     * complete one.
+     */
+    expect(message).toContain("Answered by credentials: NNN");
+    expect(message).toContain("answered ICMP ping");
+    expect(message.endsWith("\u2026")).toBe(true);
+  });
+
+  /*
+   * The same ten credentials with ordinary names, which is what the budget
+   * itself is for: as many as fit are NAMED, and the remainder are COUNTED
+   * rather than silently dropped. Nothing else fires, so the clip above is
+   * not involved and this is the bounding logic on its own.
+   */
+  test("names as many credentials as fit and counts the rest", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [];
+
+    for (let index: number = 0; index < 10; index++) {
+      snmpConfigs.push(
+        makeSnmpConfig({
+          id: `config-${index}`,
+          label: `Building ${index} switches (V2c)`,
+        }),
+      );
+    }
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 254,
+        respondedToPingCount: 10,
+        responderCountByConfigId: { "config-0": 10 },
+      }),
+      10,
+      snmpConfigs,
+    );
+
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+    expect(message).toContain(
+      "Answered by credentials: Building 0 switches (V2c) on 10.",
+    );
+    // The nine silent ones do not all fit, so the tail is a count, not silence.
+    expect(message).toMatch(/No host answered: .* and \d more\./);
+    // Nothing was clipped: the budget alone kept this inside the column.
+    expect(message.endsWith("\u2026")).toBe(false);
   });
 
   test("every single-branch message is comfortably short", () => {

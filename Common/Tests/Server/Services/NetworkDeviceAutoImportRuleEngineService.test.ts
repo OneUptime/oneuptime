@@ -136,6 +136,7 @@ import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkD
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DiscoveryScanSnmpConfig } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -221,8 +222,50 @@ const loggerErrorMock: jest.Mock = logger.error as unknown as jest.Mock;
 const RECENT_COMPLETED_AT: Date = OneUptimeDate.getCurrentDate();
 
 /*
+ * The scan's credential sets (issue #3458), and the ids the probe stamps onto
+ * a discovered host to record which one answered it. Opaque literals, because
+ * that is how they are really used — written into the scan's jsonb by the
+ * form, copied onto a host by the probe, and looked up again here, in another
+ * process, out of a list the operator may have reordered since. Nothing may
+ * treat them as positions.
+ *
+ * The two sets share no credential value, so a device built with the wrong one
+ * shows up as a wrong value rather than as a coincidence that still passes.
+ */
+const ACCESS_SNMP_CONFIG_ID: string = "access-switches-v2c";
+const CORE_SNMP_CONFIG_ID: string = "core-routers-v3";
+
+const ACCESS_SNMP_CONFIG: DiscoveryScanSnmpConfig = {
+  id: ACCESS_SNMP_CONFIG_ID,
+  name: "Access switches",
+  snmpVersion: "V2c",
+  snmpCommunityString: "public",
+  snmpPort: 161,
+};
+
+const CORE_SNMP_CONFIG: DiscoveryScanSnmpConfig = {
+  id: CORE_SNMP_CONFIG_ID,
+  name: "Core routers",
+  snmpVersion: "V3",
+  snmpPort: 1161,
+  snmpV3SecurityLevel: "authPriv",
+  snmpV3Username: "core-observer",
+  snmpV3AuthProtocol: "SHA",
+  snmpV3AuthKey: "core-auth-key",
+  snmpV3PrivProtocol: "AES",
+  snmpV3PrivKey: "core-priv-key",
+};
+
+/*
  * The scan as the engine selects it: identity, results, and the credential
  * columns the builder copies onto every SNMP device it creates.
+ *
+ * It carries BOTH halves of the credential story, exactly as a saved scan
+ * does: the ordered `snmpConfigs` list, and the flattened mirror of its FIRST
+ * entry. The service writes that mirror on every save so a probe deployed a
+ * version behind still has something to sweep with — which also means a
+ * fixture with only the flattened half could not tell an engine that resolves
+ * each host's own credentials from one that just copies the scan row.
  */
 function makeScan(
   overrides: Record<string, unknown> = {},
@@ -236,6 +279,7 @@ function makeScan(
     autoImportProcessedAt: undefined,
     discoveredDevices: [],
     probeId: PROBE_ID,
+    snmpConfigs: [ACCESS_SNMP_CONFIG],
     snmpVersion: "V2c",
     snmpCommunityString: "public",
     snmpPort: 161,
@@ -550,8 +594,13 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
      * device into the poll-time auto-apply instead.
      */
     expect(device.autoApplyVendorHealthTemplate).toBe(true);
-    // Built from THIS scan: the scan's credentials rode along.
+    /*
+     * Built from THIS scan: the scan's credentials rode along. The host is
+     * unstamped, so the credentials are the scan's FIRST config — see the
+     * per-host case below for the stamped ones.
+     */
     expect(device.snmpVersion).toBe("V2c");
+    expect(device.snmpCommunityString).toBe("public");
     expect(createMock.mock.calls[0]![0].props).toEqual({ isRoot: true });
 
     expect(scanUpdateMock).toHaveBeenCalledTimes(1);
@@ -568,6 +617,94 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     });
     // The unmatched row is the SAME object, not a rewritten copy.
     expect(restamped[2]).toBe(unmatchedRow);
+  });
+
+  /*
+   * The multi-credential guarantee (issue #3458) on the AUTOMATIC path, which
+   * is where it matters most.
+   *
+   * A scan now tries several credential sets per host and the probe records
+   * which one answered. An import that copied the scan's first set regardless
+   * would create every host found by any other set with credentials its agent
+   * rejects — and on this path nobody is looking: there is no Review dialog, no
+   * human reading the list, and no error at create time. The devices simply
+   * appear, poll red, and report "SNMP timeout", with nothing on them to say
+   * the right community string is sitting one entry further down the scan's own
+   * list.
+   *
+   * The engine has no credential logic of its own — it hands the scan and the
+   * host to DiscoveredDeviceBuilder — so what this pins is that it hands over
+   * the WHOLE scan (list included, not just the flattened columns its select
+   * used to carry) and the host row with its stamp intact.
+   */
+  it("imports each matched host with the credential set that actually answered it", async () => {
+    const accessSwitch: DiscoveredNetworkDevice = makeHost({
+      ipAddress: "10.0.0.5",
+      sysName: "access-switch-01",
+      snmpConfigId: ACCESS_SNMP_CONFIG_ID,
+    });
+    const coreRouter: DiscoveredNetworkDevice = makeHost({
+      ipAddress: "10.0.0.6",
+      sysName: "core-router-01",
+      snmpConfigId: CORE_SNMP_CONFIG_ID,
+    });
+    /*
+     * No stamp: a result from a probe that predates the field, or one stored
+     * before it existed. Neither is an error, and both have to import as
+     * something that can poll — so they take the first config, which is
+     * exactly the credential set such a probe was handed through the mirror.
+     */
+    const unstampedHost: DiscoveredNetworkDevice = makeHost({
+      ipAddress: "10.0.0.7",
+      sysName: "unstamped-host-01",
+    });
+
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({
+        discoveredDevices: [accessSwitch, coreRouter, unstampedHost],
+        snmpConfigs: [ACCESS_SNMP_CONFIG, CORE_SNMP_CONFIG],
+      }),
+    );
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      hostsEvaluated: 3,
+      hostsMatched: 3,
+      devicesCreated: 3,
+      devicesFailed: 0,
+    });
+    expect(createMock).toHaveBeenCalledTimes(3);
+
+    // Hosts are imported in the order the scan reported them.
+    const accessDevice: NetworkDevice = createdDevice(0);
+    expect(accessDevice.hostname).toBe("10.0.0.5");
+    expect(accessDevice.snmpVersion).toBe("V2c");
+    expect(accessDevice.snmpCommunityString).toBe("public");
+    expect(accessDevice.snmpPort).toBe(161);
+
+    const coreDevice: NetworkDevice = createdDevice(1);
+    expect(coreDevice.hostname).toBe("10.0.0.6");
+    expect(coreDevice.snmpVersion).toBe("V3");
+    expect(coreDevice.snmpPort).toBe(1161);
+    expect(coreDevice.snmpV3SecurityLevel).toBe("authPriv");
+    expect(coreDevice.snmpV3Username).toBe("core-observer");
+    expect(coreDevice.snmpV3AuthProtocol).toBe("SHA");
+    expect(coreDevice.snmpV3AuthKey).toBe("core-auth-key");
+    expect(coreDevice.snmpV3PrivProtocol).toBe("AES");
+    expect(coreDevice.snmpV3PrivKey).toBe("core-priv-key");
+    /*
+     * The v3 config has no community string, so neither may the device — this
+     * is the assertion that catches the first config leaking in through the
+     * flattened columns the scan row still mirrors it onto.
+     */
+    expect(coreDevice.snmpCommunityString).toBeUndefined();
+
+    const fallbackDevice: NetworkDevice = createdDevice(2);
+    expect(fallbackDevice.hostname).toBe("10.0.0.7");
+    expect(fallbackDevice.snmpVersion).toBe("V2c");
+    expect(fallbackDevice.snmpCommunityString).toBe("public");
+    expect(fallbackDevice.snmpV3Username).toBeUndefined();
   });
 
   /*

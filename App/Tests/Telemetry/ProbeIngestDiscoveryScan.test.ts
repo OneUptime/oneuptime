@@ -11,6 +11,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { DiscoveryScanSnmpConfig } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -238,6 +239,42 @@ describe("POST /probe/discovery-scan/list", () => {
     scan.snmpV3PrivProtocol = "aes";
     scan.snmpV3PrivKey = "priv-secret";
 
+    /*
+     * TWO configs, and the first one deliberately mirrors the flattened
+     * columns set above — that is the shape the service's write hooks
+     * actually store (OneUptime issue #3458: the flattened columns are kept
+     * as a mirror of the list's FIRST entry so a probe a version behind still
+     * has credentials to sweep with).
+     *
+     * The second entry is what makes the assertion below worth making. A
+     * guard built only out of the flattened columns would look complete on a
+     * one-config scan and would still pass every claim on a row whose second
+     * credential set had been replaced wholesale a moment earlier.
+     */
+    const snmpConfigs: Array<DiscoveryScanSnmpConfig> = [
+      {
+        id: "config-core",
+        name: "Core switches",
+        snmpVersion: "V3",
+        snmpCommunityString: "public",
+        snmpPort: 161,
+        snmpV3SecurityLevel: "authPriv",
+        snmpV3Username: "netops",
+        snmpV3AuthProtocol: "sha",
+        snmpV3AuthKey: "auth-secret",
+        snmpV3PrivProtocol: "aes",
+        snmpV3PrivKey: "priv-secret",
+      },
+      {
+        id: "config-access",
+        name: "Access switches",
+        snmpVersion: "V2c",
+        snmpCommunityString: "readonly",
+        snmpPort: 1161,
+      },
+    ];
+    scan.snmpConfigs = snmpConfigs;
+
     scanService.findBy.mockResolvedValue([scan] as never);
     scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
       undefined as never,
@@ -262,6 +299,18 @@ describe("POST /probe/discovery-scan/list", () => {
 
     // ...then every setting that decides what the sweep actually does.
     expect(expected["cidr"]).toBe("192.168.1.0/24");
+
+    /*
+     * The credential list, and the WHOLE list — every entry, every field.
+     * This is the setting the sweep is now mostly made of: the probe tries
+     * these in order against each host and stops at the first that answers.
+     * Asserting only the first entry (or only its id) would leave the guard
+     * blind to an edit that swapped out every other credential set, and the
+     * probe would then sweep, and stamp its hosts with ids from, a list the
+     * row no longer holds.
+     */
+    expect(expected["snmpConfigs"]).toEqual(snmpConfigs);
+
     expect(expected["snmpVersion"]).toBe("V3");
     expect(expected["snmpCommunityString"]).toBe("public");
     expect(expected["snmpPort"]).toBe(161);
@@ -309,6 +358,21 @@ describe("POST /probe/discovery-scan/list", () => {
     );
 
     for (const column of [
+      /*
+       * The credential LIST is unset on this fixture — a scan created before
+       * the column existed, or one written by an API caller that only knows
+       * the flattened fields — and it has to be expected as NULL just like a
+       * missing v3 key.
+       *
+       * Omitting it would be the worse half of the bug this test exists for.
+       * `IS NOT DISTINCT FROM` is generated per key, so a key that is not
+       * there is not "must still be empty", it is "do not care": an operator
+       * saving a four-credential list between the SELECT and the UPDATE would
+       * leave the claim standing, and this probe would sweep the subnet with
+       * the single flattened credential set it was handed while the row said
+       * it was being swept with four.
+       */
+      "snmpConfigs",
       "snmpPort",
       "snmpV3SecurityLevel",
       "snmpV3Username",
@@ -427,6 +491,15 @@ describe("POST /probe/discovery-scan/list", () => {
 
     for (const column of [
       "cidr",
+      /*
+       * The ordered credential list is what a current probe actually sweeps
+       * with. An unselected column arrives undefined, which
+       * SnmpScanConfigUtil.resolve reads as "this scan has no list" — so it
+       * would synthesize the single legacy config from the flattened columns
+       * and the sweep would quietly use one credential set out of the
+       * operator's four, reporting a confident zero for everything else.
+       */
+      "snmpConfigs",
       "snmpVersion",
       "snmpCommunityString",
       "snmpPort",
@@ -438,6 +511,52 @@ describe("POST /probe/discovery-scan/list", () => {
       "snmpV3PrivKey",
     ]) {
       expect(select[column]).toBe(true);
+    }
+  });
+
+  /*
+   * The flattened columns are NOT dead weight now that the list exists, and
+   * this pins the half of that statement the select is responsible for.
+   *
+   * A probe is deployed separately from the server and is routinely a version
+   * behind. A probe that has never heard of `snmpConfigs` reads the flattened
+   * columns and nothing else, and the server keeps them populated from the
+   * list's first entry precisely so that probe still has a credential set to
+   * sweep with. Dropping them from this select — the natural tidy-up once the
+   * list is here — would not fail a single type check, would look correct
+   * against a current probe, and would blank the credentials of every probe in
+   * the fleet that had not been upgraded yet: every one of their sweeps would
+   * come back "0 discovered".
+   *
+   * So: both, together, in the same select.
+   */
+  test("still selects the flattened SNMP columns alongside the list, because an older probe reads only those", async () => {
+    scanService.findBy.mockResolvedValue([] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const findArgs: JSONObject = scanService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findArgs["select"] as JSONObject;
+
+    // The new column is there — or the assertion below proves nothing.
+    expect(select["snmpConfigs"]).toBe(true);
+
+    for (const legacyColumn of [
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+    ]) {
+      expect({ column: legacyColumn, selected: select[legacyColumn] }).toEqual({
+        column: legacyColumn,
+        selected: true,
+      });
     }
   });
 
@@ -1317,6 +1436,106 @@ describe("POST /probe/discovery-scan/result — flagging already-registered host
       { ipAddress: "10.0.0.5", sysName: "known", isAlreadyRegistered: true },
       { ipAddress: "10.0.0.9", sysName: "new", isAlreadyRegistered: false },
     ]);
+  });
+
+  /*
+   * The one field on a discovered host that the endpoint must not touch and
+   * must not lose: WHICH of the scan's credential sets answered that host.
+   *
+   * A scan now tries an ordered list, so "the scan's SNMP credentials" is no
+   * longer a single answer — `snmpConfigId` is the probe's report of which
+   * entry actually worked, and it is the only input
+   * SnmpScanConfigUtil.resolveForHost has to work from when the import path
+   * (manual review and the auto-import rule engine, both through
+   * DiscoveredDeviceBuilder) builds the device. Drop it here and every host
+   * found by the second credential set is imported carrying the FIRST set's
+   * community string: a device that fails every poll from the moment it is
+   * created, with nothing on it to say why, and no error at any point in
+   * between.
+   *
+   * The endpoint stores `discoveredDevices` verbatim apart from the
+   * already-registered flag it adds, so this asserts the whole array: the ids
+   * ride through untouched, and the flag is the only thing that changed.
+   */
+  test("a probe-reported snmpConfigId survives verbatim onto the stored hosts", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        {
+          ipAddress: "10.0.0.5",
+          sysName: "core-1",
+          snmpReachable: true,
+          snmpConfigId: "config-core",
+        },
+        {
+          ipAddress: "10.0.0.9",
+          sysName: "access-3",
+          snmpReachable: true,
+          snmpConfigId: "config-access",
+        },
+        /*
+         * A ping-only host: no credential set found it, so the probe reports
+         * no id at all and the endpoint must not invent one — a ping-only
+         * host is imported as an ICMP device with NO credentials, and handing
+         * it the first config's would be a fabrication.
+         */
+        { ipAddress: "10.0.0.20", snmpReachable: false },
+      ]),
+    );
+
+    expect(storedDevices()).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        sysName: "core-1",
+        snmpReachable: true,
+        snmpConfigId: "config-core",
+        isAlreadyRegistered: true,
+      },
+      {
+        ipAddress: "10.0.0.9",
+        sysName: "access-3",
+        snmpReachable: true,
+        snmpConfigId: "config-access",
+        isAlreadyRegistered: false,
+      },
+      {
+        ipAddress: "10.0.0.20",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+      },
+    ]);
+
+    /*
+     * toEqual treats an absent key and an explicit `undefined` as the same
+     * thing, so the ping-only host's missing id is checked directly. An id
+     * written as undefined would still be an id the endpoint had decided to
+     * write.
+     */
+    expect(Object.keys(storedDevices()[2]!)).not.toContain("snmpConfigId");
+  });
+
+  /*
+   * An older probe knows nothing about the credential list and reports no
+   * `snmpConfigId` on any host. Those results still have to store cleanly —
+   * the resolver falls back to the scan's first config for an absent id,
+   * which for the single-config scan such a probe was actually sweeping is
+   * exactly the credential set it used.
+   */
+  test("hosts from a probe that predates the credential list store with no snmpConfigId", async () => {
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", sysName: "sw1" },
+        { ipAddress: "10.0.0.9", sysName: "sw2" },
+      ]),
+    );
+
+    for (const device of storedDevices()) {
+      expect(Object.keys(device)).not.toContain("snmpConfigId");
+      expect(device["isAlreadyRegistered"]).toBe(false);
+    }
   });
 
   test("the hosts are flagged before the row is written", async () => {
