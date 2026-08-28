@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * maintenance window cover a site (and, by hierarchy, everything under it).
  */
 
-export class AddNetworkSiteRollupPolicyAndMaintenance1787870907338
+export class AddNetworkSiteRollupPolicyAndMaintenance1789800000000
   implements MigrationInterface
 {
-  public name: string = "AddNetworkSiteRollupPolicyAndMaintenance1787870907338";
+  public name: string = "AddNetworkSiteRollupPolicyAndMaintenance1789800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

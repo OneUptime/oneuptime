@@ -36,7 +36,6 @@ import TraceAggregationService, {
   FacetValue as TraceFacetValue,
   MultiFacetRequest as TraceMultiFacetRequest,
   TraceFilters,
-  TraceAttributeFilters,
   TraceAnalyticsChartType,
   TraceAnalyticsRequest,
   TraceAnalyticsTimeseriesRow,
@@ -52,6 +51,7 @@ import ExceptionAggregationService, {
 import MetricAggregationService, {
   FacetValue as MetricFacetValue,
   FacetRequest as MetricFacetRequest,
+  MetricAttributeFilters,
   MetricForTraceItem,
 } from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
@@ -737,6 +737,75 @@ async function resolveResourceScopesFromBody(
 }
 
 /*
+ * The wire shape of an attribute filter map — the same for logs, traces and
+ * metrics, so it is structurally assignable to each service's own filter
+ * type.
+ */
+type ParsedAttributeFilters = Record<
+  string,
+  string | Array<string> | { _type: string; value?: unknown }
+>;
+
+/*
+ * Parse the `attributes` body field.
+ *
+ * Three shapes are legal: a single value (`= v`), a list of values
+ * (`IN (...)`, what a multi-select dashboard variable resolves to), and a
+ * serialized QueryOperator (`{_type: "Wildcard", value: ["api-*"]}`) for
+ * every other operator the search grammar can produce. Everything else is
+ * dropped, and an array left empty by the string filtering is dropped too so
+ * it cannot narrow to nothing.
+ *
+ * The operator shape used to be dropped here, which is worse than rejecting
+ * it: a wildcard filter arrived as "no filter", so the chart showed the whole
+ * project beside a list narrowed to a handful of spans. `_type` is only
+ * checked for being a string — the compiler in AttributeFilterStatement
+ * answers an unknown operator with a 400.
+ */
+function parseAttributeFilterRecord(
+  raw: unknown,
+): ParsedAttributeFilters | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const filters: ParsedAttributeFilters = {};
+
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") {
+      filters[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      const values: Array<string> = (value as Array<unknown>).filter(
+        (v: unknown): v is string => {
+          return typeof v === "string";
+        },
+      );
+      if (values.length > 0) {
+        filters[key] = values;
+      }
+      continue;
+    }
+
+    if (
+      value &&
+      typeof value === "object" &&
+      typeof (value as Record<string, unknown>)["_type"] === "string"
+    ) {
+      filters[key] = value as { _type: string; value?: unknown };
+    }
+  }
+
+  if (Object.keys(filters).length === 0) {
+    return undefined;
+  }
+
+  return filters;
+}
+
+/*
  * Shared body parsing for every trace aggregation endpoint (histogram,
  * facets, analytics). Defensive about shapes: arrays are validated and
  * filtered to strings, booleans/numbers use strict typeof checks (JSON null
@@ -801,42 +870,6 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
     return Object.fromEntries(entries);
   };
 
-  /*
-   * Exact attribute predicates accept a single value or a list of values
-   * (`IN (...)`) — a multi-select dashboard variable resolves to the latter.
-   * Non-string array entries are dropped, and an array left empty by that
-   * filtering is dropped entirely so it cannot narrow to nothing.
-   */
-  const attributeFilterRecord: () => TraceAttributeFilters | undefined = ():
-    | TraceAttributeFilters
-    | undefined => {
-    const raw: unknown = body["attributes"];
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      return undefined;
-    }
-    const filters: TraceAttributeFilters = {};
-    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-      if (typeof value === "string") {
-        filters[key] = value;
-        continue;
-      }
-      if (Array.isArray(value)) {
-        const values: Array<string> = (value as Array<unknown>).filter(
-          (v: unknown): v is string => {
-            return typeof v === "string";
-          },
-        );
-        if (values.length > 0) {
-          filters[key] = values;
-        }
-      }
-    }
-    if (Object.keys(filters).length === 0) {
-      return undefined;
-    }
-    return filters;
-  };
-
   return {
     serviceIds,
     entityKeys: stringArray("entityKeys"),
@@ -883,7 +916,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
         : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
-    attributes: attributeFilterRecord(),
+    attributes: parseAttributeFilterRecord(body["attributes"]),
     attributeSearches: stringRecord("attributeSearches"),
   };
 }
@@ -1651,6 +1684,9 @@ router.post(
         ? (body["metricNames"] as Array<string>)
         : undefined;
 
+      const attributes: MetricAttributeFilters | undefined =
+        parseAttributeFilterRecord(body["attributes"]);
+
       const facetSearchText: Record<string, string> | undefined = body[
         "facetSearchText"
       ]
@@ -1678,6 +1714,7 @@ router.post(
                   limit,
                   serviceIds,
                   metricNames,
+                  attributes,
                 };
                 const values: Array<MetricFacetValue> =
                   await MetricAggregationService.getFacetValues(request);
@@ -2004,10 +2041,7 @@ function parseErrorPatternFilterBody(
     traceIds: stringArray(body["traceIds"]),
     spanIds: stringArray(body["spanIds"]),
     sessionIds: stringArray(body["sessionIds"]),
-    attributes:
-      body["attributes"] && typeof body["attributes"] === "object"
-        ? (body["attributes"] as Record<string, string | Array<string>>)
-        : undefined,
+    attributes: parseAttributeFilterRecord(body["attributes"]),
   };
 }
 

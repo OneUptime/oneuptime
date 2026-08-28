@@ -638,6 +638,7 @@ const DocsNav: NavGroup[] = [
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
+      { title: "Search Syntax", url: "/docs/telemetry/search-syntax" },
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",

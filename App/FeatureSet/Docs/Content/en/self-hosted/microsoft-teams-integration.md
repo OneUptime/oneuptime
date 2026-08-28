@@ -40,7 +40,7 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
 - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
 - **ChannelMessage.Send** - Required to send messages to channels programmatically
-- **TeamsAppInstallation.ReadForTeam.All** - Optional but strongly recommended. Lets OneUptime check whether the OneUptime app is really installed in a team before a notification is sent, so a failed send can tell you _which_ of the possible causes it is. Without it OneUptime cannot tell "not installed" apart from "installed, but something else is wrong", and simply reports what Microsoft said.
+- **TeamsAppInstallation.ReadForTeam.All** - Required for diagnosis. Lets OneUptime read which app package is really installed in a team and compare it against this deployment's client id, so a failed send can tell you _which_ of the possible causes it is. Without it OneUptime cannot tell "not installed" apart from "installed, but it is somebody else's package", and simply reports what Microsoft said — which is the single biggest reason this integration takes days instead of minutes to debug. Grant it.
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
 

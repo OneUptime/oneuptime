@@ -1,4 +1,9 @@
-import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "../Utils/AnalyticsDatabase/Statement";
+import { appendAttributeOperatorFilter } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -993,10 +998,16 @@ export class LogAggregationService {
     }
 
     if (request.bodySearchText && request.bodySearchText.trim().length > 0) {
+      /*
+       * Escaped so a body containing `%` or `_` matches literally. The list
+       * query escapes centrally (Statement.serializseValue); without the same
+       * treatment here a "100% CPU" filter counted every log line in the
+       * chart while the table below it showed only the matching ones.
+       */
       statement.append(
         SQL` AND body ILIKE ${{
           type: TableColumnType.Text,
-          value: `%${request.bodySearchText.trim()}%`,
+          value: `%${escapeIlikePattern(request.bodySearchText.trim())}%`,
         }}`,
       );
     }
@@ -1062,295 +1073,27 @@ export class LogAggregationService {
 
   /*
    * Attribute filter rows carry an operator (`contains`, `is any of`,
-   * `is empty`, ...) as well as a value, and the operator travels over the
-   * wire as the serialized `{_type, value}` shape every QueryOperator's
-   * toJSON() produces. The list query compiles those through
+   * `is empty`, `matches`, ...) as well as a value, and the operator travels
+   * over the wire as the serialized `{_type, value}` shape every
+   * QueryOperator's toJSON() produces. The list query compiles those through
    * StatementGenerator; these aggregation endpoints (histogram, facets,
    * export) used to treat anything non-array as a plain string, so an
    * operator object bound as "[object Object]", matched nothing, and left the
    * log monitor preview showing an empty chart beside a populated list.
    *
-   * Predicates mirror StatementGenerator's map-attribute branches, in the
-   * case-insensitive arrayExists form the rest of this builder uses — these
-   * keys are typed by a user, not canonical column names.
+   * The compilation itself lives in AttributeFilterStatement so the trace,
+   * metric and exception builders answer identically — see the comment there.
    */
   private static appendAttributeOperatorFilter(
     statement: Statement,
     attrKey: string,
     attrValue: Record<string, unknown>,
   ): void {
-    const operatorType: unknown = attrValue["_type"];
-    const rawValue: unknown = attrValue["value"];
-
-    type MatchesFunction = (predicate: Statement) => Statement;
-
-    // `<key> matches case-insensitively AND <predicate>` over the map pairs.
-    const matches: MatchesFunction = (predicate: Statement): Statement => {
-      return SQL`arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-        type: TableColumnType.Text,
-        value: attrKey,
-      }}) AND `
-        .append(predicate)
-        .append(SQL`, mapKeys(attributes), mapValues(attributes))`);
-    };
-
-    type RequirePrimitiveFunction = (
-      value: unknown,
-    ) => string | number | boolean | null;
-
-    /*
-     * `value` is unvalidated JSON off the wire. `String()` and `Number()` do
-     * not merely produce a bad result on an object — ToPrimitive THROWS a
-     * TypeError when the object shadows toString/valueOf with non-callables
-     * (`{"toString": 1}`), and that escapes the BadDataException the default
-     * branch raises, answering with a 500 instead of a 400. Narrow to
-     * primitives first so every rejection goes out the same door.
-     */
-    const requirePrimitive: RequirePrimitiveFunction = (
-      value: unknown,
-    ): string | number | boolean | null => {
-      if (value === undefined || value === null) {
-        return null;
-      }
-
-      if (
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean"
-      ) {
-        return value;
-      }
-
-      throw new BadDataException(
-        `Invalid value in the attribute filter for "${attrKey}"`,
-      );
-    };
-
-    type TextValueFunction = () => string;
-
-    const textValue: TextValueFunction = (): string => {
-      const primitive: string | number | boolean | null =
-        requirePrimitive(rawValue);
-
-      return primitive === null ? "" : String(primitive);
-    };
-
-    type LikeFunction = (pattern: string) => Statement;
-
-    const like: LikeFunction = (pattern: string): Statement => {
-      return SQL`v ILIKE ${{
-        type: TableColumnType.Text,
-        value: pattern,
-      }}`;
-    };
-
-    type NumericFunction = (comparison: string) => Statement;
-
-    /*
-     * Map values are stored as text; toFloat64OrNull yields NULL for
-     * non-numeric values (including the empty default for a missing key),
-     * which compares false against any threshold and drops those rows.
-     */
-    const numeric: NumericFunction = (comparison: string): Statement => {
-      const primitive: string | number | boolean | null =
-        requirePrimitive(rawValue);
-      const threshold: number = Number(primitive);
-
-      /*
-       * Reject rather than bind. `Number(null)` is 0, so a filter with no
-       * value would silently become "> 0", and a non-numeric one binds as the
-       * literal `nan`, which ClickHouse cannot parse — a 500 where the user
-       * should get a 400 naming the filter.
-       */
-      if (
-        primitive === null ||
-        primitive === "" ||
-        !Number.isFinite(threshold)
-      ) {
-        throw new BadDataException(
-          `The attribute filter for "${attrKey}" needs a numeric value`,
-        );
-      }
-
-      /*
-       * Decimal (ClickHouse Double), not Number (Int32): the left-hand side is
-       * a Float64 and thresholds are free text, so `> 1.5` bound as Int32 is a
-       * parse error at the database rather than a comparison.
-       *
-       * The comparison itself is appended as raw SQL — an interpolation in the
-       * SQL tag becomes a bound Identifier, which is not what `>` is. Every
-       * caller passes a literal from the switch below, never user input.
-       */
-      return SQL`toFloat64OrNull(v) `.append(comparison).append(
-        SQL` ${{
-          type: TableColumnType.Decimal,
-          value: threshold,
-        }}`,
-      );
-    };
-
-    type MembershipValuesFunction = () => Array<string>;
-
-    const membershipValues: MembershipValuesFunction = (): Array<string> => {
-      return Array.isArray(rawValue)
-        ? rawValue.map((entry: unknown) => {
-            const primitive: string | number | boolean | null =
-              requirePrimitive(entry);
-
-            return primitive === null ? "" : String(primitive);
-          })
-        : [];
-    };
-
-    type HasNonEmptyValueFunction = () => Statement;
-
-    /*
-     * "the key is present with a non-empty value".
-     *
-     * A ClickHouse Map subscript returns the value type's default for a
-     * missing key, so the list query's `attributes['k']` reads as '' for a row
-     * that has no such attribute at all. That makes an EMPTY comparison value
-     * mean something different from every other value, in both directions:
-     * `attributes['k'] = ''` matches rows that lack the key, and
-     * `attributes['k'] != ''` drops them. Naively negating the existence test
-     * gets both backwards — an "is not equal to <blank>" filter counted every
-     * row in the project while the list beside it counted only the handful
-     * that carried the attribute.
-     */
-    const hasNonEmptyValue: HasNonEmptyValueFunction = (): Statement => {
-      return matches(SQL`v != ''`);
-    };
-
-    switch (operatorType) {
-      case ObjectType.EqualTo:
-        if (textValue() === "") {
-          // `attributes['k'] = ''` — missing or empty. Same set as "is empty".
-          statement.append(SQL` AND NOT `.append(hasNonEmptyValue()));
-          return;
-        }
-
-        statement.append(
-          SQL` AND `.append(
-            matches(
-              SQL`v = ${{
-                type: TableColumnType.Text,
-                value: textValue(),
-              }}`,
-            ),
-          ),
-        );
-        return;
-
-      case ObjectType.NotEqual:
-        if (textValue() === "") {
-          /*
-           * `attributes['k'] != ''` — present AND non-empty. Same set as
-           * "is not empty"; see hasNonEmptyValue above for why blank is
-           * special.
-           */
-          statement.append(SQL` AND `.append(hasNonEmptyValue()));
-          return;
-        }
-
-        /*
-         * Negating the whole existence test is what makes rows that lack the
-         * attribute pass, matching the map-subscript form's semantics (a
-         * missing key reads as '' and so is != a non-empty value).
-         */
-        statement.append(
-          SQL` AND NOT `.append(
-            matches(
-              SQL`v = ${{
-                type: TableColumnType.Text,
-                value: textValue(),
-              }}`,
-            ),
-          ),
-        );
-        return;
-
-      case ObjectType.Search:
-        statement.append(SQL` AND `.append(matches(like(`%${textValue()}%`))));
-        return;
-
-      case ObjectType.NotContains:
-        statement.append(
-          SQL` AND NOT `.append(matches(like(`%${textValue()}%`))),
-        );
-        return;
-
-      case ObjectType.StartsWith:
-        statement.append(SQL` AND `.append(matches(like(`${textValue()}%`))));
-        return;
-
-      case ObjectType.EndsWith:
-        statement.append(SQL` AND `.append(matches(like(`%${textValue()}`))));
-        return;
-
-      case ObjectType.GreaterThan:
-        statement.append(SQL` AND `.append(matches(numeric(">"))));
-        return;
-
-      case ObjectType.GreaterThanOrEqual:
-        statement.append(SQL` AND `.append(matches(numeric(">="))));
-        return;
-
-      case ObjectType.LessThan:
-        statement.append(SQL` AND `.append(matches(numeric("<"))));
-        return;
-
-      case ObjectType.LessThanOrEqual:
-        statement.append(SQL` AND `.append(matches(numeric("<="))));
-        return;
-
-      case ObjectType.IsNull:
-        // "is empty" — no non-empty value stored under that key.
-        statement.append(SQL` AND NOT `.append(hasNonEmptyValue()));
-        return;
-
-      case ObjectType.NotNull:
-        statement.append(SQL` AND `.append(hasNonEmptyValue()));
-        return;
-
-      case ObjectType.Includes:
-      case ObjectType.IncludesNone: {
-        const values: Array<string> = membershipValues();
-
-        /*
-         * An empty membership list means "All", not "nothing" — skipping the
-         * predicate matches how StatementGenerator and the form treat it, and
-         * avoids emitting `IN ()`.
-         */
-        if (values.length === 0) {
-          return;
-        }
-
-        const membership: Statement = matches(
-          SQL`v IN (${{
-            type: TableColumnType.Text,
-            value: new Includes(values),
-          }})`,
-        );
-
-        statement.append(
-          (operatorType === ObjectType.Includes
-            ? SQL` AND `
-            : SQL` AND NOT `
-          ).append(membership),
-        );
-        return;
-      }
-
-      default:
-        /*
-         * An unrecognized shape is a filter this builder cannot honour.
-         * Refuse it rather than binding an object as text and quietly
-         * returning counts that disagree with the logs list.
-         */
-        throw new BadDataException(
-          `Unsupported attribute filter for "${attrKey}"`,
-        );
-    }
+    appendAttributeOperatorFilter({
+      statement,
+      attributeKey: attrKey,
+      operator: attrValue,
+    });
   }
 
   @CaptureSpan()

@@ -33,6 +33,19 @@ export interface TableColumnMetadata {
   canReadOnRelationQuery?: boolean;
   hideColumnInDocumentation?: boolean;
   modelType?: { new (): BaseModel };
+  /*
+   * Lazy form of modelType, resolved on read rather than at decoration time.
+   *
+   * A relation between two models that import each other (Monitor <->
+   * NetworkDevice) is a circular import: whichever module the loader reaches
+   * second sees the first as `undefined` while its own decorators run, so an
+   * eager `modelType: TheOtherModel` captures `undefined` and every later
+   * select on that relation throws "modelType is not found". A thunk defers the
+   * dereference until read time - after every module has finished loading - so
+   * both directions resolve regardless of load order. getTableColumn(s) below
+   * resolve it into modelType, so nothing downstream needs to know it was lazy.
+   */
+  modelTypeThunk?: () => { new (): BaseModel };
   defaultValue?: string | number | boolean | JSONObject; // default value for the column, can be a string, number, or boolean
   forceGetDefaultValueOnCreate?: () => string | number | boolean; // overwrites any value that is being passed and generates a new one. Useful for generating OTPs, etc.
   example?: string | number | boolean | JSONObject | Array<JSONObject>; // example value for API documentation
@@ -43,6 +56,26 @@ export default (props: TableColumnMetadata): ReflectionMetadataType => {
   return Reflect.metadata(tableColumn, props);
 };
 
+/*
+ * Resolve a lazy modelTypeThunk into modelType on first read, in place.
+ *
+ * Mutating the singleton rather than returning a copy is deliberate: callers
+ * (and the caching layer below) rely on getTableColumn(s) handing back the very
+ * same metadata object every time - identity is part of the contract. The write
+ * is idempotent (once modelType is set the thunk is never called again) and
+ * every module has finished loading by the time any query reads a column, so
+ * the thunk resolves to the fully-defined related model.
+ */
+function resolveModelType(
+  metadata: TableColumnMetadata | undefined,
+): TableColumnMetadata | undefined {
+  if (metadata && !metadata.modelType && metadata.modelTypeThunk) {
+    metadata.modelType = metadata.modelTypeThunk();
+  }
+
+  return metadata;
+}
+
 type GetTableColumnFunction = <T extends BaseModel>(
   target: T,
   propertyKey: string,
@@ -52,10 +85,12 @@ export const getTableColumn: GetTableColumnFunction = <T extends BaseModel>(
   target: T,
   propertyKey: string,
 ): TableColumnMetadata => {
-  return Reflect.getMetadata(
-    tableColumn,
-    target,
-    propertyKey,
+  return resolveModelType(
+    Reflect.getMetadata(
+      tableColumn,
+      target,
+      propertyKey,
+    ) as TableColumnMetadata,
   ) as TableColumnMetadata;
 };
 
@@ -93,7 +128,7 @@ export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
         key,
       ) as TableColumnMetadata | undefined;
       if (metadata) {
-        dictonary[key] = metadata;
+        dictonary[key] = resolveModelType(metadata) as TableColumnMetadata;
       }
     }
 

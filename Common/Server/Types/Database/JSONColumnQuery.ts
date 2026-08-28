@@ -15,6 +15,9 @@ import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
+import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
+import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
@@ -470,6 +473,21 @@ class KeyPredicateBuilder {
 
     if (value instanceof Search) {
       return this.like(`%${escapeLikePattern(String(toScalar(value.value)))}%`);
+    }
+
+    /*
+     * Glob matching. `toLikePattern` does the escaping itself — it is the one
+     * pass that can tell a `%` the user typed from the `%` a `*` becomes — so
+     * `escapeLikePattern` must NOT be applied on top of it.
+     */
+    if (value instanceof Wildcard) {
+      return this.like(toLikePattern(String(toScalar(value.value))));
+    }
+
+    if (value instanceof NotWildcard) {
+      return this.negate(
+        this.like(toLikePattern(String(toScalar(value.value)))),
+      );
     }
 
     if (value instanceof InBetween) {

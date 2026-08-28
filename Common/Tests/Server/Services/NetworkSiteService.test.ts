@@ -3,7 +3,6 @@ import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSi
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import { DeviceHealthGroup } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
-import DeviceReachabilityUtil from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
@@ -18,6 +17,12 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import { FindOperator } from "typeorm";
+import DeviceReachabilityUtil from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
+import {
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DeviceHealthGroup,
+} from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
+import { AggregateColumn } from "../../../Server/Types/Database/AggregateBy";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -99,61 +104,64 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   }
 
   /*
-   * One device row, as the health BUCKET the rollup actually reads.
+   * The rollup no longer reads device ROWS — it asks Postgres to bucket the
+   * subtree by the facts the reachability rule reads, and classifies the
+   * buckets. So a test still describes its scenario as devices (which is what
+   * the scenario IS), and this turns them into the buckets the database would
+   * have returned for exactly those devices.
    *
-   * The engine stopped loading device rows when it started bucketing the
-   * subtree in SQL, so these tests hand it buckets. Each row becomes its own
-   * one-device bucket, which is what a bucketing query would emit for a set
-   * of devices with distinct health facts, and keeps the cases below reading
-   * as "a device that ...".
-   *
-   * `isStale` reproduces the SQL guard exactly: staleness is only ever
-   * consulted for a row with no recorded poll outcome that has nevertheless
-   * been seen, and is constant-false everywhere else.
+   * The staleness predicate is the one thing SQL evaluates rather than the
+   * shared util, so it is computed here from that util's own window rather
+   * than a hard-coded number — the same arrangement, for the same reason, as
+   * Common/Tests/Server/Utils/NetworkDevice/DeviceHealthAggregation.test.ts.
    */
-  function bucketFor(device: NetworkDevice): DeviceHealthGroup {
-    const anyDevice: {
-      currentMonitorStatusId?: ObjectID | undefined;
-      isReachable?: boolean | null | undefined;
-      lastPolledAt?: Date | null | undefined;
-      lastSeenAt?: Date | null | undefined;
-      pollingIntervalInMinutes?: number | null | undefined;
-    } = device as unknown as {
-      currentMonitorStatusId?: ObjectID | undefined;
-      isReachable?: boolean | null | undefined;
-      lastPolledAt?: Date | null | undefined;
-      lastSeenAt?: Date | null | undefined;
-      pollingIntervalInMinutes?: number | null | undefined;
-    };
+  function toHealthGroups(
+    devices: Array<NetworkDevice>,
+  ): Array<DeviceHealthGroup> {
+    const now: number = Date.now();
 
-    const isReachable: boolean | null =
-      anyDevice.isReachable === undefined ? null : anyDevice.isReachable;
+    return devices.map((device: NetworkDevice): DeviceHealthGroup => {
+      const contactTimes: Array<number> = [
+        device.lastPolledAt,
+        device.lastSeenAt,
+      ]
+        .filter((value: Date | undefined): value is Date => {
+          return Boolean(value);
+        })
+        .map((value: Date): number => {
+          return new Date(value).getTime();
+        });
 
-    let isStale: boolean = false;
-    if (isReachable === null && anyDevice.lastSeenAt) {
+      const lastContactAt: number | null =
+        contactTimes.length > 0 ? Math.max(...contactTimes) : null;
+
       const staleWindowInMinutes: number =
         DeviceReachabilityUtil.getStaleWindowInMinutes(
-          anyDevice.pollingIntervalInMinutes,
+          device.pollingIntervalInMinutes,
         );
-      isStale =
-        (Date.now() - anyDevice.lastSeenAt.getTime()) / 60000 >
-        staleWindowInMinutes;
-    }
 
-    return {
-      siteId: null,
-      monitorStatusId: anyDevice.currentMonitorStatusId
-        ? anyDevice.currentMonitorStatusId.toString()
-        : null,
-      monitoringMethod: null,
-      isReachable: isReachable,
-      hasBeenPolled: Boolean(anyDevice.lastPolledAt),
-      hasBeenSeen: Boolean(anyDevice.lastSeenAt),
-      isStale: isStale,
-      hasDownInterfaces: false,
-      deviceCount: 1,
-      interfacesDownTotal: 0,
-    };
+      return {
+        siteId: null,
+        monitorStatusId: device.currentMonitorStatusId?.toString() ?? null,
+        monitoringMethod: device.monitoringMethod ?? null,
+        isReachable:
+          device.isReachable === undefined ? null : device.isReachable,
+        hasBeenPolled: Boolean(device.lastPolledAt),
+        hasBeenSeen: Boolean(device.lastSeenAt),
+        /*
+         * Guarded exactly as the SQL is: staleness is only computed for the
+         * one branch of the reachability rule that can read it.
+         */
+        isStale:
+          (device.isReachable === undefined || device.isReachable === null) &&
+          Boolean(device.lastSeenAt) &&
+          lastContactAt !== null &&
+          lastContactAt < now - staleWindowInMinutes * 60 * 1000,
+        hasDownInterfaces: (device.interfacesDown || 0) > 0,
+        deviceCount: 1,
+        interfacesDownTotal: device.interfacesDown || 0,
+      };
+    });
   }
 
   function setupRollup(data: {
@@ -168,7 +176,7 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
       .mockResolvedValue([]);
     const deviceHealthGroups: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "getHealthGroupsForSites")
-      .mockResolvedValue(data.devices.map(bucketFor));
+      .mockResolvedValue(toHealthGroups(data.devices));
     const maintainedSiteIds: jest.SpyInstance = jest
       .spyOn(
         NetworkSiteMaintenanceSuppression,
@@ -331,15 +339,33 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
+   * The rollup reads four columns, and the hazard has moved from a `select`
+   * to a GROUP BY: a fact the rule reads that the grouping does not is a fact
+   * two devices can disagree on inside one bucket, and the bucket then gets
+   * one verdict for both. A missing `isReachable` still compiles, still runs,
+   * and still silently drops the whole subtree onto the legacy freshness path
+   * — it just does it one layer down now.
+   */
+  it("groups by every column the reachability rule reads", async () => {
+    const expressions: string = DEVICE_HEALTH_GROUP_COLUMNS.map(
+      (column: AggregateColumn): string => {
+        return column.expression;
+      },
+    ).join(" ");
+
+    expect(expressions).toContain("isReachable");
+    expect(expressions).toContain("lastPolledAt");
+    expect(expressions).toContain("lastSeenAt");
+    expect(expressions).toContain("pollingIntervalInMinutes");
+    expect(expressions).toContain("currentMonitorStatusId");
+  });
+
+  /*
    * Every device in the subtree is classified against ONE instant, passed in
    * rather than read from the database's clock. Two devices measured against
    * two different "now"s can disagree about staleness by a whole polling
    * interval, and the rollup would then flip between runs with nothing
    * having changed.
-   *
-   * WHICH columns the bucketing query reads is no longer this layer's
-   * decision — it belongs to DeviceHealthAggregation, and is pinned there by
-   * App/Tests/BaseAPI/NetworkSiteHierarchyDeviceRollup.test.ts.
    */
   it("classifies the whole subtree against one instant", async () => {
     const spies: RollupSpies = setupRollup({
@@ -379,10 +405,15 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
     expect(spies.deviceHealthGroups).toHaveBeenCalledTimes(1);
-    const args: any = spies.deviceHealthGroups.mock.calls[0]![0];
-    expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+    const groupArgs: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(groupArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+    /*
+     * The archived filter moved into getHealthGroupsForSites with the query.
+     * Asserted there — NetworkDeviceService's own suite pins that the method
+     * really does send `isArchived: false`.
+     */
     expect(
-      args.siteIds.map((id: ObjectID) => {
+      groupArgs.siteIds.map((id: ObjectID) => {
         return id.toString();
       }),
     ).toEqual([SITE_ID.toString()]);
