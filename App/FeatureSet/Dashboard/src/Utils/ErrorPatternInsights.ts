@@ -57,6 +57,23 @@ interface ClassificationRule extends ErrorPatternClassification {
    * message that hits more than one family.
    */
   needles: Array<string>;
+  /*
+   * HTTP status codes that name this family.
+   *
+   * Kept apart from `needles` because they cannot be matched the same way. A
+   * bare "429" as a substring matches any digit run containing it — a
+   * request id, a duration, a byte count, an epoch-millisecond timestamp, a
+   * port, a line number — and this table is scanned against the RAW log body
+   * (the normalized pattern has every number rewritten to a placeholder, so
+   * a code can only ever match raw text). "Unhandled exception processing
+   * request 0HMQ9A4292BC" classified as "Rate limited", with three checks
+   * about retry loops and quotas, and the Ask AI prompt told the model the
+   * same thing.
+   *
+   * These are matched only by matchesStatusCode below, and only after every
+   * textual needle in the whole table has been tried.
+   */
+  statusCodes?: Array<number> | undefined;
 }
 
 /*
@@ -119,13 +136,13 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
     summary:
       "A dependency rejected the request because too many were sent in too short a window.",
     needles: [
-      "429",
       "too many requests",
       "rate limit",
       "ratelimit",
       "quota exceeded",
       "throttl",
     ],
+    statusCodes: [429],
     likelyCauses: [
       "A retry loop amplifying a transient failure into a burst",
       "Traffic growth past a quota nobody re-negotiated",
@@ -249,8 +266,6 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
     title: "Authentication or authorization failure",
     summary: "The request was rejected because of who it claimed to be.",
     needles: [
-      "401",
-      "403",
       "unauthorized",
       "unauthenticated",
       "forbidden",
@@ -262,6 +277,7 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
       "signature",
       "eacces",
     ],
+    statusCodes: [401, 403],
     likelyCauses: [
       "A rotated or expired credential that one caller never picked up",
       "A scope, role, or policy narrowed by a recent change",
@@ -306,16 +322,13 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
     summary:
       "A dependency answered, and what it answered with was a failure of its own.",
     needles: [
-      "502",
-      "503",
-      "504",
       "bad gateway",
       "service unavailable",
       "gateway timeout",
       "upstream connect error",
       "internal server error",
-      "500",
     ],
+    statusCodes: [502, 503, 504, 500],
     likelyCauses: [
       "The dependency is itself failing or overloaded",
       "A proxy or ingress with no healthy backend to route to",
@@ -388,7 +401,6 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
     title: "Resource not found",
     summary: "A path, key, or record the code expected did not exist.",
     needles: [
-      "404",
       "enoent",
       "no such file",
       "not found",
@@ -396,6 +408,7 @@ const CLASSIFICATION_RULES: Array<ClassificationRule> = [
       "filenotfound",
       "nosuchkey",
     ],
+    statusCodes: [404],
     likelyCauses: [
       "A path or key built from configuration that changed",
       "A record deleted or never created by an earlier step that failed quietly",
@@ -465,6 +478,87 @@ const UNCLASSIFIED: ErrorPatternClassification = {
  * pattern: normalization replaces numbers and ids with placeholders, so a
  * pattern is a slightly worse needle-haystack than a real line.
  */
+function present(rule: ClassificationRule): ErrorPatternClassification {
+  return {
+    id: rule.id,
+    title: rule.title,
+    summary: rule.summary,
+    likelyCauses: rule.likelyCauses,
+    whatToCheck: rule.whatToCheck,
+  };
+}
+
+/*
+ * Words that mean the number beside them is an HTTP status rather than a
+ * duration, an id or a byte count.
+ */
+const STATUS_CONTEXT: RegExp =
+  /\b(status|statuscode|status_code|status code|http|https|responded|response code|resp code|returned|code)\b/;
+
+/*
+ * The canonical reason phrase for each code, so a line that spells the
+ * status out ("502 Bad Gateway") is recognized even with no status keyword.
+ */
+const STATUS_REASON_PHRASES: Record<number, string> = {
+  400: "bad request",
+  401: "unauthorized",
+  403: "forbidden",
+  404: "not found",
+  429: "too many requests",
+  500: "internal server error",
+  502: "bad gateway",
+  503: "service unavailable",
+  504: "gateway timeout",
+};
+
+/**
+ * Whether `haystack` really names this HTTP status code.
+ *
+ * Two conditions, both required. The digits must stand alone — a digit on
+ * either side means the match is part of a longer number, which is what let
+ * a request id decide an error's family. And the line must give some reason
+ * to read those digits as a status: either a status-ish word nearby, or the
+ * code's own reason phrase immediately after it.
+ *
+ * Exported for tests: this predicate is the whole fix, and it is far easier
+ * to pin directly than through the classifier's ordering.
+ */
+export function matchesStatusCode(haystack: string, code: number): boolean {
+  const digits: string = String(code);
+  const standsAlone: RegExp = new RegExp(`(^|[^0-9])${digits}([^0-9]|$)`);
+
+  if (!standsAlone.test(haystack)) {
+    return false;
+  }
+
+  const reason: string | undefined = STATUS_REASON_PHRASES[code];
+
+  if (reason) {
+    const withReason: RegExp = new RegExp(
+      `(^|[^0-9])${digits}[^a-z0-9]{0,3}${reason}`,
+    );
+
+    if (withReason.test(haystack)) {
+      return true;
+    }
+  }
+
+  return STATUS_CONTEXT.test(haystack);
+}
+
+/**
+ * Which failure family a message belongs to.
+ *
+ * Reads the sample body when there is one, falling back to the normalized
+ * pattern: normalization replaces numbers and ids with placeholders, so a
+ * pattern is a slightly worse needle-haystack than a real line.
+ *
+ * Two passes, and the order between them matters more than the order within
+ * either. EVERY textual needle in the table is tried before ANY status code,
+ * because a line that says what went wrong in words is describing itself,
+ * while a three-digit number is at best circumstantial. "panic: runtime
+ * error at offset 4040404" is a crash, not a 404.
+ */
 export function classifyErrorPattern(
   text: string,
   sampleBody?: string | undefined,
@@ -478,13 +572,15 @@ export function classifyErrorPattern(
   for (const rule of CLASSIFICATION_RULES) {
     for (const needle of rule.needles) {
       if (haystack.includes(needle)) {
-        return {
-          id: rule.id,
-          title: rule.title,
-          summary: rule.summary,
-          likelyCauses: rule.likelyCauses,
-          whatToCheck: rule.whatToCheck,
-        };
+        return present(rule);
+      }
+    }
+  }
+
+  for (const rule of CLASSIFICATION_RULES) {
+    for (const code of rule.statusCodes || []) {
+      if (matchesStatusCode(haystack, code)) {
+        return present(rule);
       }
     }
   }
@@ -664,7 +760,16 @@ export function buildErrorPatternFindings(
   const timeline: Array<ErrorPatternTimelinePoint> =
     evidence.correlation.timeline || [];
 
-  if (occurrences >= MIN_OCCURRENCES_FOR_SHAPE && timeline.length > 1) {
+  /*
+   * A single occupied bucket is the strongest burst there is — 100% of the
+   * occurrences in one bucket — so it must not be excluded for having
+   * "only one point". The timeline has no zero-fill, so that is exactly what
+   * a sharp spike looks like coming back from the database.
+   */
+  const canReadShape: boolean =
+    occurrences >= MIN_OCCURRENCES_FOR_SHAPE && timeline.length >= 1;
+
+  if (canReadShape) {
     let peak: ErrorPatternTimelinePoint | null = null;
 
     for (const point of timeline) {
@@ -752,9 +857,17 @@ export function buildErrorPatternFindings(
   }
 
   if (findings.length === 0) {
+    /*
+     * Only claim "steady, spread out" when the shape rules could actually
+     * read the shape. Asserting it over a timeline too sparse to judge told
+     * the user the opposite of the truth for the sharpest spikes — and the
+     * claim was forwarded to the model in the Ask AI prompt as well.
+     */
     findings.push({
       severity: "info",
-      text: "Nothing about this error's shape stands out — it is steady, spread out, and shares no attribute across every occurrence. Widening the window, or opening one of its traces, is the next move.",
+      text: canReadShape
+        ? "Nothing about this error's shape stands out — it is steady, spread out, and shares no attribute across every occurrence. Widening the window, or opening one of its traces, is the next move."
+        : "There is not enough of this error in the window to read its shape. Widening the window, or opening one of its traces, is the next move.",
     });
   }
 

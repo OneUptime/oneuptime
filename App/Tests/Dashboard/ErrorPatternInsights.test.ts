@@ -185,6 +185,96 @@ describe("classifyErrorPattern", () => {
     expect(Insights.classifyErrorPattern(message).id).toBe(expectedId);
   });
 
+  /*
+   * The negative table. An incidental digit run must never decide the family.
+   *
+   * The classifier reads the RAW sample body — the normalized pattern has
+   * every number rewritten to a placeholder — so any line carrying a request
+   * id, a duration, a byte count, an epoch-millisecond timestamp, a port, an
+   * offset or a line number is exposed. Bare "429"/"500"/"404" substrings
+   * used to steal those lines from the family that actually described them,
+   * and the wrong family then reached both the panel and the Ask AI prompt.
+   */
+  test.each([
+    ["Unhandled exception processing request 0HMQ9A4292BC", "crash"],
+    [
+      "Error: Cannot read properties of undefined (reading 'id') at line 4293",
+      "null-dereference",
+    ],
+    ["panic: runtime error at offset 4040404", "crash"],
+    ["java.lang.NullPointerException in worker 5002", "null-dereference"],
+    ["Order 500123 not found in database", "not-found"],
+  ])(
+    "an incidental digit run in %j does not decide the family",
+    (message: string, expectedId: string) => {
+      expect(Insights.classifyErrorPattern("", message).id).toBe(expectedId);
+    },
+  );
+
+  test("a line whose only signal is a bare number is left unclassified", () => {
+    /*
+     * Better to say "unrecognized" and offer the shape-based questions than
+     * to assert a family off a duration that happens to read like a status.
+     */
+    expect(
+      Insights.classifyErrorPattern("", "Job failed after 15000 ms").id,
+    ).toBe("unclassified");
+  });
+
+  test.each([429, 500, 502, 503, 504, 401, 403, 404])(
+    "a %s embedded in a longer number never classifies as its family",
+    (code: number) => {
+      const classification: ErrorPatternClassification =
+        Insights.classifyErrorPattern(
+          "",
+          `connect ECONNREFUSED 10.0.0.4:${code}00`,
+        );
+
+      // The textual needle wins; the digits are part of a port.
+      expect(classification.id).toBe("connection-refused");
+    },
+  );
+
+  test("textual needles are tried before any status code", () => {
+    /*
+     * Two passes, and the order between them matters more than the order
+     * within either: a line that says what went wrong in words is describing
+     * itself, while a three-digit number is at best circumstantial.
+     */
+    expect(
+      Insights.classifyErrorPattern("", "panic: runtime error, status 500").id,
+    ).toBe("crash");
+  });
+
+  describe("matchesStatusCode", () => {
+    test("requires the digits to stand alone", () => {
+      expect(Insights.matchesStatusCode("status 429", 429)).toBe(true);
+      expect(Insights.matchesStatusCode("status 14290", 429)).toBe(false);
+      expect(Insights.matchesStatusCode("status 1429", 429)).toBe(false);
+    });
+
+    test("accepts the code beside its own reason phrase, with no keyword", () => {
+      expect(Insights.matchesStatusCode("429 too many requests", 429)).toBe(
+        true,
+      );
+      expect(Insights.matchesStatusCode("502 bad gateway", 502)).toBe(true);
+    });
+
+    test("accepts a status-ish word anywhere on the line", () => {
+      expect(Insights.matchesStatusCode("http 503 from billing", 503)).toBe(
+        true,
+      );
+      expect(Insights.matchesStatusCode("returned 404 for /orders", 404)).toBe(
+        true,
+      );
+    });
+
+    test("rejects a standalone number with no reason to read it as a status", () => {
+      expect(Insights.matchesStatusCode("retried 429 times", 429)).toBe(false);
+      expect(Insights.matchesStatusCode("processed 500 rows", 500)).toBe(false);
+    });
+  });
+
   test("prefers the narrower family when a message matches two", () => {
     /*
      * "connection timed out" is both a connection failure and a timeout. The
@@ -259,6 +349,12 @@ describe("classifyErrorPattern", () => {
     }
   });
 });
+
+/*
+ * Declared out of line: the linter rejects a bare regex literal used with
+ * .exec() inline (wrap-regex), and wrapping it in parens fights prettier.
+ */
+const BURST_SHARE_PERCENT: RegExp = /(\d+)%/;
 
 describe("buildErrorPatternFindings", () => {
   test("leads with a deploy that landed as the error first appeared", () => {
@@ -417,6 +513,108 @@ describe("buildErrorPatternFindings", () => {
 
     // The default evidence is two even buckets — not a burst.
     expect(findingTexts(evidence()).join(" ")).not.toContain("Bursty");
+  });
+
+  test("reads a spike confined to a single bucket as the burst it is", () => {
+    /*
+     * The timeline query has no zero-fill, so an error that fired inside one
+     * bucket comes back as exactly one row. Both shape rules used to skip
+     * that case, so the SHARPEST possible spike produced strictly weaker
+     * output than a blunter one — "Not enough data" and "steady, spread
+     * out", which was then forwarded to the model in the Ask AI prompt.
+     */
+    const findings: string = findingTexts(
+      evidence({
+        occurrenceTotal: 500,
+        pattern: pattern({ count: 500 }),
+        trend: {
+          direction: "rising",
+          changePercent: 100,
+          recentCount: 500,
+          previousCount: 0,
+        },
+        correlation: correlation({
+          timeline: [{ time: new Date(MIDPOINT_MS), count: 500 }],
+        }),
+      }),
+    ).join(" ");
+
+    expect(findings).toContain("Bursty, not steady");
+    expect(findings).toContain("100%");
+    expect(findings).not.toContain("Nothing about this error's shape");
+  });
+
+  test("concentration is monotonic: one bucket is never weaker than two", () => {
+    /*
+     * The property behind the bug, rather than the one example. For a fixed
+     * occurrence count and window, concentrating the occurrences harder must
+     * never produce a smaller burst share — and must never fall off the
+     * finding entirely.
+     */
+    function burstShareOf(
+      timeline: Array<{ time: Date; count: number }>,
+    ): number {
+      const text: string | undefined = findingTexts(
+        evidence({
+          occurrenceTotal: 500,
+          pattern: pattern({ count: 500 }),
+          correlation: correlation({ timeline }),
+        }),
+      ).find((finding: string): boolean => {
+        return finding.startsWith("Bursty, not steady");
+      });
+
+      expect(text).toBeDefined();
+
+      return Number(BURST_SHARE_PERCENT.exec(text as string)?.[1]);
+    }
+
+    const oneBucket: number = burstShareOf([
+      { time: new Date(MIDPOINT_MS), count: 500 },
+    ]);
+    const twoBuckets: number = burstShareOf([
+      { time: new Date(MIDPOINT_MS), count: 480 },
+      { time: new Date(MIDPOINT_MS + 60_000), count: 20 },
+    ]);
+
+    expect(oneBucket).toBe(100);
+    expect(oneBucket).toBeGreaterThanOrEqual(twoBuckets);
+  });
+
+  test("says it cannot read the shape rather than calling it steady", () => {
+    /*
+     * The honest fallback. Too few occurrences to judge is a different
+     * statement from "steady and spread out", and the old text asserted the
+     * second whenever it meant the first.
+     */
+    const findings: Array<ErrorPatternFinding> =
+      Insights.buildErrorPatternFindings(
+        evidence({
+          occurrenceTotal: 2,
+          pattern: pattern({ count: 2, traceCount: 1 }),
+          correlation: correlation({
+            timeline: [{ time: new Date(MIDPOINT_MS), count: 2 }],
+            resources: [
+              {
+                resourceId: "a",
+                resourceType: "Service",
+                count: 1,
+                lastSeenAt: null,
+              },
+              {
+                resourceId: "b",
+                resourceType: "Service",
+                count: 1,
+                lastSeenAt: null,
+              },
+            ],
+          }),
+        }),
+      );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.text).toContain("not enough of this error");
+    expect(findings[0]?.text).not.toContain("steady, spread out");
   });
 
   test("does not read a burst out of a handful of occurrences", () => {

@@ -798,7 +798,22 @@ export function computeErrorPatternTrend(
   windowStart?: Date | undefined,
   windowEnd?: Date | undefined,
 ): ErrorPatternTrend {
-  if (!Array.isArray(timeline) || timeline.length < 2) {
+  /*
+   * One occupied bucket is a real answer, not a missing one.
+   *
+   * The timeline query is a plain GROUP BY with no zero-fill, so an error
+   * that fired inside a single bucket comes back as exactly one row. Reading
+   * that as "not enough data" meant the SHARPEST possible shape produced
+   * strictly weaker output than a blunter one: 500 occurrences in one bucket
+   * reported "Not enough data" and "steady, spread out", while the same 500
+   * split 480/20 across two buckets correctly reported a 100% rise and a
+   * 96% burst.
+   *
+   * A single row can still be placed against the window the caller supplies,
+   * which is what canSplitByTime below does. Only when there is no usable
+   * window AND fewer than two rows is there genuinely nothing to compare.
+   */
+  if (!Array.isArray(timeline) || timeline.length < 1) {
     return {
       direction: "unknown",
       changePercent: 0,
@@ -846,6 +861,21 @@ export function computeErrorPatternTrend(
     Number.isFinite(start) &&
     Number.isFinite(end) &&
     end > start;
+
+  /*
+   * The index split needs at least two rows to mean anything — with one row
+   * it puts everything in the "newer" half regardless of when it happened,
+   * which would invent a rising trend out of no information. With a window
+   * to measure against, canSplitByTime handles a single row correctly.
+   */
+  if (!canSplitByTime && timeline.length < 2) {
+    return {
+      direction: "unknown",
+      changePercent: 0,
+      recentCount: 0,
+      previousCount: 0,
+    };
+  }
 
   const midTime: number = start + (end - start) / 2;
   const midIndex: number = Math.floor(timeline.length / 2);

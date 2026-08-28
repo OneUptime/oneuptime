@@ -32,10 +32,23 @@ import {
 /**
  * The params that describe the SLICE, as opposed to the presentation.
  *
- * `page` / `pageSize` / `view` / `rootOnly` are deliberately absent: page 4
- * of the Viewer's list says nothing about what the Insights tab should
+ * `page` / `pageSize` / `view` are deliberately absent, and only those three:
+ * page 4 of the Viewer's list says nothing about what the Insights tab should
  * aggregate, and carrying them would put the user on page 4 of a list they
  * did not ask for on the way back.
+ *
+ * Everything that narrows the ROWS belongs here, whether or not the
+ * destination can apply it. `search` and `rootOnly` are both real predicates
+ * — the Traces and Metrics explorers compile `search` into their queries
+ * through their own grammar, and `rootOnly` drives `isRootSpan` — so leaving
+ * them out did not make the Insights tab ignore them, it silently widened
+ * the slice on the way there and destroyed the user's input on the way back.
+ *
+ * The rule for adding a param: if removing it would return MORE rows, it goes
+ * in this list. TelemetryTabScope.test.ts pins that this set plus the three
+ * presentation params covers everything the explorers write, so a new
+ * predicate param cannot be added to a viewer without someone deciding which
+ * side of the line it falls on.
  */
 export const TELEMETRY_TAB_SCOPE_PARAM_NAMES: ReadonlyArray<string> = [
   "filters",
@@ -43,6 +56,22 @@ export const TELEMETRY_TAB_SCOPE_PARAM_NAMES: ReadonlyArray<string> = [
   "start",
   "end",
   "savedView",
+  "search",
+  "rootOnly",
+];
+
+/**
+ * The params an explorer writes that describe how the view is PRESENTED
+ * rather than which rows it covers. Deliberately not carried.
+ *
+ * Exported so the closure test can assert that this set and the scope set
+ * together account for every param the explorers own — the structural guard
+ * against a predicate quietly going uncarried again.
+ */
+export const TELEMETRY_TAB_PRESENTATION_PARAM_NAMES: ReadonlyArray<string> = [
+  "page",
+  "pageSize",
+  "view",
 ];
 
 /**
@@ -305,6 +334,20 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 
 /**
+ * Predicates that are carried but are not facet chips.
+ *
+ * `search` is free text compiled through each explorer's own grammar and
+ * `rootOnly` is a boolean toggle; neither is expressible as a facet tuple,
+ * but both narrow the rows, so both have to reach the hint — otherwise the
+ * page carries them silently and its numbers describe a wider slice than the
+ * Viewer the user came from.
+ */
+export interface UnappliedScopeExtras {
+  search?: string | null | undefined;
+  rootOnly?: boolean | null | undefined;
+}
+
+/**
  * "Also filtered in the Viewer: severity, message text" — the sentence a
  * hint chip renders when the tab is carrying filters it is not applying.
  *
@@ -313,6 +356,7 @@ const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
  */
 export function describeUnappliedScopeFilters(
   tuples: Array<TelemetryFilterTuple>,
+  extras?: UnappliedScopeExtras | undefined,
 ): string {
   const labels: Array<string> = [];
 
@@ -324,6 +368,18 @@ export function describeUnappliedScopeFilters(
     if (!labels.includes(label)) {
       labels.push(label);
     }
+  }
+
+  if (typeof extras?.search === "string" && extras.search.trim().length > 0) {
+    labels.push("search text");
+  }
+
+  /*
+   * Only the narrowing value earns a mention. `rootOnly === false` is the
+   * explorer showing everything, which is not a filter to warn about.
+   */
+  if (extras?.rootOnly === true) {
+    labels.push("root spans only");
   }
 
   if (labels.length === 0) {
@@ -537,6 +593,17 @@ export interface ServiceScopedInsightsUrlScope {
   serviceIds: Array<string>;
   unappliedFilters: Array<TelemetryFilterTuple>;
   savedViewId: string | null;
+  /**
+   * The Viewer's submitted search string, carried verbatim.
+   *
+   * Null when the link named none. The empty string is NOT the same as null
+   * here: a link that carried scope and an empty search is saying "no search
+   * text", which has to beat a named saved view's stored search, while null
+   * says nothing and lets the view's own stand.
+   */
+  search: string | null;
+  /** The Traces root-spans-only toggle. Null when the link named none. */
+  rootOnly: boolean | null;
 }
 
 export function readServiceScopedInsightsUrlScope(
@@ -554,11 +621,21 @@ export function readServiceScopedInsightsUrlScope(
     { supportsResourceEntityFacets: false },
   );
 
+  const rawRootOnly: string | undefined = params["rootOnly"];
+
   return {
     timeRange: readTelemetryTimeRangeParams(params),
     serviceIds: split.serviceIds,
     unappliedFilters: split.unsupported,
     savedViewId: params["savedView"] || null,
+    /*
+     * readTelemetryTabScopeParams drops empty values, so an empty search in
+     * the URL reads as absent here. That is the right reading: the Viewer
+     * only writes `search` when it has one.
+     */
+    search: params["search"] ?? null,
+    rootOnly:
+      rawRootOnly === undefined ? null : rawRootOnly.toLowerCase() === "true",
   };
 }
 
@@ -569,6 +646,9 @@ export interface ServiceScopedInsightsUrlScopeInput {
   savedViewId: string | null;
   /** The grammar the sibling Viewer parses. */
   grammar: TelemetryFilterGrammar;
+  /** Carried verbatim; null when the page holds none. */
+  search?: string | null | undefined;
+  rootOnly?: boolean | null | undefined;
 }
 
 export function buildServiceScopedInsightsUrlParams(
@@ -589,6 +669,15 @@ export function buildServiceScopedInsightsUrlParams(
     ...buildTelemetryTimeRangeParams(input.timeRange),
     filters,
     savedView: input.savedViewId || null,
+    /*
+     * Re-emitted verbatim so the trip back restores the predicate the user
+     * typed. Null rather than "" when absent, so the URL writer DELETES the
+     * param instead of leaving `?search=` behind — which the Viewer would
+     * read as a search of empty string and which reads as "filtered" to
+     * anyone looking at the URL.
+     */
+    search: input.search ? input.search : null,
+    rootOnly: input.rootOnly === true ? "true" : null,
   };
 }
 
