@@ -3,32 +3,23 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../../Components/AppLink/AppLink";
 import {
-  DeviceFleetSummary,
-  OverviewDeviceRow,
-  OverviewSiteRow,
-  VendorCount,
-  pickDevicesNeedingAttention,
-  pickSitesNeedingAttention,
-  summarizeDeviceFleet,
-  summarizeVendors,
-} from "../../Components/Network/NetworkOverviewUtil";
-import DeviceStatusUtil, {
-  DEVICE_STATUS_SELECT,
-  NetworkDeviceStatus,
-} from "../../Components/NetworkDevice/DeviceStatusUtil";
+  NetworkOverviewSummary,
+  OverviewAttentionDevice,
+  OverviewAttentionSite,
+  OverviewFleet,
+  OverviewVendor,
+  fetchNetworkOverview,
+} from "../../Components/Network/NetworkSummaryApi";
 import Route from "Common/Types/API/Route";
 import { Gray500 } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Color from "Common/Types/Color";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
-import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -48,8 +39,6 @@ import React, {
   useState,
 } from "react";
 
-const ATTENTION_LIST_LIMIT: number = 8;
-const VENDOR_LIST_LIMIT: number = 6;
 const RECENT_SCAN_LIMIT: number = 5;
 
 /*
@@ -57,13 +46,22 @@ const RECENT_SCAN_LIMIT: number = 5;
  * Network area. One glance answers: is the fleet healthy, which devices
  * and sites need attention right now, what is the fleet made of, and is
  * discovery finding anything new.
+ *
+ * Every number here used to be worked out in this component, from every
+ * device and every site downloaded into the browser. That reads badly at
+ * eighty thousand devices — three-plus megabytes and half a second of blocked
+ * main thread — and, worse, it was not TRUE: the device fetch was capped at
+ * ten thousand rows sorted newest-first, so on a large fleet this page
+ * summarised whichever ten thousand devices happened to have been created
+ * most recently and called it the estate.
+ *
+ * The rollups are computed in Postgres now (see the /network-device/overview
+ * endpoint), from the whole fleet, and this component renders them.
  */
 const NetworkOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [devices, setDevices] = useState<Array<NetworkDevice>>([]);
-  const [sites, setSites] = useState<Array<NetworkSite>>([]);
-  const [endpointCount, setEndpointCount] = useState<number>(0);
+  const [summary, setSummary] = useState<NetworkOverviewSummary | null>(null);
   const [recentScans, setRecentScans] = useState<
     Array<NetworkDeviceDiscoveryScan>
   >([]);
@@ -74,54 +72,18 @@ const NetworkOverview: FunctionComponent<
     try {
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-      const [deviceResult, siteResult, endpoints, scanResult]: [
-        ListResult<NetworkDevice>,
-        ListResult<NetworkSite>,
-        number,
+      /*
+       * The rollups in one request, and the scan list in the other.
+       *
+       * The scan list stays a plain model fetch because it is already bounded
+       * to five rows and the page renders the models themselves — there is no
+       * reduction to move anywhere.
+       */
+      const [overview, scanResult]: [
+        NetworkOverviewSummary,
         ListResult<NetworkDeviceDiscoveryScan>,
       ] = await Promise.all([
-        ModelAPI.getList<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            ...DEVICE_STATUS_SELECT,
-            _id: true,
-            name: true,
-            interfacesDown: true,
-            vendor: true,
-          },
-          sort: {},
-        }),
-        ModelAPI.getList<NetworkSite>({
-          modelType: NetworkSite,
-          query: {
-            projectId: projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            siteType: true,
-            currentMonitorStatus: {
-              name: true,
-              color: true,
-              isOperationalState: true,
-            },
-          },
-          sort: {},
-        }),
-        ModelAPI.count<NetworkEndpoint>({
-          modelType: NetworkEndpoint,
-          query: {
-            projectId: projectId,
-          },
-        }),
+        fetchNetworkOverview(),
         ModelAPI.getList<NetworkDeviceDiscoveryScan>({
           modelType: NetworkDeviceDiscoveryScan,
           query: {
@@ -143,9 +105,7 @@ const NetworkOverview: FunctionComponent<
         }),
       ]);
 
-      setDevices(deviceResult.data);
-      setSites(siteResult.data);
-      setEndpointCount(endpoints);
+      setSummary(overview);
       setRecentScans(scanResult.data);
       setError("");
     } catch (err) {
@@ -170,8 +130,16 @@ const NetworkOverview: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  const fleet: OverviewFleet = summary?.fleet || {
+    total: 0,
+    up: 0,
+    down: 0,
+    pending: 0,
+    interfacesDown: 0,
+  };
+
   // Onboarding: nothing in the Network area yet.
-  if (devices.length === 0 && sites.length === 0) {
+  if (fleet.total === 0 && (summary?.siteCount || 0) === 0) {
     return (
       <Card
         title="Welcome to Network Monitoring"
@@ -215,55 +183,15 @@ const NetworkOverview: FunctionComponent<
     );
   }
 
-  const deviceRows: Array<OverviewDeviceRow> = devices.map(
-    (device: NetworkDevice): OverviewDeviceRow => {
-      return {
-        _id: device._id?.toString(),
-        name: device.name,
-        isReachable: device.isReachable,
-        lastPolledAt: device.lastPolledAt,
-        lastSeenAt: device.lastSeenAt,
-        pollingIntervalInMinutes: device.pollingIntervalInMinutes,
-        monitoringMethod: device.monitoringMethod,
-        currentMonitorStatus: device.currentMonitorStatus,
-        interfacesDown: device.interfacesDown,
-        vendor: device.vendor,
-      };
-    },
-  );
-
-  const siteRows: Array<OverviewSiteRow> = sites.map(
-    (site: NetworkSite): OverviewSiteRow => {
-      return {
-        _id: site._id?.toString(),
-        name: site.name,
-        siteType: site.siteType?.toString(),
-        statusName: site.currentMonitorStatus?.name,
-        statusColor: site.currentMonitorStatus?.color?.toString(),
-        isOperational: site.currentMonitorStatus
-          ? Boolean(site.currentMonitorStatus.isOperationalState)
-          : undefined,
-      };
-    },
-  );
-
-  const fleet: DeviceFleetSummary = summarizeDeviceFleet(deviceRows);
-  const attentionDevices: Array<OverviewDeviceRow> =
-    pickDevicesNeedingAttention(deviceRows, ATTENTION_LIST_LIMIT);
-  const attentionSites: Array<OverviewSiteRow> = pickSitesNeedingAttention(
-    siteRows,
-    ATTENTION_LIST_LIMIT,
-  );
-  const vendors: Array<VendorCount> = summarizeVendors(
-    deviceRows,
-    VENDOR_LIST_LIMIT,
-  );
+  const attentionDevices: Array<OverviewAttentionDevice> =
+    summary?.attentionDevices || [];
+  const attentionSites: Array<OverviewAttentionSite> =
+    summary?.attentionSites || [];
+  const vendors: Array<OverviewVendor> = summary?.vendors || [];
   const maxVendorCount: number = vendors[0]?.count || 1;
-  const unhealthySiteCount: number = siteRows.filter(
-    (site: OverviewSiteRow): boolean => {
-      return Boolean(site.statusName) && site.isOperational === false;
-    },
-  ).length;
+  const unhealthySiteCount: number = summary?.unhealthySiteCount || 0;
+  const siteCount: number = summary?.siteCount || 0;
+  const endpointCount: number = summary?.endpointCount || 0;
 
   type GetDeviceRouteFunction = (deviceId: string) => Route;
   const getDeviceRoute: GetDeviceRouteFunction = (deviceId: string): Route => {
@@ -339,7 +267,7 @@ const NetworkOverview: FunctionComponent<
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
-                {sites.length}
+                {siteCount}
               </div>
               <div className="mt-2 text-sm">
                 {unhealthySiteCount > 0 ? (
@@ -381,24 +309,20 @@ const NetworkOverview: FunctionComponent<
           ) : (
             <div className="divide-y divide-gray-100">
               {attentionDevices.map(
-                (device: OverviewDeviceRow): ReactElement => {
-                  const isDown: boolean =
-                    DeviceStatusUtil.getStatus(device) ===
-                    NetworkDeviceStatus.Down;
-
+                (device: OverviewAttentionDevice): ReactElement => {
                   return (
                     <div
-                      key={device._id}
+                      key={device.id}
                       className="flex items-center justify-between gap-3 py-2.5"
                     >
                       <AppLink
-                        to={getDeviceRoute(device._id as string)}
+                        to={getDeviceRoute(device.id)}
                         className="truncate text-sm font-medium text-gray-900 hover:underline"
                       >
                         {device.name || "—"}
                       </AppLink>
                       <div className="flex flex-shrink-0 items-center gap-2 text-sm">
-                        {isDown ? (
+                        {device.isDown ? (
                           <span className="font-medium text-red-600">
                             {device.lastSeenAt
                               ? `Last seen ${OneUptimeDate.fromNow(
@@ -431,41 +355,41 @@ const NetworkOverview: FunctionComponent<
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {attentionSites.map((site: OverviewSiteRow): ReactElement => {
-                const fullSite: NetworkSite | undefined = sites.find(
-                  (candidate: NetworkSite): boolean => {
-                    return candidate._id?.toString() === site._id;
-                  },
-                );
-
-                return (
-                  <div
-                    key={site._id}
-                    className="flex items-center justify-between gap-3 py-2.5"
-                  >
-                    <AppLink
-                      to={getSiteRoute(site._id as string)}
-                      className="truncate text-sm font-medium text-gray-900 hover:underline"
+              {attentionSites.map(
+                (site: OverviewAttentionSite): ReactElement => {
+                  return (
+                    <div
+                      key={site.id}
+                      className="flex items-center justify-between gap-3 py-2.5"
                     >
-                      {site.name || "—"}
-                    </AppLink>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      {site.siteType && (
-                        <span className="text-xs text-gray-500">
-                          {site.siteType}
-                        </span>
-                      )}
-                      {fullSite?.currentMonitorStatus?.name && (
-                        <Pill
-                          text={fullSite.currentMonitorStatus.name}
-                          color={fullSite.currentMonitorStatus.color || Gray500}
-                          size={PillSize.Small}
-                        />
-                      )}
+                      <AppLink
+                        to={getSiteRoute(site.id)}
+                        className="truncate text-sm font-medium text-gray-900 hover:underline"
+                      >
+                        {site.name || "—"}
+                      </AppLink>
+                      <div className="flex flex-shrink-0 items-center gap-2">
+                        {site.siteType && (
+                          <span className="text-xs text-gray-500">
+                            {site.siteType}
+                          </span>
+                        )}
+                        {site.statusName && (
+                          <Pill
+                            text={site.statusName}
+                            color={
+                              site.statusColor
+                                ? Color.fromString(site.statusColor)
+                                : Gray500
+                            }
+                            size={PillSize.Small}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
             </div>
           )}
         </Card>
@@ -480,7 +404,7 @@ const NetworkOverview: FunctionComponent<
             </p>
           ) : (
             <div className="space-y-3">
-              {vendors.map((vendor: VendorCount): ReactElement => {
+              {vendors.map((vendor: OverviewVendor): ReactElement => {
                 return (
                   <div key={vendor.vendor}>
                     <div className="flex items-center justify-between text-sm">

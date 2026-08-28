@@ -261,11 +261,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return null;
     }
 
-    const existingDevices: Map<string, NetworkDevice> =
-      await this.getExistingDevices({
+    const existingDevices: Map<string, NetworkDevice> = this.getExistingDevices(
+      {
         projectId: projectId,
         cache: data.existingHostnamesByProjectId,
-      });
+      },
+    );
 
     const hasMonitorProvisioningRules: boolean = rules.some(
       (rule: NetworkDeviceAutoImportRule): boolean => {
@@ -493,8 +494,14 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       ...exclusionRules,
     ];
 
-    const existingDevices: Map<string, NetworkDevice> =
-      await this.loadExistingDevices(data.projectId);
+    /*
+     * Starts empty and is primed per scan from the addresses that scan found.
+     * See getExistingDevices.
+     */
+    const existingDevices: Map<string, NetworkDevice> = new Map<
+      string,
+      NetworkDevice
+    >();
     const hasMonitorProvisioningRule: boolean = Boolean(
       data.rule.monitorTemplateId,
     );
@@ -711,10 +718,21 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     );
   }
 
-  private async getExistingDevices(data: {
+  /*
+   * The project's running map of "this address already has a device", shared
+   * across every scan in one sweep.
+   *
+   * It starts EMPTY and is filled per scan by `primeExistingDevices`, from the
+   * addresses that scan actually found. It used to start full — every device
+   * in the project, paged out of the database — which was both a full-table
+   * read per sweep and, on a fleet whose devices share one `createdAt` (what a
+   * bulk import produces), an unstable page walk that SKIPPED hostnames and
+   * let this engine create duplicates. See loadExistingDevices.
+   */
+  private getExistingDevices(data: {
     projectId: ObjectID;
     cache: ExistingHostnamesByProjectId;
-  }): Promise<Map<string, NetworkDevice>> {
+  }): Map<string, NetworkDevice> {
     const key: string = data.projectId.toString();
 
     const cached: Map<string, NetworkDevice> | undefined = data.cache.get(key);
@@ -723,12 +741,32 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return cached;
     }
 
-    const loaded: Map<string, NetworkDevice> = await this.loadExistingDevices(
-      data.projectId,
-    );
-    data.cache.set(key, loaded);
+    const fresh: Map<string, NetworkDevice> = new Map<string, NetworkDevice>();
+    data.cache.set(key, fresh);
 
-    return loaded;
+    return fresh;
+  }
+
+  /*
+   * Fills the running map with whatever of THESE addresses already has a
+   * device. Only what is found is recorded, so an address that is not
+   * registered is looked up again if a later scan in the same sweep carries it
+   * — one indexed lookup, and recording absence would go stale the moment this
+   * run creates the device.
+   */
+  private async primeExistingDevices(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    into: Map<string, NetworkDevice>;
+  }): Promise<void> {
+    const found: Map<string, NetworkDevice> = await this.loadExistingDevices(
+      data.projectId,
+      data.hostnames,
+    );
+
+    for (const [hostname, device] of found) {
+      data.into.set(hostname, device);
+    }
   }
 
   /*
@@ -737,45 +775,39 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * a truncated answer produces duplicate devices, which is worse than a
    * slow answer. Sorted for stable paging.
    */
+  /*
+   * The devices already at these addresses, keyed by hostname.
+   *
+   * This used to load EVERY device in the project, paging `ORDER BY
+   * createdAt` — and a bulk discovery import stamps every device it creates
+   * with the same `createdAt`, so on a large fleet the sort key is
+   * single-valued and `LIMIT/OFFSET` over it returns an arbitrary,
+   * non-deterministic slice per call. Pages overlapped and skipped, and a
+   * skipped hostname reads as "not registered", which CREATES A DUPLICATE
+   * DEVICE — the exact failure the paging was added to prevent. It also cost
+   * a full table scan per page.
+   *
+   * Asking about the addresses the scans actually carry is both correct and
+   * an indexed lookup. See NetworkDeviceService.getDevicesByHostnames.
+   */
   private async loadExistingDevices(
     projectId: ObjectID,
+    hostnames: Array<string>,
   ): Promise<Map<string, NetworkDevice>> {
-    const existingDevices: Map<string, NetworkDevice> = new Map();
-
-    for (let skip: number = 0; ; skip += LIMIT_MAX) {
-      const existing: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-        query: {
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-          hostname: true,
-          monitoringMethod: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        limit: LIMIT_MAX,
-        skip: skip,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      for (const device of existing) {
-        if (device.hostname) {
-          existingDevices.set(device.hostname, device);
-        }
-      }
-
-      if (existing.length < LIMIT_MAX) {
-        break;
-      }
-    }
-
-    return existingDevices;
+    return NetworkDeviceService.getDevicesByHostnames({
+      projectId: projectId,
+      hostnames: hostnames,
+      select: {
+        _id: true,
+        projectId: true,
+        name: true,
+        hostname: true,
+        monitoringMethod: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   private static monitorProvisioningKey(
@@ -1024,6 +1056,18 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     const hosts: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts(
       (scan.discoveredDevices as Array<DiscoveredNetworkDevice>) || [],
     );
+
+    /*
+     * Ask the database about THESE addresses, once, before the loop — rather
+     * than having loaded every device in the project up front.
+     */
+    await this.primeExistingDevices({
+      projectId: scan.projectId,
+      hostnames: hosts.map((host: DiscoveredNetworkDevice): string => {
+        return host.ipAddress || "";
+      }),
+      into: data.existingDevices,
+    });
 
     const createdIpAddresses: Array<string> = [];
 

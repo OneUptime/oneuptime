@@ -8,10 +8,16 @@ import path from "path";
  * be reached by testing the pure aggregator alone.
  *
  * Each assertion here corresponds to a way the rollup can be quietly wrong
- * rather than loudly broken: a column that stops being selected turns every
- * monitor-backed device "unknown"; resolving the health before the statuses
- * are fetched does the same thing without changing a single visible count
- * to zero. Those are the failures that ship.
+ * rather than loudly broken: a fact that stops being grouped on hands the
+ * classifier a bucket it cannot tell apart from a different one; resolving
+ * the health before the statuses are fetched turns every monitor-backed
+ * device "unknown" without moving a single visible count to zero. Those are
+ * the failures that ship.
+ *
+ * The rollup no longer reads device ROWS. It reads per-site health BUCKETS
+ * out of one grouped aggregate, so the assertions that used to pin the paging
+ * loop pin the shape that replaced it — carrying the reasons they were
+ * written for across, because those reasons outlived the mechanism.
  *
  * Sources are whitespace-squashed first, so prettier re-wrapping a line
  * cannot turn a real regression check into a red herring.
@@ -27,28 +33,66 @@ const API_SOURCE_PATH: string = path.join(
   "NetworkSiteHierarchy.ts",
 );
 
+/*
+ * The rollup's query does not live in the endpoint any more — the endpoint
+ * asks NetworkDeviceService for buckets, and the filters that decide WHICH
+ * devices are in them live in that service. Assertions about those filters
+ * have to read it, or they assert nothing.
+ */
+const SERVICE_SOURCE_PATH: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "Server",
+  "Services",
+  "NetworkDeviceService.ts",
+);
+
+const AGGREGATION_SOURCE_PATH: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "Server",
+  "Utils",
+  "NetworkDevice",
+  "DeviceHealthAggregation.ts",
+);
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
 
+function stripComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/gm, " ");
+}
+
 const RAW: string = fs.readFileSync(API_SOURCE_PATH, "utf8");
 const SOURCE: string = squash(RAW);
-const CODE: string = squash(
-  RAW.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/gm, " "),
+const CODE: string = squash(stripComments(RAW));
+
+const SERVICE_RAW: string = fs.readFileSync(SERVICE_SOURCE_PATH, "utf8");
+const AGGREGATION: string = squash(
+  stripComments(fs.readFileSync(AGGREGATION_SOURCE_PATH, "utf8")),
 );
 
 /*
- * Just the body of fetchAttachedDevicesForRollup.
+ * Slices, so an assertion cannot pass on a line from somewhere else.
  *
- * The select assertions below USED to run against the whole 1,400-line
- * file, where "siteId: true" and "currentMonitorStatusId: true" also appear
- * in unrelated selects — so two of the seven would have passed with the
- * column deleted from the query they are supposed to be guarding. A test
- * that cannot fail for its own reason is worse than no test: it reports
- * coverage it does not have.
+ * The select assertions this file used to carry ran against the whole
+ * 1,400-line endpoint, where "siteId: true" and "currentMonitorStatusId: true"
+ * also appear in unrelated selects — so two of the seven would have passed
+ * with the column deleted from the query they were supposed to be guarding. A
+ * test that cannot fail for its own reason is worse than no test: it reports
+ * coverage it does not have. Same hazard, same fix, in a file where
+ * "isArchived: false" now appears in two different queries.
  */
 function sliceBetween(
   source: string,
+  fileName: string,
   startMarker: string,
   endMarker: string,
 ): string {
@@ -56,61 +100,278 @@ function sliceBetween(
   const end: number = source.indexOf(endMarker, start + 1);
   if (start === -1 || end === -1) {
     throw new Error(
-      `Could not slice NetworkSiteHierarchy.ts between "${startMarker}" and "${endMarker}" — the shape of the file changed, so these assertions are no longer pointing at what they name.`,
+      `Could not slice ${fileName} between "${startMarker}" and "${endMarker}" — the shape of the file changed, so these assertions are no longer pointing at what they name.`,
     );
   }
   return source.slice(start, end);
 }
 
-const DEVICE_FETCH: string = squash(
+/*
+ * The endpoint's whole device read: no loop, and TWO branches.
+ *
+ * Drilling into one region scopes the aggregate to that subtree's site ids;
+ * the root, and any subtree too large for an id list to be worth building,
+ * aggregates the project. The two are supposed to be interchangeable — the
+ * scoped set is a superset of what the level can draw from — which is exactly
+ * why a rule that holds on one branch and not the other is invisible: the
+ * broken half only runs once you have drilled in, and the root level anyone
+ * checks first stays correct. So the rules below are asserted on BOTH.
+ */
+const DEVICE_AGGREGATE: string = squash(
   sliceBetween(
     RAW,
-    "async function fetchAttachedDevicesForRollup(",
+    "NetworkSiteHierarchy.ts",
+    "async function fetchDeviceHealthBySite(",
     "export default class NetworkSiteHierarchyAPI",
   ),
 );
 
-describe("the device query carries everything the classifier reads", () => {
-  /*
-   * DeviceHealthStateUtil reads exactly these. A column dropped from this
-   * select does not fail — it silently reclassifies part of the fleet, and
-   * the level above goes quiet about an outage.
-   */
-  const REQUIRED_COLUMNS: Array<string> = [
-    "siteId: true",
-    "isReachable: true",
-    "lastPolledAt: true",
-    "lastSeenAt: true",
-    "pollingIntervalInMinutes: true",
-    "currentMonitorStatusId: true",
-    "interfacesDown: true",
-  ];
+function occurrences(haystack: string, needle: string): number {
+  return haystack.split(needle).length - 1;
+}
 
-  for (const column of REQUIRED_COLUMNS) {
-    test(`selects ${column.replace(": true", "")} — in the device query itself`, () => {
-      expect(DEVICE_FETCH).toContain(column);
-    });
-  }
+// The two service methods it calls, where the WHICH-devices filters live.
+const HEALTH_GROUPS: string = squash(
+  stripComments(
+    sliceBetween(
+      SERVICE_RAW,
+      "NetworkDeviceService.ts",
+      "public async getHealthGroups(data: {",
+      "public async getHealthGroupsForSites(",
+    ),
+  ),
+);
 
+const HEALTH_GROUPS_FOR_SITES: string = squash(
+  stripComments(
+    sliceBetween(
+      SERVICE_RAW,
+      "NetworkDeviceService.ts",
+      "public async getHealthGroupsForSites(data: {",
+      "private async assertSiteBelongsToProject(",
+    ),
+  ),
+);
+
+describe("the rollup reads buckets, not device rows", () => {
   /*
-   * The slice has to be the right one. If the marker ever matched something
-   * else the assertions above would go quietly vacuous, so pin a string that
-   * only the device fetch contains.
+   * Both slices have to be the right ones. If a marker ever matched something
+   * else the assertions below would go quietly vacuous, so pin a string only
+   * the thing under test contains.
    */
-  test("the slice under test really is the device fetch", () => {
-    expect(DEVICE_FETCH).toContain("NetworkDeviceService.findBy(");
-    expect(DEVICE_FETCH).toContain("limit: DEVICE_ROLLUP_PAGE_SIZE");
+  test("the slices under test really are the aggregate and its service calls", () => {
+    expect(DEVICE_AGGREGATE).toContain(
+      "NetworkDeviceService.getHealthGroups({",
+    );
+    expect(DEVICE_AGGREGATE).toContain(
+      "NetworkDeviceService.getHealthGroupsForSites({",
+    );
+    expect(DEVICE_AGGREGATE).toContain("Promise<Array<DeviceHealthGroup>>");
+    expect(HEALTH_GROUPS).toContain("this.aggregateBy({");
+    expect(HEALTH_GROUPS_FOR_SITES).toContain("this.aggregateBy({");
+    // Not the same slice twice: one filters by site ids, the other does not.
+    expect(HEALTH_GROUPS_FOR_SITES).toContain(
+      "siteId: QueryHelper.any(data.siteIds),",
+    );
+    expect(HEALTH_GROUPS).not.toContain("data.siteIds");
   });
 
   /*
-   * Archived devices are hidden from every list but keep collecting
-   * telemetry. Counting them would put a permanent red badge on a site
-   * whose only sin is that somebody retired a switch.
+   * There is no paging loop left, and there must not be a new one.
+   *
+   * The loop it replaced was honest — it fetched every device rather than the
+   * first 10,000 — and that honesty cost eight-plus sequential queries whose
+   * OFFSET grew with every page, plus tens of thousands of hydrated model
+   * objects per drill-down. A reader who "fixes" a future counting bug by
+   * walking the rows again would get the same numbers back and nothing on the
+   * wire would change, which is exactly why it is pinned here rather than
+   * left to review.
    */
-  test("never counts archived devices", () => {
-    expect(DEVICE_FETCH).toContain(
-      squash("siteId: QueryHelper.notNull(), isArchived: false,"),
+  test("no page walk over devices survives in the endpoint", () => {
+    expect(CODE).not.toContain("DEVICE_ROLLUP_PAGE_SIZE");
+    expect(CODE).not.toContain("MAX_ROLLUP_DEVICES");
+    expect(CODE).not.toContain("deviceFetch");
+    expect(DEVICE_AGGREGATE).not.toContain("for (;;)");
+    expect(DEVICE_AGGREGATE).not.toContain("skip +=");
+    expect(DEVICE_AGGREGATE).not.toContain("NetworkDeviceService.findBy(");
+  });
+
+  /*
+   * The 200,000-device ceiling is DELETED, not moved.
+   *
+   * It existed because a walk has to stop somewhere, and everything past it
+   * was a rollup that quietly described part of an estate. A grouped
+   * aggregate returns a handful of rows per site whatever the fleet's size,
+   * so there is no cap to hit and nothing to confess — which is why the
+   * device half of the truncation flag is gone too (see below). The old
+   * assertions about the ceiling's arithmetic went with it: there is no
+   * ceiling to get the arithmetic of wrong.
+   */
+  test("there is no device ceiling left to hit", () => {
+    expect(CODE).not.toContain("200000");
+    expect(CODE).not.toContain("isTruncated: true");
+    expect(CODE).not.toContain("deviceFetch.isTruncated");
+  });
+
+  /*
+   * The tenant scoping travels with the aggregate. A grouped read over every
+   * device row in the database, run without the caller's props, is a data
+   * leak rather than a crash — nothing else in the response would notice, and
+   * the numbers would simply be a little too large.
+   */
+  test("the aggregate is permission-scoped, on both branches", () => {
+    expect(occurrences(DEVICE_AGGREGATE, "props: data.props,")).toBe(2);
+    expect(HEALTH_GROUPS).toContain("props: data.props,");
+    expect(HEALTH_GROUPS_FOR_SITES).toContain("props: data.props,");
+  });
+
+  /*
+   * Archived devices are hidden from every list but keep their siteId and
+   * keep collecting telemetry. Counting them would put a permanent red badge
+   * on a site whose only sin is that somebody retired a switch — and the
+   * drill-down under that badge would show zero devices, because the list
+   * query does exclude them.
+   *
+   * A device attached to no site belongs to no level, and would otherwise
+   * arrive as a bucket with a null site id for the endpoint to guess at. The
+   * project-wide branch says so explicitly; the scoped branch gets it from
+   * naming its sites, since a device with no site matches no id.
+   */
+  test("archived devices and devices with no site are never in a bucket", () => {
+    expect(DEVICE_AGGREGATE).toContain("onlyAttachedToSite: true,");
+    expect(DEVICE_AGGREGATE).toContain("siteIds: data.scopedSiteIds,");
+    expect(HEALTH_GROUPS).toContain("isArchived: false,");
+    expect(HEALTH_GROUPS_FOR_SITES).toContain("isArchived: false,");
+    expect(HEALTH_GROUPS).toContain(
+      squash(
+        "if (data.onlyAttachedToSite) { query.siteId = QueryHelper.notNull(); }",
+      ),
     );
+  });
+
+  /*
+   * The per-site breakdown, which is the entire point of both calls.
+   *
+   * Without `groupBySite` the aggregate selects no site column at all: every
+   * bucket parses back with `siteId: null`, the endpoint's own no-site filter
+   * throws the whole fleet away, and every child reports zero devices. The
+   * response still looks well-formed — and `attachedDeviceCount` lands on 0,
+   * which is precisely the value the topology explorer reads to decide the
+   * hierarchy is not worth showing at all.
+   *
+   * It defaults to OFF on the scoped call, because the site rollup engine
+   * shares that method and wants one verdict for a whole subtree. So the
+   * drill-down has to ask for it, on the branch a root-level check never
+   * reaches.
+   */
+  test("the buckets are grouped per site, on both branches", () => {
+    expect(occurrences(DEVICE_AGGREGATE, "groupBySite: true,")).toBe(2);
+    // ...and the flag actually selects the site column, in both methods.
+    const groupByTernary: string = squash(
+      "groupBy: data.groupBySite ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE : DEVICE_HEALTH_GROUP_COLUMNS,",
+    );
+    expect(HEALTH_GROUPS).toContain(groupByTernary);
+    expect(HEALTH_GROUPS_FOR_SITES).toContain(groupByTernary);
+    expect(AGGREGATION).toContain(
+      squash(
+        '{ expression: column("siteId"), alias: DeviceHealthGroupAlias.SiteId },',
+      ),
+    );
+  });
+
+  /*
+   * Scoping must never narrow the ANSWER, only the scan.
+   *
+   * Two ways it silently could. An id list built from the subtree query alone
+   * would leave out the drilled site itself, and that site's own devices — a
+   * distribution centre's core switches, which belong to no child's subtree
+   * and are tallied separately into ownDeviceStats — would simply stop being
+   * counted, while every child card stayed right. And an empty list must fall
+   * through to the whole project rather than being handed to the scoped call,
+   * which answers an empty id set with no rows at all: that is the root level,
+   * where the hierarchy opens.
+   */
+  test("the scoped branch covers the drilled site and its whole subtree", () => {
+    expect(CODE).toContain(
+      squash(
+        "const scopedSiteIds: Array<ObjectID> = siteId ? [ new ObjectID(siteId), ...subtreeRows",
+      ),
+    );
+    // ...and the root, with no site drilled, names no sites at all.
+    expect(CODE).toContain(
+      squash(
+        "return new ObjectID(row._id!.toString()); }), ] : []; const deviceGroups: Array<DeviceHealthGroup> = await fetchDeviceHealthBySite({",
+      ),
+    );
+    expect(CODE).toContain(squash("scopedSiteIds: scopedSiteIds,"));
+  });
+
+  test("an empty scope aggregates the project rather than nothing", () => {
+    expect(DEVICE_AGGREGATE).toContain(
+      squash(
+        "if ( data.scopedSiteIds.length > 0 && data.scopedSiteIds.length <= MAX_SCOPED_ROLLUP_SITES ) {",
+      ),
+    );
+  });
+});
+
+/*
+ * One clock, and the database and the classifier both read it.
+ *
+ * Staleness is the one fact in a bucket that is not already discrete, so it
+ * is decided in SQL against a bound "now" and then reproduced in TypeScript
+ * from timestamps placed relative to the same instant. Both halves therefore
+ * have to be handed the SAME Date — a second clock anywhere on this path
+ * makes two devices on one response answerable to two different "now"s, and
+ * the resulting disagreement between a card and the map you drill into is
+ * impossible to reproduce from the outside.
+ */
+describe("every bucket is judged against one clock, taken first", () => {
+  const CLOCK: string = "const now: Date = OneUptimeDate.getCurrentDate();";
+  const FETCH: string = "await fetchDeviceHealthBySite({";
+  const HEALTH_PASS: string =
+    "const deviceAttachments: Array<DeviceAttachmentRow> = deviceGroups";
+
+  test("there is one clock, and it is the repo's clock", () => {
+    expect(CODE).toContain(squash(CLOCK));
+    /*
+     * A raw `new Date()` sidesteps OneUptimeDate entirely, and it is how a
+     * per-bucket clock would most naturally get written.
+     */
+    expect(CODE).not.toContain("new Date()");
+  });
+
+  /*
+   * Ordering, and it is invisible: `now` is an ARGUMENT to the fetch, so a
+   * clock declared after it does not compile — but a clock declared later,
+   * with the fetch given one of its own, does. Both halves would still run;
+   * the numbers would simply be measured against instants that drift apart
+   * under load, and the drift grows with exactly the fleet size this whole
+   * change exists to handle.
+   */
+  test("the clock is taken before the fetch, and the fetch before the classification", () => {
+    const clockAt: number = CODE.indexOf(squash(CLOCK));
+    const fetchAt: number = CODE.indexOf(squash(FETCH));
+    const healthPassAt: number = CODE.indexOf(squash(HEALTH_PASS));
+    expect(clockAt).toBeGreaterThan(-1);
+    expect(fetchAt).toBeGreaterThan(-1);
+    expect(healthPassAt).toBeGreaterThan(-1);
+    expect(clockAt).toBeLessThan(fetchAt);
+    expect(fetchAt).toBeLessThan(healthPassAt);
+  });
+
+  /*
+   * The same instant reaches the SQL predicate and the classifier. The
+   * database groups by "was this device last contacted before now minus its
+   * own window"; `deviceHealthInputForGroup` then places a synthetic
+   * timestamp on the correct side of that same window. Feed the two different
+   * instants and a bucket can be grouped stale and read fresh.
+   */
+  test("that clock is what the aggregate binds and what the classifier reads", () => {
+    // Both branches bind the caller's instant, not the database's NOW().
+    expect(occurrences(DEVICE_AGGREGATE, "now: data.now,")).toBe(2);
+    expect(CODE).toContain(squash("props: props, now: now, });"));
+    expect(CODE).toContain(squash("now: now, }), now, ),"));
   });
 });
 
@@ -121,18 +382,21 @@ describe("statuses are resolved before health is", () => {
    * reachability, finds nothing, and tallies it "unknown" — so the whole
    * monitor-backed half of a fleet disappears from the health counts while
    * every number on screen still looks plausible.
+   *
+   * The bucket carries the id as a string (it came out of an aggregate row,
+   * not a model), so there is no ObjectID to stringify here.
    */
   test("device-stamped status ids join the batch status fetch", () => {
     expect(CODE).toContain(
       squash(
-        "for (const device of deviceFetch.devices) { if (device.currentMonitorStatusId) { statusIds.add(device.currentMonitorStatusId.toString()); } }",
+        "for (const group of deviceGroups) { if (group.monitorStatusId) { statusIds.add(group.monitorStatusId); } }",
       ),
     );
   });
 
   /*
    * Order matters and is invisible: reading statusById before it is filled
-   * yields undefined for every device, which is a legal value meaning "no
+   * yields undefined for every bucket, which is a legal value meaning "no
    * monitor" rather than an error.
    */
   test("the health pass runs after the status map is built", () => {
@@ -140,26 +404,11 @@ describe("statuses are resolved before health is", () => {
       "const statusById: StatusMap = await fetchStatusesByIds(",
     );
     const healthPassAt: number = CODE.indexOf(
-      "const deviceAttachments: Array<DeviceAttachmentRow> = deviceFetch.devices",
+      "const deviceAttachments: Array<DeviceAttachmentRow> = deviceGroups",
     );
     expect(statusFetchAt).toBeGreaterThan(-1);
     expect(healthPassAt).toBeGreaterThan(-1);
     expect(statusFetchAt).toBeLessThan(healthPassAt);
-  });
-
-  /*
-   * One clock for the whole response. Calling the classifier with a fresh
-   * `new Date()` per device would let two devices on the same page be judged
-   * against different "now"s — rare, but the resulting disagreement between
-   * a card and the map you drill into is impossible to reproduce.
-   */
-  test("every device is judged against one clock", () => {
-    expect(CODE).toContain(
-      squash("const now: Date = OneUptimeDate.getCurrentDate();"),
-    );
-    expect(CODE).toContain(
-      squash("interfacesDown: device.interfacesDown, }, now,"),
-    );
   });
 
   /*
@@ -189,6 +438,35 @@ describe("statuses are resolved before health is", () => {
       squash('} from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";'),
     );
     expect(CODE).toContain("deviceHealthState(");
+    expect(CODE).toContain("deviceHealthInputForGroup({");
+  });
+
+  /*
+   * And the endpoint decides NOTHING about health itself.
+   *
+   * A grouped aggregate is a standing invitation to write the rule a second
+   * time — `CASE WHEN "isReachable" = false THEN 'down' ...` in the SQL, or
+   * an if-chain over the bucket's flags here, either of which would be
+   * shorter than the round trip through deviceHealthInputForGroup. Both would
+   * also be a second implementation of a rule whose entire purpose is having
+   * one: the day either copy is edited, the site card and the topology map it
+   * opens start describing different networks.
+   *
+   * So the endpoint must not so much as name the facts the rule reads. Every
+   * one of these identifiers appearing here would mean a verdict is being
+   * reached outside DeviceHealthStateUtil.
+   */
+  test("no reachability rule is rewritten inside the endpoint", () => {
+    for (const fact of [
+      "isReachable",
+      "lastPolledAt",
+      "lastSeenAt",
+      "interfacesDown",
+      "pollingIntervalInMinutes",
+      "NetworkDeviceReachability",
+    ]) {
+      expect(CODE).not.toContain(fact);
+    }
   });
 });
 
@@ -216,254 +494,183 @@ describe("the response answers the questions the explorer asks", () => {
   test("the project's device scope is reported", () => {
     expect(CODE).toContain(
       squash(
-        "deviceScope: { attachedDeviceCount: deviceAttachments.length, unattachedDeviceCount: unattachedDeviceCount, },",
-      ),
-    );
-  });
-
-  test("unattached devices are counted, not listed", () => {
-    expect(CODE).toContain(
-      squash(
-        "await NetworkDeviceService.countBy({ query: { projectId: projectId, siteId: QueryHelper.isNull(), isArchived: false, },",
+        "deviceScope: { attachedDeviceCount: attachedDeviceCount, unattachedDeviceCount: unattachedDeviceCount, },",
       ),
     );
   });
 
   /*
-   * A device with no site belongs to no level. Carrying it into the
+   * The most likely silent regression on this field, and it has changed shape
+   * twice — so both wrong answers are pinned out.
+   *
+   * `deviceScope` describes the PROJECT: the explorer reads it to decide
+   * whether a hierarchy is worth opening at all. The buckets do not answer
+   * that question any more, because they are scoped to the subtree in view —
+   * summing them would report "devices under THIS level", and drilling into
+   * an empty branch of a fully-populated estate would drop the reader onto
+   * the flat map. And `deviceAttachments.length` — the shape this field had
+   * when a row meant a device — would be worse still: a row is a BUCKET, so
+   * it returns the number of distinct (site, facts) combinations. Measured
+   * against the seeded fleet that is 4,131, standing for 76,800 site-attached
+   * devices. A plausible-looking number on a field nobody cross-checks.
+   *
+   * So both halves are counted in the database, over the whole project.
+   */
+  test("the device scope is counted over the project, not derived from buckets", () => {
+    expect(CODE).toContain(
+      squash(
+        "const [attachedDeviceCount, unattachedDeviceCount]: [number, number] = await Promise.all([",
+      ),
+    );
+    expect(CODE).toContain(
+      squash(
+        "NetworkDeviceService.countBy({ query: { projectId: projectId, siteId: QueryHelper.notNull(), isArchived: false, },",
+      ),
+    );
+    expect(CODE).toContain(
+      squash(
+        "NetworkDeviceService.countBy({ query: { projectId: projectId, siteId: QueryHelper.isNull(), isArchived: false, },",
+      ),
+    );
+    expect(CODE).not.toContain("deviceAttachments.length");
+    expect(CODE).not.toContain(
+      "attachedDeviceCount: number = deviceAttachments",
+    );
+  });
+
+  /*
+   * And neither count is capped. `countBy` applies `limit` as a `.take()` on
+   * the counted set, so a limit here caps the ANSWER rather than the work: a
+   * project with fifty thousand unattached devices would be told ten thousand
+   * of them are missing from the hierarchy. Both calls pass `skip` and no
+   * `limit`, which defaults to Infinity.
+   */
+  test("neither scope count is capped by a limit", () => {
+    const SCOPE: string = squash(
+      sliceBetween(
+        stripComments(RAW),
+        "NetworkSiteHierarchy.ts",
+        "const [attachedDeviceCount, unattachedDeviceCount]",
+        "return Response.sendJsonObjectResponse(",
+      ),
+    );
+    expect(occurrences(SCOPE, "NetworkDeviceService.countBy({")).toBe(2);
+    expect(occurrences(SCOPE, "skip: 0,")).toBe(2);
+    expect(SCOPE).not.toContain("limit:");
+  });
+
+  /*
+   * A bucket with no site belongs to no level — a site deleted out from under
+   * its devices, or one the caller cannot read. Carrying it into the
    * aggregator with an empty site id would bucket it under whichever child
    * happened to have that key.
    */
-  test("devices with no site are dropped before aggregation", () => {
-    expect(CODE).toContain(squash("if (!deviceSiteId) { return null; }"));
+  test("buckets with no site are dropped before aggregation", () => {
+    expect(CODE).toContain(squash("if (!group.siteId) { return null; }"));
   });
 
   /*
-   * A cap hit means the rollups below this level are partial. The explorer
-   * shows a note for it, so the flag has to keep reflecting BOTH caps.
+   * A cap hit means the rollups below this level are partial, and the
+   * explorer shows a note for it. The SITE half of that flag is still real:
+   * a project with more than LIMIT_PER_PROJECT sites gets a subtree query
+   * that stops early, and the child a missing row belonged under would
+   * under-report its descendants with nothing to say so.
+   *
+   * The DEVICE half is gone because the cap it reported is gone — the health
+   * counts come from a grouped aggregate over the whole fleet and are exact
+   * at any size. Leaving it in would be worse than useless: a flag that is
+   * never true trains the reader to ignore a warning that still matters for
+   * sites.
    */
-  test("truncation still covers the device fetch as well as the site one", () => {
+  test("truncation still covers the site fetch, and only that", () => {
     expect(CODE).toContain(
       squash(
-        "descendantCountsTruncated: subtreeRows.length >= LIMIT_PER_PROJECT || deviceFetch.isTruncated,",
+        "descendantCountsTruncated: subtreeRows.length >= LIMIT_PER_PROJECT,",
       ),
+    );
+    expect(CODE.split("descendantCountsTruncated:").length - 1).toBe(1);
+    expect(CODE).toContain(
+      squash("childrenTruncated: childRows.length >= LIMIT_PER_PROJECT,"),
     );
   });
 });
 
 /*
- * The device rollup fetch pages now, because one findBy caps at 10,000 and
- * issue #3320 describes 21,713 devices. The loop cannot be imported (it
- * closes over the service layer), so its ARITHMETIC is restated here against
- * a fake page source and the source text is pinned to the same shape. What
- * is really being defended is the reason it exists: a rollup that stops at
- * 10,000 reports a store as healthy because the only down device in it fell
- * outside the page, and the "Needs attention" filter then hides that store
- * completely.
+ * The heir of this file's old "the device query carries everything the
+ * classifier reads" block.
+ *
+ * That block guarded a `select`: a column dropped from it did not fail, it
+ * silently reclassified part of the fleet and the level above went quiet
+ * about an outage. The select is gone, but the hazard moved rather than
+ * disappearing — it is now the GROUP BY. A fact the classifier reads and the
+ * grouping does not is a fact two different devices can disagree on inside
+ * one bucket, and the bucket gets one verdict for all of them. Eighty
+ * thousand devices, one arbitrary representative each, and every count on
+ * the page still adds up.
  */
-describe("the paginated device fetch", () => {
-  const PAGE_SIZE: number = 10000;
-  const CEILING: number = 200000;
+describe("the buckets carry every fact the classifier reads", () => {
+  const DISCRIMINATORS: string = squash(
+    sliceBetween(
+      AGGREGATION,
+      "DeviceHealthAggregation.ts",
+      "const DEVICE_HEALTH_DISCRIMINATOR_COLUMNS",
+      "export const DEVICE_COUNT_AGGREGATE",
+    ),
+  );
 
-  interface FakePage {
-    devices: Array<number>;
-    isTruncated: boolean;
+  test("the slice under test really is the discriminator list", () => {
+    expect(DISCRIMINATORS).toContain("Array<AggregateColumn> = [");
+    expect(DISCRIMINATORS).toContain(
+      "DeviceHealthGroupAlias.HasDownInterfaces",
+    );
+  });
+
+  /*
+   * DeviceHealthStateUtil reads the stamped status, reachability, the two
+   * contact timestamps (through DeviceReachabilityUtil) and the dark-port
+   * count. DeviceReachabilityUtil additionally reads the monitoring method —
+   * drop that one and every ping-only device in the estate reports Pending
+   * for ever.
+   */
+  for (const fact of [
+    'column("currentMonitorStatusId")',
+    'column("monitoringMethod")',
+    'column("isReachable")',
+    'column("lastPolledAt")',
+    'column("lastSeenAt")',
+    'column("interfacesDown")',
+  ]) {
+    test(`groups by ${fact} — in the discriminator list itself`, () => {
+      expect(DISCRIMINATORS).toContain(fact);
+    });
   }
 
-  // The loop under test, restated. Keep in step with the source assertions below.
-  function pagedFetch(totalRows: number): FakePage {
-    const devices: Array<number> = [];
-    let skip: number = 0;
-    let queries: number = 0;
-    for (;;) {
-      queries++;
-      const remaining: number = Math.max(0, totalRows - skip);
-      const pageLength: number = Math.min(remaining, PAGE_SIZE);
-      for (let i: number = 0; i < pageLength; i++) {
-        devices.push(skip + i);
-      }
-      if (pageLength < PAGE_SIZE) {
-        return { devices: devices, isTruncated: false };
-      }
-      skip += pageLength;
-      if (skip >= CEILING) {
-        return { devices: devices, isTruncated: true };
-      }
-      if (queries > 100) {
-        throw new Error("pagination did not terminate");
-      }
-    }
-  }
-
-  test("an estate smaller than one page is one query and not truncated", () => {
-    const result: FakePage = pagedFetch(1200);
-    expect(result.devices).toHaveLength(1200);
-    expect(result.isTruncated).toBe(false);
+  /*
+   * The sixth fact, staleness, is the only one that is not already discrete:
+   * the window is per-device, derived from that device's own interval. So the
+   * grouping carries the VERDICT rather than the column, computed from the
+   * same three constants DeviceReachabilityUtil derives its window from —
+   * which is what keeps "a long time" from having two definitions.
+   */
+  test("staleness is grouped as a verdict, off the device's own interval", () => {
+    expect(DISCRIMINATORS).toContain("STALE_WINDOW_IN_MINUTES_SQL");
+    expect(AGGREGATION).toContain('column("pollingIntervalInMinutes")');
+    expect(AGGREGATION).toContain("DEVICE_MISSED_POLL_ALLOWANCE");
+    expect(AGGREGATION).toContain("DEVICE_MIN_STALE_WINDOW_IN_MINUTES");
+    expect(AGGREGATION).toContain("DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES");
   });
 
   /*
-   * The scenario from the issue. Before pagination this returned 10,000 of
-   * 21,713 devices and silently under-reported every level above them.
+   * And the count rides along, or a bucket standing for four hundred devices
+   * would be worth one.
    */
-  test("21,713 devices all arrive, across three pages", () => {
-    const result: FakePage = pagedFetch(21713);
-    expect(result.devices).toHaveLength(21713);
-    expect(result.isTruncated).toBe(false);
-  });
-
-  test("no device is fetched twice or skipped", () => {
-    const result: FakePage = pagedFetch(21713);
-    expect(new Set<number>(result.devices).size).toBe(result.devices.length);
-    expect(result.devices[0]).toBe(0);
-    expect(result.devices[result.devices.length - 1]).toBe(21712);
-  });
-
-  /*
-   * A full last page does not prove there is another one. The loop must ask
-   * again rather than assuming, or an estate of exactly 10,000 would report
-   * itself truncated for ever.
-   */
-  test("an exact multiple of the page size is complete, not truncated", () => {
-    for (const total of [PAGE_SIZE, PAGE_SIZE * 2]) {
-      const result: FakePage = pagedFetch(total);
-      expect(result.devices).toHaveLength(total);
-      expect(result.isTruncated).toBe(false);
-    }
-  });
-
-  test("an empty estate terminates immediately", () => {
-    const result: FakePage = pagedFetch(0);
-    expect(result.devices).toHaveLength(0);
-    expect(result.isTruncated).toBe(false);
-  });
-
-  /*
-   * The ceiling is a backstop against an unbounded scan, and hitting it is
-   * reported rather than hidden — the level then shows its "rollups may be
-   * partial" note instead of quietly under-counting.
-   */
-  test("a pathological estate stops at the ceiling and SAYS it truncated", () => {
-    const result: FakePage = pagedFetch(CEILING + 5000);
-    expect(result.devices).toHaveLength(CEILING);
-    expect(result.isTruncated).toBe(true);
-  });
-
-  /*
-   * The offset actually reaches the query.
-   *
-   * Every other assertion in this block passes with `skip: 0` hard-coded:
-   * the loop still runs, still counts, still terminates at the ceiling. It
-   * would just fetch page one twenty times over — twenty identical copies of
-   * the first 10,000 devices, every site's counts inflated twentyfold, the
-   * rest of the estate missing, and `isTruncated` set so the whole thing
-   * looks deliberate. That is a worse lie than the cap this replaced.
-   */
-  test("each page is asked for at the accumulated offset", () => {
-    expect(DEVICE_FETCH).toContain(
-      squash("limit: DEVICE_ROLLUP_PAGE_SIZE, skip: skip,"),
-    );
-  });
-
-  test("a loop that ignored the offset would be caught by duplicate ids", () => {
-    // The broken variant, so the assertion above has a demonstrated failure.
-    function fixedOffsetFetch(totalRows: number): Array<number> {
-      const devices: Array<number> = [];
-      let skip: number = 0;
-      for (;;) {
-        const pageLength: number = Math.min(totalRows, PAGE_SIZE);
-        for (let i: number = 0; i < pageLength; i++) {
-          devices.push(i); // always page one
-        }
-        if (pageLength < PAGE_SIZE) {
-          return devices;
-        }
-        skip += pageLength;
-        if (skip >= CEILING) {
-          return devices;
-        }
-      }
-    }
-    const broken: Array<number> = fixedOffsetFetch(21713);
-    expect(new Set<number>(broken).size).toBeLessThan(broken.length);
-    // ...whereas the real shape yields no duplicates at all.
-    expect(new Set<number>(pagedFetch(21713).devices).size).toBe(21713);
-  });
-
-  /*
-   * Pages ACCUMULATE. `devices = page` would keep only the last one — for
-   * 21,713 devices that is the final 1,713 rows, so every level reports
-   * health for the tail of the estate and zeroes for the rest, and
-   * attachedDeviceCount drops far enough to change what the root renders.
-   */
-  test("pages accumulate rather than replace", () => {
-    expect(DEVICE_FETCH).toContain(squash("devices.push(...page);"));
-    expect(pagedFetch(10001).devices).toHaveLength(10001);
-    expect(pagedFetch(10001).devices[0]).toBe(0);
-  });
-
-  test("there are exactly two ways out of the loop", () => {
-    expect(DEVICE_FETCH.split("return {").length - 1).toBe(2);
-  });
-
-  /*
-   * The tenant scoping travels with every page. Dropping `props` from a
-   * query that walks every device in the database is a data leak, not a
-   * crash, so nothing else would notice.
-   */
-  test("every page is permission-scoped and re-applies its filters", () => {
-    expect(DEVICE_FETCH).toContain(squash("props: props,"));
-    expect(DEVICE_FETCH).toContain(
+  test("each bucket carries how many devices are in it", () => {
+    expect(AGGREGATION).toContain(
       squash(
-        "query: { projectId: projectId, siteId: QueryHelper.notNull(), isArchived: false, },",
+        'expression: "COUNT(*)", alias: DeviceHealthGroupAlias.DeviceCount,',
       ),
     );
-  });
-
-  /*
-   * The ceiling test above asserts an exact length, which is only true
-   * because the ceiling is a whole number of pages. If either constant moves
-   * to a non-multiple the loop overshoots by up to one page and that
-   * assertion silently starts testing something else.
-   */
-  test("the ceiling is a whole number of pages", () => {
-    expect(CEILING % PAGE_SIZE).toBe(0);
-    expect(pagedFetch(CEILING + 5000).devices.length % PAGE_SIZE).toBe(0);
-  });
-
-  test("the source implements this shape, not a single capped query", () => {
-    expect(DEVICE_FETCH).toContain(squash("let skip: number = 0;"));
-    expect(DEVICE_FETCH).toContain(squash("for (;;) {"));
-    expect(DEVICE_FETCH).toContain(
-      squash(
-        "if (page.length < DEVICE_ROLLUP_PAGE_SIZE) { return { devices: devices, isTruncated: false }; }",
-      ),
-    );
-    expect(DEVICE_FETCH).toContain(squash("skip += page.length;"));
-    expect(DEVICE_FETCH).toContain(
-      squash(
-        "if (skip >= MAX_ROLLUP_DEVICES) { return { devices: devices, isTruncated: true }; }",
-      ),
-    );
-  });
-
-  /*
-   * Stable paging. Without an ordered key the database may return rows in a
-   * different order per page, which both duplicates and skips devices while
-   * the estate is being edited underneath the walk.
-   */
-  test("pages are ordered by a key that never changes", () => {
-    expect(DEVICE_FETCH).toContain(
-      squash("sort: { _id: SortOrder.Ascending, },"),
-    );
-  });
-
-  test("the page size and ceiling are the ones this suite reasons about", () => {
-    expect(CODE).toContain(
-      squash(`const DEVICE_ROLLUP_PAGE_SIZE: number = LIMIT_PER_PROJECT;`),
-    );
-    expect(CODE).toContain(
-      squash(`const MAX_ROLLUP_DEVICES: number = ${CEILING};`),
-    );
+    expect(CODE).toContain(squash("deviceCount: group.deviceCount,"));
   });
 });
 
@@ -490,10 +697,7 @@ describe("the two halves of the product cannot disagree", () => {
     "NetworkDeviceTopology.ts",
   );
   const MAP: string = squash(
-    fs
-      .readFileSync(MAP_SOURCE_PATH, "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/\/\/.*$/gm, " "),
+    stripComments(fs.readFileSync(MAP_SOURCE_PATH, "utf8")),
   );
 
   test("the map still resolves the status ladder at its offline end", () => {
@@ -539,7 +743,7 @@ describe("the two halves of the product cannot disagree", () => {
 
   /*
    * The no-monitor path — the ordinary case for every SNMP-walked switch,
-   * and so for most of a 21,713-device estate — has to go through the same
+   * and so for most of an 80,000-device estate — has to go through the same
    * shared reachability rule the map uses, not a freshness comparison
    * written by hand.
    */
@@ -582,7 +786,16 @@ describe("the two halves of the product cannot disagree", () => {
 });
 
 describe("the endpoint documents the rollup it now does", () => {
-  test("the device select explains why it grew", () => {
-    expect(SOURCE).toContain("Issue #3320");
+  /*
+   * The ceiling survives as prose and nowhere else. That is the only record
+   * a future reader has that 200,000 was DELETED rather than moved somewhere
+   * they should go looking for it — and the pair of assertions is what keeps
+   * the comment describing the code rather than the code it replaced.
+   */
+  test("the aggregate explains what it replaced, and only explains it", () => {
+    expect(SOURCE).toContain("#3320");
+    expect(SOURCE).toContain("200,000-row ceiling");
+    expect(CODE).not.toContain("200,000");
+    expect(CODE).not.toContain("200000");
   });
 });

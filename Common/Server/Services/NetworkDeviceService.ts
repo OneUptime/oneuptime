@@ -29,6 +29,32 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import {
+  DEVICE_HEALTH_AGGREGATES,
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DEVICE_HEALTH_GROUP_ORDER,
+  DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE,
+  DEVICE_HEALTH_NOW_PARAMETER,
+  DeviceHealthGroup,
+  parseDeviceHealthGroup,
+} from "../Utils/NetworkDevice/DeviceHealthAggregation";
+
+/**
+ * The fleet-wide numbers the device summary strip and the network overview
+ * both print. Counted in Postgres — see `Service.getFleetSummary`.
+ */
+export interface DeviceFleetSummary {
+  devicesUp: number;
+  devicesDown: number;
+  devicesPending: number;
+  // Interfaces, not devices: a switch with three dark ports contributes three.
+  interfacesDown: number;
+  totalDevices: number;
+  devicesWithoutSite: number;
+}
 
 /*
  * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
@@ -97,6 +123,12 @@ export const MAX_DEVICES_PER_RULE_RUN: number = LIMIT_PER_PROJECT;
 const RULE_RUN_PAGE_SIZE: number = 1000;
 
 /*
+ * How many addresses one "are these already registered" lookup asks about.
+ * Bounded because the list is rendered into the statement as a literal IN.
+ */
+const HOSTNAME_LOOKUP_CHUNK_SIZE: number = 500;
+
+/*
  * The identity a rule is matched against. The hostname column holds an IP
  * address or a DNS name depending on how the device got here, so it is passed
  * as both — ipInCidr rejects non-IP strings safely. Mirrors the single-device
@@ -117,9 +149,504 @@ function toRuleMatchTarget(device: Model): {
   };
 }
 
+/*
+ * How long "this project has no site-assignment rules at all" is trusted
+ * without asking Postgres again.
+ *
+ * Every successful walk writes `sysName`, an identity column, so
+ * onUpdateSuccess re-evaluates the rules for every device that has no site.
+ * That rule is correct and stays (see shouldReapplySiteAssignmentRules), but
+ * on a project mid-rollout — devices imported, rules not written yet — it is
+ * EVERY device, and each one re-read the same empty rule set to conclude
+ * nothing: a findOneById plus an uncached findBy per device per poll, i.e.
+ * ~160,000 queries per five-minute cycle on an 80,000-device fleet.
+ *
+ * Ten seconds is measured against the thing a user would actually notice.
+ * The earliest a newly saved rule can reach an already-imported device is
+ * that device's next poll — five minutes by default — or the rule's "Run
+ * now" button, which never consults this cache. Ten seconds is a rounding
+ * error against that window, so this can never be the reason a rule looks
+ * like it did not take.
+ */
+export const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS: number = 10 * 1000;
+
+/*
+ * Bounded so an instance serving many projects cannot grow this forever.
+ * Only ever holds projects that had NO rules, so in practice it is small.
+ */
+const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS: number = 10000;
+
+/*
+ * Remembers ONLY the negative answer: "this project had zero site-assignment
+ * rules when we last looked."
+ *
+ * Deliberately not a cache of the rules themselves. A stale rule set causes a
+ * WRONG WRITE — a device assigned to a site by a rule that was edited or
+ * deleted seconds ago, and nothing ever moves it back — whereas a stale "no
+ * rules" only defers work that the polling interval already defers by
+ * minutes. The two failure modes are not comparable, so only the safe half is
+ * cached.
+ *
+ * Every read of the rule set feeds `record`, so the instant any code path in
+ * this process observes that the project does have rules, the skip is
+ * dropped. Across replicas nothing is invalidated by another replica's write
+ * — which is precisely why the TTL, not the invalidation, is the guarantee.
+ */
+export class EmptySiteAssignmentRuleCache {
+  private knownEmptyUntil: Map<string, number> = new Map<string, number>();
+
+  private ttlInMs: number;
+  private maxProjects: number;
+  private now: () => number;
+
+  public constructor(options?: {
+    ttlInMs?: number | undefined;
+    maxProjects?: number | undefined;
+    now?: (() => number) | undefined;
+  }) {
+    this.ttlInMs =
+      options?.ttlInMs ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS;
+    this.maxProjects =
+      options?.maxProjects ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS;
+    /*
+     * Wrapped rather than stored as `Date.now` itself, so moving the clock
+     * (a test, or a future injected clock) is actually observed here.
+     */
+    this.now =
+      options?.now ??
+      ((): number => {
+        return Date.now();
+      });
+  }
+
+  public isKnownEmpty(projectId: ObjectID): boolean {
+    const key: string = projectId.toString();
+    const expiresAt: number | undefined = this.knownEmptyUntil.get(key);
+
+    if (expiresAt === undefined) {
+      return false;
+    }
+
+    if (expiresAt <= this.now()) {
+      // Dropped on read, so an idle project's entry does not linger.
+      this.knownEmptyUntil.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+
+  public record(data: { projectId: ObjectID; isEmpty: boolean }): void {
+    const key: string = data.projectId.toString();
+
+    if (!data.isEmpty) {
+      this.knownEmptyUntil.delete(key);
+      return;
+    }
+
+    if (
+      this.knownEmptyUntil.size >= this.maxProjects &&
+      !this.knownEmptyUntil.has(key)
+    ) {
+      // Evict the oldest — a Map iterates in insertion order.
+      const oldestKey: string | undefined = this.knownEmptyUntil
+        .keys()
+        .next().value;
+
+      if (oldestKey !== undefined) {
+        this.knownEmptyUntil.delete(oldestKey);
+      }
+    }
+
+    this.knownEmptyUntil.set(key, this.now() + this.ttlInMs);
+  }
+
+  public clear(): void {
+    this.knownEmptyUntil.clear();
+  }
+}
+
 export class Service extends DatabaseService<Model> {
+  /*
+   * The projects known to have no site-assignment rules. Exposed so tests can
+   * reset it between cases, and so a future invalidation hook on
+   * NetworkSiteAssignmentRuleService has something to call — note that such a
+   * hook only clears the replica that ran the write, which is why the TTL
+   * above is what actually bounds staleness.
+   */
+  public readonly emptySiteAssignmentRuleCache: EmptySiteAssignmentRuleCache =
+    new EmptySiteAssignmentRuleCache();
+
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * The four numbers in the summary strip above the device list, in one
+   * round trip and one SQL statement.
+   *
+   * The three status counts partition the fleet exactly — `isReachable` is
+   * true, false, or NULL — which is what lets the strip agree with the rows
+   * underneath it: the Status chip filters on the same column, so clicking a
+   * tile opens exactly the devices it counted.
+   *
+   * `interfacesDown` is a real SUM over the whole fleet. It used to be
+   * computed by fetching every device with a down interface and adding them
+   * up in the browser, which was not only slow but WRONG past ten thousand
+   * such devices — the fetch was capped, so the tile understated the fleet
+   * without saying so.
+   */
+  @CaptureSpan()
+  public async getFleetSummary(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DeviceFleetSummary> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      select: [
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true)`,
+          alias: "devicesUp",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = false)`,
+          alias: "devicesDown",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" IS NULL)`,
+          alias: "devicesPending",
+        },
+        {
+          expression: `COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)`,
+          alias: "interfacesDown",
+        },
+        {
+          expression: `COUNT(*)`,
+          alias: "totalDevices",
+        },
+        {
+          expression: `COUNT(*) FILTER (WHERE "NetworkDevice"."siteId" IS NULL)`,
+          alias: "devicesWithoutSite",
+        },
+      ],
+      props: data.props,
+    });
+
+    const row: AggregateRow | undefined = rows[0];
+
+    return {
+      devicesUp: AggregateResultUtil.toNumber(row, "devicesUp"),
+      devicesDown: AggregateResultUtil.toNumber(row, "devicesDown"),
+      devicesPending: AggregateResultUtil.toNumber(row, "devicesPending"),
+      interfacesDown: AggregateResultUtil.toNumber(row, "interfacesDown"),
+      totalDevices: AggregateResultUtil.toNumber(row, "totalDevices"),
+      devicesWithoutSite: AggregateResultUtil.toNumber(
+        row,
+        "devicesWithoutSite",
+      ),
+    };
+  }
+
+  /**
+   * How many devices of each vendor, biggest first.
+   *
+   * `GROUP BY vendor` in the database rather than a Map built over every
+   * device row in the browser. Unenriched devices — no SNMP walk yet, so no
+   * vendor — group under the empty string here and are named by the caller,
+   * because "Unknown" is a label rather than a fact about the row.
+   */
+  @CaptureSpan()
+  public async getVendorBreakdown(data: {
+    projectId: ObjectID;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ vendor: string; count: number }>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+      },
+      groupBy: [
+        {
+          expression: `COALESCE(NULLIF(TRIM("NetworkDevice"."vendor"), ''), '')`,
+          alias: "vendor",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "deviceCount",
+        },
+      ],
+      orderBy: [
+        // Ties break by name so the list is stable across refreshes.
+        { expression: `"deviceCount"`, sortOrder: SortOrder.Descending },
+        { expression: `"vendor"`, sortOrder: SortOrder.Ascending },
+      ],
+      limit: data.limit,
+      props: data.props,
+    });
+
+    return rows.map((row: AggregateRow) => {
+      return {
+        vendor: AggregateResultUtil.toStringOrNull(row, "vendor") || "",
+        count: AggregateResultUtil.toNumber(row, "deviceCount"),
+      };
+    });
+  }
+
+  /**
+   * Which of these addresses already have a device in this project.
+   *
+   * Answers "is 10.4.2.17 already registered" for the few hundred hosts a
+   * discovery sweep actually found, rather than by loading every hostname in
+   * the project into a Set and asking the Set.
+   *
+   * That walk was not just expensive — it was WRONG in the exact scenario it
+   * served. It paged `ORDER BY createdAt`, and a bulk discovery import stamps
+   * every device it creates with the same `createdAt`: on a fleet of 80,000
+   * devices, all 80,000 shared one value, so `LIMIT 10000 OFFSET n` over a
+   * single-valued sort key returned an arbitrary, non-deterministic slice per
+   * call. Pages overlapped and skipped, and a skipped hostname reads as "not
+   * registered" — which creates a duplicate device, the very thing the paging
+   * was added to prevent.
+   *
+   * `hostname` is indexed, so each chunk here is an index lookup.
+   */
+  @CaptureSpan()
+  public async getRegisteredHostnames(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Set<string>> {
+    return new Set<string>(
+      (
+        await this.getDevicesByHostnames({
+          projectId: data.projectId,
+          hostnames: data.hostnames,
+          select: { hostname: true },
+          props: data.props,
+        })
+      ).keys(),
+    );
+  }
+
+  /**
+   * The devices at these addresses, keyed by hostname.
+   *
+   * The row-returning form of `getRegisteredHostnames`, for callers that need
+   * more than "does it exist" — the auto-import engine reads back the device's
+   * id and monitoring method to decide whether it also needs a monitor
+   * provisioned. Same chunked, indexed lookup; same reason for existing.
+   */
+  @CaptureSpan()
+  public async getDevicesByHostnames(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    select: Select<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Model>> {
+    const registered: Map<string, Model> = new Map<string, Model>();
+
+    const wanted: Array<string> = Array.from(
+      new Set<string>(
+        data.hostnames.filter((hostname: string): boolean => {
+          return Boolean(hostname);
+        }),
+      ),
+    );
+
+    /*
+     * Chunked, because the whole list becomes a literal `IN (...)` in the
+     * statement text. A scan may cover tens of thousands of addresses
+     * (ScanTargetUtil.MAX_SCAN_HOSTS), and a single IN list that long costs
+     * more to parse and plan than the lookups it saves.
+     */
+    for (
+      let offset: number = 0;
+      offset < wanted.length;
+      offset += HOSTNAME_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = wanted.slice(
+        offset,
+        offset + HOSTNAME_LOOKUP_CHUNK_SIZE,
+      );
+
+      const found: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+          hostname: QueryHelper.any(chunk),
+        },
+        select: {
+          ...data.select,
+          hostname: true,
+        },
+        sort: {},
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+
+      for (const device of found) {
+        if (device.hostname) {
+          registered.set(device.hostname, device);
+        }
+      }
+    }
+
+    return registered;
+  }
+
+  /**
+   * How many live devices are attached to each site in the project — one row
+   * per site that has any, counted in the database.
+   *
+   * The Sites page's hierarchy tree used to work this out by fetching every
+   * device in the project and tallying `siteId` in the browser. Capped at
+   * LIMIT_PER_PROJECT, that is not slow so much as WRONG: on a fleet of
+   * 80,000 devices across 1,188 sites it returned an arbitrary 10,000 of them
+   * — no ORDER BY, so which 10,000 was up to Postgres — and every store in the
+   * tree read "8 devices" when it had 65.
+   *
+   * Sites with no devices are simply absent, which is what the caller's
+   * `count || 0` already assumed.
+   */
+  @CaptureSpan()
+  public async getDeviceCountsBySite(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ siteId: string; deviceCount: number }>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+        siteId: QueryHelper.notNull(),
+      },
+      groupBy: [
+        {
+          expression: `"NetworkDevice"."siteId"`,
+          alias: "siteId",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "deviceCount",
+        },
+      ],
+      props: data.props,
+    });
+
+    const counts: Array<{ siteId: string; deviceCount: number }> = [];
+
+    for (const row of rows) {
+      const siteId: string | null = AggregateResultUtil.toStringOrNull(
+        row,
+        "siteId",
+      );
+
+      if (!siteId) {
+        continue;
+      }
+
+      counts.push({
+        siteId: siteId,
+        deviceCount: AggregateResultUtil.toNumber(row, "deviceCount"),
+      });
+    }
+
+    return counts;
+  }
+
+  /**
+   * Device health, bucketed by the discriminating columns and broken down by
+   * site — the input a per-site rollup needs, without reading the devices.
+   *
+   * The buckets are NOT verdicts: they are the raw facts
+   * `DeviceHealthStateUtil` classifies, so the caller runs the one real
+   * classifier over a few hundred buckets instead of eighty thousand rows.
+   * See DeviceHealthAggregation for why the rule is not reimplemented in SQL.
+   */
+  @CaptureSpan()
+  public async getHealthGroups(data: {
+    projectId: ObjectID;
+    // Restricts to devices attached to a site. Off by default.
+    onlyAttachedToSite?: boolean | undefined;
+    groupBySite: boolean;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    const query: Query<Model> = {
+      projectId: data.projectId,
+      isArchived: false,
+    };
+
+    if (data.onlyAttachedToSite) {
+      query.siteId = QueryHelper.notNull();
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: query,
+      groupBy: data.groupBySite
+        ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE
+        : DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      orderBy: DEVICE_HEALTH_GROUP_ORDER,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
+  }
+
+  /**
+   * Health buckets for the devices attached to a specific set of sites — the
+   * subtree read the persisted rollup engine runs on.
+   *
+   * Not broken down by site: the caller wants one verdict for the whole
+   * subtree, so bucketing across all of it produces the fewest rows that can
+   * still answer the question.
+   */
+  @CaptureSpan()
+  public async getHealthGroupsForSites(data: {
+    projectId: ObjectID;
+    siteIds: Array<ObjectID>;
+    /*
+     * Whether each bucket is labelled with the site it came from. The site
+     * rollup engine wants one verdict for the whole subtree and does not care
+     * (fewer buckets); the hierarchy drill-down needs a breakdown per site.
+     */
+    groupBySite?: boolean | undefined;
+    now: Date;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<DeviceHealthGroup>> {
+    if (data.siteIds.length === 0) {
+      return [];
+    }
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        siteId: QueryHelper.any(data.siteIds),
+        isArchived: false,
+      },
+      groupBy: data.groupBySite
+        ? DEVICE_HEALTH_GROUP_COLUMNS_BY_SITE
+        : DEVICE_HEALTH_GROUP_COLUMNS,
+      select: DEVICE_HEALTH_AGGREGATES,
+      orderBy: DEVICE_HEALTH_GROUP_ORDER,
+      parameters: {
+        [DEVICE_HEALTH_NOW_PARAMETER]: data.now,
+      },
+      props: data.props,
+    });
+
+    return rows.map(parseDeviceHealthGroup);
   }
 
   /*
@@ -849,7 +1376,27 @@ export class Service extends DatabaseService<Model> {
             continue;
           }
 
-          await this.applySiteAssignmentRulesToDevice(deviceId);
+          /*
+           * The previous snapshot already carries the device's project, so
+           * hand it over: it lets a project with no rules at all skip both
+           * the device read and the rule read, which is the whole cost of
+           * this branch for a fleet that has not been given rules yet.
+           *
+           * ...but ONLY for a device with no site, and that distinction is
+           * the whole safety of the skip. Those devices are re-evaluated on
+           * every poll, so a skip there defers work by one cycle and the next
+           * poll picks it up. A device that already HAS a site is re-evaluated
+           * only when its identity actually changed — a one-shot event, not a
+           * retry. Skipping that is not a deferral, it is a LOSS: the rename
+           * never happens again, the device keeps its old site indefinitely,
+           * and nothing says so. Ten seconds of staleness is a fine price for
+           * a deferral and an unacceptable one for a loss, so the identity
+           * path always reads the rules.
+           */
+          await this.applySiteAssignmentRulesToDevice(
+            deviceId,
+            previousDevice?.siteId ? undefined : previousDevice?.projectId,
+          );
         }
       }
     } catch (error) {
@@ -907,7 +1454,26 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async applySiteAssignmentRulesToDevice(
     deviceId: ObjectID,
+    /*
+     * The device's project, when the caller already knows it AND the call is
+     * one that will happen again if it is skipped. Purely an optimisation,
+     * and only ever a SKIP: it lets the known-empty check run before the
+     * device read, so a project with no rules costs nothing per poll.
+     *
+     * Leaving it out gets the unconditional, always-fresh path, and two
+     * callers deliberately do: device creation (a rule saved moments ago must
+     * apply to the device being imported right now) and the identity-change
+     * branch of onUpdateSuccess (a one-shot event — see the note there).
+     */
+    projectId?: ObjectID | undefined,
   ): Promise<void> {
+    if (
+      projectId &&
+      this.emptySiteAssignmentRuleCache.isKnownEmpty(projectId)
+    ) {
+      return;
+    }
+
     const device: Model | null = await this.findOneById({
       id: deviceId,
       select: {
@@ -946,6 +1512,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Feed the answer back either way: an empty set starts (or renews) the
+     * skip, and a non-empty one cancels it immediately — so a project that
+     * gains its first rule stops being skipped on this replica as soon as
+     * anything here looks at the rules, without waiting for the TTL.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: device.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     if (rules.length === 0) {
       return;
@@ -1035,6 +1612,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Read fresh above and never from the negative cache: this is the button
+     * an operator presses right after saving a rule, so it must see the rule
+     * it was pressed for. Recording the answer here also means pressing it
+     * lifts any "no rules" skip the poll path had cached for the project.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: data.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     const rule: NetworkSiteAssignmentRule | undefined = rules.find(
       (candidate: NetworkSiteAssignmentRule) => {
@@ -1239,13 +1827,18 @@ export class Service extends DatabaseService<Model> {
           -- A monitor-backed device has no credentials to walk with. NULL is
           -- every device created before the column existed: those are SNMP.
           AND (nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')
-          AND (nd."nextPollAt" IS NULL OR nd."nextPollAt" <= $2)
+          AND nd."nextPollAt" <= $2
           AND p."deletedAt" IS NULL
           AND (p."paymentProviderSubscriptionStatus" IS NULL
                OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
-        ORDER BY nd."nextPollAt" ASC NULLS FIRST
+        -- Plain ASC, which is the order the (probeId, nextPollAt) btree is
+        -- already in, so this is a range scan that stops at LIMIT rather than
+        -- a scan-and-sort of the probe's whole slice of the fleet. See the
+        -- column's NOT NULL note on the model for why there are no NULLs to
+        -- order around any more.
+        ORDER BY nd."nextPollAt" ASC
         LIMIT $3
         FOR UPDATE OF nd SKIP LOCKED
       `;

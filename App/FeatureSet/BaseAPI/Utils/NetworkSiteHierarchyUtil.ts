@@ -65,9 +65,20 @@ export interface UnitStats {
  * bucketing pass with no clock in it — the same reason every other helper
  * in this file takes resolved facts rather than model rows.
  */
+/**
+ * A set of devices at one site that the health classifier cannot tell apart,
+ * and how many of them there are.
+ *
+ * One row per DEVICE originally. It became one row per (site, verdict) bucket
+ * when the rollup stopped reading device rows: the endpoint asks Postgres to
+ * group the fleet by the facts the classifier reads, so eighty thousand
+ * devices arrive as a few rows per site. `deviceCount` is what makes those
+ * rows add up to the same totals the per-device rows did.
+ */
 export interface DeviceAttachmentRow {
   siteId: string;
   healthState: NetworkDeviceHealthState;
+  deviceCount: number;
 }
 
 export interface ChildAggregate {
@@ -371,8 +382,12 @@ export default class NetworkSiteHierarchyUtil {
       if (subtreeRoot) {
         const aggregate: ChildAggregate | undefined = result.get(subtreeRoot);
         if (aggregate) {
-          aggregate.deviceCount += 1;
-          addDeviceHealth(aggregate.deviceStats, device.healthState);
+          aggregate.deviceCount += device.deviceCount;
+          addDeviceHealth(
+            aggregate.deviceStats,
+            device.healthState,
+            device.deviceCount,
+          );
         }
       }
     }
@@ -397,7 +412,7 @@ export default class NetworkSiteHierarchyUtil {
     const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
     for (const device of devices) {
       if (siteIds.has(device.siteId)) {
-        addDeviceHealth(counts, device.healthState);
+        addDeviceHealth(counts, device.healthState, device.deviceCount);
       }
     }
     return counts;

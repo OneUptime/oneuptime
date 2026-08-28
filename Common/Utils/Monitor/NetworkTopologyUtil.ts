@@ -181,6 +181,13 @@ interface NeighborClaim {
   remotePortId: string | undefined;
   // CDP-only: the platform string the neighbor advertises about itself.
   remotePlatform: string | undefined;
+  /*
+   * The management address the peer advertises (CDP cdpCacheAddress, LLDP
+   * lldpRemManAddrTable). Deliberately NOT one of `identifiers`: it is a
+   * match key of its own kind, because an address and a name are not
+   * interchangeable evidence — see MatchKeyKind "ip".
+   */
+  remoteIpAddress: string | undefined;
 }
 
 /*
@@ -191,17 +198,25 @@ interface NeighborClaim {
  * "serial"    — the ENTITY-MIB chassis serial, which is what LLDP
  *               chassis-id subtype 7 ("locally assigned") usually carries.
  * "mac"       — an interface MAC; LLDP chassis-id subtype 4 IS a MAC.
+ * "ip"        — a management address: the device's own hostname when that
+ *               hostname is an address, against the address a neighbor
+ *               advertises for itself. This is how a device imported from
+ *               a subnet sweep — hostname `10.0.0.7`, name whatever its
+ *               sysName said — stops being drawn as a stranger by the
+ *               switch it hangs off, which advertises its address and
+ *               nothing that looks like its name.
  * "shortHost" — the first label of an FQDN, so `sw01.corp.local` and
  *               `sw01` are read as one device. Deliberately weakest: it
  *               throws information away, so it may only decide a match no
  *               stronger key could.
  */
-type MatchKeyKind = "name" | "serial" | "mac" | "shortHost";
+type MatchKeyKind = "name" | "serial" | "mac" | "ip" | "shortHost";
 
 const MATCH_KEY_KINDS_STRONGEST_FIRST: ReadonlyArray<MatchKeyKind> = [
   "name",
   "serial",
   "mac",
+  "ip",
   "shortHost",
 ];
 
@@ -212,6 +227,13 @@ const MATCH_KEY_KINDS_STRONGEST_FIRST: ReadonlyArray<MatchKeyKind> = [
  * one, and merging those would invent a device nobody owns. Against a
  * MANAGED device the same key is safe, because a key two devices both
  * claim is dropped from the index entirely rather than guessed at.
+ *
+ * "ip" is excluded for exactly the same reason and more sharply: every
+ * branch site in an estate has a `10.0.0.1`, so merging on an address
+ * would fuse one gateway per site into a single node on a project-wide
+ * map. The ambiguity guard makes the same key safe against managed
+ * devices — a key two of them claim is deleted rather than guessed at —
+ * but there is no such guard between two strangers.
  */
 const PEER_IDENTITY_KINDS: ReadonlySet<MatchKeyKind> = new Set<MatchKeyKind>([
   "name",
@@ -245,6 +267,29 @@ interface ResolvedClaim {
  * `wrap-regex` and Prettier cannot agree on.
  */
 const IPV4_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+
+/*
+ * Whether a string really is a v4 address, octet bounds included.
+ *
+ * IPV4_PATTERN above is deliberately left as the loose shape check it has
+ * always been — it decides only whether shortening a name to its first
+ * label would be nonsense, and "999.999.999.999" is nonsense to shorten
+ * either way. This is the strict test, used wherever the value is treated
+ * AS an address: as a match key, and as the address the map shows for a
+ * peer and the create form pre-fills a hostname from. A neighbour report is
+ * whatever the far end chose to advertise, so a v6 literal, a hostname or a
+ * malformed quad can all arrive here, and none of them is something a probe
+ * can be pointed at.
+ */
+function isIpv4Address(value: string | undefined): boolean {
+  if (!value || !IPV4_PATTERN.test(value)) {
+    return false;
+  }
+
+  return value.split(".").every((octet: string) => {
+    return parseInt(octet, 10) <= 255;
+  });
+}
 
 // Endpoint nodes rendered per graph; the slice is deterministic (by MAC).
 const ENDPOINT_RENDER_CAP: number = 2000;
@@ -391,24 +436,24 @@ export default class NetworkTopologyUtil {
           }
         }
 
-        if (matched) {
-          if (matched.id === device.id) {
-            // Self-referential neighbor entry; skip.
-            continue;
-          }
-          resolvedClaims.push({
-            device: device,
-            claim: claim,
-            matchedDeviceId: matched.id,
-            peerAliases: [],
-          });
+        if (matched && matched.id === device.id) {
+          // Self-referential neighbor entry; skip.
           continue;
         }
 
+        /*
+         * Recorded on MATCHED claims too, not just unmatched ones.
+         *
+         * They are what says "these two reports are about one box", and
+         * that question is now asked of matched claims as well: a claim can
+         * match by an address its sibling does not carry, and without the
+         * aliases there is nothing to carry the answer back along. See
+         * propagateMatchesAcrossPeerGroups.
+         */
         resolvedClaims.push({
           device: device,
           claim: claim,
-          matchedDeviceId: undefined,
+          matchedDeviceId: matched ? matched.id : undefined,
           peerAliases: candidates.filter((candidate: MatchKey) => {
             return PEER_IDENTITY_KINDS.has(candidate.kind);
           }),
@@ -416,10 +461,13 @@ export default class NetworkTopologyUtil {
       }
     }
 
-    const peerNodeIdByClaim: Map<ResolvedClaim, string> =
-      NetworkTopologyUtil.buildUnmanagedPeerNodes(resolvedClaims, nodes);
+    const settledClaims: Array<ResolvedClaim> =
+      NetworkTopologyUtil.propagateMatchesAcrossPeerGroups(resolvedClaims);
 
-    for (const resolved of resolvedClaims) {
+    const peerNodeIdByClaim: Map<ResolvedClaim, string> =
+      NetworkTopologyUtil.buildUnmanagedPeerNodes(settledClaims, nodes);
+
+    for (const resolved of settledClaims) {
       const device: TopologyDeviceInput = resolved.device;
       const claim: NeighborClaim = resolved.claim;
       const matchedId: string | undefined = resolved.matchedDeviceId;
@@ -638,7 +686,7 @@ export default class NetworkTopologyUtil {
       Array<string>
     >();
 
-    for (const resolved of resolvedClaims) {
+    for (const resolved of settledClaims) {
       const deviceId: string = resolved.device.id;
       reportedNeighborCountByDeviceId.set(
         deviceId,
@@ -649,8 +697,19 @@ export default class NetworkTopologyUtil {
         continue;
       }
 
+      /*
+       * The address is the last resort, and it is a real answer: a report
+       * that carried nothing but a management address still counts as a
+       * neighbour, and "none of them matched: 10.0.0.42" is something an
+       * operator can act on. Without it such a device reports a neighbour
+       * count with nothing to show for it, and the panel — which needs one
+       * of these two to say anything at all — falls silent on exactly the
+       * isolated device somebody opened the drawer to ask about.
+       */
       const identifier: string | undefined =
-        resolved.claim.displayName || resolved.claim.identifiers[0];
+        resolved.claim.displayName ||
+        resolved.claim.identifiers[0] ||
+        resolved.claim.remoteIpAddress;
       if (!identifier) {
         continue;
       }
@@ -853,6 +912,9 @@ export default class NetworkTopologyUtil {
         localInterfaceIndex: neighbor.localInterfaceIndex,
         remotePortId: neighbor.remotePortId,
         remotePlatform: undefined,
+        remoteIpAddress: NetworkTopologyUtil.normalizeKey(
+          neighbor.remoteIpAddress,
+        ),
       });
     }
 
@@ -865,6 +927,9 @@ export default class NetworkTopologyUtil {
         localInterfaceIndex: neighbor.localInterfaceIndex,
         remotePortId: neighbor.remotePortId,
         remotePlatform: neighbor.remotePlatform,
+        remoteIpAddress: NetworkTopologyUtil.normalizeKey(
+          neighbor.remoteIpAddress,
+        ),
       });
     }
 
@@ -885,22 +950,38 @@ export default class NetworkTopologyUtil {
     >();
     const seen: Set<string> = new Set<string>();
 
+    const addKey: (key: MatchKey) => void = (key: MatchKey): void => {
+      const keyId: string = NetworkTopologyUtil.matchKeyId(key);
+      if (seen.has(keyId)) {
+        return;
+      }
+      seen.add(keyId);
+      const bucket: Array<MatchKey> | undefined = byKind.get(key.kind);
+      if (bucket) {
+        bucket.push(key);
+      } else {
+        byKind.set(key.kind, [key]);
+      }
+    };
+
     for (const identifier of claim.identifiers) {
       for (const key of NetworkTopologyUtil.candidateKeysForIdentifier(
         identifier,
       )) {
-        const keyId: string = NetworkTopologyUtil.matchKeyId(key);
-        if (seen.has(keyId)) {
-          continue;
-        }
-        seen.add(keyId);
-        const bucket: Array<MatchKey> | undefined = byKind.get(key.kind);
-        if (bucket) {
-          bucket.push(key);
-        } else {
-          byKind.set(key.kind, [key]);
-        }
+        addKey(key);
       }
+    }
+
+    /*
+     * The advertised address, as an address and only as an address. It is
+     * NOT run through candidateKeysForIdentifier: that helper offers a
+     * string as every kind it could be, and an address offered as a "name"
+     * would match any device whose NAME happens to be an IP literal —
+     * which, on an estate imported from subnet sweeps, is a great many of
+     * them, in every site at once.
+     */
+    if (isIpv4Address(claim.remoteIpAddress)) {
+      addKey({ kind: "ip", value: claim.remoteIpAddress! });
     }
 
     const ordered: Array<MatchKey> = [];
@@ -1038,6 +1119,29 @@ export default class NetworkTopologyUtil {
       }
     }
 
+    /*
+     * The address the device answers AT, registered as an address so a
+     * neighbor that advertises a management address and nothing resembling
+     * a name can still find it — the subnet-sweep import shape, where the
+     * responding IP is the hostname and the name is its sysName.
+     *
+     * Read from hostname and sysName only, never from `name`. A name is an
+     * operator's label: one that happens to be an IP literal is not a claim
+     * that the device answers there, and matching on it would draw a cable
+     * to the wrong box — worse, this codebase holds, than drawing none.
+     *
+     * Only a literal counts. A DNS name is not resolved here: a lookup in
+     * the topology builder would be a per-node network call whose answer
+     * changes between rebuilds.
+     */
+    for (const candidate of [device.hostname, device.sysName]) {
+      const normalized: string | undefined =
+        NetworkTopologyUtil.normalizeKey(candidate);
+      if (isIpv4Address(normalized)) {
+        add({ kind: "ip", value: normalized! });
+      }
+    }
+
     const serial: string | undefined = NetworkTopologyUtil.normalizeKey(
       device.serialNumber,
     );
@@ -1053,6 +1157,99 @@ export default class NetworkTopologyUtil {
     }
 
     return keys;
+  }
+
+  /*
+   * Carries a managed match along a peer group, and drops what that turns
+   * into a self-reference.
+   *
+   * A match is decided per REPORT, but the identity of the thing being
+   * reported is decided per PEER — and the two can now disagree, because a
+   * report's ADDRESS is a match key its sibling report may not carry. One
+   * switch port, one phone, described twice: the CDP entry knows the
+   * phone's management address and matches the device somebody adopted it
+   * into; the LLDP entry beside it knows only the sysName the operator has
+   * since renamed away from, and matches nothing. Left alone, the map draws
+   * that one phone as a managed node AND as a leftover stranger, on two
+   * lines out of the same port — which is exactly the outcome adopting it
+   * was supposed to end.
+   *
+   * The claims are grouped by the same identity-grade aliases that already
+   * decide "these reports are one box", so this asserts nothing new: it
+   * only lets every report of a box reach the device any one of them found.
+   * A group whose reports matched two DIFFERENT devices is contradictory
+   * evidence and is left exactly as it was — a wrong cable is worse than a
+   * missing one.
+   *
+   * Returns the claims to draw from, which is the input minus any claim the
+   * propagation turned into a device reporting itself.
+   */
+  private static propagateMatchesAcrossPeerGroups(
+    resolvedClaims: Array<ResolvedClaim>,
+  ): Array<ResolvedClaim> {
+    const claimsWithAliases: Array<ResolvedClaim> = resolvedClaims.filter(
+      (resolved: ResolvedClaim) => {
+        return resolved.peerAliases.length > 0;
+      },
+    );
+
+    if (claimsWithAliases.length === 0) {
+      return resolvedClaims;
+    }
+
+    const rootByAliasId: Map<string, string> =
+      NetworkTopologyUtil.groupPeerAliases(claimsWithAliases);
+
+    const claimsByRoot: Map<string, Array<ResolvedClaim>> = new Map<
+      string,
+      Array<ResolvedClaim>
+    >();
+    for (const resolved of claimsWithAliases) {
+      const root: string | undefined = rootByAliasId.get(
+        NetworkTopologyUtil.matchKeyId(resolved.peerAliases[0]!),
+      );
+      if (!root) {
+        continue;
+      }
+      const bucket: Array<ResolvedClaim> | undefined = claimsByRoot.get(root);
+      if (bucket) {
+        bucket.push(resolved);
+      } else {
+        claimsByRoot.set(root, [resolved]);
+      }
+    }
+
+    for (const groupClaims of claimsByRoot.values()) {
+      const matchedIds: Set<string> = new Set<string>();
+      for (const resolved of groupClaims) {
+        if (resolved.matchedDeviceId) {
+          matchedIds.add(resolved.matchedDeviceId);
+        }
+      }
+
+      // Nothing to carry, or two answers and no way to choose between them.
+      if (matchedIds.size !== 1) {
+        continue;
+      }
+
+      const matchedDeviceId: string = Array.from(matchedIds)[0]!;
+      for (const resolved of groupClaims) {
+        if (!resolved.matchedDeviceId) {
+          resolved.matchedDeviceId = matchedDeviceId;
+        }
+      }
+    }
+
+    /*
+     * A device can now find ITSELF at the far end: it reported a neighbour
+     * by a chassis id, and another switch's report of the same box named
+     * this device. That is the same self-referential entry the per-claim
+     * match already drops, and for the same reason — an edge from a node to
+     * itself is not a cable.
+     */
+    return resolvedClaims.filter((resolved: ResolvedClaim) => {
+      return resolved.matchedDeviceId !== resolved.device.id;
+    });
   }
 
   /*
@@ -1110,12 +1307,29 @@ export default class NetworkTopologyUtil {
        */
       let displayName: string | undefined = undefined;
       let platform: string | undefined = undefined;
+      /*
+       * The peer's own management address, when any report carried one.
+       * Reports are visited in a stable order and the first address wins,
+       * so a peer two switches describe differently does not change
+       * address between rebuilds.
+       */
+      let ipAddress: string | undefined = undefined;
       for (const resolved of groupClaims) {
         if (!displayName && resolved.claim.hasAdvertisedName) {
           displayName = resolved.claim.displayName;
         }
         if (!platform && resolved.claim.remotePlatform) {
           platform = resolved.claim.remotePlatform;
+        }
+        /*
+         * Gated, unlike the platform and the name beside it: those are
+         * labels and this is an ADDRESS. It is rendered as one in the
+         * drawer and pre-fills a hostname in the create form, so a v6
+         * literal or a malformed quad arriving from a neighbour's agent
+         * would become a device nothing can ever reach.
+         */
+        if (!ipAddress && isIpv4Address(resolved.claim.remoteIpAddress)) {
+          ipAddress = resolved.claim.remoteIpAddress;
         }
       }
       if (!displayName) {
@@ -1162,6 +1376,13 @@ export default class NetworkTopologyUtil {
         }),
         status: "unknown",
         deviceModel: platform,
+        /*
+         * Rendered in the detail drawer, and the field that makes the peer
+         * adoptable: nothing can be monitored without an address, so this
+         * is the difference between a node an operator can act on and one
+         * they can only look at.
+         */
+        ipAddress: ipAddress,
       });
 
       for (const resolved of groupClaims) {

@@ -498,6 +498,724 @@ describe("NetworkTopologyUtil.buildTopology", () => {
   });
 
   /*
+   * Issue #3435. An unmanaged neighbour on the map was a dead end: the panel
+   * showed what the device was and which port it hung off, and the only
+   * action was to hide it. Monitoring anything needs an ADDRESS, so the
+   * probe now reads the one each protocol advertises (CDP cdpCacheAddress,
+   * LLDP lldpRemManAddrTable) and it arrives here.
+   *
+   * It buys two things: a device we already manage BY ADDRESS stops being
+   * drawn as a stranger, and a peer we do not manage carries the field that
+   * makes "Add to Monitoring" a real action rather than a form.
+   */
+  describe("advertised management addresses (#3435)", () => {
+    it("matches a neighbour's advertised address against a device's IP hostname", () => {
+      /*
+       * The subnet-sweep import shape: the responding IP lands in hostname
+       * and the device's real identity in name, so nothing the switch
+       * advertises about it looks like its name — and before the address
+       * was read, the switch drew it as a stranger.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "SEP6026AAF2B46B",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          makeDevice("d2", "Reception phone", { hostname: "10.0.12.41" }),
+        ],
+        now,
+      );
+
+      expect(result.nodes).toHaveLength(2);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    it("prefers the advertised NAME over the advertised address when both name a device", () => {
+      /*
+       * A name is a statement about identity; an address is a statement
+       * about where something currently answers. When the two disagree the
+       * name wins, which is the ordering MATCH_KEY_KINDS_STRONGEST_FIRST
+       * encodes.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "dist-sw-02",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          makeDevice("d2", "dist-sw-02", { sysName: "dist-sw-02" }),
+          makeDevice("d3", "some-other-box", { hostname: "10.0.12.41" }),
+        ],
+        now,
+      );
+
+      const edge: NetworkTopologyEdge | undefined = result.edges.find(
+        (candidate: NetworkTopologyEdge) => {
+          return candidate.fromNodeId === "d1" || candidate.toNodeId === "d1";
+        },
+      );
+
+      expect(edge?.toNodeId).toBe("d2");
+    });
+
+    it("puts the advertised address on the unmanaged peer node", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "UN1289LANSWI01", {
+            sysName: "UN1289LANSWI01",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "SEP6026AAF2B46B",
+                remotePlatform: "Cisco IP Phone 8811",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      const peer: NetworkTopologyNode | undefined = nodeById(
+        result,
+        "unmanaged:sep6026aaf2b46b",
+      );
+
+      expect(peer?.ipAddress).toBe("10.0.12.41");
+      expect(peer?.deviceModel).toBe("Cisco IP Phone 8811");
+      expect(peer?.role).toBe("phone");
+    });
+
+    it("reads the address off an LLDP neighbour too", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 3,
+                remoteSysName: "ap-lobby",
+                remoteIpAddress: "10.0.0.42",
+              },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "unmanaged:ap-lobby")?.ipAddress).toBe(
+        "10.0.0.42",
+      );
+    });
+
+    /*
+     * THE load-bearing exclusion. Every branch site in an estate has a
+     * 10.0.0.1, so if an address were an identity-grade alias, one gateway
+     * per site would fuse into a single node on a project-wide map — and
+     * the cables of 949 sites would converge on one circle.
+     */
+    it("does NOT merge two strangers that happen to share an address", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("site-a-sw", "site-a-sw", {
+            sysName: "site-a-sw",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteDeviceId: "site-a-gw",
+                remoteIpAddress: "10.0.0.1",
+              },
+            ],
+          }),
+          makeDevice("site-b-sw", "site-b-sw", {
+            sysName: "site-b-sw",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteDeviceId: "site-b-gw",
+                remoteIpAddress: "10.0.0.1",
+              },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "unmanaged:site-a-gw")).toBeDefined();
+      expect(nodeById(result, "unmanaged:site-b-gw")).toBeDefined();
+      expect(result.edges).toHaveLength(2);
+    });
+
+    /*
+     * The other half of the same exclusion: an address is offered as an
+     * address and nothing else. Offered as a "serial" it would match any
+     * device whose serial column happened to hold an IP literal; offered as
+     * a "name" it would be an identity-grade alias again, with the merging
+     * consequences above.
+     */
+    it("does not match an address against a device's serial number", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "stranger",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          makeDevice("d2", "odd-box", {
+            sysName: "odd-box",
+            serialNumber: "10.0.12.41",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "unmanaged:stranger")).toBeDefined();
+      expect(result.edges[0]!.toNodeId).toBe("unmanaged:stranger");
+    });
+
+    /*
+     * A name is an operator's label. One that happens to read as an IP
+     * literal is not a claim that the device answers there, so matching on
+     * it would draw a cable to a box that is not on the other end — which
+     * this builder holds to be worse than drawing none.
+     */
+    it("does not read a device NAME that looks like an address as its address", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "stranger",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          // Named after an address it does not answer at.
+          makeDevice("d2", "10.0.12.41", { hostname: "192.168.9.9" }),
+        ],
+        now,
+      );
+
+      expect(result.edges[0]!.toNodeId).toBe("unmanaged:stranger");
+    });
+
+    /*
+     * sysName IS read as an address, unlike name: plenty of gear reports its
+     * management IP there, and that is the device saying where it answers
+     * rather than a human labelling it.
+     */
+    it("reads a sysName that is an address as an address", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "stranger",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          makeDevice("d2", "Reception phone", {
+            sysName: "10.0.12.41",
+            hostname: "phone-lobby.corp.local",
+          }),
+        ],
+        now,
+      );
+
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    /*
+     * Two devices claiming one address is exactly the overlapping-subnet
+     * case. The ambiguity guard deletes the key rather than resolving it,
+     * because a wrong cable on a network map is worse than a missing one.
+     */
+    it("refuses an address two managed devices both claim", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "stranger",
+                remoteIpAddress: "10.0.0.1",
+              },
+            ],
+          }),
+          makeDevice("d2", "site-a-gw", { hostname: "10.0.0.1" }),
+          makeDevice("d3", "site-b-gw", { hostname: "10.0.0.1" }),
+        ],
+        now,
+      );
+
+      expect(result.edges[0]!.toNodeId).toBe("unmanaged:stranger");
+    });
+
+    /*
+     * Adding an address to a peer must not move it. Node ids are the key
+     * saved layouts and node suppressions are stored under, so a peer that
+     * renamed itself on the day the probe learned to read addresses would
+     * scatter every pinned position and un-hide every hidden node.
+     */
+    it("keeps the peer's node id when an address arrives alongside its name", () => {
+      const withoutAddress: TopologyBuildResult =
+        NetworkTopologyUtil.buildTopology(
+          [
+            makeDevice("d1", "core-1", {
+              sysName: "core-1",
+              cdpNeighbors: [
+                { localInterfaceIndex: 1, remoteDeviceId: "ap-lobby" },
+              ],
+            }),
+          ],
+          now,
+        );
+
+      const withAddress: TopologyBuildResult =
+        NetworkTopologyUtil.buildTopology(
+          [
+            makeDevice("d1", "core-1", {
+              sysName: "core-1",
+              cdpNeighbors: [
+                {
+                  localInterfaceIndex: 1,
+                  remoteDeviceId: "ap-lobby",
+                  remoteIpAddress: "10.0.0.42",
+                },
+              ],
+            }),
+          ],
+          now,
+        );
+
+      expect(withoutAddress.edges[0]!.toNodeId).toBe("unmanaged:ap-lobby");
+      expect(withAddress.edges[0]!.toNodeId).toBe("unmanaged:ap-lobby");
+    });
+
+    /*
+     * A claim with an address and no identity is resolvable against a
+     * managed device but cannot become a peer of its own — an address is not
+     * an identity, so there is nothing to merge two such reports on. Pinned
+     * because the behaviour is a deliberate silent drop rather than an
+     * oversight.
+     */
+    it("draws nothing for a neighbour that advertised only an address", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              { localInterfaceIndex: 1, remoteIpAddress: "10.0.0.42" },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(result.edges).toHaveLength(0);
+      expect(result.nodes).toHaveLength(1);
+    });
+
+    /*
+     * ...but it still SAYS so. A device whose only neighbour report carried
+     * an address and nothing else is drawn isolated, and the drawer's
+     * explanation is built from exactly these two fields: a count with no
+     * identifiers beside it leaves an isolated device with no account of
+     * itself, which is the complaint the diagnostics exist to answer.
+     */
+    it("names an address-only neighbour in the reporting device's diagnostics", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              { localInterfaceIndex: 1, remoteIpAddress: "10.0.0.42" },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")?.diagnostics).toEqual({
+        isNeighborDiscoveryEnabled: undefined,
+        reportedNeighborCount: 1,
+        unmatchedNeighborIdentifiers: ["10.0.0.42"],
+      });
+    });
+
+    /*
+     * And a neighbour whose address DID match is not listed as unmatched —
+     * the panel would otherwise tell an operator to add a device they are
+     * already looking at a link to.
+     */
+    it("does not list a neighbour its address matched", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "core-1", {
+            sysName: "core-1",
+            cdpNeighbors: [
+              { localInterfaceIndex: 1, remoteIpAddress: "10.0.0.42" },
+            ],
+          }),
+          makeDevice("d2", "some-phone", { hostname: "10.0.0.42" }),
+        ],
+        now,
+      );
+
+      expect(
+        nodeById(result, "d1")?.diagnostics?.unmatchedNeighborIdentifiers,
+      ).toEqual([]);
+      expect(result.edges).toHaveLength(1);
+    });
+  });
+
+  /*
+   * The point of the whole feature (#3435): the operator clicks "Add to
+   * Monitoring" on a stranger, a NetworkDevice is created from what the map
+   * already knew, and on the very next graph build that stranger IS the new
+   * device — same cable, same port, no second node floating beside it.
+   */
+  describe("adopting an unmanaged peer into a device", () => {
+    const switchWithPhone: (
+      overrides?: Partial<TopologyDeviceInput>,
+    ) => TopologyDeviceInput = (
+      overrides?: Partial<TopologyDeviceInput>,
+    ): TopologyDeviceInput => {
+      return makeDevice("switch-1", "UN1289LANSWI01", {
+        sysName: "UN1289LANSWI01",
+        cdpNeighbors: [
+          {
+            localInterfaceIndex: 12,
+            remoteDeviceId: "SEP6026AAF2B46B",
+            remotePortId: "SW PORT",
+            remotePlatform: "Cisco IP Phone 8811",
+            remoteIpAddress: "10.0.12.41",
+          },
+        ],
+        ...overrides,
+      });
+    };
+
+    it("collapses the stranger into a device created under its advertised name", () => {
+      const before: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [switchWithPhone()],
+        now,
+      );
+
+      expect(nodeById(before, "unmanaged:sep6026aaf2b46b")).toBeDefined();
+
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          switchWithPhone(),
+          // Exactly what the adoption form pre-fills.
+          makeDevice("phone-1", "SEP6026AAF2B46B", {
+            hostname: "10.0.12.41",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(after, "unmanaged:sep6026aaf2b46b")).toBeUndefined();
+      expect(after.edges).toHaveLength(1);
+      expect(
+        [after.edges[0]!.fromNodeId, after.edges[0]!.toNodeId].sort(),
+      ).toEqual(["phone-1", "switch-1"]);
+    });
+
+    /*
+     * Renaming an adopted device to something a human can read is the first
+     * thing anybody does, and it breaks the name match outright — the
+     * comparison is trim-and-lowercase and nothing more. The address is what
+     * survives it, which is why the form pre-fills the hostname from the
+     * advertised address rather than leaving it to the operator.
+     */
+    it("still collapses when the device is renamed but keeps the advertised address", () => {
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          switchWithPhone(),
+          makeDevice("phone-1", "Reception desk phone", {
+            hostname: "10.0.12.41",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(after, "unmanaged:sep6026aaf2b46b")).toBeUndefined();
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0]!.toNodeId).toBe("phone-1");
+    });
+
+    /*
+     * The failure the form warns about: rename it AND give it an address
+     * nobody advertises, and the map keeps the stranger and floats the new
+     * device beside it. Pinned so the warning cannot quietly stop being true.
+     */
+    it("keeps the stranger when the device answers to nothing the switch advertised", () => {
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          switchWithPhone(),
+          makeDevice("phone-1", "Reception desk phone", {
+            hostname: "192.168.99.99",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(after, "unmanaged:sep6026aaf2b46b")).toBeDefined();
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0]!.toNodeId).toBe("unmanaged:sep6026aaf2b46b");
+    });
+
+    /*
+     * A declared link drawn alongside the adoption merges into the SAME
+     * edge rather than doubling the line, so belt-and-braces costs nothing
+     * on the map.
+     */
+    it("merges a declared link with the rediscovered one instead of drawing two", () => {
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          switchWithPhone(),
+          makeDevice("phone-1", "SEP6026AAF2B46B", {
+            hostname: "10.0.12.41",
+          }),
+        ],
+        now,
+        [],
+        [],
+        [
+          {
+            fromDeviceId: "switch-1",
+            toDeviceId: "phone-1",
+            fromPortName: "Gi1/0/12",
+          },
+        ],
+      );
+
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0]!.protocols).toEqual(
+        expect.arrayContaining(["cdp", "manual"]),
+      );
+    });
+
+    /*
+     * The split this feature makes possible, and the reason a match now
+     * travels along a peer group.
+     *
+     * One port, one phone, described twice: the CDP entry carries the
+     * management address and finds the adopted device; the LLDP entry
+     * beside it knows only the name the operator renamed away from and
+     * finds nothing. Without the propagation the map draws that one phone
+     * as a managed node AND as a leftover stranger, on two lines out of the
+     * same port.
+     */
+    it("does not leave a second stranger when only one protocol carried the address", () => {
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("switch-1", "UN1289LANSWI01", {
+            sysName: "UN1289LANSWI01",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteSysName: "SEP6026AAF2B46B",
+                remotePortId: "SW PORT",
+              },
+            ],
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 12,
+                remoteDeviceId: "SEP6026AAF2B46B",
+                remoteIpAddress: "10.0.12.41",
+              },
+            ],
+          }),
+          makeDevice("phone-1", "Reception desk phone", {
+            hostname: "10.0.12.41",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(after, "unmanaged:sep6026aaf2b46b")).toBeUndefined();
+      expect(after.nodes).toHaveLength(2);
+      expect(after.edges).toHaveLength(1);
+      expect(after.edges[0]!.toNodeId).toBe("phone-1");
+      expect(after.edges[0]!.protocols).toEqual(
+        expect.arrayContaining(["lldp", "cdp"]),
+      );
+    });
+
+    /*
+     * The same carrying, in the direction that has always been broken: one
+     * switch knows the peer by name and matches it, the other knows it only
+     * by a chassis MAC and did not. They share an identity-grade alias, so
+     * the builder already holds them to be one box — it should draw them as
+     * one, not as a device plus a stranger.
+     */
+    it("absorbs a report that knew the peer only by a chassis id", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("sw-a", "sw-a", {
+            sysName: "sw-a",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteSysName: "ap-lobby",
+                remoteChassisId: "0011.2233.4455",
+              },
+            ],
+          }),
+          makeDevice("sw-b", "sw-b", {
+            sysName: "sw-b",
+            lldpNeighbors: [
+              { localInterfaceIndex: 2, remoteChassisId: "0011.2233.4455" },
+            ],
+          }),
+          makeDevice("ap-1", "ap-lobby", { sysName: "ap-lobby" }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "unmanaged:0011.2233.4455")).toBeUndefined();
+      expect(result.nodes).toHaveLength(3);
+      expect(
+        result.edges.map((edge: NetworkTopologyEdge) => {
+          return [edge.fromNodeId, edge.toNodeId].sort().join("::");
+        }),
+      ).toEqual(["ap-1::sw-a", "ap-1::sw-b"]);
+    });
+
+    /*
+     * Contradictory evidence is left alone. Two reports that share an alias
+     * but matched two DIFFERENT devices cannot both be right, and the
+     * builder's standing rule is that a wrong cable is worse than a missing
+     * one.
+     */
+    it("carries nothing when the group's reports matched two different devices", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("sw-a", "sw-a", {
+            sysName: "sw-a",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteDeviceId: "shared-alias",
+                remoteIpAddress: "10.0.0.7",
+              },
+            ],
+          }),
+          makeDevice("sw-b", "sw-b", {
+            sysName: "sw-b",
+            cdpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteDeviceId: "shared-alias",
+                remoteIpAddress: "10.0.0.8",
+              },
+            ],
+          }),
+          makeDevice("d-seven", "seven", { hostname: "10.0.0.7" }),
+          makeDevice("d-eight", "eight", { hostname: "10.0.0.8" }),
+        ],
+        now,
+      );
+
+      expect(
+        result.edges.map((edge: NetworkTopologyEdge) => {
+          return [edge.fromNodeId, edge.toNodeId].sort().join("::");
+        }),
+      ).toEqual(["d-seven::sw-a", "d-eight::sw-b"]);
+    });
+
+    /*
+     * And a device must never end up cabled to itself. Carrying a match
+     * along a group can point a device's own report back at the device that
+     * made it; an edge from a node to itself is not a cable, and the
+     * per-claim match has always dropped exactly this.
+     */
+    it("drops a report the propagation turns into a device reporting itself", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("sw-a", "sw-a", {
+            sysName: "sw-a",
+            serialNumber: "SN-A-0001",
+            // sw-a describes ITSELF by its serial, which is not its name.
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteChassisId: "SN-A-0001" },
+            ],
+          }),
+          makeDevice("sw-b", "sw-b", {
+            sysName: "sw-b",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 2,
+                remoteSysName: "sw-a",
+                remoteChassisId: "SN-A-0001",
+              },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      for (const edge of result.edges) {
+        expect(edge.fromNodeId).not.toBe(edge.toNodeId);
+      }
+      expect(
+        result.edges.map((edge: NetworkTopologyEdge) => {
+          return [edge.fromNodeId, edge.toNodeId].sort().join("::");
+        }),
+      ).toEqual(["sw-a::sw-b"]);
+    });
+
+    /*
+     * The switch's own account of itself has to keep up. A device that has
+     * absorbed its stranger must stop reporting it as an unresolved
+     * neighbour, or the panel would go on explaining an isolation that no
+     * longer exists.
+     */
+    it("stops listing the peer as an unmatched neighbour once it is adopted", () => {
+      const after: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          switchWithPhone(),
+          makeDevice("phone-1", "SEP6026AAF2B46B", {
+            hostname: "10.0.12.41",
+          }),
+        ],
+        now,
+      );
+
+      expect(
+        nodeById(after, "switch-1")?.diagnostics?.unmatchedNeighborIdentifiers,
+      ).toEqual([]);
+    });
+  });
+
+  /*
    * The other half of issue #3023: "where auto-discovery can't determine the
    * correct link, provide a manual option to define the link between two
    * devices".

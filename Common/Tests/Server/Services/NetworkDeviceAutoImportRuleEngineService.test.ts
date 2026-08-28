@@ -42,6 +42,7 @@ jest.mock("../../../Server/Services/NetworkDeviceService", () => {
       create: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
+      getDevicesByHostnames: jest.fn(),
     },
   };
 });
@@ -181,6 +182,19 @@ const deviceFindByMock: jest.Mock =
   NetworkDeviceService.findBy as unknown as jest.Mock;
 const deviceFindOneByMock: jest.Mock =
   NetworkDeviceService.findOneBy as unknown as jest.Mock;
+/*
+ * "Which of THESE addresses already have a device", asked of the database per
+ * scan. It replaced a paged walk of every device in the project — which sorted
+ * by `createdAt`, a value a bulk import stamps identically on every row it
+ * creates, so its pages overlapped and skipped and a missed hostname created a
+ * DUPLICATE device.
+ *
+ * Backed by the same `deviceFindByMock` fixtures every case already sets up, so
+ * a test still says "the inventory contains these devices" and this narrows
+ * them the way the real query does.
+ */
+const devicesByHostnamesMock: jest.Mock =
+  NetworkDeviceService.getDevicesByHostnames as unknown as jest.Mock;
 const monitorCreateMock: jest.Mock =
   MonitorService.create as unknown as jest.Mock;
 const monitorFindByMock: jest.Mock =
@@ -386,6 +400,27 @@ beforeEach(() => {
    * lock — the happy defaults each test narrows as needed.
    */
   deviceFindByMock.mockResolvedValue([]);
+  devicesByHostnamesMock.mockImplementation(
+    async (data: {
+      hostnames: Array<string>;
+    }): Promise<Map<string, NetworkDevice>> => {
+      const wanted: Set<string> = new Set<string>(data.hostnames);
+      const inventory: Array<NetworkDevice> =
+        (await deviceFindByMock.mock.results[
+          deviceFindByMock.mock.results.length - 1
+        ]?.value) || (await deviceFindByMock());
+      const found: Map<string, NetworkDevice> = new Map<
+        string,
+        NetworkDevice
+      >();
+      for (const device of inventory) {
+        if (device.hostname && wanted.has(device.hostname)) {
+          found.set(device.hostname, device);
+        }
+      }
+      return found;
+    },
+  );
   deviceFindOneByMock.mockResolvedValue(null);
   createMock.mockImplementation(
     ({ data }: { data: NetworkDevice }): Promise<NetworkDevice> => {
@@ -634,7 +669,9 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         monitorsCreated: 1,
       });
       expect(createMock).not.toHaveBeenCalled();
-      expect(deviceFindByMock.mock.calls[0]![0].select.projectId).toBe(true);
+      expect(devicesByHostnamesMock.mock.calls[0]![0].select.projectId).toBe(
+        true,
+      );
       expect(
         provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
       ).toBe(existingDevice.id?.toString());
