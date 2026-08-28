@@ -43,6 +43,7 @@ const INGEST_LOCATIONS = [
   "/security-events",
   "/session-replay",
   "/pyroscope",
+  "/source-maps",
 ];
 
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";

@@ -319,6 +319,7 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetrySourceMap from "./TelemetrySourceMap";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
@@ -807,6 +808,7 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetrySourceMap,
   InventoryItem,
   InventoryItemCustomField,
   InventoryItemRelationship,

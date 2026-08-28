@@ -23,6 +23,8 @@ import ServiceViewProfiles from "../Pages/Service/View/Profiles";
 
 import ServiceViewExceptions from "../Pages/Service/View/Exceptions";
 
+import ServiceViewSourceMaps from "../Pages/Service/View/SourceMaps";
+
 import ServiceViewDelete from "../Pages/Service/View/Delete";
 
 import ServiceViewSettings from "../Pages/Service/View/Settings";
@@ -185,6 +187,16 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewExceptions
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_EXCEPTIONS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_SOURCE_MAPS)}
+          element={
+            <ServiceViewSourceMaps
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_SOURCE_MAPS] as Route}
             />
           }
         />

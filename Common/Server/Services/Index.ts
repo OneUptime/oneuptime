@@ -283,6 +283,7 @@ import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
+import TelemetrySourceMapService from "./TelemetrySourceMapService";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
@@ -683,6 +684,7 @@ const services: Array<BaseService> = [
   ServiceOwnerUserService,
 
   TelemetryExceptionService,
+  TelemetrySourceMapService,
   InventoryItemService,
   InventoryItemCustomFieldService,
   InventoryItemRelationshipService,
