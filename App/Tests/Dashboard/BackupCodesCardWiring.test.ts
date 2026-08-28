@@ -19,9 +19,24 @@ import URL from "Common/Types/API/URL";
  *
  *  - the card not being mounted at all. BackupCodes.tsx compiles, lints and
  *    tests perfectly well while being imported by nobody. The feature then
- *    exists entirely on the server, the login screen's "use a backup code"
- *    link never appears (backupCodeCount is always 0), and there is no error
- *    anywhere to notice;
+ *    exists entirely on the server, no account ever holds a code it has been
+ *    shown, and there is no error anywhere to notice;
+ *  - the ENROLMENT HAND-OFF being dropped. Codes are no longer minted only by
+ *    the button on this card. Verifying a first authenticator app or
+ *    registering a first security key mints a set server-side -- because a
+ *    recovery route that has to be hunted for is a recovery route nobody has
+ *    -- and that response carries the ONLY copy of the plaintext. If the
+ *    profile page does not read it out of the response, or reads it and does
+ *    not pass it down here, the account ends up holding ten perfectly good
+ *    codes that nobody has ever seen. The card, the login screen and the
+ *    server all then report the account as covered, which is strictly worse
+ *    than reporting it as uncovered: it is the good state and the trap
+ *    rendered identically;
+ *  - and the same set being re-raised. The effect that shows an enrolment set
+ *    is keyed on the codes rather than on the array carrying them, because a
+ *    parent that rebuilds that array on each render would otherwise reopen a
+ *    modal the user has just acknowledged -- checkbox reset, on top of
+ *    whatever they had moved on to -- for codes they have already saved;
  *  - regeneration on a GET. Generating REPLACES the whole set, so a GET that
  *    voids a printed list is a lockout with no user action behind it -- a
  *    browser prefetch, a link preview, a crawler behind an authenticated
@@ -116,6 +131,28 @@ type SquashFunction = (source: string) => string;
  */
 const squash: SquashFunction = (source: string): string => {
   return source.replace(/\s+/g, " ");
+};
+
+type SliceFromFunction = (source: string, marker: string) => string;
+
+/*
+ * The source from `marker` onwards. Throws rather than answering the whole
+ * file, which is what a bare `indexOf` returning -1 would quietly do -- and a
+ * slice(-1) would leave every extraction taken from it pointing at the wrong
+ * element, passing or failing for reasons that have nothing to do with the
+ * code.
+ */
+const sliceFrom: SliceFromFunction = (
+  source: string,
+  marker: string,
+): string => {
+  const markerIndex: number = source.indexOf(marker);
+
+  if (markerIndex === -1) {
+    throw new Error(`Marker not found in source: ${marker}`);
+  }
+
+  return source.slice(markerIndex);
 };
 
 type ReadCodeFunction = (parts: Array<string>) => string;
@@ -276,11 +313,107 @@ const cardButtonClickBody: string = blockAfter(
   "onClick: () =>",
 );
 
-/* The one mount effect, which must fetch the count and mint nothing. */
+/*
+ * The FIRST of the two effects: the mount effect, which must fetch the count
+ * and mint nothing.
+ */
 const mountEffectBody: string = blockAfter(
   backupCodesSource,
   "useAsyncEffect(async () =>",
 );
+
+/*
+ * The SECOND effect: the one that raises the show-once modal for a set the
+ * server minted during enrolment.
+ *
+ * Taken from the declaration of the key it depends on rather than from the
+ * top of the file, because both effects open with the identical marker and
+ * `blockAfter` answers with the first match -- so an unsliced lookup would
+ * silently hand back the mount effect above and assert the enrolment
+ * invariants against the wrong body.
+ */
+const enrolmentEffectRegion: string = sliceFrom(
+  backupCodesSource,
+  "const enrolmentCodesKey",
+);
+
+const enrolmentEffectBody: string = blockAfter(
+  enrolmentEffectRegion,
+  "useAsyncEffect(async () =>",
+);
+
+const enrolmentEffectBodyEnd: number =
+  enrolmentEffectRegion.indexOf(enrolmentEffectBody) +
+  enrolmentEffectBody.length;
+
+/*
+ * Everything between the end of that callback and the `;` that closes the
+ * call -- i.e. the dependency list, which is the whole subject of the
+ * enrolment describe block below.
+ */
+const enrolmentEffectDependencies: string = enrolmentEffectRegion.slice(
+  enrolmentEffectBodyEnd,
+  enrolmentEffectRegion.indexOf(";", enrolmentEffectBodyEnd) + 1,
+);
+
+/* The props the page hands down, so a missing one fails as a missing prop. */
+const componentPropsBlock: string = blockAfter(
+  backupCodesSource,
+  "export interface ComponentProps",
+);
+
+type RegionBetweenFunction = (data: {
+  source: string;
+  startMarker: string;
+  endMarker: string;
+}) => string;
+
+/*
+ * One submit handler on the profile page, bounded by the route it posts to and
+ * the start of the next one. Bounding matters here for the same reason it does
+ * for the two modals above: the page holds two enrolment flows that read the
+ * same helper, and an unbounded assertion would be satisfied by either -- so
+ * deleting the read from ONE of them, which is the regression that leaves half
+ * of all enrolments holding unseen codes, would still pass.
+ */
+const regionBetween: RegionBetweenFunction = (data: {
+  source: string;
+  startMarker: string;
+  endMarker: string;
+}): string => {
+  const startIndex: number = data.source.indexOf(data.startMarker);
+  const endIndex: number = data.source.indexOf(
+    data.endMarker,
+    startIndex + data.startMarker.length,
+  );
+
+  if (startIndex === -1 || endIndex === -1) {
+    throw new Error(
+      `Region not found: ${data.startMarker} .. ${data.endMarker}`,
+    );
+  }
+
+  return data.source.slice(startIndex, endIndex);
+};
+
+const totpValidateHandler: string = regionBetween({
+  source: twoFactorPageSource,
+  startMarker: "/user-totp-auth/validate",
+  endMarker: "/user-webauthn/generate-registration-options",
+});
+
+const webAuthnVerifyHandler: string = regionBetween({
+  source: twoFactorPageSource,
+  startMarker: "/user-webauthn/verify-registration",
+  endMarker: "<CardModelDetail",
+});
+
+const readBackupCodesBody: string = blockAfter(
+  twoFactorPageSource,
+  "const readBackupCodesFromResponse: ReadBackupCodesFunction",
+);
+
+const backupCodesTag: string = openingTagOf(twoFactorPageSource, "BackupCodes");
 
 /*
  * The two request bodies, pulled out so a failure prints the eight lines that
@@ -330,6 +463,26 @@ describe("the pieces of the card were located", () => {
     expect(confirmModalTag).not.toContain('"Your backup codes"');
     expect(codesModalBody.length).toBeGreaterThan(codesModalTag.length);
   });
+
+  test("the enrolment effect was found, and it is not the mount effect", () => {
+    /*
+     * Both effects are written `useAsyncEffect(async () => {`, so the only
+     * thing separating them is where the search starts. If that slice ever
+     * stops working, every enrolment assertion below would be made against
+     * the mount effect -- which contains none of the calls they look for, so
+     * they would fail loudly, but pointing at the wrong line. This names the
+     * extractor instead.
+     */
+    expect(enrolmentEffectBody).toContain("setGeneratedCodes(");
+    expect(enrolmentEffectBody).not.toBe(mountEffectBody);
+    expect(mountEffectBody).not.toContain("enrolmentCodesKey");
+
+    /* And the dependency list really is a dependency list. */
+    expect(enrolmentEffectDependencies).toMatch(/^,\s*\[.*\]\s*\);$/);
+
+    /* The props block is the interface, not some other braced block. */
+    expect(componentPropsBlock).toContain("codesFromEnrolment");
+  });
 });
 
 describe("the card is actually mounted on the profile page", () => {
@@ -368,12 +521,18 @@ describe("the card is actually mounted on the profile page", () => {
     expect(fs.existsSync(resolved)).toBe(true);
   });
 
-  test("it is rendered, exactly once", () => {
+  test("it is rendered, exactly once, and with the enrolment codes", () => {
     /*
      * Importing is not mounting. An unused import is a lint warning at worst
      * and, in a file this size, an easy thing to leave behind after a revert.
+     *
+     * Matched on the opening of the tag rather than on a self-closing
+     * `<BackupCodes />`, which is the PRE-enrolment shape: the card is now
+     * mounted with the codes the server minted, and a bare self-closing tag
+     * here means the hand-off has been reverted -- see the last describe
+     * block, which pins the props themselves.
      */
-    expect(twoFactorPageSource).toContain("<BackupCodes />");
+    expect(twoFactorPageSource).toContain("<BackupCodes codesFromEnrolment=");
     expect(countOccurrences(twoFactorPageSource, "<BackupCodes")).toBe(1);
   });
 
@@ -397,7 +556,7 @@ describe("the card is actually mounted on the profile page", () => {
       'id="webauthn-table"',
     );
     const backupCodesIndex: number =
-      twoFactorPageSource.indexOf("<BackupCodes />");
+      twoFactorPageSource.indexOf("<BackupCodes");
 
     expect(totpIndex).toBeGreaterThan(-1);
     expect(webAuthnIndex).toBeGreaterThan(-1);
@@ -501,21 +660,46 @@ describe("regeneration is a POST, never a GET", () => {
      * `generate()` reachable from the mount effect would replace the user's
      * codes every time they opened their profile page -- and would do it
      * before the confirmation and the acknowledgement modal exist to say so.
+     *
+     * The enrolment effect is held to the same rule for the same reason, and
+     * more sharply: it fires on a value handed in by a PARENT, so a mint
+     * reachable from it is a mint triggered by somebody else's render.
      */
     expect(mountEffectBody).toContain("await loadStatus();");
     expect(mountEffectBody).not.toContain("generate(");
-    expect(countOccurrences(backupCodesSource, "useAsyncEffect(")).toBe(1);
+    expect(enrolmentEffectBody).not.toContain("generate(");
+
+    /*
+     * Exactly two effects, so the two inspected above are ALL of them. This
+     * count is the only thing standing between "the two effects we reviewed
+     * are safe" and "the effects we reviewed are safe"; on a card where an
+     * effect can destroy codes, a third one nobody has looked at is the whole
+     * risk.
+     */
+    expect(countOccurrences(backupCodesSource, "useAsyncEffect(")).toBe(2);
   });
 
   test("the status read is the one that is safe to repeat", () => {
     /*
      * The pairing that makes the split above meaningful: `loadStatus` is
-     * called again straight after a successful generate, so it has to be the
-     * idempotent one. If the two URLs were ever swapped, this refresh would
-     * regenerate the codes the user is at that moment reading off the screen.
+     * called again straight after a successful generate, AND again when a set
+     * arrives from enrolment -- so it has to be the idempotent one. If the two
+     * URLs were ever swapped, either refresh would regenerate the codes the
+     * user is at that moment reading off the screen, and the enrolment one
+     * would do it to a set minted seconds earlier by the server.
      */
     expect(backupCodesSource).toMatch(STATUS_GET_CALL);
-    expect(countOccurrences(backupCodesSource, "loadStatus()")).toBe(2);
+
+    expect(mountEffectBody).toContain("loadStatus()");
+    expect(generateBody).toContain("loadStatus()");
+    expect(enrolmentEffectBody).toContain("loadStatus()");
+
+    /*
+     * Three sites and no more -- mount, post-generate, post-enrolment. The
+     * count is what makes the three above the whole set rather than three of
+     * an unknown number.
+     */
+    expect(countOccurrences(backupCodesSource, "loadStatus()")).toBe(3);
   });
 });
 
@@ -584,8 +768,23 @@ describe("the 'shown once' modal cannot be dismissed without acknowledging", () 
       /setShowConfirmModal\(false\);\s*setHasSavedCodes\(false\);\s*setGeneratedCodes\(codes\);/,
     );
     expect(codesModalTag).toMatch(
-      /onSubmit=\{\(\) => \{\s*setGeneratedCodes\(null\);\s*setHasSavedCodes\(false\);\s*\}\}/,
+      /onSubmit=\{\(\) => \{\s*setGeneratedCodes\(null\);\s*setHasSavedCodes\(false\);/,
     );
+
+    /*
+     * And the third path into the modal -- a set minted during enrolment --
+     * re-arms it too. Written as an ordering rather than an adjacency because
+     * that is the invariant: the tick must be cleared BEFORE the codes are
+     * put on screen, or there is a moment where "Done" is live for a set
+     * nobody has read.
+     */
+    const rearmIndex: number = enrolmentEffectBody.indexOf(
+      "setHasSavedCodes(false)",
+    );
+    const showIndex: number = enrolmentEffectBody.indexOf("setGeneratedCodes(");
+
+    expect(rearmIndex).toBeGreaterThan(-1);
+    expect(showIndex).toBeGreaterThan(rearmIndex);
   });
 
   test("the modal says, on screen, that this is the only viewing", () => {
@@ -877,6 +1076,242 @@ describe("a failed generation is visible to the user", () => {
   test("statusError keeps its own separate render site", () => {
     expect(backupCodesSource).toMatch(
       /<ErrorMessage message=\{statusError\} \/>/,
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE ENROLMENT HAND-OFF.
+ *
+ * This is where the plaintext now comes from for almost everybody. The card's
+ * own button still exists, but a set that has to be found and pressed for is a
+ * set nearly nobody has -- which is precisely why every account reaching the
+ * two factor sign-in screen had a backup code count of zero. So verifying a
+ * first authenticator app and registering a first security key both mint a set
+ * server-side, and the enrolment response is the ONLY place those strings ever
+ * exist: they are stored as keyed digests, so nothing -- not this page, not a
+ * master admin, not a database dump -- can produce them a second time.
+ *
+ * Which makes the hand-off between the profile page and this card a one-shot,
+ * un-retryable path with no error state. Every way of getting it wrong is
+ * silent, and two of them are actively dangerous:
+ *
+ *  - dropping the response leaves the account holding ten codes it has never
+ *    been shown. Everything downstream then reports the account as COVERED --
+ *    the card says "10 of 10 remaining", the login screen offers the backup
+ *    code form -- and the user finds out otherwise on the one day they cannot
+ *    get in;
+ *  - re-raising the same set reopens an acknowledged modal with the checkbox
+ *    cleared, over whatever the user has moved on to, and teaches them that
+ *    the one dialog in this product that must be read is a dialog that keeps
+ *    coming back.
+ * ---------------------------------------------------------------------------
+ */
+describe("a set minted during enrolment is shown, once", () => {
+  test("the card takes the codes and the acknowledgement as props", () => {
+    /*
+     * Both spelled `| undefined` rather than left bare. This repo compiles
+     * with `exactOptionalPropertyTypes`, so a bare `?:` means the prop must be
+     * OMITTED -- a parent holding "the codes, or nothing" cannot pass
+     * undefined, which is the first shape every such call site reaches for.
+     * The explicit union is what lets the page pass whatever it has without
+     * building the JSX two different ways.
+     */
+    expect(componentPropsBlock).toContain(
+      "codesFromEnrolment?: Array<string> | undefined;",
+    );
+    expect(componentPropsBlock).toContain(
+      "onEnrolmentCodesAcknowledged?: (() => void) | undefined;",
+    );
+  });
+
+  test("the modal is raised on the CODES, not on the array carrying them", () => {
+    /*
+     * THE RE-RAISE. React compares dependencies by identity, and an array is a
+     * new value on every render of the parent that builds it -- a `.map`, a
+     * `|| []`, a literal in JSX. Keyed on the array, this effect would fire
+     * again on the next render for no reason at all: `setHasSavedCodes(false)`
+     * and `setGeneratedCodes(...)` would reopen the show-once modal the user
+     * had just acknowledged, checkbox cleared, on top of whatever they had
+     * moved on to -- and it would keep doing it. Keyed on the joined codes, it
+     * fires exactly once per distinct set no matter how the parent stores it.
+     */
+    expect(backupCodesSource).toContain(
+      'const enrolmentCodesKey: string = (props.codesFromEnrolment || []).join(",");',
+    );
+
+    expect(enrolmentEffectDependencies).toMatch(
+      /^,\s*\[enrolmentCodesKey\]\s*\);$/,
+    );
+
+    /*
+     * And the array itself is not in the list beside it, which is the shape a
+     * half-applied fix takes: the key is added, the array is left in, and the
+     * identity comparison goes on firing exactly as before.
+     */
+    expect(enrolmentEffectDependencies).not.toContain("codesFromEnrolment");
+  });
+
+  test("no codes means no modal", () => {
+    /*
+     * The NORMAL outcome, not an edge case. Adding a SECOND factor to an
+     * account that already has codes mints nothing -- the server answers with
+     * an empty array on purpose, because voiding the set the user printed when
+     * they enrolled the first one would be a lockout dressed up as a feature.
+     * The card is mounted on every visit to this page, so without this guard
+     * every load would raise an empty, unclosable "here are your backup codes"
+     * dialog: no codes in it, and a Done button disabled until the user ticks
+     * that they have saved them.
+     */
+    expect(enrolmentEffectBody).toMatch(
+      /^\{\s*if \(!enrolmentCodesKey\)\s*\{\s*return;\s*\}/,
+    );
+
+    /* The guard is ahead of the show, not merely present somewhere in it. */
+    const guardIndex: number = enrolmentEffectBody.indexOf(
+      "if (!enrolmentCodesKey)",
+    );
+    const showIndex: number = enrolmentEffectBody.indexOf("setGeneratedCodes(");
+
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(showIndex).toBeGreaterThan(guardIndex);
+  });
+
+  test("acknowledging tells the page to drop its only copy", () => {
+    /*
+     * The parent holds these strings in state and nothing can re-fetch them,
+     * so the handshake has to close: the modal clears its own copy AND tells
+     * the page to clear the one it is holding. Without the callback the page
+     * keeps passing the same set back in -- harmless while the key stays
+     * stable, and a re-raise the moment anything else changes how that array
+     * is built.
+     */
+    expect(codesModalTag).toMatch(
+      /onSubmit=\{\(\) => \{\s*setGeneratedCodes\(null\);\s*setHasSavedCodes\(false\);\s*if \(props\.onEnrolmentCodesAcknowledged\)\s*\{\s*props\.onEnrolmentCodesAcknowledged\(\);\s*\}\s*\}\}/,
+    );
+
+    /*
+     * Called from there and nowhere else. In particular NOT from the effect
+     * that shows the codes: the page's array is the last thing that can put
+     * this modal back on screen if anything goes wrong between showing the
+     * codes and the user reading them, so it must survive until the tick. A
+     * callback fired at show time makes the acknowledgement decorative.
+     */
+    expect(
+      countOccurrences(
+        backupCodesSource,
+        "props.onEnrolmentCodesAcknowledged()",
+      ),
+    ).toBe(1);
+    expect(enrolmentEffectBody).not.toContain("onEnrolmentCodesAcknowledged");
+  });
+});
+
+describe("the profile page reads the codes out of BOTH enrolment responses", () => {
+  test("the two handler regions really are the two different handlers", () => {
+    /*
+     * Guard against a vacuous pass: if either region collapsed onto the other,
+     * "both routes read the response" would be one route asserted twice.
+     */
+    expect(webAuthnVerifyHandler).not.toContain("/user-totp-auth/validate");
+    expect(totpValidateHandler).not.toContain(
+      "/user-webauthn/verify-registration",
+    );
+    expect(readBackupCodesBody).toContain("setEnrolmentBackupCodes(");
+  });
+
+  test("the helper reads the codes off the response body", () => {
+    /*
+     * `backupCodes` is the key both routes answer with, and the array is the
+     * whole payload -- there is no id to re-read it by and no second request
+     * that returns it. A rename on either side is silent in every direction:
+     * the page reads undefined, defaults to an empty array, shows nothing, and
+     * the account is left holding a set nobody saw.
+     */
+    expect(readBackupCodesBody).toContain('response.data["backupCodes"]');
+
+    /* Held in page state, starting empty so a plain page load raises nothing. */
+    expect(twoFactorPageSource).toMatch(
+      /const \[enrolmentBackupCodes, setEnrolmentBackupCodes\] = React\.useState<\s*Array<string>\s*>\(\[\]\);/,
+    );
+  });
+
+  test("the authenticator app route hands its response to the helper", () => {
+    /*
+     * Immediately after the error guard: unconditional, and BEFORE the table
+     * refresh. Both halves matter.
+     *
+     * Conditional is the tempting shape -- only read the codes if the user
+     * looks like a first-time enroller, only if some flag is set -- and every
+     * version of it gets the one case wrong that this whole change exists for.
+     * Ahead of the refresh matters because `setTableRefreshToggle` is what
+     * re-renders the two tables underneath; a read placed after it, or inside
+     * the same callback further down, is a read that a `return` added to that
+     * refresh path later will quietly skip.
+     */
+    expect(totpValidateHandler).toMatch(
+      /if \(response instanceof HTTPErrorResponse\)\s*\{\s*throw response;\s*\}\s*readBackupCodesFromResponse\(response\);\s*setTableRefreshToggle\(/,
+    );
+  });
+
+  test("the security key route hands its response to the helper too", () => {
+    /*
+     * THE HALF MOST LIKELY TO BE FORGOTTEN, because a security key feels like
+     * the strong factor and backup codes feel like the weak one. It is exactly
+     * backwards: a security key is the factor that gets left in a taxi, and an
+     * account whose only factor is a key it no longer has is an account that
+     * needs an administrator. Dropping the read here would leave every
+     * key-first enrolment holding ten codes it has never been shown -- which
+     * the card renders as "10 of 10 backup codes remaining".
+     */
+    expect(webAuthnVerifyHandler).toMatch(
+      /if \(verifyResponse instanceof HTTPErrorResponse\)\s*\{\s*throw verifyResponse;\s*\}\s*readBackupCodesFromResponse\(verifyResponse\);/,
+    );
+
+    const readIndex: number = webAuthnVerifyHandler.indexOf(
+      "readBackupCodesFromResponse(",
+    );
+    const refreshIndex: number = webAuthnVerifyHandler.indexOf(
+      "setTableRefreshToggle(",
+    );
+
+    expect(readIndex).toBeGreaterThan(-1);
+    expect(refreshIndex).toBeGreaterThan(readIndex);
+  });
+
+  test("those are the only two reads, and the only two writes", () => {
+    /*
+     * Two calls, matching the two routes that mint. A third would be a route
+     * reading a response that never carries codes -- harmless -- or, far worse,
+     * a second read of the SAME response after the first one has already been
+     * acknowledged and the state cleared, which puts an empty modal back up.
+     *
+     * And two writers of the state: the helper, and the acknowledgement that
+     * empties it. Anything else setting it is a path that can put codes on
+     * screen without a response behind them.
+     */
+    expect(
+      countOccurrences(twoFactorPageSource, "readBackupCodesFromResponse("),
+    ).toBe(2);
+    expect(
+      countOccurrences(twoFactorPageSource, "setEnrolmentBackupCodes("),
+    ).toBe(2);
+  });
+
+  test("the codes reach the card, and are dropped when it says so", () => {
+    /*
+     * The last link. The page can read the codes perfectly and still show the
+     * user nothing if they stop at its own state -- and this is the failure
+     * with no symptom at all: the enrolment succeeds, the tables refresh, the
+     * modal never appears, and the account is silently in the state the issue
+     * was filed about.
+     */
+    expect(backupCodesTag).toContain(
+      "codesFromEnrolment={enrolmentBackupCodes}",
+    );
+    expect(backupCodesTag).toMatch(
+      /onEnrolmentCodesAcknowledged=\{\(\) => \{\s*setEnrolmentBackupCodes\(\[\]\);\s*\}\}/,
     );
   });
 });

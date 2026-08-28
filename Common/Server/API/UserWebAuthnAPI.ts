@@ -16,6 +16,10 @@ import Response from "../Utils/Response";
 import { JSONObject } from "../../Types/JSON";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import UserTwoFactorBackupCodeService from "../Services/UserTwoFactorBackupCodeService";
+import TwoFactorBackupCode from "../Utils/TwoFactorBackupCode";
+import logger from "../Utils/Logger";
+import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -63,7 +67,46 @@ export default class UserWebAuthnAPI extends BaseAPI<
             props: databaseProps,
           });
 
-          return Response.sendEmptySuccessResponse(req, res);
+          /*
+           * A security key is a second factor that can be left in a taxi, so
+           * registering one is a moment that needs a recovery route behind it.
+           * Minted here for the same reason -- and with the same
+           * only-if-there-are-none rule -- as on the TOTP validate route; see
+           * the note there. A key added ALONGSIDE an authenticator app finds
+           * codes already present and changes nothing.
+           *
+           * Never fatal to the registration: the credential is already saved
+           * at this point, so an error here would report a failure for work
+           * that succeeded.
+           */
+          let backupCodes: Array<string> | null = null;
+
+          if (databaseProps.userId) {
+            try {
+              backupCodes =
+                await UserTwoFactorBackupCodeService.generateForUserIfNone({
+                  userId: databaseProps.userId,
+                });
+            } catch (backupCodeError) {
+              logger.error(backupCodeError);
+            }
+          }
+
+          /* See the note on the TOTP validate route. */
+          if (backupCodes && backupCodes.length > 0 && databaseProps.userId) {
+            TwoFactorBackupCodeNotification.notifyCodesCreated({
+              userId: databaseProps.userId,
+              codeCount: backupCodes.length,
+            });
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            backupCodes: backupCodes
+              ? backupCodes.map((code: string) => {
+                  return TwoFactorBackupCode.formatForDisplay(code);
+                })
+              : [],
+          });
         } catch (err) {
           next(err);
         }

@@ -1,7 +1,10 @@
 import UserTotpAuthAPI from "../../../Server/API/UserTotpAuthAPI";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserService from "../../../Server/Services/UserService";
+import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import TotpAuth from "../../../Server/Utils/TotpAuth";
+import TwoFactorBackupCode from "../../../Server/Utils/TwoFactorBackupCode";
+import logger from "../../../Server/Utils/Logger";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -9,9 +12,12 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { getJestSpyOn } from "../../Spy";
+import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import User from "../../../Models/DatabaseModels/User";
@@ -34,6 +40,56 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * pending TOTP row as verified using a code from their own phone — a second
  * factor the victim does not hold. That check is asserted directly, and the
  * assertion that matters is that isVerified is never written.
+ *
+ * THE THIRD CONCERN, AND WHY THIS FILE GREW (issue #3382)
+ *
+ * Completing this endpoint used to leave the account with a second factor and
+ * no way back into it. Backup codes existed, but the only thing in the product
+ * that ever minted a set was a button on the profile page that a user had to
+ * go and find, so in practice every account held zero — and the "use a backup
+ * code" link on the sign-in page was gated on holding some, so it rendered for
+ * nobody. Losing the phone meant losing the account.
+ *
+ * So this route now mints a set for an owner who has none, and the response
+ * carries the plaintext. Four properties of that are asserted below, each of
+ * which fails silently — suite still green, users still locked out — if
+ * nobody pins it:
+ *
+ *   1. THE MINT HAPPENS, AND FOR THE OWNER OF THE ROW. The user id is read off
+ *      the UserTotpAuth record, never off the request; a route that minted for
+ *      whoever asked would hand recovery material for one account to another.
+ *   2. IT IS `generateForUserIfNone`, NEVER `regenerateForUser`. Regeneration
+ *      REPLACES, so running it here would void the ten codes the user printed
+ *      when they enrolled their first authenticator app the moment they added
+ *      a second one — and they would not find out until the day they needed
+ *      them.
+ *   3. AN ACCOUNT THAT ALREADY HAS CODES GETS AN EMPTY ARRAY, never null and
+ *      never a missing key. The page maps over this to decide whether to raise
+ *      the show-once screen.
+ *   4. A MINT FAILURE DOES NOT FAIL THE VALIDATION. `isVerified` is already
+ *      written by the time the mint runs, so an error thrown from here would
+ *      tell the user their authenticator did not work when it did, and send
+ *      them round the enrolment loop against a factor that is already live.
+ *
+ * And the ordering, which is the reason the mint sits where it does: nothing
+ * is minted until the submitted code has verified AND the row has been
+ * updated. Minting earlier would hand a set of recovery codes to a caller who
+ * failed the challenge.
+ *
+ * WHAT IS MOCKED, AND WHAT IS NOT
+ *
+ * `UserTwoFactorBackupCodeService` is spied on at the singleton so nothing
+ * touches Postgres and the plaintext is a fixed string this file can assert
+ * on. `TwoFactorBackupCode` is NOT mocked: the hyphenated display form is the
+ * route's contract with the page that shows the codes, and a stubbed formatter
+ * would make that assertion circular.
+ *
+ * Sibling coverage, so nothing here is duplicated:
+ *  - Common/Tests/Server/Services/UserTwoFactorBackupCodeService.test.ts owns
+ *    what `generateForUserIfNone` does inside — the count check, the writes,
+ *    and the compensating delete.
+ *  - Common/Tests/Server/API/UserTwoFactorBackupCodeAPI.test.ts owns the
+ *    self-service generate/status routes.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -69,6 +125,33 @@ const ATTACKER_ID: ObjectID = new ObjectID(
 
 const OWNER_EMAIL: Email = new Email("owner@example.com");
 
+/*
+ * What the service hands back when it mints. Fixed rather than generated so
+ * the response assertions have exact needles, and ten of them because that is
+ * the real set size — the route maps over whatever it is given, but a route
+ * that dropped or truncated the array would be invisible against a set of one.
+ */
+const PLAINTEXT_CODES: Array<string> = [
+  "2W9XKQ4M7B",
+  "H3TRZ5D8NC",
+  "P6JVG2YK4S",
+  "B8NQ7MXW3T",
+  "F5RD9CZH2K",
+  "T4KY6BVN8P",
+  "M2XS5GQJ7W",
+  "C9HB3NPR6D",
+  "Z7VM4TKG5X",
+  "K3PC8WYS9N",
+];
+
+/*
+ * The shape the page renders as-is: two groups of five joined by the hyphen
+ * that makes a ten character run transcribable off a screen. Written out as a
+ * literal rather than derived from `formatForDisplay`, so a formatter reduced
+ * to the identity function fails here instead of agreeing with itself.
+ */
+const DISPLAY_FORM: RegExp = /^[0-9A-Z]{5}-[0-9A-Z]{5}$/;
+
 type CallValidateResult = {
   thrown: unknown;
   nextCallCount: number;
@@ -76,20 +159,32 @@ type CallValidateResult = {
 
 type CallValidateFunction = (data: {
   body: Record<string, unknown>;
+  params?: Dictionary<string> | undefined;
+  query?: Dictionary<string> | undefined;
   signedInUserId?: ObjectID | undefined;
 }) => Promise<CallValidateResult>;
 
 const callValidate: CallValidateFunction = async (data: {
   body: Record<string, unknown>;
+  params?: Dictionary<string> | undefined;
+  query?: Dictionary<string> | undefined;
   signedInUserId?: ObjectID | undefined;
 }): Promise<CallValidateResult> => {
   const req: OneUptimeRequest = {
     body: data.body,
-    params: {},
-    query: {},
+    params: data.params || {},
+    query: data.query || {},
     headers: {},
     userAuthorization: {
-      userId: data.signedInUserId || OWNER_ID,
+      /*
+       * A DISTINCT ObjectID instance carrying the owner's value, not the
+       * `OWNER_ID` constant itself. The ownership check compares strings, so
+       * this changes nothing about which requests are allowed — but it is what
+       * lets the mint assertions tell "the id was read off the enrolment row"
+       * apart from "the id was read off the request", which are otherwise the
+       * same string and indistinguishable.
+       */
+      userId: data.signedInUserId || new ObjectID(OWNER_ID.toString()),
     },
   } as unknown as OneUptimeRequest;
 
@@ -112,6 +207,31 @@ const callValidate: CallValidateFunction = async (data: {
     thrown: nextMock.mock.calls[0]?.[0],
     nextCallCount: nextMock.mock.calls.length,
   };
+};
+
+type AsMockFunction = (fn: unknown) => jest.Mock;
+
+const asMock: AsMockFunction = (fn: unknown): jest.Mock => {
+  return fn as unknown as jest.Mock;
+};
+
+/** The JSON body the handler answered with, or an empty object if it did not. */
+type SentJsonObjectFunction = () => JSONObject;
+
+const sentJsonObject: SentJsonObjectFunction = (): JSONObject => {
+  const call: Array<unknown> | undefined = asMock(
+    Response.sendJsonObjectResponse,
+  ).mock.calls[0];
+
+  return (call?.[2] as JSONObject) || {};
+};
+
+type MintArgument = { userId: ObjectID; count?: number };
+
+type FirstMintArgumentFunction = () => MintArgument;
+
+const firstMintArgument: FirstMintArgumentFunction = (): MintArgument => {
+  return generateForUserIfNoneSpy.mock.calls[0]![0] as MintArgument;
 };
 
 /*
@@ -153,13 +273,29 @@ const pendingEnrolment: PendingEnrolmentFunction = (options?: {
 let findTotpById: jest.Mock;
 let updateTotpById: jest.Mock;
 let findUserById: jest.Mock;
+let generateForUserIfNoneSpy: jest.SpyInstance;
+let regenerateForUserSpy: jest.SpyInstance;
+let loggerErrorSpy: jest.SpyInstance;
+
+/*
+ * Which side effect ran first. The mint must not overtake the write of
+ * `isVerified`: a set of recovery codes handed out before the factor is
+ * actually recorded is recovery material minted on the strength of a challenge
+ * whose outcome is not yet durable.
+ */
+let sideEffectOrder: Array<string>;
 
 describe("POST /user-totp-auth/validate", () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+
     mockRouter.routes.length = 0;
+
+    sideEffectOrder = [];
 
     findTotpById = jest.fn();
     updateTotpById = jest.fn(async () => {
+      sideEffectOrder.push("verified");
       return undefined;
     });
     findUserById = jest.fn();
@@ -171,6 +307,32 @@ describe("POST /user-totp-auth/validate", () => {
       .mockReturnValue({ tableName: "UserTotpAuth" }) as never;
 
     UserService.findOneById = findUserById as never;
+
+    generateForUserIfNoneSpy = getJestSpyOn(
+      UserTwoFactorBackupCodeService,
+      "generateForUserIfNone",
+    );
+    generateForUserIfNoneSpy.mockImplementation(
+      async (): Promise<Array<string>> => {
+        sideEffectOrder.push("minted");
+        return PLAINTEXT_CODES;
+      },
+    );
+
+    /*
+     * Spied on with no test that expects it: every mint assertion below also
+     * asserts this stayed untouched, and leaving it unstubbed would let a
+     * regression reach the real service and the database behind it.
+     */
+    regenerateForUserSpy = getJestSpyOn(
+      UserTwoFactorBackupCodeService,
+      "regenerateForUser",
+    );
+    regenerateForUserSpy.mockResolvedValue(PLAINTEXT_CODES as never);
+
+    /* Silenced as well as observed — the swallow path logs on purpose. */
+    loggerErrorSpy = getJestSpyOn(logger, "error");
+    loggerErrorSpy.mockImplementation(() => {});
 
     const owner: User = new User();
     owner.id = OWNER_ID;
@@ -227,7 +389,15 @@ describe("POST /user-totp-auth/validate", () => {
         }),
       );
 
-      expect(Response.sendEmptySuccessResponse).toHaveBeenCalled();
+      /*
+       * A JSON body, not the empty success this route used to answer with.
+       * The response is the ONLY copy of the minted codes — only keyed digests
+       * are stored — so a handler that went back to `sendEmptySuccessResponse`
+       * would silently destroy a set the user is now relying on and can never
+       * be shown again.
+       */
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });
 
     /*
@@ -275,6 +445,327 @@ describe("POST /user-totp-auth/validate", () => {
     });
   });
 
+  /*
+   * The heart of the fix for issue #3382. Everything here is about the account
+   * coming out of enrolment with a way back in.
+   */
+  describe("recovery codes for an account that has none", () => {
+    type VerifyEnrolmentFunction = () => Promise<{
+      enrolment: ReturnType<PendingEnrolmentFunction>;
+      result: CallValidateResult;
+    }>;
+
+    const verifyEnrolment: VerifyEnrolmentFunction = async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      const result: CallValidateResult = await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+      });
+
+      return { enrolment: enrolment, result: result };
+    };
+
+    /*
+     * The whole of the reported bug: before this call existed, a user finished
+     * enrolment holding exactly one factor and nothing to fall back on, and
+     * nothing in the product ever offered to change that.
+     */
+    test("mints a set once the factor is verified", async () => {
+      const { result } = await verifyEnrolment();
+
+      expect(result.thrown).toBeUndefined();
+      expect(generateForUserIfNoneSpy).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * `generateForUserIfNone` no-ops for a user who already has codes;
+     * `regenerateForUser` REPLACES them. Enrolling a second authenticator app
+     * is a perfectly ordinary thing to do, and doing it through the
+     * regenerating call would silently void the printed list the user has been
+     * keeping since the first one — with no error, no notification, and no
+     * sign anything happened until the codes are needed.
+     */
+    test("never regenerates, which would void codes the user already printed", async () => {
+      await verifyEnrolment();
+
+      expect(regenerateForUserSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The owner comes off the enrolment ROW. `id` is body-supplied, so a
+     * handler that took the user id from the request as well would mint
+     * somebody's recovery codes into an account they do not own. The
+     * impersonation fields below are the channels a future edit would
+     * plausibly read from.
+     */
+    test("mints for the owner named on the row, not for anything the request supplied", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+          userId: ATTACKER_ID.toString(),
+          _id: ATTACKER_ID.toString(),
+        },
+        params: { userId: ATTACKER_ID.toString() },
+        query: { userId: ATTACKER_ID.toString() },
+      });
+
+      const minted: MintArgument = firstMintArgument();
+
+      expect(minted.userId.toString()).toBe(OWNER_ID.toString());
+      expect(minted.userId.toString()).not.toBe(ATTACKER_ID.toString());
+
+      /*
+       * Identity, not just value. The request carries a DIFFERENT ObjectID
+       * instance holding the same owner id (see `callValidate`), so this is
+       * the assertion that distinguishes reading the row from reading
+       * `userAuthorization` — the two are string-equal on every request that
+       * gets this far, which is exactly what makes the difference invisible
+       * without it.
+       */
+      expect(minted.userId).toBe(enrolment.row.userId);
+    });
+
+    /*
+     * The response is the one and only time these strings exist. If the route
+     * kept them to itself the user would end up with ten codes they have never
+     * seen — which reads to the profile page as "you have recovery codes" and
+     * is worse than having none, because it stops them being offered any.
+     */
+    test("answers with the codes, hyphenated for the screen that shows them", async () => {
+      await verifyEnrolment();
+
+      const payload: JSONObject = sentJsonObject();
+      const codes: Array<string> = payload["backupCodes"] as Array<string>;
+
+      expect(codes).toHaveLength(PLAINTEXT_CODES.length);
+
+      for (const code of codes) {
+        expect(code).toMatch(DISPLAY_FORM);
+      }
+
+      /*
+       * The same codes the service minted, not a fresh set: the hyphen is
+       * cosmetic and `normalizeCode` strips it straight back out, so what the
+       * user types back in has to be what was written to the database.
+       */
+      expect(
+        codes.map((code: string): string => {
+          return TwoFactorBackupCode.normalizeCode(code);
+        }),
+      ).toEqual(PLAINTEXT_CODES);
+    });
+
+    /*
+     * Nothing is minted for a caller whose code was wrong. This is the whole
+     * reason the mint sits after the verification rather than beside it —
+     * otherwise anybody who could reach the route with a stranger's row id
+     * would be handed that account's recovery codes for the price of a wrong
+     * guess.
+     */
+    test("mints nothing when the submitted code is wrong", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      const result: CallValidateResult = await callValidate({
+        body: { id: TOTP_ID.toString(), code: "000000" },
+      });
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
+      expect(regenerateForUserSpy).not.toHaveBeenCalled();
+    });
+
+    test("mints nothing for an enrolment belonging to somebody else", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> = pendingEnrolment({
+        ownerId: OWNER_ID,
+      });
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+        signedInUserId: ATTACKER_ID,
+      });
+
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Ordering, stated as an ordering rather than inferred from two separate
+     * "was called" assertions, which would pass just as happily if the mint
+     * ran first.
+     */
+    test("mints only after isVerified has been written", async () => {
+      await verifyEnrolment();
+
+      expect(sideEffectOrder).toEqual(["verified", "minted"]);
+    });
+
+    /*
+     * A write that never landed is not a verified factor, so there is nothing
+     * to mint recovery codes for yet — and the user will be back to try again.
+     */
+    test("mints nothing when the write of isVerified fails", async () => {
+      const enrolment: ReturnType<PendingEnrolmentFunction> =
+        pendingEnrolment();
+
+      findTotpById.mockResolvedValue(enrolment.row as never);
+
+      updateTotpById.mockRejectedValue(
+        new Error("could not write the row") as never,
+      );
+
+      const result: CallValidateResult = await callValidate({
+        body: {
+          id: TOTP_ID.toString(),
+          code: enrolment.codeFromTheAuthenticatorApp(),
+        },
+      });
+
+      expect(result.thrown).toBeInstanceOf(Error);
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("recovery codes for an account that already has some", () => {
+    type VerifySecondFactorFunction = () => Promise<CallValidateResult>;
+
+    const verifySecondFactor: VerifySecondFactorFunction =
+      async (): Promise<CallValidateResult> => {
+        const enrolment: ReturnType<PendingEnrolmentFunction> =
+          pendingEnrolment();
+
+        findTotpById.mockResolvedValue(enrolment.row as never);
+
+        /* What the service reports when it declined to touch anything. */
+        generateForUserIfNoneSpy.mockResolvedValue(null as never);
+
+        return callValidate({
+          body: {
+            id: TOTP_ID.toString(),
+            code: enrolment.codeFromTheAuthenticatorApp(),
+          },
+        });
+      };
+
+    test("verifies the enrolment and answers successfully", async () => {
+      const result: CallValidateResult = await verifySecondFactor();
+
+      expect(result.thrown).toBeUndefined();
+      expect(updateTotpById).toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * An EMPTY ARRAY, never null and never an absent key. The page decides
+     * whether to raise the show-once screen by looking at this, and it reaches
+     * for `.length` to do it: a null or a missing key is a crash on a screen
+     * the user hits immediately after enrolling, and "no codes were minted" is
+     * the ordinary case here rather than an error.
+     */
+    test("answers with an empty array rather than null or a missing key", async () => {
+      await verifySecondFactor();
+
+      const payload: JSONObject = sentJsonObject();
+
+      expect(Object.keys(payload)).toContain("backupCodes");
+      expect(payload["backupCodes"]).not.toBeNull();
+      expect(Array.isArray(payload["backupCodes"])).toBe(true);
+      expect(payload["backupCodes"]).toEqual([]);
+    });
+
+    test("does not fall back to regenerating a set", async () => {
+      await verifySecondFactor();
+
+      expect(regenerateForUserSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * The factor IS verified by the time the mint runs — the row is written. So
+   * a failure here is a missing convenience, not a failed enrolment, and it
+   * must not be reported as one: throwing would tell the user their
+   * authenticator did not work when it did, and send them back round a loop
+   * that ends with a second live factor on the account.
+   */
+  describe("when minting the recovery codes fails", () => {
+    const mintFailure: Error = new Error("backup code table is unavailable");
+
+    type FailingMintFunction = () => Promise<CallValidateResult>;
+
+    const withFailingMint: FailingMintFunction =
+      async (): Promise<CallValidateResult> => {
+        const enrolment: ReturnType<PendingEnrolmentFunction> =
+          pendingEnrolment();
+
+        findTotpById.mockResolvedValue(enrolment.row as never);
+
+        generateForUserIfNoneSpy.mockRejectedValue(mintFailure as never);
+
+        return callValidate({
+          body: {
+            id: TOTP_ID.toString(),
+            code: enrolment.codeFromTheAuthenticatorApp(),
+          },
+        });
+      };
+
+    test("still answers successfully and does not surface the error", async () => {
+      const result: CallValidateResult = await withFailingMint();
+
+      expect(result.nextCallCount).toBe(0);
+      expect(result.thrown).toBeUndefined();
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    });
+
+    test("leaves the enrolment verified", async () => {
+      await withFailingMint();
+
+      expect(updateTotpById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: TOTP_ID,
+          data: { isVerified: true },
+        }),
+      );
+    });
+
+    test("answers with an empty array so the page has something to render", async () => {
+      await withFailingMint();
+
+      expect(sentJsonObject()["backupCodes"]).toEqual([]);
+    });
+
+    /*
+     * Swallowed, but not in silence. A user who quietly ends up with no
+     * recovery codes is precisely the state issue #3382 was reported for, and
+     * with nothing in the log there is no way to find out it is happening.
+     */
+    test("logs what went wrong", async () => {
+      await withFailingMint();
+
+      expect(loggerErrorSpy).toHaveBeenCalledWith(mintFailure);
+    });
+  });
+
   describe("when the code is wrong", () => {
     test("fails with Invalid code and leaves the enrolment unverified", async () => {
       const enrolment: ReturnType<PendingEnrolmentFunction> =
@@ -309,6 +800,7 @@ describe("POST /user-totp-auth/validate", () => {
 
         expect(result.thrown).toBeInstanceOf(BadDataException);
         expect(updateTotpById).not.toHaveBeenCalled();
+        expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
       },
     );
 
@@ -390,6 +882,7 @@ describe("POST /user-totp-auth/validate", () => {
 
       expect(result.thrown).toBeInstanceOf(BadDataException);
       expect(updateTotpById).not.toHaveBeenCalled();
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
     });
 
     test("fails when the owning user has no email to label the entry with", async () => {
@@ -411,6 +904,7 @@ describe("POST /user-totp-auth/validate", () => {
 
       expect(result.thrown).toBeInstanceOf(BadDataException);
       expect(updateTotpById).not.toHaveBeenCalled();
+      expect(generateForUserIfNoneSpy).not.toHaveBeenCalled();
     });
 
     test("surfaces the failure through next() rather than crashing the request", async () => {

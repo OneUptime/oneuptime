@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Følg instruksjonene på sikkerhetsnøkkelenheten din.",
       "codeFieldDescription": "Skriv inn koden fra autentiseringsappen din",
       "selectDifferentMethod": "Velg en annen tofaktorautentiseringsmetode",
-      "useBackupCode": "Bruk en reservekode i stedet",
       "backupCodeInstruction": "Skriv inn en av reservekodene du lagret da du satte opp tofaktorautentisering. Hver kode fungerer bare én gang.",
       "backupCodeFieldTitle": "Reservekode",
-      "backupCodeFieldDescription": "Reservekoder ser ut som ABCDE-12345. Store og små bokstaver og bindestreken spiller ingen rolle."
+      "backupCodeFieldDescription": "Reservekoder ser ut som ABCDE-12345. Store og små bokstaver og bindestreken spiller ingen rolle.",
+      "confirmSubtitle": "Bekreft at det er deg for å fullføre innloggingen.",
+      "recoverySubtitle": "Bruk en reservekode, eller finn ut hvordan du kommer inn igjen uten en.",
+      "lostAccess": "Mistet tilgangen til autentiseringsappen din?",
+      "noBackupCodesStrong": "Du har ingen reservekoder.",
+      "noBackupCodes": "Det finnes ingen kode du kan skrive inn her, fordi denne kontoen aldri har fått noen.",
+      "noBackupCodesInstruction": "Be en administrator for denne OneUptime-instansen om å tilbakestille tofaktorautentisering på kontoen din. Da kan du logge inn med passordet ditt og sette opp en ny autentiseringsapp, og reservekoder blir opprettet for deg samtidig.",
+      "lostAccessSecurityKey": "Mistet tilgangen til sikkerhetsnøkkelen din?"
     },
     "twoFactorEnrolment": {
       "title": "Konfigurer tofaktorautentisering",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Skriv inn den sekssifrede koden som autentiseringsappen din viser.",
       "submitButton": "Bekreft og logg inn",
       "backToSignIn": "Logg inn som en annen bruker"
+    },
+    "backupCodes": {
+      "title": "Lagre reservekodene dine",
+      "subtitle": "Bruk en av disse for å logge inn hvis du mister tilgangen til autentiseringsappen eller sikkerhetsnøkkelen din.",
+      "showOnceStrong": "Dette er eneste gang disse kodene vises.",
+      "showOnce": "Lagre dem et annet sted enn på enheten som genererer kodene dine. Hver kode kan brukes én gang.",
+      "download": "Last ned som tekstfil",
+      "savedConfirmation": "Jeg har lagret disse kodene et trygt sted.",
+      "continue": "Fortsett til dashbordet",
+      "fileHeading": "Reservekoder for tofaktorautentisering i OneUptime",
+      "fileInstruction": "Hver kode kan brukes én gang. Oppbevar denne filen et trygt sted, atskilt fra enheten som kjører autentiseringsappen din.",
+      "setUpTitle": "Konfigurer reservekoder",
+      "setUpSubtitle": "Én siste ting før du fortsetter.",
+      "noneStrong": "Du har ingen reservekoder.",
+      "none": "Hvis du mister autentiseringsappen eller sikkerhetsnøkkelen din, må en administrator tilbakestille tofaktorautentisering før du kan logge inn igjen.",
+      "generate": "Generer reservekoder",
+      "skip": "Hopp over for nå",
+      "generateFailed": "Ingen reservekoder ble returnert. Prøv igjen fra Brukerprofil > Tofaktorautentisering."
     }
   },
   "register": {
