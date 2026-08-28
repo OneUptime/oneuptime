@@ -142,7 +142,7 @@ Add a second **API Post (JSON)** block, connect `get-token`'s **Success** dot to
   }
   ```
 
-Replace the account GUID with the account these cases belong to. **`customerid` is required on a case** — a create without it is rejected. Because it can point at either an account or a contact, you never write `customerid@odata.bind`; you write `customerid_account@odata.bind` or `customerid_contact@odata.bind`, and those names are case-sensitive.
+Replace the account GUID with the account these cases belong to. **`customerid` is genuinely required on a case** — it is one of the columns Dataverse enforces on any programmatic write, so a create without it is rejected. Because it can point at either an account or a contact, you never write `customerid@odata.bind`; you write `customerid_account@odata.bind` or `customerid_contact@odata.bind`, and those names are case-sensitive. `title` is a different kind of required: Dynamics forms insist on it, the API does not, so send it anyway.
 
 `Prefer: return=representation` is what makes this usable from a workflow. Without it a successful create answers `204 No Content` and puts the new record's URI in an `OData-EntityId` response header, which you would then have to pick a GUID out of. With it, the response is `201 Created` and carries the record itself, so the next block can read:
 
@@ -215,9 +215,11 @@ Build this as a **second** workflow so a failure here cannot stop cases being op
 
      `Status` is a `statuscode` value in the Resolved state — `5` is *Problem Solved*.
 
-**Why not just `PATCH` the case to `statecode: 1`?** Because the Case table is state-model aware. Where an administrator has configured status transitions, Dataverse rejects a state change made through a plain update. And even where it is allowed, it skips the **Case Resolution** activity that Dynamics expects a resolved case to have. `CloseIncident` does both properly. If you do ever `PATCH` `statecode` for some other reason, always set `statuscode` in the same request — otherwise Dynamics silently applies the state's default status.
+     **Test this body against your own environment before you rely on it.** `CloseIncident` takes two parameters, `IncidentResolution` and `Status`, but Microsoft publishes no HTTP example for it — every official sample is C#. The shape above is the conventional translation. If your environment rejects it, try identifying the case with a plain `"incidentid": "<the case id>"` property instead of the `@odata.bind` form, which is how Microsoft's other action examples reference an existing record.
 
-`CloseIncident` comes from Dynamics 365 Customer Service rather than base Dataverse. If it returns `404`, confirm it exists in your environment by fetching `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/$metadata` and searching for `CloseIncident`.
+**Why not just `PATCH` the case to `statecode: 1`?** You can — Microsoft documents a `PATCH` of `statecode` and `statuscode` as the Web API equivalent of the older SetState message, and it is the right tool for moving a case between active statuses. What it does not do is create the **Case Resolution** activity that a resolved case in Dynamics 365 Customer Service is expected to have, and it will be refused outright in an environment where an administrator has configured custom status transitions. Use `CloseIncident` to resolve; use `PATCH` for everything else. And whenever you do write `statecode`, set `statuscode` in the same request — otherwise Dynamics quietly applies that state's default status.
+
+`CloseIncident` comes from Dynamics 365 Customer Service rather than base Dataverse, and it is not listed in the Dataverse action reference. If it returns `404`, confirm it exists in your environment by fetching `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/$metadata` and searching for `CloseIncident`.
 
 For anything short of closing the case — a note, a priority bump, a title change — use an **API Patch (JSON)** block against `{{global.variables.DYNAMICS_URL}}/api/data/v9.2/incidents(<the case id>)` with an `If-Match: *` header, which stops an accidental upsert from creating a new case. Send only the columns you are changing.
 

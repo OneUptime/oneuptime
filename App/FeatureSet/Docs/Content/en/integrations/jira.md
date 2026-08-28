@@ -188,7 +188,7 @@ From the **Yes** branch you first have to find the issue you opened in Step 2. A
 
 The issue id is then `{{local.components.find-issue.returnValues.response-body.issues[0].id}}`, and every endpoint below takes an id just as happily as a key.
 
-Three things about this endpoint are worth knowing. **Post the JQL, do not put it in the URL** — a query string containing `=` inside a value is truncated on its way out of a workflow, and JQL is nothing but `=` signs. **The query must be bounded**: a bare `order by key desc` is rejected with `400`, which is why the `project =` clause is there. And `/rest/api/3/search/jql` is the current endpoint — the older `/rest/api/3/search` has been removed.
+Three things about this endpoint are worth knowing. **Post the JQL, do not put it in the URL** — a query string containing `=` inside a value is truncated on its way out of a workflow, and JQL is nothing but `=` signs. **The query must be bounded**: a bare `order by key desc` is rejected with `400`, which is why the `project =` clause is there. And `/rest/api/3/search/jql` is the current endpoint — the older `/rest/api/3/search` is deprecated and on its way out, so do not reach for it.
 
 **Leaving a comment** is a single **API Post (JSON)** block to `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, with an Atlassian Document Format body just like the description:
 
@@ -283,7 +283,7 @@ Things worth knowing before you rely on this:
 A Jira admin can register a webhook directly under **Settings → System → Advanced → WebHooks**, choosing the events to send and, optionally, a JQL query that narrows which issues fire it. Compared with an automation rule:
 
 - The payload is Jira's own, not yours: `webhookEvent`, `issue_event_type_name`, the full `issue`, and a `changelog` whose `items` array holds the before-and-after of every changed field. For a status change you want the entry where `field` is `status`. Reading that inside a workflow usually means a **Run Custom JavaScript** block.
-- Webhooks **can** be signed. Give the webhook a secret and Jira sends an `X-Hub-Signature` header holding an HMAC of the raw body. OneUptime's Webhook trigger does not verify that for you — compare it yourself in a **Run Custom JavaScript** block if you need it, or stay with automation and a shared-secret header.
+- Webhooks **can** be signed — give the webhook a secret and Jira sends an `X-Hub-Signature` header holding an HMAC of the request body — but a workflow cannot check it. The signature covers the exact bytes Jira sent, and the Webhook trigger hands the workflow a body that has already been parsed into JSON, so there is nothing left to hash. If you want the request authenticated, use an automation rule with a shared-secret header instead.
 - The URL must be HTTPS on a port from Jira's own list, which is *not* the same list the automation action uses — port 80 is not allowed here.
 - Delivery is retried up to five times with a five to fifteen minute backoff, so your workflow must tolerate the same event arriving twice.
 
@@ -336,7 +336,7 @@ Open the failing block in **Runs & Logs** first. Jira returns a JSON body naming
 
 **`404 Not Found`.** Check the base URL and the API version — `/rest/api/3/...` on Cloud, `/rest/api/2/...` on Data Center.
 
-**`429 Too Many Requests`.** Jira is rate limiting. Spread the calls out, or move bulk work to a scheduled workflow.
+**`429 Too Many Requests`.** Jira is rate limiting. The response carries `Retry-After` in seconds and a `RateLimit-Reason` naming which limit you hit. Writes against a single issue are capped tightly — on the order of twenty in two seconds — so a workflow that comments and transitions in quick succession can trip it on one issue alone. Put a **Delay** block between the calls, or move bulk work to a scheduled workflow.
 
 **The transition call returns `400`.** The transition id is not valid from the issue's *current* status. Fetch `/transitions` for that issue and use an id from the response.
 
