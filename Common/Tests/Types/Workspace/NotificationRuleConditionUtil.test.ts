@@ -292,12 +292,38 @@ describe("NotificationRuleConditionUtil.getCheckOnByEventType", () => {
     expect(checkOns).toContain(NotificationRuleConditionCheckOn.MonitorStatus);
   });
 
-  it("returns an empty list for an event type with no check-ons", () => {
-    expect(
+  it("returns on-call-scoped check-ons for the OnCallDutyPolicy event", () => {
+    /*
+     * #3459: this returned [] and the Filter Type dropdown on the on-call
+     * rule editor read "No options", so no on-call rule could be scoped.
+     */
+    const checkOns: Array<NotificationRuleConditionCheckOn> =
       NotificationRuleConditionUtil.getCheckOnByEventType(
         NotificationRuleEventType.OnCallDutyPolicy,
-      ),
-    ).toEqual([]);
+      );
+
+    expect(checkOns).toEqual([
+      NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
+      NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+      NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+    ]);
+    // Incident-only check-ons must not leak into the on-call editor.
+    expect(checkOns).not.toContain(
+      NotificationRuleConditionCheckOn.IncidentTitle,
+    );
+  });
+
+  it("returns a non-empty list for every event type the editor can be opened with", () => {
+    /*
+     * The editor renders one dropdown per event type off this list, so an
+     * event type missing from the switch is a dead form - which is exactly
+     * how #3459 shipped. Enumerating the enum catches the next one.
+     */
+    for (const eventType of Object.values(NotificationRuleEventType)) {
+      expect(
+        NotificationRuleConditionUtil.getCheckOnByEventType(eventType),
+      ).not.toEqual([]);
+    }
   });
 });
 
@@ -343,11 +369,55 @@ describe("NotificationRuleConditionUtil.getConditionTypeByCheckOn", () => {
     ]);
   });
 
-  it("returns an empty list for a check-on with no configured operators", () => {
+  it("offers text operators for the on-call policy name and description", () => {
+    const textOperators: Array<ConditionType> = [
+      ConditionType.EqualTo,
+      ConditionType.NotEqualTo,
+      ConditionType.Contains,
+      ConditionType.NotContains,
+      ConditionType.StartsWith,
+      ConditionType.EndsWith,
+    ];
+
     expect(
       NotificationRuleConditionUtil.getConditionTypeByCheckOn(
         NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
       ),
-    ).toEqual([]);
+    ).toEqual(textOperators);
+    expect(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
+      ),
+    ).toEqual(textOperators);
+  });
+
+  it("offers set operators for on-call policy labels", () => {
+    expect(
+      NotificationRuleConditionUtil.getConditionTypeByCheckOn(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+      ),
+    ).toEqual([
+      ConditionType.ContainsAny,
+      ConditionType.NotContains,
+      ConditionType.ContainsAll,
+    ]);
+  });
+
+  it("returns operators for every check-on any event type offers", () => {
+    /*
+     * A check-on the Filter Type dropdown lists but that has no operators
+     * leaves the Filter Condition dropdown empty, and the rule then fails
+     * validation with "Filter Condition is required" and no way to satisfy
+     * it. Walk both lists together so the pair stays complete.
+     */
+    for (const eventType of Object.values(NotificationRuleEventType)) {
+      for (const checkOn of NotificationRuleConditionUtil.getCheckOnByEventType(
+        eventType,
+      )) {
+        expect(
+          NotificationRuleConditionUtil.getConditionTypeByCheckOn(checkOn),
+        ).not.toEqual([]);
+      }
+    }
   });
 });
