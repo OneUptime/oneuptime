@@ -554,6 +554,7 @@ import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./17896000
 import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
+import { MigrationName1787923136162 } from "./1787923136162-MigrationName";
 import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
 
@@ -1087,6 +1088,7 @@ export default [
   AddAIConversationPageContext1787100000000,
   MigrationName1787142779538,
   MigrationName1787156982416,
+  MigrationName1787923136162,
   AddAIChatMessageFeedback1787200000000,
   AddEpisodeMemberNotifyIndexes1787300000000,
   AddDeviceRoleAndDeclaredLinkParent1787400000000,

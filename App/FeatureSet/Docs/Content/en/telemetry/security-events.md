@@ -127,6 +127,10 @@ The quickest path to that second tier is the **Create Monitor** row action on **
 
 Note what such a monitor counts: **findings, not the events behind them**. A rule with a Group By writes one finding per group per run, so this measures detection *rate*. To require N events before a detection happens at all, use **Match Count Threshold** on the rule itself.
 
+## Threat intelligence
+
+**Security Events → Threat Intel** subscribes STIX/TAXII 2.1 feeds: indicators enrich incoming events with `threat.*` attributes at ingest (filterable by Sigma rules and monitors with no new syntax), and a scheduled matcher joins recent events against active indicators — matches write findings and open deduplicated alerts exactly like detection rules. See the [threat intelligence guide](/docs/telemetry/threat-intelligence).
+
 ## Retention and billing
 
 Security events are metered per GB ingested, like other telemetry, and honor the same retention configuration (project default, per-service override, and a dedicated `securityEvents` retention pillar). Rows are TTL-deleted by ClickHouse when their retention date passes.

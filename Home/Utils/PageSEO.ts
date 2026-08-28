@@ -867,7 +867,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     title:
       "Security Events | SIEM Signals, OCSF & Sigma Detection Rules | OneUptime",
     description:
-      "Send security events from any source to one endpoint. They are normalized to OCSF, stored beside your logs, metrics and traces, matched by Sigma detection rules, and turned into alerts that page your existing on-call rotation. Open source.",
+      "Send security events from any source to one endpoint. They are normalized to OCSF, stored beside your logs, metrics and traces, matched by Sigma detection rules, enriched against your own STIX/TAXII threat-intel feeds, and turned into alerts that page your existing on-call rotation. Open source.",
     canonicalPath: "/product/security-events",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -891,6 +891,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "Group By for one alert per host, user or IP",
         "Deduplicated alerts and optional incidents",
         "Detection findings written back as searchable events",
+        "STIX/TAXII threat-intel feeds with IOC enrichment",
         "Security Events monitors over a sliding window",
         "Observable correlation graph",
         "Google SecOps webhook, connector and UDM forwarding",

@@ -15,6 +15,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
+import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 import GoogleSecOpsClient from "./GoogleSecOpsClient";
 
 const SECOPS_SERVICE_NAME: string = "Google SecOps";
@@ -184,26 +185,36 @@ export default class GoogleSecOpsPoller {
         projectRetentionInDays: serviceMetadata.projectRetentionInDays,
       });
 
-      const rows: Array<JSONObject> = [];
+      const normalizedAlerts: Array<NormalizedSecurityEvent> = [];
 
       for (const alert of alerts) {
         try {
-          const normalized: NormalizedSecurityEvent =
-            GoogleSecOpsAlertNormalizer.normalize(alert);
-
-          rows.push(
-            buildSecurityEventDbRow({
-              normalized,
-              projectId: connection.projectId,
-              serviceMetadata,
-              retentionDays,
-            }),
-          );
+          normalizedAlerts.push(GoogleSecOpsAlertNormalizer.normalize(alert));
         } catch (normalizeError) {
           logger.error("GoogleSecOpsPoller: error normalizing alert");
           logger.error(normalizeError);
         }
       }
+
+      /*
+       * Threat-intel enrichment before row building, same seam as the
+       * HTTP ingest path — polled alerts get the same threat.* stamps.
+       */
+      await ThreatIntelEnricher.enrichNormalizedEvents({
+        projectId: connection.projectId,
+        events: normalizedAlerts,
+      });
+
+      const rows: Array<JSONObject> = normalizedAlerts.map(
+        (normalized: NormalizedSecurityEvent): JSONObject => {
+          return buildSecurityEventDbRow({
+            normalized,
+            projectId: connection.projectId!,
+            serviceMetadata,
+            retentionDays,
+          });
+        },
+      );
 
       if (rows.length > 0) {
         await SecurityEventService.insertJsonRows(rows);

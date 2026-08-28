@@ -534,6 +534,9 @@ import DetectionRuleService, {
 import GoogleSecOpsConnectionService, {
   Service as GoogleSecOpsConnectionServiceType,
 } from "Common/Server/Services/GoogleSecOpsConnectionService";
+import ThreatIntelFeedService, {
+  Service as ThreatIntelFeedServiceType,
+} from "Common/Server/Services/ThreatIntelFeedService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -744,6 +747,9 @@ import LogService, {
 import SecurityEventService, {
   SecurityEventService as SecurityEventServiceType,
 } from "Common/Server/Services/SecurityEventService";
+import ThreatIntelIndicatorService, {
+  ThreatIntelIndicatorService as ThreatIntelIndicatorServiceType,
+} from "Common/Server/Services/ThreatIntelIndicatorService";
 /*
  * Sibling-relative on purpose: the `Common` package specifier resolves
  * through App/node_modules, which may symlink a checkout that predates
@@ -1070,6 +1076,7 @@ import Express, {
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import ChangeEvent from "../../../Common/Models/AnalyticsModels/ChangeEvent";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
@@ -1364,6 +1371,7 @@ import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProces
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
+import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -2934,6 +2942,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<
+        ThreatIntelIndicator,
+        ThreatIntelIndicatorServiceType
+      >(ThreatIntelIndicator, ThreatIntelIndicatorService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<ChangeEvent, ChangeEventServiceType>(
         ChangeEvent,
         ChangeEventService,
@@ -3270,6 +3286,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DetectionRule, DetectionRuleServiceType>(
         DetectionRule,
         DetectionRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ThreatIntelFeed, ThreatIntelFeedServiceType>(
+        ThreatIntelFeed,
+        ThreatIntelFeedService,
       ).getRouter(),
     );
 

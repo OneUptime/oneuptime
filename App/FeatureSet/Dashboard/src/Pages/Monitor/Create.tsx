@@ -63,7 +63,11 @@ import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import { buildDetectionRuleMonitorPrefill } from "../../Utils/SecurityEventsMonitorPrefill";
+import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import {
+  buildDetectionRuleMonitorPrefill,
+  buildThreatIntelFeedMonitorPrefill,
+} from "../../Utils/SecurityEventsMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -581,6 +585,64 @@ const MonitorCreate: FunctionComponent<
     );
   };
 
+  /*
+   * "Create Monitor" deep link from a threat intel feed (Security Events
+   * → Threat Intel): the detection-rule flow's twin, seeded with a step
+   * scoped to the Threat Intel finding rows the matcher writes for that
+   * feed.
+   */
+  const preSeedFromThreatIntelFeedLink: (
+    threatIntelFeedId: string,
+  ) => Promise<void> = async (threatIntelFeedId: string): Promise<void> => {
+    let feedName: string = "";
+
+    try {
+      const feed: ThreatIntelFeed | null = await ModelAPI.getItem({
+        modelType: ThreatIntelFeed,
+        id: new ObjectID(threatIntelFeedId),
+        select: {
+          name: true,
+        },
+      });
+      feedName = feed?.name || "";
+    } catch {
+      // Recoverable: the monitor name just falls back to a generic one.
+    }
+
+    let operationalStatusId: ObjectID | null = null;
+
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      operationalStatusId = operationalStatus?.id || null;
+    } catch {
+      // Recoverable: the user can still pick the default status in the form.
+    }
+
+    setInitialValues(
+      buildThreatIntelFeedMonitorPrefill({
+        feedId: threatIntelFeedId,
+        feedName: feedName || "Threat intel feed",
+        operationalStatusId,
+      }),
+    );
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
@@ -621,6 +683,17 @@ const MonitorCreate: FunctionComponent<
     if (detectionRuleId) {
       setIsLoading(true);
       preSeedFromDetectionRuleLink(detectionRuleId).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const threatIntelFeedId: string | null =
+      Navigation.getQueryStringByName("threatIntelFeedId");
+
+    if (threatIntelFeedId) {
+      setIsLoading(true);
+      preSeedFromThreatIntelFeedLink(threatIntelFeedId).finally(() => {
         setIsLoading(false);
       });
       return;

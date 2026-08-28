@@ -117,6 +117,7 @@ import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
+import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -468,6 +469,7 @@ const AllModelTypes: Array<{
   LogDropFilter,
   DetectionRule,
   GoogleSecOpsConnection,
+  ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,

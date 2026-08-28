@@ -178,6 +178,12 @@ enum Permission {
   EditProjectDetectionRule = "EditProjectDetectionRule",
   ReadProjectDetectionRule = "ReadProjectDetectionRule",
 
+  // Threat Intel Feeds (STIX/TAXII indicator feeds over security events)
+  CreateProjectThreatIntelFeed = "CreateProjectThreatIntelFeed",
+  DeleteProjectThreatIntelFeed = "DeleteProjectThreatIntelFeed",
+  EditProjectThreatIntelFeed = "EditProjectThreatIntelFeed",
+  ReadProjectThreatIntelFeed = "ReadProjectThreatIntelFeed",
+
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
   DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
@@ -7137,6 +7143,48 @@ export class PermissionHelper {
         title: "Read Detection Rule",
         description:
           "This permission can read Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Threat Intel Feed Permissions
+      {
+        permission: Permission.CreateProjectThreatIntelFeed,
+        title: "Create Threat Intel Feed",
+        description:
+          "This permission can create Threat Intel Feeds in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteProjectThreatIntelFeed,
+        title: "Delete Threat Intel Feed",
+        description:
+          "This permission can delete Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditProjectThreatIntelFeed,
+        title: "Edit Threat Intel Feed",
+        description:
+          "This permission can edit Threat Intel Feeds of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadProjectThreatIntelFeed,
+        title: "Read Threat Intel Feed",
+        description:
+          "This permission can read Threat Intel Feeds of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

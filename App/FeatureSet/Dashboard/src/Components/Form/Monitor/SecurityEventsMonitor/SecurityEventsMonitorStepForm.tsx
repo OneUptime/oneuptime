@@ -13,6 +13,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import SecurityEventsMonitorPreview from "../../../Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
+import SecurityEventAttributeUtil from "../../../SecurityEvents/SecurityEventAttributeUtil";
 
 export interface ComponentProps {
   monitorStepSecurityEventsMonitor: MonitorStepSecurityEventsMonitor;
@@ -46,6 +47,32 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(
     showAdvancedOptionsByDefault,
   );
+
+  /*
+   * Attribute-key suggestions for the attributes dictionary — fetched
+   * once when the advanced options are (or open) visible, so the keys the
+   * project's events actually carry (threat.matched, device.hostname, ...)
+   * autocomplete instead of being typed from memory.
+   */
+  const [attributeKeys, setAttributeKeys] = React.useState<Array<string>>([]);
+  const [attributeKeysFetched, setAttributeKeysFetched] =
+    React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (!showAdvancedOptions || attributeKeysFetched) {
+      return;
+    }
+
+    setAttributeKeysFetched(true);
+
+    SecurityEventAttributeUtil.getAttributeKeys()
+      .then((keys: Array<string>) => {
+        setAttributeKeys(keys);
+      })
+      .catch(() => {
+        // Recoverable: the dictionary still accepts hand-typed keys.
+      });
+  }, [showAdvancedOptions, attributeKeysFetched]);
 
   return (
     <div>
@@ -186,7 +213,7 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Filter by Attributes",
-            jsonKeysForDictionary: [],
+            jsonKeysForDictionary: attributeKeys,
             /*
              * Same operator set the Log/Trace monitors expose —
              * StatementGenerator's map branch compiles every wrapper, so

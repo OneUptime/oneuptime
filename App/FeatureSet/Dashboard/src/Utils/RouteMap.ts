@@ -480,6 +480,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
   [PageMap.SECURITY_EVENTS_MONITORS]: "monitors",
   [PageMap.SECURITY_EVENTS_CONNECTIONS]: "connections",
+  [PageMap.SECURITY_EVENTS_THREAT_INTEL]: "threat-intel",
   [PageMap.SECURITY_EVENTS_DOCUMENTATION]: "documentation",
 };
 
@@ -4816,6 +4817,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_THREAT_INTEL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_THREAT_INTEL]
     }`,
   ),
 

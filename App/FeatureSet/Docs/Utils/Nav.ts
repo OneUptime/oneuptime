@@ -684,6 +684,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-events",
       },
       {
+        title: "Threat Intelligence (STIX/TAXII)",
+        url: "/docs/telemetry/threat-intelligence",
+      },
+      {
         title: "Host OpenTelemetry Collector",
         url: "/docs/telemetry/host-otel-collector",
       },

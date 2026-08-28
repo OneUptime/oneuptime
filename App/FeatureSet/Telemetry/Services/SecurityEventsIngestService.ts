@@ -23,6 +23,7 @@ import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityEventFormat from "Common/Types/SecurityEvent/SecurityEventFormat";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
+import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import SecurityEventsQueueService from "./Queue/SecurityEventsQueueService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
@@ -156,6 +157,18 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
         );
         return;
       }
+
+      /*
+       * Threat-intel enrichment BEFORE row building: stamped threat.*
+       * attributes flow into attributes/attributeKeys inside
+       * buildSecurityEventDbRow. One batched, cache-guarded lookup for
+       * the whole batch; a failure inside leaves events unenriched and
+       * never blocks ingest.
+       */
+      await ThreatIntelEnricher.enrichNormalizedEvents({
+        projectId,
+        events: normalizedEvents,
+      });
 
       const serviceName: string = this.getServiceNameFromHeaders(
         req,
