@@ -557,6 +557,7 @@ import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 import { MigrationName1787923136162 } from "./1787923136162-MigrationName";
 import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
+import { AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000 } from "./1790003445000-AddSnmpEnabledToNetworkDeviceDiscoveryScan";
 
 export default [
   InitialMigration,
@@ -1118,4 +1119,5 @@ export default [
   AddNetworkScaleIndexes1789700000000,
   WidenSecurityEventLastErrorColumns1789800000000,
   AddNetworkSiteRollupPolicyAndMaintenance1789900000000,
+  AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000,
 ];

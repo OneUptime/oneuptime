@@ -88,7 +88,7 @@ export interface DiscoveredNetworkDevice {
   pluralName: "Network Device Discovery Scans",
   icon: IconProp.Search,
   tableDescription:
-    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — via SNMP from a probe and report devices found, so they can be imported as Network Devices.",
+    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; scans with Check SNMP on also query each live host over SNMP.",
 })
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
@@ -422,13 +422,82 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  /*
+   * Whether the sweep asks each live host for its SNMP system group, or stops
+   * at the ICMP ping that finds it (OneUptime issue #3445).
+   *
+   * Every scan is a ping sweep first — that is how a live address is told from
+   * an empty one. This column decides only what happens next, so turning it off
+   * does not narrow WHAT is discovered, it narrows what is discovered ABOUT
+   * each host: an ICMP-only scan still lists everything that answered, it just
+   * has no sysName, no vendor OID and no credentials to poll with, and its
+   * hosts import as monitor-backed devices rather than SNMP-polled ones.
+   *
+   * NOT NULL DEFAULT true, and read everywhere through
+   * Common/Utils/NetworkDiscovery/ScanModeUtil rather than directly. Every scan
+   * that existed before this column did was an SNMP scan, so the default is the
+   * only value that leaves them describing the sweep they actually ran — and an
+   * ABSENT value (a probe polling a server too old to select the column) has to
+   * mean the same thing, which is why the read is `!== false`.
+   *
+   * Updatable, exactly as the other sweep-defining columns became when scans
+   * gained an edit form (issue #3444), and listed in that form's SWEEP_COLUMNS
+   * so flipping the method retires the run the way changing the target does.
+   * Leaving the old results in place would have them describing a sweep that
+   * asked a different question of every address.
+   */
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Check SNMP",
+    description:
+      "Whether hosts that answer the ping sweep are then queried over SNMP. Turn it off for an ICMP-only scan, which reports every host that answers ping and asks nothing else of them.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isSnmpEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "SNMP Version",
     description:
-      "SNMP version tried against every host in the subnet (V1, V2c, V3)",
+      "SNMP version tried against every host in the subnet (V1, V2c, V3). Ignored when Check SNMP is off.",
     example: "V2c",
   })
   @Column({
