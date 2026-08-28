@@ -75,6 +75,21 @@ export interface ComponentProps<T extends TelemetrySavedViewModel> {
    * view's filters with nothing selected.
    */
   onSelectionChange?: ((savedViewId: string | null) => void) | undefined;
+  /*
+   * The scope the URL carried ALONGSIDE the view it named, layered over that
+   * view when it is applied.
+   *
+   * The trip back from the Insights tab says "the DV-IMS view, but with the
+   * window and services I ended up on". The URL is the more recent of the
+   * two statements, so it wins over the view's own — while the view still
+   * supplies everything the URL does not carry, and its own identity, so the
+   * user lands back inside the view they started in.
+   *
+   * Only ever applied to a view the URL NAMED: a project default nobody
+   * asked for is applied exactly as saved. Include only the fields the link
+   * actually spelled out — see buildUrlScopeOverrides.
+   */
+  initialStateOverrides?: Partial<TelemetrySavedViewState> | undefined;
   // Read the explorer's current state for Save / Update.
   captureCurrentState: () => TelemetrySavedViewState;
   // Apply a saved view's state back into the explorer.
@@ -110,6 +125,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     applyState,
     hasInitialUrlState,
     initialSavedViewId,
+    initialStateOverrides,
   } = props;
 
   const [savedViews, setSavedViews] = useState<Array<T>>([]);
@@ -215,9 +231,22 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     void fetchSavedViews();
   }, [fetchSavedViews]);
 
-  const applySavedView: (view: T) => void = useCallback(
-    (view: T): void => {
-      applyState((view.query as TelemetrySavedViewState) || {});
+  const applySavedView: (
+    view: T,
+    overrides?: Partial<TelemetrySavedViewState> | undefined,
+  ) => void = useCallback(
+    (
+      view: T,
+      overrides?: Partial<TelemetrySavedViewState> | undefined,
+    ): void => {
+      const state: TelemetrySavedViewState =
+        (view.query as TelemetrySavedViewState) || {};
+
+      /*
+       * Shallow merge: the overrides only ever hold fields the URL actually
+       * spelled out, so a field it said nothing about keeps the view's.
+       */
+      applyState(overrides ? { ...state, ...overrides } : state);
       setSelectedSavedViewId(getViewId(view) || null);
     },
     [applyState],
@@ -272,7 +301,15 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       });
 
     if (resolution.savedView) {
-      applySavedView(resolution.savedView);
+      applySavedView(
+        resolution.savedView,
+        /*
+         * A view the URL named is applied UNDER the scope the same URL
+         * carries; a project default (nobody asked for it) is applied as
+         * saved.
+         */
+        resolution.source === "url" ? initialStateOverrides : undefined,
+      );
       return;
     }
 
@@ -288,6 +325,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     savedViews,
     hasInitialUrlState,
     initialSavedViewId,
+    initialStateOverrides,
     applySavedView,
   ]);
 

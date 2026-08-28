@@ -83,6 +83,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 
 async function postApi(
@@ -248,6 +249,14 @@ interface InitialUrlState {
    * filters with the view deselected.
    */
   savedViewId: string | null;
+  /*
+   * Whether the link actually named a window. `timeRange` above has already
+   * fallen back to this explorer's default when it did not, so it cannot be
+   * used to tell the two apart — and a saved view named in the same link
+   * should keep its own window rather than be moved to a default nobody
+   * asked for.
+   */
+  hasRange: boolean;
 }
 
 const POSITIVE_INT_REGEX: RegExp = /^\d+$/;
@@ -336,13 +345,23 @@ function readInitialUrlState(): InitialUrlState {
       ? Math.max(1, parseInt(pageSizeRaw, 10))
       : DEFAULT_PAGE_SIZE;
 
+  const hasRange: boolean = Boolean(params.get("range"));
+
   const savedViewIdRaw: string | null = params.get("savedView");
   const savedViewId: string | null =
     savedViewIdRaw && savedViewIdRaw.trim().length > 0
       ? savedViewIdRaw.trim()
       : null;
 
-  return { search, filters, timeRange, page, pageSize, savedViewId };
+  return {
+    search,
+    filters,
+    timeRange,
+    page,
+    pageSize,
+    savedViewId,
+    hasRange,
+  };
 }
 
 /*
@@ -419,6 +438,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         page: 1,
         pageSize: DEFAULT_PAGE_SIZE,
         savedViewId: null,
+        hasRange: false,
       };
     }
     return readInitialUrlState();
@@ -431,6 +451,33 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
     initialUrlState.savedViewId,
   );
+
+  /*
+   * The scope this link carried, for layering over a saved view it also
+   * named — the trip back from the Insights tab, which says "this view, but
+   * with the window and filters I ended up on". Undefined when the link
+   * named no scope, so a project default applies exactly as saved.
+   */
+  const initialStateOverrides: Partial<TelemetrySavedViewState> | undefined =
+    useMemo(() => {
+      return buildUrlScopeOverrides({
+        search: initialUrlState.search,
+        filters: initialUrlState.filters.map(
+          (filter: ActiveFilter): [string, string] => {
+            return [filter.facetKey, filter.value];
+          },
+        ),
+        /*
+         * Only when the link actually named a range. `initialUrlState
+         * .timeRange` has already fallen back to the explorer default by
+         * this point, and overriding a named view's own window with that
+         * default would be the opposite of carrying the user's window.
+         */
+        timeRange: initialUrlState.hasRange
+          ? serializeSavedViewTimeRange(initialUrlState.timeRange)
+          : undefined,
+      });
+    }, [initialUrlState]);
 
   const [metrics, setMetrics] = useState<Array<MetricType>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -1451,6 +1498,7 @@ const MetricsViewer: FunctionComponent<Props> = (
             explorerLabel="metrics"
             hasInitialUrlState={hasInitialUrlState}
             initialSavedViewId={initialUrlState.savedViewId}
+            initialStateOverrides={initialStateOverrides}
             onSelectionChange={setSelectedSavedViewId}
             captureCurrentState={captureCurrentState}
             applyState={applySavedViewState}

@@ -638,9 +638,20 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       return serviceById.has(row.resourceId);
     },
   ).length;
+  /*
+   * The denominator for "quiet services" and "N of M services" is the SCOPE,
+   * not the project. Under a scope of five services the project's other
+   * fifteen are not quiet, they are excluded — reporting them as quiet turns
+   * a filter the user applied into an alarm about services they deliberately
+   * filtered out.
+   */
+  const scopedServiceCount: number =
+    scope.serviceIds && scope.serviceIds.length > 0
+      ? scope.serviceIds.length
+      : services.length;
   const quietServices: number = Math.max(
     0,
-    services.length - reportingServices,
+    scopedServiceCount - reportingServices,
   );
   const maxResourceVolume: number = Math.max(
     ...resourceBreakdown.map((row: ResourceLogBreakdown): number => {
@@ -686,8 +697,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           subtext={
             quietServices > 0
               ? "no logs in range"
-              : services.length > 0
-                ? `${reportingServices} of ${services.length} services`
+              : scopedServiceCount > 0
+                ? `${reportingServices} of ${scopedServiceCount} services`
                 : "sending logs"
           }
           icon={quietServices > 0 ? IconProp.Alert : IconProp.CheckCircle}

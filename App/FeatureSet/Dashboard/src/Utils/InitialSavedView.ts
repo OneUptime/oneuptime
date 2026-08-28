@@ -1,3 +1,7 @@
+import TelemetrySavedViewState, {
+  TelemetrySavedViewTimeRange,
+} from "Common/Types/Telemetry/TelemetrySavedViewState";
+
 /*
  * Which saved view — if any — an explorer should apply on first mount.
  *
@@ -118,4 +122,38 @@ export function resolveInitialSavedView<T>(
   }
 
   return { savedView: null, source: "none", isUrlSavedViewMissing: false };
+}
+
+/**
+ * The URL's own scope, shaped as saved-view state, for layering over a view
+ * that the same URL named.
+ *
+ * Only the fields the link actually spelled out survive. That distinction is
+ * the whole point: a link carrying chips but no window is not saying "use
+ * the default window", it is saying nothing about the window — and an
+ * override of `undefined` there would wipe the named view's own.
+ *
+ * Returns undefined when the link described nothing, so the caller passes no
+ * overrides at all rather than an empty object.
+ */
+export function buildUrlScopeOverrides(input: {
+  search?: string | undefined;
+  filters?: Array<[string, string]> | undefined;
+  timeRange?: TelemetrySavedViewTimeRange | undefined;
+}): Partial<TelemetrySavedViewState> | undefined {
+  const overrides: Partial<TelemetrySavedViewState> = {};
+
+  if (typeof input.search === "string" && input.search.length > 0) {
+    overrides.search = input.search;
+  }
+
+  if (Array.isArray(input.filters) && input.filters.length > 0) {
+    overrides.filters = input.filters;
+  }
+
+  if (input.timeRange) {
+    overrides.timeRange = input.timeRange;
+  }
+
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
 }

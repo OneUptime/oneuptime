@@ -509,9 +509,18 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
   const totalMetrics: number = stats.activeMetricNames.size;
   const reportingServices: number = serviceSummaries.length;
+  /*
+   * The denominator for "dormant services" and "N of M services" is the
+   * SCOPE, not the project. Under a scope of five services the project's
+   * other fifteen are not dormant, they are excluded — reporting them as
+   * dormant turns a filter the user applied into an alarm about services
+   * they deliberately filtered out.
+   */
+  const scopedServiceCount: number =
+    selectedServiceIds.length > 0 ? selectedServiceIds.length : services.length;
   const dormantServices: number = Math.max(
     0,
-    services.length - reportingServices,
+    scopedServiceCount - reportingServices,
   );
   const avgPerService: number =
     reportingServices > 0 ? Math.round(totalMetrics / reportingServices) : 0;
@@ -701,8 +710,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           label="Reporting services"
           value={reportingServices}
           subtext={
-            services.length > 0
-              ? `${reportingServices} of ${services.length} services`
+            scopedServiceCount > 0
+              ? `${reportingServices} of ${scopedServiceCount} services`
               : "actively sending data"
           }
           icon={IconProp.CheckCircle}

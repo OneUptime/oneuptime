@@ -213,6 +213,48 @@ describe("the initial saved view no longer clobbers a deep link", () => {
     );
   });
 
+  test.each([
+    ["Traces", "Components/Traces/TracesViewer.tsx"],
+    ["Metrics", "Components/Metrics/MetricsViewer.tsx"],
+  ])(
+    "%s layers the link's own scope over the view the link named",
+    (_signal: string, relative: string) => {
+      /*
+       * Same guarantee the Logs explorer makes, so all three signals behave
+       * identically on the trip back from Insights: the view supplies what
+       * the URL does not carry, the URL wins where it does.
+       */
+      const source: string = readSquashed(relative);
+
+      expect(source).toContain("buildUrlScopeOverrides({");
+      expect(source).toContain("initialStateOverrides={initialStateOverrides}");
+      /*
+       * And only when the link actually named a window — initialUrlState
+       * .timeRange has already fallen back to the explorer default by then.
+       */
+      expect(source).toContain(
+        "timeRange: initialUrlState.hasRange ? serializeSavedViewTimeRange(initialUrlState.timeRange) : undefined,",
+      );
+    },
+  );
+
+  test("the shared control applies overrides only to a view the URL named", () => {
+    /*
+     * A project default is applied exactly as saved: nobody asked for it, so
+     * there is no more-recent statement to layer over it.
+     */
+    const source: string = readSquashed(
+      "Components/Telemetry/TelemetrySavedViewsControl.tsx",
+    );
+
+    expect(source).toContain(
+      'resolution.source === "url" ? initialStateOverrides : undefined,',
+    );
+    expect(source).toContain(
+      "applyState(overrides ? { ...state, ...overrides } : state);",
+    );
+  });
+
   test("the shared saved-views control uses the same resolver", () => {
     const source: string = readSquashed(
       "Components/Telemetry/TelemetrySavedViewsControl.tsx",
@@ -314,6 +356,29 @@ describe("the Insights pages adopt and re-publish the scope", () => {
        * read that as the filter having been lost.
        */
       expect(readSquashed(relative)).toContain("to={viewerRoute}");
+    },
+  );
+
+  test.each([
+    ["Logs", "Components/Logs/LogsDashboard.tsx"],
+    ["Metrics", "Components/Metrics/MetricsDashboard.tsx"],
+  ])(
+    "%s counts quiet services against the scope, not the project",
+    (_signal: string, relative: string) => {
+      /*
+       * Under a scope of five services the project's other fifteen are not
+       * quiet, they are excluded. Counting them turns a filter the user
+       * applied into an alarm about services they deliberately filtered out
+       * — and now that the scope arrives from the Viewer tab on its own,
+       * that miscount would greet people who never touched this page's
+       * picker.
+       */
+      const source: string = readSquashed(relative);
+
+      expect(source).toContain("scopedServiceCount - reportingServices,");
+      expect(source).toContain(
+        "`${reportingServices} of ${scopedServiceCount} services`",
+      );
     },
   );
 

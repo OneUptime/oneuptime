@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import TimeRange from "Common/Types/Time/TimeRange";
 import {
   InitialSavedViewResolution,
+  buildUrlScopeOverrides,
   resolveInitialSavedView,
 } from "../../FeatureSet/Dashboard/src/Utils/InitialSavedView";
 
@@ -210,5 +213,63 @@ describe("resolveInitialSavedView", () => {
     expect(resolve({ savedViews: [TEAM_DEFAULT, other] }).savedView).toBe(
       TEAM_DEFAULT,
     );
+  });
+});
+
+/*
+ * The other half of the trip back from Insights: a link that names a view
+ * AND carries scope means "this view, but with the window and filters I
+ * ended up on". The URL is the more recent of the two statements, so it is
+ * layered over the view — but only where it actually said something.
+ */
+describe("buildUrlScopeOverrides", () => {
+  test("carries the fields the link spelled out", () => {
+    const overrides: Partial<TelemetrySavedViewState> | undefined =
+      buildUrlScopeOverrides({
+        search: "service:api",
+        filters: [["primaryEntityId", "svc-a"]],
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+      });
+
+    expect(overrides).toEqual({
+      search: "service:api",
+      filters: [["primaryEntityId", "svc-a"]],
+      timeRange: { range: TimeRange.PAST_ONE_DAY },
+    });
+  });
+
+  test("omits a field the link said nothing about, rather than blanking it", () => {
+    /*
+     * The distinction that matters. A link carrying chips but no window is
+     * not asking for a default window; including `timeRange: undefined` here
+     * would move the named view off its own.
+     */
+    const overrides: Partial<TelemetrySavedViewState> | undefined =
+      buildUrlScopeOverrides({
+        filters: [["primaryEntityId", "svc-a"]],
+      });
+
+    expect(overrides).toEqual({ filters: [["primaryEntityId", "svc-a"]] });
+    expect(overrides).not.toHaveProperty("timeRange");
+    expect(overrides).not.toHaveProperty("search");
+  });
+
+  test("treats an empty search or filter list as nothing said", () => {
+    expect(
+      buildUrlScopeOverrides({
+        search: "",
+        filters: [],
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+      }),
+    ).toEqual({ timeRange: { range: TimeRange.PAST_ONE_DAY } });
+  });
+
+  test("returns undefined when the link described nothing at all", () => {
+    /*
+     * So the caller passes no overrides, and a view applies exactly as
+     * saved.
+     */
+    expect(buildUrlScopeOverrides({})).toBeUndefined();
+    expect(buildUrlScopeOverrides({ search: "", filters: [] })).toBeUndefined();
   });
 });
