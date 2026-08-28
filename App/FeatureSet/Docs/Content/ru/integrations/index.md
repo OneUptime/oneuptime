@@ -14,13 +14,13 @@ OneUptime подключается к инструментам, которыми
 
 1. Создайте рабочий процесс, начинающийся с **[триггера Webhook](/docs/workflows/triggers#webhook)**. OneUptime выдаст вам уникальный URL.
 2. В другом инструменте настройте webhook или действие уведомления, которое отправляет `POST` на этот URL при наступлении события.
-3. В рабочем процессе прочитайте входящую нагрузку и используйте компонент **Создать инцидент** (или Create Alert), чтобы зафиксировать её.
+3. В рабочем процессе прочитайте входящую нагрузку и используйте компонент **Create Incident** (или Create Alert), чтобы зафиксировать её.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
-> **Tip:** Именно для инструментов оповещения **[монитор Incoming Request](/docs/monitor/incoming-request-monitor)** обычно оказывается лучшим входящим путём. Он даёт вам URL вебхука без построения рабочего процесса, открывает по одному инциденту на каждое оповещение в нагрузке, эскалирует на политику дежурств и закрывает каждый инцидент, когда инструмент сообщает о восстановлении. Берите рабочий процесс, когда нужна логика, которой у OneUptime нет из коробки. Разобранный пример — в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+> **Совет:** Именно для инструментов оповещения **[монитор Incoming Request](/docs/monitor/incoming-request-monitor)** обычно оказывается лучшим входящим путём. Он даёт вам URL вебхука без построения рабочего процесса, открывает по одному инциденту на каждое оповещение в нагрузке, эскалирует на политику дежурств и закрывает каждый инцидент, когда инструмент сообщает о восстановлении. Берите рабочий процесс, когда нужна логика, которой у OneUptime нет из коробки. Разобранный пример — в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
 
 ### Исходящий — OneUptime отправляет данные в другой инструмент
 
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Исходящий (+ входящий) | Создаёт и разрешает события PagerDuty из инцидентов OneUptime.                        |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Исходящий (+ входящий) | Создаёт и закрывает оповещения Opsgenie.                                              |
 | [ServiceNow](/docs/integrations/servicenow)                           | Исходящий (+ входящий) | Открывает инциденты ServiceNow из OneUptime.                                          |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Исходящий (+ входящий) | Открывает и закрывает обращения Dynamics 365 из инцидентов OneUptime.                 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящий               | Преобразует уведомления Alertmanager в инциденты.                                     |
 | [Grafana](/docs/integrations/grafana)                                 | Входящий               | Преобразует оповещения Grafana в инциденты.                                           |
 | [Datadog](/docs/integrations/datadog)                                 | Входящий               | Преобразует оповещения мониторов Datadog в инциденты.                                 |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 Никогда не вставляйте API-ключ или токен прямо в блок. Вместо этого:
 
 1. Перейдите в **Рабочие процессы → Глобальные переменные**.
-2. Создайте переменную — например, `JIRA_AUTH` — и включите **Is Secret**.
-3. Ссылайтесь на неё в любом месте через `{{variable.JIRA_AUTH}}`.
+2. Создайте переменную — например, `JIRA_AUTH` — и включите **Секрет**.
+3. Ссылайтесь на неё в любом месте через `{{global.variables.JIRA_AUTH}}`.
 
 Секретные переменные скрываются в интерфейсе после сохранения и очищаются из журналов запусков. См. [Переменные](/docs/workflows/variables#global-variables).
 
@@ -69,13 +70,14 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Большинству исходящих интеграций требуется заголовок `Authorization` в блоке API. Распространённые схемы:
 
-| Схема                         | Значение заголовка                         | Используется в                 |
-| ----------------------------- | ------------------------------------------ | ------------------------------ |
-| Bearer-токен                  | `Bearer {{variable.TOKEN}}`                | GitHub, многие современные API |
-| Basic auth                    | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow               |
-| Заголовок с API-ключом        | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                       |
-| Токен в теле                  | поле `routing_key` в теле JSON             | PagerDuty Events API           |
-| Заголовок с приватным токеном | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                         |
+| Схема                          | Значение заголовка                                        | Используется в                     |
+| ------------------------------ | --------------------------------------------------------- | ---------------------------------- |
+| Bearer-токен                   | `Bearer {{global.variables.TOKEN}}`                       | GitHub, многие современные API     |
+| Basic auth                     | `Basic {{global.variables.BASE64_USER_PASS}}`             | Jira Cloud, ServiceNow             |
+| Заголовок с API-ключом         | `GenieKey {{global.variables.OPSGENIE_KEY}}`              | Opsgenie                           |
+| Токен в теле                   | поле `routing_key` в теле JSON                            | PagerDuty Events API               |
+| Заголовок с приватным токеном  | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}`        | GitLab                             |
+| OAuth 2.0 client credentials   | `Bearer <token fetched by an earlier API block>`          | Microsoft Dynamics 365 (Dataverse) |
 
 Для Basic auth: закодируйте `username:password` (или `email:api_token`) в base64 **один раз**, затем сохраните результат как секрет. На macOS/Linux:
 
@@ -100,4 +102,4 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [Компоненты](/docs/workflows/components) — компоненты API, Webhook и данных.
 - [Переменные](/docs/workflows/variables) — секреты и передача данных между блоками.
 - [Монитор Incoming Request](/docs/monitor/incoming-request-monitor) — входящий путь для инструментов оповещения без рабочих процессов.
-- [Zabbix](/docs/integrations/zabbix) и [Jira](/docs/integrations/jira) — полные рабочие примеры.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) и [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — полные рабочие примеры.

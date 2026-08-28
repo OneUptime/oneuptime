@@ -14,13 +14,13 @@ Använd detta när ett externt system behöver _skapa eller uppdatera något i O
 
 1. Bygg ett arbetsflöde som börjar med en **[Webhook-utlösare](/docs/workflows/triggers#webhook)**. OneUptime ger dig en unik URL.
 2. Konfigurera en webhook / notifieringsåtgärd i det andra verktyget som POSTar till den URL:en när något händer.
-3. I arbetsflödet läser du den inkommande payload:en och använder en **Skapa incident** (eller Skapa varning)-komponent för att registrera den.
+3. I arbetsflödet läser du den inkommande payloaden och använder en **Create Incident**- (eller Create Alert-) komponent för att registrera den.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
-> **Tip:** Särskilt för larmverktyg är en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** oftast den bättre inkommande vägen. Den ger dig en webhook-URL utan att du bygger ett arbetsflöde, öppnar en incident per larm i payloaden, eskalerar till en jourpolicy och löser varje incident när verktyget rapporterar återställning. Ta till ett arbetsflöde när du behöver logik som OneUptime inte gör inbyggt. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) för ett genomarbetat exempel.
+> **Tips:** Särskilt för larmverktyg är en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** oftast den bättre inkommande vägen. Den ger dig en webhook-URL utan att du bygger ett arbetsflöde, öppnar en incident per larm i payloaden, eskalerar till en jourpolicy och löser varje incident när verktyget rapporterar återställning. Ta till ett arbetsflöde när du behöver logik som OneUptime inte gör inbyggt. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) för ett genomarbetat exempel.
 
 ### Utgående — OneUptime skickar data till ett annat verktyg
 
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Utgående (+ inkommande) | Utlös och lös PagerDuty-händelser från OneUptime-incidenter.                      |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Utgående (+ inkommande) | Skapa och stäng Opsgenie-larm.                                                    |
 | [ServiceNow](/docs/integrations/servicenow)                           | Utgående (+ inkommande) | Öppna ServiceNow-incidenter från OneUptime.                                       |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Utgående (+ inkommande) | Öppna och lös Dynamics 365-ärenden från OneUptime-incidenter.                     |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande              | Konvertera Alertmanager-notifieringar till incidenter.                            |
 | [Grafana](/docs/integrations/grafana)                                 | Inkommande              | Konvertera Grafana-larm till incidenter.                                          |
 | [Datadog](/docs/integrations/datadog)                                 | Inkommande              | Konvertera Datadog-monitorlarm till incidenter.                                   |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 Klistra aldrig in en API-nyckel eller token direkt i ett block. Gör så här i stället:
 
 1. Gå till **Arbetsflöden → Globala variabler**.
-2. Skapa en variabel — till exempel `JIRA_AUTH` — och slå på **Is Secret**.
-3. Referera till den var som helst med `{{variable.JIRA_AUTH}}`.
+2. Skapa en variabel — till exempel `JIRA_AUTH` — och slå på **Hemlighet**.
+3. Referera till den var som helst med `{{global.variables.JIRA_AUTH}}`.
 
 Hemliga variabler döljs i användargränssnittet när du sparar och rensas från körningsloggar. Se [Variabler](/docs/workflows/variables#global-variables).
 
@@ -69,13 +70,14 @@ Hemliga variabler döljs i användargränssnittet när du sparar och rensas frå
 
 De flesta utgående integrationer behöver en `Authorization`-header på API-blocket. Vanliga former:
 
-| Schema               | Header-värde                               | Används av                   |
-| -------------------- | ------------------------------------------ | ---------------------------- |
-| Bearer-token         | `Bearer {{variable.TOKEN}}`                | GitHub, många moderna API:er |
-| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow             |
-| API-nyckelheader     | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                     |
-| Token i body         | fältet `routing_key` i JSON-bodyn          | PagerDuty Events API         |
-| Private token-header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                       |
+| Schema                       | Header-värde                                       | Används av                          |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer-token                 | `Bearer {{global.variables.TOKEN}}`                | GitHub, många moderna API:er        |
+| Basic auth                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API-nyckelheader             | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token i body                 | fältet `routing_key` i JSON-bodyn                  | PagerDuty Events API                |
+| Private token-header         | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 För Basic auth, base64-koda `username:password` (eller `email:api_token`) **en gång**, spara sedan resultatet som hemligheten. På macOS/Linux:
 
@@ -91,7 +93,7 @@ Nästan vilket verktyg som helst passar in i ett av de två mönstren ovan:
 - Om verktyget har ett **REST API**, använd det **utgående** mönstret — anropa det från en **API-komponent**.
 - Om du behöver omforma data mellan de två, lägg till ett **[Custom Code](/docs/workflows/components#custom-code)**-block.
 
-Det täcker den långa svansen — Zendesk, AWS CloudWatch (via SNS), New Relic, Splunk, StatusCake med flera. Receptet är detsamma; bara URL:en och payload:en ändras.
+Det täcker den långa svansen — Zendesk, AWS CloudWatch (via SNS), New Relic, Splunk, StatusCake med flera. Receptet är detsamma; bara URL:en och payloaden ändras.
 
 ## Läs vidare
 
@@ -100,4 +102,4 @@ Det täcker den långa svansen — Zendesk, AWS CloudWatch (via SNS), New Relic,
 - [Komponenter](/docs/workflows/components) — API-, Webhook- och datakomponenterna.
 - [Variabler](/docs/workflows/variables) — hemligheter och att skicka data mellan block.
 - [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den arbetsflödesfria inkommande vägen för larmverktyg.
-- [Zabbix](/docs/integrations/zabbix) och [Jira](/docs/integrations/jira) — fullständiga genomarbetade exempel.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) och [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — fullständiga genomarbetade exempel.

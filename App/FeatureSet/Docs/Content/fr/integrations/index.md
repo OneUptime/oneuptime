@@ -1,8 +1,8 @@
 # Intégrations
 
-OneUptime se connecte aux outils déjà utilisés par votre équipe — Zabbix, Jira, PagerDuty, Slack, et bien d'autres — via **[Workflows](/docs/workflows/index)**, le moteur d'automatisation intégré. Aucun plugin séparé à installer. Vous configurez une intégration sur un canevas glisser-déposer, et elle s'exécute dès que quelque chose se produit.
+OneUptime se connecte aux outils déjà utilisés par votre équipe — Zabbix, Jira, PagerDuty, Slack, et bien d'autres — via **[Workflows](/docs/workflows/index)**, le moteur d'automatisation intégré. Aucun plugin séparé à installer. Vous assemblez une intégration sur un canevas glisser-déposer, et elle s'exécute dès que quelque chose se produit.
 
-Cette page explique les deux schémas utilisés par chaque intégration. Une fois que vous les comprenez, vous pouvez connecter OneUptime à presque n'importe quoi, même des outils qui n'ont pas leur propre page ici.
+Cette page explique les deux schémas utilisés par chaque intégration. Une fois que vous les avez compris, vous pouvez connecter OneUptime à presque n'importe quoi, même à des outils qui n'ont pas leur propre page ici.
 
 ## Les deux schémas
 
@@ -13,14 +13,14 @@ Chaque intégration fait circuler des données dans l'une des deux directions (e
 Utilisez ceci lorsqu'un système externe doit _créer ou mettre à jour quelque chose dans OneUptime_ — généralement ouvrir un incident ou une alerte lorsqu'il détecte un problème.
 
 1. Créez un workflow qui commence par un **[déclencheur Webhook](/docs/workflows/triggers#webhook)**. OneUptime vous donne une URL unique.
-2. Dans l'autre outil, configurez une action webhook / notification qui POSTs vers cette URL lorsque quelque chose se produit.
+2. Dans l'autre outil, configurez une action webhook / notification qui envoie un POST vers cette URL lorsque quelque chose se produit.
 3. Dans le workflow, lisez la charge utile entrante et utilisez un composant **Create Incident** (ou Create Alert) pour l'enregistrer.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
-> **Tip:** Pour les outils d'alerting en particulier, un **[moniteur Incoming Request](/docs/monitor/incoming-request-monitor)** est généralement la meilleure voie entrante. Il vous donne une URL de webhook sans construire de workflow, ouvre un incident par alerte présente dans la charge utile, escalade vers une politique d'astreinte et résout chaque incident lorsque l'outil signale son rétablissement. Passez à un workflow lorsque vous avez besoin d'une logique que OneUptime ne fait pas nativement. Voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) pour un exemple complet.
+> **Astuce :** Pour les outils d'alerting en particulier, un **[moniteur Incoming Request](/docs/monitor/incoming-request-monitor)** est généralement la meilleure voie entrante. Il vous donne une URL de webhook sans construire de workflow, ouvre un incident par alerte présente dans la charge utile, escalade vers une politique d'astreinte et résout chaque incident lorsque l'outil signale son rétablissement. Passez à un workflow lorsque vous avez besoin d'une logique que OneUptime ne fait pas nativement. Voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) pour un exemple complet.
 
 ### Sortant — OneUptime envoie des données vers un autre outil
 
@@ -28,7 +28,7 @@ Utilisez ceci lorsque _quelque chose dans OneUptime doit apparaître dans un aut
 
 1. Créez un workflow qui commence par un **[déclencheur d'événement OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — par exemple **Incident → On Create**.
 2. Ajoutez un **[composant API](/docs/workflows/components#api)** qui appelle l'API REST de l'autre outil avec les détails de l'incident.
-3. Stockez toutes les clés d'API en tant que **[variables globales](/docs/workflows/variables#global-variables)** secrètes pour qu'elles n'apparaissent jamais dans le workflow ni dans ses journaux.
+3. Stockez toutes les clés d'API en tant que **[variables globales](/docs/workflows/variables#global-variables) secrètes** pour qu'elles n'apparaissent jamais dans le workflow ni dans ses journaux.
 
 ```text
 OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Sortant (+ entrant) | Déclencher et résoudre des événements PagerDuty depuis les incidents OneUptime.         |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Sortant (+ entrant) | Créer et fermer des alertes Opsgenie.                                                   |
 | [ServiceNow](/docs/integrations/servicenow)                           | Sortant (+ entrant) | Ouvrir des incidents ServiceNow depuis OneUptime.                                       |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Sortant (+ entrant) | Ouvrir et résoudre des Cases Dynamics 365 depuis les incidents OneUptime.               |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Entrant             | Convertir les notifications Alertmanager en incidents.                                  |
 | [Grafana](/docs/integrations/grafana)                                 | Entrant             | Convertir les alertes Grafana en incidents.                                             |
 | [Datadog](/docs/integrations/datadog)                                 | Entrant             | Convertir les alertes de monitor Datadog en incidents.                                  |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 Ne collez jamais une clé d'API ou un jeton directement dans un bloc. À la place :
 
 1. Allez dans **Flux de travail → Variables globales**.
-2. Créez une variable — par exemple `JIRA_AUTH` — et activez **Is Secret**.
-3. Référencez-la partout avec `{{variable.JIRA_AUTH}}`.
+2. Créez une variable — par exemple `JIRA_AUTH` — et activez **Secret**.
+3. Référencez-la partout avec `{{global.variables.JIRA_AUTH}}`.
 
 Les variables secrètes sont masquées dans l'interface après l'enregistrement et supprimées des journaux d'exécution. Voir [Variables](/docs/workflows/variables#global-variables).
 
@@ -69,13 +70,14 @@ Les variables secrètes sont masquées dans l'interface après l'enregistrement 
 
 La plupart des intégrations sortantes nécessitent un en-tête `Authorization` sur le bloc API. Les formes courantes :
 
-| Schéma                 | Valeur de l'en-tête                        | Utilisé par                     |
-| ---------------------- | ------------------------------------------ | ------------------------------- |
-| Bearer token           | `Bearer {{variable.TOKEN}}`                | GitHub, nombreuses API modernes |
-| Basic auth             | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow                |
-| En-tête de clé API     | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                        |
-| Token dans le corps    | champ `routing_key` dans le corps JSON     | PagerDuty Events API            |
-| En-tête de token privé | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                          |
+| Schéma                       | Valeur de l'en-tête                                | Utilisé par                        |
+| --------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer token                | `Bearer {{global.variables.TOKEN}}`                | GitHub, nombreuses API modernes     |
+| Basic auth                  | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| En-tête de clé API          | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token dans le corps         | champ `routing_key` dans le corps JSON             | PagerDuty Events API                |
+| En-tête de token privé      | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 Pour Basic auth, encodez en base64 `username:password` (ou `email:api_token`) **une seule fois**, puis stockez le résultat en tant que secret. Sur macOS/Linux :
 
@@ -100,4 +102,4 @@ Cela couvre la longue traîne — Zendesk, AWS CloudWatch (via SNS), New Relic, 
 - [Composants](/docs/workflows/components) — les composants API, Webhook et de données.
 - [Variables](/docs/workflows/variables) — les secrets et la transmission de données entre blocs.
 - [Moniteur Incoming Request](/docs/monitor/incoming-request-monitor) — la voie entrante sans workflow pour les outils d'alerting.
-- [Zabbix](/docs/integrations/zabbix) et [Jira](/docs/integrations/jira) — des exemples complets et concrets.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) et [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — des exemples complets et concrets.

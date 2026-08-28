@@ -14,7 +14,7 @@ OneUptime उन टूल्स से जुड़ता है जो आप�
 
 1. एक वर्कफ़्लो बनाएँ जो **[Webhook trigger](/docs/workflows/triggers#webhook)** से शुरू हो। OneUptime आपको एक यूनिक URL देता है।
 2. दूसरे टूल में, एक webhook / notification action कॉन्फ़िगर करें जो कुछ होने पर उस URL पर POST करे।
-3. वर्कफ़्लो में, आने वाला payload पढ़ें और इसे रिकॉर्ड करने के लिए **घटना बनाएं** (या Create Alert) कंपोनेंट का उपयोग करें।
+3. वर्कफ़्लो में, आने वाला payload पढ़ें और इसे रिकॉर्ड करने के लिए **Create Incident** (या Create Alert) कंपोनेंट का उपयोग करें।
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -26,9 +26,9 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 इसे तब इस्तेमाल करें जब _OneUptime में जो होता है वह किसी अन्य टूल में दिखना चाहिए_ — Jira टिकट खोलना, PagerDuty में किसी को पेज करना, Slack पर पोस्ट करना।
 
-1. एक वर्कफ़्लो बनाएँ जो **[OneUptime event trigger](/docs/workflows/triggers#oneuptime-event-triggers)** से शुरू हो — उदाहरण के लिए **घटना → On Create**।
+1. एक वर्कफ़्लो बनाएँ जो **[OneUptime event trigger](/docs/workflows/triggers#oneuptime-event-triggers)** से शुरू हो — उदाहरण के लिए **Incident → On Create**।
 2. एक **[API component](/docs/workflows/components#api)** जोड़ें जो incident के विवरण के साथ दूसरे टूल के REST API को कॉल करे।
-3. कोई भी API key को **secret [global variables](/docs/workflows/variables#global-variables)** के रूप में स्टोर करें ताकि वे वर्कफ़्लो या उसके लॉग में कभी न दिखें।
+3. कोई भी API key **secret [global variables](/docs/workflows/variables#global-variables)** के रूप में स्टोर करें ताकि वे वर्कफ़्लो या उसके लॉग में कभी न दिखें।
 
 ```text
 OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | आउटबाउंड (+ इनबाउंड) | OneUptime incidents से PagerDuty events trigger और resolve करें।                          |
 | [Opsgenie](/docs/integrations/opsgenie)                               | आउटबाउंड (+ इनबाउंड) | Opsgenie alerts बनाएँ और बंद करें।                                                        |
 | [ServiceNow](/docs/integrations/servicenow)                           | आउटबाउंड (+ इनबाउंड) | OneUptime से ServiceNow incidents खोलें।                                                  |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | आउटबाउंड (+ इनबाउंड) | OneUptime incidents से Dynamics 365 Cases खोलें और resolve करें।                          |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | इनबाउंड              | Alertmanager notifications को incidents में बदलें।                                        |
 | [Grafana](/docs/integrations/grafana)                                 | इनबाउंड              | Grafana alerts को incidents में बदलें।                                                    |
 | [Datadog](/docs/integrations/datadog)                                 | इनबाउंड              | Datadog monitor alerts को incidents में बदलें।                                            |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 कभी भी किसी ब्लॉक में सीधे API key या token पेस्ट न करें। इसके बजाय:
 
 1. **वर्कफ़्लो → ग्लोबल वेरिएबल** पर जाएँ।
-2. एक variable बनाएँ — उदाहरण के लिए `JIRA_AUTH` — और **Is Secret** चालू करें।
-3. इसे कहीं भी `{{variable.JIRA_AUTH}}` से संदर्भित करें।
+2. एक variable बनाएँ — उदाहरण के लिए `JIRA_AUTH` — और **Secret** चालू करें।
+3. इसे कहीं भी `{{global.variables.JIRA_AUTH}}` से संदर्भित करें।
 
 Secret variables सहेजने के बाद UI में छिपे रहते हैं और run logs से हटा दिए जाते हैं। [वेरिएबल](/docs/workflows/variables#global-variables) देखें।
 
@@ -69,13 +70,14 @@ Secret variables सहेजने के बाद UI में छिपे �
 
 अधिकांश आउटबाउंड इंटीग्रेशन को API block पर एक `Authorization` हेडर की ज़रूरत होती है। सामान्य फ़ॉर्म:
 
-| स्कीम                | हेडर मान                                   | इस्तेमाल करने वाले     |
-| -------------------- | ------------------------------------------ | ---------------------- |
-| Bearer token         | `Bearer {{variable.TOKEN}}`                | GitHub, कई आधुनिक APIs |
-| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow       |
-| API key header       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie               |
-| Token in body        | JSON body में `routing_key` फ़ील्ड         | PagerDuty Events API   |
-| Private token header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                 |
+| स्कीम                        | हेडर मान                                           | इस्तेमाल करने वाले                  |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer token                 | `Bearer {{global.variables.TOKEN}}`                | GitHub, कई आधुनिक APIs              |
+| Basic auth                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API key header               | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token in body                | JSON body में `routing_key` फ़ील्ड                 | PagerDuty Events API                |
+| Private token header         | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 Basic auth के लिए, `username:password` (या `email:api_token`) को **एक बार** base64-encode करें, फिर परिणाम को secret के रूप में स्टोर करें। macOS/Linux पर:
 
@@ -100,4 +102,4 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [कंपोनेंट](/docs/workflows/components) — API, Webhook, और data components।
 - [वेरिएबल](/docs/workflows/variables) — सीक्रेट और ब्लॉक्स के बीच डेटा पास करना।
 - [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) — alerting टूल्स के लिए वर्कफ़्लो-रहित inbound रास्ता।
-- [Zabbix](/docs/integrations/zabbix) और [Jira](/docs/integrations/jira) — पूरे काम के उदाहरण।
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) और [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — पूरे काम के उदाहरण।
