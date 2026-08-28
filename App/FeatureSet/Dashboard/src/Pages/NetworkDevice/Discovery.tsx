@@ -382,7 +382,9 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
         return {
           ...field,
           showIf: (item: FormValues<SnmpConfigModelFields>): boolean => {
-            if (isIcmpOnlyScan(item as FormValues<NetworkDeviceDiscoveryScan>)) {
+            if (
+              isIcmpOnlyScan(item as FormValues<NetworkDeviceDiscoveryScan>)
+            ) {
               return false;
             }
 

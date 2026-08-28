@@ -1500,7 +1500,13 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
     expect(sectionDescription).toContain(
       "Every scan pings each address in the range to find what is alive",
     );
-    expect(sectionDescription).toContain("name, model and vendor");
+    /*
+     * Name and vendor, NOT model: the sweep reads the SNMP system group
+     * (sysName / sysDescr / sysObjectId), and a device's model arrives later
+     * from the ENTITY-MIB poll. Promising it here would have the wizard
+     * describe something the scan does not do.
+     */
+    expect(sectionDescription).toContain("name and vendor");
   });
 
   /*
@@ -1554,7 +1560,12 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
 
     expect(description).toContain("ICMP-only");
     expect(description).toContain("no credentials are asked for");
-    expect(description).toContain("Ping or IP monitor");
+    /*
+     * Points at the dialog's own "Create a Ping monitor" option rather than at
+     * hand-binding, because every host an ICMP-only scan finds is a host
+     * without SNMP — which is exactly the set that option covers.
+     */
+    expect(description).toContain("Ping monitor");
   });
 
   test("the SNMP step is removed for a scan that will send no SNMP", async () => {
