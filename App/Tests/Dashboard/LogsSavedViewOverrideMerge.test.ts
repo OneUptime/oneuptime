@@ -266,7 +266,7 @@ describe("what the strip must not touch", () => {
     });
 
     expect(stripped["primaryEntityId"]).toBeDefined();
-    expect((stripped["primaryEntityId"] as Includes<string>).values).toEqual([
+    expect((stripped["primaryEntityId"] as Includes).values).toEqual([
       SERVICE_B,
     ]);
   });

@@ -61,7 +61,11 @@ function devicesList(): string {
   return readCode("Pages", "NetworkDevice", "Devices.tsx");
 }
 
-function sliceBetween(data: { code: string; from: string; to: string }): string {
+function sliceBetween(data: {
+  code: string;
+  from: string;
+  to: string;
+}): string {
   const start: number = data.code.indexOf(data.from);
   const end: number = data.code.indexOf(data.to, start + 1);
 
@@ -235,12 +239,7 @@ describe("the device's own pages stop contradicting its status", () => {
 
   test("both pages that render the card pass the method through", () => {
     for (const page of ["Index.tsx", "Monitors.tsx"]) {
-      const source: string = readCode(
-        "Pages",
-        "NetworkDevice",
-        "View",
-        page,
-      );
+      const source: string = readCode("Pages", "NetworkDevice", "View", page);
 
       expect(source).toContain("getDeviceMonitorContext");
       expect(source).toContain("isMonitorBacked={isMonitorBacked}");
