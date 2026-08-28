@@ -426,3 +426,539 @@ describe("the scans table and the review dialog count the same hosts", () => {
     );
   });
 });
+
+/*
+ * An ICMP-only scan (issue #3445).
+ *
+ * A discovery scan used to be an SNMP scan, full stop, and every string on this
+ * screen was written for that: "12 of 254 hosts" sits under a column about SNMP
+ * responders, and "+N alive without SNMP" beneath it names the shortfall
+ * between what answered ping and what answered SNMP.
+ *
+ * Neither reads correctly on a sweep that never sent an SNMP packet, and both
+ * are wrong in the direction that makes an operator distrust the result: the
+ * headline number looks like an SNMP tally it is not, and the shortfall line
+ * describes a failure that did not happen. So the summary says what the hosts
+ * actually answered, and the shortfall line is suppressed.
+ *
+ * The mode is read through ScanModeUtil, which means a scan row with NO mode
+ * column is an SNMP scan — every scan created before this change is exactly
+ * that, and every one of the assertions below about "the wording is unchanged"
+ * is the assertion that those rows still render as they always did.
+ */
+
+function icmpOnlyScan(
+  overrides?: Partial<NetworkDeviceDiscoveryScan>,
+): NetworkDeviceDiscoveryScan {
+  return makeScan({ isSnmpEnabled: false, ...overrides });
+}
+
+function snmpScan(
+  overrides?: Partial<NetworkDeviceDiscoveryScan>,
+): NetworkDeviceDiscoveryScan {
+  return makeScan({ isSnmpEnabled: true, ...overrides });
+}
+
+/** A scan row from before the column existed: the key is simply not there. */
+function legacyScan(
+  overrides?: Partial<NetworkDeviceDiscoveryScan>,
+): NetworkDeviceDiscoveryScan {
+  const scan: NetworkDeviceDiscoveryScan = makeScan(overrides);
+
+  delete (scan as { isSnmpEnabled?: boolean }).isSnmpEnabled;
+
+  return scan;
+}
+
+describe("summarizeDiscoveryScan — what the responder number counted", () => {
+  test("an ICMP-only scan says the hosts answered ping", () => {
+    expect(
+      summarizeDiscoveryScan(
+        icmpOnlyScan({ respondedHostCount: 12, scannedHostCount: 254 }),
+      ).respondedHostSummary,
+    ).toBe("12 of 254 hosts answered ping");
+  });
+
+  test("an SNMP scan's summary is word for word the one it has always had", () => {
+    /*
+     * The regression guard on the other side of the branch. This exact string
+     * is asserted at the top of this file too, on a scan with no mode at all;
+     * here it is asserted for a scan that explicitly enables SNMP, so neither
+     * writer of the column can change the wording of the case that was already
+     * shipping.
+     */
+    expect(
+      summarizeDiscoveryScan(
+        snmpScan({ respondedHostCount: 12, scannedHostCount: 254 }),
+      ).respondedHostSummary,
+    ).toBe("12 of 254 hosts");
+  });
+
+  test("a scan with no mode recorded reads as an SNMP scan", () => {
+    /*
+     * THE invariant. Every scan in every project predates this column, and the
+     * rows are read back with the key absent until they are re-fetched from a
+     * migrated database — and a `select` that omits the column produces the
+     * same shape forever. If absence ever read as "ICMP only", every historical
+     * scan in the product would silently relabel its own results and drop its
+     * "+N alive without SNMP" line.
+     */
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      legacyScan({ respondedHostCount: 12 }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("12 of 254 hosts");
+    expect(outcome.isIcmpOnly).toBe(false);
+  });
+
+  test("a null in the column reads as an SNMP scan too", () => {
+    // Only an explicit `false` is an off switch — see ScanModeUtil.
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      makeScan({ isSnmpEnabled: null, respondedHostCount: 12 } as never),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("12 of 254 hosts");
+    expect(outcome.isIcmpOnly).toBe(false);
+  });
+
+  test("the ICMP wording is the SNMP wording plus what it answered", () => {
+    /*
+     * A property rather than a second literal: the two summaries must stay the
+     * same sentence about the same two numbers, so a future reword of one
+     * cannot quietly turn them into two unrelated phrasings that an operator
+     * comparing two rows in the same table has to reconcile.
+     */
+    for (const counts of [
+      { respondedHostCount: 0, scannedHostCount: 254 },
+      { respondedHostCount: 1, scannedHostCount: 1 },
+      { respondedHostCount: 2866, scannedHostCount: 5756 },
+    ]) {
+      expect(
+        summarizeDiscoveryScan(icmpOnlyScan(counts)).respondedHostSummary,
+      ).toBe(
+        `${
+          summarizeDiscoveryScan(snmpScan(counts)).respondedHostSummary
+        } answered ping`,
+      );
+    }
+  });
+
+  test("zero answers on an ICMP-only scan is still a finding, rendered as one", () => {
+    /*
+     * The same rule the SNMP branch has: a zero is a result, not the absence of
+     * one. On an ICMP-only sweep it is a particularly loaded result — nothing
+     * answered ping at all — so it must reach the cell rather than being
+     * flattened to an em-dash.
+     */
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      icmpOnlyScan({ respondedHostCount: 0 }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("0 of 254 hosts answered ping");
+    expect(outcome.hasReported).toBe(true);
+  });
+
+  test("an unknown sweep size stays unknown on an ICMP-only scan", () => {
+    expect(
+      summarizeDiscoveryScan(
+        icmpOnlyScan({
+          respondedHostCount: 3,
+          scannedHostCount: undefined,
+        } as never),
+      ).respondedHostSummary,
+    ).toBe("3 of ? hosts answered ping");
+  });
+
+  test("a NULL sweep size is unknown too, in both modes", () => {
+    /*
+     * null and undefined arrive here from different writers and only the
+     * second was covered. undefined is a scan the probe has not reported on
+     * (and a `select` that omits the column); null is what the database hands
+     * back for a column that was written empty. The summary reads them through
+     * one `?? "?"`, so narrowing that to `=== undefined ? "?" : ...` would put
+     * the literal "null" in front of an operator — "3 of null hosts answered
+     * ping" — with nothing to fail.
+     */
+    expect(
+      summarizeDiscoveryScan(
+        icmpOnlyScan({
+          respondedHostCount: 3,
+          scannedHostCount: null,
+        } as never),
+      ).respondedHostSummary,
+    ).toBe("3 of ? hosts answered ping");
+
+    expect(
+      summarizeDiscoveryScan(
+        snmpScan({ respondedHostCount: 3, scannedHostCount: null } as never),
+      ).respondedHostSummary,
+    ).toBe("3 of ? hosts");
+  });
+
+  test("a responder count that is not a number is still rendered in this mode's sentence", () => {
+    /*
+     * respondedHostCount is interpolated straight into the summary, and the
+     * probe writes it over HTTP: a string is what an older probe, a hand-made
+     * API call or a JSON body with a quoted number produces. The value is
+     * declared `number` and is not parsed, so what matters is that the mode
+     * branch is chosen BEFORE the value is read — an ICMP-only row must not
+     * fall through to the SNMP sentence because its count looked odd — and
+     * that summarizing the row does not take the scans table down with it.
+     */
+    expect(
+      summarizeDiscoveryScan(
+        icmpOnlyScan({ respondedHostCount: "12" } as never),
+      ).respondedHostSummary,
+    ).toBe("12 of 254 hosts answered ping");
+
+    expect(
+      summarizeDiscoveryScan(snmpScan({ respondedHostCount: "12" } as never))
+        .respondedHostSummary,
+    ).toBe("12 of 254 hosts");
+
+    for (const junk of ["", "many", 0, -1, {}, []]) {
+      const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+        icmpOnlyScan({ respondedHostCount: junk } as never),
+      );
+
+      expect(outcome.hasReported).toBe(true);
+      expect(outcome.respondedHostSummary).toContain("answered ping");
+      expect(outcome.respondedHostSummary).toContain("of 254 hosts");
+
+      /*
+       * And a value the cell cannot read is still not printed as "NaN of 254
+       * hosts", which is what "tidying" the interpolation with Number() would
+       * produce: an odd row would then read as a broken page rather than as a
+       * row holding something odd.
+       */
+      expect(outcome.respondedHostSummary).not.toContain("NaN");
+    }
+  });
+});
+
+describe("summarizeDiscoveryScan — the scan reports which sweep it was", () => {
+  test.each([
+    ["an ICMP-only scan", icmpOnlyScan(), true],
+    ["an SNMP scan", snmpScan(), false],
+    ["a scan with no mode recorded", legacyScan(), false],
+  ])(
+    "%s reports isIcmpOnly",
+    (_label: string, scan: NetworkDeviceDiscoveryScan, isIcmpOnly: boolean) => {
+      expect(summarizeDiscoveryScan(scan).isIcmpOnly).toBe(isIcmpOnly);
+    },
+  );
+
+  test("a missing scan is not an ICMP-only scan", () => {
+    /*
+     * summarizeDiscoveryScan is called on every render of a list row, including
+     * the renders where there is no row yet. "No scan" must not be reported as
+     * a kind of scan, and least of all as the kind whose copy suppresses the
+     * ping-only line.
+     */
+    expect(summarizeDiscoveryScan(null).isIcmpOnly).toBe(false);
+    expect(summarizeDiscoveryScan(undefined).isIcmpOnly).toBe(false);
+  });
+
+  test("a junk value in the mode column does not switch SNMP off", () => {
+    // `!== false`, not `Boolean(...)`: an ambiguous value keeps the old sweep.
+    for (const value of [0, "", "false", "off", 1, {}]) {
+      const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+        makeScan({ isSnmpEnabled: value, respondedHostCount: 12 } as never),
+      );
+
+      expect(outcome.isIcmpOnly).toBe(false);
+      expect(outcome.respondedHostSummary).toBe("12 of 254 hosts");
+    }
+  });
+});
+
+describe("summarizeDiscoveryScan — no ping-only shortfall on a scan that only pinged", () => {
+  /*
+   * Every host an ICMP-only sweep finds carries snmpReachable false, because
+   * that is literally what the probe writes for a host it never asked about
+   * SNMP — and respondedHostCount on those rows counts exactly the same hosts.
+   *
+   * So the "+N alive without SNMP" line beneath the headline would print the
+   * headline's own number back a second time, framed as a shortfall: "12 of 254
+   * hosts answered ping / +12 alive without SNMP". It reads as though twelve
+   * further hosts were found and lost to a credential failure, on a scan that
+   * carried no credentials.
+   */
+  test("a sweep where every host is ping-only reports no ping-only shortfall", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      icmpOnlyScan({
+        respondedHostCount: 3,
+        discoveredDevices: [
+          host({ ipAddress: "10.244.102.11", snmpReachable: false }),
+          host({ ipAddress: "10.244.102.12", snmpReachable: false }),
+          host({ ipAddress: "10.244.102.13", snmpReachable: false }),
+        ],
+      }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("3 of 254 hosts answered ping");
+    expect(outcome.pingOnlyHostCount).toBe(0);
+  });
+
+  test("the raw counter still counts those hosts — the suppression is the summary's", () => {
+    /*
+     * Worth separating: countPingOnlyHosts is shared with the review dialog's
+     * "No SNMP (N)" badge and has not changed its rule. What changed is that
+     * the SUMMARY declines to show that number for a scan where it says nothing
+     * new. A future edit that "fixed" this by teaching the counter about the
+     * scan mode would move the number off the dialog's badge as well.
+     */
+    const scan: NetworkDeviceDiscoveryScan = icmpOnlyScan({
+      discoveredDevices: [
+        host({ ipAddress: "10.244.102.11", snmpReachable: false }),
+        host({ ipAddress: "10.244.102.12", snmpReachable: false }),
+      ],
+    });
+
+    expect(countPingOnlyHosts(scan)).toBe(2);
+    expect(summarizeDiscoveryScan(scan).pingOnlyHostCount).toBe(0);
+  });
+
+  test("the shortfall is suppressed however many hosts the sweep found", () => {
+    for (const count of [0, 1, 2, 254]) {
+      const hosts: Array<DiscoveredNetworkDevice> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        hosts.push(
+          host({ ipAddress: `10.244.102.${index}`, snmpReachable: false }),
+        );
+      }
+
+      expect(
+        summarizeDiscoveryScan(
+          icmpOnlyScan({
+            respondedHostCount: count,
+            discoveredDevices: hosts,
+          }),
+        ).pingOnlyHostCount,
+      ).toBe(0);
+    }
+  });
+
+  test("an SNMP scan still surfaces its ping-only hosts, unchanged", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      snmpScan({
+        respondedHostCount: 0,
+        discoveredDevices: [
+          host({ ipAddress: "10.244.102.11", snmpReachable: false }),
+          host({ ipAddress: "10.244.102.12", snmpReachable: false }),
+          host({ ipAddress: "10.244.102.13", snmpReachable: true }),
+        ],
+      }),
+    );
+
+    expect(outcome.pingOnlyHostCount).toBe(2);
+  });
+
+  test("a scan with no mode recorded still surfaces its ping-only hosts", () => {
+    /*
+     * The historical rows again, from the other direction: suppressing the line
+     * for them would remove the very signal this cell was built to add in
+     * #3287 — the two hosts that ARE alive behind a zero responder count.
+     */
+    expect(
+      summarizeDiscoveryScan(
+        legacyScan({
+          respondedHostCount: 0,
+          discoveredDevices: [
+            host({ ipAddress: "10.244.102.11", snmpReachable: false }),
+            host({ ipAddress: "10.244.102.12", snmpReachable: false }),
+          ],
+        }),
+      ).pingOnlyHostCount,
+    ).toBe(2);
+  });
+});
+
+describe("summarizeDiscoveryScan — an ICMP-only scan that has not reported", () => {
+  test("a queued ICMP-only scan has no summary and has not reported", () => {
+    /*
+     * The branch on the mode must not reach past the hasReported guard: a scan
+     * with no counts renders no summary at all, and "0 of ? hosts answered
+     * ping" would be a claim about a sweep that has not run.
+     */
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      icmpOnlyScan({
+        status: "Pending",
+        respondedHostCount: undefined,
+        scannedHostCount: undefined,
+      } as never),
+    );
+
+    expect(outcome.respondedHostSummary).toBeNull();
+    expect(outcome.hasReported).toBe(false);
+    expect(outcome.isIcmpOnly).toBe(true);
+  });
+
+  test("a null count on an ICMP-only scan is not a report either", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      icmpOnlyScan({ respondedHostCount: null } as never),
+    );
+
+    expect(outcome.respondedHostSummary).toBeNull();
+    expect(outcome.hasReported).toBe(false);
+  });
+
+  test("an unreported ICMP-only scan still carries its explanation", () => {
+    /*
+     * The #3287 case, on the new kind of scan: no counts, but the one thing the
+     * operator can act on. An ICMP-only sweep has its own way of never running
+     * — the probe cannot send ICMP echo requests at all — and that reason
+     * arrives here as the statusMessage on a row with no counts.
+     */
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      icmpOnlyScan({
+        status: "Failed",
+        respondedHostCount: undefined,
+        scannedHostCount: undefined,
+        statusMessage:
+          "This scan checks ICMP only, but this probe could not send ICMP echo requests, so it has no way to find anything.",
+      } as never),
+    );
+
+    expect(outcome.hasReported).toBe(false);
+    expect(outcome.respondedHostSummary).toBeNull();
+    expect(outcome.explanation).toContain("could not send ICMP echo requests");
+    expect(outcome.isIcmpOnly).toBe(true);
+  });
+
+  test("hasReported still agrees with respondedHostSummary in either mode", () => {
+    for (const scan of [
+      icmpOnlyScan(),
+      icmpOnlyScan({ respondedHostCount: 12 }),
+      icmpOnlyScan({ respondedHostCount: undefined } as never),
+      icmpOnlyScan({ respondedHostCount: null } as never),
+      snmpScan(),
+      snmpScan({ respondedHostCount: undefined } as never),
+      legacyScan(),
+    ]) {
+      const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(scan);
+
+      expect(outcome.hasReported).toBe(outcome.respondedHostSummary !== null);
+    }
+  });
+});
+
+describe("summarizeDiscoveryScan — the probe's explanation is mode-blind", () => {
+  /*
+   * statusMessage is written by the probe, which already knows which sweep it
+   * ran and phrases the sentence accordingly. This module must pass it through
+   * untouched in both modes — an ICMP-only scan's explanation is not a
+   * different KIND of value, and a branch that reworded or dropped it would
+   * throw away the only account of the sweep the operator ever gets.
+   */
+  test.each([
+    [
+      "an ICMP-only scan",
+      icmpOnlyScan({
+        statusMessage:
+          "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+      }),
+      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.",
+    ],
+    [
+      "an SNMP scan",
+      snmpScan({
+        statusMessage:
+          "Swept 254 hosts: 0 answered ICMP ping, 0 answered SNMP.",
+      }),
+      "Swept 254 hosts: 0 answered ICMP ping, 0 answered SNMP.",
+    ],
+    [
+      "a scan with no mode recorded",
+      legacyScan({
+        statusMessage:
+          "Swept 254 hosts: 3 answered ICMP ping, 3 answered SNMP.",
+      }),
+      "Swept 254 hosts: 3 answered ICMP ping, 3 answered SNMP.",
+    ],
+  ])(
+    "%s passes its status message through verbatim",
+    (_label: string, scan: NetworkDeviceDiscoveryScan, expected: string) => {
+      expect(summarizeDiscoveryScan(scan).explanation).toBe(expected);
+    },
+  );
+
+  test.each([
+    ["an ICMP-only scan", icmpOnlyScan({ statusMessage: "" })],
+    ["an SNMP scan", snmpScan({ statusMessage: "" })],
+  ])(
+    "%s with an empty message has no explanation, not an empty one",
+    (_label: string, scan: NetworkDeviceDiscoveryScan) => {
+      expect(summarizeDiscoveryScan(scan).explanation).toBeNull();
+    },
+  );
+
+  test.each([
+    ["an ICMP-only scan", icmpOnlyScan({ statusMessage: undefined } as never)],
+    ["an SNMP scan", snmpScan({ statusMessage: undefined } as never)],
+  ])(
+    "%s from an older probe simply has no explanation",
+    (_label: string, scan: NetworkDeviceDiscoveryScan) => {
+      expect(summarizeDiscoveryScan(scan).explanation).toBeNull();
+    },
+  );
+});
+
+describe("summarizeDiscoveryScan — junk in the results column, in either mode", () => {
+  /*
+   * discoveredDevices is jsonb written verbatim from a probe payload, so its
+   * elements are not guaranteed to be objects. The ICMP-only branch short-cuts
+   * pingOnlyHostCount to 0 and never walks the array, and the SNMP branch walks
+   * it through a nullish-safe predicate — but the guarantee the scans list
+   * needs is the same for both: summarizing a row must not be the thing that
+   * takes the table down.
+   */
+  const junkDevices: Array<DiscoveredNetworkDevice> = [
+    null,
+    undefined,
+    7,
+    "10.0.0.1",
+    { snmpReachable: false },
+    host({ ipAddress: "10.0.0.2", snmpReachable: false }),
+  ] as unknown as Array<DiscoveredNetworkDevice>;
+
+  test.each([
+    ["an ICMP-only scan", icmpOnlyScan({ discoveredDevices: junkDevices }), 0],
+    ["an SNMP scan", snmpScan({ discoveredDevices: junkDevices }), 2],
+    [
+      "a scan with no mode recorded",
+      legacyScan({ discoveredDevices: junkDevices }),
+      2,
+    ],
+  ])(
+    "%s summarizes rather than throwing",
+    (
+      _label: string,
+      scan: NetworkDeviceDiscoveryScan,
+      pingOnlyHostCount: number,
+    ) => {
+      expect(() => {
+        return summarizeDiscoveryScan(scan);
+      }).not.toThrow();
+
+      expect(summarizeDiscoveryScan(scan).pingOnlyHostCount).toBe(
+        pingOnlyHostCount,
+      );
+    },
+  );
+
+  test.each([
+    [
+      "an ICMP-only scan",
+      icmpOnlyScan({ discoveredDevices: "hosts" } as never),
+    ],
+    ["an SNMP scan", snmpScan({ discoveredDevices: {} } as never)],
+  ])(
+    "%s whose results column is not an array summarizes to nothing found",
+    (_label: string, scan: NetworkDeviceDiscoveryScan) => {
+      expect(summarizeDiscoveryScan(scan).pingOnlyHostCount).toBe(0);
+      expect(getDiscoveredHosts(scan)).toEqual([]);
+    },
+  );
+});

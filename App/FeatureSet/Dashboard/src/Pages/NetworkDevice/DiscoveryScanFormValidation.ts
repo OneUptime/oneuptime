@@ -11,8 +11,8 @@ import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
  *
  * WHY THEY EXIST
  *
- * The wizard has three steps — Scan Target, What to Check, Schedule (the middle
- * one is skipped entirely for an ICMP-only scan) — and BasicForm validates only
+ * The wizard has three steps — Scan Target, SNMP Credentials, Schedule (the
+ * middle one is skipped entirely for an ICMP-only scan) — and BasicForm validates only
  * the fields belonging to the step being submitted (the currentFormStepId guard
  * in Common/UI/Components/Forms/Validation.ts). A field-level validator is
  * therefore exactly what turns "Next" into a gate: the message renders inline

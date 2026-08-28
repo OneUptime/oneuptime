@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  isIcmpOnlyScan,
+  isSnmpStepNeeded,
   validateRescanInterval,
   validateScanName,
   validateScanTarget,
@@ -584,5 +586,152 @@ describe("validateScanName delegates to the rule the server enforces", () => {
     expect(validateScanName(scanName(value))).toBe(
       ScanNameUtil.getValidationError(value),
     );
+  });
+});
+
+/*
+ * Which sweep the operator asked for (issue #3445).
+ *
+ * "SNMP Version is required" blocked Next on a wizard the operator was trying
+ * to use for an ICMP-only sweep — there was no way to say "I only want to know
+ * what is alive in 10.20.30.0/24", so the SNMP step's `required` rules spoke
+ * for a scan that was never going to send an SNMP packet.
+ *
+ * The fix is not a new validator but the ABSENCE of one: `isSnmpStepNeeded` is
+ * the `showIf` on the wizard's middle step, and BasicForm validates only the
+ * fields of the step being submitted (the currentFormStepId guard in
+ * Common/UI/Components/Forms/Validation.ts). A step filtered out of `formSteps`
+ * can never BE that step, so `required: true` on SNMP Version simply stops
+ * speaking rather than blocking a field that is not on screen.
+ *
+ * WHY THE ABSENT CASE IS THE ONE THAT MATTERS
+ *
+ * `isSnmpEnabled` is a new optional flag, and three different writers hand one
+ * of these objects to the predicates with the key MISSING:
+ *
+ *   - a scan row created before the column existed (a legacy row read back for
+ *     the edit form, which carries no value for a column that was not there);
+ *   - a `select` that does not list the column, which yields a row with every
+ *     other field populated and this one undefined;
+ *   - an older server answering a newer client (or a plain API call that simply
+ *     omits it).
+ *
+ * Every one of those meant "ping sweep, then SNMP" before this change, because
+ * that is the only thing a discovery scan has ever done. So absence MUST read
+ * as "SNMP", and only an explicit `false` may turn it off. Reading absence as
+ * "SNMP is off" would not fail loudly anywhere — it would hide the SNMP step,
+ * strip the credentials, and silently stop doing SNMP discovery on every scan
+ * in the project.
+ */
+
+function scanMode(value: unknown): ScanTargetValues {
+  return { isSnmpEnabled: value } as ScanTargetValues;
+}
+
+/*
+ * ONE table, read by both predicates.
+ *
+ * isSnmpStepNeeded and isIcmpOnlyScan are used in different places — the
+ * former gates a wizard step, the latter gates a field's showIf and a branch of
+ * the review copy — and the whole point of shipping them as a pair is that a
+ * scan cannot be one kind of scan for the step and the other kind for the
+ * fields. Driving both off the same rows is what stops a later edit teaching
+ * one of them about a case the other has never heard of.
+ */
+const SCAN_MODE_CASES: Array<[string, ScanTargetValues, boolean]> = [
+  ["a form the operator has not touched yet", {} as ScanTargetValues, true],
+  ["a form where the toggle is on", scanMode(true), true],
+  [
+    "a form where the toggle key is present but undefined",
+    scanMode(undefined),
+    true,
+  ],
+  ["a legacy row that has no value for the column", scanMode(null), true],
+  ["a form where the operator turned the toggle off", scanMode(false), false],
+];
+
+describe("isSnmpStepNeeded — the wizard keeps asking about SNMP unless told not to", () => {
+  test.each(SCAN_MODE_CASES)(
+    "%s — isSnmpStepNeeded",
+    (_label: string, values: ScanTargetValues, needsSnmpStep: boolean) => {
+      expect(isSnmpStepNeeded(values)).toBe(needsSnmpStep);
+    },
+  );
+
+  test("an absent flag keeps the SNMP step, because that is what it has always meant", () => {
+    /*
+     * Stated on its own, away from the table, because it is the single
+     * invariant in this change whose breakage is silent. A legacy row, a select
+     * that omits the column and an older server all arrive here as an object
+     * with no `isSnmpEnabled` key at all, and every scan they describe is an
+     * SNMP scan.
+     */
+    expect(isSnmpStepNeeded({} as ScanTargetValues)).toBe(true);
+    expect(isSnmpStepNeeded(scanMode(undefined))).toBe(true);
+    expect(isSnmpStepNeeded(scanMode(null))).toBe(true);
+  });
+
+  test("only an explicit boolean false turns the step off", () => {
+    /*
+     * `!== false` rather than `Boolean(...)`. Everything below is falsy, or
+     * looks like a "no" written by something other than the Toggle field — a
+     * query string, a JSON body, a CSV import. None of them may switch SNMP off
+     * on their own, because the safe direction for an ambiguous value is the
+     * sweep the product has always done: a scan that probes SNMP when it did
+     * not need to costs one round of packets, whereas a scan that skips SNMP
+     * when it should not have finds nothing and says nothing about why.
+     */
+    for (const value of [0, "", "false", "off", "no", "0", [], {}, NaN]) {
+      expect(isSnmpStepNeeded(scanMode(value))).toBe(true);
+      expect(isIcmpOnlyScan(scanMode(value))).toBe(false);
+    }
+
+    expect(isSnmpStepNeeded(scanMode(false))).toBe(false);
+  });
+
+  test("a truthy value is not an off switch either", () => {
+    for (const value of [true, 1, "true", "yes", "SNMP"]) {
+      expect(isSnmpStepNeeded(scanMode(value))).toBe(true);
+    }
+  });
+});
+
+describe("isIcmpOnlyScan — the exact negation, on the same rows", () => {
+  test.each(SCAN_MODE_CASES)(
+    "%s — isIcmpOnlyScan",
+    (_label: string, values: ScanTargetValues, needsSnmpStep: boolean) => {
+      expect(isIcmpOnlyScan(values)).toBe(!needsSnmpStep);
+    },
+  );
+
+  test("an ICMP-only scan is the ONLY case that answers yes", () => {
+    expect(isIcmpOnlyScan(scanMode(false))).toBe(true);
+
+    expect(isIcmpOnlyScan({} as ScanTargetValues)).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(true))).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(undefined))).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(null))).toBe(false);
+  });
+});
+
+describe("the predicates read the whole form they are handed", () => {
+  test("a whole form, not just the flag, is answered the same way", () => {
+    /*
+     * The predicates are handed the ENTIRE form values object by `showIf`, not
+     * a hand-built one, so they have to be indifferent to everything else on
+     * it. A structural read (`values.isSnmpEnabled !== false`) is indifferent
+     * by construction; a read that first narrowed to a model instance would
+     * not be.
+     */
+    const wholeForm: ScanTargetValues = {
+      cidr: "10.244.102.0/24",
+      name: "Region 1100 sweep",
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      isSnmpEnabled: false,
+    } as ScanTargetValues;
+
+    expect(isSnmpStepNeeded(wholeForm)).toBe(false);
+    expect(isIcmpOnlyScan(wholeForm)).toBe(true);
   });
 });

@@ -57,8 +57,24 @@ const DISCOVERY_PAGE: string = path.join(
   "Discovery.tsx",
 );
 
+/*
+ * Read once per run, not once per helper call.
+ *
+ * The helpers below call this forty-odd times, twice inside a single test in
+ * places, and the page they read is a file on disk that other processes edit —
+ * a second agent, an editor, a rebase. An uncached read can hand two halves of
+ * one test two different files and fail on a difference that never existed in
+ * either version, which is a false red nobody can reproduce. The subject of a
+ * source-level test has to hold still for the length of the run.
+ */
+let cachedSource: string | null = null;
+
 function readSource(): string {
-  return fs.readFileSync(DISCOVERY_PAGE, "utf8");
+  if (cachedSource === null) {
+    cachedSource = fs.readFileSync(DISCOVERY_PAGE, "utf8");
+  }
+
+  return cachedSource;
 }
 
 function squash(source: string): string {
@@ -490,13 +506,27 @@ describe("the dialog puts that copy on screen", () => {
      * batch. What replaced it has to be more than the removal: the two groups
      * import into different kinds of device, and that is the fact the
      * operator needs before choosing a filter.
+     *
+     * REPAIRED BY #3445, which weakened this test without editing a line of
+     * it. The description became a ternary on the scan's mode, so
+     * `descriptionSection()` now spans BOTH arms — and the two `toContain`s
+     * below stopped saying anything about the SNMP sentence in particular.
+     * They would pass unchanged if the SNMP arm lost both phrases and the
+     * ICMP-only arm gained them, which is precisely the swap a new branch
+     * makes easy. The positive half is therefore asked of the SNMP arm
+     * itself. The bans stay on the whole section, because NEITHER sentence
+     * may tell an operator a host cannot be imported by a dialog whose only
+     * button imports it.
      */
     const description: string = descriptionSection();
 
     expect(description).not.toContain("cannot be imported");
     expect(description).not.toContain("without SNMP cannot");
-    expect(description).toContain("polled devices");
-    expect(description).toContain("monitor-backed");
+
+    const snmpBranch: string = reviewDescriptionBranches().snmp;
+
+    expect(snmpBranch).toContain("polled devices");
+    expect(snmpBranch).toContain("monitor-backed");
   });
 
   test("a row's checkbox says which host it is for", () => {
@@ -529,5 +559,313 @@ describe("the dialog puts that copy on screen", () => {
     expect(checkbox).toContain(
       '"This host reported no address, so it cannot be imported."',
     );
+  });
+});
+
+/*
+ * THE ICMP-ONLY SWEEP (issue #3445)
+ *
+ * A discovery scan can now be run with Check SNMP off: a plain ICMP sweep that
+ * sends no SNMP packet, asks for no credentials, and reports every host that
+ * answered ping. Every string in this dialog was written when that was
+ * impossible, and three of them are wrong on such a scan in a way that reads as
+ * a failure rather than as a result:
+ *
+ *   - the description offers a choice between two groups the sweep cannot have;
+ *   - the SNMP / No SNMP row shows two identical groups and one permanently
+ *     empty button;
+ *   - that empty button's message, "No host in this scan answered SNMP.", reads
+ *     as rejected credentials on a scan that carried none.
+ *
+ * The first two are handled below. The third is handled by never showing the
+ * button. The per-row pill is deliberately left exactly as it was — see the
+ * last describe.
+ */
+
+interface ReviewDescriptionBranches {
+  icmpOnly: string;
+  snmp: string;
+}
+
+/*
+ * The two halves of the description's ternary, as literals.
+ *
+ * Same refusal-to-lie contract as sliceBetween: a regex that no longer matches
+ * would otherwise hand back empty strings, and every `toContain` below would
+ * pass against nothing and every `not.toContain` would pass vacuously. If the
+ * description stops being a ternary on the scan's mode, this must be the thing
+ * that fails, by name.
+ */
+function reviewDescriptionBranches(): ReviewDescriptionBranches {
+  const match: RegExpMatchArray | null = descriptionSection().match(
+    /isIcmpOnlyReview \? "([^"]+)" : "([^"]+)"/,
+  );
+
+  if (!match || !match[1] || !match[2]) {
+    throw new Error(
+      "Discovery.tsx's Review description is no longer a ternary on isIcmpOnlyReview",
+    );
+  }
+
+  return { icmpOnly: match[1], snmp: match[2] };
+}
+
+/*
+ * Everything between the mode guard and the filter row it guards — which, if
+ * the guard really does wrap that row, is nothing at all.
+ */
+function filterButtonsGuardSection(): string {
+  return sliceBetween({
+    code: readCode(),
+    from: "{!isIcmpOnlyReview && (",
+    to: "<FilterButtons",
+  });
+}
+
+describe("the review dialog reads differently for a scan that only pinged", () => {
+  test("the anchors the ICMP-only slices depend on are still in the page", () => {
+    /*
+     * Stated out loud, for the same reason the existing anchors test is: a
+     * rename should fail here, naming the anchor, rather than turning up three
+     * tests later as an assertion about copy that was never read.
+     */
+    expect(reviewDescriptionBranches().icmpOnly.length).toBeGreaterThan(0);
+    expect(reviewDescriptionBranches().snmp.length).toBeGreaterThan(0);
+    expect(filterButtonsGuardSection().length).toBeGreaterThan(0);
+  });
+
+  test("the mode this dialog branches on is read through ScanModeUtil", () => {
+    /*
+     * The single line everything else in this file hangs off:
+     *
+     *   const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);
+     *
+     * Every other assertion here is satisfied by ANY derivation of that
+     * boolean — the guard is still around the row, both arms of the ternary
+     * are still there, the pill is still ungated. So rewriting it to
+     * `!scanToReview?.isSnmpEnabled` leaves this whole file green while
+     * flipping every scan that has no value for the column — every scan
+     * created before #3445, and every row read back through a `select` that
+     * omits it — onto the ICMP-only copy: it is told it "checked ICMP only"
+     * when it polled SNMP, and it loses the SNMP / No SNMP row it has always
+     * had. Absence means SNMP, and the one place that rule is written is
+     * ScanModeUtil's `!== false`.
+     *
+     * The second assertion is the same rule as a ban, so the mode cannot be
+     * re-derived off the column somewhere further down the page either. All
+     * three current mentions of the flag in this page are object KEYS (the
+     * toggle's field, the value its onChange writes, and selectMoreFields);
+     * a READ of it is a second copy of the rule by definition.
+     */
+    const code: string = readCode();
+
+    expect(code).toContain(
+      "const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);",
+    );
+
+    const modeReadOffTheColumn: RegExp = /[.?]\s*isSnmpEnabled/;
+
+    expect(modeReadOffTheColumn.test(code)).toBe(false);
+  });
+
+  test("the description has a branch for a scan that sent no SNMP", () => {
+    /*
+     * The branch has to exist at all, and the two halves have to be different
+     * sentences — a ternary whose arms had converged would be a branch in name
+     * only, and the whole point is that one of these sentences is about a
+     * choice the operator does not have on an ICMP-only sweep.
+     */
+    const description: string = descriptionSection();
+
+    expect(description).toContain("isIcmpOnlyReview");
+
+    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
+
+    expect(branches.icmpOnly).not.toEqual(branches.snmp);
+  });
+
+  test("the ICMP-only branch says what those hosts import as, and what to do next", () => {
+    /*
+     * The two facts an operator needs before pressing Import on a sweep that
+     * asked nothing about SNMP:
+     *
+     *   - what arrives in the inventory. "monitor-backed" is the same word the
+     *     No SNMP pill and the toggle's own description use, so the three
+     *     places this concept appears name it identically.
+     *   - that the device has no status until something is bound to it. A
+     *     monitor-backed device with no monitor is a row that never goes green
+     *     or red, and an operator who imports 2,890 of them and hears nothing
+     *     for a week has been told nothing was wrong.
+     */
+    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
+
+    expect(icmpOnly).toContain("ICMP only");
+    expect(icmpOnly).toContain("monitor-backed");
+    expect(icmpOnly).toContain("Ping or IP monitor");
+  });
+
+  test("the ICMP-only branch is exactly this sentence", () => {
+    /*
+     * Verbatim, so a reword is a deliberate act with a failing test attached
+     * rather than a silent one. This is the copy an operator reads at the
+     * moment they decide whether to import — it IS the feature, not a
+     * description of it.
+     */
+    expect(reviewDescriptionBranches().icmpOnly).toEqual(
+      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off; bind a Ping or IP monitor to give each one a status.",
+    );
+  });
+
+  test("the SNMP branch is byte for byte the sentence it already was", () => {
+    /*
+     * The other side of the branch. Adding a mode to this dialog must not
+     * reword the case that was already shipping: every scan created before
+     * #3445 — and every SNMP scan created after it — renders this sentence, and
+     * the existing tests above pin its two load-bearing phrases. This pins the
+     * whole of it, so the ICMP-only edit cannot have quietly rewritten the copy
+     * it was branching away from.
+     */
+    expect(reviewDescriptionBranches().snmp).toEqual(
+      "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones.",
+    );
+  });
+
+  test("the ICMP-only branch does not describe a filter row that is not on screen", () => {
+    /*
+     * The row is hidden for this scan (see the next describe), so a sentence
+     * telling the operator to "filter to a group" would be pointing at controls
+     * that are not there — and "SNMP hosts arrive as polled devices" would be
+     * describing an outcome no host on this scan can have.
+     */
+    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
+
+    expect(icmpOnly).not.toContain("Filter to a group");
+    expect(icmpOnly).not.toContain("polled devices");
+    expect(icmpOnly).not.toContain("SNMP hosts");
+  });
+
+  test("the ICMP-only branch never frames its own results as a shortfall", () => {
+    /*
+     * "hosts without SNMP" is a caveat: it names what these hosts are NOT, on a
+     * scan where that is the entire point of the sweep the operator asked for.
+     * And "cannot be imported" is the sentence this description used to end
+     * with, which is false for every host on this scan.
+     */
+    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
+
+    expect(icmpOnly).not.toContain("without SNMP");
+    expect(icmpOnly).not.toContain("cannot be imported");
+    expect(icmpOnly).not.toContain("cannot");
+  });
+
+  test("the new copy did not reintroduce the banned sentence frame", () => {
+    /*
+     * `No ${label} hosts in this scan.` is the frame that shipped as "No No
+     * SNMP hosts in this scan.", and the tail of it is banned at source. A new
+     * branch of copy about hosts and scans is exactly where it would come back.
+     */
+    expect(readCode()).not.toContain("hosts in this scan.");
+
+    for (const branch of [
+      reviewDescriptionBranches().icmpOnly,
+      reviewDescriptionBranches().snmp,
+    ]) {
+      expect(branch).not.toContain("hosts in this scan.");
+    }
+  });
+
+  test("both branches are punctuated as the sentences they are", () => {
+    /*
+     * They are concatenated into one paragraph with the scan's label before
+     * them and the probe's status message after them, so each has to end as a
+     * sentence and start as one. A branch that lost its full stop would run
+     * straight into the probe's summary.
+     */
+    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
+
+    for (const branch of [branches.icmpOnly, branches.snmp]) {
+      expect(branch.trim()).toEqual(branch);
+      expect(branch.slice(0, 1)).toEqual(branch.slice(0, 1).toUpperCase());
+      expect(branch.endsWith(".")).toBe(true);
+    }
+  });
+});
+
+describe("the SNMP / No SNMP row is not offered on a sweep that sent no SNMP", () => {
+  test("the row is gated on the scan's mode, with nothing between the guard and it", () => {
+    /*
+     * WHY the row is hidden rather than left to render its own zeroes:
+     *
+     * On an ICMP-only sweep every host is ping-only by construction, so the row
+     * reads "All (2,890) · SNMP (0) · No SNMP (2,890)" — two buttons naming the
+     * identical set of hosts, and one that can never contain anything. Pressing
+     * the empty one shows "No host in this scan answered SNMP.", which is a
+     * true sentence that reads as a diagnosis: rejected credentials, wrong
+     * version, a firewall on 161. The scan sent no SNMP at all, so there is
+     * nothing there to diagnose, and a filter row is the wrong place to learn
+     * it.
+     *
+     * The slice is asserted to be empty because the guard has to wrap THIS row
+     * and not merely appear somewhere above it — a guard around a sibling would
+     * pass a `toContain` while leaving the row on screen.
+     */
+    expect(filterButtonsGuardSection().trim()).toEqual(
+      "{!isIcmpOnlyReview && (",
+    );
+  });
+
+  test("the row is still rendered for a scan that did ask about SNMP", () => {
+    /*
+     * The guard is a negation, so the SNMP case is the fall-through and has no
+     * literal of its own to assert. What can be asserted is that the row was
+     * hidden by a CONDITION rather than deleted: FilterButtons is still wired
+     * to the same options and the same state.
+     */
+    const section: string = modalSection();
+
+    expect(section).toContain("<FilterButtons");
+    expect(section).toContain("options={hostFilterOptions}");
+    expect(section).toContain("selectedValue={hostFilter}");
+  });
+});
+
+describe("the per-row No SNMP pill stays exactly where it was", () => {
+  test("the pill is not gated on the scan's mode", () => {
+    /*
+     * DELIBERATE, and the opposite decision to the filter row above.
+     *
+     * The pill is a statement about ONE host — this host answered ping and not
+     * SNMP — and that is true on an ICMP-only sweep as much as on an SNMP one.
+     * Its hover text is the useful part: it says what the host will import as
+     * and what to do afterwards, which is precisely the question an operator
+     * has about a row on a scan with no SNMP results. Redundancy across a list
+     * where every row carries it is a much smaller cost than removing the one
+     * place that explains what a monitor-backed device is.
+     */
+    expect(pingOnlyBadgeSection()).not.toContain("isIcmpOnlyReview");
+  });
+
+  test("the pill still explains what the host imports as and what to bind to it", () => {
+    /*
+     * The same two facts the ICMP-only description carries, in the same words,
+     * one row at a time. `title` is the only place they can live on a pill this
+     * small.
+     */
+    const badge: string = pingOnlyBadgeSection();
+
+    expect(badge).toContain("title=");
+    expect(badge).toContain("monitor-backed device");
+    expect(badge).toContain("Ping or IP monitor");
+  });
+
+  test("the pill's wording and the description's agree about what arrives", () => {
+    /*
+     * Two pieces of copy, one concept. If either drifts to "unpolled device" or
+     * "ping device", the operator has to work out that the badge on the row and
+     * the sentence above the list are describing the same thing.
+     */
+    expect(pingOnlyBadgeSection()).toContain("monitor-backed");
+    expect(reviewDescriptionBranches().icmpOnly).toContain("monitor-backed");
+    expect(reviewDescriptionBranches().snmp).toContain("monitor-backed");
   });
 });

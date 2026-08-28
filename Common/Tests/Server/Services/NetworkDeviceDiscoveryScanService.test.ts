@@ -1311,3 +1311,385 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
     expect(writes[0]!.data["nextScanAt"]).toBeNull();
   });
 });
+
+/*
+ * The scan's METHOD (issue #3445).
+ *
+ * A scan that will not send SNMP must not be STORED carrying SNMP settings.
+ * Hiding the fields in the wizard is not enough on its own, for two separate
+ * reasons — ModelForm posts every declared field whether or not it was visible,
+ * and this hook is also the only thing standing between a direct API call and
+ * the table — so the clearing lives here, on the write path every writer takes.
+ *
+ * The nulls below are the part that is easy to "simplify" into a bug. TypeORM
+ * OMITS an undefined property from the INSERT, at which point Postgres applies
+ * this table's column defaults ('V2c' for snmpVersion, 161 for snmpPort), and
+ * the stored row ends up claiming to be a v2c scan on port 161 while its own
+ * method column says it sends no SNMP at all. That was verified empirically
+ * against Postgres, not reasoned about: an explicit null is the only value that
+ * beats a column default.
+ */
+describe("NetworkDeviceDiscoveryScanService SNMP config on create", () => {
+  const SNMP_CONFIG_COLUMNS: Array<string> = [
+    "snmpVersion",
+    "snmpCommunityString",
+    "snmpPort",
+    "snmpV3SecurityLevel",
+    "snmpV3Username",
+    "snmpV3AuthProtocol",
+    "snmpV3AuthKey",
+    "snmpV3PrivProtocol",
+    "snmpV3PrivKey",
+  ];
+
+  /*
+   * A full v3 credential set, which is the worst case worth pinning: it is the
+   * one that carries a passphrase, and the one an operator is most likely to
+   * have typed before deciding they only wanted a ping sweep after all.
+   */
+  const SNMP_CREDENTIALS: Record<string, unknown> = {
+    snmpVersion: "V3",
+    snmpCommunityString: "public",
+    snmpPort: 1161,
+    snmpV3SecurityLevel: "authPriv",
+    snmpV3Username: "netops",
+    snmpV3AuthProtocol: "sha",
+    snmpV3AuthKey: "auth-passphrase",
+    snmpV3PrivProtocol: "aes",
+    snmpV3PrivKey: "priv-passphrase",
+  };
+
+  /*
+   * `isSnmpEnabled` is typed unknown for the same reason `cidr` is above: this
+   * hook runs before the model's own type checks, so an API client really can
+   * send a string or a number here. Passing NO_METHOD_KEY deletes the property
+   * outright, which is how a request body from a client that has never heard of
+   * the column reaches the hook.
+   */
+  const NO_METHOD_KEY: symbol = Symbol("no isSnmpEnabled key");
+
+  type MakeScanFunction = (
+    isSnmpEnabled: unknown,
+    credentials?: Record<string, unknown>,
+  ) => CreateBy<NetworkDeviceDiscoveryScan>;
+
+  const makeScan: MakeScanFunction = (
+    isSnmpEnabled: unknown,
+    credentials: Record<string, unknown> = {},
+  ): CreateBy<NetworkDeviceDiscoveryScan> => {
+    const createBy: CreateBy<NetworkDeviceDiscoveryScan> =
+      makeCreateBy("192.168.1.0/24");
+
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (isSnmpEnabled === NO_METHOD_KEY) {
+      delete data["isSnmpEnabled"];
+    } else {
+      data["isSnmpEnabled"] = isSnmpEnabled;
+    }
+
+    for (const key of Object.keys(credentials)) {
+      data[key] = credentials[key];
+    }
+
+    return createBy;
+  };
+
+  type CreatedScanFunction = (
+    isSnmpEnabled: unknown,
+    credentials?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+
+  // What the hook would actually hand to the INSERT, for a given request body.
+  const createdScan: CreatedScanFunction = async (
+    isSnmpEnabled: unknown,
+    credentials: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> => {
+    const createBy: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(
+      isSnmpEnabled,
+      credentials,
+    );
+
+    await onBeforeCreate(createBy);
+
+    return createBy.data as unknown as Record<string, unknown>;
+  };
+
+  /*
+   * `null`, and specifically never `undefined`. The two look like the same
+   * assertion and are completely different values to Postgres: TypeORM omits
+   * an undefined property from the INSERT, the column default fills it back in
+   * ('V2c', 161), and the stored row claims to be a v2c scan on port 161 while
+   * its own method column says it sends no SNMP at all.
+   *
+   * The object-wrapped expect is what makes toEqual tell them apart — a bare
+   * `toEqual(null)` on a received `undefined` would pass, because toEqual
+   * treats an undefined property as an absent one — and the hasOwnProperty
+   * check is what pins that the columns are WRITTEN rather than deleted.
+   */
+  it("nulls every SNMP column of a scan that sends no SNMP, with null and never undefined", async () => {
+    const stored: Record<string, unknown> = await createdScan(
+      false,
+      SNMP_CREDENTIALS,
+    );
+
+    for (const column of SNMP_CONFIG_COLUMNS) {
+      expect({ column: column, value: stored[column] }).toEqual({
+        column: column,
+        value: null,
+      });
+      expect(Object.prototype.hasOwnProperty.call(stored, column)).toBe(true);
+    }
+
+    // The two columns that actually carry a DEFAULT in this table.
+    expect(stored["snmpVersion"]).not.toBe("V2c");
+    expect(stored["snmpPort"]).not.toBe(161);
+  });
+
+  it("keeps the credentials of a scan that does send SNMP", async () => {
+    const stored: Record<string, unknown> = await createdScan(
+      true,
+      SNMP_CREDENTIALS,
+    );
+
+    for (const column of SNMP_CONFIG_COLUMNS) {
+      expect(stored[column]).toBe(SNMP_CREDENTIALS[column]);
+    }
+  });
+
+  /*
+   * The legacy and API case, and the one that fails silently.
+   *
+   * A request body written before this column existed carries no method at all.
+   * Reading that absence as "SNMP is off" would clear the credentials of every
+   * such scan and turn the entire product's discovery into a ping sweep, with
+   * no error raised anywhere — the only symptom being addresses found where
+   * devices used to be. Absence means SNMP, exactly as it did before the column.
+   */
+  it("keeps the credentials of a scan that never mentions the method at all", async () => {
+    const createBy: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(
+      NO_METHOD_KEY,
+      SNMP_CREDENTIALS,
+    );
+
+    expect(
+      Object.prototype.hasOwnProperty.call(createBy.data, "isSnmpEnabled"),
+    ).toBe(false);
+
+    await onBeforeCreate(createBy);
+
+    const stored: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of SNMP_CONFIG_COLUMNS) {
+      expect(stored[column]).toBe(SNMP_CREDENTIALS[column]);
+    }
+  });
+
+  /*
+   * ...and neither does an explicit null, which is what a partially-selected
+   * row or a JSON body that spells "unset" as null produces. Only a real
+   * boolean false turns SNMP off, so a value this hook did not recognise fails
+   * safe toward the scan the product has always run.
+   */
+  it.each([
+    ["an undefined method", undefined],
+    ["a null method", null],
+    ['the string "false"', "false"],
+    ["a zero", 0],
+  ])("keeps the credentials for %s", async (_label: string, value: unknown) => {
+    const stored: Record<string, unknown> = await createdScan(
+      value,
+      SNMP_CREDENTIALS,
+    );
+
+    expect(stored["snmpVersion"]).toBe("V3");
+    expect(stored["snmpV3PrivKey"]).toBe("priv-passphrase");
+  });
+
+  /*
+   * The columns are written, not deleted, so a request that carried no
+   * credentials in the first place still ends up with explicit nulls — which is
+   * the whole reason the clearing exists, since it is the empty request that
+   * would otherwise be filled in by the column defaults.
+   */
+  it("nulls the columns even when the request carried no credentials at all", async () => {
+    const stored: Record<string, unknown> = await createdScan(false);
+
+    for (const column of SNMP_CONFIG_COLUMNS) {
+      expect(stored[column]).toBeNull();
+    }
+  });
+
+  /*
+   * The one column that must NOT be nulled by the clearing, and the mistake is
+   * a single line: adding "isSnmpEnabled" to the list of SNMP columns. A null
+   * method reads as SNMP-enabled everywhere in the product, so the row would
+   * come back out claiming to be an SNMP scan whose credentials are all null —
+   * an unrunnable sweep that also contradicts what the operator asked for.
+   */
+  it("leaves the method column itself alone", async () => {
+    const stored: Record<string, unknown> = await createdScan(
+      false,
+      SNMP_CREDENTIALS,
+    );
+
+    expect(stored["isSnmpEnabled"]).toBe(false);
+    expect(stored["isSnmpEnabled"]).not.toBeNull();
+  });
+
+  it("does not disturb anything else about the scan", async () => {
+    const createBy: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(false, {
+      ...SNMP_CREDENTIALS,
+      name: "  Ping Sweep - Region 1100  ",
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+    });
+
+    await onBeforeCreate(createBy);
+
+    const stored: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    expect(stored["cidr"]).toBe("192.168.1.0/24");
+    expect(stored["probeId"]).toBe(PROBE_ID);
+    expect(stored["isRecurring"]).toBe(true);
+    expect(stored["rescanIntervalInMinutes"]).toBe(60);
+    // Still normalized by the name rules, which run on the same hook.
+    expect(stored["name"]).toBe("Ping Sweep - Region 1100");
+  });
+
+  it("returns the same createBy, so the cleared values are what gets written", async () => {
+    const createBy: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(
+      false,
+      SNMP_CREDENTIALS,
+    );
+
+    const result: unknown = await onBeforeCreate(createBy);
+
+    const returned: CreateBy<NetworkDeviceDiscoveryScan> = (
+      result as { createBy: CreateBy<NetworkDeviceDiscoveryScan> }
+    ).createBy;
+
+    expect(returned).toBe(createBy);
+    expect(
+      (returned.data as unknown as Record<string, unknown>)["snmpV3PrivKey"],
+    ).toBeNull();
+  });
+
+  /*
+   * Turning SNMP off does not turn the rest of the hook off. Every validation
+   * that guarded a scan before this column existed still guards an ICMP-only
+   * one — the sweep is the same sweep, and a target the probe would refuse is
+   * still a target that must not be stored.
+   */
+  it("still rejects a bad target on an ICMP-only scan", async () => {
+    const reversedRange: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(false);
+    (reversedRange.data as unknown as Record<string, unknown>)["cidr"] =
+      "10.22-16.0.1";
+
+    await expect(onBeforeCreate(reversedRange)).rejects.toThrow(/reversed/);
+
+    const noTarget: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(false);
+    delete (noTarget.data as unknown as Record<string, unknown>)["cidr"];
+
+    await expect(onBeforeCreate(noTarget)).rejects.toThrow(BadDataException);
+  });
+
+  it("still rejects an oversized target on an ICMP-only scan", async () => {
+    const oversized: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(false);
+    (oversized.data as unknown as Record<string, unknown>)["cidr"] =
+      "10.0.0.0/8";
+
+    await expect(onBeforeCreate(oversized)).rejects.toThrow(/exceeding the/);
+  });
+
+  it("still rejects a bad name on an ICMP-only scan", async () => {
+    const badName: CreateBy<NetworkDeviceDiscoveryScan> = makeScan(false, {
+      name: "a".repeat(101),
+    });
+
+    await expect(onBeforeCreate(badName)).rejects.toThrow(
+      ScanNameUtil.getValidationError("a".repeat(101)) as string,
+    );
+  });
+});
+
+/*
+ * The same invariant on the EDIT path (issues #3444 + #3445).
+ *
+ * A scan's method became editable when its settings did, so the create hook is
+ * no longer the only way a row can end up saying "sends no SNMP" while carrying
+ * a community string. The edit form posts every declared field regardless of
+ * visibility, exactly as the wizard does, so an operator who switches the
+ * method off is still sending the credentials they just hid.
+ */
+describe("NetworkDeviceDiscoveryScanService SNMP config on update", () => {
+  it("clears the credentials when an edit turns the method off", async () => {
+    const data: Record<string, unknown> = {
+      isSnmpEnabled: false,
+      snmpVersion: "V3",
+      snmpCommunityString: "public",
+      snmpPort: 1161,
+      snmpV3Username: "monitoring",
+      snmpV3AuthKey: "authentication passphrase",
+      snmpV3PrivKey: "privacy passphrase",
+    };
+
+    await saveSettings(data);
+
+    for (const column of [
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+    ]) {
+      expect({ column: column, value: data[column] }).toEqual({
+        column: column,
+        value: null,
+      });
+    }
+
+    // The method itself is the one SNMP-ish key the clear must not touch.
+    expect(data["isSnmpEnabled"]).toBe(false);
+  });
+
+  it("leaves the credentials alone when an edit turns the method back on", async () => {
+    const data: Record<string, unknown> = {
+      isSnmpEnabled: true,
+      snmpCommunityString: "public",
+    };
+
+    await saveSettings(data);
+
+    expect(data["snmpCommunityString"]).toBe("public");
+  });
+
+  /*
+   * The guard is on the key being WRITTEN, not on the stored value. A rename,
+   * or the probe-ingest endpoints writing run state, must not reach in and null
+   * columns they never mentioned — and those writers do not read the row at
+   * all, so a clear here would be a write nobody asked for.
+   */
+  it("leaves the credentials alone on an edit that never mentions the method", async () => {
+    const data: Record<string, unknown> = {
+      snmpCommunityString: "public",
+    };
+
+    await saveSettings(data);
+
+    expect(data["snmpCommunityString"]).toBe("public");
+  });
+});

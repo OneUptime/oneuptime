@@ -5,10 +5,12 @@ import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDev
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import Response from "Common/Server/Utils/Response";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
@@ -439,6 +441,201 @@ describe("POST /probe/discovery-scan/list", () => {
     ]) {
       expect(select[column]).toBe(true);
     }
+  });
+
+  /*
+   * Issue #3445: a scan can now sweep with ICMP alone, and this column is the
+   * only thing that tells the probe which of the two kinds of scan it is
+   * holding.
+   *
+   * Leaving it out of this select does not hand the probe `false` — it hands
+   * it `undefined`, and `undefined` is deliberately read as "this is an SNMP
+   * scan" (ScanModeUtil.isSnmpEnabled is `!== false`, so that every row
+   * written before the column existed keeps meaning what it always meant).
+   * The regression is therefore silent and one-directional: drop this column
+   * and every ICMP-only scan in every project is SNMP-swept again — community
+   * strings and v3 credentials the operator deliberately did not enter, fired
+   * at hosts they only asked to ping — while the wizard goes on describing
+   * the scan as "Ping only". Nothing throws. The scan just does the thing it
+   * was configured not to do.
+   */
+  test("selects isSnmpEnabled, without which an ICMP-only scan reaches the probe looking like an SNMP scan", async () => {
+    scanService.findBy.mockResolvedValue([] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const findArgs: JSONObject = scanService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findArgs["select"] as JSONObject;
+
+    expect(select["isSnmpEnabled"]).toBe(true);
+  });
+
+  /*
+   * The select, pinned whole. The tests above prove that particular columns
+   * are PRESENT; this is the one that notices a column quietly leaving —
+   * which for `isSnmpEnabled` is the silent SNMP sweep described above, and
+   * for the credential columns is a sweep that authenticates with nothing.
+   * Both failures look like a working scan from the outside, so neither shows
+   * up in a test that only asserts the happy path.
+   *
+   * A new column added to the route is expected to fail here: add it to this
+   * list too, once you have checked the probe actually reads it. Everything
+   * selected costs bytes on a route the probe polls every minute.
+   */
+  test("the claim asks for exactly the columns the probe needs to run the sweep", async () => {
+    scanService.findBy.mockResolvedValue([] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const findArgs: JSONObject = scanService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findArgs["select"] as JSONObject;
+
+    expect(Object.keys(select).sort()).toEqual([
+      "_id",
+      "cidr",
+      "isSnmpEnabled",
+      "name",
+      "projectId",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3AuthKey",
+      "snmpV3AuthProtocol",
+      "snmpV3PrivKey",
+      "snmpV3PrivProtocol",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpVersion",
+    ]);
+
+    // Every one of them asked for, not merely mentioned.
+    for (const column of Object.keys(select)) {
+      expect(select[column]).toBe(true);
+    }
+  });
+
+  /*
+   * Selecting the column is only half of it: the method has to survive
+   * SERIALIZATION. The probe never re-reads the scan — this response IS the
+   * instruction it executes — and what it reads is not the model object the
+   * route holds but the JSON `Response.sendEntityArrayResponse` renders out
+   * of it with `DatabaseBaseModel.toJSONArray(list, modelType)`.
+   *
+   * That serializer walks `getVanillaModel(modelType).getTableColumns()` and
+   * silently drops every property that is not a declared `@TableColumn`
+   * (Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel.ts).
+   * A missing or misdeclared decorator on `isSnmpEnabled` therefore costs
+   * nothing at compile time, leaves the select pinned above perfectly green,
+   * and still strips the method off the wire: every ICMP-only scan in every
+   * project is SNMP-swept again, with community strings and v3 credentials
+   * the operator deliberately did not enter, while the wizard goes on calling
+   * the scan "Ping only". Nothing throws.
+   *
+   * `Response` is mocked in this file, so that render has to be run here
+   * explicitly — and through the model type taken FROM the call rather than
+   * hard-coded, so a route that names the wrong model type fails here too.
+   *
+   * The legacy row is the other half of the invariant: it has to leave with
+   * no `isSnmpEnabled` on it at all. Absent is read as "SNMP" everywhere
+   * (ScanModeUtil is `!== false`); a `false` on the wire would turn every
+   * scan written before this column existed — every scan in every project
+   * that upgraded — into a ping sweep, and SNMP discovery would simply stop
+   * happening. No error, no failed scan; just an inventory that stops finding
+   * devices.
+   */
+  test("the method reaches the probe through serialization, and an absent one stays absent", async () => {
+    const icmpOnlyScan: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan(ObjectID.generate());
+    icmpOnlyScan.isSnmpEnabled = false;
+
+    const snmpScan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      ObjectID.generate(),
+    );
+    snmpScan.isSnmpEnabled = true;
+
+    /*
+     * Written before the column existed: the property is never assigned, which
+     * is what the database hands back for such a row.
+     */
+    const legacyScan: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan(ObjectID.generate());
+
+    scanService.findBy.mockResolvedValue([
+      icmpOnlyScan,
+      snmpScan,
+      legacyScan,
+    ] as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const responseArgs: Array<unknown> = responseUtil.sendEntityArrayResponse
+      .mock.calls[0]! as Array<unknown>;
+    const handedBack: Array<NetworkDeviceDiscoveryScan> =
+      responseArgs[2] as Array<NetworkDeviceDiscoveryScan>;
+    const modelType: DatabaseBaseModelType =
+      responseArgs[4] as DatabaseBaseModelType;
+
+    expect(handedBack).toHaveLength(3);
+
+    // The exact render Response.sendEntityArrayResponse performs on that list.
+    const onTheWire: JSONArray = DatabaseBaseModel.toJSONArray(
+      handedBack,
+      modelType,
+    );
+
+    /*
+     * Two different answers out of one batch: whatever carries the method, it
+     * is per-scan, not read once and applied to the whole response.
+     */
+    expect((onTheWire[0] as JSONObject)["isSnmpEnabled"]).toBe(false);
+    expect((onTheWire[1] as JSONObject)["isSnmpEnabled"]).toBe(true);
+
+    /*
+     * And the legacy row emits no key at all — toJSONObject skips undefined
+     * properties, so the probe reads nothing and falls back on "absent means
+     * SNMP". A `false` here, from the column defaulting on its way out, is
+     * the silent-ping-sweep regression described above.
+     */
+    expect(Object.keys(onTheWire[2] as JSONObject)).not.toContain(
+      "isSnmpEnabled",
+    );
+  });
+
+  /*
+   * The claim payload stays what it was. `isSnmpEnabled` is a create-time
+   * column (its ColumnAccessControl has an empty `update` list, copied from
+   * `cidr`), so the claim must read the method and write nothing about it —
+   * a probe claiming a scan is not an occasion to restate how it is
+   * configured. This also keeps the payload disjoint from the columns the
+   * service's update hook validates, which is what makes the hook-free write
+   * above safe.
+   */
+  test("claiming an ICMP-only scan writes the same three columns as any other claim", async () => {
+    const scanId: ObjectID = ObjectID.generate();
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.isSnmpEnabled = false;
+    scanService.findBy.mockResolvedValue([scan] as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const updateArgs: JSONObject = scanService.updateColumnsByIdWithoutHooks
+      .mock.calls[0]![0] as JSONObject;
+    const data: JSONObject = expectPlainUpdateData(updateArgs["data"]);
+    expect(Object.keys(data).sort()).toEqual([
+      "startedAt",
+      "status",
+      "statusMessage",
+    ]);
+    expect(Object.keys(data)).not.toContain("isSnmpEnabled");
   });
 
   test("claims each scan the query returns, not just the first", async () => {
@@ -943,6 +1140,736 @@ describe("POST /probe/discovery-scan/result", () => {
     );
 
     expect(next).toHaveBeenCalledWith(boom);
+  });
+});
+
+/*
+ * What "responded" means depends on what the scan actually asked for (issue
+ * #3445).
+ *
+ * respondedHostCount is one number on the row, and it is the number the
+ * product shows: the Discovery Scans card on the Network Devices overview
+ * page renders it as "N host(s)", and the scans list renders "N of M hosts".
+ * That page selects respondedHostCount and NOT discoveredDevices, so whatever
+ * is written here is final — no screen can recover the truth from the hosts
+ * afterwards.
+ *
+ * On an SNMP scan the number is the SNMP responders. The probe reports
+ * ping-only hosts in the same array, tagged `snmpReachable: false`, and
+ * collapsing the two together would erase exactly the distinction the
+ * "+N alive without SNMP" line exists to draw.
+ *
+ * On an ICMP-only scan every host is `snmpReachable: false` by construction,
+ * so that same filter is always zero. A sweep that found 254 live hosts would
+ * be written down as having found none, and the operator would read
+ * "0 of 254 hosts" for a scan that worked perfectly — the exact false
+ * negative issue #3287 exists to prevent. Ping was the question, and the
+ * hosts answered it.
+ *
+ * Which of the two counts applies is decided by the scan row alone, and a row
+ * that does not carry the column at all — legacy, or an older server — has to
+ * decide "SNMP". The absence tests below are the ones that matter most: get
+ * that backwards and SNMP discovery silently stops for every scan that
+ * predates the column.
+ */
+describe('POST /probe/discovery-scan/result — what "responded" counts, per scan method', () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const scanId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
+
+  /*
+   * `mode` left out builds the legacy row: a scan whose isSnmpEnabled never
+   * arrives, because it was written before the column existed or because a
+   * caller never asked for it. The property is deliberately not assigned in
+   * that case — an explicitly-assigned `undefined` and an absent one are the
+   * same thing to the predicate, but only the absent one is what the database
+   * actually hands back.
+   */
+  function makeScan(
+    mode?: boolean | undefined,
+    overrides?: {
+      isRecurring?: boolean;
+      rescanIntervalInMinutes?: number;
+    },
+  ): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.projectId = projectId;
+    scan.status = "In Progress";
+
+    if (mode !== undefined) {
+      scan.isSnmpEnabled = mode;
+    }
+
+    if (overrides?.isRecurring !== undefined) {
+      scan.isRecurring = overrides.isRecurring;
+    }
+
+    if (overrides?.rescanIntervalInMinutes !== undefined) {
+      scan.rescanIntervalInMinutes = overrides.rescanIntervalInMinutes;
+    }
+
+    return scan;
+  }
+
+  function writtenData(): JSONObject {
+    expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
+    const updateArgs: JSONObject = scanService.updateOneById.mock
+      .calls[0]![0] as JSONObject;
+    expect((updateArgs["id"] as ObjectID).toString()).toBe(scanId.toString());
+    return expectPlainUpdateData(updateArgs["data"]);
+  }
+
+  function reportResult(
+    scan: NetworkDeviceDiscoveryScan,
+    body: JSONObject,
+  ): Promise<{ next: NextFunction }> {
+    scanService.findOneBy.mockResolvedValue(scan as never);
+
+    return callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          ...body,
+        },
+      }),
+    );
+  }
+
+  /*
+   * One sweep, start to finish, from a clean set of mocks — so a single test
+   * can report the SAME host list under both methods and compare the two
+   * numbers side by side.
+   */
+  async function respondedHostCountFor(
+    scan: NetworkDeviceDiscoveryScan,
+    discoveredDevices: Array<JSONObject>,
+  ): Promise<number> {
+    jest.clearAllMocks();
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>() as never,
+    );
+    scanService.updateOneById.mockResolvedValue(undefined as never);
+
+    await reportResult(scan, { discoveredDevices: discoveredDevices });
+
+    return writtenData()["respondedHostCount"] as number;
+  }
+
+  /*
+   * Fresh arrays per call, deliberately: the handler writes
+   * `isAlreadyRegistered` onto the host objects it is given, so a shared
+   * fixture would carry one test's flags into the next.
+   */
+
+  // Two SNMP responders and three hosts that only answered ping.
+  function mixedHosts(): Array<JSONObject> {
+    return [
+      { ipAddress: "10.0.0.5", sysName: "sw1", snmpReachable: true },
+      { ipAddress: "10.0.0.9", sysName: "sw2", snmpReachable: true },
+      { ipAddress: "10.0.0.20", snmpReachable: false },
+      { ipAddress: "10.0.0.21", snmpReachable: false },
+      { ipAddress: "10.0.0.22", snmpReachable: false },
+    ];
+  }
+
+  /*
+   * What an OLDER probe reports: it omitted `snmpReachable` entirely and only
+   * ever pushed SNMP responders into the array, so a missing key means "SNMP
+   * responder". Mixed here with two hosts a current probe tagged
+   * `snmpReachable: false` on purpose, so that the SNMP reading (3) and the
+   * ICMP-only reading (5) are DIFFERENT numbers — a keyless-only list would
+   * make both branches return the same count and the test could not tell
+   * which one ran.
+   */
+  function keylessAndPingOnlyHosts(): Array<JSONObject> {
+    return [
+      { ipAddress: "10.0.0.5", sysName: "sw1" },
+      { ipAddress: "10.0.0.9", sysName: "sw2" },
+      { ipAddress: "10.0.0.11", sysName: "sw3" },
+      { ipAddress: "10.0.0.20", snmpReachable: false },
+      { ipAddress: "10.0.0.21", snmpReachable: false },
+    ];
+  }
+
+  // What an ICMP-only sweep reports: alive hosts, every one snmpReachable:false.
+  function pingOnlyHosts(): Array<JSONObject> {
+    return [
+      { ipAddress: "10.0.0.20", snmpReachable: false },
+      { ipAddress: "10.0.0.21", snmpReachable: false },
+      { ipAddress: "10.0.0.22", snmpReachable: false },
+      { ipAddress: "10.0.0.23", snmpReachable: false },
+    ];
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>() as never,
+    );
+    scanService.updateOneById.mockResolvedValue(undefined as never);
+  });
+
+  /*
+   * The column has to be asked for, or the row arrives without it and reads
+   * as an SNMP scan — which for an ICMP-only sweep means storing a hard zero
+   * for a scan that swept the whole range successfully. Same absent-means-
+   * SNMP rule as the claim endpoint, failing in the opposite direction: there
+   * it SNMP-probes a scan that asked not to be, here it reports a good scan
+   * as having found nothing.
+   */
+  test("the result handler selects isSnmpEnabled, or it cannot tell which count to store", async () => {
+    await reportResult(makeScan(false), { discoveredDevices: [] });
+
+    const findOneArgs: JSONObject = scanService.findOneBy.mock
+      .calls[0]![0] as JSONObject;
+    expect((findOneArgs["select"] as JSONObject)["isSnmpEnabled"]).toBe(true);
+  });
+
+  /*
+   * The result select, pinned whole — the counterpart of the claim's pin. A
+   * column dropped from here does not fail: it arrives undefined and the
+   * handler carries on with a wrong default (no reschedule, an SNMP count for
+   * a ping sweep, a superseded result accepted).
+   */
+  test("the result handler asks for exactly the columns it needs to interpret the result", async () => {
+    await reportResult(makeScan(false), { discoveredDevices: [] });
+
+    const findOneArgs: JSONObject = scanService.findOneBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findOneArgs["select"] as JSONObject;
+
+    expect(Object.keys(select).sort()).toEqual([
+      "_id",
+      "isRecurring",
+      "isSnmpEnabled",
+      "projectId",
+      "rescanIntervalInMinutes",
+      "status",
+    ]);
+
+    for (const column of Object.keys(select)) {
+      expect(select[column]).toBe(true);
+    }
+  });
+
+  /*
+   * The headline of issue #3445's second half. Four hosts answered ping on a
+   * scan that only ever asked about ping, so four hosts responded. Filtering
+   * this list for SNMP responders — the rule that is right for the other kind
+   * of scan — would store 0, and the Discovery Scans list would tell the
+   * operator their working sweep found nothing.
+   */
+  test("an ICMP-only sweep counts every host that answered ping", async () => {
+    await reportResult(makeScan(false), {
+      scannedHostCount: 254,
+      discoveredDevices: pingOnlyHosts(),
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(4);
+  });
+
+  /*
+   * The existing rule, asserted next to the new one so the two are visibly
+   * different rather than accidentally the same. On an SNMP scan the
+   * ping-only hosts are still stored (the review modal offers them as
+   * ICMP-monitored devices) but they are NOT what "responded" means there.
+   */
+  test("an SNMP scan still counts SNMP responders only and still leaves the ping-only hosts out", async () => {
+    await reportResult(makeScan(true), {
+      scannedHostCount: 254,
+      discoveredDevices: mixedHosts(),
+    });
+
+    const data: JSONObject = writtenData();
+    expect(data["respondedHostCount"]).toBe(2);
+    // All five are kept for the review modal — only the count is filtered.
+    expect((data["discoveredDevices"] as Array<JSONObject>).length).toBe(5);
+  });
+
+  /*
+   * The same five hosts, counted twice. This is the whole change in one
+   * assertion: the number depends on the question the scan asked, not on the
+   * hosts. If these two ever come out equal, one of the two meanings has been
+   * lost.
+   */
+  test("the same host list is counted differently by the two methods", async () => {
+    const underSnmp: number = await respondedHostCountFor(
+      makeScan(true),
+      mixedHosts(),
+    );
+    const underIcmpOnly: number = await respondedHostCountFor(
+      makeScan(false),
+      mixedHosts(),
+    );
+
+    expect(underSnmp).toBe(2);
+    expect(underIcmpOnly).toBe(5);
+    expect(underIcmpOnly).not.toBe(underSnmp);
+  });
+
+  /*
+   * THE load-bearing legacy case. Every scan row written before this column
+   * existed comes back without it, and so does every row read by a server
+   * that has not been upgraded. Absence has to mean SNMP — it is what those
+   * scans were — and the count has to stay the SNMP count for them.
+   *
+   * Read it the other way round and nothing errors: every legacy scan in
+   * every project would quietly be treated as a ping sweep, its
+   * respondedHostCount would jump to include hosts that answered nothing but
+   * ICMP, and the "manageable devices" number the inventory is built on would
+   * stop meaning that.
+   *
+   * Not new coverage, strictly: `makeFoundScan` in the describe above never
+   * sets the column either, so every result test up there is already a legacy
+   * row, so "respondedHostCount counts SNMP responders only, not ping-only
+   * hosts" and "a sweep that found only ping-only hosts reports zero SNMP
+   * responders" up there already pin this rule. These two say it out loud,
+   * next to the ICMP-only cases they have to be read against.
+   */
+  test("a scan whose isSnmpEnabled never arrived counts SNMP responders — absence means SNMP", async () => {
+    await reportResult(makeScan(), { discoveredDevices: mixedHosts() });
+
+    expect(writtenData()["respondedHostCount"]).toBe(2);
+  });
+
+  test("a legacy scan is not accidentally read as ICMP-only", async () => {
+    const legacyScan: NetworkDeviceDiscoveryScan = makeScan();
+    expect(legacyScan.isSnmpEnabled).toBeUndefined();
+
+    const counted: number = await respondedHostCountFor(
+      legacyScan,
+      pingOnlyHosts(),
+    );
+
+    /*
+     * Four alive hosts, none of them SNMP-reachable, on a scan that never
+     * said it was ICMP-only: the honest answer is zero SNMP responders. A 4
+     * here would mean absence had been read as "ping sweep".
+     */
+    expect(counted).toBe(0);
+  });
+
+  /*
+   * The column is NOT NULL in Postgres, but a row can still reach this
+   * handler with a null in it — a partial select, a hand-written query, a
+   * fixture. `!== false` covers null for the same reason it covers
+   * undefined, and this pins that it does.
+   */
+  test("a scan whose isSnmpEnabled arrived as null is treated exactly like a legacy row", async () => {
+    const scan: NetworkDeviceDiscoveryScan = makeScan();
+    (scan as unknown as JSONObject)["isSnmpEnabled"] = null;
+
+    await reportResult(scan, { discoveredDevices: mixedHosts() });
+
+    expect(writtenData()["respondedHostCount"]).toBe(2);
+  });
+
+  /*
+   * Only an EXPLICIT false switches the count over. Anything else — absent,
+   * null — is an SNMP scan, so the ICMP-only branch can never be entered by
+   * accident.
+   */
+  test("only an explicit false switches the count to ping responders", async () => {
+    expect(await respondedHostCountFor(makeScan(false), mixedHosts())).toBe(5);
+    expect(await respondedHostCountFor(makeScan(true), mixedHosts())).toBe(2);
+    expect(await respondedHostCountFor(makeScan(), mixedHosts())).toBe(2);
+  });
+
+  /*
+   * An older probe omits `snmpReachable` entirely and only ever pushed SNMP
+   * responders into the array, so a missing key still has to count as a
+   * responder on an SNMP scan. This is the same `!== false` shape as the mode
+   * flag itself, one level down, and it has to survive the #3445 change
+   * untouched.
+   *
+   * Three keyless hosts among two the probe tagged `snmpReachable: false`, so
+   * the number distinguishes all three ways this can break: 5 means the mode
+   * was ignored and the ICMP-only branch ran, 2 means a missing key was read
+   * as "not reachable", 3 is right.
+   */
+  test("hosts from an older probe that carry no snmpReachable key still count as SNMP responders", async () => {
+    await reportResult(makeScan(true), {
+      discoveredDevices: keylessAndPingOnlyHosts(),
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(3);
+  });
+
+  /*
+   * The same list again on a legacy row, which is where the two rules meet:
+   * the scan carries no method AND some hosts carry no snmpReachable. Both
+   * absences have to read as "SNMP", so the answer stays 3. A 5 here is the
+   * absence-means-ICMP-only regression; a 2 is the missing-key one.
+   */
+  test("the same keyless hosts on a legacy scan are also counted as SNMP responders", async () => {
+    await reportResult(makeScan(), {
+      discoveredDevices: keylessAndPingOnlyHosts(),
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(3);
+  });
+
+  /*
+   * The scan's method wins over anything the hosts claim. An ICMP-only sweep
+   * has no SNMP result to report, so a `snmpReachable: true` on one of its
+   * hosts is a probe bug or a stale payload — and either way, dropping the
+   * other hosts on the strength of it would be the "0 of 254" failure again,
+   * just partially.
+   */
+  test("an ICMP-only sweep counts every alive host even if a host arrives tagged snmpReachable", async () => {
+    await reportResult(makeScan(false), {
+      discoveredDevices: [
+        { ipAddress: "10.0.0.5", snmpReachable: true },
+        { ipAddress: "10.0.0.20", snmpReachable: false },
+        { ipAddress: "10.0.0.21" },
+      ],
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(3);
+  });
+
+  /*
+   * The method is a property of the SCAN, read from the row the server owns —
+   * never from the request. The probe is authenticated as a probe, not as the
+   * project, so a probe that sent its own `isSnmpEnabled` (buggy, old, or
+   * hostile) must not be able to change how its results are counted, in
+   * either direction.
+   */
+  test("a method sent in the request body cannot turn an SNMP scan into a ping sweep", async () => {
+    await reportResult(makeScan(true), {
+      isSnmpEnabled: false,
+      discoveredDevices: mixedHosts(),
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(2);
+  });
+
+  test("a method sent in the request body cannot turn a ping sweep into an SNMP scan", async () => {
+    await reportResult(makeScan(false), {
+      isSnmpEnabled: true,
+      discoveredDevices: mixedHosts(),
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(5);
+  });
+
+  /*
+   * The empty sweep. Nothing answered ping on a range that was swept
+   * perfectly well, so zero is the truthful number — reached by counting an
+   * empty array, not by anything throwing on the way.
+   */
+  test("an ICMP-only sweep that found nothing stores zero and still completes", async () => {
+    const { next } = await reportResult(makeScan(false), {
+      scannedHostCount: 254,
+      statusMessage:
+        "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping.",
+      discoveredDevices: [],
+    });
+
+    expect(next).not.toHaveBeenCalled();
+
+    const data: JSONObject = writtenData();
+    expect(data["respondedHostCount"]).toBe(0);
+    expect(data["status"]).toBe("Completed");
+    expect(data["discoveredDevices"]).toEqual([]);
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
+      expect.anything(),
+      mockResponse,
+      { result: "ok" },
+    );
+  });
+
+  /*
+   * An ICMP-only result whose probe sent no discoveredDevices key at all —
+   * an older probe, or a payload trimmed in transit. The count must still be
+   * a number, because the column is numeric and the overview page prints it
+   * verbatim: an undefined or a NaN here is a broken cell on a page nobody
+   * can fix from the UI.
+   */
+  test("an ICMP-only result with no discoveredDevices key at all stores the number zero", async () => {
+    await reportResult(makeScan(false), {});
+
+    const stored: unknown = writtenData()["respondedHostCount"];
+    expect(stored).toBe(0);
+    expect(typeof stored).toBe("number");
+    expect(Number.isNaN(stored as number)).toBe(false);
+  });
+
+  /*
+   * A probe that sends `discoveredDevices: null` — the shape an aborted sweep
+   * serialises to. The handler falls back to an empty list, so the row still
+   * gets a number and the sweep is recorded as having found nothing, rather
+   * than the request dying and the scan being left In Progress for the reaper.
+   */
+  test("an ICMP-only result whose discoveredDevices arrived as null stores zero", async () => {
+    const { next } = await reportResult(makeScan(false), {
+      discoveredDevices: null,
+    });
+
+    expect(next).not.toHaveBeenCalled();
+
+    const data: JSONObject = writtenData();
+    expect(data["respondedHostCount"]).toBe(0);
+    expect(data["discoveredDevices"]).toEqual([]);
+  });
+
+  // The smallest non-empty sweep: one host up in the range.
+  test("an ICMP-only sweep that found a single host stores one", async () => {
+    await reportResult(makeScan(false), {
+      scannedHostCount: 254,
+      discoveredDevices: [{ ipAddress: "10.0.0.20", snmpReachable: false }],
+    });
+
+    expect(writtenData()["respondedHostCount"]).toBe(1);
+  });
+
+  /*
+   * The number from the issue, end to end: a full /24 where everything is
+   * alive. This is the row that used to read "0 of 254 hosts".
+   */
+  test("an ICMP-only sweep of a full /24 stores 254, not zero", async () => {
+    const discovered: Array<JSONObject> = [];
+    for (let index: number = 1; index <= 254; index++) {
+      discovered.push({
+        ipAddress: `10.0.0.${index}`,
+        snmpReachable: false,
+      });
+    }
+
+    await reportResult(makeScan(false), {
+      scannedHostCount: 254,
+      discoveredDevices: discovered,
+    });
+
+    const data: JSONObject = writtenData();
+    expect(data["respondedHostCount"]).toBe(254);
+    expect(data["respondedHostCount"]).not.toBe(0);
+    // Same denominator the list renders against, so the cell reads "254 of 254".
+    expect(data["scannedHostCount"]).toBe(254);
+  });
+
+  /*
+   * A host that already has a device answered the ping just the same. The
+   * already-registered flag is about what the review modal may import, and
+   * has nothing to do with what responded — on either method.
+   */
+  test("already-registered hosts still count on an ICMP-only sweep", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.20", "10.0.0.21"]) as never,
+    );
+
+    await reportResult(makeScan(false), { discoveredDevices: pingOnlyHosts() });
+
+    const data: JSONObject = writtenData();
+    expect(data["respondedHostCount"]).toBe(4);
+    expect(
+      (data["discoveredDevices"] as Array<JSONObject>).filter(
+        (device: JSONObject): boolean => {
+          return device["isAlreadyRegistered"] === true;
+        },
+      ),
+    ).toHaveLength(2);
+  });
+
+  /*
+   * A sweep the probe reports as failed still reports the hosts it managed to
+   * find, and those hosts still answered ping. The method decides the count;
+   * success decides the status. Mixing the two would lose the partial results
+   * of a sweep that stopped early — which is exactly the ICMP-incomplete case
+   * the probe now reports.
+   */
+  test("a failed ICMP-only sweep still counts the hosts it did find", async () => {
+    await reportResult(makeScan(false), {
+      success: false,
+      statusMessage: "This ping sweep stopped early.",
+      discoveredDevices: pingOnlyHosts(),
+    });
+
+    const data: JSONObject = writtenData();
+    expect(data["status"]).toBe("Failed");
+    expect(data["respondedHostCount"]).toBe(4);
+  });
+
+  /*
+   * Everything else about a result is method-agnostic. The columns written
+   * for an ICMP-only sweep are the same columns, so nothing downstream — the
+   * auto-import worker's autoImportProcessedAt marker, the reaper's status,
+   * the review modal's host list — has to learn about the new mode.
+   */
+  test("an ICMP-only result writes exactly the same columns as an SNMP one", async () => {
+    await reportResult(makeScan(false), {
+      success: true,
+      statusMessage: "Swept 254 hosts with ICMP ping only.",
+      scannedHostCount: 254,
+      discoveredDevices: pingOnlyHosts(),
+    });
+
+    const data: JSONObject = writtenData();
+    expect(Object.keys(data).sort()).toEqual([
+      "autoImportProcessedAt",
+      "completedAt",
+      "discoveredDevices",
+      "respondedHostCount",
+      "scannedHostCount",
+      "status",
+      "statusMessage",
+    ]);
+    expect(data["autoImportProcessedAt"]).toBeNull();
+    expect(data["completedAt"]).toBeInstanceOf(Date);
+  });
+
+  /*
+   * The hosts themselves are stored untouched apart from the registration
+   * flag — the review modal is what turns them into devices, and it reads
+   * them off this row.
+   */
+  test("an ICMP-only sweep stores every host it found, in the order the probe reported them", async () => {
+    await reportResult(makeScan(false), {
+      discoveredDevices: [
+        { ipAddress: "10.0.0.23", snmpReachable: false },
+        { ipAddress: "10.0.0.20", snmpReachable: false },
+      ],
+    });
+
+    expect(writtenData()["discoveredDevices"]).toEqual([
+      {
+        ipAddress: "10.0.0.23",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+      },
+      {
+        ipAddress: "10.0.0.20",
+        snmpReachable: false,
+        isAlreadyRegistered: false,
+      },
+    ]);
+  });
+
+  /*
+   * scannedHostCount is the probe's own number — how many addresses the sweep
+   * walked — and is the denominator of "N of M hosts". It is reported the
+   * same way by both methods and must not be derived from, or clipped to, the
+   * responder count.
+   */
+  test("scannedHostCount is stored as reported on an ICMP-only sweep, independent of the responder count", async () => {
+    await reportResult(makeScan(false), {
+      scannedHostCount: 1024,
+      discoveredDevices: pingOnlyHosts(),
+    });
+
+    const data: JSONObject = writtenData();
+    expect(data["scannedHostCount"]).toBe(1024);
+    expect(data["respondedHostCount"]).toBe(4);
+  });
+
+  /*
+   * The probe's ICMP-only summary is the user-facing explanation of a sweep
+   * that found nothing, and it is the product here — it is what tells an
+   * operator that Windows hosts drop ping. It has to be stored verbatim, not
+   * rewritten or replaced by the SNMP wording.
+   */
+  test("an ICMP-only status message is stored verbatim", async () => {
+    const message: string =
+      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping. Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it.";
+
+    await reportResult(makeScan(false), {
+      statusMessage: message,
+      discoveredDevices: [],
+    });
+
+    expect(writtenData()["statusMessage"]).toBe(message);
+  });
+
+  /*
+   * The ICMP-only summary is longer than the SNMP one (it carries the
+   * incomplete-sweep warning and the "hosts that drop ping" advice), so the
+   * varchar(500) clip matters more here, not less. Clipping loses words;
+   * failing the write loses the whole sweep.
+   */
+  test("an over-long ICMP-only status message is clipped rather than failing the write", async () => {
+    await reportResult(makeScan(false), {
+      statusMessage: "P".repeat(900),
+      discoveredDevices: pingOnlyHosts(),
+    });
+
+    const data: JSONObject = writtenData();
+    expect(data["statusMessage"]).toHaveLength(500);
+    expect(data["respondedHostCount"]).toBe(4);
+  });
+
+  /*
+   * Recurrence is orthogonal to method. An ICMP-only scan that recurs gets
+   * its next run scheduled on the same interval arithmetic — the mode must
+   * not slip into the branch that decides whether to reschedule.
+   */
+  test("a recurring ICMP-only scan schedules its next run like any other", async () => {
+    const before: number = Date.now();
+    await reportResult(
+      makeScan(false, { isRecurring: true, rescanIntervalInMinutes: 60 }),
+      { discoveredDevices: pingOnlyHosts() },
+    );
+    const after: number = Date.now();
+
+    const data: JSONObject = writtenData();
+    const nextScanAt: Date = data["nextScanAt"] as Date;
+    expect(nextScanAt).toBeInstanceOf(Date);
+    const sixtyMinutes: number = 60 * 60 * 1000;
+    expect(nextScanAt.getTime()).toBeGreaterThanOrEqual(
+      before + sixtyMinutes - 1000,
+    );
+    expect(nextScanAt.getTime()).toBeLessThanOrEqual(
+      after + sixtyMinutes + 1000,
+    );
+    expect(data["respondedHostCount"]).toBe(4);
+  });
+
+  test("a one-time ICMP-only scan gets no nextScanAt", async () => {
+    await reportResult(makeScan(false), { discoveredDevices: pingOnlyHosts() });
+
+    expect(Object.keys(writtenData())).not.toContain("nextScanAt");
+  });
+
+  /*
+   * The clamp note is appended to whatever the probe said — including the
+   * ICMP-only summary, which is a different sentence from the SNMP one. Both
+   * have to survive together in the one varchar the user reads.
+   */
+  test("the rescan clamp note is appended to an ICMP-only scan's own summary", async () => {
+    await reportResult(
+      makeScan(false, { isRecurring: true, rescanIntervalInMinutes: 5 }),
+      {
+        statusMessage:
+          "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 4 answered ping.",
+        discoveredDevices: pingOnlyHosts(),
+      },
+    );
+
+    expect(writtenData()["statusMessage"]).toBe(
+      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 4 answered ping. Rescan interval is below the 15-minute minimum; rescanning every 15 minutes instead.",
+    );
+  });
+
+  /*
+   * The superseded-run guard runs before any of this. An ICMP-only result for
+   * a run that has already been requeued is discarded like any other, and in
+   * particular must not overwrite the new run's empty result with a count
+   * from hours ago.
+   */
+  test("an ICMP-only result for a run that was already requeued is discarded", async () => {
+    const scan: NetworkDeviceDiscoveryScan = makeScan(false);
+    scan.status = "Pending";
+
+    await reportResult(scan, { discoveredDevices: pingOnlyHosts() });
+
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
+      expect.anything(),
+      mockResponse,
+      { result: "discarded" },
+    );
   });
 });
 
@@ -1627,5 +2554,65 @@ describe("the service stubs in this file track the route they stand in for", () 
     expect(
       methodsMissingFrom(scanService, "NetworkDeviceDiscoveryScanService"),
     ).toEqual([]);
+  });
+
+  /*
+   * The same source scan, put to a second use: how the route READS the scan's
+   * method.
+   *
+   * `isSnmpEnabled` is a three-state column — true, false, and absent — and
+   * absent has to mean SNMP, because that is what every row written before
+   * the column existed was. The whole rule lives in one place,
+   * Common/Utils/NetworkDiscovery/ScanModeUtil, whose predicate is `!==
+   * false`; the model's own comment on the column says it must be read
+   * everywhere through that util rather than directly.
+   *
+   * A bare `scan.isSnmpEnabled === true` here would compile, pass every
+   * behavioural test that sets the column explicitly, and silently flip every
+   * legacy row to ICMP-only — which on this route means storing a ping count
+   * as the SNMP responder count for every scan that predates the column. A
+   * bare truthiness check (`if (scan.isSnmpEnabled)`) has the same effect.
+   * Neither is visible in a result assertion unless the fixture happens to
+   * leave the column unset, so pin the call shape itself.
+   *
+   * Everything about how the predicate BEHAVES is tested above, against the
+   * real (unmocked) util. This only pins that the route asks it.
+   */
+  /*
+   * Hoisted out of the filter below: eslint's wrap-regex refuses a bare regexp
+   * literal in an expression position, and naming them says what each matches.
+   */
+  const UTIL_CALL: RegExp = /ScanModeUtil\.isSnmpEnabled\s*\(/;
+  const SELECT_KEY: RegExp = /^\s*isSnmpEnabled:\s*true,?\s*$/;
+
+  function modeReadsNotGoingThroughScanModeUtil(): Array<string> {
+    return routeCode
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.includes("isSnmpEnabled");
+      })
+      .filter((line: string): boolean => {
+        // A call into the util, or a select key asking for the column.
+        return !UTIL_CALL.test(line) && !SELECT_KEY.test(line);
+      })
+      .map((line: string): string => {
+        return line.trim();
+      });
+  }
+
+  test("the route reads the scan method through ScanModeUtil, never by comparing the column", () => {
+    /*
+     * Guard against the scan passing vacuously: the route has to mention the
+     * column at all (two selects) and call the util at least twice (the
+     * respondedHostCount branch and the completion log line).
+     */
+    const mentions: number = routeCode.split("isSnmpEnabled").length - 1;
+    expect(mentions).toBeGreaterThanOrEqual(4);
+    expect(
+      routeCode.split(/ScanModeUtil\.isSnmpEnabled\s*\(/).length - 1,
+    ).toBeGreaterThanOrEqual(2);
+
+    expect(methodsCalledOn("ScanModeUtil")).toEqual(["isSnmpEnabled"]);
+    expect(modeReadsNotGoingThroughScanModeUtil()).toEqual([]);
   });
 });

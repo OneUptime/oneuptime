@@ -251,8 +251,9 @@ export default class SubnetScanner {
        */
       if (!isPingSweepAvailable && pingAliveHosts.size === 0) {
         throw new Error(
-          "This scan checks ICMP only, but this probe could not send ICMP echo requests, so it has no way to find anything. " +
-            "Give the probe container the NET_RAW capability (docker run --cap-add=NET_RAW), or turn Check SNMP on so the scan has another way to reach hosts. " +
+          "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
+            "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
+            "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
             "Ping reported: " +
             (pingFailureReason || "unknown error"),
         );
