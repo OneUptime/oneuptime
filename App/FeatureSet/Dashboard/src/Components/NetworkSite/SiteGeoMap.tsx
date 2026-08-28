@@ -59,6 +59,37 @@ import {
   getCachedGeometryFeatures,
   loadGeometryFeatures,
 } from "./Geo/WorldGeometry";
+import {
+  DEFAULT_MAP_LAYERS,
+  EMPHASIS_TRANSITION_MS,
+  EMPTY_MAP_ADJACENCY,
+  MAP_LAYERS_STORAGE_KEY,
+  MAP_LAYER_OPTIONS,
+  MapAdjacency,
+  MapFocus,
+  MapInkPlan,
+  MapLayerOption,
+  MapLayerSettings,
+  MapLineInk,
+  MapRole,
+  MapTooltipText,
+  NO_MAP_FOCUS,
+  buildMapAdjacency,
+  countHiddenMapLayers,
+  labelThreadInk,
+  linkInk,
+  linkRole,
+  markerRole,
+  normalizeMapLayers,
+  opacityForRole,
+  planMapInk,
+  positionAnchorDot,
+  positionLineInk,
+  setMapLayer,
+  splitMapTooltip,
+} from "./SiteMapInk";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
  * Inline-SVG world map of network sites: checked-in country outlines
@@ -119,6 +150,15 @@ const LEGEND: Array<{ key: ClusterColorKey; label: string }> = [
   { key: "none", label: "No status" },
 ];
 
+/*
+ * What a line is drawn in once it has been quietened. A hairline is too
+ * thin to read a colour off, and a red hairline beside a red marker reads
+ * as a second claim about the site rather than as the bookkeeping it is —
+ * so a quiet thread gives up its colour along with its weight, and takes it
+ * back the moment the reader points at the marker it belongs to.
+ */
+const QUIET_LINE_COLOR: string = "var(--ou-chart-tick, #6b7280)";
+
 // One click of the zoom controls, and one press of an arrow key.
 const ZOOM_STEP: number = 2;
 const KEYBOARD_PAN_FRACTION: number = 0.2;
@@ -137,6 +177,44 @@ const DRAG_THRESHOLD_PX: number = 4;
  * push the map off the screen.
  */
 const UNPLACED_NAMES_SHOWN: number = 6;
+
+/*
+ * The layer preference, read straight out of localStorage rather than
+ * fetched in an effect: a map that painted every layer and then dropped two
+ * of them a frame later would flash the exact clutter the preference exists
+ * to avoid.
+ *
+ * Storage can be unavailable outright — a locked-down browser, a private
+ * window with its quota at zero — and it is shared with every tab and
+ * survives every deploy, so whatever comes back is run through
+ * normalizeMapLayers before anything is drawn from it.
+ */
+const readStoredMapLayers: () => MapLayerSettings = (): MapLayerSettings => {
+  try {
+    return normalizeMapLayers(LocalStorage.getItem(MAP_LAYERS_STORAGE_KEY));
+  } catch {
+    // A map is not worth an exception.
+    return { ...DEFAULT_MAP_LAYERS };
+  }
+};
+
+const storeMapLayers: (layers: MapLayerSettings) => void = (
+  layers: MapLayerSettings,
+): void => {
+  try {
+    const stored: JSONObject = {
+      names: layers.names,
+      links: layers.links,
+      positionLines: layers.positionLines,
+    };
+    LocalStorage.setItem(MAP_LAYERS_STORAGE_KEY, stored);
+  } catch {
+    /*
+     * Same bargain as the read: the map still works, the choice just does
+     * not outlive the page.
+     */
+  }
+};
 
 const dotColorForSite: (site: MapSiteView) => string = (
   site: MapSiteView,
@@ -157,10 +235,22 @@ interface OpenCluster {
   ids: Array<string>;
 }
 
-interface HoveredCluster {
+/*
+ * What the hover card is describing, and — just as important — which piece
+ * of the map it belongs to.
+ *
+ * The keys are what drive the emphasis. Pointing at a marker has to light
+ * that marker's own links and fade everything else back, not merely print
+ * its name in a box: on a level with forty markers and sixty lines, "which
+ * of these is this one wired to" is a question a reader cannot answer by
+ * eye, and it is the question the pointer is asking.
+ */
+interface HoveredTarget {
   x: number;
   y: number;
-  label: string;
+  tooltip: string;
+  markerKey: string | null;
+  linkKey: string | null;
 }
 
 /*
@@ -387,8 +477,24 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [openCluster, setOpenCluster] = useState<OpenCluster | null>(null);
-  const [hovered, setHovered] = useState<HoveredCluster | null>(null);
+  const [hovered, setHovered] = useState<HoveredTarget | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  /*
+   * Which layers this reader wants drawn — issue #3432's switch. It is the
+   * escape hatch, not the design: the ink hierarchy below is what makes the
+   * DEFAULT map readable, and this is for the customer who wants a bare map
+   * of dots and knows what they are giving up.
+   */
+  const [layers, setLayers] = useState<MapLayerSettings>(readStoredMapLayers);
+  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState<boolean>(false);
+
+  const changeLayers: (next: MapLayerSettings) => void = useCallback(
+    (next: MapLayerSettings): void => {
+      setLayers(next);
+      storeMapLayers(next);
+    },
+    [],
+  );
   const [overviewFeatures, setOverviewFeatures] =
     useState<Array<GeometryFeature> | null>(
       getCachedGeometryFeatures("overview"),
@@ -528,22 +634,73 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     });
   }, [props.links, placedMarkers, zoom]);
 
-  // Whether the legend has to explain the leader lines this frame.
-  const hasNudgedMarkers: boolean = placedMarkers.some(
+  /*
+   * Who is wired to whom. Rebuilt with the LINES rather than with the
+   * pointer: the answer cannot change as somebody moves the mouse, and
+   * rebuilding it there would walk every link on every frame of a hover.
+   */
+  const adjacency: MapAdjacency = useMemo(() => {
+    return layers.links ? buildMapAdjacency(linkLines) : EMPTY_MAP_ADJACENCY;
+  }, [linkLines, layers.links]);
+
+  /*
+   * What the reader is pointing at, and therefore what the map lifts out of
+   * the crowd. The pointer wins over keyboard focus: a mouse that has moved
+   * onto a marker is a more recent statement of intent than a focus ring a
+   * tab left behind.
+   */
+  const focus: MapFocus = useMemo(() => {
+    if (hovered) {
+      return { markerKey: hovered.markerKey, linkKey: hovered.linkKey };
+    }
+    if (focusedKey) {
+      return { markerKey: focusedKey, linkKey: null };
+    }
+    return NO_MAP_FOCUS;
+  }, [hovered, focusedKey]);
+
+  // How many markers had to be moved, and so carry a thread back.
+  const nudgedMarkerCount: number = placedMarkers.filter(
     (marker: PlacedMapMarker): boolean => {
       return marker.needsLeaderLine;
     },
-  );
+  ).length;
 
   /*
-   * And whether it has to explain the OTHER kind of line: the thread from a
+   * And how many of the OTHER kind of thread there are: the line from a
    * marker to a name that could not fit against it.
    */
-  const hasThreadedLabels: boolean = Array.from(labelPlacements.values()).some(
-    (placement: LabelPlacement): boolean => {
-      return placement.leaderLine !== null;
-    },
-  );
+  const threadedLabelCount: number = Array.from(
+    labelPlacements.values(),
+  ).filter((placement: LabelPlacement): boolean => {
+    return placement.leaderLine !== null;
+  }).length;
+
+  // Whether the legend has to explain either kind this frame.
+  const hasNudgedMarkers: boolean = nudgedMarkerCount > 0;
+  const hasThreadedLabels: boolean = threadedLabelCount > 0;
+
+  /*
+   * How loudly each layer is drawn at rest — the whole of issue #3432's
+   * answer. A map with a couple of threads on it draws them exactly as it
+   * always has; a map with forty drops them to a hairline so they stop
+   * competing with the markers, and hands the weight back the moment the
+   * reader points at the marker a thread belongs to.
+   *
+   * Fed the counts the map is ACTUALLY drawing, so a layer switched off
+   * cannot make the layers still on screen read as crowded.
+   */
+  const inkPlan: MapInkPlan = planMapInk({
+    positionLineCount: layers.positionLines ? nudgedMarkerCount : 0,
+    labelThreadCount:
+      layers.positionLines && layers.names ? threadedLabelCount : 0,
+    linkCount: layers.links ? linkLines.length : 0,
+  });
+
+  const hiddenLayerCount: number = countHiddenMapLayers(layers);
+
+  // The hover card's two halves — the name, and everything qualifying it.
+  const hoverText: MapTooltipText = splitMapTooltip(hovered?.tooltip || "");
 
   /*
    * Zoom changes which sites share a marker, so an open picker's list can go
@@ -555,6 +712,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
       setViewport(next);
       setOpenCluster(null);
       setHovered(null);
+      setIsLayerPanelOpen(false);
     },
     [],
   );
@@ -738,6 +896,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
       });
       setOpenCluster(null);
       setHovered(null);
+      setIsLayerPanelOpen(false);
     };
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => {
@@ -748,6 +907,12 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   const onPointerDown: (event: React.PointerEvent<SVGSVGElement>) => void = (
     event: React.PointerEvent<SVGSVGElement>,
   ): void => {
+    /*
+     * Touching the map dismisses the layer panel. It floats over the map it
+     * is about, and a panel that stayed open while somebody dragged the
+     * thing underneath it is a panel they have to go back and close.
+     */
+    setIsLayerPanelOpen(false);
     // One drag at a time — a second touch must not corrupt the pan.
     if (event.button !== 0 || dragState.current) {
       return;
@@ -953,6 +1118,24 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   );
   const isFitted: boolean = viewportsMatch(viewport, fittedViewport);
   const isWholeWorld: boolean = viewportsMatch(viewport, WORLD_VIEWPORT);
+  /*
+   * Whether the map has calmed anything down this frame. It is the one
+   * thing about the ink hierarchy a reader has to be told: a thread drawn
+   * at a hairline is easy to miss, and somebody who cannot see where a
+   * marker really sits needs to know the answer is a hover away rather than
+   * gone.
+   */
+  const isInkCalmed: boolean =
+    inkPlan.positionLines === "quiet" ||
+    inkPlan.labelThreads === "quiet" ||
+    inkPlan.links === "quiet";
+  const hasDrawnLinks: boolean = layers.links && linkLines.length > 0;
+  const emphasisHint: string = hasDrawnLinks
+    ? " Hover one to trace what it connects to."
+    : isInkCalmed
+      ? " Hover one to see exactly where it sits."
+      : "";
+
   const coverageLabel: string = describeMapCoverage({
     mode: props.mode,
     markerCount: markers.length,
@@ -971,10 +1154,11 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
          * is written above the map, not buried in a legend below it.
          */}
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500" data-testid="site-geo-map-hint">
             {props.mode === "grouped"
               ? `Each marker is one ${props.childTypeLabel.toLowerCase()} — click to open it.`
               : "Each marker is one site. Nearby sites share a marker; zoom in to separate them."}
+            {emphasisHint}
           </p>
           <MapModeSwitch
             mode={props.selectedMode}
@@ -1117,64 +1301,92 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
              * the leader lines and the name labels use, so it survives a
              * coastline or a dark landmass.
              */}
-            <g data-testid="site-geo-map-links">
-              {linkLines.map((link: DrawableMapLink): ReactElement => {
-                const path: string = mapLinkPath(link);
-                return (
-                  <g key={`link-${link.key}`}>
-                    <path
-                      d={path}
-                      fill="none"
-                      stroke="var(--ou-surface-primary, #ffffff)"
-                      strokeWidth={4 / zoom}
-                      strokeOpacity={0.85}
-                      strokeLinecap="round"
-                      style={{ pointerEvents: "none" }}
-                    />
-                    <path
-                      d={path}
-                      fill="none"
-                      stroke={link.color}
-                      strokeWidth={1.75 / zoom}
-                      strokeOpacity={0.95}
-                      strokeLinecap="round"
-                      strokeDasharray={
-                        link.hasMonitor ? undefined : `${5 / zoom} ${4 / zoom}`
-                      }
-                      style={{ pointerEvents: "none" }}
-                    />
-                    {/*
-                     * The hit area. A 2px line is unhoverable in practice,
-                     * and the name of a link is the whole reason to hover
-                     * one — so the pointer target is a fat invisible stroke
-                     * over the same path.
-                     */}
-                    <path
-                      d={path}
-                      fill="none"
-                      stroke="transparent"
-                      strokeWidth={12 / zoom}
-                      strokeLinecap="round"
-                      onMouseEnter={() => {
-                        if (dragState.current) {
-                          return;
-                        }
-                        setHovered({
-                          x: link.midX,
-                          y: link.midY,
-                          label: link.tooltip,
-                        });
-                      }}
-                      onMouseLeave={() => {
-                        setHovered(null);
+            {layers.links ? (
+              <g data-testid="site-geo-map-links">
+                {linkLines.map((link: DrawableMapLink): ReactElement => {
+                  const path: string = mapLinkPath(link);
+                  /*
+                   * What this line is relative to whatever the reader is
+                   * pointing at, and therefore how loudly it is drawn. With
+                   * nothing under the pointer every line is "idle" and the
+                   * weight is the resting one the ink plan chose.
+                   */
+                  const emphasis: MapRole = linkRole({
+                    focus: focus,
+                    link: link,
+                  });
+                  const ink: MapLineInk = linkInk(inkPlan.links, emphasis);
+                  return (
+                    <g
+                      key={`link-${link.key}`}
+                      opacity={opacityForRole(emphasis)}
+                      style={{
+                        transition: `opacity ${EMPHASIS_TRANSITION_MS}ms ease`,
                       }}
                     >
-                      <title>{link.tooltip}</title>
-                    </path>
-                  </g>
-                );
-              })}
-            </g>
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke="var(--ou-surface-primary, #ffffff)"
+                        strokeWidth={ink.haloWidth / zoom}
+                        strokeOpacity={ink.haloOpacity}
+                        strokeLinecap="round"
+                        style={{ pointerEvents: "none" }}
+                      />
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke={link.color}
+                        strokeWidth={ink.width / zoom}
+                        strokeOpacity={ink.opacity}
+                        strokeLinecap="round"
+                        strokeDasharray={
+                          link.hasMonitor
+                            ? undefined
+                            : `${5 / zoom} ${4 / zoom}`
+                        }
+                        style={{ pointerEvents: "none" }}
+                      />
+                      {/*
+                       * The hit area. A 2px line is unhoverable in practice,
+                       * and the name of a link is the whole reason to hover
+                       * one — so the pointer target is a fat invisible stroke
+                       * over the same path. It keeps its full width whatever
+                       * the drawn line has quietened to: a line the map has
+                       * calmed is exactly the one a reader needs to be able
+                       * to pick up again.
+                       */}
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke="transparent"
+                        strokeWidth={12 / zoom}
+                        strokeLinecap="round"
+                        onMouseEnter={() => {
+                          if (dragState.current) {
+                            return;
+                          }
+                          setHovered({
+                            x: link.midX,
+                            y: link.midY,
+                            tooltip: link.tooltip,
+                            markerKey: null,
+                            linkKey: link.key,
+                          });
+                        }}
+                        onMouseLeave={() => {
+                          setHovered(null);
+                        }}
+                      >
+                        <title>{link.tooltip}</title>
+                      </path>
+                    </g>
+                  );
+                })}
+              </g>
+            ) : (
+              <></>
+            )}
 
             {/*
              * Leader lines, under the markers they belong to.
@@ -1191,53 +1403,87 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
              * survives a coastline or a dark landmass — the same trick the
              * name labels use.
              */}
-            <g style={{ pointerEvents: "none" }}>
-              {placedMarkers
-                .filter((marker: PlacedMapMarker): boolean => {
-                  return marker.needsLeaderLine;
-                })
-                .map((marker: PlacedMapMarker): ReactElement => {
-                  const color: string = CLUSTER_COLORS[marker.colorKey];
-                  return (
-                    <g key={`leader-${marker.key}`} aria-hidden="true">
-                      <line
-                        x1={marker.anchorX}
-                        y1={marker.anchorY}
-                        x2={marker.x}
-                        y2={marker.y}
-                        stroke="var(--ou-surface-primary, #ffffff)"
-                        strokeWidth={3.5 / zoom}
-                        strokeOpacity={0.9}
-                        strokeLinecap="round"
-                      />
-                      <line
-                        x1={marker.anchorX}
-                        y1={marker.anchorY}
-                        x2={marker.x}
-                        y2={marker.y}
-                        stroke={color}
-                        strokeWidth={1.25 / zoom}
-                        strokeOpacity={0.9}
-                        strokeLinecap="round"
-                      />
-                      {/* The exact spot: a white pip so the dot reads on
-                       * land, and the marker's colour inside it. */}
-                      <circle
-                        cx={marker.anchorX}
-                        cy={marker.anchorY}
-                        r={2.25 / zoom}
-                        fill="var(--ou-surface-primary, #ffffff)"
-                      />
-                      <circle
-                        cx={marker.anchorX}
-                        cy={marker.anchorY}
-                        r={1.25 / zoom}
-                        fill={color}
-                      />
-                    </g>
-                  );
-                })}
-            </g>
+            {layers.positionLines ? (
+              <g
+                data-testid="site-geo-map-position-lines"
+                style={{ pointerEvents: "none" }}
+              >
+                {placedMarkers
+                  .filter((marker: PlacedMapMarker): boolean => {
+                    return marker.needsLeaderLine;
+                  })
+                  .map((marker: PlacedMapMarker): ReactElement => {
+                    const emphasis: MapRole = markerRole({
+                      focus: focus,
+                      adjacency: adjacency,
+                      markerKey: marker.key,
+                    });
+                    const ink: MapLineInk = positionLineInk(
+                      inkPlan.positionLines,
+                      emphasis,
+                    );
+                    /*
+                     * A quiet thread gives up its colour with its weight —
+                     * see QUIET_LINE_COLOR — and takes it straight back when
+                     * the reader points at the marker it explains.
+                     */
+                    const color: string = ink.isColored
+                      ? CLUSTER_COLORS[marker.colorKey]
+                      : QUIET_LINE_COLOR;
+                    const dot: { radius: number; haloRadius: number } =
+                      positionAnchorDot(ink);
+                    return (
+                      <g
+                        key={`leader-${marker.key}`}
+                        aria-hidden="true"
+                        opacity={opacityForRole(emphasis)}
+                        style={{
+                          transition: `opacity ${EMPHASIS_TRANSITION_MS}ms ease`,
+                        }}
+                      >
+                        <line
+                          x1={marker.anchorX}
+                          y1={marker.anchorY}
+                          x2={marker.x}
+                          y2={marker.y}
+                          stroke="var(--ou-surface-primary, #ffffff)"
+                          strokeWidth={ink.haloWidth / zoom}
+                          strokeOpacity={ink.haloOpacity}
+                          strokeLinecap="round"
+                        />
+                        <line
+                          x1={marker.anchorX}
+                          y1={marker.anchorY}
+                          x2={marker.x}
+                          y2={marker.y}
+                          stroke={color}
+                          strokeWidth={ink.width / zoom}
+                          strokeOpacity={ink.opacity}
+                          strokeLinecap="round"
+                        />
+                        {/* The exact spot: a white pip so the dot reads on
+                         * land, and the thread's own colour inside it. */}
+                        <circle
+                          cx={marker.anchorX}
+                          cy={marker.anchorY}
+                          r={dot.haloRadius / zoom}
+                          fill="var(--ou-surface-primary, #ffffff)"
+                          fillOpacity={ink.haloOpacity}
+                        />
+                        <circle
+                          cx={marker.anchorX}
+                          cy={marker.anchorY}
+                          r={dot.radius / zoom}
+                          fill={color}
+                          fillOpacity={ink.opacity}
+                        />
+                      </g>
+                    );
+                  })}
+              </g>
+            ) : (
+              <></>
+            )}
 
             {/*
              * The markers. A CONTAINER — a region, a market, "Corp" — is
@@ -1293,13 +1539,42 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 const side: number = radius * CONTAINER_SIDE_FACTOR;
                 const haloSide: number = side + ((hasCount ? 4 : 3) * 2) / zoom;
 
+                /*
+                 * What this marker is relative to whatever the reader is
+                 * pointing at: the subject itself, something one hop from
+                 * it, or part of the crowd that fades back so the other two
+                 * can be read. "idle" — nothing under the pointer — draws
+                 * every marker at full strength, which is the map at rest.
+                 */
+                const emphasis: MapRole = markerRole({
+                  focus: focus,
+                  adjacency: adjacency,
+                  markerKey: key,
+                });
+                const threadInk: MapLineInk = labelThreadInk(
+                  inkPlan.labelThreads,
+                  emphasis,
+                );
+
                 return (
                   <g
                     key={key}
                     role="button"
                     tabIndex={0}
                     aria-label={marker.tooltip}
-                    style={{ cursor: "pointer", outline: "none" }}
+                    /*
+                     * Opacity only. A muted marker keeps its hit area, its
+                     * tab stop and its accessible name: fading is how the
+                     * map answers a question, never a way of taking half of
+                     * it away from anybody reading with a keyboard or a
+                     * screen reader.
+                     */
+                    opacity={opacityForRole(emphasis)}
+                    style={{
+                      cursor: "pointer",
+                      outline: "none",
+                      transition: `opacity ${EMPHASIS_TRANSITION_MS}ms ease`,
+                    }}
                     onClick={() => {
                       // A pan that happened to end on a marker is not a click.
                       if (suppressClick.current) {
@@ -1321,7 +1596,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       setHovered({
                         x: marker.x,
                         y: marker.y,
-                        label: marker.tooltip,
+                        tooltip: marker.tooltip,
+                        markerKey: key,
+                        linkKey: null,
                       });
                     }}
                     onMouseLeave={() => {
@@ -1332,7 +1609,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       setHovered({
                         x: marker.x,
                         y: marker.y,
-                        label: marker.tooltip,
+                        tooltip: marker.tooltip,
+                        markerKey: key,
+                        linkKey: null,
                       });
                     }}
                     onBlur={() => {
@@ -1437,7 +1716,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                      * BEHIND the glyphs and the label stays readable over a
                      * coastline, a landmass or another marker.
                      */}
-                    {marker.label && labelPlacement ? (
+                    {layers.names && marker.label && labelPlacement ? (
                       <>
                         {/*
                          * A name that could not fit against its marker keeps
@@ -1448,8 +1727,14 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                          * name is typography, not status, and a second
                          * coloured thread beside the anchor line would read
                          * as a second claim about the site.
+                         *
+                         * It is a position line like the anchor thread is,
+                         * so it answers to the same switch and to the same
+                         * ink plan: on a level drawing dozens of them they
+                         * calm down together, and the one belonging to the
+                         * marker under the pointer comes back on its own.
                          */}
-                        {labelPlacement.leaderLine ? (
+                        {layers.positionLines && labelPlacement.leaderLine ? (
                           <g aria-hidden="true">
                             <line
                               x1={
@@ -1465,8 +1750,8 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                                 marker.y + labelPlacement.leaderLine.y2 / zoom
                               }
                               stroke="var(--ou-surface-primary, #ffffff)"
-                              strokeWidth={3 / zoom}
-                              strokeOpacity={0.9}
+                              strokeWidth={threadInk.haloWidth / zoom}
+                              strokeOpacity={threadInk.haloOpacity}
                               strokeLinecap="round"
                             />
                             <line
@@ -1482,9 +1767,9 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                               y2={
                                 marker.y + labelPlacement.leaderLine.y2 / zoom
                               }
-                              stroke="var(--ou-chart-tick, #6b7280)"
-                              strokeWidth={0.9 / zoom}
-                              strokeOpacity={0.75}
+                              stroke={QUIET_LINE_COLOR}
+                              strokeWidth={threadInk.width / zoom}
+                              strokeOpacity={threadInk.opacity}
                               strokeLinecap="round"
                             />
                           </g>
@@ -1552,49 +1837,169 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             </g>
           </svg>
 
-          {/* Zoom and framing controls. */}
-          <div className="absolute right-2 top-2 z-10 flex flex-col rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm backdrop-blur">
-            <MapControlButton
-              label="Zoom in"
-              icon={IconProp.MagnifyingGlassPlus}
-              disabled={zoom >= MAX_ZOOM}
-              onClick={() => {
-                changeViewport(zoomViewport(viewport, ZOOM_STEP));
-              }}
-            />
-            <MapControlButton
-              label="Zoom out"
-              icon={IconProp.MagnifyingGlassMinus}
-              disabled={isWholeWorld}
-              onClick={() => {
-                changeViewport(zoomViewport(viewport, 1 / ZOOM_STEP));
-              }}
-            />
-            <MapControlButton
-              label="Fit to sites"
-              icon={IconProp.MapPin}
-              disabled={isFitted}
-              onClick={() => {
-                changeViewport(fittedViewport);
-              }}
-            />
-            <MapControlButton
-              label="Whole world"
-              icon={IconProp.Globe}
-              disabled={isWholeWorld}
-              onClick={() => {
-                changeViewport(clampViewport(WORLD_VIEWPORT));
-              }}
-            />
+          {/*
+           * Zoom, framing and the layer switch. One cluster, with the panel
+           * opening to the LEFT of the buttons rather than under them: the
+           * buttons are pinned to the map's top-right corner, and a panel
+           * dropped below them would cover the markers nearest the corner —
+           * which on a map framed to North America is most of the estate.
+           */}
+          <div className="absolute right-2 top-2 z-20 flex items-start gap-2">
+            {isLayerPanelOpen ? (
+              <div
+                data-testid="site-geo-map-layers-panel"
+                role="group"
+                aria-label="Map layers"
+                className="w-60 rounded-lg border border-gray-200 bg-white/95 p-1.5 shadow-lg backdrop-blur"
+              >
+                <p className="px-1.5 pb-1 text-xs font-medium text-gray-700">
+                  Show on the map
+                </p>
+                <ul role="list">
+                  {MAP_LAYER_OPTIONS.map(
+                    (option: MapLayerOption): ReactElement => {
+                      const isVisible: boolean = layers[option.key];
+                      return (
+                        <li key={option.key}>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isVisible}
+                            data-testid={`site-geo-map-layer-${option.key}`}
+                            className="flex w-full items-start gap-2 rounded-md px-1.5 py-1 text-left transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            onClick={() => {
+                              changeLayers(
+                                setMapLayer(layers, option.key, !isVisible),
+                              );
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
+                                isVisible
+                                  ? "border-indigo-600 bg-indigo-600 text-white"
+                                  : "border-gray-300 bg-white text-transparent"
+                              }`}
+                            >
+                              <Icon className="h-3 w-3" icon={IconProp.Check} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-xs font-medium text-gray-800">
+                                {option.label}
+                              </span>
+                              <span className="block text-xs leading-tight text-gray-500">
+                                {option.hint}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              </div>
+            ) : (
+              <></>
+            )}
+            <div className="flex flex-col rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm backdrop-blur">
+              <MapControlButton
+                label="Zoom in"
+                icon={IconProp.MagnifyingGlassPlus}
+                disabled={zoom >= MAX_ZOOM}
+                onClick={() => {
+                  changeViewport(zoomViewport(viewport, ZOOM_STEP));
+                }}
+              />
+              <MapControlButton
+                label="Zoom out"
+                icon={IconProp.MagnifyingGlassMinus}
+                disabled={isWholeWorld}
+                onClick={() => {
+                  changeViewport(zoomViewport(viewport, 1 / ZOOM_STEP));
+                }}
+              />
+              <MapControlButton
+                label="Fit to sites"
+                icon={IconProp.MapPin}
+                disabled={isFitted}
+                onClick={() => {
+                  changeViewport(fittedViewport);
+                }}
+              />
+              <MapControlButton
+                label="Whole world"
+                icon={IconProp.Globe}
+                disabled={isWholeWorld}
+                onClick={() => {
+                  changeViewport(clampViewport(WORLD_VIEWPORT));
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="mx-1 my-0.5 block h-px bg-gray-200"
+              />
+              {/*
+               * The switch issue #3432 asked for. It carries a dot while
+               * anything is hidden, so a map missing its names says so
+               * without the panel being opened — a customer who turned a
+               * layer off last month and forgot must not spend an afternoon
+               * deciding their data is broken.
+               */}
+              <button
+                type="button"
+                title="Map layers"
+                aria-label="Map layers"
+                aria-expanded={isLayerPanelOpen}
+                data-testid="site-geo-map-layers-toggle"
+                className={`relative flex h-7 w-7 items-center justify-center rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  isLayerPanelOpen
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+                onClick={() => {
+                  setIsLayerPanelOpen(!isLayerPanelOpen);
+                }}
+              >
+                <Icon className="h-4 w-4" icon={IconProp.Layers} />
+                {hiddenLayerCount > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    data-testid="site-geo-map-layers-hidden-dot"
+                    className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-indigo-500"
+                  />
+                ) : (
+                  <></>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Hover/focus label — readable in both themes, unlike a native title. */}
+          {/*
+           * Hover/focus card — readable in both themes, unlike a native
+           * title.
+           *
+           * The tooltip arrives as one " · "-joined line, which is exactly
+           * right for the marker's accessible name and exactly wrong here: a
+           * twelve-word grey sentence hides the one thing the reader was
+           * pointing at the marker to find out. So the name leads, and
+           * everything qualifying it follows underneath.
+           */}
           {hovered && !openCluster ? (
             <div
-              className="pointer-events-none absolute z-10 max-w-xs rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-md"
+              data-testid="site-geo-map-hover-card"
+              className="pointer-events-none absolute z-10 max-w-xs rounded-md border border-gray-200 bg-white px-2.5 py-1.5 shadow-md"
               style={overlayPosition(hovered.x, hovered.y, viewport, 12)}
             >
-              {hovered.label}
+              <p className="text-xs font-semibold text-gray-900">
+                {hoverText.title}
+              </p>
+              {hoverText.detail.length > 0 ? (
+                <p className="mt-0.5 text-xs leading-tight text-gray-500">
+                  {hoverText.detail.join(" · ")}
+                </p>
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>
@@ -1737,7 +2142,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
          * it says both halves of the rule: the color comes from the monitor
          * on the link, and a link without one is dashed rather than absent.
          */}
-        {linkLines.length > 0 ? (
+        {hasDrawnLinks ? (
           <span
             data-testid="site-geo-map-link-key"
             className="flex items-center gap-1.5 text-xs text-gray-600"
@@ -1778,7 +2183,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
          * a key for something that is not on screen is clutter, and on most
          * levels nothing has to move at all.
          */}
-        {hasNudgedMarkers ? (
+        {layers.positionLines && hasNudgedMarkers ? (
           <span
             data-testid="site-geo-map-nudged-key"
             className="flex items-center gap-1.5 text-xs text-gray-600"
@@ -1807,12 +2212,35 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
         )}
 
         {/*
+         * A marker drawn off its coordinates with nothing saying so is the
+         * one thing this map may not do, and switching the lines off does
+         * not make the displacement go away. So the map says it in words
+         * instead, and says how to get the lines back.
+         */}
+        {!layers.positionLines && hasNudgedMarkers ? (
+          <span
+            data-testid="site-geo-map-nudged-hidden-key"
+            className="flex items-center gap-1.5 text-xs text-gray-500"
+          >
+            <Icon
+              className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+              icon={IconProp.Layers}
+            />
+            {nudgedMarkerCount === 1
+              ? "1 marker is nudged apart to stay visible — turn position lines back on to see where it belongs"
+              : `${nudgedMarkerCount} markers are nudged apart to stay visible — turn position lines back on to see where they belong`}
+          </span>
+        ) : (
+          <></>
+        )}
+
+        {/*
          * A line on this map used to mean exactly one thing, and the key
          * above said so. A name that could not fit against its marker is
          * now joined to it by a second, thinner kind of line — so once any
          * are drawn, the key has to stop claiming every line is a nudge.
          */}
-        {hasThreadedLabels ? (
+        {layers.names && layers.positionLines && hasThreadedLabels ? (
           <span
             data-testid="site-geo-map-label-thread-key"
             className="flex items-center gap-1.5 text-xs text-gray-600"
