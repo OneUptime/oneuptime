@@ -130,6 +130,14 @@ export class SiteStatusRollupUtil {
     deviceStates: Array<DeviceHealthState>;
     operationalStatus?: RollupStatusOption | null | undefined;
     offlineStatus?: RollupStatusOption | null | undefined;
+    /*
+     * Devices withheld from the vote by an ongoing maintenance window. They
+     * are known to exist and known NOT to be an unplanned outage, so they
+     * cannot make the site worse - but if they are the only devices left,
+     * the site is operational rather than frozen at whatever it said before
+     * the window opened. See the note on deviceHealthShare.
+     */
+    suppressedDeviceCount?: number | null | undefined;
     now?: Date | undefined;
   }): string | null {
     const now: Date = data.now || new Date();
@@ -171,6 +179,20 @@ export class SiteStatusRollupUtil {
       }
     }
 
+    /*
+     * Nothing voted, but the subtree is not empty - every device in it is
+     * inside a maintenance window. "Leave the status untouched" is the right
+     * answer for an empty subtree and the wrong one here: it would pin a
+     * region at whatever it happened to say when the window opened, for the
+     * whole window.
+     */
+    if (
+      !winner &&
+      SiteStatusRollupUtil.positiveCount(data.suppressedDeviceCount) > 0
+    ) {
+      return data.operationalStatus?.monitorStatusId || null;
+    }
+
     return winner ? winner.monitorStatusId : null;
   }
 
@@ -187,11 +209,29 @@ export class SiteStatusRollupUtil {
    */
   public static deviceHealthShare(data: {
     deviceStates: Array<DeviceHealthState>;
+    /*
+     * Devices inside an ongoing maintenance window, which the caller has
+     * already removed from `deviceStates`.
+     *
+     * They stay in the DENOMINATOR and never enter the numerator. Dropping
+     * them from both is the tempting simplification and it inverts the whole
+     * feature: a region of 1,010 devices with 6 genuinely dark reads 0.6%
+     * down, but put its 1,000 healthy devices under a planned window and the
+     * same 6 become 60% - so scheduling maintenance on a HEALTHY subtree
+     * would escalate the region to Offline. That is the identical hazard the
+     * uptime side already refuses (it will not subtract a window from an
+     * ancestor's denominator, because that erases genuine failures
+     * elsewhere); this is the same rule applied to the device population
+     * instead of to time.
+     */
+    suppressedDeviceCount?: number | null | undefined;
     now?: Date | undefined;
   }): DeviceHealthShare {
     const now: Date = data.now || new Date();
 
-    let reporting: number = 0;
+    let reporting: number = SiteStatusRollupUtil.positiveCount(
+      data.suppressedDeviceCount,
+    );
     let nonOperational: number = 0;
 
     for (const device of data.deviceStates) {
@@ -230,6 +270,28 @@ export class SiteStatusRollupUtil {
   }
 
   /*
+   * How many of these devices count towards a share at all — i.e. how many
+   * have reported anything. Exposed so a caller holding buckets it has
+   * deliberately excluded from the vote (a maintained subtree) can size them
+   * with the SAME rule, instead of counting rows.
+   *
+   * Counting rows is the trap: a bucket of never-polled devices has a
+   * deviceCount like any other, but deviceHealthShare drops those from both
+   * sides of the fraction. Feeding their raw count back in as suppressed
+   * would pad the denominator with devices that were never being measured
+   * and dilute a genuine outage beside them.
+   */
+  public static reportingDeviceCount(
+    deviceStates: Array<DeviceHealthState>,
+    now?: Date | undefined,
+  ): number {
+    return SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: deviceStates,
+      now: now,
+    }).reportingDeviceCount;
+  }
+
+  /*
    * Returns the winning MonitorStatus id under the PERCENT-THRESHOLD policy,
    * or null when nothing reported (same "leave the status untouched"
    * contract as worstStatus) or when the ladder has no rung to land on.
@@ -242,10 +304,13 @@ export class SiteStatusRollupUtil {
     deviceStates: Array<DeviceHealthState>;
     ladder: RollupStatusLadder;
     offlineThresholdPercent?: number | null | undefined;
+    // See deviceHealthShare - denominator only, never the numerator.
+    suppressedDeviceCount?: number | null | undefined;
     now?: Date | undefined;
   }): string | null {
     const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
       deviceStates: data.deviceStates,
+      suppressedDeviceCount: data.suppressedDeviceCount,
       now: data.now,
     });
 
@@ -262,7 +327,18 @@ export class SiteStatusRollupUtil {
     );
 
     if (share.nonOperationalPercent >= threshold) {
-      return data.ladder.offlineStatus?.monitorStatusId || null;
+      /*
+       * Same descending fallback as the degraded branch below. A project
+       * with no offline row must not leave its worst case with NO verdict
+       * while its milder case gets one - that reads as "the rollup stopped
+       * working" exactly when something is wrong.
+       */
+      return (
+        data.ladder.offlineStatus?.monitorStatusId ||
+        data.ladder.degradedStatus?.monitorStatusId ||
+        data.ladder.operationalStatus?.monitorStatusId ||
+        null
+      );
     }
 
     /*
@@ -290,6 +366,8 @@ export class SiteStatusRollupUtil {
     deviceStates: Array<DeviceHealthState>;
     ladder: RollupStatusLadder;
     offlineThresholdPercent?: number | null | undefined;
+    // Devices withheld by an ongoing maintenance window. See deviceHealthShare.
+    suppressedDeviceCount?: number | null | undefined;
     now?: Date | undefined;
   }): string | null {
     if (data.policy === SiteHealthRollupPolicy.PercentThreshold) {
@@ -297,6 +375,7 @@ export class SiteStatusRollupUtil {
         deviceStates: data.deviceStates,
         ladder: data.ladder,
         offlineThresholdPercent: data.offlineThresholdPercent,
+        suppressedDeviceCount: data.suppressedDeviceCount,
         now: data.now,
       });
     }
@@ -305,6 +384,7 @@ export class SiteStatusRollupUtil {
       deviceStates: data.deviceStates,
       operationalStatus: data.ladder.operationalStatus,
       offlineStatus: data.ladder.offlineStatus,
+      suppressedDeviceCount: data.suppressedDeviceCount,
       now: data.now,
     });
   }
@@ -321,6 +401,18 @@ export class SiteStatusRollupUtil {
       return DefaultSiteOfflineThresholdPercent;
     }
     return Math.min(100, Math.max(0, value));
+  }
+
+  /*
+   * A count that can be trusted to be added to a total: non-finite, negative
+   * and fractional values all collapse to something safe rather than
+   * poisoning the arithmetic with NaN.
+   */
+  private static positiveCount(value: number | null | undefined): number {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      return 0;
+    }
+    return Math.floor(value);
   }
 
   private static deviceCountOf(device: DeviceHealthState): number {

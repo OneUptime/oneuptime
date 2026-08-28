@@ -538,3 +538,275 @@ describe("SiteStatusRollupUtil.rollupStatus dispatch", () => {
     ).toBe(OFFLINE.monitorStatusId);
   });
 });
+
+/*
+ * Maintenance-suppressed devices (issue #3431, follow-up review).
+ *
+ * The rule: a device withheld by an ongoing maintenance window leaves the
+ * DENOMINATOR alone and never enters the numerator. Dropping it from both is
+ * the obvious simplification and it inverts the entire feature — scheduling
+ * maintenance on a HEALTHY subtree would make its parent look worse. These
+ * pin that inversion shut.
+ */
+describe("SiteStatusRollupUtil and maintenance-suppressed devices", () => {
+  it("scheduling maintenance on a HEALTHY subtree cannot escalate the parent", () => {
+    /*
+     * The regression, concretely. A region of 1,010 devices with 6 genuinely
+     * dark is 0.59% down — degraded. Put its 1,000 healthy devices under a
+     * planned window and, if they left the denominator with them, the same
+     * 6 devices would read 60% and stamp the region OFFLINE. A calendar
+     * entry would have caused an outage.
+     */
+    const beforeWindow: string | null = percent(
+      [stamped(OPERATIONAL, true, 1004), stamped(OFFLINE, false, 6)],
+      50,
+    );
+    expect(beforeWindow).toBe(DEGRADED.monitorStatusId);
+
+    // Now 1,000 of the healthy devices are inside a window and cannot vote.
+    const duringWindow: string | null =
+      SiteStatusRollupUtil.percentThresholdStatus({
+        deviceStates: [
+          stamped(OPERATIONAL, true, 4),
+          stamped(OFFLINE, false, 6),
+        ],
+        ladder: LADDER,
+        offlineThresholdPercent: 50,
+        suppressedDeviceCount: 1000,
+        now: NOW,
+      });
+
+    expect(duringWindow).toBe(DEGRADED.monitorStatusId);
+  });
+
+  it("keeps the suppressed devices out of the numerator", () => {
+    /*
+     * The other half of the rule. Suppressed devices must not be counted as
+     * DOWN either — that would let a planned window drag the parent red — the
+     * very outcome the feature removes.
+     */
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [stamped(OPERATIONAL, true, 10)],
+      suppressedDeviceCount: 90,
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(100);
+    expect(share.nonOperationalDeviceCount).toBe(0);
+    expect(share.nonOperationalPercent).toBe(0);
+  });
+
+  it("a subtree that is ENTIRELY under maintenance reads operational, not stale", () => {
+    /*
+     * Every unit below a region attached to its own window. Nothing votes.
+     * Returning null here means "leave the status untouched", which would
+     * pin the region at whatever it happened to say when the window opened
+     * — for the whole window. Nothing unplanned is wrong, so it is up.
+     */
+    expect(
+      SiteStatusRollupUtil.percentThresholdStatus({
+        deviceStates: [],
+        ladder: LADDER,
+        offlineThresholdPercent: 50,
+        suppressedDeviceCount: 40,
+        now: NOW,
+      }),
+    ).toBe(OPERATIONAL.monitorStatusId);
+
+    expect(
+      SiteStatusRollupUtil.worstStatus({
+        deviceStates: [],
+        operationalStatus: OPERATIONAL,
+        offlineStatus: OFFLINE,
+        suppressedDeviceCount: 40,
+        now: NOW,
+      }),
+    ).toBe(OPERATIONAL.monitorStatusId);
+  });
+
+  it("a genuinely empty subtree still returns null under both policies", () => {
+    /*
+     * No devices at all is a different fact from "all its devices are
+     * under maintenance", and must keep the leave-it-alone contract.
+     */
+    expect(
+      SiteStatusRollupUtil.percentThresholdStatus({
+        deviceStates: [],
+        ladder: LADDER,
+        offlineThresholdPercent: 50,
+        suppressedDeviceCount: 0,
+        now: NOW,
+      }),
+    ).toBeNull();
+
+    expect(
+      SiteStatusRollupUtil.worstStatus({
+        deviceStates: [],
+        operationalStatus: OPERATIONAL,
+        offlineStatus: OFFLINE,
+        now: NOW,
+      }),
+    ).toBeNull();
+  });
+
+  it("suppressed devices never outrank a real outage", () => {
+    /*
+     * Worst-of must still see the dark device: suppression adds a floor, it
+     * does not silence what is left.
+     */
+    expect(
+      SiteStatusRollupUtil.worstStatus({
+        deviceStates: [stamped(OFFLINE, false, 1)],
+        operationalStatus: OPERATIONAL,
+        offlineStatus: OFFLINE,
+        suppressedDeviceCount: 500,
+        now: NOW,
+      }),
+    ).toBe(OFFLINE.monitorStatusId);
+  });
+
+  it("sanitises a nonsense suppressed count instead of poisoning the share", () => {
+    /*
+     * The count reaches here from a database aggregate. NaN would make every
+     * comparison below it false and silently return the operational rung for
+     * a region that is on fire.
+     */
+    for (const bad of [Number.NaN, -10, Number.POSITIVE_INFINITY]) {
+      const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+        deviceStates: [stamped(OFFLINE, false, 1)],
+        suppressedDeviceCount: bad,
+        now: NOW,
+      });
+      expect(Number.isFinite(share.reportingDeviceCount)).toBe(true);
+      expect(share.reportingDeviceCount).toBe(1);
+      expect(share.nonOperationalPercent).toBe(100);
+    }
+
+    // A fractional count is floored rather than dragged into the arithmetic.
+    const fractional: DeviceHealthShare =
+      SiteStatusRollupUtil.deviceHealthShare({
+        deviceStates: [stamped(OFFLINE, false, 1)],
+        suppressedDeviceCount: 3.7,
+        now: NOW,
+      });
+    expect(fractional.reportingDeviceCount).toBe(4);
+  });
+
+  it("rollupStatus threads the suppressed count through both policies", () => {
+    for (const policy of [
+      SiteHealthRollupPolicy.WorstStatus,
+      SiteHealthRollupPolicy.PercentThreshold,
+    ]) {
+      expect(
+        SiteStatusRollupUtil.rollupStatus({
+          policy: policy,
+          deviceStates: [],
+          ladder: LADDER,
+          offlineThresholdPercent: 50,
+          suppressedDeviceCount: 7,
+          now: NOW,
+        }),
+      ).toBe(OPERATIONAL.monitorStatusId);
+    }
+  });
+});
+
+describe("percentThresholdStatus ladder fallbacks", () => {
+  it("still produces a verdict at or above the threshold with no offline row", () => {
+    /*
+     * A project with no offline status got a verdict for a SMALL outage
+     * (the degraded branch falls back) and none at all for a total one, so
+     * the rollup appeared to stop working exactly when everything broke.
+     */
+    expect(
+      percent([stamped(OFFLINE, false, 10)], 50, {
+        operationalStatus: OPERATIONAL,
+        degradedStatus: DEGRADED,
+      }),
+    ).toBe(DEGRADED.monitorStatusId);
+  });
+
+  it("falls all the way back to operational when that is the only rung", () => {
+    expect(
+      percent([stamped(OFFLINE, false, 10)], 50, {
+        operationalStatus: OPERATIONAL,
+      }),
+    ).toBe(OPERATIONAL.monitorStatusId);
+  });
+
+  it("returns null when the project has no statuses at all", () => {
+    expect(percent([stamped(OFFLINE, false, 10)], 50, {})).toBeNull();
+  });
+});
+
+describe("SiteStatusRollupUtil.reportingDeviceCount", () => {
+  /*
+   * The helper exists so a caller sizing a set of devices it has EXCLUDED
+   * from the vote uses the same rule as the vote itself. Counting rows
+   * instead pads the denominator with devices nothing was ever measuring.
+   */
+  it("counts only devices that have actually reported", () => {
+    expect(
+      SiteStatusRollupUtil.reportingDeviceCount(
+        [
+          stamped(OPERATIONAL, true, 10),
+          stamped(OFFLINE, false, 5),
+          // Never polled, never seen — 200 of them.
+          { deviceCount: 200 },
+        ],
+        NOW,
+      ),
+    ).toBe(15);
+  });
+
+  it("agrees with the share's own denominator", () => {
+    const states: Array<DeviceHealthState> = [
+      stamped(OPERATIONAL, true, 3),
+      answered(1),
+      failed(1),
+      { deviceCount: 40 },
+    ];
+
+    expect(SiteStatusRollupUtil.reportingDeviceCount(states, NOW)).toBe(
+      SiteStatusRollupUtil.deviceHealthShare({
+        deviceStates: states,
+        now: NOW,
+      }).reportingDeviceCount,
+    );
+  });
+
+  it("never-reported suppressed devices must not dilute a real outage", () => {
+    /*
+     * The regression this helper prevents, end to end. A region with 200
+     * undiscovered devices inside a maintenance window and 6 of its 10 real
+     * ones dark: sizing the window by ROW COUNT gives 6/210 = 2.9% and calls
+     * the region Degraded, while more than half of everything that has ever
+     * answered is offline.
+     */
+    const suppressedByRows: number = 200;
+    const suppressedByRule: number = SiteStatusRollupUtil.reportingDeviceCount(
+      [{ deviceCount: 200 }],
+      NOW,
+    );
+
+    expect(suppressedByRule).toBe(0);
+
+    const wrong: string | null = SiteStatusRollupUtil.percentThresholdStatus({
+      deviceStates: [stamped(OPERATIONAL, true, 4), stamped(OFFLINE, false, 6)],
+      ladder: LADDER,
+      offlineThresholdPercent: 50,
+      suppressedDeviceCount: suppressedByRows,
+      now: NOW,
+    });
+    const right: string | null = SiteStatusRollupUtil.percentThresholdStatus({
+      deviceStates: [stamped(OPERATIONAL, true, 4), stamped(OFFLINE, false, 6)],
+      ladder: LADDER,
+      offlineThresholdPercent: 50,
+      suppressedDeviceCount: suppressedByRule,
+      now: NOW,
+    });
+
+    expect(wrong).toBe(DEGRADED.monitorStatusId);
+    expect(right).toBe(OFFLINE.monitorStatusId);
+  });
+});

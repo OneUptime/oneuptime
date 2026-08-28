@@ -50,8 +50,28 @@ interface CacheEntry {
   siteIds: Set<string>;
 }
 
+/*
+ * Ceiling on cached projects. The map is keyed by project and each entry is a
+ * set of site ids, so on a large multi-tenant install it would otherwise grow
+ * to every project the process has ever rolled up and never shrink. Past this
+ * many entries the expired ones are swept before another is added.
+ */
+const MAX_CACHED_PROJECTS: number = 512;
+
 export default class NetworkSiteMaintenanceSuppression {
   private static cache: Map<string, CacheEntry> = new Map();
+
+  /*
+   * Bumped by every invalidateCache. A lookup captures it BEFORE its query
+   * and refuses to write its answer back if it changed in the meantime.
+   *
+   * Without it the cache has a lost-update window exactly where it hurts: a
+   * maintenance event flips state and calls invalidateCache while an
+   * in-flight lookup is still awaiting the OLD answer, that lookup then
+   * stores the stale set, and the window it was supposed to start (or stop)
+   * is wrong for a further full TTL.
+   */
+  private static generation: number = 0;
 
   /*
    * Ids of every site currently inside an ongoing maintenance window,
@@ -73,6 +93,8 @@ export default class NetworkSiteMaintenanceSuppression {
       return cached.siteIds;
     }
 
+    const generationAtStart: number = this.generation;
+
     let siteIds: Set<string> = new Set<string>();
 
     try {
@@ -92,12 +114,50 @@ export default class NetworkSiteMaintenanceSuppression {
       return new Set<string>();
     }
 
-    this.cache.set(cacheKey, {
-      expiresAtInMs: nowInMs + ONGOING_MAINTENANCE_CACHE_TTL_MS,
-      siteIds: siteIds,
-    });
+    /*
+     * Someone invalidated while this query was in flight, so the answer in
+     * hand is already known to be stale. Serve it to this caller (it is no
+     * worse than what they would have got a moment earlier) but do not
+     * install it, so the next caller re-reads.
+     */
+    if (this.generation === generationAtStart) {
+      this.sweepIfCrowded();
+      this.cache.set(cacheKey, {
+        /*
+         * Measured from AFTER the query, not before it. A slow query would
+         * otherwise burn most of its own TTL before the entry was written.
+         */
+        expiresAtInMs:
+          OneUptimeDate.getCurrentDate().getTime() +
+          ONGOING_MAINTENANCE_CACHE_TTL_MS,
+        siteIds: siteIds,
+      });
+    }
 
     return siteIds;
+  }
+
+  // Drop expired entries once the map has grown past its ceiling.
+  private static sweepIfCrowded(): void {
+    if (this.cache.size < MAX_CACHED_PROJECTS) {
+      return;
+    }
+
+    const nowInMs: number = OneUptimeDate.getCurrentDate().getTime();
+
+    for (const [key, entry] of this.cache) {
+      if (entry.expiresAtInMs <= nowInMs) {
+        this.cache.delete(key);
+      }
+    }
+
+    /*
+     * Everything was still live. Entries are a few seconds old at most, so
+     * clearing is cheap and bounded — far better than growing without limit.
+     */
+    if (this.cache.size >= MAX_CACHED_PROJECTS) {
+      this.cache.clear();
+    }
   }
 
   /*
@@ -106,6 +166,12 @@ export default class NetworkSiteMaintenanceSuppression {
    * very next rollup instead of up to a TTL later.
    */
   public static invalidateCache(projectId?: ObjectID | undefined): void {
+    /*
+     * Bumped before the delete so a lookup that is mid-flight right now is
+     * refused its write-back too, not just future ones.
+     */
+    this.generation++;
+
     if (!projectId) {
       this.cache.clear();
       return;

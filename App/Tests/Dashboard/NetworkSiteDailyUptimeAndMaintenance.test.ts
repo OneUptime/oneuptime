@@ -48,16 +48,21 @@ describe("SiteStatusHero shows a daily figure beside the 30-day one", () => {
     "SiteStatusHero.tsx",
   );
 
-  test("asks the API for materializedPath so ancestor windows can be found", () => {
-    expect(source).toContain(squash("materializedPath: true,"));
-    expect(source).toContain(
-      squash("materializedPath: site?.materializedPath,"),
-    );
+  test("gets its maintenance windows from the server, not from the model", () => {
+    /*
+     * Reading ScheduledMaintenance from the browser made uptime depend on
+     * the VIEWER: a user without that permission — or with a label-scoped
+     * grant, which narrows the query silently rather than erroring — saw the
+     * un-discounted number here while the hierarchy card beside it, computed
+     * on the server under root, showed the discounted one.
+     */
+    expect(source).toContain(squash("fetchSiteMaintenanceWindows({"));
+    expect(source).not.toContain("materializedPath");
   });
 
   test("both uptime figures are passed the resolved windows", () => {
     expect(source).toContain(
-      squash(`uptimePercent = SiteUptimeUtil.calculateUptimePercent(
+      squash(`const monthly: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
           windowStart,
           windowEnd,
@@ -65,12 +70,34 @@ describe("SiteStatusHero shows a daily figure beside the 30-day one", () => {
         );`),
     );
     expect(source).toContain(
-      squash(`dailyUptimePercent = SiteUptimeUtil.calculateUptimePercent(
+      squash(`const daily: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
-          OneUptimeDate.getSomeDaysAgo(DAILY_UPTIME_WINDOW_DAYS),
+          SiteUptimeUtil.trailingWindowStart(
+            windowEnd,
+            DAILY_UPTIME_WINDOW_DAYS,
+          ),
           windowEnd,
           maintenanceWindows,
         );`),
+    );
+  });
+
+  test("a period with nothing left to measure renders a dash, not 100%", () => {
+    /*
+     * calculateUptimePercent has to return a number, so a month spent
+     * entirely inside a maintenance window comes back as 100. Printing
+     * "100% uptime" for a site that was switched off all month is the exact
+     * misreading this whole feature exists to remove.
+     */
+    expect(source).toContain(
+      squash(
+        "uptimePercent = monthly.measuredInMs > 0 ? monthly.uptimePercent : null;",
+      ),
+    );
+    expect(source).toContain(
+      squash(
+        "dailyUptimePercent = daily.measuredInMs > 0 ? daily.uptimePercent : null;",
+      ),
     );
   });
 
@@ -81,16 +108,30 @@ describe("SiteStatusHero shows a daily figure beside the 30-day one", () => {
     expect(source).toContain(squash("const UPTIME_WINDOW_DAYS: number = 30;"));
   });
 
+  test("the daily window is exactly 24 hours, not a calendar day", () => {
+    /*
+     * The strip's buckets are fixed 24-hour slices. A calendar subtraction
+     * makes this card span 23 or 25 hours when the clocks move, and disagree
+     * with the bar next to it.
+     */
+    expect(source).toContain(squash("SiteUptimeUtil.trailingWindowStart("));
+    expect(source).not.toContain(
+      squash("OneUptimeDate.getSomeDaysAgo(DAILY_UPTIME_WINDOW_DAYS)"),
+    );
+  });
+
   test("a failed maintenance lookup degrades to no windows, not to no hero", () => {
     /*
      * The strip is supplementary. Losing the uptime tiles because the
-     * maintenance query 403'd would be a worse regression than showing
-     * numbers that have not discounted a window.
+     * maintenance request failed would be a worse regression than showing
+     * numbers that have not discounted a window — and because the fetch now
+     * rides inside the Promise.all, an unhandled rejection would take the
+     * whole hero down rather than just its uptime.
      */
     expect(source).toContain(
-      squash(`} catch {
-        maintenanceWindows = [];
-      }`),
+      squash(`}).catch((): Array<SiteMaintenanceWindow> => {
+          return [];
+        }),`),
     );
   });
 
@@ -159,12 +200,13 @@ describe("the Status Timeline page adds a daily view", () => {
 
   test("every window and the strip exclude maintenance", () => {
     expect(source).toContain(
-      squash(`computed[days] = SiteUptimeUtil.calculateUptimePercent(
-          rows,
-          OneUptimeDate.getSomeDaysAgo(days),
-          windowEnd,
-          maintenanceWindows,
-        );`),
+      squash(`const measurement: SiteUptimeMeasurement =
+          SiteUptimeUtil.measureUptime(
+            rows,
+            SiteUptimeUtil.trailingWindowStart(windowEnd, days),
+            windowEnd,
+            maintenanceWindows,
+          );`),
     );
     expect(source).toContain(
       squash(`SiteUptimeUtil.calculateDailyUptime({
@@ -173,6 +215,14 @@ describe("the Status Timeline page adds a daily view", () => {
           endDate: windowEnd,
           maintenanceWindows: maintenanceWindows,
         })`),
+    );
+  });
+
+  test("a fully-maintained window is left out of the record so its card dashes", () => {
+    expect(source).toContain(
+      squash(`if (measurement.measuredInMs > 0) {
+          computed[days] = measurement.uptimePercent;
+        }`),
     );
   });
 
@@ -326,5 +376,35 @@ describe("Network Sites are attachable to a maintenance event", () => {
     );
     expect(alerts).not.toContain("includeNetworkSite");
     expect(incidents).not.toContain("includeNetworkSite");
+  });
+});
+
+describe("maintenance windows are read once, on the server", () => {
+  test("the client fetcher never queries ScheduledMaintenance itself", () => {
+    /*
+     * The whole reason this module exists. If it goes back to
+     * ModelAPI.getList<ScheduledMaintenance>, uptime becomes
+     * permission-dependent again and the site page starts disagreeing with
+     * the tree card next to it.
+     */
+    const fetcher: string = readSource(
+      "Components",
+      "NetworkSite",
+      "SiteMaintenanceWindows.ts",
+    );
+
+    expect(fetcher).toContain(squash('"/network-site/maintenance-windows"'));
+    expect(fetcher).not.toContain("ModelAPI.getList");
+    expect(fetcher).not.toContain("modelType: ScheduledMaintenance");
+  });
+
+  test("both site pages go through that one fetcher", () => {
+    for (const source of [
+      readSource("Components", "NetworkSite", "SiteStatusHero.tsx"),
+      readSource("Pages", "NetworkSite", "View", "StatusTimeline.tsx"),
+    ]) {
+      expect(source).toContain(squash("fetchSiteMaintenanceWindows({"));
+      expect(source).not.toContain("ScheduledMaintenance");
+    }
   });
 });

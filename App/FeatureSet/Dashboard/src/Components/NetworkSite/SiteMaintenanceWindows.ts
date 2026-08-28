@@ -1,35 +1,33 @@
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
-import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import SiteMaintenanceUtil, {
-  MaintenanceEventWindow,
-} from "Common/Utils/NetworkSite/SiteMaintenanceUtil";
+import OneUptimeDate from "Common/Types/Date";
 import { SiteMaintenanceWindow } from "Common/Utils/NetworkSite/SiteUptimeUtil";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
  * The scheduled maintenance windows that cover one network site, for the
  * pages that show its uptime.
  *
- * Coverage is inherited DOWN the hierarchy - a window on a Region covers
- * every Unit in it - so the query cannot filter on the site id alone. It
- * fetches the events that overlap the measured window and lets
- * SiteMaintenanceUtil decide coverage against the site's materialized path,
- * which is the same function the server uses for the hierarchy API. Doing
- * the ancestry match here rather than server-side keeps one definition of
- * "covered" instead of two that can disagree.
+ * Fetched from /network-site/maintenance-windows rather than by querying
+ * ScheduledMaintenance from the browser, and that is the whole point of this
+ * module. A direct model read made uptime depend on the VIEWER: a user
+ * without ScheduledMaintenance read — or with a label-scoped grant, which
+ * narrows the query silently instead of erroring — got the un-discounted
+ * number here while the hierarchy card beside it, computed on the server,
+ * showed the discounted one. Two numbers for the same site, differing by who
+ * was looking.
+ *
+ * The server resolves coverage with SiteMaintenanceUtil (a window on a
+ * Region covers its Units) and returns only the intervals, so there is one
+ * definition of "covered" and one permission gate: can you read the site.
  */
 export interface FetchSiteMaintenanceWindowsInput {
   siteId: ObjectID;
-  /*
-   * The site's materialized path, which carries its ancestor ids. Undefined
-   * only matches windows attached to the site itself - correct behaviour for
-   * a site whose path has not been built yet, not a silent failure.
-   */
-  materializedPath?: string | null | undefined;
   windowStart: Date;
   windowEnd: Date;
 }
@@ -42,58 +40,59 @@ export const fetchSiteMaintenanceWindows: FetchSiteMaintenanceWindowsFunction =
   async (
     input: FetchSiteMaintenanceWindowsInput,
   ): Promise<Array<SiteMaintenanceWindow>> => {
-    const result: ListResult<ScheduledMaintenance> =
-      await ModelAPI.getList<ScheduledMaintenance>({
-        modelType: ScheduledMaintenance,
-        query: {
-          startsAt: new LessThanOrEqual<Date>(input.windowEnd),
-          endsAt: new GreaterThanOrNull<Date>(input.windowStart),
+    const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+      "/network-site/maintenance-windows",
+    );
+
+    /*
+     * The server measures back from "now", so it needs the span in days
+     * rather than the two timestamps. Rounded UP so a caller asking for a
+     * partial day still gets every window that can touch it.
+     */
+    const windowInDays: number = Math.max(
+      1,
+      Math.ceil(
+        (input.windowEnd.getTime() - input.windowStart.getTime()) /
+          (24 * 60 * 60 * 1000),
+      ),
+    );
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: url,
+        data: {
+          siteId: input.siteId.toString(),
+          windowInDays: windowInDays,
         },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          startsAt: true,
-          endsAt: true,
-          networkSites: {
-            _id: true,
-          },
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
+        // Project scoping rides on the tenantid header.
+        headers: { ...ModelAPI.getCommonHeaders() },
       });
 
-    const events: Array<MaintenanceEventWindow> = [];
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
 
-    for (const event of result.data) {
-      if (!event.startsAt) {
+    const rows: JSONArray = (response.data?.["windows"] as JSONArray) || [];
+    const windows: Array<SiteMaintenanceWindow> = [];
+
+    for (const row of rows) {
+      const startsAt: unknown = (row as JSONObject)["startsAt"];
+      const endsAt: unknown = (row as JSONObject)["endsAt"];
+
+      if (typeof startsAt !== "string" && !(startsAt instanceof Date)) {
         continue;
       }
 
-      const siteIds: Array<string> = (event.networkSites || [])
-        .map((site: { _id?: string | undefined }): string => {
-          return site._id ? String(site._id) : "";
-        })
-        .filter((id: string): boolean => {
-          return id.length > 0;
-        });
-
-      if (siteIds.length === 0) {
-        continue;
-      }
-
-      events.push({
-        startsAt: event.startsAt,
-        endsAt: (event.endsAt as Date | undefined) || null,
-        siteIds: siteIds,
+      windows.push({
+        startsAt: OneUptimeDate.fromString(startsAt as string | Date),
+        endsAt:
+          typeof endsAt === "string" || endsAt instanceof Date
+            ? OneUptimeDate.fromString(endsAt as string | Date)
+            : null,
       });
     }
 
-    return SiteMaintenanceUtil.windowsCoveringSite({
-      siteId: input.siteId.toString(),
-      materializedPath: input.materializedPath,
-      events: events,
-    });
+    return windows;
   };
 
 export default fetchSiteMaintenanceWindows;

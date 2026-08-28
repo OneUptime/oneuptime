@@ -442,6 +442,39 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Editing the rollup POLICY (or its threshold) changes what the site's
+     * existing devices add up to, without touching a device or the tree. The
+     * five-minute stale sweep would eventually notice, but a settings page
+     * that leaves the status it just changed reading the old value for
+     * minutes looks broken, so re-roll immediately. Failures are swallowed:
+     * the sweep is still the backstop, and a rollup must not fail the save.
+     */
+    const policyKeys: Array<string> = [
+      "healthRollupPolicy",
+      "offlineThresholdPercent",
+    ];
+    const touchesPolicy: boolean = policyKeys.some((key: string): boolean => {
+      return (
+        (onUpdate.updateBy.data as Record<string, unknown>)[key] !== undefined
+      );
+    });
+
+    if (touchesPolicy) {
+      for (const siteId of updatedItemIds) {
+        try {
+          await this.recomputeRollupForSite(siteId);
+        } catch (error) {
+          logger.error(
+            `NetworkSiteService.onUpdateSuccess: rollup after a policy change failed for site ${siteId.toString()}: ${error}`,
+            {
+              siteId: siteId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    }
+
     const parentChange: ParentChangeCarryForward | null =
       (onUpdate.carryForward as ParentChangeCarryForward | null) || null;
 
@@ -1031,12 +1064,26 @@ export class Service extends DatabaseService<Model> {
       site.id.toString(),
     );
 
-    const contributingSiteIds: Array<ObjectID> =
-      isSiteUnderMaintenance || maintainedSiteIds.size === 0
-        ? subtreeSiteIds
-        : subtreeSiteIds.filter((id: ObjectID) => {
-            return !maintainedSiteIds.has(id.toString());
-          });
+    const suppressesDescendants: boolean =
+      !isSiteUnderMaintenance && maintainedSiteIds.size > 0;
+
+    const contributingSiteIds: Array<ObjectID> = suppressesDescendants
+      ? subtreeSiteIds.filter((id: ObjectID) => {
+          return !maintainedSiteIds.has(id.toString());
+        })
+      : subtreeSiteIds;
+
+    /*
+     * The suppressed part of THIS subtree. Their devices do not vote, but
+     * they are still counted, because a share needs a denominator that does
+     * not move when a window opens - see SiteStatusRollupUtil.
+     * deviceHealthShare for what goes wrong otherwise.
+     */
+    const suppressedSiteIds: Array<ObjectID> = suppressesDescendants
+      ? subtreeSiteIds.filter((id: ObjectID) => {
+          return maintainedSiteIds.has(id.toString());
+        })
+      : [];
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -1065,6 +1112,23 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * One extra aggregate, and only while a window is actually running: the
+     * common path (no ongoing maintenance anywhere in the project) skips it
+     * entirely. Classified below, once the status ladder is known.
+     */
+    const suppressedGroups: Array<DeviceHealthGroup> =
+      suppressedSiteIds.length > 0
+        ? await NetworkDeviceService.getHealthGroupsForSites({
+            projectId: site.projectId,
+            siteIds: suppressedSiteIds,
+            now: now,
+            props: {
+              isRoot: true,
+            },
+          })
+        : [];
 
     const statuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
       query: {
@@ -1129,6 +1193,41 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * The middle rung has to sit BELOW the offline rung, or the ladder is
+     * upside down. A project is free to define a status that is neither
+     * operational nor offline and give it a priority ABOVE its offline row
+     * ("Critical", say, at priority 4 next to Offline at 3) — and then a
+     * sub-threshold outage would stamp the WORSE status while crossing the
+     * threshold stamped the milder one. Nothing stops a project doing that,
+     * so the rollup has to.
+     */
+    if (
+      degradedStatus &&
+      offlineStatus &&
+      degradedStatus.priority >= offlineStatus.priority
+    ) {
+      let milder: RollupStatusOption | null = null;
+      for (const status of statuses) {
+        if (
+          !status.id ||
+          typeof status.priority !== "number" ||
+          status.isOperationalState ||
+          status.isOfflineState ||
+          status.priority >= offlineStatus.priority
+        ) {
+          continue;
+        }
+        if (!milder || status.priority > milder.priority) {
+          milder = {
+            monitorStatusId: status.id.toString(),
+            priority: status.priority,
+          };
+        }
+      }
+      degradedStatus = milder;
+    }
+
     const deviceStates: Array<DeviceHealthState> = deviceGroups.map(
       (group: DeviceHealthGroup) => {
         return deviceRollupStateForGroup({
@@ -1144,6 +1243,35 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
+    /*
+     * Sized with SiteStatusRollupUtil's own rule, not by summing
+     * `deviceCount`.
+     *
+     * A suppressed bucket of never-polled devices has a count like any
+     * other, but the share deliberately drops never-reported devices from
+     * BOTH sides of the fraction. Adding their raw count back as
+     * "suppressed" would pad the denominator with devices nothing was ever
+     * measuring — a region with 200 undiscovered devices under a window and
+     * 6 of 10 real ones dark would read 2.9% and call itself Degraded while
+     * more than half of everything that has ever answered is offline.
+     */
+    const suppressedDeviceCount: number =
+      SiteStatusRollupUtil.reportingDeviceCount(
+        suppressedGroups.map((group: DeviceHealthGroup) => {
+          return deviceRollupStateForGroup({
+            group: group,
+            monitorStatusPriority: group.monitorStatusId
+              ? priorityByStatusId.get(group.monitorStatusId)
+              : undefined,
+            monitorStatusIsOperational: group.monitorStatusId
+              ? isOperationalByStatusId.get(group.monitorStatusId)
+              : undefined,
+            now: now,
+          });
+        }),
+        now,
+      );
+
     const rolledUpStatusId: string | null = SiteStatusRollupUtil.rollupStatus({
       policy: parseSiteHealthRollupPolicy(site.healthRollupPolicy),
       deviceStates: deviceStates,
@@ -1153,6 +1281,7 @@ export class Service extends DatabaseService<Model> {
         offlineStatus: offlineStatus,
       },
       offlineThresholdPercent: site.offlineThresholdPercent,
+      suppressedDeviceCount: suppressedDeviceCount,
       now: now,
     });
     const currentStatusId: string | null =
@@ -1433,7 +1562,27 @@ export class Service extends DatabaseService<Model> {
 
     const recomputed: Set<string> = new Set<string>();
 
-    for (const siteId of data.siteIds) {
+    /*
+     * Descendants of an attached site change verdict too, which is easy to
+     * miss because the attached site itself does not. While the window runs,
+     * a descendant D is maintained (coverage is inherited downward), so D
+     * suppresses nothing of its own. The moment the window ends D stops
+     * being maintained and starts suppressing ITS maintained descendants —
+     * a different answer, from the same devices. Nested and overlapping
+     * windows are ordinary on a franchise estate, so this is not a corner.
+     */
+    const subtreeIds: Set<string> = await this.getSubtreeSiteIds({
+      siteIds: data.siteIds,
+      projectId: data.projectId,
+    });
+
+    const roots: Array<ObjectID> = Array.from(subtreeIds).map(
+      (id: string): ObjectID => {
+        return new ObjectID(id);
+      },
+    );
+
+    for (const siteId of roots) {
       const chain: Array<ObjectID> = [
         siteId,
         ...(await this.getAncestorIds(siteId)).reverse(),

@@ -10,10 +10,10 @@ import SiteUptimeUtil, {
   DailyUptimeEntry,
   SiteMaintenanceWindow,
   SiteStatusTimelineRow,
+  SiteUptimeMeasurement,
 } from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import fetchSiteMaintenanceWindows from "../../../Components/NetworkSite/SiteMaintenanceWindows";
 import SiteDailyUptimeStrip from "../../../Components/NetworkSite/SiteDailyUptimeStrip";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -72,9 +72,9 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
       const windowStart: Date =
         OneUptimeDate.getSomeDaysAgo(longestWindowInDays);
 
-      const [timeline, site]: [
+      const [timeline, maintenanceWindows]: [
         ListResult<NetworkSiteStatusTimeline>,
-        NetworkSite | null,
+        Array<SiteMaintenanceWindow>,
       ] = await Promise.all([
         ModelAPI.getList<NetworkSiteStatusTimeline>({
           modelType: NetworkSiteStatusTimeline,
@@ -97,16 +97,18 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
           },
         }),
         /*
-         * Only for the materialized path: a maintenance window attached to
-         * this site's Region covers it too, and the path is where its
-         * ancestors are.
+         * Ancestry is resolved server-side (a window on this site's Region
+         * covers it too), so this needs nothing else from the site row. A
+         * failure must not take the uptime figures with it — it degrades to
+         * "no windows", exactly what this page showed before maintenance
+         * could be attached to a site.
          */
-        ModelAPI.getItem<NetworkSite>({
-          modelType: NetworkSite,
-          id: modelId,
-          select: {
-            materializedPath: true,
-          },
+        fetchSiteMaintenanceWindows({
+          siteId: modelId,
+          windowStart: windowStart,
+          windowEnd: windowEnd,
+        }).catch((): Array<SiteMaintenanceWindow> => {
+          return [];
         }),
       ]);
 
@@ -129,32 +131,28 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
         },
       );
 
-      /*
-       * A maintenance lookup that fails must not take the uptime figures
-       * with it — degrading to "no windows" reproduces exactly what this
-       * page showed before maintenance could be attached to a site.
-       */
-      let maintenanceWindows: Array<SiteMaintenanceWindow> = [];
-      try {
-        maintenanceWindows = await fetchSiteMaintenanceWindows({
-          siteId: modelId,
-          materializedPath: site?.materializedPath,
-          windowStart: windowStart,
-          windowEnd: windowEnd,
-        });
-      } catch {
-        maintenanceWindows = [];
-      }
-
       const computed: Record<number, number> = {};
 
       for (const days of UPTIME_WINDOWS_IN_DAYS) {
-        computed[days] = SiteUptimeUtil.calculateUptimePercent(
+        /*
+         * Trailing 24-hour multiples rather than calendar days, so the
+         * "Last 24 Hours" card and the fixed-bucket strip below it cannot
+         * disagree by an hour when the clocks move.
+         */
+        const measurement: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
-          OneUptimeDate.getSomeDaysAgo(days),
+          SiteUptimeUtil.trailingWindowStart(windowEnd, days),
           windowEnd,
           maintenanceWindows,
         );
+        /*
+         * A window with nothing left to measure (all maintenance) is left
+         * out of the record entirely, so the card renders a dash instead of
+         * claiming a perfect period.
+         */
+        if (measurement.measuredInMs > 0) {
+          computed[days] = measurement.uptimePercent;
+        }
       }
 
       setUptimeByWindow(computed);

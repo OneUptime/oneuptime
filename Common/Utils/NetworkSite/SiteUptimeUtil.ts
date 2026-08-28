@@ -59,6 +59,30 @@ export interface DailyUptimeEntry {
   hasTimelineCoverage: boolean;
 }
 
+/*
+ * The same calculation as calculateUptimePercent, with the two facts a caller
+ * needs in order to render it honestly.
+ *
+ * `measuredInMs` is zero when the whole period was inside a maintenance
+ * window, or when the period itself was empty. The scalar function reports
+ * 100 in that case — it has to return a number — and "100% uptime" on a site
+ * that was switched off for the entire month is exactly the kind of
+ * misreading this feature exists to remove. A caller with somewhere to put a
+ * dash should read `measuredInMs` and print one.
+ */
+export interface SiteUptimeMeasurement {
+  uptimePercent: number;
+  /*
+   * Length of the period after maintenance was subtracted. Zero means "no
+   * evidence either way", NOT "perfect".
+   */
+  measuredInMs: number;
+  // How much of the period was inside a maintenance window.
+  maintenanceInMs: number;
+  // Non-operational time that counted (i.e. outside every window).
+  downtimeInMs: number;
+}
+
 const MS_IN_A_DAY: number = 24 * 60 * 60 * 1000;
 
 export class SiteUptimeUtil {
@@ -75,12 +99,37 @@ export class SiteUptimeUtil {
     windowEnd: Date,
     maintenanceWindows?: Array<SiteMaintenanceWindow> | undefined,
   ): number {
+    return SiteUptimeUtil.measureUptime(
+      rows,
+      windowStart,
+      windowEnd,
+      maintenanceWindows,
+    ).uptimePercent;
+  }
+
+  /*
+   * The same measurement, with the evidence behind it. Prefer this wherever
+   * the UI can render a dash: `measuredInMs === 0` means the period was
+   * entirely maintenance (or empty), and the 100 in `uptimePercent` is a
+   * placeholder rather than a claim.
+   */
+  public static measureUptime(
+    rows: Array<SiteStatusTimelineRow>,
+    windowStart: Date,
+    windowEnd: Date,
+    maintenanceWindows?: Array<SiteMaintenanceWindow> | undefined,
+  ): SiteUptimeMeasurement {
     const windowStartInMs: number = windowStart.getTime();
     const windowEndInMs: number = windowEnd.getTime();
     const windowInMs: number = windowEndInMs - windowStartInMs;
 
     if (!Number.isFinite(windowInMs) || windowInMs <= 0) {
-      return 100;
+      return {
+        uptimePercent: 100,
+        measuredInMs: 0,
+        maintenanceInMs: 0,
+        downtimeInMs: 0,
+      };
     }
 
     const excluded: Array<TimeInterval> = SiteUptimeUtil.clampIntervals(
@@ -102,7 +151,12 @@ export class SiteUptimeUtil {
     const measuredInMs: number = windowInMs - excludedInMs;
 
     if (measuredInMs <= 0) {
-      return 100;
+      return {
+        uptimePercent: 100,
+        measuredInMs: 0,
+        maintenanceInMs: excludedInMs,
+        downtimeInMs: 0,
+      };
     }
 
     const downInMs: number = SiteUptimeUtil.downtimeInMs(
@@ -114,7 +168,13 @@ export class SiteUptimeUtil {
 
     const uptimePercent: number =
       ((measuredInMs - downInMs) / measuredInMs) * 100;
-    return Math.min(100, Math.max(0, uptimePercent));
+
+    return {
+      uptimePercent: Math.min(100, Math.max(0, uptimePercent)),
+      measuredInMs: measuredInMs,
+      maintenanceInMs: excludedInMs,
+      downtimeInMs: downInMs,
+    };
   }
 
   /*
@@ -172,16 +232,35 @@ export class SiteUptimeUtil {
       );
 
       const maintenanceInMs: number = SiteUptimeUtil.totalCoveredMs(excluded);
-      const measuredInMs: number = MS_IN_A_DAY - maintenanceInMs;
-      const isFullyMaintained: boolean = measuredInMs <= 0;
 
       const hasTimelineCoverage: boolean =
         earliestRowStartInMs !== null && earliestRowStartInMs < dayEndInMs;
 
+      /*
+       * The day the timeline BEGINS is only partly evidenced. Measuring the
+       * whole 24 hours would score the hours before the site was ever rolled
+       * up as up — so a site attached at 23:00 that was dark for its first
+       * hour would report 95.8% for a day it was down for all of the time
+       * anyone was watching. Measure from the first row instead.
+       */
+      const measuredStartInMs: number =
+        earliestRowStartInMs !== null
+          ? Math.max(dayStartInMs, earliestRowStartInMs)
+          : dayStartInMs;
+
+      const coveredInMs: number = dayEndInMs - measuredStartInMs;
+      const maintenanceInCoveredMs: number = SiteUptimeUtil.totalCoveredMs(
+        SiteUptimeUtil.clampIntervals(excluded, measuredStartInMs, dayEndInMs),
+      );
+      const measuredInMs: number = coveredInMs - maintenanceInCoveredMs;
+      const isFullyMaintained: boolean =
+        maintenanceInMs >= MS_IN_A_DAY ||
+        (hasTimelineCoverage && measuredInMs <= 0);
+
       const downtimeInMs: number = hasTimelineCoverage
         ? SiteUptimeUtil.downtimeInMs(
             data.rows,
-            dayStartInMs,
+            measuredStartInMs,
             dayEndInMs,
             excluded,
           )
@@ -191,7 +270,7 @@ export class SiteUptimeUtil {
         dayStart: dayStart,
         dayEnd: dayEnd,
         uptimePercent:
-          isFullyMaintained || !hasTimelineCoverage
+          isFullyMaintained || !hasTimelineCoverage || measuredInMs <= 0
             ? null
             : Math.min(
                 100,
@@ -208,6 +287,19 @@ export class SiteUptimeUtil {
     }
 
     return entries;
+  }
+
+  /*
+   * Start of the trailing `days` x 24h window ending at `endDate`.
+   *
+   * Deliberately millisecond arithmetic rather than a calendar subtraction.
+   * The daily strip's buckets are fixed 24-hour slices, so a "Last 24 Hours"
+   * figure computed with calendar days would silently span 23 or 25 hours on
+   * the two days a year the clocks move, and disagree with the bar sitting
+   * next to it.
+   */
+  public static trailingWindowStart(endDate: Date, days: number): Date {
+    return new Date(endDate.getTime() - days * MS_IN_A_DAY);
   }
 
   /*

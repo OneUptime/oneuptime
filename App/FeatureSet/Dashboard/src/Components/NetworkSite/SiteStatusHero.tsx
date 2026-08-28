@@ -12,6 +12,7 @@ import OneUptimeDate from "Common/Types/Date";
 import SiteUptimeUtil, {
   SiteMaintenanceWindow,
   SiteStatusTimelineRow,
+  SiteUptimeMeasurement,
 } from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import fetchSiteMaintenanceWindows from "./SiteMaintenanceWindows";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -71,12 +72,20 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
       const windowStart: Date =
         OneUptimeDate.getSomeDaysAgo(UPTIME_WINDOW_DAYS);
 
-      const [site, deviceResult, childSiteCount, endpointCount, timeline]: [
+      const [
+        site,
+        deviceResult,
+        childSiteCount,
+        endpointCount,
+        timeline,
+        maintenanceWindows,
+      ]: [
         NetworkSite | null,
         ListResult<NetworkDevice>,
         number,
         number,
         ListResult<NetworkSiteStatusTimeline>,
+        Array<SiteMaintenanceWindow>,
       ] = await Promise.all([
         ModelAPI.getItem<NetworkSite>({
           modelType: NetworkSite,
@@ -88,12 +97,6 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             },
             lastRollupAt: true,
             siteType: true,
-            /*
-             * Carries this site's ancestor ids, which is how a maintenance
-             * window attached to its Region is found without walking the
-             * parent chain one request at a time.
-             */
-            materializedPath: true,
           },
         }),
         ModelAPI.getList<NetworkDevice>({
@@ -141,6 +144,19 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             startsAt: SortOrder.Descending,
           },
         }),
+        /*
+         * Resolved server-side, so this needs nothing from the site row and
+         * rides in the same batch. A failure must not blank the whole strip
+         * — it degrades to "no windows", which is what the hero showed
+         * before maintenance could be attached to a site at all.
+         */
+        fetchSiteMaintenanceWindows({
+          siteId: props.modelId,
+          windowStart: windowStart,
+          windowEnd: windowEnd,
+        }).catch((): Array<SiteMaintenanceWindow> => {
+          return [];
+        }),
       ]);
 
       let devicesUp: number = 0;
@@ -160,25 +176,6 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
        * With zero timeline rows SiteUptimeUtil reports 100%, which would
        * paint an unmonitored site as perfect — show "—" instead.
        */
-      /*
-       * Maintenance is fetched after the batch rather than inside it: the
-       * ancestors it has to match against are on the site row the batch
-       * just returned. A failure here must not blank the whole strip, so it
-       * degrades to "no windows" — the same numbers the hero showed before
-       * maintenance existed.
-       */
-      let maintenanceWindows: Array<SiteMaintenanceWindow> = [];
-      try {
-        maintenanceWindows = await fetchSiteMaintenanceWindows({
-          siteId: props.modelId,
-          materializedPath: site?.materializedPath,
-          windowStart: windowStart,
-          windowEnd: windowEnd,
-        });
-      } catch {
-        maintenanceWindows = [];
-      }
-
       let uptimePercent: number | null = null;
       let dailyUptimePercent: number | null = null;
       if (timeline.data.length > 0) {
@@ -196,19 +193,36 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           },
         );
 
-        uptimePercent = SiteUptimeUtil.calculateUptimePercent(
+        /*
+         * measureUptime rather than the scalar form: a period spent entirely
+         * inside a maintenance window has nothing to measure, and the scalar
+         * has to answer 100 — "100% uptime" on a site that was switched off
+         * for the whole month being exactly the misreading this feature
+         * exists to remove. Null renders as a dash.
+         */
+        const monthly: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
           windowStart,
           windowEnd,
           maintenanceWindows,
         );
+        uptimePercent = monthly.measuredInMs > 0 ? monthly.uptimePercent : null;
 
-        dailyUptimePercent = SiteUptimeUtil.calculateUptimePercent(
+        /*
+         * Exactly 24 hours, not a calendar day — the strip on the Status
+         * Timeline page uses fixed buckets and the two must agree.
+         */
+        const daily: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
-          OneUptimeDate.getSomeDaysAgo(DAILY_UPTIME_WINDOW_DAYS),
+          SiteUptimeUtil.trailingWindowStart(
+            windowEnd,
+            DAILY_UPTIME_WINDOW_DAYS,
+          ),
           windowEnd,
           maintenanceWindows,
         );
+        dailyUptimePercent =
+          daily.measuredInMs > 0 ? daily.uptimePercent : null;
       }
 
       setData({

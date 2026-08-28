@@ -2,6 +2,7 @@ import SiteUptimeUtil, {
   DailyUptimeEntry,
   SiteMaintenanceWindow,
   SiteStatusTimelineRow,
+  SiteUptimeMeasurement,
 } from "../../../Utils/NetworkSite/SiteUptimeUtil";
 
 const WINDOW_START: Date = new Date("2026-07-22T00:00:00Z");
@@ -739,5 +740,238 @@ describe("SiteUptimeUtil.subtractIntervals", () => {
         [{ startInMs: 0, endInMs: 100 }],
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * measureUptime and the difference between "perfect" and "nothing to
+ * measure" (issue #3431, follow-up review).
+ *
+ * calculateUptimePercent has to return a number, so a period spent entirely
+ * inside a maintenance window comes back as 100. Rendering that as
+ * "100% uptime" for a site that was switched off all month is the exact
+ * misreading this feature exists to remove, so every UI caller reads
+ * measuredInMs and draws a dash instead.
+ */
+describe("SiteUptimeUtil.measureUptime", () => {
+  it("reports nothing measured for a fully-maintained period", () => {
+    const measurement: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
+      [
+        row({
+          startsAt: WINDOW_START,
+          endsAt: WINDOW_END,
+          isOperationalState: false,
+        }),
+      ],
+      WINDOW_START,
+      WINDOW_END,
+      [maintenance(-5, 30)],
+    );
+
+    expect(measurement.measuredInMs).toBe(0);
+    expect(measurement.downtimeInMs).toBe(0);
+    expect(measurement.maintenanceInMs).toBe(24 * MS_IN_AN_HOUR);
+    /*
+     * The scalar placeholder is still 100 — which is why callers must not
+     * read it without checking measuredInMs.
+     */
+    expect(measurement.uptimePercent).toBe(100);
+    expect(
+      SiteUptimeUtil.calculateUptimePercent(
+        [
+          row({
+            startsAt: WINDOW_START,
+            endsAt: WINDOW_END,
+            isOperationalState: false,
+          }),
+        ],
+        WINDOW_START,
+        WINDOW_END,
+        [maintenance(-5, 30)],
+      ),
+    ).toBe(100);
+  });
+
+  it("reports the evidence behind an ordinary measurement", () => {
+    const measurement: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
+      [
+        row({
+          startsAt: hoursAfterStart(2),
+          endsAt: hoursAfterStart(6),
+          isOperationalState: false,
+        }),
+      ],
+      WINDOW_START,
+      WINDOW_END,
+      [maintenance(2, 4)],
+    );
+
+    expect(measurement.maintenanceInMs).toBe(2 * MS_IN_AN_HOUR);
+    expect(measurement.measuredInMs).toBe(22 * MS_IN_AN_HOUR);
+    expect(measurement.downtimeInMs).toBe(2 * MS_IN_AN_HOUR);
+    expect(measurement.uptimePercent).toBeCloseTo((20 / 22) * 100, 6);
+  });
+
+  it("reports nothing measured for an empty or inverted period", () => {
+    expect(
+      SiteUptimeUtil.measureUptime([], WINDOW_START, WINDOW_START).measuredInMs,
+    ).toBe(0);
+    expect(
+      SiteUptimeUtil.measureUptime([], WINDOW_END, WINDOW_START).measuredInMs,
+    ).toBe(0);
+  });
+
+  it("agrees with calculateUptimePercent wherever there IS something to measure", () => {
+    /*
+     * The scalar form is now a thin wrapper. If the two ever disagree, one
+     * of the surfaces reading them is showing a different number for the
+     * same site.
+     */
+    const rows: Array<SiteStatusTimelineRow> = [
+      row({
+        startsAt: hoursAfterStart(3),
+        endsAt: hoursAfterStart(9),
+        isOperationalState: false,
+      }),
+    ];
+    const windows: Array<SiteMaintenanceWindow> = [maintenance(4, 5)];
+
+    expect(
+      SiteUptimeUtil.measureUptime(rows, WINDOW_START, WINDOW_END, windows)
+        .uptimePercent,
+    ).toBe(
+      SiteUptimeUtil.calculateUptimePercent(
+        rows,
+        WINDOW_START,
+        WINDOW_END,
+        windows,
+      ),
+    );
+  });
+});
+
+describe("SiteUptimeUtil.trailingWindowStart", () => {
+  it("is exactly N times 24 hours, not a calendar day", () => {
+    /*
+     * The strip's buckets are fixed 24-hour slices. A calendar subtraction
+     * would make the "Last 24 Hours" card span 23 or 25 hours on the two
+     * days a year the clocks move, and disagree with the bar beside it.
+     */
+    for (const days of [1, 7, 30, 90]) {
+      expect(
+        WINDOW_END.getTime() -
+          SiteUptimeUtil.trailingWindowStart(WINDOW_END, days).getTime(),
+      ).toBe(days * 24 * MS_IN_AN_HOUR);
+    }
+  });
+
+  it("lines the daily card up with the newest strip bucket exactly", () => {
+    const entries: Array<DailyUptimeEntry> =
+      SiteUptimeUtil.calculateDailyUptime({
+        rows: [
+          row({
+            startsAt: new Date(WINDOW_END.getTime() - 40 * 24 * MS_IN_AN_HOUR),
+            endsAt: null,
+            isOperationalState: true,
+          }),
+        ],
+        days: 30,
+        endDate: WINDOW_END,
+      });
+
+    const newest: DailyUptimeEntry = entries[entries.length - 1]!;
+    expect(newest.dayStart.getTime()).toBe(
+      SiteUptimeUtil.trailingWindowStart(WINDOW_END, 1).getTime(),
+    );
+    expect(newest.dayEnd.getTime()).toBe(WINDOW_END.getTime());
+  });
+});
+
+describe("SiteUptimeUtil.calculateDailyUptime partial coverage", () => {
+  it("scores the day the timeline BEGINS only over the part it can speak for", () => {
+    /*
+     * A site first rolled up 6 hours before the window end, and down for
+     * every one of those 6 hours. Measuring the whole 24 would score the 18
+     * hours before anyone was watching as up and report 75% for a day the
+     * site was down for all of the observed time.
+     */
+    const firstRowAt: Date = new Date(WINDOW_END.getTime() - 6 * MS_IN_AN_HOUR);
+
+    const entries: Array<DailyUptimeEntry> =
+      SiteUptimeUtil.calculateDailyUptime({
+        rows: [
+          row({
+            startsAt: firstRowAt,
+            endsAt: null,
+            isOperationalState: false,
+          }),
+        ],
+        days: 1,
+        endDate: WINDOW_END,
+      });
+
+    expect(entries[0]!.hasTimelineCoverage).toBe(true);
+    expect(entries[0]!.uptimePercent).toBe(0);
+    expect(entries[0]!.downtimeInMs).toBe(6 * MS_IN_AN_HOUR);
+  });
+
+  it("scores a partially covered day that was healthy as fully up", () => {
+    const firstRowAt: Date = new Date(WINDOW_END.getTime() - 6 * MS_IN_AN_HOUR);
+
+    const entries: Array<DailyUptimeEntry> =
+      SiteUptimeUtil.calculateDailyUptime({
+        rows: [
+          row({ startsAt: firstRowAt, endsAt: null, isOperationalState: true }),
+        ],
+        days: 1,
+        endDate: WINDOW_END,
+      });
+
+    expect(entries[0]!.uptimePercent).toBe(100);
+    expect(entries[0]!.downtimeInMs).toBe(0);
+  });
+
+  it("still reports a fully-covered day over the whole 24 hours", () => {
+    const entries: Array<DailyUptimeEntry> =
+      SiteUptimeUtil.calculateDailyUptime({
+        rows: [
+          row({
+            startsAt: new Date(WINDOW_END.getTime() - 10 * 24 * MS_IN_AN_HOUR),
+            endsAt: new Date(WINDOW_END.getTime() - 6 * MS_IN_AN_HOUR),
+            isOperationalState: true,
+          }),
+          row({
+            startsAt: new Date(WINDOW_END.getTime() - 6 * MS_IN_AN_HOUR),
+            endsAt: null,
+            isOperationalState: false,
+          }),
+        ],
+        days: 1,
+        endDate: WINDOW_END,
+      });
+
+    // 18 good hours out of 24, not out of 6.
+    expect(entries[0]!.uptimePercent).toBeCloseTo((18 / 24) * 100, 6);
+  });
+
+  it("reports a day whose covered part is entirely maintenance as unmeasurable", () => {
+    const firstRowAt: Date = new Date(WINDOW_END.getTime() - 6 * MS_IN_AN_HOUR);
+
+    const entries: Array<DailyUptimeEntry> =
+      SiteUptimeUtil.calculateDailyUptime({
+        rows: [
+          row({
+            startsAt: firstRowAt,
+            endsAt: null,
+            isOperationalState: false,
+          }),
+        ],
+        days: 1,
+        endDate: WINDOW_END,
+        maintenanceWindows: [{ startsAt: firstRowAt, endsAt: null }],
+      });
+
+    expect(entries[0]!.uptimePercent).toBeNull();
+    expect(entries[0]!.isFullyMaintained).toBe(true);
   });
 });

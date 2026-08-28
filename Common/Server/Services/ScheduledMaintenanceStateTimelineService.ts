@@ -846,12 +846,12 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     }
   }
 
-  @CaptureSpan()
   /*
    * Re-rolls the health of every network site chain this event covers.
    * A no-op for the overwhelming majority of events, which have no sites
    * attached at all.
    */
+  @CaptureSpan()
   private async recomputeNetworkSiteRollups(
     scheduledMaintenanceEvent: ScheduledMaintenance | null,
   ): Promise<void> {
@@ -885,6 +885,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     }
   }
 
+  @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
     scheduledMaintenanceEvent: ScheduledMaintenance,
   ): Promise<void> {
