@@ -3872,6 +3872,17 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found");
     }
 
+    /*
+     * The project's AI kill switch, at the service layer rather than only on
+     * the HTTP handler above it. This method is public and has a second
+     * caller (IncidentPostmortemRunner), so gating the route alone would
+     * leave the switch true for one entry point and false for the other.
+     * Checking here also refuses BEFORE the context builder below, which
+     * reads the whole incident dossier — private notes, workspace messages —
+     * to assemble a prompt this project has said it does not want sent.
+     */
+    await AIService.assertProjectAIEnabled(incident.projectId);
+
     // Build incident context - always include workspace messages
     const contextData: IncidentContextData =
       await IncidentAIContextBuilder.buildIncidentContext({

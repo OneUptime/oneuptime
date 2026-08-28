@@ -4,6 +4,8 @@ import IncidentEpisodeAPI from "../../../Server/API/IncidentEpisodeAPI";
 import AlertAPI from "../../../Server/API/AlertAPI";
 import ScheduledMaintenanceAPI from "../../../Server/API/ScheduledMaintenanceAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
+import ProjectService from "../../../Server/Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
 import AIService, {
   AILogRequest,
   INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
@@ -276,6 +278,18 @@ describe("synchronous Generate-with-AI endpoints bound their provider call", () 
     jest
       .spyOn(AIService, "executeWithLogging")
       .mockResolvedValue({ content: "generated" } as never);
+
+    /*
+     * The project's enableAi kill switch, which these handlers read before
+     * they build any context. Every assertion here is about the request
+     * budget the handler hands the provider, so the switch is on — the
+     * switch's own behaviour is covered in AIGenerationProjectAIToggle and
+     * AIKillSwitchBackstop.
+     */
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: PROJECT_ID,
+      enableAi: true,
+    } as unknown as Project);
   });
 
   it.each(
