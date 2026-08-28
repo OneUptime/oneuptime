@@ -397,12 +397,39 @@ const Icon: FunctionComponent<ComponentProps> = ({
      * alone is what everybody already reads as edit, and it survives being
      * small. IconProp.PencilSquare still draws the composite for the handful of
      * places that want it.
+     *
+     * DRAWN AT 80% OF THE UPSTREAM HEROICON, and that is the whole point of
+     * this path existing rather than the stock one.
+     *
+     * Every icon here shares a 24x24 box, but the eye does not measure the
+     * box - it measures the ink. Heroicons' pencil is one unbroken diagonal
+     * from corner to corner, so its ink ran 26.8 units end to end: the
+     * longest stroke of any icon in this file, against a median of 21 and
+     * against the 20.5 of the Trash and the 19.9 of the List it sits beside
+     * in a table row. At the 20px a Button renders it at, that is a 22px
+     * stroke inside a 20px box - it overshot the cap height of its own label
+     * and read as a size larger than every button next to it.
+     *
+     * (Those figures are the longest distance across each glyph's drawn ink,
+     * with arcs and curves sampled. Common/Tests/UI/Components/
+     * IconOpticalSize.test.tsx measures the same quantity from the path
+     * VERTICES alone, which under-reads every icon by a fraction of a unit -
+     * so its numbers are smaller than these and its comparison is relative
+     * rather than absolute.)
+     *
+     * Scaling by 0.8 about the centre of the box brings the ink to 21.4 -
+     * between Trash and Copy, at the median - while keeping the glyph
+     * itself untouched: a uniform scale preserves the arc flags, the 45
+     * degree barrel, and the tangency of the nib and eraser arcs. The
+     * numbers stay exact (radii 1.5 and 3.6, tip at 4.2 19.8), and the
+     * stroke width deliberately does NOT scale, so the pencil keeps the same
+     * weight as its neighbours instead of thinning out.
      */
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"
+        d="M15.89 5.99l1.35-1.35a1.5 1.5 0 112.122 2.122L7.866 18.256a3.6 3.6 0 01-1.518.904l-2.148.64.64-2.148a3.6 3.6 0 01.904-1.518L15.89 5.99zm0 0L18 8.1"
       />,
     );
   } else if (icon === IconProp.Equals) {

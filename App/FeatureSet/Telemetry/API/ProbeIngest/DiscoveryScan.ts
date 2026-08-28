@@ -6,6 +6,10 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+import {
+  MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  clampRescanIntervalInMinutes,
+} from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -18,15 +22,6 @@ import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
 
 const router: ExpressRouter = Express.getRouter();
-
-/*
- * Floor for recurring rescans. A discovery sweep is heavy (up to
- * ScanTargetUtil.MAX_SCAN_HOSTS addresses, one probe at a time), so anything
- * tighter than this would keep the probe permanently busy. Lower stored
- * intervals are clamped, not rejected — the scan still recurs, just no faster
- * than this.
- */
-const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
 
 /*
  * NetworkDeviceDiscoveryScan.statusMessage is a varchar(500). The probe's
@@ -135,6 +130,45 @@ router.post(
              * the whole sweep, why it had not started.
              */
             statusMessage: null,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          /*
+           * Claim ONLY IF everything just handed to the probe is still true.
+           *
+           * The SELECT above and this UPDATE are two statements, and the
+           * UPDATE addresses the row by id alone. A scan's settings became
+           * editable in OneUptime issue #3444, so a save landing in between
+           * would hand this probe one configuration and stamp the row with
+           * another — and, if the probe was reassigned, wedge the scan: the
+           * old probe's result is rejected on the probeId scope below, the new
+           * probe can never claim a row that is already In Progress, and it
+           * sits there until the two-hour reaper calls it a dead probe.
+           *
+           * Every expected column becomes `IS NOT DISTINCT FROM` in the
+           * UPDATE's WHERE, so a mismatch is simply zero rows affected: the
+           * scan stays Pending, this sweep's eventual result is discarded by
+           * the Pending guard in the result endpoint, and the next poll picks
+           * the scan up with its new settings. `name` is deliberately absent —
+           * a rename changes nothing about the sweep and must not cost one.
+           *
+           * The write reports no count, so the probe is still handed the scan
+           * and still sweeps it once for nothing when the guard bites. That is
+           * the cheap half of the trade: a wasted sweep in a race that needs a
+           * save to land inside a single round trip, against a scan wedged
+           * In Progress for two hours until the reaper gives up on it.
+           */
+          expectedData: {
+            status: "Pending",
+            probeId: probeId,
+            cidr: scan.cidr ?? null,
+            snmpVersion: scan.snmpVersion ?? null,
+            snmpCommunityString: scan.snmpCommunityString ?? null,
+            snmpPort: scan.snmpPort ?? null,
+            snmpV3SecurityLevel: scan.snmpV3SecurityLevel ?? null,
+            snmpV3Username: scan.snmpV3Username ?? null,
+            snmpV3AuthProtocol: scan.snmpV3AuthProtocol ?? null,
+            snmpV3AuthKey: scan.snmpV3AuthKey ?? null,
+            snmpV3PrivProtocol: scan.snmpV3PrivProtocol ?? null,
+            snmpV3PrivKey: scan.snmpV3PrivKey ?? null,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         });
       }
@@ -341,15 +375,13 @@ router.post(
        * RequeueRecurringScans.ts) resets the scan to Pending once nextScanAt
        * is due.
        */
-      if (
-        scan.isRecurring &&
-        scan.rescanIntervalInMinutes &&
-        scan.rescanIntervalInMinutes > 0
-      ) {
-        let intervalInMinutes: number = scan.rescanIntervalInMinutes;
+      const clampedIntervalInMinutes: number | null =
+        clampRescanIntervalInMinutes(scan.rescanIntervalInMinutes);
 
-        if (intervalInMinutes < MINIMUM_RESCAN_INTERVAL_IN_MINUTES) {
-          intervalInMinutes = MINIMUM_RESCAN_INTERVAL_IN_MINUTES;
+      if (scan.isRecurring && clampedIntervalInMinutes !== null) {
+        const intervalInMinutes: number = clampedIntervalInMinutes;
+
+        if (intervalInMinutes !== scan.rescanIntervalInMinutes) {
           logger.warn(
             `Discovery scan ${scanId} rescan interval of ${scan.rescanIntervalInMinutes} minute(s) is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum. Clamping.`,
           );
@@ -361,8 +393,18 @@ router.post(
             `Rescan interval is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum; rescanning every ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes instead.`;
         }
 
-        completed["nextScanAt"] =
-          OneUptimeDate.getSomeMinutesAfter(intervalInMinutes);
+        /*
+         * Measured from the completion this write is recording, not from
+         * "now", so the column holds exactly what
+         * RescanIntervalUtil.getNextScanAt would derive from the finished row.
+         * The service re-derives it whenever the schedule is edited, and two
+         * clocks a millisecond apart would make every such edit rewrite a
+         * value that had not actually changed.
+         */
+        completed["nextScanAt"] = OneUptimeDate.addRemoveMinutes(
+          completed["completedAt"] as Date,
+          intervalInMinutes,
+        );
       }
 
       // Last stop before the write — every append above has happened by now.

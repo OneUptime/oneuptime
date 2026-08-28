@@ -202,6 +202,129 @@ describe("POST /probe/discovery-scan/list", () => {
     expect(select["cidr"]).toBe(true);
   });
 
+  /*
+   * The claim is a read-then-write: the SELECT above filters on
+   * `probeId + status = "Pending"`, but the UPDATE addresses the row by id
+   * alone. That gap was harmless while a scan's settings were fixed at
+   * creation. Once they became editable (OneUptime issue #3444) a save landing
+   * inside it would hand this probe one configuration and stamp the row with
+   * another — and, if the probe was reassigned, wedge the scan for two hours:
+   * the old probe's result is rejected on the probeId scope, and the new probe
+   * can never claim a row that already says In Progress.
+   *
+   * So the claim carries its own precondition. Every setting handed to the
+   * probe is asserted in the same statement, which makes a claim on stale
+   * settings a no-op rather than a lie.
+   */
+  test("claims a scan only while the settings it was handed are still current", async () => {
+    const scanId: ObjectID = ObjectID.generate();
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.cidr = "192.168.1.0/24";
+    scan.snmpVersion = "V3";
+    scan.snmpCommunityString = "public";
+    scan.snmpPort = 161;
+    /*
+     * The v3 credentials are SET on this fixture on purpose. With them left
+     * unset the expectation could be satisfied by a guard that hardcoded null,
+     * and the assertion would say nothing about whether the claim actually
+     * carries the values the probe was handed.
+     */
+    scan.snmpV3SecurityLevel = "authPriv";
+    scan.snmpV3Username = "netops";
+    scan.snmpV3AuthProtocol = "sha";
+    scan.snmpV3AuthKey = "auth-secret";
+    scan.snmpV3PrivProtocol = "aes";
+    scan.snmpV3PrivKey = "priv-secret";
+
+    scanService.findBy.mockResolvedValue([scan] as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const updateArgs: JSONObject = scanService.updateColumnsByIdWithoutHooks
+      .mock.calls[0]![0] as JSONObject;
+    const expected: JSONObject = expectPlainUpdateData(
+      updateArgs["expectedData"],
+    );
+
+    /*
+     * Status and probe first: those are what a re-queue and a probe
+     * reassignment change, and either one invalidates a claim outright.
+     */
+    expect(expected["status"]).toBe("Pending");
+    expect((expected["probeId"] as ObjectID).toString()).toBe(
+      probeId.toString(),
+    );
+
+    // ...then every setting that decides what the sweep actually does.
+    expect(expected["cidr"]).toBe("192.168.1.0/24");
+    expect(expected["snmpVersion"]).toBe("V3");
+    expect(expected["snmpCommunityString"]).toBe("public");
+    expect(expected["snmpPort"]).toBe(161);
+    expect(expected["snmpV3SecurityLevel"]).toBe("authPriv");
+    expect(expected["snmpV3Username"]).toBe("netops");
+    expect(expected["snmpV3AuthProtocol"]).toBe("sha");
+    expect(expected["snmpV3AuthKey"]).toBe("auth-secret");
+    expect(expected["snmpV3PrivProtocol"]).toBe("aes");
+    expect(expected["snmpV3PrivKey"]).toBe("priv-secret");
+
+    /*
+     * And NOT the name. A rename changes nothing about the sweep, and voiding
+     * a claim over one would cost the probe a whole cycle for nothing.
+     */
+    expect(Object.keys(expected)).not.toContain("name");
+  });
+
+  /*
+   * An UNSET credential is expected as NULL rather than left out of the
+   * guard. expectedData renders each key as `IS NOT DISTINCT FROM`, so an
+   * omitted key is not "must still be empty" — it is "do not care", and a
+   * credential appearing between the SELECT and the UPDATE would not void the
+   * claim.
+   */
+  test("expects an unset credential to still be unset, rather than not caring", async () => {
+    const scanId: ObjectID = ObjectID.generate();
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.cidr = "192.168.1.0/24";
+    scan.snmpVersion = "V2c";
+    scan.snmpCommunityString = "public";
+
+    scanService.findBy.mockResolvedValue([scan] as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const updateArgs: JSONObject = scanService.updateColumnsByIdWithoutHooks
+      .mock.calls[0]![0] as JSONObject;
+    const expected: JSONObject = expectPlainUpdateData(
+      updateArgs["expectedData"],
+    );
+
+    for (const column of [
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+    ]) {
+      expect(Object.keys(expected)).toContain(column);
+      expect({ column: column, value: expected[column] }).toEqual({
+        column: column,
+        value: null,
+      });
+    }
+  });
+
   test("hands out the probe's pending scans and marks each In Progress with plain column data", async () => {
     const scanId: ObjectID = ObjectID.generate();
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(

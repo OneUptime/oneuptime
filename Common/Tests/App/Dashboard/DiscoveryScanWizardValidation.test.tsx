@@ -246,6 +246,29 @@ function renderScanCell(scan: Partial<NetworkDeviceDiscoveryScan>): string {
   return container.textContent || "";
 }
 
+/*
+ * What the Recurrence column puts on screen. Rendered rather than inspected,
+ * for the same reason the Scan cell is: the thing under test is a sentence an
+ * operator reads, not a shape in the element tree.
+ */
+function renderRecurrenceCell(
+  scan: Partial<NetworkDeviceDiscoveryScan>,
+): string {
+  const column: CapturedColumn = columnNamed("isRecurring");
+
+  if (!column.getElement) {
+    throw new Error("The Recurrence column renders no element");
+  }
+
+  const { container } = render(
+    <MemoryRouter>
+      {column.getElement(scan as NetworkDeviceDiscoveryScan)}
+    </MemoryRouter>,
+  );
+
+  return container.textContent || "";
+}
+
 function validate(key: string, values: Record<string, unknown>): string | null {
   const field: CapturedFormField = fieldNamed(key);
 
@@ -713,11 +736,14 @@ describe("Name identifies the scan in the list", () => {
   });
 
   /*
-   * A name that cannot be corrected is worse than no name: "Region 1100" on
-   * the wrong range misleads everyone who reads the list afterwards, and the
-   * only other way to fix it would be deleting the scan and its results.
+   * A scan that cannot be corrected is worse than no scan: a name on the wrong
+   * range misleads everyone who reads the list afterwards, a typo'd subnet
+   * sweeps nothing, and a rejected community string finds nothing — and the
+   * only way to fix any of them used to be deleting the scan and its results
+   * and starting again (OneUptime issue #3444). One dialog fixes all of them;
+   * it replaced a Rename dialog that could only fix the first.
    */
-  test("a scan can be renamed after it was created", async () => {
+  test("a scan can be edited after it was created", async () => {
     await renderPage();
 
     const actions: Array<string> = (
@@ -726,22 +752,24 @@ describe("Name identifies the scan in the list", () => {
       return button.title || "";
     });
 
-    expect(actions).toContain("Rename");
+    expect(actions).toContain("Edit");
+    // Superseded: everything it offered is the first field of Edit.
+    expect(actions).not.toContain("Rename");
   });
 
   /*
    * The table is not editable, so this button is the page's only edit
    * affordance and nothing else gates it. Offered to a reader, it would open a
-   * dialog whose one field ModelForm has already dropped for want of the
-   * update permission — a box that cannot be saved and does not say why.
+   * dialog whose fields ModelForm has already dropped for want of the update
+   * permission — boxes that cannot be saved and do not say why.
    */
-  test("renaming is offered only to someone who could save it", async () => {
+  test("editing is offered only to someone who could save it", async () => {
     await renderPage();
 
-    const rename: CapturedActionButton | undefined = (
+    const edit: CapturedActionButton | undefined = (
       capturedTableProps?.actionButtons || []
     ).find((button: CapturedActionButton): boolean => {
-      return button.title === "Rename";
+      return button.title === "Edit";
     });
 
     const scan: NetworkDeviceDiscoveryScan = {
@@ -752,13 +780,101 @@ describe("Name identifies the scan in the list", () => {
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.Viewer]);
 
-    expect(rename?.isVisible?.(scan)).toBe(false);
+    expect(edit?.isVisible?.(scan)).toBe(false);
 
     jest
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.ProjectAdmin]);
 
-    expect(rename?.isVisible?.(scan)).toBe(true);
+    expect(edit?.isVisible?.(scan)).toBe(true);
+  });
+
+  test("a one-time scan reads as one-time", async () => {
+    await renderPage();
+
+    expect(renderRecurrenceCell({ isRecurring: false })).toContain("One-time");
+  });
+
+  test("a scheduled recurring scan says when it next runs", async () => {
+    await renderPage();
+
+    const cell: string = renderRecurrenceCell({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+      nextScanAt: new Date(Date.now() + 30 * 60000),
+    });
+
+    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Next scan");
+  });
+
+  /*
+   * The half-truth this column used to tell. A recurring scan whose
+   * nextScanAt is NULL is never re-queued — the worker's predicate is
+   * `nextScanAt <= now`, and that is UNKNOWN for NULL — but the cell printed
+   * the cadence and simply omitted the second line, so a scan that would never
+   * run again was indistinguishable from one due in an hour.
+   */
+  test("a recurring scan with nothing scheduled says so rather than showing a bare cadence", async () => {
+    await renderPage();
+
+    const cell: string = renderRecurrenceCell({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+    });
+
+    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("No next scan is scheduled");
+  });
+
+  /*
+   * ...but that is only alarming once the scan has finished. A run that is
+   * queued or under way has its next one scheduled when it reports.
+   */
+  test("a recurring scan mid-run explains that the next one waits for it", async () => {
+    await renderPage();
+
+    for (const status of ["Pending", "In Progress"]) {
+      const cell: string = renderRecurrenceCell({
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+        status: status,
+      });
+
+      expect(cell).toContain("when this run finishes");
+      expect(cell).not.toContain("No next scan is scheduled");
+    }
+  });
+
+  /*
+   * The complaint in the issue was that a finished scan could not be given a
+   * schedule. Nothing may hide Edit behind a status: a Completed scan is the
+   * one people most need to change, and an In Progress one abandons its sweep
+   * and starts again with the new settings rather than refusing.
+   */
+  test("editing is offered whatever state the scan is in", async () => {
+    await renderPage();
+
+    const edit: CapturedActionButton | undefined = (
+      capturedTableProps?.actionButtons || []
+    ).find((button: CapturedActionButton): boolean => {
+      return button.title === "Edit";
+    });
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectAdmin]);
+
+    for (const status of ["Pending", "In Progress", "Completed", "Failed"]) {
+      const scan: NetworkDeviceDiscoveryScan = {
+        cidr: "10.0.0.0/24",
+        status: status,
+      } as NetworkDeviceDiscoveryScan;
+
+      expect(edit?.isVisible?.(scan)).toBe(true);
+    }
   });
 });
 

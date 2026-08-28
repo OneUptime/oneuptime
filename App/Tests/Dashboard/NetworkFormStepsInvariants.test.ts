@@ -104,16 +104,21 @@ function matchAll(pattern: RegExp, text: string): Array<string> {
 /*
  * The bodies of every step list on the page.
  *
- * Two spellings, because the two hosts of a stepped form name the prop
- * differently: ModelTable takes `formSteps={[ ... ]}` and ModelFormModal
- * takes `steps: [ ... ]` inside its formProps. Both hold only string
- * literals and predicate names, so the first terminator after the opening
- * always closes the list.
+ * Three spellings. The two hosts of a stepped form name the prop differently
+ * — ModelTable takes `formSteps={[ ... ]}` and ModelFormModal takes
+ * `steps: [ ... ]` inside its formProps — and a page that renders the same
+ * steps twice hoists them into a module-level
+ * `const X: Array<FormStep<Model>> = [ ... ];` and passes that instead, which
+ * is the shape Discovery.tsx uses to keep its create wizard and its edit
+ * dialog describing one set of groups. All three hold only string literals
+ * and predicate names, so the first terminator after the opening always
+ * closes the list.
  */
 function formStepBlocks(source: string): Array<string> {
   return [
     ...matchAll(/formSteps=\{\[(.*?)\]\}/, source),
     ...matchAll(/\bsteps:\s*\[(.*?)\],\s*fields:/, source),
+    ...matchAll(/\bArray<FormStep<[^>]*>> = \[(.*?)\];/, source),
   ];
 }
 
@@ -145,9 +150,7 @@ describe.each(STEPPED_FORM_PAGES)("%s form steps", (page: string) => {
   const source: string = readPage(page);
 
   test("renders its form as a wizard", () => {
-    expect(source.includes("formSteps={[") || source.includes("steps: [")).toBe(
-      true,
-    );
+    expect(formStepBlocks(source).length).toBeGreaterThan(0);
   });
 
   /*
