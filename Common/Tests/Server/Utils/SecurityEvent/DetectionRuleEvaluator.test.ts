@@ -43,6 +43,7 @@ import OTelIngestService, {
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import logger from "../../../../Server/Utils/Logger";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
@@ -1454,6 +1455,386 @@ describe("DetectionRuleEvaluator", () => {
       expect(row["message"]).toContain(
         "Detection: Brute Force Watch — 203.0.113.7 (9 events, 6 distinct principalUser)",
       );
+    });
+  });
+
+  /*
+   * The failure-bookkeeping regression, detection-rule side.
+   *
+   * When evaluateRule throws, the loop records the failure back onto the
+   * row — lastEvaluatedAt, so the rule is known to have been attempted,
+   * and lastError, so somebody can see why. That write used to run bare
+   * inside the catch block, and it had two ways to throw:
+   *
+   *   - lastError was declared TableColumnType.LongText, i.e. varchar(500),
+   *     and DatabaseService.checkMaxLengthOfFields rejects anything longer
+   *     with a BadDataException. A ClickHouse exception echoes the entire
+   *     compiled query back, so realistic evaluator errors blew straight
+   *     past 500 characters.
+   *   - ordinary database trouble — a dropped connection, a deadlock — did
+   *     the same thing for a different reason.
+   *
+   * Either throw escaped the catch block AND the for-loop around it, so
+   * nothing was stamped and every remaining rule in that tick went
+   * unevaluated. For a security product that means detections silently
+   * stop firing, and the two columns meant to explain it are exactly the
+   * ones the failure prevented from being written: the row still reads
+   * lastEvaluatedAt = null, lastError = null, forever.
+   *
+   * The fix routes the write through ConnectorErrorMessage.recordFailure
+   * with a clamped message. These tests pin both halves.
+   */
+  describe("evaluateAllDueRules guarded failure bookkeeping", () => {
+    interface RecordedRuleWrite {
+      ruleId: string;
+      lastError: unknown;
+      lastEvaluatedAt: unknown;
+    }
+
+    function recordedWrites(spies: EvaluationSpies): Array<RecordedRuleWrite> {
+      return spies.updateOneById.mock.calls.map(
+        (call: Array<unknown>): RecordedRuleWrite => {
+          const arg: { id: ObjectID; data: JSONObject } = call[0] as {
+            id: ObjectID;
+            data: JSONObject;
+          };
+
+          return {
+            ruleId: arg.id.toString(),
+            lastError: arg.data["lastError"],
+            lastEvaluatedAt: arg.data["lastEvaluatedAt"],
+          };
+        },
+      );
+    }
+
+    /*
+     * A real-shaped ClickHouse exception: the server echoes the whole
+     * compiled query back inside the message. This is the realistic long
+     * error on the detection side — the compiled Sigma WHERE clause is one
+     * OR-fragment per selection value, so a broad rule produces a query far
+     * longer than any varchar(500) will hold.
+     */
+    function buildClickhouseQueryEchoError(): Error {
+      const predicates: Array<string> = [];
+
+      for (let index: number = 0; index < 40; index++) {
+        predicates.push(`className = {p${index + 2}:String}`);
+      }
+
+      const compiledQuery: string =
+        "SELECT groupValue, count(*) AS matchCount FROM oneuptime.SecurityEvent " +
+        "WHERE projectId = {p0:String} AND time >= {p1:DateTime64} AND (" +
+        predicates.join(" OR ") +
+        ") GROUP BY groupValue HAVING matchCount >= {p99:UInt64} " +
+        "ORDER BY matchCount DESC LIMIT 100";
+
+      return new Error(
+        `Code: 47. DB::Exception: Missing columns: 'principalUsr' while processing query: ${compiledQuery} (UNKNOWN_IDENTIFIER) (version 24.3.1.1)`,
+      );
+    }
+
+    test("a rule whose error echoes the whole compiled query still gets stamped, clamped", async () => {
+      const rule: DetectionRule = buildRule();
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+      const clickhouseError: Error = buildClickhouseQueryEchoError();
+
+      /*
+       * The fixture is only meaningful while it actually overflows — if the
+       * query echo ever shrinks below the clamp this test would pass for
+       * the wrong reason, so assert the premise.
+       */
+      expect(clickhouseError.message.length).toBeGreaterThan(
+        MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+      );
+
+      spies.findDetectionMatches.mockRejectedValue(clickhouseError as never);
+
+      // Pre-fix this rejected: the varchar(500) write threw out of the loop.
+      await expect(
+        DetectionRuleEvaluator.evaluateAllDueRules(),
+      ).resolves.toBeUndefined();
+
+      expect(spies.updateOneById).toHaveBeenCalledTimes(1);
+
+      const write: RecordedRuleWrite = recordedWrites(spies)[0]!;
+
+      expect(write.ruleId).toBe(RULE_ID.toString());
+
+      /*
+       * The heart of it: pre-fix the full ~1200-character message went to
+       * the column verbatim and the write was rejected before it ever
+       * reached the database.
+       */
+      const storedError: string = write.lastError as string;
+
+      expect(typeof storedError).toBe("string");
+      expect(storedError.length).toBeLessThanOrEqual(
+        MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+      );
+      // The kept prefix is the diagnostic half — the head of the message.
+      expect(storedError.startsWith("Code: 47. DB::Exception:")).toBe(true);
+      // And it says it was cut, so nobody chases a cause that was trimmed off.
+      expect(storedError.endsWith("... (truncated)")).toBe(true);
+
+      /*
+       * And lastEvaluatedAt is stamped. This is the column whose absence
+       * made the outage unreadable: a rule that never records an attempt
+       * looks identical to a rule nobody ever enabled.
+       */
+      expect(write.lastEvaluatedAt).toBeInstanceOf(Date);
+    });
+
+    test("one rule whose bookkeeping write rejects does not stop the rules after it", async () => {
+      /*
+       * The blast radius, and the reason this is worth a test of its own:
+       * pre-fix a single rule whose lastError would not store aborted the
+       * whole tick, so every rule queued behind it in that project stopped
+       * being evaluated — every minute, indefinitely, with nothing logged
+       * against the rules that were skipped and nothing written to their
+       * rows. The quietest possible failure mode for a security product.
+       */
+      const firstRule: DetectionRule = buildRule({
+        id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1"),
+      });
+      const secondRule: DetectionRule = buildRule({
+        id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2"),
+      });
+      const thirdRule: DetectionRule = buildRule({
+        id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        firstRule,
+        secondRule,
+        thirdRule,
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockRejectedValue(new Error("clickhouse read timed out") as never);
+
+      /*
+       * Only the FIRST recovery write fails — exactly the shape of the
+       * original outage, where one row's oversized error poisoned the tick
+       * for every row behind it.
+       */
+      spies.updateOneById
+        .mockRejectedValueOnce(
+          new Error("String is longer than maximum length of 500 characters"),
+        )
+        .mockResolvedValue(undefined as never);
+
+      await expect(
+        DetectionRuleEvaluator.evaluateAllDueRules(),
+      ).resolves.toBeUndefined();
+
+      const evaluatedRuleIds: Array<string> = evaluateRuleSpy.mock.calls.map(
+        (call: Array<unknown>): string => {
+          return (call[0] as DetectionRule).id!.toString();
+        },
+      );
+
+      // All three attempted, in order — pre-fix this was just the first.
+      expect(evaluatedRuleIds).toEqual([
+        firstRule.id!.toString(),
+        secondRule.id!.toString(),
+        thirdRule.id!.toString(),
+      ]);
+
+      const writes: Array<RecordedRuleWrite> = recordedWrites(spies);
+
+      expect(writes).toHaveLength(3);
+      expect(
+        writes.map((write: RecordedRuleWrite): string => {
+          return write.ruleId;
+        }),
+      ).toEqual([
+        firstRule.id!.toString(),
+        secondRule.id!.toString(),
+        thirdRule.id!.toString(),
+      ]);
+
+      // The two rules behind the poisoned one did get their errors recorded.
+      for (const write of writes.slice(1)) {
+        expect(write.lastError).toBe("clickhouse read timed out");
+        expect(write.lastEvaluatedAt).toBeInstanceOf(Date);
+      }
+    });
+
+    test("a bookkeeping write that throws synchronously is survived too", async () => {
+      /*
+       * Not every failure arrives as a rejected promise: a validation guard
+       * or a torn-down connection pool can throw before the write ever goes
+       * async. Pre-fix that escaped the catch block just the same, so the
+       * guard has to cover it — recordFailure awaits inside try/catch,
+       * which catches both.
+       */
+      const firstRule: DetectionRule = buildRule({
+        id: new ObjectID("cccccccc-cccc-4ccc-8ccc-ccccccccccc1"),
+      });
+      const secondRule: DetectionRule = buildRule({
+        id: new ObjectID("cccccccc-cccc-4ccc-8ccc-ccccccccccc2"),
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        firstRule,
+        secondRule,
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockRejectedValue(new Error("sigma compile failed") as never);
+
+      let updateCallCount: number = 0;
+
+      spies.updateOneById.mockImplementation((() => {
+        updateCallCount++;
+
+        if (updateCallCount === 1) {
+          throw new Error("Connection pool has been destroyed.");
+        }
+
+        return Promise.resolve(undefined);
+      }) as never);
+
+      await expect(
+        DetectionRuleEvaluator.evaluateAllDueRules(),
+      ).resolves.toBeUndefined();
+
+      expect(evaluateRuleSpy).toHaveBeenCalledTimes(2);
+      expect(updateCallCount).toBe(2);
+
+      const secondWrite: RecordedRuleWrite = recordedWrites(spies)[1]!;
+
+      expect(secondWrite.ruleId).toBe(secondRule.id!.toString());
+      expect(secondWrite.lastError).toBe("sigma compile failed");
+    });
+
+    test("the interval gate is untouched: only due rules are evaluated and only they are stamped", async () => {
+      /*
+       * The guard wraps the catch block's write, nothing else — scheduling
+       * must be exactly as it was. Pinned alongside the failure tests
+       * because a guard that swallowed too much, or that moved the write
+       * outside the `if (rule.id)` check, would show up here as a not-due
+       * rule acquiring a lastError it never earned.
+       */
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const pastDueRule: DetectionRule = buildRule({
+        id: new ObjectID("dddddddd-dddd-4ddd-8ddd-ddddddddddd1"),
+        lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(now, -30),
+        evaluationIntervalInMinutes: 5,
+      });
+
+      const insideIntervalRule: DetectionRule = buildRule({
+        id: new ObjectID("dddddddd-dddd-4ddd-8ddd-ddddddddddd2"),
+        lastEvaluatedAt: now,
+        evaluationIntervalInMinutes: 60,
+      });
+
+      const neverEvaluatedRule: DetectionRule = buildRule({
+        id: new ObjectID("dddddddd-dddd-4ddd-8ddd-ddddddddddd3"),
+        evaluationIntervalInMinutes: 60,
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        pastDueRule,
+        insideIntervalRule,
+        neverEvaluatedRule,
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockRejectedValue(buildClickhouseQueryEchoError() as never);
+
+      await expect(
+        DetectionRuleEvaluator.evaluateAllDueRules(),
+      ).resolves.toBeUndefined();
+
+      const evaluatedRuleIds: Array<string> = evaluateRuleSpy.mock.calls.map(
+        (call: Array<unknown>): string => {
+          return (call[0] as DetectionRule).id!.toString();
+        },
+      );
+
+      /*
+       * lastEvaluatedAt = null is "always due", not "never due" — a rule
+       * saved a second ago must run on the very next tick rather than
+       * waiting out an interval it has no baseline for.
+       */
+      expect(evaluatedRuleIds).toEqual([
+        pastDueRule.id!.toString(),
+        neverEvaluatedRule.id!.toString(),
+      ]);
+
+      const stampedRuleIds: Array<string> = recordedWrites(spies).map(
+        (write: RecordedRuleWrite): string => {
+          return write.ruleId;
+        },
+      );
+
+      // The rule still inside its interval is neither run nor written to.
+      expect(stampedRuleIds).toEqual([
+        pastDueRule.id!.toString(),
+        neverEvaluatedRule.id!.toString(),
+      ]);
+      expect(stampedRuleIds).not.toContain(insideIntervalRule.id!.toString());
+    });
+
+    test("a rule that recovers has its stored error cleared on the next tick", async () => {
+      /*
+       * The round trip the dashboard's Last Error column depends on: a
+       * failing tick stores a clamped message, and the next successful
+       * evaluation sets it back to null. Without the clear, a rule that
+       * recovered would keep displaying a stale error indefinitely and
+       * read as still broken.
+       */
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        rule,
+      ] as never);
+
+      const spies: EvaluationSpies = installSpies();
+
+      spies.findDetectionMatches
+        .mockRejectedValueOnce(buildClickhouseQueryEchoError() as never)
+        .mockResolvedValue([] as never);
+
+      // Tick one: ClickHouse is unhappy.
+      await DetectionRuleEvaluator.evaluateAllDueRules();
+      // Tick two: it recovers.
+      await DetectionRuleEvaluator.evaluateAllDueRules();
+
+      const writes: Array<RecordedRuleWrite> = recordedWrites(spies);
+
+      expect(writes).toHaveLength(2);
+
+      expect(typeof writes[0]!.lastError).toBe("string");
+      expect((writes[0]!.lastError as string).length).toBeLessThanOrEqual(
+        MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+      );
+
+      // Explicitly null, not merely absent — the column has to be cleared.
+      expect(writes[1]!.lastError).toBeNull();
+      expect(writes[1]!.lastEvaluatedAt).toBeInstanceOf(Date);
     });
   });
 });
