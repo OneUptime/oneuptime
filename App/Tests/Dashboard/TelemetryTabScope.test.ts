@@ -619,3 +619,556 @@ describe("service-scoped Insights round trip", () => {
     });
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * The `search` / `rootOnly` hand-off, and the structural guard that stops the
+ * next predicate param from going the same way.
+ *
+ * What actually shipped: both params narrow the rows a Traces or Metrics
+ * Viewer shows — `search` is compiled into the query through each explorer's
+ * own grammar, `rootOnly` drives `isRootSpan` — and neither was in the
+ * carried set. So the Insights tab aggregated a WIDER slice than the Viewer
+ * the user came from while the header claimed the same scope, and the trip
+ * back destroyed the search the user had typed. Nothing threw, nothing was
+ * blank; the numbers were just about a different set of rows than the label.
+ * ---------------------------------------------------------------------------
+ */
+
+type ViewerUrlStateModule =
+  typeof import("../../FeatureSet/Dashboard/src/Utils/TelemetryViewerUrlState");
+
+let ViewerUrlState: ViewerUrlStateModule;
+
+/*
+ * A second hook rather than an edit to the first: hooks run in declaration
+ * order, so the `window` stub the first one installs is already in place by
+ * the time this deferred import pulls in Navigation -> Common/UI/Config.
+ */
+beforeAll(async () => {
+  ViewerUrlState = await import(
+    "../../FeatureSet/Dashboard/src/Utils/TelemetryViewerUrlState"
+  );
+});
+
+describe("param-set closure", () => {
+  /*
+   * This is the test that would have caught the bug at the moment it was
+   * written, without anyone having to think about Insights at all.
+   *
+   * `search` and `rootOnly` were not forgotten because someone decided they
+   * should not travel. They were forgotten because the carried set and the
+   * explorers' param set were two independent lists, and adding a param to
+   * one of them never forced a look at the other. So this asserts the two
+   * lists are CLOSED over each other: every name an explorer writes is
+   * accounted for exactly once, and neither carried list names a param that
+   * no explorer writes.
+   *
+   * A future engineer adding a param to TelemetryViewerUrlParamNames fails
+   * here until they say which side it belongs on. That is the whole point —
+   * the failure is the design review.
+   */
+
+  /*
+   * The third bucket, and its only member.
+   *
+   * `status` is written by the Exceptions viewer and is deliberately carried
+   * NOWHERE: Unresolved / Resolved / Archived are one component with three
+   * different status defaults, so handing `status` to a sibling tab would
+   * make every tab show whichever status the user came from. It is not a
+   * presentation param either — it genuinely narrows the rows. Naming it
+   * here, with its reason, is what keeps the closure honest: a param is
+   * excused only by an explicit entry, never by the test quietly not
+   * noticing it.
+   */
+  const DESTINATION_SELECTED_PARAM_NAMES: ReadonlyArray<string> = ["status"];
+
+  const WHERE_TO_PUT_IT: string =
+    "pick a side: TELEMETRY_TAB_SCOPE_PARAM_NAMES if removing the param would return MORE rows, TELEMETRY_TAB_PRESENTATION_PARAM_NAMES if it only changes how the same rows are shown, or DESTINATION_SELECTED_PARAM_NAMES in this test if every destination must choose its own value";
+
+  function classifiedNames(): Array<string> {
+    return [
+      ...Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES,
+      ...Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES,
+      ...DESTINATION_SELECTED_PARAM_NAMES,
+    ];
+  }
+
+  test("every param an explorer writes is classified", () => {
+    const classified: Array<string> = classifiedNames();
+
+    const unclassified: Array<string> =
+      ViewerUrlState.TelemetryViewerUrlParamNames.filter(
+        (name: string): boolean => {
+          return !classified.includes(name);
+        },
+      ).map((name: string): string => {
+        return `"${name}" is written by an explorer but no list claims it — ${WHERE_TO_PUT_IT}`;
+      });
+
+    expect(unclassified).toEqual([]);
+  });
+
+  test("nothing is classified that no explorer writes", () => {
+    /*
+     * The other direction. A carried name the explorers never write is dead
+     * weight that reads as a live contract — and it hides a rename: if
+     * `search` were ever renamed in the viewers, the carried set would keep
+     * carrying a param nobody sets and the slice would silently widen again.
+     */
+    const written: Array<string> = ViewerUrlState.TelemetryViewerUrlParamNames;
+
+    const orphans: Array<string> = [
+      ...Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES,
+      ...Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES,
+    ]
+      .filter((name: string): boolean => {
+        return !written.includes(name);
+      })
+      .map((name: string): string => {
+        return `"${name}" is listed as a telemetry tab param but no explorer writes it — remove it, or fix the name it was renamed from`;
+      });
+
+    expect(orphans).toEqual([]);
+  });
+
+  test("no param is both carried and dropped", () => {
+    /*
+     * An overlap would mean the two lists disagree about one param, and
+     * which behaviour you get would depend on which list a reader happened
+     * to consult.
+     */
+    const overlap: Array<string> = Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES.filter(
+      (name: string): boolean => {
+        return Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES.includes(name);
+      },
+    );
+
+    expect(overlap).toEqual([]);
+
+    const classified: Array<string> = classifiedNames();
+    const deduped: Array<string> = Array.from(new Set(classified));
+
+    expect(deduped.sort()).toEqual(classified.sort());
+  });
+
+  test("the two lists together account for the whole set, exactly once each", () => {
+    expect(classifiedNames().sort()).toEqual(
+      [...ViewerUrlState.TelemetryViewerUrlParamNames].sort(),
+    );
+  });
+
+  test("search and rootOnly sit on the carried side, where they belong", () => {
+    /*
+     * The direct anchor for the regression. Both narrow the rows, so both
+     * are scope; moving either into the presentation list would reinstate an
+     * Insights tab whose numbers cover more rows than its header admits.
+     */
+    expect(Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES).toContain("search");
+    expect(Scope.TELEMETRY_TAB_SCOPE_PARAM_NAMES).toContain("rootOnly");
+    expect(Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES).not.toContain(
+      "search",
+    );
+    expect(Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES).not.toContain(
+      "rootOnly",
+    );
+  });
+
+  test("the presentation list is page, pageSize and view — and only those", () => {
+    /*
+     * Pinned as a whole set rather than by membership: the argument for
+     * dropping a param is "it says nothing about which rows to aggregate",
+     * and that argument holds for exactly these three. A fourth arriving
+     * here is a predicate being dropped.
+     */
+    expect([...Scope.TELEMETRY_TAB_PRESENTATION_PARAM_NAMES].sort()).toEqual([
+      "page",
+      "pageSize",
+      "view",
+    ]);
+  });
+});
+
+/*
+ * A search string a real user would type, and the one that breaks a naive
+ * hand-off: the spaces make it a multi-token query, the quotes make it a
+ * phrase, and the '%' is a live URL escape character that a double-encode or
+ * a missed decode mangles into something that matches nothing.
+ */
+const AWKWARD_SEARCH: string = 'error rate > 50% "checkout service"';
+
+function viewerQueryString(values: Dictionary<string>): string {
+  return `?${new URLSearchParams(values).toString()}`;
+}
+
+describe("search and rootOnly round-trip", () => {
+  interface RoundTripCase {
+    name: string;
+    search: string | null;
+    rootOnly: boolean | null;
+    grammar: "lists" | "pairs";
+  }
+
+  const CASES: Array<RoundTripCase> = [];
+
+  for (const grammar of ["lists", "pairs"] as Array<"lists" | "pairs">) {
+    for (const search of [null, "timeout", AWKWARD_SEARCH]) {
+      for (const rootOnly of [null, true]) {
+        CASES.push({
+          name: `${grammar} grammar, search=${
+            search === null ? "absent" : JSON.stringify(search)
+          }, rootOnly=${rootOnly === null ? "absent" : "true"}`,
+          search,
+          rootOnly,
+          grammar,
+        });
+      }
+    }
+  }
+
+  test.each(CASES)(
+    "$name survives Viewer -> Insights -> Viewer",
+    (testCase: RoundTripCase) => {
+      /*
+       * The property, stated once for the whole matrix: whatever the Viewer
+       * wrote is what the trip back writes. Any cell that loses a value is a
+       * user's typed search deleted by a tab click, or an Insights page
+       * counting non-root spans a Traces Viewer was hiding.
+       */
+      const urlValues: Dictionary<string> = {
+        filters: JSON.stringify(
+          testCase.grammar === "pairs"
+            ? [["primaryEntityId", SERVICE_A]]
+            : [["primaryEntityId", [SERVICE_A]]],
+        ),
+        range: TimeRange.PAST_ONE_DAY,
+      };
+
+      if (testCase.search !== null) {
+        urlValues["search"] = testCase.search;
+      }
+
+      if (testCase.rootOnly !== null) {
+        urlValues["rootOnly"] = String(testCase.rootOnly);
+      }
+
+      const scope: ServiceScopedInsightsUrlScope =
+        Scope.readServiceScopedInsightsUrlScope(viewerQueryString(urlValues));
+
+      expect(scope.search).toBe(testCase.search);
+      expect(scope.rootOnly).toBe(testCase.rootOnly);
+      expect(scope.serviceIds).toEqual([SERVICE_A]);
+
+      const backToViewer: Dictionary<string | null> =
+        Scope.buildServiceScopedInsightsUrlParams({
+          timeRange: scope.timeRange as RangeStartAndEndDateTime,
+          serviceIds: scope.serviceIds,
+          unappliedFilters: scope.unappliedFilters,
+          savedViewId: scope.savedViewId,
+          grammar: testCase.grammar,
+          search: scope.search,
+          rootOnly: scope.rootOnly,
+        });
+
+      expect(backToViewer["search"]).toBe(testCase.search);
+      expect(backToViewer["rootOnly"]).toBe(
+        testCase.rootOnly === true ? "true" : null,
+      );
+
+      /*
+       * And once more from the rebuilt URL: reading what we just wrote has
+       * to land on the same scope, or the second tab switch drifts.
+       */
+      expect(
+        Scope.readServiceScopedInsightsUrlScope(
+          viewerQueryString(Scope.toPresentParams(backToViewer)),
+        ),
+      ).toEqual(scope);
+    },
+  );
+
+  test("a search full of URL metacharacters comes back byte for byte", () => {
+    /*
+     * Spelled out separately from the matrix because the failure mode is
+     * silent: a double-encoded '%' turns "50%" into "50%25" and the query
+     * quietly matches nothing, which reads to the user as "there are no such
+     * spans" rather than as a broken link.
+     */
+    expect(
+      Scope.readServiceScopedInsightsUrlScope(
+        viewerQueryString({ search: AWKWARD_SEARCH }),
+      ).search,
+    ).toBe(AWKWARD_SEARCH);
+  });
+
+  test("rootOnly=false is not re-emitted, because it is not a filter", () => {
+    /*
+     * "Show every span" is the absence of a narrowing, and a param that
+     * spells it out claims one. Left in the URL it makes a link look
+     * filtered, it survives into a shared link as a toggle the recipient did
+     * not choose, and it gives the hint chip something to name.
+     */
+    const params: Dictionary<string | null> =
+      Scope.buildServiceScopedInsightsUrlParams({
+        timeRange: { range: TimeRange.PAST_ONE_HOUR },
+        serviceIds: [],
+        unappliedFilters: [],
+        savedViewId: null,
+        grammar: "pairs",
+        rootOnly: false,
+      });
+
+    expect(params["rootOnly"]).toBeNull();
+    expect(Object.keys(Scope.toPresentParams(params))).not.toContain(
+      "rootOnly",
+    );
+  });
+
+  test("rootOnly=false in the URL still reads as false, not as absent", () => {
+    /*
+     * Reading and writing are asymmetric on purpose. `false` has to be
+     * distinguishable from "the link said nothing" on the way IN, because a
+     * link that explicitly cleared the toggle must beat a named saved view
+     * that stores it as on; only the OUTPUT drops it.
+     */
+    expect(
+      Scope.readServiceScopedInsightsUrlScope(
+        viewerQueryString({ rootOnly: "false" }),
+      ).rootOnly,
+    ).toBe(false);
+
+    expect(
+      Scope.readServiceScopedInsightsUrlScope(
+        viewerQueryString({ range: TimeRange.PAST_ONE_DAY }),
+      ).rootOnly,
+    ).toBeNull();
+  });
+
+  test("an empty search writes no param rather than an empty one", () => {
+    /*
+     * `?search=` reads back as a search for the empty string and looks
+     * filtered to anyone reading the URL. Absent is the honest encoding of
+     * "no search".
+     */
+    for (const search of ["", null, undefined]) {
+      expect(
+        Scope.buildServiceScopedInsightsUrlParams({
+          timeRange: { range: TimeRange.PAST_ONE_HOUR },
+          serviceIds: [],
+          unappliedFilters: [],
+          savedViewId: null,
+          grammar: "lists",
+          search,
+        })["search"],
+      ).toBeNull();
+    }
+  });
+});
+
+describe("the hint names what is not applied", () => {
+  test("a search the page is not applying is named", () => {
+    /*
+     * Without this the page carries the search invisibly: the header says
+     * "2 services", the numbers cover every row in those services, and the
+     * Viewer the user just left was showing a fraction of them.
+     */
+    expect(Scope.describeUnappliedScopeFilters([], { search: "timeout" })).toBe(
+      "Also filtered in the Viewer, not applied here: search text",
+    );
+  });
+
+  test("a root-spans-only toggle the page is not applying is named", () => {
+    expect(Scope.describeUnappliedScopeFilters([], { rootOnly: true })).toBe(
+      "Also filtered in the Viewer, not applied here: root spans only",
+    );
+  });
+
+  test("facets, search and toggle read as one sentence, facets first", () => {
+    expect(
+      Scope.describeUnappliedScopeFilters(
+        [
+          ["severityText", ["Error"]],
+          ["attributes.http.route", ["/checkout"]],
+        ],
+        { search: AWKWARD_SEARCH, rootOnly: true },
+      ),
+    ).toBe(
+      "Also filtered in the Viewer, not applied here: severity, attribute http.route, search text, root spans only",
+    );
+  });
+
+  test("nothing carried, nothing said", () => {
+    /*
+     * The empty string is what tells the caller to render no chip at all. A
+     * hint chip with an empty list is worse than no chip: it asserts that
+     * something is being ignored.
+     */
+    for (const extras of [
+      undefined,
+      {},
+      { search: null, rootOnly: null },
+      { search: undefined, rootOnly: undefined },
+      { search: "", rootOnly: false },
+    ]) {
+      expect(Scope.describeUnappliedScopeFilters([], extras)).toBe("");
+    }
+  });
+
+  test("a search of only whitespace is not a filter", () => {
+    /*
+     * The explorers trim before submitting, so "   " narrows nothing.
+     * Naming it would send the user hunting for a filter that is not there.
+     */
+    for (const search of [" ", "   ", "\t", "\n  \t"]) {
+      expect(Scope.describeUnappliedScopeFilters([], { search })).toBe("");
+    }
+  });
+
+  test("rootOnly=false is not mentioned, only true is", () => {
+    /*
+     * false is the explorer showing everything. Announcing it as a carried
+     * filter would describe a narrowing that does not exist.
+     */
+    expect(Scope.describeUnappliedScopeFilters([], { rootOnly: false })).toBe(
+      "",
+    );
+    expect(
+      Scope.describeUnappliedScopeFilters([["body", ["timeout"]]], {
+        rootOnly: false,
+      }),
+    ).toBe("Also filtered in the Viewer, not applied here: message text");
+  });
+
+  test("the extras argument stays optional, so existing callers are unaffected", () => {
+    expect(
+      Scope.describeUnappliedScopeFilters([["severityText", ["Error"]]]),
+    ).toBe("Also filtered in the Viewer, not applied here: severity");
+  });
+});
+
+describe("a whole Traces Viewer URL survives the trip to Insights and back", () => {
+  /*
+   * The end-to-end statement of the fix, on the URL a real Traces Viewer
+   * writes: chips, a window, a search, the root-spans toggle, the selected
+   * saved view, and the pagination. Every predicate has to come back; the
+   * presentation params have to be gone, because landing the user on page 3
+   * of a list they did not ask for is its own bug.
+   */
+  const VIEWER_FILTERS: string = JSON.stringify([
+    ["primaryEntityId", SERVICE_A],
+    ["primaryEntityId", SERVICE_B],
+    ["attributes.http.route", "/checkout"],
+    ["kubernetesClusterId", CLUSTER_ID],
+  ]);
+
+  const VIEWER_URL: string = viewerQueryString({
+    filters: VIEWER_FILTERS,
+    range: TimeRange.PAST_ONE_DAY,
+    search: AWKWARD_SEARCH,
+    rootOnly: "true",
+    savedView: "dv-traces",
+    page: "3",
+    pageSize: "50",
+    view: "list",
+  });
+
+  test("Insights reads every predicate and no presentation param", () => {
+    const scope: ServiceScopedInsightsUrlScope =
+      Scope.readServiceScopedInsightsUrlScope(VIEWER_URL);
+
+    expect(scope.serviceIds).toEqual([SERVICE_A, SERVICE_B]);
+    expect(scope.timeRange).toEqual({ range: TimeRange.PAST_ONE_DAY });
+    expect(scope.savedViewId).toBe("dv-traces");
+    expect(scope.search).toBe(AWKWARD_SEARCH);
+    expect(scope.rootOnly).toBe(true);
+    /*
+     * Metrics and Traces Insights aggregate by service only, so the route
+     * and the cluster ride along unapplied rather than being claimed.
+     */
+    expect(scope.unappliedFilters).toEqual([
+      ["attributes.http.route", ["/checkout"]],
+      ["kubernetesClusterId", [CLUSTER_ID]],
+    ]);
+
+    const carried: Dictionary<string> =
+      Scope.readTelemetryTabScopeParams(VIEWER_URL);
+
+    expect(Object.keys(carried).sort()).toEqual(
+      ["filters", "range", "rootOnly", "savedView", "search"].sort(),
+    );
+  });
+
+  test("the trip back writes the Viewer's own URL again", () => {
+    const scope: ServiceScopedInsightsUrlScope =
+      Scope.readServiceScopedInsightsUrlScope(VIEWER_URL);
+
+    const backToViewer: Dictionary<string> = Scope.toPresentParams(
+      Scope.buildServiceScopedInsightsUrlParams({
+        timeRange: scope.timeRange as RangeStartAndEndDateTime,
+        serviceIds: scope.serviceIds,
+        unappliedFilters: scope.unappliedFilters,
+        savedViewId: scope.savedViewId,
+        grammar: "pairs",
+        search: scope.search,
+        rootOnly: scope.rootOnly,
+      }),
+    );
+
+    // Every predicate, byte for byte — including the chip order.
+    expect(JSON.parse(backToViewer["filters"] as string)).toEqual(
+      JSON.parse(VIEWER_FILTERS),
+    );
+    expect(backToViewer["range"]).toBe(TimeRange.PAST_ONE_DAY);
+    expect(backToViewer["savedView"]).toBe("dv-traces");
+    expect(backToViewer["search"]).toBe(AWKWARD_SEARCH);
+    expect(backToViewer["rootOnly"]).toBe("true");
+
+    /*
+     * ...and nothing else. `page`, `pageSize` and `view` are the Viewer's
+     * own business; carrying them would drop the user back on page 3.
+     */
+    expect(Object.keys(backToViewer).sort()).toEqual(
+      ["filters", "range", "rootOnly", "savedView", "search"].sort(),
+    );
+  });
+
+  test("a second lap changes nothing", () => {
+    /*
+     * Idempotence is what makes the hand-off safe to repeat. A user toggling
+     * between the two tabs must not watch their slice drift a little on each
+     * click.
+     */
+    const first: ServiceScopedInsightsUrlScope =
+      Scope.readServiceScopedInsightsUrlScope(VIEWER_URL);
+
+    const rebuilt: string = viewerQueryString(
+      Scope.toPresentParams(
+        Scope.buildServiceScopedInsightsUrlParams({
+          timeRange: first.timeRange as RangeStartAndEndDateTime,
+          serviceIds: first.serviceIds,
+          unappliedFilters: first.unappliedFilters,
+          savedViewId: first.savedViewId,
+          grammar: "pairs",
+          search: first.search,
+          rootOnly: first.rootOnly,
+        }),
+      ),
+    );
+
+    expect(Scope.readServiceScopedInsightsUrlScope(rebuilt)).toEqual(first);
+  });
+
+  test("the hint sentence covers everything the trip did not apply", () => {
+    const scope: ServiceScopedInsightsUrlScope =
+      Scope.readServiceScopedInsightsUrlScope(VIEWER_URL);
+
+    expect(
+      Scope.describeUnappliedScopeFilters(scope.unappliedFilters, {
+        search: scope.search,
+        rootOnly: scope.rootOnly,
+      }),
+    ).toBe(
+      "Also filtered in the Viewer, not applied here: attribute http.route, kubernetes cluster, search text, root spans only",
+    );
+  });
+});

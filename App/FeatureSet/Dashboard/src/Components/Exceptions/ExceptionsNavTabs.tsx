@@ -60,6 +60,21 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
     };
   }, []);
 
+  /*
+   * Unresolved / Resolved / Archived are the SAME ExceptionsViewer with a
+   * different status default, so the service filter, the search and the
+   * window the user set on one of them describe the other two just as well.
+   * They used to be dropped on every tab click — filter to five services in
+   * Unresolved, click Resolved, and the filter was gone.
+   *
+   * Overview deliberately does not carry: it is a different, unscoped
+   * component, and handing it a filtered URL would put a scope in the
+   * address bar that none of its numbers honour.
+   *
+   * `status` is not in the carried set, so each tab still selects its own —
+   * carrying it would make every tab show whichever status the user came
+   * from.
+   */
   const tabs: Array<TelemetryTab> = [
     {
       key: "overview",
@@ -84,6 +99,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
             },
           }
         : {}),
+      carriesScope: true,
     },
     {
       key: "resolved",
@@ -92,6 +108,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route,
       ),
+      carriesScope: true,
     },
     {
       key: "archived",
@@ -100,6 +117,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route,
       ),
+      carriesScope: true,
     },
     {
       key: "setup",

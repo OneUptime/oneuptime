@@ -375,10 +375,85 @@ describe("the Insights pages adopt and re-publish the scope", () => {
        */
       const source: string = readSquashed(relative);
 
-      expect(source).toContain("scopedServiceCount - reportingServices,");
-      expect(source).toContain(
-        "`${reportingServices} of ${scopedServiceCount} services`",
-      );
+      /*
+       * Both pages defer to the one helper rather than each doing the
+       * arithmetic inline, which is what let them drift into two different
+       * wrong answers: Logs counted a host-scoped slice against the whole
+       * project, Metrics counted a synthetic service in the numerator only.
+       */
+      expect(source).toContain("computeScopedServiceCoverage({");
+      expect(source).toContain("reportingServices,");
+    },
+  );
+
+  test("Logs suppresses coverage when the scope has no service dimension", () => {
+    /*
+     * A host- or cluster-scoped slice cannot answer "how many of my services
+     * are quiet" — the services that log from a host are not a population
+     * anyone counted. The page has to show something else rather than print
+     * a number computed from two different populations.
+     */
+    const source: string = readSquashed("Components/Logs/LogsDashboard.tsx");
+
+    expect(source).toContain(
+      "hasNonServiceResourceScope: hasResourceEntityFacetSelections( scope.resourceFilters, )",
+    );
+    expect(source).toContain(
+      "const showQuietServices: boolean = coverage.isCoverageMeaningful && coverage.quietServices > 0;",
+    );
+  });
+
+  test("Metrics puts the synthetic Unknown Service in both populations", () => {
+    /*
+     * `serviceSummaries` injects a synthetic service for telemetry with no
+     * service.name, so the denominator has to know about it too — otherwise
+     * three services plus one unattributed collector renders "4 of 3".
+     */
+    const source: string = readSquashed(
+      "Components/Metrics/MetricsDashboard.tsx",
+    );
+
+    expect(source).toContain(
+      "TelemetryServiceUtil.withUnknownServiceIfReferenced({",
+    );
+    expect(source).toContain("referencedServiceIds,");
+  });
+
+  test.each(INSIGHTS_PAGES)(
+    "%s guards its async commits against a stale batch",
+    (_signal: string, relative: string) => {
+      /*
+       * Every one of these pages runs a capped fetch whose scope and window
+       * both commit immediately, with no apply step and no debounce, while
+       * the loading state still renders both pickers. Two quick changes
+       * therefore leave two fetches racing, and without a generation token
+       * the batch that RESOLVES last wins rather than the one the user asked
+       * for last — 30-day percentiles painting under a "past one hour"
+       * label and staying there.
+       */
+      const source: string = readSquashed(relative);
+
+      expect(source).toContain("++loadGenerationRef.current");
+      expect(source).toContain("loadGenerationRef.current !== generation");
+      expect(source).toContain("loadGenerationRef.current === generation");
+    },
+  );
+
+  test.each([
+    ["Traces", "Components/Traces/TracesDashboard.tsx"],
+    ["Metrics", "Components/Metrics/MetricsDashboard.tsx"],
+  ])(
+    "%s carries the Viewer's search text rather than dropping it",
+    (_signal: string, relative: string) => {
+      /*
+       * `search` is a real predicate — both explorers compile it into their
+       * query through their own grammar — so dropping it widened the slice
+       * on the way here and destroyed the user's input on the way back.
+       */
+      const source: string = readSquashed(relative);
+
+      expect(source).toContain("initialUrlScope.search");
+      expect(source).toContain("search: carriedSearch,");
     },
   );
 

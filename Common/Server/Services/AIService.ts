@@ -2,7 +2,7 @@ import { getAllEnvVars, IsBillingEnabled } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
-import ProjectService from "./ProjectService";
+import ProjectService, { CurrentPlan } from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import AIBillingService from "./AIBillingService";
 import LLMService, {
@@ -278,6 +278,33 @@ export interface AutonomousBudgetStatus {
   usedTokensToday: number;
 }
 
+/*
+ * How long a synchronous "Generate with AI" endpoint may spend inside the
+ * provider on a single attempt.
+ *
+ * These endpoints — incident and episode postmortems, and incident, alert and
+ * scheduled-maintenance notes — hold the browser's HTTP connection open across
+ * the whole completion and write nothing until it returns. nginx gives the
+ * request 300s (`location /api` in Nginx/default.conf.template), so this MUST
+ * stay strictly below that: whichever side gives up first decides what the
+ * user reads. When the server wins, the browser gets the provider's own
+ * explanation ("model not found", "connection refused", a rate limit). When
+ * the proxy wins, it synthesizes a gateway error — a 504, or a 502 when the
+ * app's hostname resolves to more than one address and nginx's retry also
+ * fails — and getFriendlyMessage in Common/UI/Utils/API/API.ts turns BOTH of
+ * those, and only those, into the generic "Error connecting to server. Please
+ * try again in few minutes." That is exactly the report in GH#3434.
+ *
+ * The remaining ~60s of headroom pays for building the incident context and
+ * writing the response. Callers pair this with `requestRetries: 0`: a second
+ * full-length attempt cannot fit inside the proxy budget, and by the time it
+ * began the browser would already have been handed a 504. The retry ladder is
+ * still the right default for unattended work (LLMService.DEFAULT_REQUEST_
+ * ATTEMPTS), which nothing here changes — a person watching a spinner can
+ * simply press the button again, and now sees why they need to.
+ */
+export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
+
 export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -338,6 +365,44 @@ export class Service extends BaseService {
   }
 
   /**
+   * Assert the project-level `enableAi` kill switch, and nothing else.
+   *
+   * This is the whole gate for the synchronous, user-triggered "Generate with
+   * AI" endpoints (incident/episode postmortems, incident/alert/maintenance
+   * notes). Those reach executeWithLogging directly, and executeWithLogging
+   * meters, bills and logs a call but never consults the project toggle — so
+   * without this a project that has switched AI off would still spend
+   * provider tokens through them.
+   *
+   * Fails closed: a project row we cannot read is not a project we can
+   * confirm has AI enabled, so a missing project is refused rather than
+   * waved through.
+   */
+  @CaptureSpan()
+  public async assertProjectAIEnabled(projectId: ObjectID): Promise<void> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found.");
+    }
+
+    /*
+     * Strictly `=== false`. The column is NOT NULL DEFAULT true, so an
+     * undefined value here means "not selected", not "disabled", and must
+     * keep working — same semantics as every other enableAi read.
+     */
+    if (project.enableAi === false) {
+      throw new BadDataException(
+        "AI features are disabled for this project. Enable them in Project Settings > AI Credits.",
+      );
+    }
+  }
+
+  /**
    * Assert the project-level feature, subscription, and payment gates shared by
    * background AI entry points. Provider availability, balance, and token
    * budgets are checked later by executeWithLogging so those failures are
@@ -345,27 +410,17 @@ export class Service extends BaseService {
    */
   @CaptureSpan()
   public async assertProjectCanUseAI(projectId: ObjectID): Promise<void> {
-    const [project, planStatus]: [
-      Project | null,
-      { plan: PlanType | null; isSubscriptionUnpaid: boolean },
-    ] = await Promise.all([
-      ProjectService.findOneById({
-        id: projectId,
-        select: { enableAi: true },
-        props: { isRoot: true },
-      }),
+    /*
+     * The kill switch and the plan read stay in flight together — the plan
+     * read does not depend on the toggle's verdict. The ordering that matters
+     * is still preserved: the unpaid and plan refusals below run only once
+     * this resolves, so a project with AI switched off is refused for being
+     * switched off, never for something billing has to say about it.
+     */
+    const [, planStatus]: [void, CurrentPlan] = await Promise.all([
+      this.assertProjectAIEnabled(projectId),
       ProjectService.getCurrentPlan(projectId),
     ]);
-
-    if (!project) {
-      throw new BadDataException("Project not found.");
-    }
-
-    if (project.enableAi === false) {
-      throw new BadDataException(
-        "AI features are disabled for this project. Enable AI in Project Settings before running this workflow.",
-      );
-    }
 
     if (planStatus.isSubscriptionUnpaid) {
       throw new PaymentRequiredException(
@@ -722,9 +777,20 @@ export class Service extends BaseService {
           ? "The AI provider request failed. Review the provider configuration and try again."
           : rawErrorMessage;
 
-      // Log the error without persisting private provider details when asked.
+      /*
+       * Log the error without persisting private provider details when asked.
+       *
+       * statusMessage is varchar(500) (ColumnLength.LongText), and
+       * DatabaseService rejects an over-length value BEFORE any SQL runs — so
+       * an untruncated provider error does not just fail to be logged, its
+       * BadDataException about column length replaces the real failure on the
+       * way out and the operator never learns what the provider said. Provider
+       * errors are routinely longer than 500 characters (an echoed request
+       * body, an HTML error page). Truncate the same way the budget path
+       * above does.
+       */
       logEntry.status = LlmLogStatus.Error;
-      logEntry.statusMessage = errorMessage;
+      logEntry.statusMessage = errorMessage.substring(0, 490);
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 

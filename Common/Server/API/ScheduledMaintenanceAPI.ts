@@ -18,7 +18,11 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIService, { AILogRequest, AILogResponse } from "../Services/AIService";
+import AIService, {
+  AILogRequest,
+  AILogResponse,
+  INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+} from "../Services/AIService";
 import ScheduledMaintenanceAIContextBuilder, {
   AIGenerationContext,
   ScheduledMaintenanceContextData,
@@ -136,6 +140,15 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       throw new NotFoundException("Scheduled Maintenance not found");
     }
 
+    /*
+     * Project AI kill switch. Checked here: after the row that names the
+     * project is in hand, and before the context builder runs or any provider
+     * tokens are spent. executeWithLogging meters and bills this call but does
+     * not consult Project.enableAi, so this is the only thing standing between
+     * a project that has switched AI off and a provider bill.
+     */
+    await AIService.assertProjectAIEnabled(scheduledMaintenance.projectId);
+
     // Build scheduled maintenance context
     const contextData: ScheduledMaintenanceContextData =
       await ScheduledMaintenanceAIContextBuilder.buildScheduledMaintenanceContext(
@@ -163,6 +176,15 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       messages: aiContext.messages,
       maxTokens: 4096,
       temperature: 0.2,
+      /*
+       * This request holds the browser's connection open across the whole
+       * completion, behind nginx's 300s budget for /api. Bound the provider
+       * call below that and take a single attempt, so a slow or broken
+       * provider answers with its own error instead of the proxy's gateway
+       * timeout — see INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS.
+       */
+      requestTimeoutInMs: INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+      requestRetries: 0,
       /*
        * G8: the prompt embeds incident/alert/maintenance context whose read
        * ACLs are narrower than LlmLog's — do not store previews.

@@ -2,7 +2,9 @@ import PageComponentProps from "../../PageComponentProps";
 import DeviceStatusHero from "../../../Components/NetworkDevice/DeviceStatusHero";
 import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInterfacesPreview";
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
-import DeviceMonitorLookupUtil from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
+import DeviceMonitorLookupUtil, {
+  DeviceMonitorContext,
+} from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -37,15 +39,17 @@ const NetworkDeviceView: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
+  const [isMonitorBacked, setIsMonitorBacked] = useState<boolean>(false);
   const [isMonitorsLoading, setIsMonitorsLoading] = useState<boolean>(true);
   const [monitorsError, setMonitorsError] = useState<string>("");
 
   useEffect(() => {
     const fetchMonitors: PromiseVoidFunction = async (): Promise<void> => {
       try {
-        setMonitors(
-          await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(modelId),
-        );
+        const context: DeviceMonitorContext =
+          await DeviceMonitorLookupUtil.getDeviceMonitorContext(modelId);
+        setMonitors(context.monitors);
+        setIsMonitorBacked(context.isMonitorBacked);
       } catch (err) {
         setMonitorsError(API.getFriendlyMessage(err));
       }
@@ -228,6 +232,7 @@ const NetworkDeviceView: FunctionComponent<
         isLoading={isMonitorsLoading}
         error={monitorsError}
         networkDeviceId={modelId.toString()}
+        isMonitorBacked={isMonitorBacked}
       />
     </Fragment>
   );

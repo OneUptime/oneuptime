@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -55,6 +56,10 @@ import {
   withTelemetryTabScopeParams,
 } from "../../Utils/TelemetryTabScope";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  ScopedServiceCoverage,
+  computeScopedServiceCoverage,
+} from "../../Utils/ServiceCoverage";
 
 interface MetricCategory {
   name: string;
@@ -185,14 +190,32 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
     initialUrlScope.savedViewId,
   );
   const [savedViewName, setSavedViewName] = useState<string>("");
+  /*
+   * The Viewer's own search text — a real predicate compiled through the
+   * metrics grammar, which this page cannot apply. Carried and announced
+   * like an unapplicable chip rather than dropped, which used to widen the
+   * slice on the way here and destroy the user's search on the way back.
+   */
+  const [carriedSearch] = useState<string | null>(initialUrlScope.search);
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
   const [activeMetrics, setActiveMetrics] = useState<Array<Metric>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * Generation token for the in-flight batch. Both the scope picker and the
+   * time picker commit immediately, and the loading state still renders
+   * both, so two quick changes leave two capped 5000-point fetches racing.
+   * Without this the batch that RESOLVES last wins rather than the one the
+   * user asked for last. Same guard the Logs Insights page has always had.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
   const [error, setError] = useState<string>("");
 
   const loadDashboard: () => Promise<void> = useCallback(async () => {
+    const generation: number = ++loadGenerationRef.current;
+
     try {
       setIsLoading(true);
       setError("");
@@ -255,16 +278,54 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           }),
         ]);
 
-      setServices(servicesResult.data || []);
-      setMetricTypes(metricTypesResult.data || []);
-      setActiveMetrics(
-        ((metricsResult as AnalyticsListResult<Metric>).data ||
-          []) as Array<Metric>,
+      const loadedMetrics: Array<Metric> = ((
+        metricsResult as AnalyticsListResult<Metric>
+      ).data || []) as Array<Metric>;
+
+      // A batch the user has already moved on from must not commit.
+      if (loadGenerationRef.current !== generation) {
+        return;
+      }
+
+      /*
+       * Telemetry with no service.name is tagged with the projectId and has
+       * no Service row, and serviceSummaries below injects a synthetic
+       * "Unknown Service" for it. That put it in the NUMERATOR while the
+       * denominator counted Postgres rows only — so a project with three
+       * services and one unattributed collector rendered "4 of 3 services",
+       * and the quiet-services count came out one too low. Wrapping the list
+       * here puts it in both populations, which is what the Traces Insights
+       * page already does.
+       */
+      const referencedServiceIds: Set<string> = new Set(
+        loadedMetrics
+          .map((metric: Metric): string => {
+            return metric.primaryEntityId?.toString() || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
       );
+
+      setServices(
+        TelemetryServiceUtil.withUnknownServiceIfReferenced({
+          services: servicesResult.data || [],
+          referencedServiceIds,
+          projectId,
+        }),
+      );
+      setMetricTypes(metricTypesResult.data || []);
+      setActiveMetrics(loadedMetrics);
     } catch (err) {
+      if (loadGenerationRef.current !== generation) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Error));
     } finally {
-      setIsLoading(false);
+      if (loadGenerationRef.current === generation) {
+        setIsLoading(false);
+      }
     }
   }, [timeRange, selectedServiceIds]);
 
@@ -285,9 +346,16 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         unappliedFilters,
         savedViewId,
         grammar: "pairs",
+        search: carriedSearch,
       }),
     );
-  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+  ]);
 
   /*
    * The name behind the carried saved-view id, so the page can say where its
@@ -351,14 +419,23 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           unappliedFilters,
           savedViewId,
           grammar: "pairs",
+          search: carriedSearch,
         }),
       ),
     );
-  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+  ]);
 
   const unappliedFiltersHint: string = useMemo(() => {
-    return describeUnappliedScopeFilters(unappliedFilters);
-  }, [unappliedFilters]);
+    return describeUnappliedScopeFilters(unappliedFilters, {
+      search: carriedSearch,
+    });
+  }, [unappliedFilters, carriedSearch]);
 
   const serviceOptions: Array<DropdownOption> = useMemo(() => {
     return services.map((service: Service): DropdownOption => {
@@ -510,18 +587,22 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const totalMetrics: number = stats.activeMetricNames.size;
   const reportingServices: number = serviceSummaries.length;
   /*
-   * The denominator for "dormant services" and "N of M services" is the
-   * SCOPE, not the project. Under a scope of five services the project's
-   * other fifteen are not dormant, they are excluded — reporting them as
-   * dormant turns a filter the user applied into an alarm about services
-   * they deliberately filtered out.
+   * Same shared rule as the Logs Insights page: the denominator is the
+   * SCOPE, not the project, and both terms must be drawn from the same
+   * population — which is why the synthetic "Unknown Service" is folded into
+   * `services` at load time rather than only into the summaries.
+   *
+   * This page has no non-service scope dimension, so coverage is always
+   * meaningful here; the flag is read anyway so the two pages cannot drift.
    */
-  const scopedServiceCount: number =
-    selectedServiceIds.length > 0 ? selectedServiceIds.length : services.length;
-  const dormantServices: number = Math.max(
-    0,
-    scopedServiceCount - reportingServices,
-  );
+  const coverage: ScopedServiceCoverage = computeScopedServiceCoverage({
+    scopedServiceIds: selectedServiceIds,
+    hasNonServiceResourceScope: false,
+    projectServiceCount: services.length,
+    reportingServices,
+  });
+  const scopedServiceCount: number = coverage.scopedServiceCount;
+  const dormantServices: number = coverage.quietServices;
   const avgPerService: number =
     reportingServices > 0 ? Math.round(totalMetrics / reportingServices) : 0;
   const cataloguedTypes: number = metricTypes.length;

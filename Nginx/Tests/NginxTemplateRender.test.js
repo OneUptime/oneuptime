@@ -409,3 +409,51 @@ test(
     assert.equal(result.status, 0, result.stderr);
   },
 );
+
+test(
+  "the /api proxy timeouts survive rendering",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * envsubst-on-templates.sh runs sed passes over the template before
+     * envsubst, and one of them strips a whole "# BEGIN upstream-keepalive"
+     * block. A directive that is correct in the source but eaten in rendering
+     * leaves /api back on nginx's 60s default, which is GH#3434 all over
+     * again — and the source-level assertions in NginxConfig.test.js cannot
+     * see it. Assert on what the container actually loads.
+     */
+    const rendered = render(baseEnvironment());
+
+    // /api, /mqtt and /mcp — the three locations allowed to hold a connection
+    // open for minutes. See PROXY_TIMEOUT_LOCATIONS in NginxConfig.test.js.
+    assert.equal(
+      (rendered.match(/proxy_read_timeout\s+\S+;/g) || []).length,
+      3,
+    );
+    assert.equal(
+      (rendered.match(/proxy_send_timeout\s+\S+;/g) || []).length,
+      3,
+    );
+
+    const apiBlockStart = rendered.indexOf("location /api {");
+
+    assert.ok(
+      apiBlockStart >= 0,
+      "the /api location did not survive rendering",
+    );
+
+    const apiBlock = rendered.slice(
+      apiBlockStart,
+      rendered.indexOf("\n    }", apiBlockStart),
+    );
+
+    assert.ok(
+      apiBlock.includes("proxy_read_timeout 300s;"),
+      "location /api lost its proxy_read_timeout in rendering: a synchronous 'Generate with AI' call would 504 at 60s (GH#3434)",
+    );
+    assert.ok(
+      apiBlock.includes("proxy_send_timeout 300s;"),
+      "location /api lost its proxy_send_timeout in rendering",
+    );
+  },
+);

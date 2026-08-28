@@ -476,68 +476,95 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
   });
 
   // Attach Error Handler.
-  app.use(
-    (
-      err: Error | Exception | HTTPErrorResponse,
-      _req: ExpressRequest,
-      res: ExpressResponse,
-      next: NextFunction,
-    ) => {
-      logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
+  app.use(expressErrorHandler);
+};
 
-      // Mark span as error.
-      if (err) {
-        const span: api.Span | undefined = api.trace.getSpan(
-          api.context.active(),
-        );
-        if (span) {
-          // record exception
-          span.recordException(err);
+/**
+ * The last-resort error handler: whatever it writes is what the browser reads,
+ * so its job is to preserve the diagnosis rather than flatten it.
+ *
+ * Exported so the status-code handling can be asserted directly — see
+ * Common/Tests/Server/Utils/StartServerErrorStatus.test.ts.
+ */
+export const expressErrorHandler: (
+  err: Error | Exception | HTTPErrorResponse,
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => void = (
+  err: Error | Exception | HTTPErrorResponse,
+  _req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
-          // set span status code to ERROR
-          span.setStatus({
-            code: api.SpanStatusCode.ERROR,
-            message: err.message,
-          });
-        }
-      }
+  // Mark span as error.
+  if (err) {
+    const span: api.Span | undefined = api.trace.getSpan(api.context.active());
+    if (span) {
+      // record exception
+      span.recordException(err);
 
-      if (res.headersSent) {
-        return next(err);
-      }
+      // set span status code to ERROR
+      span.setStatus({
+        code: api.SpanStatusCode.ERROR,
+        message: err.message,
+      });
+    }
+  }
 
-      if (err instanceof Promise) {
-        err.catch((exception: Exception) => {
-          if (StatusCode.isValidStatusCode((exception as Exception).code)) {
-            res.status((exception as Exception).code);
-            res.send({ error: (exception as Exception).message });
-          } else {
-            res.status(500);
-            res.send({ error: "Server Error" });
-          }
-        });
-      } else if (err instanceof HTTPErrorResponse) {
-        const errorStatusCode: number = StatusCode.isValidStatusCode(
-          err.statusCode,
-        )
-          ? err.statusCode
-          : 500;
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
 
-        const payload: unknown = err.jsonData ?? {
-          error: err.message || "Server Error",
-        };
-
-        res.status(errorStatusCode);
-        res.send(payload);
-      } else if (err instanceof Exception) {
-        res.status((err as Exception).code);
-        res.send({ error: (err as Exception).message });
+  if (err instanceof Promise) {
+    err.catch((exception: Exception) => {
+      if (StatusCode.isValidStatusCode((exception as Exception).code)) {
+        res.status((exception as Exception).code);
+        res.send({ error: (exception as Exception).message });
       } else {
         res.status(500);
         res.send({ error: "Server Error" });
       }
-    },
-  );
+    });
+  } else if (err instanceof HTTPErrorResponse) {
+    const errorStatusCode: number = StatusCode.isValidStatusCode(err.statusCode)
+      ? err.statusCode
+      : 500;
+
+    const payload: unknown = err.jsonData ?? {
+      error: err.message || "Server Error",
+    };
+
+    res.status(errorStatusCode);
+    res.send(payload);
+  } else if (err instanceof Exception) {
+    /*
+     * ExceptionCode is not a status-code enum: NotImplementedException is 0,
+     * GeneralException 1, APIException 2, BadOperationException 5,
+     * WebRequestException 6. Handing one of those to res.status() makes Node's
+     * writeHead throw ERR_HTTP_INVALID_STATUS_CODE, and Express's finalhandler
+     * then answers with a bare HTML 500 — discarding the message this branch
+     * exists to deliver. That is not hypothetical: an LLM provider that times
+     * out or refuses the connection surfaces as an APIException (code 2), so
+     * the operator's real diagnosis was being replaced by "Server Error".
+     * Both sibling branches already guard; this one was the outlier.
+     */
+    const exception: Exception = err as Exception;
+
+    if (StatusCode.isValidStatusCode(exception.code)) {
+      res.status(exception.code);
+    } else {
+      res.status(500);
+    }
+
+    res.send({ error: exception.message || "Server Error" });
+  } else {
+    res.status(500);
+    res.send({ error: "Server Error" });
+  }
 };
 
 export default { init, addDefaultRoutes };
