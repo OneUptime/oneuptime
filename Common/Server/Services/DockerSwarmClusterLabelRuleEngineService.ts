@@ -3,6 +3,9 @@ import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import DockerSwarmClusterLabelRule from "../../Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
+import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
+import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -61,6 +64,7 @@ class DockerSwarmClusterLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesDockerSwarmClusterMatchRule(
@@ -69,6 +73,11 @@ class DockerSwarmClusterLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -126,6 +135,27 @@ class DockerSwarmClusterLabelRuleEngineServiceClass {
         `DockerSwarmClusterLabelRuleEngine attached ${newLabelIds.length} labels to DockerSwarm cluster ${dockerSwarmCluster.id}`,
         { projectId: dockerSwarmCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await DockerSwarmClusterFeedService.createDockerSwarmClusterFeedItem({
+        dockerSwarmClusterId: dockerSwarmCluster.id,
+        projectId: dockerSwarmCluster.projectId,
+        dockerSwarmClusterFeedEventType:
+          DockerSwarmClusterFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await DockerSwarmClusterService.getDockerSwarmClusterMarkdownLink(
+          dockerSwarmCluster.projectId,
+          dockerSwarmCluster.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying DockerSwarm cluster label rules: ${error}`, {
         projectId: dockerSwarmCluster.projectId?.toString(),

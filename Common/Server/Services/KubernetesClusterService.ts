@@ -3,7 +3,14 @@ import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRul
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
+import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { JSONObject } from "../../Types/JSON";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
@@ -27,7 +34,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (createdItem.projectId && createdItem.id) {
@@ -52,6 +59,18 @@ export class Service extends DatabaseService<Model> {
           );
         });
     }
+    /*
+     * The overview page can say what this Kubernetes cluster looks like now; only
+     * the feed can say why it exists at all - whether a person added it or
+     * ingest registered it the first time telemetry named it. Fire and
+     * forget: a feed write must never fail the create it describes.
+     */
+    this.writeKubernetesClusterCreatedFeed(createdItem, onCreate).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
     return createdItem;
   }
 
@@ -303,6 +322,216 @@ export class Service extends DatabaseService<Model> {
           props: {
             isRoot: true,
           },
+        });
+      }
+    }
+  }
+
+  /**
+   * Display name for this Kubernetes cluster, or an empty string when the row is
+   * gone. Feed writers call this on a best-effort basis, so a missing row must
+   * not throw and take the surrounding write down with it.
+   */
+  @CaptureSpan()
+  public async getKubernetesClusterName(data: {
+    kubernetesClusterId: ObjectID;
+  }): Promise<string> {
+    const kubernetesCluster: Model | null = await this.findOneById({
+      id: data.kubernetesClusterId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return kubernetesCluster?.name || "";
+  }
+
+  @CaptureSpan()
+  public async getKubernetesClusterLinkInDashboard(
+    projectId: ObjectID,
+    kubernetesClusterId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/kubernetes/${kubernetesClusterId.toString()}`,
+    );
+  }
+
+  /**
+   * "[Kubernetes Cluster prod-1](https://…)" - the form every feed item uses to
+   * name the resource it is about.
+   */
+  @CaptureSpan()
+  public async getKubernetesClusterMarkdownLink(
+    projectId: ObjectID,
+    kubernetesClusterId: ObjectID,
+  ): Promise<string> {
+    const name: string = await this.getKubernetesClusterName({
+      kubernetesClusterId: kubernetesClusterId,
+    });
+    const link: URL = await this.getKubernetesClusterLinkInDashboard(
+      projectId,
+      kubernetesClusterId,
+    );
+
+    return `[Kubernetes Cluster ${name}](${link.toString()})`;
+  }
+
+  private async writeKubernetesClusterCreatedFeed(
+    createdItem: Model,
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const projectId: ObjectID | undefined = createdItem.projectId;
+    const kubernetesClusterId: ObjectID | undefined =
+      createdItem.id || undefined;
+
+    if (!projectId || !kubernetesClusterId) {
+      return;
+    }
+
+    /*
+     * Ingest creates these rows with root props and no acting user; every
+     * dashboard, API and Terraform create carries one. That is the whole
+     * signal for "was this discovered automatically or added by a person".
+     */
+    const createdByUserId: ObjectID | undefined =
+      createdItem.createdByUserId ||
+      onCreate.createBy.props.userId ||
+      undefined;
+
+    const markdown: {
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+    } = await ResourceFeedUtil.getCreatedFeedMarkdown({
+      resourceTypeName: "Kubernetes cluster",
+      resourceMarkdownLink: await this.getKubernetesClusterMarkdownLink(
+        projectId,
+        kubernetesClusterId,
+      ),
+      projectId: projectId,
+      createdByUserId: createdByUserId,
+      identifierName: "Cluster identifier",
+      identifierValue: createdItem.clusterIdentifier,
+      description: createdItem.description,
+    });
+
+    await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+      kubernetesClusterId: kubernetesClusterId,
+      projectId: projectId,
+      kubernetesClusterFeedEventType:
+        KubernetesClusterFeedEventType.KubernetesClusterCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      userId: createdByUserId,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    this.writeKubernetesClusterUpdatedFeed(onUpdate, updatedItemIds).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
+    return onUpdate;
+  }
+
+  private async writeKubernetesClusterUpdatedFeed(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const updateData: JSONObject = onUpdate.updateBy
+      .data as unknown as JSONObject;
+
+    /*
+     * Heartbeats update lastSeenAt / otelCollectorStatus / agentVersion and the
+     * rollup counters constantly. Only the columns a person would recognise as
+     * a change earn a feed item - see MEANINGFUL_UPDATE_COLUMNS.
+     */
+    const changedColumns: Array<string> =
+      ResourceFeedUtil.getUpdatedColumnsWorthRecording(updateData);
+
+    if (changedColumns.length === 0 || updatedItemIds.length === 0) {
+      return;
+    }
+
+    const isArchiveChange: boolean =
+      ResourceFeedUtil.isArchiveChange(updateData);
+    const isArchived: boolean = Boolean(updateData["isArchived"]);
+    const otherColumns: Array<string> = changedColumns.filter(
+      (column: string) => {
+        return column !== "isArchived";
+      },
+    );
+
+    const updatedByUserId: ObjectID | undefined =
+      onUpdate.updateBy.props.userId || undefined;
+
+    for (const kubernetesClusterId of updatedItemIds) {
+      const kubernetesCluster: Model | null = await this.findOneById({
+        id: kubernetesClusterId,
+        select: {
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const projectId: ObjectID | undefined = kubernetesCluster?.projectId;
+
+      if (!projectId) {
+        continue;
+      }
+
+      const resourceMarkdownLink: string =
+        await this.getKubernetesClusterMarkdownLink(
+          projectId,
+          kubernetesClusterId,
+        );
+
+      if (isArchiveChange) {
+        await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+          kubernetesClusterId: kubernetesClusterId,
+          projectId: projectId,
+          kubernetesClusterFeedEventType: isArchived
+            ? KubernetesClusterFeedEventType.KubernetesClusterArchived
+            : KubernetesClusterFeedEventType.KubernetesClusterRestored,
+          displayColor: isArchived ? Yellow500 : Blue500,
+          feedInfoInMarkdown: isArchived
+            ? `🗄️ ${resourceMarkdownLink} was archived.`
+            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+          userId: updatedByUserId,
+        });
+      }
+
+      if (otherColumns.length > 0) {
+        const markdown: {
+          feedInfoInMarkdown: string;
+          moreInformationInMarkdown: string;
+        } = ResourceFeedUtil.getUpdatedFeedMarkdown({
+          resourceMarkdownLink: resourceMarkdownLink,
+          columns: otherColumns,
+        });
+
+        await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+          kubernetesClusterId: kubernetesClusterId,
+          projectId: projectId,
+          kubernetesClusterFeedEventType:
+            KubernetesClusterFeedEventType.KubernetesClusterUpdated,
+          displayColor: Gray500,
+          feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+          moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+          userId: updatedByUserId,
         });
       }
     }

@@ -81,6 +81,16 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
         />
+        <SideMenuItem
+          link={{
+            title: "Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

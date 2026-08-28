@@ -3,6 +3,9 @@ import Host from "../../Models/DatabaseModels/Host";
 import HostLabelRule from "../../Models/DatabaseModels/HostLabelRule";
 import HostLabelRuleService from "./HostLabelRuleService";
 import HostService from "./HostService";
+import HostFeedService from "./HostFeedService";
+import { HostFeedEventType } from "../../Models/DatabaseModels/HostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -57,11 +60,17 @@ class HostLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesHostMatchRule(hostWithDetails, rule);
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -117,6 +126,26 @@ class HostLabelRuleEngineServiceClass {
         `HostLabelRuleEngine attached ${newLabelIds.length} labels to host ${host.id}`,
         { projectId: host.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await HostFeedService.createHostFeedItem({
+        hostId: host.id,
+        projectId: host.projectId,
+        hostFeedEventType: HostFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await HostService.getHostMarkdownLink(
+          host.projectId,
+          host.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying host label rules: ${error}`, {
         projectId: host.projectId?.toString(),

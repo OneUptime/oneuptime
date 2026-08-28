@@ -7,6 +7,9 @@ import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerUserService from "./HostOwnerUserService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostService from "./HostService";
+import HostFeedService from "./HostFeedService";
+import { HostFeedEventType } from "../../Models/DatabaseModels/HostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -134,6 +137,26 @@ class HostOwnerRuleEngineServiceClass {
       logger.debug(`HostOwnerRuleEngine added owners to host ${host.id}`, {
         projectId: host.projectId.toString(),
       } as LogAttributes);
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await HostFeedService.createHostFeedItem({
+        hostId: host.id,
+        projectId: host.projectId,
+        hostFeedEventType: HostFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await HostService.getHostMarkdownLink(
+          host.projectId,
+          host.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: HostOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying host owner rules: ${error}`, {
         projectId: host.projectId?.toString(),

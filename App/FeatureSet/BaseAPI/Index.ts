@@ -1425,6 +1425,42 @@ import MonitorFeed from "Common/Models/DatabaseModels/MonitorFeed";
 import MonitorFeedService, {
   Service as MonitorFeedServiceType,
 } from "Common/Server/Services/MonitorFeedService";
+import KubernetesClusterFeed from "Common/Models/DatabaseModels/KubernetesClusterFeed";
+import KubernetesClusterFeedService, {
+  Service as KubernetesClusterFeedServiceType,
+} from "Common/Server/Services/KubernetesClusterFeedService";
+import DockerHostFeed from "Common/Models/DatabaseModels/DockerHostFeed";
+import DockerHostFeedService, {
+  Service as DockerHostFeedServiceType,
+} from "Common/Server/Services/DockerHostFeedService";
+import DockerSwarmClusterFeed from "Common/Models/DatabaseModels/DockerSwarmClusterFeed";
+import DockerSwarmClusterFeedService, {
+  Service as DockerSwarmClusterFeedServiceType,
+} from "Common/Server/Services/DockerSwarmClusterFeedService";
+import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
+import CephClusterFeedService, {
+  Service as CephClusterFeedServiceType,
+} from "Common/Server/Services/CephClusterFeedService";
+import PodmanHostFeed from "Common/Models/DatabaseModels/PodmanHostFeed";
+import PodmanHostFeedService, {
+  Service as PodmanHostFeedServiceType,
+} from "Common/Server/Services/PodmanHostFeedService";
+import ProxmoxClusterFeed from "Common/Models/DatabaseModels/ProxmoxClusterFeed";
+import ProxmoxClusterFeedService, {
+  Service as ProxmoxClusterFeedServiceType,
+} from "Common/Server/Services/ProxmoxClusterFeedService";
+import HostFeed from "Common/Models/DatabaseModels/HostFeed";
+import HostFeedService, {
+  Service as HostFeedServiceType,
+} from "Common/Server/Services/HostFeedService";
+import CloudResourceFeed from "Common/Models/DatabaseModels/CloudResourceFeed";
+import CloudResourceFeedService, {
+  Service as CloudResourceFeedServiceType,
+} from "Common/Server/Services/CloudResourceFeedService";
+import ServiceFeed from "Common/Models/DatabaseModels/ServiceFeed";
+import ServiceFeedService, {
+  Service as ServiceFeedServiceType,
+} from "Common/Server/Services/ServiceFeedService";
 
 // MetricType.
 import MetricTypeService, {
@@ -1977,6 +2013,87 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorFeed, MonitorFeedServiceType>(
         MonitorFeed,
         MonitorFeedService,
+      ).getRouter(),
+    );
+
+    // Kubernetes cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<KubernetesClusterFeed, KubernetesClusterFeedServiceType>(
+        KubernetesClusterFeed,
+        KubernetesClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Docker host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerHostFeed, DockerHostFeedServiceType>(
+        DockerHostFeed,
+        DockerHostFeedService,
+      ).getRouter(),
+    );
+
+    // Docker Swarm cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DockerSwarmClusterFeed, DockerSwarmClusterFeedServiceType>(
+        DockerSwarmClusterFeed,
+        DockerSwarmClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Ceph cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CephClusterFeed, CephClusterFeedServiceType>(
+        CephClusterFeed,
+        CephClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Podman host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PodmanHostFeed, PodmanHostFeedServiceType>(
+        PodmanHostFeed,
+        PodmanHostFeedService,
+      ).getRouter(),
+    );
+
+    // Proxmox cluster feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ProxmoxClusterFeed, ProxmoxClusterFeedServiceType>(
+        ProxmoxClusterFeed,
+        ProxmoxClusterFeedService,
+      ).getRouter(),
+    );
+
+    // host feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HostFeed, HostFeedServiceType>(
+        HostFeed,
+        HostFeedService,
+      ).getRouter(),
+    );
+
+    // cloud resource feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudResourceFeed, CloudResourceFeedServiceType>(
+        CloudResourceFeed,
+        CloudResourceFeedService,
+      ).getRouter(),
+    );
+
+    // service feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceFeed, ServiceFeedServiceType>(
+        ServiceFeed,
+        ServiceFeedService,
       ).getRouter(),
     );
 

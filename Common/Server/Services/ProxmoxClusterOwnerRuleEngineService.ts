@@ -7,6 +7,9 @@ import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
 import ProxmoxClusterOwnerUserService from "./ProxmoxClusterOwnerUserService";
 import ProxmoxClusterOwnerTeamService from "./ProxmoxClusterOwnerTeamService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/ProxmoxClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -142,6 +145,27 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
         `ProxmoxClusterOwnerRuleEngine added owners to Proxmox cluster ${proxmoxCluster.id}`,
         { projectId: proxmoxCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await ProxmoxClusterFeedService.createProxmoxClusterFeedItem({
+        proxmoxClusterId: proxmoxCluster.id,
+        projectId: proxmoxCluster.projectId,
+        proxmoxClusterFeedEventType:
+          ProxmoxClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await ProxmoxClusterService.getProxmoxClusterMarkdownLink(
+          proxmoxCluster.projectId,
+          proxmoxCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: ProxmoxClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Proxmox cluster owner rules: ${error}`, {
         projectId: proxmoxCluster.projectId?.toString(),

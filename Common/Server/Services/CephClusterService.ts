@@ -3,7 +3,14 @@ import CephClusterLabelRuleEngineService from "./CephClusterLabelRuleEngineServi
 import CephClusterOwnerRuleEngineService from "./CephClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/CephCluster";
 import Label from "../../Models/DatabaseModels/Label";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import CephClusterFeedService from "./CephClusterFeedService";
+import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
+import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { JSONObject } from "../../Types/JSON";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
@@ -27,7 +34,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     /*
@@ -57,6 +64,18 @@ export class Service extends DatabaseService<Model> {
           );
         });
     }
+    /*
+     * The overview page can say what this Ceph cluster looks like now; only
+     * the feed can say why it exists at all - whether a person added it or
+     * ingest registered it the first time telemetry named it. Fire and
+     * forget: a feed write must never fail the create it describes.
+     */
+    this.writeCephClusterCreatedFeed(createdItem, onCreate).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
     return createdItem;
   }
 
@@ -379,6 +398,208 @@ export class Service extends DatabaseService<Model> {
           props: {
             isRoot: true,
           },
+        });
+      }
+    }
+  }
+
+  /**
+   * Display name for this Ceph cluster, or an empty string when the row is
+   * gone. Feed writers call this on a best-effort basis, so a missing row must
+   * not throw and take the surrounding write down with it.
+   */
+  @CaptureSpan()
+  public async getCephClusterName(data: {
+    cephClusterId: ObjectID;
+  }): Promise<string> {
+    const cephCluster: Model | null = await this.findOneById({
+      id: data.cephClusterId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return cephCluster?.name || "";
+  }
+
+  @CaptureSpan()
+  public async getCephClusterLinkInDashboard(
+    projectId: ObjectID,
+    cephClusterId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/ceph/${cephClusterId.toString()}`,
+    );
+  }
+
+  /**
+   * "[Ceph Cluster prod-1](https://…)" - the form every feed item uses to
+   * name the resource it is about.
+   */
+  @CaptureSpan()
+  public async getCephClusterMarkdownLink(
+    projectId: ObjectID,
+    cephClusterId: ObjectID,
+  ): Promise<string> {
+    const name: string = await this.getCephClusterName({
+      cephClusterId: cephClusterId,
+    });
+    const link: URL = await this.getCephClusterLinkInDashboard(
+      projectId,
+      cephClusterId,
+    );
+
+    return `[Ceph Cluster ${name}](${link.toString()})`;
+  }
+
+  private async writeCephClusterCreatedFeed(
+    createdItem: Model,
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const projectId: ObjectID | undefined = createdItem.projectId;
+    const cephClusterId: ObjectID | undefined = createdItem.id || undefined;
+
+    if (!projectId || !cephClusterId) {
+      return;
+    }
+
+    /*
+     * Ingest creates these rows with root props and no acting user; every
+     * dashboard, API and Terraform create carries one. That is the whole
+     * signal for "was this discovered automatically or added by a person".
+     */
+    const createdByUserId: ObjectID | undefined =
+      createdItem.createdByUserId ||
+      onCreate.createBy.props.userId ||
+      undefined;
+
+    const markdown: {
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+    } = await ResourceFeedUtil.getCreatedFeedMarkdown({
+      resourceTypeName: "Ceph cluster",
+      resourceMarkdownLink: await this.getCephClusterMarkdownLink(
+        projectId,
+        cephClusterId,
+      ),
+      projectId: projectId,
+      createdByUserId: createdByUserId,
+      description: createdItem.description,
+    });
+
+    await CephClusterFeedService.createCephClusterFeedItem({
+      cephClusterId: cephClusterId,
+      projectId: projectId,
+      cephClusterFeedEventType: CephClusterFeedEventType.CephClusterCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      userId: createdByUserId,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    this.writeCephClusterUpdatedFeed(onUpdate, updatedItemIds).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
+    return onUpdate;
+  }
+
+  private async writeCephClusterUpdatedFeed(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const updateData: JSONObject = onUpdate.updateBy
+      .data as unknown as JSONObject;
+
+    /*
+     * Heartbeats update lastSeenAt / otelCollectorStatus / agentVersion and the
+     * rollup counters constantly. Only the columns a person would recognise as
+     * a change earn a feed item - see MEANINGFUL_UPDATE_COLUMNS.
+     */
+    const changedColumns: Array<string> =
+      ResourceFeedUtil.getUpdatedColumnsWorthRecording(updateData);
+
+    if (changedColumns.length === 0 || updatedItemIds.length === 0) {
+      return;
+    }
+
+    const isArchiveChange: boolean =
+      ResourceFeedUtil.isArchiveChange(updateData);
+    const isArchived: boolean = Boolean(updateData["isArchived"]);
+    const otherColumns: Array<string> = changedColumns.filter(
+      (column: string) => {
+        return column !== "isArchived";
+      },
+    );
+
+    const updatedByUserId: ObjectID | undefined =
+      onUpdate.updateBy.props.userId || undefined;
+
+    for (const cephClusterId of updatedItemIds) {
+      const cephCluster: Model | null = await this.findOneById({
+        id: cephClusterId,
+        select: {
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const projectId: ObjectID | undefined = cephCluster?.projectId;
+
+      if (!projectId) {
+        continue;
+      }
+
+      const resourceMarkdownLink: string =
+        await this.getCephClusterMarkdownLink(projectId, cephClusterId);
+
+      if (isArchiveChange) {
+        await CephClusterFeedService.createCephClusterFeedItem({
+          cephClusterId: cephClusterId,
+          projectId: projectId,
+          cephClusterFeedEventType: isArchived
+            ? CephClusterFeedEventType.CephClusterArchived
+            : CephClusterFeedEventType.CephClusterRestored,
+          displayColor: isArchived ? Yellow500 : Blue500,
+          feedInfoInMarkdown: isArchived
+            ? `🗄️ ${resourceMarkdownLink} was archived.`
+            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+          userId: updatedByUserId,
+        });
+      }
+
+      if (otherColumns.length > 0) {
+        const markdown: {
+          feedInfoInMarkdown: string;
+          moreInformationInMarkdown: string;
+        } = ResourceFeedUtil.getUpdatedFeedMarkdown({
+          resourceMarkdownLink: resourceMarkdownLink,
+          columns: otherColumns,
+        });
+
+        await CephClusterFeedService.createCephClusterFeedItem({
+          cephClusterId: cephClusterId,
+          projectId: projectId,
+          cephClusterFeedEventType: CephClusterFeedEventType.CephClusterUpdated,
+          displayColor: Gray500,
+          feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+          moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+          userId: updatedByUserId,
         });
       }
     }

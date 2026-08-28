@@ -7,6 +7,9 @@ import KubernetesClusterOwnerRuleService from "./KubernetesClusterOwnerRuleServi
 import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserService";
 import KubernetesClusterOwnerTeamService from "./KubernetesClusterOwnerTeamService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -144,6 +147,27 @@ class KubernetesClusterOwnerRuleEngineServiceClass {
         `KubernetesClusterOwnerRuleEngine added owners to Kubernetes cluster ${kubernetesCluster.id}`,
         { projectId: kubernetesCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+        kubernetesClusterId: kubernetesCluster.id,
+        projectId: kubernetesCluster.projectId,
+        kubernetesClusterFeedEventType:
+          KubernetesClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await KubernetesClusterService.getKubernetesClusterMarkdownLink(
+          kubernetesCluster.projectId,
+          kubernetesCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: KubernetesClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Kubernetes cluster owner rules: ${error}`, {
         projectId: kubernetesCluster.projectId?.toString(),
