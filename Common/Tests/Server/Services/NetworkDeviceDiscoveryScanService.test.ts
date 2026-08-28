@@ -1,5 +1,7 @@
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import Probe from "../../../Models/DatabaseModels/Probe";
+import ProbeService from "../../../Server/Services/ProbeService";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
@@ -527,6 +529,8 @@ function storedScan(
 }
 
 let storedScans: Array<NetworkDeviceDiscoveryScan> = [];
+// What the probe lookup finds. Null stands in for a probe that is not there.
+let probeOnLookup: Probe | null = null;
 let reconcileWrites: Array<ReconcileWrite> = [];
 let lastFindByArgs: Record<string, unknown> | null = null;
 
@@ -534,6 +538,26 @@ beforeEach(() => {
   storedScans = [storedScan()];
   reconcileWrites = [];
   lastFindByArgs = null;
+
+  /*
+   * The probe a scan points at is looked up so it can be checked against the
+   * scan's own project. By default it is one of this project's probes.
+   */
+  const probe: Probe = new Probe();
+  probe._id = PROBE_ID.toString();
+  probe.projectId = PROJECT_ID;
+  probeOnLookup = probe;
+
+  jest
+    .spyOn(
+      ProbeService as unknown as {
+        findOneById: (args: Record<string, unknown>) => Promise<unknown>;
+      },
+      "findOneById",
+    )
+    .mockImplementation(async () => {
+      return probeOnLookup;
+    });
 
   jest
     .spyOn(
@@ -546,6 +570,23 @@ beforeEach(() => {
       lastFindByArgs = args;
 
       return storedScans;
+    });
+
+  /*
+   * The row as it stands after the write. onUpdateSuccess re-reads it rather
+   * than predicting it from the payload, so the stub hands back the same
+   * fixture the pre-image came from — with the update applied, exactly as the
+   * database would have applied it.
+   */
+  jest
+    .spyOn(
+      NetworkDeviceDiscoveryScanService as unknown as {
+        findOneById: (args: Record<string, unknown>) => Promise<unknown>;
+      },
+      "findOneById",
+    )
+    .mockImplementation(async () => {
+      return storedScans[0] || null;
     });
 
   jest
@@ -596,6 +637,37 @@ async function saveSettings(
       updateBy: unknown;
       carryForward: unknown;
     };
+
+  /*
+   * Stand in for the write itself, so the row onUpdateSuccess re-reads is the
+   * row the update produced. Values are coerced the way the column types
+   * would coerce them, which is the whole reason the hook reads the row back
+   * instead of trusting the payload: a Number column posted as "60" is a
+   * number by the time anybody reads it again.
+   */
+  const stored: NetworkDeviceDiscoveryScan | undefined = storedScans[0];
+
+  if (stored) {
+    for (const key of Object.keys(data)) {
+      const value: unknown = data[key];
+
+      if (key === "isRecurring") {
+        stored.isRecurring = Boolean(value);
+      } else if (key === "rescanIntervalInMinutes") {
+        /*
+         * Written through a cast because `exactOptionalPropertyTypes` forbids
+         * assigning undefined to an optional property, and a cleared interval
+         * is exactly that assignment.
+         */
+        (stored as unknown as Record<string, unknown>)[key] =
+          value === null || value === undefined || value === ""
+            ? undefined
+            : Number(value);
+      } else if (key !== "probe") {
+        (stored as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
+  }
 
   await (NetworkDeviceDiscoveryScanService as any).onUpdateSuccess(onUpdate, [
     SCAN_ID,
@@ -688,7 +760,6 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     expect(writes[0]!.id).toBe(SCAN_ID.toString());
     expect(writes[0]!.data).toEqual({
       status: "Pending",
-      statusMessage: null,
       startedAt: null,
       completedAt: null,
       nextScanAt: null,
@@ -696,7 +767,50 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
       scannedHostCount: null,
       respondedHostCount: null,
       autoImportProcessedAt: null,
+      /*
+       * The row explains itself rather than going quiet: the operator saved a
+       * change and the results they were looking at disappeared, and the scans
+       * list renders this in the cell where those results used to be.
+       */
+      statusMessage: expect.stringContaining("queued to run again"),
     });
+  });
+
+  /*
+   * Every column that decides what the probe sweeps, one at a time. Three of
+   * them used to be covered and eight were not, which is exactly the shape of
+   * gap that lets a column quietly fall out of the list: nothing fails, the
+   * scan simply keeps advertising results from credentials it no longer has.
+   */
+  it("re-queues the scan when any single setting of the sweep changes", async () => {
+    const changes: Record<string, unknown> = {
+      cidr: "10.0.0.0/24",
+      snmpVersion: "V3",
+      snmpCommunityString: "private",
+      snmpPort: 1161,
+      snmpV3SecurityLevel: "authPriv",
+      snmpV3Username: "netops",
+      snmpV3AuthProtocol: "sha",
+      snmpV3AuthKey: "auth-secret",
+      snmpV3PrivProtocol: "aes",
+      snmpV3PrivKey: "priv-secret",
+    };
+
+    for (const column of Object.keys(changes)) {
+      reconcileWrites = [];
+      storedScans = [storedScan()];
+
+      const writes: Array<ReconcileWrite> = await saveSettings({
+        ...unchangedSave(),
+        [column]: changes[column],
+      });
+
+      expect({ column: column, retired: writes.length }).toEqual({
+        column: column,
+        retired: 1,
+      });
+      expect(writes[0]!.data["status"]).toBe("Pending");
+    }
   });
 
   it("does nothing at all when the whole form is re-posted unchanged", async () => {
@@ -727,6 +841,43 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     });
 
     expect(writes).toEqual([]);
+  });
+
+  /*
+   * A Number field posts its contents as text, so clearing the box sends "" —
+   * and "" into an integer column is a Postgres error, i.e. a bare 500 in
+   * answer to "I do not want a custom port". Easy to reach only now that the
+   * box arrives pre-filled.
+   */
+  it("reads an emptied number box as unset rather than as an empty string", async () => {
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      ...unchangedSave(),
+      snmpPort: "",
+    });
+
+    // Stored as NULL...
+    expect(storedScans[0]!.snmpPort).toBeNull();
+    // ...and it is a real change, so the scan sweeps again.
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.data["status"]).toBe("Pending");
+  });
+
+  it("reads an emptied interval box as unset too", async () => {
+    const updateBy: UpdateBy<NetworkDeviceDiscoveryScan> = {
+      query: { _id: SCAN_ID },
+      data: { isRecurring: false, rescanIntervalInMinutes: "   " },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+      limit: 1,
+      skip: 0,
+    } as unknown as UpdateBy<NetworkDeviceDiscoveryScan>;
+
+    await onBeforeUpdate(updateBy);
+
+    expect(
+      (updateBy.data as unknown as Record<string, unknown>)[
+        "rescanIntervalInMinutes"
+      ],
+    ).toBeNull();
   });
 
   it("re-queues when a credential changes", async () => {
@@ -785,6 +936,81 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     );
   });
 
+  /*
+   * A scan is dispatched by probe id alone: the claim endpoint hands a Pending
+   * scan to whichever probe authenticates as that id, with no project check of
+   * its own, and writes the hosts it reports back onto this row. Pointing a
+   * scan at another project's probe is therefore pointing it at another
+   * project's NETWORK — so the reference is checked wherever it can be
+   * written.
+   */
+  it("refuses a probe that belongs to another project", async () => {
+    const foreignProbe: Probe = new Probe();
+    foreignProbe._id = OTHER_PROBE_ID.toString();
+    foreignProbe.projectId = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    probeOnLookup = foreignProbe;
+
+    await expect(
+      saveSettings({ probe: { _id: OTHER_PROBE_ID.toString() } }),
+    ).rejects.toThrow(/another project/);
+  });
+
+  // A probe with no project of its own is a global probe: anyone may use it.
+  it("accepts a global probe", async () => {
+    const globalProbe: Probe = new Probe();
+    globalProbe._id = OTHER_PROBE_ID.toString();
+    probeOnLookup = globalProbe;
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      probe: { _id: OTHER_PROBE_ID.toString() },
+    });
+
+    expect(writes).toHaveLength(1);
+  });
+
+  it("refuses a probe that does not exist", async () => {
+    probeOnLookup = null;
+
+    await expect(
+      saveSettings({ probe: { _id: OTHER_PROBE_ID.toString() } }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  /*
+   * A payload pointing the FK column and the relation object at two different
+   * probes must be refused rather than validated against whichever one TypeORM
+   * happens to persist.
+   */
+  it("refuses a payload that names two different probes", async () => {
+    await expect(
+      saveSettings({
+        probeId: PROBE_ID,
+        probe: { _id: OTHER_PROBE_ID.toString() },
+      }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("checks the probe against the SCAN's project, not the caller's tenant", async () => {
+    const otherProjectId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+
+    // The scan belongs to another project; so does the probe being set.
+    storedScans = [storedScan()];
+    (storedScans[0] as NetworkDeviceDiscoveryScan).projectId = otherProjectId;
+
+    const probeInThatProject: Probe = new Probe();
+    probeInThatProject._id = OTHER_PROBE_ID.toString();
+    probeInThatProject.projectId = otherProjectId;
+    probeOnLookup = probeInThatProject;
+
+    await expect(
+      saveSettings({ probe: { _id: OTHER_PROBE_ID.toString() } }),
+    ).resolves.toBeDefined();
+  });
+
   it("abandons a run that is still in progress when the target changes", async () => {
     storedScans = [storedScan({ status: "In Progress" })];
 
@@ -801,19 +1027,50 @@ describe("NetworkDeviceDiscoveryScanService: editing a scan's settings", () => {
     expect(writes[0]!.data["startedAt"]).toBeNull();
   });
 
+  /*
+   * The hook plans for every row the update MATCHED, but the write may affect
+   * fewer — a row hard-deleted in between, or a limit. Reconciling a row that
+   * was not written would retire a scan nobody edited.
+   */
   it("reconciles only the rows the write actually touched", async () => {
     const otherId: ObjectID = new ObjectID(
       "55555555-5555-4555-8555-555555555555",
     );
 
-    await saveSettings({ cidr: "10.0.0.0/24" });
+    const otherScan: NetworkDeviceDiscoveryScan = storedScan();
+    otherScan._id = otherId.toString();
+
+    storedScans = [storedScan(), otherScan];
+
+    const updateBy: UpdateBy<NetworkDeviceDiscoveryScan> = {
+      query: { projectId: PROJECT_ID },
+      data: { cidr: "10.0.0.0/24" },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+      limit: 2,
+      skip: 0,
+    } as unknown as UpdateBy<NetworkDeviceDiscoveryScan>;
+
+    const onUpdate: { updateBy: unknown; carryForward: unknown } =
+      (await onBeforeUpdate(updateBy)) as {
+        updateBy: unknown;
+        carryForward: unknown;
+      };
+
+    // Both rows were planned for...
+    expect(
+      Object.keys(onUpdate.carryForward as Record<string, unknown>).sort(),
+    ).toEqual([SCAN_ID.toString(), otherId.toString()].sort());
+
+    // ...but only one was written.
+    await (NetworkDeviceDiscoveryScanService as any).onUpdateSuccess(onUpdate, [
+      SCAN_ID,
+    ]);
 
     expect(
       reconcileWrites.map((write: ReconcileWrite) => {
         return write.id;
       }),
     ).toEqual([SCAN_ID.toString()]);
-    expect(otherId.toString()).not.toBe(SCAN_ID.toString());
   });
 });
 
@@ -872,6 +1129,29 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
     ).toBe(COMPLETED_AT.getTime() + 60 * 60 * 1000);
   });
 
+  /*
+   * The form posts a Number field, and what arrives on the wire is not
+   * guaranteed to be a number. Predicting the post-write schedule from the
+   * payload would read "60" as "no cadence" and quietly unschedule a scan the
+   * operator had just scheduled; the hook reads the stored row back instead,
+   * where the column type has already had its say.
+   */
+  it("schedules from the stored value, not from whatever shape the request sent", async () => {
+    storedScans = [
+      storedScan({ status: "Completed", completedAt: COMPLETED_AT }),
+    ];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      isRecurring: true,
+      rescanIntervalInMinutes: "60",
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(
+      OneUptimeDate.fromString(writes[0]!.data["nextScanAt"] as Date).getTime(),
+    ).toBe(COMPLETED_AT.getTime() + 60 * 60 * 1000);
+  });
+
   it("clears the next run when recurrence is turned off", async () => {
     storedScans = [
       storedScan({
@@ -892,9 +1172,13 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
      * A stale timestamp left behind here is not inert: turning recurrence back
      * on months later would find it already in the past and fire an immediate,
      * unasked-for sweep.
+     *
+     * The whole payload is asserted, not just the one key: turning recurrence
+     * off must not touch the run — the scan keeps its results and its status,
+     * and only its schedule changes.
      */
     expect(writes).toHaveLength(1);
-    expect(writes[0]!.data["nextScanAt"]).toBeNull();
+    expect(writes[0]!.data).toEqual({ nextScanAt: null });
   });
 
   it("writes nothing when the schedule is re-posted unchanged", async () => {
@@ -972,6 +1256,32 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
 
     expect(writes).toHaveLength(1);
     expect(writes[0]!.data["nextScanAt"]).not.toBeNull();
+  });
+
+  /*
+   * A save that never mentions the schedule must not move it. The stale-scan
+   * reaper deliberately marks a stranded run due IMMEDIATELY rather than one
+   * interval later, and re-deriving on an unrelated save would quietly push
+   * that recovery out by a whole cadence.
+   */
+  it("leaves the schedule alone when the save did not ask about it", async () => {
+    storedScans = [
+      storedScan({
+        status: "Failed",
+        completedAt: COMPLETED_AT,
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+        // What the reaper writes: due now, not one interval after the failure.
+        nextScanAt: COMPLETED_AT,
+      }),
+    ];
+
+    const writes: Array<ReconcileWrite> = await saveSettings({
+      cidr: "192.168.1.0/24",
+      snmpCommunityString: "public",
+    });
+
+    expect(writes).toEqual([]);
   });
 
   /*

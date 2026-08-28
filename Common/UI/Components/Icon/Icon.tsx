@@ -410,6 +410,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
      * stroke inside a 20px box - it overshot the cap height of its own label
      * and read as a size larger than every button next to it.
      *
+     * (Those figures are the longest distance across each glyph's drawn ink,
+     * with arcs and curves sampled. Common/Tests/UI/Components/
+     * IconOpticalSize.test.tsx measures the same quantity from the path
+     * VERTICES alone, which under-reads every icon by a fraction of a unit -
+     * so its numbers are smaller than these and its comparison is relative
+     * rather than absolute.)
+     *
      * Scaling by 0.8 about the centre of the box brings the ink to 21.4 -
      * between Trash and Copy, at the median - while keeping the glyph
      * itself untouched: a uniform scale preserves the arc flags, the 45

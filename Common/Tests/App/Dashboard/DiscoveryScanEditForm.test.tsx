@@ -148,20 +148,6 @@ function editFieldNamed(key: string): CapturedFormField {
   return field;
 }
 
-function wizardFieldNamed(key: string): CapturedFormField {
-  const field: CapturedFormField | undefined = (
-    capturedTableProps?.formFields || []
-  ).find((candidate: CapturedFormField): boolean => {
-    return fieldKeyOf(candidate) === key;
-  });
-
-  if (!field) {
-    throw new Error(`Create wizard field "${key}" not found`);
-  }
-
-  return field;
-}
-
 function editAction(): CapturedActionButton {
   const action: CapturedActionButton | undefined = (
     capturedTableProps?.actionButtons || []
@@ -325,19 +311,67 @@ describe("Editing a discovery scan after it was created", () => {
    * be this one — the one nobody exercises until they are already trying to
    * fix a scan that is not working.
    */
-  test("uses the same validators the create wizard does", async () => {
+  /*
+   * One definition, two layouts. A second copy of the field array would be a
+   * second set of descriptions, validators and reveal rules to keep in step,
+   * and the copy that drifted would be this one — the one nobody exercises
+   * until they are already trying to fix a scan that is not working.
+   *
+   * Compared field by field rather than by object identity: the factory builds
+   * fresh objects for each form, deliberately, because ModelForm mutates the
+   * field objects it is handed (it writes an inferred maxLength onto them) and
+   * two forms must not share one mutable object.
+   */
+  test("describes every field exactly as the create wizard does", async () => {
     await openEditDialog();
 
-    for (const key of ["name", "cidr", "rescanIntervalInMinutes"]) {
-      expect(editFieldNamed(key).customValidation).toBe(
-        wizardFieldNamed(key).customValidation,
-      );
-    }
+    const wizardFields: Array<CapturedFormField> =
+      capturedTableProps?.formFields || [];
 
-    // And they are really wired, not merely identical undefineds.
+    expect(editFields()).toHaveLength(wizardFields.length);
+
+    let headed: number = 0;
+
+    editFields().forEach((field: CapturedFormField, index: number) => {
+      const wizardField: CapturedFormField = wizardFields[
+        index
+      ] as CapturedFormField;
+
+      expect({
+        key: fieldKeyOf(field),
+        title: field.title,
+        stepId: field.stepId,
+        required: field.required,
+        // Module-level functions, so identity is the right comparison here.
+        customValidation: field.customValidation,
+        hasShowIf: Boolean(field.showIf),
+      }).toEqual({
+        key: fieldKeyOf(wizardField),
+        title: wizardField.title,
+        stepId: wizardField.stepId,
+        required: wizardField.required,
+        customValidation: wizardField.customValidation,
+        hasShowIf: Boolean(wizardField.showIf),
+      });
+
+      // The only thing the edit layout adds is the group heading.
+      if (field.sectionTitle) {
+        headed++;
+      }
+
+      expect(wizardField.sectionTitle).toBeUndefined();
+    });
+
+    expect(headed).toBe((capturedTableProps?.formSteps || []).length);
+
+    // And the validators are really wired, not merely identical undefineds.
     expect(
       editFieldNamed("cidr").customValidation?.({ cidr: "10.0.0.0/33" }),
     ).toBe(ScanTargetUtil.getValidationError("10.0.0.0/33"));
+    expect(
+      editFieldNamed("rescanIntervalInMinutes").customValidation,
+    ).toBeDefined();
+    expect(editFieldNamed("name").customValidation).toBeDefined();
   });
 
   test("offers the probes that were fetched for the create wizard", async () => {

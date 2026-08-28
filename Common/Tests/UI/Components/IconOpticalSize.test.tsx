@@ -352,7 +352,15 @@ describe("Icon optical size", () => {
     expect(getIconPaths(IconProp.Edit)).toEqual(getIconPaths(IconProp.Pencil));
   });
 
-  it("keeps the pencil inside the box the other icons sit in", () => {
+  /*
+   * A second, blunter statement of the same fix, so a redraw that happened to
+   * keep the ink length while pushing the glyph back into the corners fails
+   * here. This is the pencil's OWN keyline box — the icons around it are not
+   * all inside it (the trash can runs from 2.25 to 21.75 vertically), and they
+   * do not need to be: an upright shape is read by its height, a lone diagonal
+   * by its length, and only the diagonal has to be pulled in to match.
+   */
+  it("keeps the pencil inside its keyline box", () => {
     const vertices: Array<Point> = getIconPaths(IconProp.Pencil).flatMap(
       (pathData: string) => {
         return parsePathVertices(pathData);

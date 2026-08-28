@@ -149,6 +149,12 @@ router.post(
            * the Pending guard in the result endpoint, and the next poll picks
            * the scan up with its new settings. `name` is deliberately absent —
            * a rename changes nothing about the sweep and must not cost one.
+           *
+           * The write reports no count, so the probe is still handed the scan
+           * and still sweeps it once for nothing when the guard bites. That is
+           * the cheap half of the trade: a wasted sweep in a race that needs a
+           * save to land inside a single round trip, against a scan wedged
+           * In Progress for two hours until the reaper gives up on it.
            */
           expectedData: {
             status: "Pending",

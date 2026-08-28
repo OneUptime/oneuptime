@@ -83,14 +83,13 @@ import React, {
 type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
 
 /*
- * The scan's optional name, defined once and used twice: as the first field of
- * the create wizard, and as the only field of the Rename dialog. Two copies
- * would be two chances for the wizard's guidance and the rename dialog's to
- * drift apart, on a field whose entire job is to be read later.
+ * The scan's optional name — the first field of the create wizard, and the
+ * first field of the Edit dialog.
  *
- * It keeps its `stepId` in both places. The rename dialog declares no steps at
- * all, and BasicForm renders every field when there are none — see
- * Common/UI/Components/Forms/BasicForm.
+ * It carries a `stepId` because the wizard is stepped. The Edit dialog is not,
+ * and simply does not read it: BasicForm renders every field when a form
+ * declares no steps, and Validation skips its step guard for the same reason.
+ * See Common/UI/Components/Forms/BasicForm.
  */
 const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   field: {

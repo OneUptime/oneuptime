@@ -530,9 +530,16 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
    * Editable after creation, like the rest of the SNMP config above — a
    * credential that the devices reject is exactly the thing an operator needs
    * to correct without rebuilding the scan. Changing one re-queues the scan;
-   * see NetworkDeviceDiscoveryScanService. Their READ permissions stay
-   * narrower than the other columns' (no Viewer, no SettingsViewer): a
-   * passphrase is not a thing every reader of the scans list should be handed.
+   * see NetworkDeviceDiscoveryScanService.
+   *
+   * READ permissions are untouched by that, and are not uniform across these
+   * columns: the two that carry a secret — snmpV3AuthKey and snmpV3PrivKey,
+   * like snmpCommunityString above them — are read by a narrower list than the
+   * rest of the model (no Viewer, no SettingsViewer), because a passphrase is
+   * not a thing every reader of the scans list should be handed. The security
+   * level, the username and the two protocol names describe HOW the scan
+   * authenticates rather than WITH WHAT, and are read as widely as the target
+   * is.
    */
   @ColumnAccessControl({
     create: [
