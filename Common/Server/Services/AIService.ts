@@ -2,7 +2,7 @@ import { getAllEnvVars, IsBillingEnabled } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
-import ProjectService from "./ProjectService";
+import ProjectService, { CurrentPlan } from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import AIBillingService from "./AIBillingService";
 import LLMService, {
@@ -338,6 +338,44 @@ export class Service extends BaseService {
   }
 
   /**
+   * Assert the project-level `enableAi` kill switch, and nothing else.
+   *
+   * This is the whole gate for the synchronous, user-triggered "Generate with
+   * AI" endpoints (incident/episode postmortems, incident/alert/maintenance
+   * notes). Those reach executeWithLogging directly, and executeWithLogging
+   * meters, bills and logs a call but never consults the project toggle — so
+   * without this a project that has switched AI off would still spend
+   * provider tokens through them.
+   *
+   * Fails closed: a project row we cannot read is not a project we can
+   * confirm has AI enabled, so a missing project is refused rather than
+   * waved through.
+   */
+  @CaptureSpan()
+  public async assertProjectAIEnabled(projectId: ObjectID): Promise<void> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { enableAi: true },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found.");
+    }
+
+    /*
+     * Strictly `=== false`. The column is NOT NULL DEFAULT true, so an
+     * undefined value here means "not selected", not "disabled", and must
+     * keep working — same semantics as every other enableAi read.
+     */
+    if (project.enableAi === false) {
+      throw new BadDataException(
+        "AI features are disabled for this project. Enable them in Project Settings > AI Credits.",
+      );
+    }
+  }
+
+  /**
    * Assert the project-level feature, subscription, and payment gates shared by
    * background AI entry points. Provider availability, balance, and token
    * budgets are checked later by executeWithLogging so those failures are
@@ -345,27 +383,17 @@ export class Service extends BaseService {
    */
   @CaptureSpan()
   public async assertProjectCanUseAI(projectId: ObjectID): Promise<void> {
-    const [project, planStatus]: [
-      Project | null,
-      { plan: PlanType | null; isSubscriptionUnpaid: boolean },
-    ] = await Promise.all([
-      ProjectService.findOneById({
-        id: projectId,
-        select: { enableAi: true },
-        props: { isRoot: true },
-      }),
+    /*
+     * The kill switch and the plan read stay in flight together — the plan
+     * read does not depend on the toggle's verdict. The ordering that matters
+     * is still preserved: the unpaid and plan refusals below run only once
+     * this resolves, so a project with AI switched off is refused for being
+     * switched off, never for something billing has to say about it.
+     */
+    const [, planStatus]: [void, CurrentPlan] = await Promise.all([
+      this.assertProjectAIEnabled(projectId),
       ProjectService.getCurrentPlan(projectId),
     ]);
-
-    if (!project) {
-      throw new BadDataException("Project not found.");
-    }
-
-    if (project.enableAi === false) {
-      throw new BadDataException(
-        "AI features are disabled for this project. Enable AI in Project Settings before running this workflow.",
-      );
-    }
 
     if (planStatus.isSubscriptionUnpaid) {
       throw new PaymentRequiredException(

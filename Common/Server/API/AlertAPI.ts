@@ -120,6 +120,15 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
       throw new NotFoundException("Alert not found");
     }
 
+    /*
+     * Project AI kill switch. Checked here: after the row that names the
+     * project is in hand, and before the context builder runs or any provider
+     * tokens are spent. executeWithLogging meters and bills this call but does
+     * not consult Project.enableAi, so this is the only thing standing between
+     * a project that has switched AI off and a provider bill.
+     */
+    await AIService.assertProjectAIEnabled(alert.projectId);
+
     // Build alert context
     const contextData: AlertContextData =
       await AlertAIContextBuilder.buildAlertContext({

@@ -136,6 +136,15 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       throw new NotFoundException("Scheduled Maintenance not found");
     }
 
+    /*
+     * Project AI kill switch. Checked here: after the row that names the
+     * project is in hand, and before the context builder runs or any provider
+     * tokens are spent. executeWithLogging meters and bills this call but does
+     * not consult Project.enableAi, so this is the only thing standing between
+     * a project that has switched AI off and a provider bill.
+     */
+    await AIService.assertProjectAIEnabled(scheduledMaintenance.projectId);
+
     // Build scheduled maintenance context
     const contextData: ScheduledMaintenanceContextData =
       await ScheduledMaintenanceAIContextBuilder.buildScheduledMaintenanceContext(

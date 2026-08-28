@@ -223,6 +223,15 @@ export default class IncidentAPI extends BaseAPI<
       throw new NotFoundException("Incident not found");
     }
 
+    /*
+     * Project AI kill switch. Checked here: after the row that names the
+     * project is in hand, and before the context builder runs or any provider
+     * tokens are spent. executeWithLogging meters and bills this call but does
+     * not consult Project.enableAi, so this is the only thing standing between
+     * a project that has switched AI off and a provider bill.
+     */
+    await AIService.assertProjectAIEnabled(incident.projectId);
+
     // Build incident context
     const contextData: IncidentContextData =
       await IncidentAIContextBuilder.buildIncidentContext({
@@ -352,6 +361,15 @@ export default class IncidentAPI extends BaseAPI<
     if (!incident || !incident.projectId) {
       throw new NotFoundException("Incident not found");
     }
+
+    /*
+     * Project AI kill switch. Checked here: after the row that names the
+     * project is in hand, and before the context builder runs or any provider
+     * tokens are spent. executeWithLogging meters and bills this call but does
+     * not consult Project.enableAi, so this is the only thing standing between
+     * a project that has switched AI off and a provider bill.
+     */
+    await AIService.assertProjectAIEnabled(incident.projectId);
 
     // Build incident context
     const contextData: IncidentContextData =
