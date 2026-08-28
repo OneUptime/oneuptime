@@ -201,6 +201,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Error}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Source Maps",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_SOURCE_MAPS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Code}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Activity">

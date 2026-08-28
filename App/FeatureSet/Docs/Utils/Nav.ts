@@ -675,6 +675,10 @@ const DocsNav: NavGroup[] = [
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",
       },
+      {
+        title: "Source Maps",
+        url: "/docs/telemetry/source-maps",
+      },
       { title: "Serilog (.NET)", url: "/docs/telemetry/serilog" },
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },

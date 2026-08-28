@@ -266,6 +266,12 @@ enum Permission {
   EditTelemetryException = "EditTelemetryException",
   ReadTelemetryException = "ReadTelemetryException",
 
+  // Source Maps (unminify browser exception stack traces)
+  CreateTelemetrySourceMap = "CreateTelemetrySourceMap",
+  DeleteTelemetrySourceMap = "DeleteTelemetrySourceMap",
+  EditTelemetrySourceMap = "EditTelemetrySourceMap",
+  ReadTelemetrySourceMap = "ReadTelemetrySourceMap",
+
   // Spans
   CreateTelemetryServiceTraces = "CreateTelemetryServiceTraces",
   DeleteTelemetryServiceTraces = "DeleteTelemetryServiceTraces",
@@ -7770,6 +7776,47 @@ export class PermissionHelper {
         title: "Read Telemetry Service Exception",
         description:
           "This permission can read Telemetry Service Exception of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateTelemetrySourceMap,
+        title: "Create Telemetry Source Map",
+        description:
+          "This permission can upload source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteTelemetrySourceMap,
+        title: "Delete Telemetry Source Map",
+        description:
+          "This permission can delete source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditTelemetrySourceMap,
+        title: "Edit Telemetry Source Map",
+        description:
+          "This permission can edit source maps for telemetry services of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadTelemetrySourceMap,
+        title: "Read Telemetry Source Map",
+        description:
+          "This permission can read source maps for telemetry services of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

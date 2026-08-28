@@ -10,7 +10,18 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
-import { Green500, Gray500, Red500 } from "Common/Types/BrandColors";
+import { Green500, Gray500, Indigo500, Red500 } from "Common/Types/BrandColors";
+import {
+  ResolvedStackFrame,
+  SourceCodeSnippet,
+} from "Common/Types/Telemetry/SourceMap";
+import {
+  applyResolvedFrames,
+  countResolvedFrames,
+  getFrameDisplayLocation,
+  parseFramesJson,
+  FrameDisplayLocation,
+} from "../../Utils/SourceMapFrames";
 
 export interface StackFrame {
   functionName: string;
@@ -23,6 +34,13 @@ export interface StackFrame {
 export interface ComponentProps {
   stackTrace: string;
   parsedFrames?: string; // JSON stringified StackFrame[]
+  /*
+   * Output of POST /telemetry/exceptions/resolve-stack-trace for the same
+   * frames — present when source maps were uploaded for the exception's
+   * (service, release). Frames with resolved: true display their original
+   * source location instead of the minified one.
+   */
+  resolvedFrames?: Array<ResolvedStackFrame> | undefined;
 }
 
 // --- Types for display items ---
@@ -30,7 +48,7 @@ export interface ComponentProps {
 // A single visible frame in the list
 interface DisplayFrame {
   kind: "frame";
-  frame: StackFrame;
+  frame: ResolvedStackFrame;
   originalIndex: number;
   isTopAppFrame: boolean;
 }
@@ -38,7 +56,7 @@ interface DisplayFrame {
 // A collapsed group of consecutive library frames
 interface CollapsedLibraryGroup {
   kind: "collapsed-lib";
-  frames: Array<{ frame: StackFrame; originalIndex: number }>;
+  frames: Array<{ frame: ResolvedStackFrame; originalIndex: number }>;
   startIndex: number;
 }
 
@@ -114,25 +132,27 @@ const shortenPath: ShortenPathFunction = (fullPath: string): string => {
   return ".../" + parts.slice(-3).join("/");
 };
 
-type FormatLocationFunction = (frame: StackFrame) => string;
+type FormatLocationFunction = (location: FrameDisplayLocation) => string;
 
-const formatLocation: FormatLocationFunction = (frame: StackFrame): string => {
-  const path: string = shortenPath(frame.fileName);
-  if (!frame.lineNumber || frame.lineNumber <= 0) {
+const formatLocation: FormatLocationFunction = (
+  location: FrameDisplayLocation,
+): string => {
+  const path: string = shortenPath(location.fileName);
+  if (!location.lineNumber || location.lineNumber <= 0) {
     return path;
   }
-  return `${path}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`;
+  return `${path}:${location.lineNumber}${location.columnNumber ? `:${location.columnNumber}` : ""}`;
 };
 
-type FormatFullLocationFunction = (frame: StackFrame) => string;
+type FormatFullLocationFunction = (location: FrameDisplayLocation) => string;
 
 const formatFullLocation: FormatFullLocationFunction = (
-  frame: StackFrame,
+  location: FrameDisplayLocation,
 ): string => {
-  if (!frame.lineNumber || frame.lineNumber <= 0) {
-    return frame.fileName;
+  if (!location.lineNumber || location.lineNumber <= 0) {
+    return location.fileName;
   }
-  return `${frame.fileName}:${frame.lineNumber}${frame.columnNumber ? `:${frame.columnNumber}` : ""}`;
+  return `${location.fileName}:${location.lineNumber}${location.columnNumber ? `:${location.columnNumber}` : ""}`;
 };
 
 // --- Sub-component: Frame number badge ---
@@ -171,10 +191,58 @@ const FrameNumberBadge: FunctionComponent<FrameNumberBadgeProps> = ({
   );
 };
 
+// --- Sub-component: Original source snippet ---
+
+interface SourceSnippetProps {
+  snippet: SourceCodeSnippet;
+}
+
+const SourceSnippetBlock: FunctionComponent<SourceSnippetProps> = ({
+  snippet,
+}: SourceSnippetProps): ReactElement => {
+  return (
+    <div className="border-t border-gray-800/50">
+      <div className="px-4 py-1.5 bg-gray-800/40 text-[10px] font-medium text-gray-400 uppercase tracking-wide">
+        Original Source
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs font-mono">
+          <tbody>
+            {snippet.lines.map((line: string, i: number): ReactElement => {
+              const lineNumber: number = snippet.startLine + i;
+              const isHighlighted: boolean =
+                lineNumber === snippet.highlightLine;
+              return (
+                <tr
+                  key={i}
+                  className={isHighlighted ? "bg-red-950/40" : undefined}
+                >
+                  <td className="text-gray-600 text-right pr-4 pl-4 py-0.5 select-none w-[1%] whitespace-nowrap border-r border-gray-800">
+                    {lineNumber}
+                  </td>
+                  <td
+                    className={`pl-4 pr-4 py-0.5 whitespace-pre ${
+                      isHighlighted
+                        ? "text-red-300 font-medium"
+                        : "text-gray-300"
+                    }`}
+                  >
+                    {line || " "}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // --- Sub-component: Expanded frame detail ---
 
 interface FrameDetailPanelProps {
-  frame: StackFrame;
+  frame: ResolvedStackFrame;
   isTopAppFrame: boolean;
 }
 
@@ -182,6 +250,8 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
   frame,
   isTopAppFrame,
 }: FrameDetailPanelProps): ReactElement => {
+  const location: FrameDisplayLocation = getFrameDisplayLocation(frame);
+
   const rows: Array<{
     label: string;
     value: string;
@@ -191,27 +261,47 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
 
   rows.push({
     label: "Function",
-    value: frame.functionName || "<anonymous>",
+    value: location.functionName || "<anonymous>",
     mono: true,
     highlight: true,
   });
 
   rows.push({
     label: "File",
-    value: frame.fileName || "Unknown",
+    value: location.fileName || "Unknown",
     mono: true,
     highlight: false,
   });
 
-  if (frame.lineNumber && frame.lineNumber > 0) {
-    const lineStr: string = frame.columnNumber
-      ? `${frame.lineNumber}:${frame.columnNumber}`
-      : `${frame.lineNumber}`;
+  if (location.lineNumber && location.lineNumber > 0) {
+    const lineStr: string = location.columnNumber
+      ? `${location.lineNumber}:${location.columnNumber}`
+      : `${location.lineNumber}`;
     rows.push({
       label: "Line",
       value: lineStr,
       mono: true,
       highlight: true,
+    });
+  }
+
+  /*
+   * When the frame was source mapped, the primary rows above show the
+   * original location — surface the minified one too so the two can be
+   * cross-checked against the raw stack trace.
+   */
+  if (location.isOriginal) {
+    rows.push({
+      label: "Minified",
+      value: formatFullLocation({
+        functionName: frame.functionName,
+        fileName: frame.fileName,
+        lineNumber: frame.lineNumber,
+        columnNumber: frame.columnNumber,
+        isOriginal: false,
+      }),
+      mono: true,
+      highlight: false,
     });
   }
 
@@ -229,15 +319,20 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
         <div className="flex items-center justify-between px-4 py-2 bg-gray-800/60 border-b border-gray-700/50">
           <div className="flex items-center gap-2">
             <Icon
-              icon={getLanguageIcon(frame.fileName)}
+              icon={getLanguageIcon(location.fileName)}
               size={SizeProp.Smaller}
               className="text-gray-400"
             />
             <span className="text-xs font-mono text-gray-300 truncate">
-              {frame.fileName || "unknown"}
+              {location.fileName || "unknown"}
             </span>
+            {location.isOriginal && (
+              <span className="text-[10px] font-medium text-indigo-300 bg-indigo-900/50 px-1.5 py-0.5 rounded">
+                SOURCE MAPPED
+              </span>
+            )}
           </div>
-          <CopyableButton textToBeCopied={formatFullLocation(frame)} />
+          <CopyableButton textToBeCopied={formatFullLocation(location)} />
         </div>
 
         {/* Detail rows */}
@@ -278,6 +373,11 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
             },
           )}
         </div>
+
+        {/* Original source snippet, when the map carried sourcesContent */}
+        {frame.sourceCodeSnippet && (
+          <SourceSnippetBlock snippet={frame.sourceCodeSnippet} />
+        )}
       </div>
     </div>
   );
@@ -286,7 +386,7 @@ const FrameDetailPanel: FunctionComponent<FrameDetailPanelProps> = ({
 // --- Sub-component: Single frame row ---
 
 interface FrameRowProps {
-  frame: StackFrame;
+  frame: ResolvedStackFrame;
   originalIndex: number;
   isExpanded: boolean;
   isTopAppFrame: boolean;
@@ -300,7 +400,8 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
   isTopAppFrame,
   onToggle,
 }: FrameRowProps): ReactElement => {
-  const location: string = formatLocation(frame);
+  const displayLocation: FrameDisplayLocation = getFrameDisplayLocation(frame);
+  const location: string = formatLocation(displayLocation);
 
   return (
     <div
@@ -346,12 +447,12 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
                   : "text-gray-500"
             }`}
           >
-            {frame.functionName || "<anonymous>"}
+            {displayLocation.functionName || "<anonymous>"}
           </span>
 
           {/* File location */}
           {location && (
-            <Tooltip text={formatFullLocation(frame)}>
+            <Tooltip text={formatFullLocation(displayLocation)}>
               <span className="text-xs font-mono text-gray-400 truncate flex-shrink-0 max-w-[280px]">
                 {location}
               </span>
@@ -368,6 +469,14 @@ const FrameRow: FunctionComponent<FrameRowProps> = ({
               size={PillSize.Small}
               icon={IconProp.Error}
               tooltip="This is the most likely crash point"
+            />
+          )}
+          {frame.resolved && (
+            <Pill
+              text="MAPPED"
+              color={Indigo500}
+              size={PillSize.Small}
+              tooltip="Resolved to original source through an uploaded source map"
             />
           )}
           <Pill
@@ -398,8 +507,8 @@ const CollapsedLibGroupRow: FunctionComponent<CollapsedLibGroupRowProps> = ({
   onExpand,
 }: CollapsedLibGroupRowProps): ReactElement => {
   const count: number = group.frames.length;
-  const firstFrame: StackFrame = group.frames[0]!.frame;
-  const lastFrame: StackFrame = group.frames[count - 1]!.frame;
+  const firstFrame: ResolvedStackFrame = group.frames[0]!.frame;
+  const lastFrame: ResolvedStackFrame = group.frames[count - 1]!.frame;
 
   // Try to find a common path prefix
   const firstDir: string = firstFrame.fileName
@@ -665,26 +774,26 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     new Set(),
   );
 
-  // Parse frames
-  const frames: StackFrame[] = useMemo((): StackFrame[] => {
-    try {
-      if (props.parsedFrames) {
-        return JSON.parse(props.parsedFrames) as StackFrame[];
-      }
-    } catch {
-      // fall through
-    }
-    return [];
-  }, [props.parsedFrames]);
+  // Parse frames and overlay the source-map resolution result, if any
+  const frames: ResolvedStackFrame[] = useMemo((): ResolvedStackFrame[] => {
+    return applyResolvedFrames(
+      parseFramesJson(props.parsedFrames),
+      props.resolvedFrames,
+    );
+  }, [props.parsedFrames, props.resolvedFrames]);
 
   // Frame counts
   const appFrameCount: number = useMemo((): number => {
-    return frames.filter((f: StackFrame) => {
+    return frames.filter((f: ResolvedStackFrame) => {
       return f.inApp;
     }).length;
   }, [frames]);
 
   const libFrameCount: number = frames.length - appFrameCount;
+
+  const resolvedFrameCount: number = useMemo((): number => {
+    return countResolvedFrames(frames);
+  }, [frames]);
 
   // Find the topmost app frame (most likely crash point)
   const topAppFrameIndex: number = useMemo((): number => {
@@ -718,7 +827,7 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     if (viewMode === ViewMode.AppOnly) {
       // Only app frames, flat list
       return frames
-        .map((frame: StackFrame, index: number): DisplayItem | null => {
+        .map((frame: ResolvedStackFrame, index: number): DisplayItem | null => {
           if (!frame.inApp) {
             return null;
           }
@@ -736,20 +845,22 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
 
     if (viewMode === ViewMode.All) {
       // All frames, flat list
-      return frames.map((frame: StackFrame, index: number): DisplayItem => {
-        return {
-          kind: "frame",
-          frame: frame,
-          originalIndex: index,
-          isTopAppFrame: index === topAppFrameIndex,
-        } as DisplayFrame;
-      });
+      return frames.map(
+        (frame: ResolvedStackFrame, index: number): DisplayItem => {
+          return {
+            kind: "frame",
+            frame: frame,
+            originalIndex: index,
+            isTopAppFrame: index === topAppFrameIndex,
+          } as DisplayFrame;
+        },
+      );
     }
 
     // Smart view: app frames shown, consecutive lib frames collapsed
     const items: DisplayItem[] = [];
     let currentLibGroup: Array<{
-      frame: StackFrame;
+      frame: ResolvedStackFrame;
       originalIndex: number;
     }> = [];
     let libGroupStartIndex: number = 0;
@@ -785,7 +896,7 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     };
 
     for (let i: number = 0; i < frames.length; i++) {
-      const frame: StackFrame = frames[i]!;
+      const frame: ResolvedStackFrame = frames[i]!;
       if (frame.inApp) {
         flushLibGroup();
         items.push({
@@ -807,7 +918,14 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
   }, [frames, viewMode, topAppFrameIndex, expandedLibGroups]);
 
   return (
-    <Card title="Stack Trace" description={`${frames.length} frames traced`}>
+    <Card
+      title="Stack Trace"
+      description={
+        resolvedFrameCount > 0
+          ? `${frames.length} frames traced · ${resolvedFrameCount} resolved to original source via source maps`
+          : `${frames.length} frames traced`
+      }
+    >
       <div className="overflow-hidden">
         {/* View mode toggle bar */}
         {appFrameCount > 0 && libFrameCount > 0 && (
@@ -836,12 +954,17 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
             <span className="text-xs text-red-700">
               <span className="font-semibold">Crash point:</span>{" "}
               <span className="font-mono">
-                {frames[topAppFrameIndex]!.functionName || "<anonymous>"}
+                {getFrameDisplayLocation(frames[topAppFrameIndex]!)
+                  .functionName || "<anonymous>"}
               </span>{" "}
               <span className="text-red-500">
-                in {shortenPath(frames[topAppFrameIndex]!.fileName)}
-                {frames[topAppFrameIndex]!.lineNumber > 0
-                  ? `:${frames[topAppFrameIndex]!.lineNumber}`
+                in{" "}
+                {shortenPath(
+                  getFrameDisplayLocation(frames[topAppFrameIndex]!).fileName,
+                )}
+                {getFrameDisplayLocation(frames[topAppFrameIndex]!).lineNumber >
+                0
+                  ? `:${getFrameDisplayLocation(frames[topAppFrameIndex]!).lineNumber}`
                   : ""}
               </span>
             </span>

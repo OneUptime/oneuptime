@@ -57,6 +57,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
+  [PageMap.SERVICE_VIEW_SOURCE_MAPS]: `${RouteParams.ModelID}/source-maps`,
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -2243,6 +2244,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_SOURCE_MAPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SOURCE_MAPS]
     }`,
   ),
 

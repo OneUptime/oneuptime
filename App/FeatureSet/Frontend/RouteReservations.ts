@@ -33,6 +33,12 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/session-replay",
   /*
+   * Source map upload ingest, mounted on both "/telemetry" and "/" the same
+   * way as session replay. POST-only today; reserved for the same reason as
+   * /fluentd above.
+   */
+  "/source-maps",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"
