@@ -144,6 +144,14 @@ describe("runScan — a successful sweep", () => {
 
     expect(scanSpy).toHaveBeenCalledWith({
       cidr: "10.0.0.0/24",
+      /*
+       * A scan row carrying no method column is an SNMP scan — every scan
+       * created before the column existed is one, and so is every scan
+       * handed over by a server too old to select it (issue #3445). The
+       * sweep must be configured for SNMP either way, which is why this is
+       * asserted as `true` on a fixture that never sets it.
+       */
+      isSnmpEnabled: true,
       snmpVersion: "V2c",
       snmpCommunityString: "public",
       snmpV3Auth: undefined,

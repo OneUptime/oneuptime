@@ -15,6 +15,7 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
+import ScanModeUtil from "../../Utils/NetworkDiscovery/ScanModeUtil";
 
 /*
  * The two spellings a many-to-one reference reaches a hook under: the
@@ -34,6 +35,12 @@ const PROBE_RELATION_KEYS: Array<string> = ["probeId", "probe"];
 const SWEEP_COLUMNS: Array<string> = [
   "cidr",
   "probeId",
+  /*
+   * The method as well as the credentials: turning SNMP off (or back on)
+   * changes what the sweep asks of every address, so the hosts already on the
+   * row answered a different question (issue #3445).
+   */
+  "isSnmpEnabled",
   "snmpVersion",
   "snmpCommunityString",
   "snmpPort",
@@ -180,6 +187,24 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.data.projectId || createBy.props.tenantId,
     });
 
+    /*
+     * A scan that will not send SNMP stores no SNMP settings. Enforced here
+     * rather than in the form alone, so it holds for a direct API call too —
+     * the same reason the scan target is validated on this hook rather than
+     * only in the wizard.
+     *
+     * Read through ScanModeUtil so an ABSENT flag reads as an SNMP scan, which
+     * is what every scan created before this column existed was, and what
+     * every API client that has never heard of the column means.
+     *
+     * LAST, after nullEmptyNumbers: that pass turns an empty snmpPort box into
+     * null, and this one nulls the whole SNMP set anyway, so running it after
+     * means there is exactly one answer for what an ICMP-only row holds.
+     */
+    if (ScanModeUtil.isIcmpOnly(createBy.data)) {
+      this.clearSnmpConfig(createBy.data);
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -223,6 +248,22 @@ export class Service extends DatabaseService<Model> {
     }
 
     this.nullEmptyNumbers(data, dataKeys);
+
+    /*
+     * Turning the method off clears the credentials in the same statement, so
+     * the row can never say "sends no SNMP" while carrying a community string
+     * or a v3 passphrase (issue #3445). The edit form posts every declared
+     * field regardless of visibility, so the SNMP boxes the operator just hid
+     * are still in this payload.
+     *
+     * Gated on the key being WRITTEN, not merely on the stored value being
+     * false: a rename, or the probe-ingest endpoints writing run state, must
+     * not reach in and null a column they never mentioned. `data` is mutated
+     * in place because onUpdateSuccess is handed back the same updateBy object.
+     */
+    if (dataKeys.includes("isSnmpEnabled") && ScanModeUtil.isIcmpOnly(data)) {
+      this.clearSnmpConfig(data);
+    }
 
     const isSweepWritten: boolean =
       RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS) ||
@@ -645,6 +686,46 @@ export class Service extends DatabaseService<Model> {
       OneUptimeDate.fromString(left).getTime() ===
       OneUptimeDate.fromString(right).getTime()
     );
+  }
+
+  /*
+   * The columns an ICMP-only scan must not carry (OneUptime issue #3445).
+   *
+   * Hiding the fields in the form is not enough on its own, for two separate
+   * reasons. ModelForm builds the request body out of every DECLARED field
+   * without checking whether it was visible, so a v3 passphrase typed before
+   * the operator changed their mind is still posted — and TypeORM OMITS an
+   * undefined property from the INSERT, at which point Postgres fills in the
+   * column defaults, which for this table are 'V2c' and 161. Either way the
+   * stored row claims to be an SNMP v2c scan on port 161 while its own method
+   * column says it sends no SNMP at all.
+   *
+   * An explicit null is the only value that beats a column default, which is
+   * why these are nulled rather than deleted.
+   */
+  private static readonly SNMP_CONFIG_COLUMNS: Array<string> = [
+    "snmpVersion",
+    "snmpCommunityString",
+    "snmpPort",
+    "snmpV3SecurityLevel",
+    "snmpV3Username",
+    "snmpV3AuthProtocol",
+    "snmpV3AuthKey",
+    "snmpV3PrivProtocol",
+    "snmpV3PrivKey",
+  ];
+
+  /*
+   * Written through a cast for the same reason the name normalize above is:
+   * the properties are typed `string | number | undefined` and
+   * exactOptionalPropertyTypes forbids assigning null to them directly.
+   */
+  private clearSnmpConfig(data: unknown): void {
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of Service.SNMP_CONFIG_COLUMNS) {
+      record[column] = null;
+    }
   }
 
   /*

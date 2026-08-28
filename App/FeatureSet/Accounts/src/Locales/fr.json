@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Veuillez suivre les instructions sur votre dispositif de clé de sécurité.",
       "codeFieldDescription": "Entrez le code de votre application d'authentification",
       "selectDifferentMethod": "Sélectionnez une autre méthode d'authentification à deux facteurs",
-      "useBackupCode": "Utiliser un code de secours à la place",
       "backupCodeInstruction": "Saisissez l'un des codes de secours que vous avez enregistrés lors de la configuration de l'authentification à deux facteurs. Chaque code ne fonctionne qu'une seule fois.",
       "backupCodeFieldTitle": "Code de secours",
-      "backupCodeFieldDescription": "Les codes de secours ressemblent à ABCDE-12345. La casse et le tiret n'ont pas d'importance."
+      "backupCodeFieldDescription": "Les codes de secours ressemblent à ABCDE-12345. La casse et le tiret n'ont pas d'importance.",
+      "confirmSubtitle": "Confirmez votre identité pour terminer la connexion.",
+      "recoverySubtitle": "Utilisez un code de secours ou découvrez comment vous reconnecter si vous n'en avez pas.",
+      "lostAccess": "Vous avez perdu l'accès à votre application d'authentification ?",
+      "noBackupCodesStrong": "Vous n'avez aucun code de secours.",
+      "noBackupCodes": "Aucun code ne peut être saisi ici, car ce compte n'en a jamais reçu.",
+      "noBackupCodesInstruction": "Demandez à un administrateur de cette instance OneUptime de réinitialiser l'authentification à deux facteurs sur votre compte. Vous pourrez alors vous connecter avec votre mot de passe et configurer une nouvelle application d'authentification, et des codes de secours seront créés pour vous à cette occasion.",
+      "lostAccessSecurityKey": "Vous avez perdu l'accès à votre clé de sécurité ?"
     },
     "twoFactorEnrolment": {
       "title": "Configurer l'authentification à deux facteurs",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Saisissez le code à six chiffres affiché par votre application d'authentification.",
       "submitButton": "Vérifier et se connecter",
       "backToSignIn": "Connectez-vous en tant qu'autre utilisateur"
+    },
+    "backupCodes": {
+      "title": "Enregistrez vos codes de secours",
+      "subtitle": "Utilisez l'un de ces codes pour vous connecter si vous perdez l'accès à votre application d'authentification ou à votre clé de sécurité.",
+      "showOnceStrong": "C'est la seule fois où ces codes seront affichés.",
+      "showOnce": "Enregistrez-les ailleurs que sur l'appareil qui génère vos codes. Chaque code ne fonctionne qu'une seule fois.",
+      "download": "Télécharger sous forme de fichier texte",
+      "savedConfirmation": "J'ai enregistré ces codes en lieu sûr.",
+      "continue": "Continuer vers le tableau de bord",
+      "fileHeading": "Codes de secours de l'authentification à deux facteurs OneUptime",
+      "fileInstruction": "Chaque code ne fonctionne qu'une seule fois. Conservez ce fichier en lieu sûr, séparément de l'appareil sur lequel s'exécute votre application d'authentification.",
+      "setUpTitle": "Configurer les codes de secours",
+      "setUpSubtitle": "Une dernière chose avant de continuer.",
+      "noneStrong": "Vous n'avez aucun code de secours.",
+      "none": "Si vous perdez votre application d'authentification ou votre clé de sécurité, un administrateur devra réinitialiser l'authentification à deux facteurs avant que vous puissiez vous reconnecter.",
+      "generate": "Générer des codes de secours",
+      "skip": "Ignorer pour le moment",
+      "generateFailed": "Aucun code de secours n'a été renvoyé. Veuillez réessayer depuis Profil utilisateur > Authentification à deux facteurs."
     }
   },
   "register": {

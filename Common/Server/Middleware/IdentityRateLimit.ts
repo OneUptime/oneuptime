@@ -117,6 +117,13 @@ export enum IdentityRateLimitBucket {
    * password already accepted.
    */
   TwoFactor = "two-factor",
+
+  /*
+   * POST /verify-backup-code -- the recovery step. Its own counter, because
+   * every caller of it has just failed at the factor above and must not find
+   * the recovery route already spent. See BACKUP_CODE_BUCKET.
+   */
+  BackupCode = "backup-code",
 }
 
 export enum IdentityRateLimitScope {
@@ -243,6 +250,43 @@ const TWO_FACTOR_BUCKET: BucketConfig = {
   ),
   perIpLimit: parsePositiveIntFromEnv(
     "IDENTITY_TWO_FACTOR_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * Recovery budget.
+ *
+ * The same numbers again, and a SEPARATE counter again -- and this one is the
+ * separation that matters most, because of who is standing in front of it.
+ *
+ * Everybody who reaches /verify-backup-code has already failed at the factor
+ * they normally use. That is the entire premise of the route. Sharing the
+ * second-step counter therefore inverted its purpose exactly: a user whose
+ * authenticator app was showing codes from a drifted clock would burn all ten
+ * attempts on it, and the recovery route -- the one thing that could still let
+ * them in -- would answer "too many attempts" before it ever looked at the
+ * code they were holding. The recovery path cannot be spent by failures on the
+ * path it exists to recover from.
+ *
+ * The limit is not what stops guessing here; the code is. Ten characters over
+ * a 32 symbol alphabet is 2^50, so a caller holding the password guesses one
+ * of a user's ten live codes with probability around 1e-14 per attempt. Ten
+ * per quarter hour is a backstop against the route being used as a password
+ * oracle -- it re-verifies email and password like its siblings -- rather than
+ * a defence of the codes themselves.
+ */
+const BACKUP_CODE_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_BACKUP_CODE_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_IP_PER_WINDOW",
     150,
   ),
 };
@@ -388,9 +432,15 @@ export default class IdentityRateLimit {
   }
 
   public static getBucketConfig(bucket: IdentityRateLimitBucket): BucketConfig {
-    return bucket === IdentityRateLimitBucket.TwoFactor
-      ? TWO_FACTOR_BUCKET
-      : LOGIN_BUCKET;
+    if (bucket === IdentityRateLimitBucket.TwoFactor) {
+      return TWO_FACTOR_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.BackupCode) {
+      return BACKUP_CODE_BUCKET;
+    }
+
+    return LOGIN_BUCKET;
   }
 
   /*

@@ -2,6 +2,9 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  BrandAssetsPath,
+  BrandAssetsRouteSegment,
+  OneUptimeLogoUrl,
   VendorAssetsPath,
   VendorAssetsRoute,
   getMermaidDistPath,
@@ -299,6 +302,17 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
       return path.join(mermaidDistPath, relative.slice("mermaid/".length));
     }
 
+    /*
+     * OneUptime's own images are not third-party, so they live outside
+     * Static/Vendor and are mounted separately under the same prefix.
+     */
+    if (relative.startsWith(`${BrandAssetsRouteSegment}/`)) {
+      return path.join(
+        BrandAssetsPath,
+        relative.slice(BrandAssetsRouteSegment.length + 1),
+      );
+    }
+
     return path.join(VendorAssetsPath, relative);
   }
 
@@ -368,6 +382,27 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
           "/oneuptime-assets/tailwind/tailwind-3.4.5.js",
           "/oneuptime-assets/fonts/InterVariable.woff2",
         ],
+      ],
+      /*
+       * The logo on the pages the App container renders. It used to point at
+       * /img/3-transparent.svg, which only Home serves - issue 3457.
+       */
+      [
+        path.join(
+          "Common",
+          "Server",
+          "Views",
+          "AcknowledgeUserOnCallNotification.ejs",
+        ),
+        [OneUptimeLogoUrl],
+      ],
+      [
+        path.join("Common", "Server", "Views", "ViewMessage.ejs"),
+        [OneUptimeLogoUrl],
+      ],
+      [
+        path.join("App", "FeatureSet", "Identity", "Views", "Message.ejs"),
+        [OneUptimeLogoUrl],
       ],
       [
         path.join("Home", "Views", "head-basic.ejs"),

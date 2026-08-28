@@ -3,6 +3,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
+import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 
 /*
  * Client-side validators for the "Create New Network Device Discovery Scan"
@@ -10,12 +11,13 @@ import { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscover
  *
  * WHY THEY EXIST
  *
- * The wizard has three steps — Scan Target, SNMP Credentials, Schedule — and
- * BasicForm validates only the fields belonging to the step being submitted
- * (the currentFormStepId guard in Common/UI/Components/Forms/Validation.ts).
- * A field-level validator is therefore exactly what turns "Next" into a gate:
- * the message renders inline under its own input, on its own step, and the
- * step refuses to advance until it clears.
+ * The wizard has three steps — Scan Target, SNMP Credentials, Schedule (the
+ * middle one is skipped entirely for an ICMP-only scan) — and BasicForm validates only
+ * the fields belonging to the step being submitted (the currentFormStepId guard
+ * in Common/UI/Components/Forms/Validation.ts). A field-level validator is
+ * therefore exactly what turns "Next" into a gate: the message renders inline
+ * under its own input, on its own step, and the step refuses to advance until
+ * it clears.
  *
  * Until these existed, the only check on a scan target was `required`, which
  * any non-empty string satisfies. A phone-number-shaped value walked through
@@ -207,4 +209,42 @@ export const validateRescanInterval: RescanIntervalValidatorFunction = (
   }
 
   return null;
+};
+
+export type ScanModePredicateFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+) => boolean;
+
+/*
+ * Whether the wizard should still be asking about SNMP.
+ *
+ * Read through ScanModeUtil rather than off the value, so the form, the probe
+ * and the ingest endpoint all answer this question the same way — and so the
+ * ABSENT case answers "yes". A form value the operator has not reached, a scan
+ * row written before the column existed, and a `select` that forgot the column
+ * all arrive as undefined, and every one of them means the SNMP sweep this
+ * product has always done.
+ *
+ * This is the whole of the fix for issue #3445. BasicForm validates only the
+ * fields of the step being submitted, and a step filtered out of `formSteps`
+ * can never BE that step — so `required: true` on SNMP Version simply stops
+ * speaking, rather than the wizard refusing to advance past a field that is not
+ * on screen.
+ */
+export const isSnmpStepNeeded: ScanModePredicateFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+): boolean => {
+  return ScanModeUtil.isSnmpEnabled(values);
+};
+
+/*
+ * The exact negation, spelled out because most callers read better asking the
+ * positive question about the case they handle — a `showIf` that hides a field,
+ * a copy branch that must not mention SNMP — and a bare `!` in front of a
+ * predicate is easy to lose in a diff.
+ */
+export const isIcmpOnlyScan: ScanModePredicateFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+): boolean => {
+  return ScanModeUtil.isIcmpOnly(values);
 };

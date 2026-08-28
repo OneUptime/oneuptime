@@ -45,6 +45,29 @@ export const VendorAssetsPath: string = path.resolve(
 );
 
 /**
+ * OneUptime's own brand images, served under the same prefix.
+ *
+ * Not third-party, so they do not belong in Static/Vendor, but they have the
+ * identical problem: the server-rendered pages that carry the logo (the on-call
+ * acknowledge page, the SSO message page) come out of the App container, and
+ * `/img/...` is served by Home. nginx sends "/" to App on every install with
+ * billing off - which is every self-hosted install - so the logo those pages
+ * asked for 404'd and rendered as a broken image.
+ * See https://github.com/OneUptime/oneuptime/issues/3457.
+ */
+export const BrandAssetsRouteSegment: string = "brand";
+
+export const BrandAssetsPath: string = path.resolve(
+  __dirname,
+  "..",
+  "Static",
+  "Brand",
+);
+
+/** Host-relative URL of the OneUptime wordmark, for use in a view's <img src>. */
+export const OneUptimeLogoUrl: string = `${VendorAssetsRoute}/${BrandAssetsRouteSegment}/oneuptime-logo.svg`;
+
+/**
  * Mermaid is a dependency of Common already (Common/UI renders diagrams in
  * markdown with it), so it is on disk in every image and there is no reason to
  * commit a second copy. Resolved rather than hard-coded because npm may hoist
@@ -111,6 +134,25 @@ const mountVendorAssets: MountVendorAssetsFunction = (
      */
     logger.error(
       `Vendored browser assets are missing at ${VendorAssetsPath}. Server-rendered pages will render unstyled.`,
+    );
+  }
+
+  if (fs.existsSync(BrandAssetsPath)) {
+    /*
+     * Revalidating rather than immutable: the filename carries no version, so
+     * a rebrand must not be stuck behind a year-old cache entry.
+     */
+    app.use(
+      `${VendorAssetsRoute}/${BrandAssetsRouteSegment}`,
+      ExpressStatic(BrandAssetsPath, {
+        maxAge: REVALIDATE_CACHE_MAX_AGE_MILLISECONDS,
+        index: false,
+        redirect: false,
+      }) as RequestHandler,
+    );
+  } else {
+    logger.error(
+      `OneUptime brand images are missing at ${BrandAssetsPath}. Server-rendered pages will render without a logo.`,
     );
   }
 

@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Siga as instruções no seu dispositivo de chave de segurança.",
       "codeFieldDescription": "Digite o código do seu aplicativo autenticador",
       "selectDifferentMethod": "Selecione um método diferente de autenticação de dois fatores",
-      "useBackupCode": "Usar um código de backup",
       "backupCodeInstruction": "Digite um dos códigos de backup que você salvou ao configurar a autenticação de dois fatores. Cada código funciona apenas uma vez.",
       "backupCodeFieldTitle": "Código de backup",
-      "backupCodeFieldDescription": "Os códigos de backup são parecidos com ABCDE-12345. Maiúsculas, minúsculas e o hífen não fazem diferença."
+      "backupCodeFieldDescription": "Os códigos de backup são parecidos com ABCDE-12345. Maiúsculas, minúsculas e o hífen não fazem diferença.",
+      "confirmSubtitle": "Confirme que é você para concluir o login.",
+      "recoverySubtitle": "Use um código de backup ou saiba como recuperar o acesso sem ele.",
+      "lostAccess": "Perdeu o acesso ao seu autenticador?",
+      "noBackupCodesStrong": "Você não tem códigos de backup.",
+      "noBackupCodes": "Não há nenhum código que você possa digitar aqui, porque esta conta nunca recebeu um conjunto de códigos.",
+      "noBackupCodesInstruction": "Peça a um administrador desta instância do OneUptime para redefinir a autenticação de dois fatores na sua conta. Depois disso, você poderá fazer login com sua senha e configurar um novo aplicativo autenticador, e códigos de backup serão criados para você ao mesmo tempo.",
+      "lostAccessSecurityKey": "Perdeu o acesso à sua chave de segurança?"
     },
     "twoFactorEnrolment": {
       "title": "Configurar a autenticação de dois fatores",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Introduza o código de seis dígitos apresentado pela sua aplicação de autenticação.",
       "submitButton": "Verificar e iniciar sessão",
       "backToSignIn": "Inicie sessão como outro utilizador"
+    },
+    "backupCodes": {
+      "title": "Salve seus códigos de backup",
+      "subtitle": "Use um deles para fazer login caso você perca o acesso ao seu aplicativo autenticador ou à sua chave de segurança.",
+      "showOnceStrong": "Esta é a única vez que estes códigos serão exibidos.",
+      "showOnce": "Salve-os em um lugar diferente do dispositivo que gera seus códigos. Cada código pode ser usado apenas uma vez.",
+      "download": "Baixar como arquivo de texto",
+      "savedConfirmation": "Salvei estes códigos em um lugar seguro.",
+      "continue": "Continuar para o Painel",
+      "fileHeading": "Códigos de backup da autenticação de dois fatores do OneUptime",
+      "fileInstruction": "Cada código pode ser usado apenas uma vez. Guarde este arquivo em um lugar seguro e separado do dispositivo que executa o seu aplicativo autenticador.",
+      "setUpTitle": "Configurar códigos de backup",
+      "setUpSubtitle": "Uma última coisa antes de continuar.",
+      "noneStrong": "Você não tem códigos de backup.",
+      "none": "Se você perder o seu aplicativo autenticador ou a sua chave de segurança, um administrador terá que redefinir a autenticação de dois fatores antes que você possa fazer login novamente.",
+      "generate": "Gerar códigos de backup",
+      "skip": "Pular por enquanto",
+      "generateFailed": "Nenhum código de backup foi retornado. Tente novamente em Perfil do usuário > Autenticação de dois fatores."
     }
   },
   "register": {

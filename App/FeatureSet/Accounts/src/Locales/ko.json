@@ -47,10 +47,16 @@
       "securityKeyInstructions": "보안 키 장치의 지침을 따르세요.",
       "codeFieldDescription": "인증 앱에서 코드를 입력하세요",
       "selectDifferentMethod": "다른 이중 인증 방법 선택",
-      "useBackupCode": "대신 백업 코드 사용",
       "backupCodeInstruction": "이중 인증을 설정할 때 저장한 백업 코드 중 하나를 입력하세요. 각 코드는 한 번만 사용할 수 있습니다.",
       "backupCodeFieldTitle": "백업 코드",
-      "backupCodeFieldDescription": "백업 코드는 ABCDE-12345 형식입니다. 대소문자와 하이픈은 상관없습니다."
+      "backupCodeFieldDescription": "백업 코드는 ABCDE-12345 형식입니다. 대소문자와 하이픈은 상관없습니다.",
+      "confirmSubtitle": "로그인을 완료하려면 본인임을 확인하세요.",
+      "recoverySubtitle": "백업 코드를 사용하거나, 백업 코드 없이 다시 로그인하는 방법을 알아보세요.",
+      "lostAccess": "인증 앱에 액세스할 수 없나요?",
+      "noBackupCodesStrong": "백업 코드가 없습니다.",
+      "noBackupCodes": "이 계정에는 백업 코드가 발급된 적이 없어 여기에 입력할 수 있는 코드가 없습니다.",
+      "noBackupCodesInstruction": "이 OneUptime 인스턴스의 관리자에게 계정의 이중 인증을 재설정해 달라고 요청하세요. 그런 다음 비밀번호로 로그인하여 새 인증 앱을 설정할 수 있으며, 이때 백업 코드도 함께 생성됩니다.",
+      "lostAccessSecurityKey": "보안 키에 액세스할 수 없나요?"
     },
     "twoFactorEnrolment": {
       "title": "2단계 인증 설정",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "인증 앱에 표시된 6자리 코드를 입력하세요.",
       "submitButton": "확인하고 로그인",
       "backToSignIn": "다른 사용자로 로그인"
+    },
+    "backupCodes": {
+      "title": "백업 코드 저장",
+      "subtitle": "인증 앱이나 보안 키에 액세스할 수 없게 되면 이 코드 중 하나로 로그인하세요.",
+      "showOnceStrong": "이 코드는 지금 한 번만 표시됩니다.",
+      "showOnce": "코드를 생성하는 기기가 아닌 다른 곳에 저장하세요. 각 코드는 한 번만 사용할 수 있습니다.",
+      "download": "텍스트 파일로 다운로드",
+      "savedConfirmation": "이 코드를 안전한 곳에 저장했습니다.",
+      "continue": "대시보드로 계속",
+      "fileHeading": "OneUptime 이중 인증 백업 코드",
+      "fileInstruction": "각 코드는 한 번만 사용할 수 있습니다. 이 파일은 인증 앱이 설치된 기기와 분리된 안전한 곳에 보관하세요.",
+      "setUpTitle": "백업 코드 설정",
+      "setUpSubtitle": "계속하기 전에 마지막으로 한 가지가 남았습니다.",
+      "noneStrong": "백업 코드가 없습니다.",
+      "none": "인증 앱이나 보안 키를 분실하면 관리자가 이중 인증을 재설정해야 다시 로그인할 수 있습니다.",
+      "generate": "백업 코드 생성",
+      "skip": "지금은 건너뛰기",
+      "generateFailed": "백업 코드가 반환되지 않았습니다. 사용자 프로필 > 이중 인증에서 다시 시도해 주세요."
     }
   },
   "register": {

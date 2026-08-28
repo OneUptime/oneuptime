@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Följ instruktionerna på din säkerhetsnyckelenhet.",
       "codeFieldDescription": "Ange koden från din autentiseringsapp",
       "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering",
-      "useBackupCode": "Använd en reservkod i stället",
       "backupCodeInstruction": "Ange en av de reservkoder du sparade när du konfigurerade tvåfaktorsautentisering. Varje kod fungerar bara en gång.",
       "backupCodeFieldTitle": "Reservkod",
-      "backupCodeFieldDescription": "Reservkoder ser ut som ABCDE-12345. Stora och små bokstäver samt bindestrecket spelar ingen roll."
+      "backupCodeFieldDescription": "Reservkoder ser ut som ABCDE-12345. Stora och små bokstäver samt bindestrecket spelar ingen roll.",
+      "confirmSubtitle": "Bekräfta att det är du för att slutföra inloggningen.",
+      "recoverySubtitle": "Använd en reservkod, eller ta reda på hur du kommer in igen utan en sådan.",
+      "lostAccess": "Förlorat åtkomsten till din autentiseringsapp?",
+      "noBackupCodesStrong": "Du har inga reservkoder.",
+      "noBackupCodes": "Det finns ingen kod du kan ange här, eftersom det här kontot aldrig har tilldelats en uppsättning.",
+      "noBackupCodesInstruction": "Be en administratör för den här OneUptime-instansen att återställa tvåfaktorsautentiseringen för ditt konto. Då kan du logga in med ditt lösenord och konfigurera en ny autentiseringsapp, och samtidigt skapas reservkoder åt dig.",
+      "lostAccessSecurityKey": "Förlorat åtkomsten till din säkerhetsnyckel?"
     },
     "twoFactorEnrolment": {
       "title": "Konfigurera tvåfaktorsautentisering",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Ange den sexsiffriga koden som din autentiseringsapp visar.",
       "submitButton": "Verifiera och logga in",
       "backToSignIn": "Logga in som en annan användare"
+    },
+    "backupCodes": {
+      "title": "Spara dina reservkoder",
+      "subtitle": "Använd en av dessa för att logga in om du någon gång förlorar åtkomsten till din autentiseringsapp eller säkerhetsnyckel.",
+      "showOnceStrong": "Det här är enda gången koderna visas.",
+      "showOnce": "Spara dem någon annanstans än på enheten som genererar dina koder. Varje kod kan användas en gång.",
+      "download": "Ladda ner som textfil",
+      "savedConfirmation": "Jag har sparat koderna på ett säkert ställe.",
+      "continue": "Fortsätt till instrumentpanelen",
+      "fileHeading": "Reservkoder för tvåfaktorsautentisering i OneUptime",
+      "fileInstruction": "Varje kod kan användas en gång. Förvara den här filen på ett säkert ställe och åtskild från enheten som kör din autentiseringsapp.",
+      "setUpTitle": "Konfigurera reservkoder",
+      "setUpSubtitle": "En sista sak innan du fortsätter.",
+      "noneStrong": "Du har inga reservkoder.",
+      "none": "Om du förlorar din autentiseringsapp eller säkerhetsnyckel måste en administratör återställa tvåfaktorsautentiseringen innan du kan logga in igen.",
+      "generate": "Generera reservkoder",
+      "skip": "Hoppa över tills vidare",
+      "generateFailed": "Inga reservkoder returnerades. Försök igen från Användarprofil > Tvåfaktorsautentisering."
     }
   },
   "register": {

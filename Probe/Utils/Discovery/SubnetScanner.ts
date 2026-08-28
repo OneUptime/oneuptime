@@ -40,6 +40,16 @@ export interface SubnetScanConfig {
    * `cidr` to match the NetworkDeviceDiscoveryScan column it is read from.
    */
   cidr: string;
+  /*
+   * Whether to ask each live host for its SNMP system group, or stop at the
+   * ping that found it (OneUptime issue #3445). Read off the scan row through
+   * ScanModeUtil, so an ABSENT column reads as "yes" — the sweep this probe ran
+   * before the column existed.
+   *
+   * Undefined here means the same thing, for callers that build a config by
+   * hand: only an explicit false turns SNMP off.
+   */
+  isSnmpEnabled?: boolean | undefined;
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | undefined;
   snmpV3Auth?: SnmpV3Auth | undefined;
@@ -54,8 +64,13 @@ export interface SubnetScanResult {
    */
   discoveredHosts: Array<DiscoveredHost>;
   scannedHostCount: number;
-  // The UDP port every host was probed on, so the summary can name it.
-  scannedPort: number;
+  /*
+   * The UDP port every host was probed on, so the summary can name it.
+   * Undefined on an ICMP-only sweep, which dials no port at all — naming 161
+   * there would point the operator at a firewall rule for traffic that was
+   * never sent.
+   */
+  scannedPort?: number | undefined;
   /*
    * Hosts that answered the ICMP pre-sweep. undefined when the pre-sweep
    * could not run (e.g. no ping binary / ICMP privileges) and every host was
@@ -84,6 +99,27 @@ export interface SubnetScanResult {
    * ICMP-filtered-subnet path described in scan().
    */
   icmpFilteredFallbackHostCount: number;
+  /*
+   * True when this sweep asked no host for SNMP at all.
+   *
+   * Reported rather than re-derived by the caller from the config, because
+   * every SNMP number above is zero in that mode for a completely different
+   * reason than "the credentials were wrong", and the status message has to
+   * tell those two zeroes apart.
+   *
+   * OPTIONAL, and absent means the SNMP sweep — the same rule the scan column
+   * itself is read by (ScanModeUtil). A result built before this field existed,
+   * in a test fixture or by an older code path, describes a sweep that did
+   * probe SNMP, and must keep reading that way.
+   */
+  isIcmpOnlySweep?: boolean | undefined;
+  /*
+   * True when the ICMP pre-sweep broke partway through an ICMP-ONLY sweep, so
+   * an unknown part of the range was never checked. The hosts reported are the
+   * ones confirmed before it broke — worth keeping, but never worth presenting
+   * as a complete answer.
+   */
+  isIcmpSweepIncomplete?: boolean | undefined;
 }
 
 // Sweeping the whole subnet at once would exhaust sockets; probe in waves.
@@ -132,12 +168,30 @@ export default class SubnetScanner {
     }
 
     /*
+     * Only an EXPLICIT false turns SNMP off — see ScanModeUtil. A config
+     * assembled without the field describes the sweep this probe ran before
+     * ICMP-only scans existed, and that sweep did SNMP.
+     */
+    const isSnmpEnabled: boolean = config.isSnmpEnabled !== false;
+
+    /*
      * ICMP pre-sweep state. Best-effort: the first infrastructure failure
      * (ping binary missing, ICMP socket privileges — an error, not a clean
      * "host down") flips the flag and every host is SNMP-probed directly,
      * exactly as before the pre-sweep existed.
+     *
+     * "Best-effort" holds only while SNMP is the real probe. An ICMP-only sweep
+     * has nothing to fall back TO, so the flag is fatal there — see the guard
+     * after phase 1.
      */
     let isPingSweepAvailable: boolean = true;
+    /*
+     * Why the pre-sweep stopped, kept for the operator and truncated the way
+     * SNMP errors are: isHostAliveByPing throws with the OS ping's untrimmed,
+     * often multi-line stderr, and this ends up quoted inside a varchar(500).
+     * Only the FIRST failure is kept — they are all the same failure.
+     */
+    let pingFailureReason: string = "";
     const pingAliveHosts: Set<string> = new Set<string>();
 
     // Phase 1 — ICMP pre-sweep across the whole target.
@@ -159,14 +213,95 @@ export default class SubnetScanner {
            * the scan; hosts already confirmed alive stay known-alive.
            */
           isPingSweepAvailable = false;
+          pingFailureReason =
+            pingFailureReason ||
+            String(pingErr).substring(0, SNMP_ERROR_EXCERPT_LENGTH);
           logger.warn(
             "Discovery ICMP pre-sweep unavailable (" +
               pingErr +
-              "). Falling back to SNMP-probing every host.",
+              "). " +
+              (isSnmpEnabled
+                ? "Falling back to SNMP-probing every host."
+                : "This scan checks ICMP only, so it has nothing to fall back to and will be reported as failed."),
           );
         }
       },
     );
+
+    /*
+     * An ICMP-only sweep ends here: the ping IS the probe, so the hosts that
+     * answered it are the whole result.
+     *
+     * Recorded with snmpReachable FALSE rather than undefined. The flag means
+     * "this host was asked for SNMP and did not answer" everywhere else, and an
+     * ICMP-only host is in exactly that position from the importer's point of
+     * view — it has no system group, no vendor OID and no credentials, so it
+     * must import as a monitor-backed device (DiscoveryImportEligibility).
+     * Undefined would read as a legacy SNMP responder and import as an
+     * SNMP-polled device that could never be polled.
+     */
+    if (!isSnmpEnabled) {
+      /*
+       * No fallback exists in this mode, so an unusable ping is a failed scan
+       * rather than a clean zero. Reporting "0 of 254 answered" for a probe
+       * that never sent a single echo is the exact false negative the ICMP
+       * pre-sweep's own privilege detection was added to prevent — it would
+       * read as "this subnet is empty", and the one fact that explains it (this
+       * container cannot open an ICMP socket) would live only in a probe log.
+       */
+      if (!isPingSweepAvailable && pingAliveHosts.size === 0) {
+        throw new Error(
+          "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
+            "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
+            "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
+            "Ping reported: " +
+            (pingFailureReason || "unknown error"),
+        );
+      }
+
+      const pingOnlyHosts: Array<DiscoveredHost> = hosts
+        .filter((host: string) => {
+          return pingAliveHosts.has(host);
+        })
+        .map((host: string) => {
+          /*
+           * Byte-identical to the ping-only record phase 2 writes below, so
+           * the whole import path works unchanged: the flag is what makes
+           * DiscoveryImportEligibility hand these hosts to the Monitor
+           * method, and DiscoveredDeviceBuilder returns before it touches a
+           * credential. Undefined would read as a legacy SNMP responder and
+           * import an SNMP-polled device that could never be polled.
+           */
+          return {
+            ipAddress: host,
+            snmpReachable: false,
+          };
+        });
+
+      /*
+       * Already in ascending order: `hosts` comes out of expandTarget sorted
+       * and this filter preserves that, unlike the SNMP path below where
+       * hosts are appended in completion order and have to be sorted.
+       */
+      return {
+        discoveredHosts: pingOnlyHosts,
+        scannedHostCount: hosts.length,
+        // No port was dialled, and undefined is the only honest answer for one.
+        scannedPort: undefined,
+        respondedToPingCount: pingAliveHosts.size,
+        snmpErrorHostCount: 0,
+        mostCommonSnmpError: undefined,
+        icmpFilteredFallbackHostCount: 0,
+        isIcmpOnlySweep: true,
+        /*
+         * The pre-sweep broke, but not before confirming hosts. Those are real
+         * and worth reporting; the range they came from is not complete, and
+         * the status message has to say so rather than let a partial tally
+         * read as the whole subnet.
+         */
+        isIcmpSweepIncomplete: !isPingSweepAvailable,
+      };
+    }
 
     // Phase 2 — SNMP probe, plus the phase 3 fallback below.
     const snmpPort: number = config.snmpPort || 161;
@@ -291,7 +426,15 @@ export default class SubnetScanner {
      */
     let icmpFilteredFallbackHostCount: number = 0;
 
-    if (isPingSweepAvailable && snmpResponderCount === 0) {
+    /*
+     * `!isSnmpEnabled` is unreachable here — the ICMP-only branch above
+     * returned — and is stated anyway because of what this fallback does if it
+     * ever is reached: it SNMP-probes every remaining address in the range,
+     * with community "public" over v2c (probeHost defaults both). On a scan
+     * that asked for no SNMP that would be an unauthenticated sweep of a
+     * customer subnet, and it cannot be undone after the fact.
+     */
+    if (isSnmpEnabled && isPingSweepAvailable && snmpResponderCount === 0) {
       const skippedHosts: Array<string> = hosts.filter((host: string) => {
         return !probedHosts.has(host);
       });

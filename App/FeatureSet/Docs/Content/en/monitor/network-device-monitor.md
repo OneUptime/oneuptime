@@ -12,7 +12,7 @@ The split of responsibilities is simple:
 The Network Devices product is made up of:
 
 - **Device inventory** — register each device once with its hostname, SNMP credentials, and polling settings. The assigned probe polls it on schedule and OneUptime enriches the record with the device's system identity (name, description, location, vendor, model, serial number), interfaces, and health metrics.
-- **Network discovery** — sweep a subnet (CIDR) or an octet range (`10.16-22.0-255.51-66`) for SNMP devices from a probe and import the responders in bulk. Imported devices start getting polled immediately.
+- **Network discovery** — sweep a subnet (CIDR) or an octet range (`10.16-22.0-255.51-66`) from a probe and import what answers, in bulk. A scan can ping the range only, or ping it and then probe the responders over SNMP — so a range you hold no SNMP credentials for is still worth sweeping. Devices imported with credentials start getting polled immediately.
 - **Network Device monitors** — the alerting layer: evaluate each device poll and trap against criteria and open incidents or alerts.
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbor data, complemented by CDP on Cisco estates.
@@ -115,13 +115,14 @@ Instead of registering devices one at a time, you can sweep a range of addresses
 2. Click **Create Discovery Scan**
 3. Configure the scan:
 
-| Field            | Description                                                                                                                         | Required |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Scan Target      | The address space to scan, in [CIDR or octet-range notation](#scan-target-notation)                                                 | Yes      |
-| Probe            | Which probe should run the sweep                                                                                                    | Yes      |
-| SNMP credentials | Same fields as device registration (v1/v2c community string, or the full v3 credential set) — tried against every host in the range | Yes      |
+| Field                           | Description                                                                                                                                                                                                                                                            | Required            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Scan Target                     | The address space to scan, in [CIDR or octet-range notation](#scan-target-notation)                                                                                                                                                                                    | Yes                 |
+| Probe                           | Which probe should run the sweep                                                                                                                                                                                                                                       | Yes                 |
+| Check SNMP on hosts that answer | A scan normally starts by pinging the range; this decides whether the hosts that answer are then queried over SNMP for their name and vendor. Turn it off for a [ping-only scan](#ping-only-scans). Chosen when the scan is created and fixed after that (default: on) | No                  |
+| SNMP credentials                | Same fields as device registration (v1/v2c community string, or the full v3 credential set) — tried against every host in the range                                                                                                                                    | If Check SNMP is on |
 
-4. The scan runs from the selected probe and reports how many hosts were scanned and how many responded to SNMP
+4. The scan runs from the selected probe and reports how many hosts were scanned and how many answered — how many responded to SNMP, or, on a ping-only scan, how many answered ping
 5. Click **Review Results** on a completed scan, select the devices you want, and click **Import Selected**
 
 ### Scan Target Notation
@@ -158,7 +159,27 @@ Rules:
 
 Targets are validated when the scan is created, so a typo is reported on the form rather than minutes later as a failed scan.
 
-Imported devices are created with the responding IP as the hostname, the device's reported system name as the display name, and the scan's probe and SNMP credentials — so a v3 scan imports ready-to-poll v3 devices that start getting polled immediately. Devices that are already registered are flagged and skipped.
+Devices that answered SNMP are imported with the responding IP as the hostname, the device's reported system name as the display name, and the scan's probe and SNMP credentials — so a v3 scan imports ready-to-poll v3 devices that start getting polled immediately. Devices that are already registered are flagged and skipped.
+
+Hosts that answered ping but no SNMP — every host a [ping-only scan](#ping-only-scans) finds, and the ICMP-alive hosts an SNMP scan could not identify — import as monitor-backed devices instead: the responding IP as the hostname, polling off, and no credentials, because the scan collected none for them. They are inventory rows until you give them a status, which you do by binding a [Ping](/docs/monitor/ping-monitor) or [IP](/docs/monitor/ip-monitor) monitor to them.
+
+### Ping-Only Scans
+
+Turn **Check SNMP on hosts that answer** off and the scan becomes a plain ICMP sweep: it pings every address in the range, reports the ones that answered, and sends no SNMP packet at all. The SNMP step disappears from the create form, so no version, community string, or v3 credential is asked for — and none is stored on the scan.
+
+**Check SNMP on hosts that answer** is chosen when the scan is created and cannot be changed afterwards. There is no toggle for it on a saved scan and no re-run button: a scan created ping-only stays ping-only for its whole life, including every run of a recurring one. To scan the same range the other way, create a second scan.
+
+Reach for it when:
+
+- **You have no SNMP credentials for the range** — a lab, a tenant network, a subnet you inherited. A ping-only scan tells you what is alive there without you first having to guess a community string.
+- **You want an inventory sweep rather than an identity check** — what answers on this range, not what model it is. It is also the quicker of the two, because it skips the SNMP probe: there is no per-host SNMP timeout to wait out on the hosts that answer ping but will not talk SNMP to you.
+
+Two things to know before running one:
+
+- **The probe needs a runtime that permits ICMP.** The sweep shells out to the operating system's `ping` binary, so the probe container needs both the `NET_RAW` capability and that binary present. OneUptime's shipped deployments already provide both — `docker-compose.base.yml` and the Helm chart's `probeContainerSecurityContext` add `NET_RAW` explicitly, and the stock probe image installs `iputils-ping` — so a failure here usually means a hardened Kubernetes `securityContext` or a capability drop removed `NET_RAW`, or a custom probe image left `ping` out. Either way a ping-only scan has nothing left to try, so it fails with a message saying exactly that, rather than reporting an empty range that reads like a subnet with nothing on it. (If ping stops working partway through, after some hosts were already confirmed, the scan keeps those and says the range was not fully checked.)
+- **Everything it finds imports as a monitor-backed device** — polling off, no credentials. Bind a [Ping monitor](/docs/monitor/ping-monitor) or an [IP monitor](/docs/monitor/ip-monitor) to each imported device to give it a status.
+
+A ping-only scan can only find hosts that answer ICMP echo. Hosts that drop ping — Windows hosts do by default, and management VLANs often do — stay invisible to it even when they are up and answering SNMP. An SNMP scan covers that case: when its ICMP-gated pass finds no SNMP responder at all, it goes back and probes the ICMP-silent addresses over SNMP as well. So if you expect managed devices in a range and a ping-only scan comes back empty, create a new scan over the same range with **Check SNMP on hosts that answer** on.
 
 ## Creating a Network Device Monitor
 

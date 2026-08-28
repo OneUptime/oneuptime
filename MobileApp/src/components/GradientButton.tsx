@@ -17,6 +17,15 @@ interface GradientButtonProps {
   icon?: keyof typeof Ionicons.glyphMap;
   variant?: "primary" | "secondary";
   style?: ViewStyle;
+
+  /*
+   * Needed because the label is not always a stable handle. A button whose
+   * text changes with state -- "Generate Backup Codes" becoming a spinner, for
+   * one -- cannot be found by its label at the moment a test needs to press
+   * it, and finding it by position is how a test starts passing for the wrong
+   * reason.
+   */
+  testID?: string;
 }
 
 export default function GradientButton({
@@ -27,6 +36,7 @@ export default function GradientButton({
   icon,
   variant = "primary",
   style,
+  testID,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
   const primaryContentColor: string = theme.colors.backgroundPrimary;
@@ -36,6 +46,8 @@ export default function GradientButton({
   if (variant === "secondary") {
     return (
       <Pressable
+        testID={testID}
+        accessibilityRole="button"
         onPress={onPress}
         disabled={isDisabled}
         style={[
@@ -84,6 +96,8 @@ export default function GradientButton({
 
   return (
     <Pressable
+      testID={testID}
+      accessibilityRole="button"
       onPress={onPress}
       disabled={isDisabled}
       style={[

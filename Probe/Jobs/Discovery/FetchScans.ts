@@ -18,6 +18,7 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import SnmpSecurityLevel, {
   SnmpSecurityLevelUtil,
@@ -106,6 +107,52 @@ export function buildScanStatusMessage(
   snmpResponderCount: number,
 ): string {
   const parts: Array<string> = [];
+
+  /*
+   * An ICMP-only sweep gets its own sentence rather than a branch inside the
+   * SNMP one. Every SNMP number below is zero in that mode, and each of those
+   * zeroes would otherwise read as a finding: "0 answered SNMP" about a scan
+   * that never asked, and — the live hazard, because the condition is
+   * `snmpResponderCount === 0 && snmpErrorHostCount === 0` and both are
+   * structurally zero — "Nothing answered SNMP on port 161. Check that UDP/161
+   * is permitted" appended to a healthy ping sweep that found twelve hosts.
+   * That advice sends the operator to a firewall rule for traffic the probe
+   * never sent.
+   *
+   * The flag is read positively, so a result built without it (a fixture, an
+   * older code path) still takes the SNMP branch it describes.
+   */
+  if (scanResult.isIcmpOnlySweep) {
+    const aliveHostCount: number = scanResult.respondedToPingCount ?? 0;
+
+    if (scanResult.isIcmpSweepIncomplete) {
+      /*
+       * FIRST, because the server clips this column at 500 characters: the
+       * caveat that makes the number readable must not be the part that gets
+       * eaten.
+       */
+      parts.push(
+        "This ping sweep stopped early - the probe could not keep sending ICMP echo requests, " +
+          "so an unknown part of the range was never checked. " +
+          "The hosts reported are the ones confirmed before it stopped.",
+      );
+    }
+
+    parts.push(
+      `Swept ${scanResult.scannedHostCount} hosts with ICMP ping only ` +
+        `(Check SNMP is off for this scan): ${aliveHostCount} answered ping.`,
+    );
+
+    if (aliveHostCount === 0) {
+      parts.push(
+        "Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it. " +
+          "Hosts that drop ping - Windows hosts do by default, and management VLANs often do - cannot be found by an ICMP-only scan; " +
+          "turn Check SNMP on if you expect managed devices here.",
+      );
+    }
+
+    return parts.join(" ");
+  }
 
   if (scanResult.respondedToPingCount !== undefined) {
     parts.push(
@@ -371,12 +418,28 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       }`,
     );
 
+    /*
+     * Asked through ScanModeUtil, not off the column: a scan row from a server
+     * too old to select `isSnmpEnabled` arrives without it, and that absence
+     * has to keep meaning "SNMP" or upgrading this probe alone would silently
+     * turn every scan in the project into a ping sweep.
+     */
+    const isSnmpEnabled: boolean = ScanModeUtil.isSnmpEnabled(scan);
+
     scanResult = await scanWithDeadline(
       {
         cidr: scan.cidr || "",
+        isSnmpEnabled: isSnmpEnabled,
         snmpVersion: scan.snmpVersion,
         snmpCommunityString: scan.snmpCommunityString,
-        snmpV3Auth: buildSnmpV3Auth(scan),
+        /*
+         * Skipped entirely for an ICMP-only scan. buildSnmpV3Auth THROWS on an
+         * unrecognized v3 value, deliberately, so that a broken credential
+         * fails the scan instead of blanking it — but a scan that never opens
+         * an SNMP session has no credential to be broken. Calling it here would
+         * fail an ICMP-only sweep over a value it was never going to use.
+         */
+        snmpV3Auth: isSnmpEnabled ? buildSnmpV3Auth(scan) : undefined,
         snmpPort: scan.snmpPort,
       },
       scan.id?.toString() || "scan",
@@ -497,7 +560,9 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
     }
 
     logger.debug(
-      `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
+      scanResult.isIcmpOnlySweep
+        ? `Discovery scan ${scan.id?.toString()} found ${scanResult.discoveredHosts.length} host(s) answering ICMP (SNMP checking is off)`
+        : `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
     );
   } catch (uploadErr) {
     logger.error(

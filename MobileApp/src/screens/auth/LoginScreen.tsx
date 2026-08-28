@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -52,14 +53,28 @@ export default function LoginScreen(): React.JSX.Element {
     try {
       const response: LoginResponse = await login(email.trim(), password);
 
+      /*
+       * Both of these used to be a dead end with an apology in it: "not yet
+       * supported in the mobile app, please use the web dashboard". For an
+       * on-call engineer that is the wrong answer at the worst possible time,
+       * because the dashboard they are being sent to is the one with the
+       * incident on it. Now they are screens.
+       *
+       * Enrolment is checked FIRST and the order is load-bearing: an account
+       * being forced to enrol has no factors set up, so `totpAuthList` is
+       * empty for it and the challenge screen would have nothing to offer.
+       *
+       * The credentials are already on the auth context by this point -- the
+       * verify routes re-submit them, because no session exists until one of
+       * them succeeds -- so neither navigation carries anything sensitive.
+       */
       if (response.twoFactorEnrolmentRequired) {
-        setError(
-          "Your administrator requires two-factor authentication on this account, and it has not been set up yet. Setting it up is not yet supported in the mobile app - please sign in on the web dashboard once to complete the setup.",
-        );
-      } else if (response.twoFactorRequired) {
-        setError(
-          "Two-factor authentication is not yet supported in the mobile app. Please disable 2FA temporarily or use the web dashboard.",
-        );
+        navigation.navigate("TwoFactorEnrolment");
+        return;
+      }
+
+      if (response.twoFactorRequired) {
+        navigation.navigate("TwoFactor");
       }
     } catch (err: unknown) {
       setError(getFriendlyErrorMessage(err));
@@ -299,6 +314,24 @@ export default function LoginScreen(): React.JSX.Element {
               />
             </View>
           </View>
+
+          {/*
+           * Under the password button, where the web sign-in puts it and where
+           * somebody who has just failed to remember their password is
+           * already looking.
+           */}
+          <TouchableOpacity
+            accessibilityRole="button"
+            testID="forgot-password-link"
+            onPress={() => {
+              navigation.navigate("ForgotPassword");
+            }}
+            style={{ marginTop: 16, alignItems: "center" }}
+          >
+            <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
+              Forgot password?
+            </Text>
+          </TouchableOpacity>
 
           <View style={{ marginTop: 16 }}>
             <GradientButton

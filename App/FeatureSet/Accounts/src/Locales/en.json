@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Please follow the instructions on your security key device.",
       "codeFieldDescription": "Enter the code from your authenticator app",
       "selectDifferentMethod": "Select a different two factor authentication method",
-      "useBackupCode": "Use a backup code instead",
       "backupCodeInstruction": "Enter one of the backup codes you saved when you set up two factor authentication. Each code works only once.",
       "backupCodeFieldTitle": "Backup Code",
-      "backupCodeFieldDescription": "Backup codes look like ABCDE-12345. Upper or lower case and the hyphen do not matter."
+      "backupCodeFieldDescription": "Backup codes look like ABCDE-12345. Upper or lower case and the hyphen do not matter.",
+      "confirmSubtitle": "Confirm it is you to finish signing in.",
+      "recoverySubtitle": "Use a backup code, or find out how to get back in without one.",
+      "lostAccess": "Lost access to your authenticator?",
+      "noBackupCodesStrong": "You have no backup codes.",
+      "noBackupCodes": "There is no code you can enter here, because this account has never been given a set.",
+      "noBackupCodesInstruction": "Ask an administrator of this OneUptime instance to reset two factor authentication on your account. You will then be able to sign in with your password and set a new authenticator app up, and backup codes will be created for you at the same time.",
+      "lostAccessSecurityKey": "Lost access to your security key?"
     },
     "twoFactorEnrolment": {
       "title": "Set Up Two Factor Authentication",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Enter the six digit code your authenticator app is showing.",
       "submitButton": "Verify and Sign In",
       "backToSignIn": "Sign in as a different user"
+    },
+    "backupCodes": {
+      "title": "Save Your Backup Codes",
+      "subtitle": "Use one of these to sign in if you ever lose access to your authenticator app or security key.",
+      "showOnceStrong": "This is the only time these codes will be shown.",
+      "showOnce": "Save them somewhere other than the device that generates your codes. Each code can be used once.",
+      "download": "Download as a text file",
+      "savedConfirmation": "I have saved these codes somewhere safe.",
+      "continue": "Continue to Dashboard",
+      "fileHeading": "OneUptime two factor authentication backup codes",
+      "fileInstruction": "Each code can be used once. Keep this file somewhere safe and separate from the device that runs your authenticator app.",
+      "setUpTitle": "Set Up Backup Codes",
+      "setUpSubtitle": "One last thing before you continue.",
+      "noneStrong": "You have no backup codes.",
+      "none": "If you lose your authenticator app or security key, an administrator will have to reset two factor authentication before you can sign in again.",
+      "generate": "Generate Backup Codes",
+      "skip": "Skip for now",
+      "generateFailed": "No backup codes were returned. Please try again from User Profile > Two Factor Authentication."
     }
   },
   "register": {

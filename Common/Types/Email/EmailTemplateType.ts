@@ -12,6 +12,7 @@ enum EmailTemplateType {
   PasswordChanged = "PasswordChanged.hbs",
   TwoFactorBackupCodeUsed = "TwoFactorBackupCodeUsed.hbs",
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
+  TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",

@@ -247,6 +247,14 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
       // Both spellings: the dashboard posts `probe`, API clients post `probeId`.
       "probe",
       "probeId",
+      /*
+       * The scan's METHOD belongs with the settings it governs (issue #3445):
+       * it decides whether the probe sends SNMP at all, so an operator who can
+       * edit the credentials must be able to edit whether they are used — and
+       * the service clears those credentials to null when the method goes off,
+       * so the two can never disagree on a stored row.
+       */
+      "isSnmpEnabled",
       "snmpVersion",
       "snmpCommunityString",
       "snmpPort",
