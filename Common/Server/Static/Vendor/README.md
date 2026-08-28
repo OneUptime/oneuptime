@@ -31,6 +31,10 @@ URLs did not change, only where the bytes come from.
 Renaming it means editing five `index.ejs` files to match, so the version stays
 in the filename and `TAILWIND_FILENAME` in the esbuild config.
 
+OneUptime's own logo and icons are not here either - they are not third-party.
+They live in `../Brand` and are mounted at `/oneuptime-assets/brand`; see that
+directory's README.
+
 Mermaid is not vendored here. It is already a dependency of `Common`, so
 `VendorAssets.ts` serves `node_modules/mermaid/dist` at
 `/oneuptime-assets/mermaid` instead - one version to keep current rather than

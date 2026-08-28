@@ -13,7 +13,9 @@ import http, { IncomingMessage, Server, createServer } from "http";
 import { AddressInfo } from "net";
 import { createExpressApp } from "../../../Server/Utils/Express";
 import mountVendorAssets, {
+  BrandAssetsPath,
   MountVendorAssetsFunction,
+  OneUptimeLogoUrl,
   VendorAssetsPath,
   VendorAssetsRoute,
   getMermaidDistPath,
@@ -293,6 +295,121 @@ describe("vendored browser assets", () => {
           path.join(VendorAssetsPath, "highlight", "languages", "hcl.min.js"),
         ),
       ).toBe(false);
+    });
+  });
+
+  describe("brand images", () => {
+    /*
+     * https://github.com/OneUptime/oneuptime/issues/3457 - the on-call
+     * acknowledge page and the SSO message page render out of the App
+     * container and asked for /img/3-transparent.svg, which only the Home
+     * container serves. nginx sends "/" to App on every install with billing
+     * off, so the logo 404'd and the page showed a broken image.
+     */
+    test("resolves to a directory that ships with Common", () => {
+      expect(fs.existsSync(BrandAssetsPath)).toBe(true);
+      expect(fs.statSync(BrandAssetsPath).isDirectory()).toBe(true);
+      expect(
+        BrandAssetsPath.endsWith(path.join("Server", "Static", "Brand")),
+      ).toBe(true);
+    });
+
+    test("the logo URL is under the prefix every service mounts", () => {
+      expect(OneUptimeLogoUrl).toBe(
+        "/oneuptime-assets/brand/oneuptime-logo.svg",
+      );
+      expect(OneUptimeLogoUrl.startsWith(`${VendorAssetsRoute}/`)).toBe(true);
+    });
+
+    test("serves the OneUptime logo as an SVG", async () => {
+      const asset: AssetResponse = await getAsset(OneUptimeLogoUrl);
+
+      expect(asset.status).toBe(200);
+      expect(asset.contentType).toContain("image/svg+xml");
+      expect(asset.text).toContain("<svg");
+      expect(asset.body.byteLength).toBeGreaterThan(1000);
+    });
+
+    test("does not answer with the index page", () => {
+      /*
+       * The failure mode that looks like success: a catch-all mounted ahead of
+       * the asset route hands back HTML with a 200, and an <img> pointed at it
+       * still renders broken.
+       */
+      return getAsset(OneUptimeLogoUrl).then((asset: AssetResponse) => {
+        expect(asset.text).not.toBe(INDEX_PAGE);
+        expect(asset.contentType).not.toContain("text/html");
+      });
+    });
+
+    test("is byte-identical to the copy the frontends and Home already ship", () => {
+      /*
+       * Three copies of one file is not ideal, but a logo that silently drifts
+       * between the marketing site and the acknowledge page is worse. This is
+       * the test that says so.
+       */
+      const served: Buffer = fs.readFileSync(
+        path.join(BrandAssetsPath, "oneuptime-logo.svg"),
+      );
+
+      const copies: Array<string> = [
+        path.join(
+          REPOSITORY_ROOT,
+          "Common",
+          "UI",
+          "Images",
+          "logos",
+          "OneUptimeSVG",
+          "3-transparent.svg",
+        ),
+        path.join(
+          REPOSITORY_ROOT,
+          "Home",
+          "Static",
+          "img",
+          "3-transparent.svg",
+        ),
+      ];
+
+      let compared: number = 0;
+
+      for (const copy of copies) {
+        if (!fs.existsSync(copy)) {
+          continue;
+        }
+
+        compared++;
+        expect(fs.readFileSync(copy).equals(served)).toBe(true);
+      }
+
+      expect(compared).toBe(copies.length);
+    });
+
+    test("revalidates rather than caching for a year", async () => {
+      /*
+       * The filename carries no version, unlike tailwind's, so a rebrand must
+       * not be stuck behind a year-old cache entry.
+       */
+      const asset: AssetResponse = await getAsset(OneUptimeLogoUrl);
+
+      expect(asset.cacheControl).toContain("max-age=3600");
+    });
+
+    test("a brand file that does not exist is a 404, not a page", async () => {
+      const asset: AssetResponse = await getAsset(
+        "/oneuptime-assets/brand/no-such-logo.svg",
+      );
+
+      expect(asset.status).toBe(404);
+      expect(asset.text).not.toBe(INDEX_PAGE);
+    });
+
+    test("a path that escapes the brand directory is refused", async () => {
+      const asset: AssetResponse = await getAsset(
+        "/oneuptime-assets/brand/../../package.json",
+      );
+
+      expect(asset.text).not.toContain("@oneuptime/common");
     });
   });
 
