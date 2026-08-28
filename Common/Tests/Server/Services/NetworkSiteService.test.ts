@@ -2,7 +2,6 @@ import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSiteStatusTimelineService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
-import { DeviceHealthGroup } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";

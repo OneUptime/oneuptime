@@ -79,7 +79,10 @@ describe("NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance", 
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
       .mockResolvedValue([ongoingEvent([])] as never);
-    const subtree: jest.SpyInstance = jest.spyOn(NetworkSiteService, "getSubtreeSiteIds");
+    const subtree: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "getSubtreeSiteIds",
+    );
 
     const result: Set<string> =
       await NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance(
@@ -113,8 +116,8 @@ describe("NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance", 
 
   it("caches per project, and invalidateCache drops the answer", async () => {
     const findBy: jest.SpyInstance = jest
-        .spyOn(ScheduledMaintenanceService, "findBy")
-        .mockResolvedValue([ongoingEvent([REGION_ID])] as never);
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockResolvedValue([ongoingEvent([REGION_ID])] as never);
     jest
       .spyOn(NetworkSiteService, "getSubtreeSiteIds")
       .mockResolvedValue(new Set<string>([REGION_ID]));
@@ -141,8 +144,8 @@ describe("NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance", 
 
   it("returns an empty set (and does not cache it) when the lookup throws", async () => {
     const findBy: jest.SpyInstance = jest
-        .spyOn(ScheduledMaintenanceService, "findBy")
-        .mockRejectedValue(new Error("database is on fire") as never);
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockRejectedValue(new Error("database is on fire") as never);
 
     const result: Set<string> =
       await NetworkSiteMaintenanceSuppression.getSiteIdsUnderOngoingMaintenance(
