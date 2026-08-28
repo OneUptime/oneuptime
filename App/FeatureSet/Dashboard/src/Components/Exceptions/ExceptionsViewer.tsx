@@ -423,9 +423,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       );
       params.set("filters", JSON.stringify(tuples));
     }
-    if (timeRange.range !== TimeRange.PAST_ONE_DAY) {
-      params.set("range", timeRange.range);
-    }
+    /*
+     * Written even when it equals this explorer's default: the status tabs
+     * now hand their scope to each other through these params, and a window
+     * that is not written down cannot be carried.
+     */
+    params.set("range", timeRange.range);
     if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
       params.set("start", timeRange.startAndEndDate.startValue.toISOString());
       params.set("end", timeRange.startAndEndDate.endValue.toISOString());

@@ -639,8 +639,46 @@ describe("computeErrorPatternTrend", () => {
     expect(trend.recentCount).toBe(10);
   });
 
+  test("places a single bucket against the window when it has one", () => {
+    /*
+     * The timeline query has no zero-fill, so an error confined to one bucket
+     * comes back as exactly one row. With the window the user picked, that
+     * row CAN be placed: a spike in the second half is rising, one in the
+     * first half is falling. Reading it as "not enough data" made the
+     * sharpest possible shape produce weaker output than a blunter one.
+     *
+     * The companion assertion below — same single bucket, NO window, still
+     * unknown — is the deliberate other half of this rule, not a
+     * contradiction of it. Neither should be "fixed" by breaking the other.
+     */
+    const lateSpike: ErrorPatternTrend = Insights.computeErrorPatternTrend(
+      [{ time: new Date(WINDOW_END.getTime() - BUCKET_MS), count: 500 }],
+      WINDOW_START,
+      WINDOW_END,
+    );
+
+    expect(lateSpike.direction).toBe("rising");
+    expect(lateSpike.recentCount).toBe(500);
+    expect(lateSpike.previousCount).toBe(0);
+
+    const earlySpike: ErrorPatternTrend = Insights.computeErrorPatternTrend(
+      [{ time: new Date(WINDOW_START.getTime() + BUCKET_MS), count: 500 }],
+      WINDOW_START,
+      WINDOW_END,
+    );
+
+    expect(earlySpike.direction).toBe("falling");
+    expect(earlySpike.previousCount).toBe(500);
+    expect(earlySpike.recentCount).toBe(0);
+  });
+
   test("reports unknown rather than guessing on too little data", () => {
     expect(Insights.computeErrorPatternTrend([]).direction).toBe("unknown");
+    /*
+     * One bucket and NO window: the index split would put everything in the
+     * newer half regardless of when it happened, inventing a rising trend
+     * out of no information. Unknown is the honest answer here.
+     */
     expect(Insights.computeErrorPatternTrend(timeline([5])).direction).toBe(
       "unknown",
     );

@@ -273,3 +273,267 @@ describe("buildUrlScopeOverrides", () => {
     expect(buildUrlScopeOverrides({ search: "", filters: [] })).toBeUndefined();
   });
 });
+
+/*
+ * "SAID NOTHING" AND "SAID EMPTY" ARE DIFFERENT ANSWERS.
+ *
+ * The third and subtlest of the Viewer <-> Insights hand-off failures. The
+ * two sentences below look alike and mean opposite things:
+ *
+ *   - a link that carries no `search` param because it never described one
+ *     ("this view, as saved") — the named view's own search must survive;
+ *   - a link that carries no `search` param because the user emptied the
+ *     search box before leaving ("this view, but I cleared the search") —
+ *     the named view's search must NOT come back.
+ *
+ * `hasUrlScope` is the only thing that tells them apart: a link that carries
+ * scope of its own is describing the WHOLE slice it left behind, so silence
+ * about the search means the search is empty. Collapse the two and a user
+ * who cleared the search box, clicked over to Insights and clicked back
+ * lands on the same view name showing a narrower result set, with nothing on
+ * screen — no chip, no text in the box — to explain where the extra
+ * predicate came from.
+ *
+ * These are written as properties over the whole input space rather than as
+ * examples, because the failure is a MISSING key on one branch and an
+ * over-eager key on the other; only sweeping both branches catches both.
+ */
+describe("buildUrlScopeOverrides: cleared search vs unmentioned search", () => {
+  test("a scope-carrying link with no search writes an explicit empty search", () => {
+    /*
+     * The regression itself. Without the explicit "", the shallow merge the
+     * explorer performs leaves the saved view's `search` in place and the
+     * user's deliberate clear is undone by the round trip.
+     */
+    const overrides: Partial<TelemetrySavedViewState> | undefined =
+      buildUrlScopeOverrides({
+        filters: [["primaryEntityId", "svc-a"]],
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+        hasUrlScope: true,
+      });
+
+    expect(overrides).toHaveProperty("search");
+    expect(overrides?.search).toBe("");
+  });
+
+  test("a scope-carrying link with only a window still clears the search", () => {
+    /*
+     * The thinnest scope a hand-off can carry: the Insights tab always emits
+     * a window. Clearing the search box and changing nothing else must still
+     * survive the trip, so the window alone is enough to make the link
+     * authoritative about the search.
+     */
+    const overrides: Partial<TelemetrySavedViewState> | undefined =
+      buildUrlScopeOverrides({
+        timeRange: { range: TimeRange.PAST_ONE_HOUR },
+        hasUrlScope: true,
+      });
+
+    expect(overrides).toEqual({
+      search: "",
+      timeRange: { range: TimeRange.PAST_ONE_HOUR },
+    });
+  });
+
+  test("a non-empty search wins over the clear, scope-carrying or not", () => {
+    /*
+     * `hasUrlScope` only decides what an ABSENT search means. A search the
+     * user actually typed is carried verbatim either way — otherwise the
+     * flag would start eating real searches.
+     */
+    for (const hasUrlScope of [true, false, undefined]) {
+      expect(
+        buildUrlScopeOverrides({ search: "level:error", hasUrlScope })?.search,
+      ).toBe("level:error");
+    }
+  });
+
+  test("without url scope an absent or empty search writes no key at all", () => {
+    /*
+     * The other half of the property. A link that says nothing about the
+     * search — a plain `?savedView=<id>` someone pasted into a channel — must
+     * leave the named view's own search alone, so the key has to be absent
+     * rather than "".
+     */
+    const inputs: Array<{
+      search?: string | undefined;
+      filters?: Array<[string, string]> | undefined;
+      timeRange?: { range: string } | undefined;
+      hasUrlScope?: boolean | undefined;
+    }> = [
+      { filters: [["primaryEntityId", "svc-a"]] },
+      { filters: [["primaryEntityId", "svc-a"]], hasUrlScope: false },
+      { search: "", filters: [["primaryEntityId", "svc-a"]] },
+      { search: "", timeRange: { range: TimeRange.PAST_ONE_DAY } },
+      {
+        search: "",
+        filters: [],
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+        hasUrlScope: false,
+      },
+    ];
+
+    for (const input of inputs) {
+      const overrides: Partial<TelemetrySavedViewState> | undefined =
+        buildUrlScopeOverrides(input);
+
+      expect(overrides).toBeDefined();
+      expect(Object.keys(overrides!)).not.toContain("search");
+    }
+  });
+
+  test("the search key is present iff the link said something or claimed scope", () => {
+    /*
+     * The invariant stated once over the whole grid, so a future branch added
+     * to either side of the condition has to satisfy it: `search` is written
+     * exactly when the user typed one OR the link is authoritative about the
+     * slice. Anything else is one of the two bugs.
+     */
+    for (const search of [undefined, "", "level:error"]) {
+      for (const hasUrlScope of [true, false, undefined]) {
+        for (const filters of [
+          undefined,
+          [] as Array<[string, string]>,
+          [["primaryEntityId", "svc-a"]] as Array<[string, string]>,
+        ]) {
+          for (const timeRange of [
+            undefined,
+            { range: TimeRange.PAST_ONE_DAY },
+          ]) {
+            const overrides: Partial<TelemetrySavedViewState> | undefined =
+              buildUrlScopeOverrides({
+                search,
+                filters,
+                timeRange,
+                hasUrlScope,
+              });
+
+            const hasSearchKey: boolean = Boolean(
+              overrides && Object.keys(overrides).includes("search"),
+            );
+
+            expect(hasSearchKey).toBe(Boolean(search) || hasUrlScope === true);
+
+            // And when it is written it is either the typed text or a clear.
+            if (hasSearchKey) {
+              expect(overrides?.search).toBe(search || "");
+            }
+          }
+        }
+      }
+    }
+  });
+
+  test("a scope-carrying link is never undefined, so the clear always reaches the merge", () => {
+    /*
+     * `undefined` means "pass no overrides", which is how a saved view
+     * applies exactly as stored. A hand-off that cleared the search and
+     * everything else must not collapse into that, or the clear is dropped
+     * before the merge ever sees it.
+     */
+    expect(buildUrlScopeOverrides({ hasUrlScope: true })).toEqual({
+      search: "",
+    });
+    expect(
+      buildUrlScopeOverrides({ search: "", filters: [], hasUrlScope: true }),
+    ).toEqual({ search: "" });
+
+    // The same inputs without the flag describe nothing, and stay nothing.
+    expect(buildUrlScopeOverrides({ hasUrlScope: false })).toBeUndefined();
+  });
+});
+
+/*
+ * Why the key's presence is worth a suite of its own: the explorer applies
+ * these overrides with a shallow spread, `{ ...savedViewState, ...overrides }`.
+ * Under that merge an absent key and a key holding "" are not a detail of
+ * object shape — they are two different result sets under the same view name.
+ * These tests perform the merge here so the consequence is visible rather
+ * than inferred.
+ */
+describe("buildUrlScopeOverrides under the explorer's shallow merge", () => {
+  const SAVED_VIEW_STATE: TelemetrySavedViewState = {
+    search: "level:error AND service:checkout",
+    filters: [["primaryEntityId", "svc-checkout"]],
+    timeRange: { range: TimeRange.PAST_ONE_WEEK },
+  };
+
+  function applied(
+    overrides: Partial<TelemetrySavedViewState> | undefined,
+  ): TelemetrySavedViewState {
+    return { ...SAVED_VIEW_STATE, ...overrides };
+  }
+
+  test("a cleared search stays cleared after the round trip", () => {
+    /*
+     * User empties the search box, opens Insights, comes back. The view is
+     * re-applied underneath, and the merged state must still show an empty
+     * box — not the seven-word query the view was saved with.
+     */
+    const merged: TelemetrySavedViewState = applied(
+      buildUrlScopeOverrides({
+        filters: [["primaryEntityId", "svc-checkout"]],
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+        hasUrlScope: true,
+      }),
+    );
+
+    expect(merged.search).toBe("");
+    // The rest of the view survives; only what the link spoke to changes.
+    expect(merged.timeRange).toEqual({ range: TimeRange.PAST_ONE_DAY });
+    expect(merged.filters).toEqual([["primaryEntityId", "svc-checkout"]]);
+  });
+
+  test("a link that never mentioned the search leaves the view's own intact", () => {
+    /*
+     * The mirror case, and the reason the fix cannot simply always write "":
+     * a pasted `?savedView=<id>` link must reproduce the view as its author
+     * saved it, search included.
+     */
+    const merged: TelemetrySavedViewState = applied(
+      buildUrlScopeOverrides({
+        filters: [["primaryEntityId", "svc-a"]],
+        hasUrlScope: false,
+      }),
+    );
+
+    expect(merged.search).toBe(SAVED_VIEW_STATE.search);
+  });
+
+  test("the same absent search merges to opposite results on the two branches", () => {
+    /*
+     * Stated as one comparison because that is the whole property: identical
+     * inputs apart from `hasUrlScope`, and the user sees a different set of
+     * rows. If these two ever agree, one of the two behaviours has been lost.
+     */
+    const scoped: TelemetrySavedViewState = applied(
+      buildUrlScopeOverrides({
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+        hasUrlScope: true,
+      }),
+    );
+    const unscoped: TelemetrySavedViewState = applied(
+      buildUrlScopeOverrides({
+        timeRange: { range: TimeRange.PAST_ONE_DAY },
+        hasUrlScope: false,
+      }),
+    );
+
+    expect(scoped.search).toBe("");
+    expect(unscoped.search).toBe(SAVED_VIEW_STATE.search);
+    expect(scoped.search).not.toBe(unscoped.search);
+  });
+
+  test("a typed search replaces the view's on both branches", () => {
+    for (const hasUrlScope of [true, false]) {
+      expect(
+        applied(
+          buildUrlScopeOverrides({
+            search: "http.status_code:500",
+            hasUrlScope,
+          }),
+        ).search,
+      ).toBe("http.status_code:500");
+    }
+  });
+});
