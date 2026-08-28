@@ -4,12 +4,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import Express, {
   ExpressResponse,
@@ -260,49 +258,30 @@ router.post(
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
 
       /*
-       * Flag hosts that already have a NetworkDevice at that IP.
+       * Which of the addresses THIS SCAN found already have a device — asked
+       * of the database directly, not worked out from a copy of every
+       * hostname in the project.
        *
-       * Paged, because this used to be a single findBy at LIMIT_MAX (10,000)
-       * with no paging and no sort. A project with more devices than that got
-       * an arbitrary 10,000 of them, so every device past the cap was reported
-       * to the dashboard as NOT registered, and the reviewer's "import"
-       * re-created devices that already existed. A truncated answer here is
-       * worse than a slow one: it produces duplicates in the inventory.
+       * The walk this replaces paged `ORDER BY createdAt`, and a bulk
+       * discovery import stamps every device it creates with the same
+       * `createdAt`. On a large fleet every row shares one value, so
+       * `LIMIT/OFFSET` over that sort key returned an arbitrary slice per
+       * call: pages overlapped and skipped, a skipped hostname read as NOT
+       * registered, and the reviewer's "import" re-created a device that
+       * already existed — the exact duplicate the paging was added to
+       * prevent. It also cost eight sequential full-table scans inside the
+       * request the probe is synchronously waiting on.
        */
-      const existingHostnames: Set<string> = new Set<string>();
-
-      for (let skip: number = 0; ; skip += LIMIT_MAX) {
-        const existing: Array<NetworkDevice> =
-          await NetworkDeviceService.findBy({
-            query: {
-              projectId: scan.projectId!,
-            },
-            select: {
-              hostname: true,
-            },
-            /*
-             * Sorted, so paging is stable. Without an explicit order Postgres
-             * makes no promise across the two queries, and a row could be
-             * returned twice — or skipped entirely — between pages.
-             */
-            sort: {
-              createdAt: SortOrder.Ascending,
-            },
-            limit: LIMIT_MAX,
-            skip: skip,
-            props: {
-              isRoot: true,
-            },
-          });
-
-        for (const device of existing) {
-          existingHostnames.add(device.hostname || "");
-        }
-
-        if (existing.length < LIMIT_MAX) {
-          break;
-        }
-      }
+      const existingHostnames: Set<string> =
+        await NetworkDeviceService.getRegisteredHostnames({
+          projectId: scan.projectId!,
+          hostnames: discoveredDevices.map((device: JSONObject): string => {
+            return String(device["ipAddress"] || "");
+          }),
+          props: {
+            isRoot: true,
+          },
+        });
 
       for (const device of discoveredDevices) {
         device["isAlreadyRegistered"] = existingHostnames.has(

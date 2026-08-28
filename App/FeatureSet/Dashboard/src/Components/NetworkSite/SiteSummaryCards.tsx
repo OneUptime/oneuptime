@@ -10,15 +10,12 @@ import {
   FacetTileSelection,
   isFacetTileSelectionApplied,
 } from "../ResourceOwners/FacetTileSelection";
-import ObjectID from "Common/Types/ObjectID";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  SiteSummaryCounts,
+  fetchSiteSummary,
+} from "../Network/NetworkSummaryApi";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -55,49 +52,10 @@ export interface ComponentProps {
     | undefined;
 }
 
-interface SummaryCounts {
-  totalSites: number;
-  unhealthySites: number;
-  sitesWithNoData: number;
-  devicesWithoutSite: number;
-}
-
-type GetMonitorStatusIdFunction = (site: NetworkSite) => string | null;
-
-/*
- * The API hands back `_id` as a raw string on nested relations and a real
- * ObjectID once the model getter has seen it, depending on how the response was
- * hydrated. Both spellings have to produce the same id, or the chip would select
- * "[object Object]" and quietly match nothing.
- */
-const getMonitorStatusId: GetMonitorStatusIdFunction = (
-  site: NetworkSite,
-): string | null => {
-  const fromGetter: string | undefined =
-    site.currentMonitorStatus?.id?.toString();
-
-  if (fromGetter) {
-    return fromGetter;
-  }
-
-  const raw: unknown = site.currentMonitorStatus?._id;
-
-  return typeof raw === "string" && raw.length > 0 ? raw : null;
-};
-
 const SiteSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [counts, setCounts] = useState<SummaryCounts | null>(null);
-  /*
-   * The non-operational statuses the counted sites are actually rolling up.
-   * Derived from the very response the unhealthy count came out of, so the chip
-   * the tile sets selects exactly the statuses behind the number on it — rather
-   * than every non-operational status the project happens to define.
-   */
-  const [unhealthyStatusIds, setUnhealthyStatusIds] = useState<Array<string>>(
-    [],
-  );
+  const [counts, setCounts] = useState<SiteSummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
 
@@ -105,66 +63,21 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     setIsLoading(true);
 
     try {
-      const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
-
-      const [siteResult, devicesWithoutSite]: [
-        ListResult<NetworkSite>,
-        number,
-      ] = await Promise.all([
-        ModelAPI.getList<NetworkSite>({
-          modelType: NetworkSite,
-          query: {
-            projectId: projectId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            currentMonitorStatus: {
-              _id: true,
-              isOperationalState: true,
-            },
-          },
-          sort: {},
-        }),
-        ModelAPI.count<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            siteId: new IsNull(),
-          },
-        }),
-      ]);
-
-      let unhealthySites: number = 0;
-      let sitesWithNoData: number = 0;
-      const unhealthyIds: Set<string> = new Set<string>();
-
-      for (const site of siteResult.data) {
-        if (!site.currentMonitorStatus) {
-          sitesWithNoData++;
-          continue;
-        }
-
-        if (!site.currentMonitorStatus.isOperationalState) {
-          unhealthySites++;
-
-          const statusId: string | null = getMonitorStatusId(site);
-
-          if (statusId) {
-            unhealthyIds.add(statusId);
-          }
-        }
-      }
-
-      setCounts({
-        totalSites: siteResult.count,
-        unhealthySites: unhealthySites,
-        sitesWithNoData: sitesWithNoData,
-        devicesWithoutSite: devicesWithoutSite,
-      });
-      setUnhealthyStatusIds(Array.from(unhealthyIds));
+      /*
+       * One request, two grouped counts, no rows.
+       *
+       * This used to fetch every site in the project — with its status
+       * relation joined in — and classify them here, one JavaScript object per
+       * site, to produce three integers. A thousand-site estate paid for a
+       * thousand hydrated models to render a number; a larger one silently
+       * lost the sites past the ten-thousand-row cap the fetch carried.
+       *
+       * `unhealthyStatusIds` still comes back from the same response the count
+       * came out of, so the chip the Unhealthy tile sets selects exactly the
+       * statuses behind the number on it — rather than every non-operational
+       * status the project happens to define.
+       */
+      setCounts(await fetchSiteSummary());
       setHasError(false);
     } catch {
       // The summary row is supplementary — hide it instead of breaking the page.
@@ -260,7 +173,7 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
         const count: number = counts?.[tile.countField] || 0;
         const selection: FacetTileSelection | null =
           getSiteFacetSelectionForTile(tile, {
-            unhealthyStatusIds: unhealthyStatusIds,
+            unhealthyStatusIds: counts?.unhealthyStatusIds || [],
           });
         const isSelected: boolean | undefined = isTileSelected(tile, selection);
 

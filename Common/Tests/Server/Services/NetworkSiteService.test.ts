@@ -15,6 +15,12 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import { FindOperator } from "typeorm";
+import DeviceReachabilityUtil from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
+import {
+  DEVICE_HEALTH_GROUP_COLUMNS,
+  DeviceHealthGroup,
+} from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
+import { AggregateColumn } from "../../../Server/Types/Database/AggregateBy";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -90,8 +96,69 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     updateColumns: jest.SpyInstance;
     timelineUpdateBy: jest.SpyInstance;
     timelineCreate: jest.SpyInstance;
-    deviceFindBy: jest.SpyInstance;
+    deviceHealthGroups: jest.SpyInstance;
     descendantSiteIds: jest.SpyInstance;
+  }
+
+  /*
+   * The rollup no longer reads device ROWS — it asks Postgres to bucket the
+   * subtree by the facts the reachability rule reads, and classifies the
+   * buckets. So a test still describes its scenario as devices (which is what
+   * the scenario IS), and this turns them into the buckets the database would
+   * have returned for exactly those devices.
+   *
+   * The staleness predicate is the one thing SQL evaluates rather than the
+   * shared util, so it is computed here from that util's own window rather
+   * than a hard-coded number — the same arrangement, for the same reason, as
+   * Common/Tests/Server/Utils/NetworkDevice/DeviceHealthAggregation.test.ts.
+   */
+  function toHealthGroups(
+    devices: Array<NetworkDevice>,
+  ): Array<DeviceHealthGroup> {
+    const now: number = Date.now();
+
+    return devices.map((device: NetworkDevice): DeviceHealthGroup => {
+      const contactTimes: Array<number> = [
+        device.lastPolledAt,
+        device.lastSeenAt,
+      ]
+        .filter((value: Date | undefined): value is Date => {
+          return Boolean(value);
+        })
+        .map((value: Date): number => {
+          return new Date(value).getTime();
+        });
+
+      const lastContactAt: number | null =
+        contactTimes.length > 0 ? Math.max(...contactTimes) : null;
+
+      const staleWindowInMinutes: number =
+        DeviceReachabilityUtil.getStaleWindowInMinutes(
+          device.pollingIntervalInMinutes,
+        );
+
+      return {
+        siteId: null,
+        monitorStatusId: device.currentMonitorStatusId?.toString() ?? null,
+        monitoringMethod: device.monitoringMethod ?? null,
+        isReachable:
+          device.isReachable === undefined ? null : device.isReachable,
+        hasBeenPolled: Boolean(device.lastPolledAt),
+        hasBeenSeen: Boolean(device.lastSeenAt),
+        /*
+         * Guarded exactly as the SQL is: staleness is only computed for the
+         * one branch of the reachability rule that can read it.
+         */
+        isStale:
+          (device.isReachable === undefined || device.isReachable === null) &&
+          Boolean(device.lastSeenAt) &&
+          lastContactAt !== null &&
+          lastContactAt < now - staleWindowInMinutes * 60 * 1000,
+        hasDownInterfaces: (device.interfacesDown || 0) > 0,
+        deviceCount: 1,
+        interfacesDownTotal: device.interfacesDown || 0,
+      };
+    });
   }
 
   function setupRollup(data: {
@@ -102,9 +169,9 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const descendantSiteIds: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "getDescendantSiteIds")
       .mockResolvedValue([]);
-    const deviceFindBy: jest.SpyInstance = jest
-      .spyOn(NetworkDeviceService, "findBy")
-      .mockResolvedValue(data.devices);
+    const deviceHealthGroups: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "getHealthGroupsForSites")
+      .mockResolvedValue(toHealthGroups(data.devices));
     jest
       .spyOn(MonitorStatusService, "findBy")
       .mockResolvedValue(fakeStatuses());
@@ -123,7 +190,7 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
       updateColumns,
       timelineUpdateBy,
       timelineCreate,
-      deviceFindBy,
+      deviceHealthGroups,
       descendantSiteIds,
     };
   }
@@ -254,25 +321,25 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * The rollup reads four columns and the query has to fetch all four. A
-   * missing `isReachable` here compiles, runs, and silently drops the whole
-   * subtree back onto the legacy freshness path.
+   * The rollup reads four columns, and the hazard has moved from a `select`
+   * to a GROUP BY: a fact the rule reads that the grouping does not is a fact
+   * two devices can disagree on inside one bucket, and the bucket then gets
+   * one verdict for both. A missing `isReachable` still compiles, still runs,
+   * and still silently drops the whole subtree onto the legacy freshness path
+   * — it just does it one layer down now.
    */
-  it("selects every column the reachability rule reads", async () => {
-    const spies: RollupSpies = setupRollup({
-      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
-      devices: [],
-    });
+  it("groups by every column the reachability rule reads", async () => {
+    const expressions: string = DEVICE_HEALTH_GROUP_COLUMNS.map(
+      (column: AggregateColumn): string => {
+        return column.expression;
+      },
+    ).join(" ");
 
-    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
-
-    const select: Record<string, unknown> =
-      spies.deviceFindBy.mock.calls[0]![0].select;
-
-    expect(select["isReachable"]).toBe(true);
-    expect(select["lastPolledAt"]).toBe(true);
-    expect(select["lastSeenAt"]).toBe(true);
-    expect(select["pollingIntervalInMinutes"]).toBe(true);
+    expect(expressions).toContain("isReachable");
+    expect(expressions).toContain("lastPolledAt");
+    expect(expressions).toContain("lastSeenAt");
+    expect(expressions).toContain("pollingIntervalInMinutes");
+    expect(expressions).toContain("currentMonitorStatusId");
   });
 
   it("does nothing when the site does not exist", async () => {
@@ -298,10 +365,16 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
 
     await NetworkSiteService.recomputeRollupForSite(SITE_ID);
 
-    expect(spies.deviceFindBy).toHaveBeenCalledTimes(1);
-    const deviceQuery: any = spies.deviceFindBy.mock.calls[0]![0].query;
-    expect(deviceQuery.isArchived).toBe(false);
-    expect(deviceQuery.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(spies.deviceHealthGroups).toHaveBeenCalledTimes(1);
+    const groupArgs: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(groupArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+    /*
+     * The archived filter moved into getHealthGroupsForSites with the query.
+     * Asserted there — NetworkDeviceService's own suite pins that the method
+     * really does send `isArchived: false`.
+     */
+    expect(groupArgs.siteIds.length).toBeGreaterThan(0);
+    expect(groupArgs.siteIds[0].toString()).toBe(SITE_ID.toString());
   });
 
   it("scopes the descendant lookup to the site's own project", async () => {

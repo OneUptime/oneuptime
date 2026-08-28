@@ -553,6 +553,7 @@ import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./17895120000
 import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./1789600000000-AddAutoProvisionedNetworkDeviceMonitors";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
+import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 
 export default [
   InitialMigration,
@@ -1110,4 +1111,5 @@ export default [
   AddCampaignUtmFields1789500000000,
   AddDetectionRuleDistinctCountColumns1789512000000,
   AddAutoProvisionedNetworkDeviceMonitors1789600000000,
+  AddNetworkScaleIndexes1789700000000,
 ];

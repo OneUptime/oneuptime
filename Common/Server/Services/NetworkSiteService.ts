@@ -40,6 +40,21 @@ import SiteStatusRollupUtil, {
   DeviceHealthState,
   RollupStatusOption,
 } from "../../Utils/NetworkSite/SiteStatusRollupUtil";
+import { AggregateRow } from "../Types/Database/AggregateBy";
+import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
+import {
+  DeviceHealthGroup,
+  deviceRollupStateForGroup,
+} from "../Utils/NetworkDevice/DeviceHealthAggregation";
+
+/**
+ * How many sites are stamped with each MonitorStatus. `monitorStatusId` is
+ * null for the bucket of sites that have no rollup yet.
+ */
+export interface SiteStatusCount {
+  monitorStatusId: string | null;
+  siteCount: number;
+}
 
 /*
  * Both spellings of "this site's parent" in a write payload: the dashboard's
@@ -72,6 +87,52 @@ interface DeleteCarryForward {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * How many sites sit under each rolled-up MonitorStatus, counted in the
+   * database.
+   *
+   * One row per status the project actually uses (plus one for "no rollup
+   * yet"), rather than every site row shipped to a browser to be tallied
+   * there. Which of those statuses count as UNHEALTHY is deliberately not
+   * decided here: `isOperationalState` lives on MonitorStatus, the caller
+   * already holds those rows, and duplicating the flag into this query would
+   * be a second place for it to be read wrongly.
+   */
+  @CaptureSpan()
+  public async getStatusCounts(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SiteStatusCount>> {
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: {
+        projectId: data.projectId,
+      },
+      groupBy: [
+        {
+          expression: `"NetworkSite"."currentMonitorStatusId"`,
+          alias: "monitorStatusId",
+        },
+      ],
+      select: [
+        {
+          expression: `COUNT(*)`,
+          alias: "siteCount",
+        },
+      ],
+      props: data.props,
+    });
+
+    return rows.map((row: AggregateRow): SiteStatusCount => {
+      return {
+        monitorStatusId: AggregateResultUtil.toStringOrNull(
+          row,
+          "monitorStatusId",
+        ),
+        siteCount: AggregateResultUtil.toNumber(row, "siteCount"),
+      };
+    });
   }
 
   /*
@@ -833,39 +894,33 @@ export class Service extends DatabaseService<Model> {
       ...(await this.getDescendantSiteIds(site.id, site.projectId)),
     ];
 
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     /*
+     * The subtree's devices, as health BUCKETS rather than rows.
+     *
+     * This used to read the devices themselves, capped at LIMIT_MAX. A
+     * franchise estate whose root site has more than ten thousand devices
+     * under it therefore rolled up from an arbitrary ten-thousand-row sample:
+     * the one dark switch in store 12,000 could not turn its region red, and
+     * nothing said so. Bucketing runs over the whole subtree however large it
+     * is, and returns a handful of rows to classify.
+     *
      * Archived devices are decommissioned: they keep their siteId but must
      * not vote in the rollup. An archived, never-monitored device otherwise
      * falls through to the freshness fallback (stale lastSeenAt -> Offline)
      * and pins its whole ancestor chain red forever, with the drill-down
      * showing zero devices because that query excludes archived rows.
      */
-    const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-      query: {
+    const deviceGroups: Array<DeviceHealthGroup> =
+      await NetworkDeviceService.getHealthGroupsForSites({
         projectId: site.projectId,
-        siteId: QueryHelper.any(subtreeSiteIds),
-        isArchived: false,
-      },
-      select: {
-        _id: true,
-        currentMonitorStatusId: true,
-        /*
-         * All four reachability inputs. isReachable is the one that decides
-         * up/down; the other three only size the "polling has stopped
-         * entirely" backstop. Selecting lastSeenAt alone silently drops the
-         * rollup back to the old freshness rule.
-         */
-        isReachable: true,
-        lastPolledAt: true,
-        lastSeenAt: true,
-        pollingIntervalInMinutes: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+        siteIds: subtreeSiteIds,
+        now: now,
+        props: {
+          isRoot: true,
+        },
+      });
 
     const statuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
       query: {
@@ -908,20 +963,15 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    const deviceStates: Array<DeviceHealthState> = devices.map(
-      (device: NetworkDevice) => {
-        const statusId: string | undefined =
-          device.currentMonitorStatusId?.toString();
-        return {
-          currentMonitorStatusId: statusId,
-          monitorStatusPriority: statusId
-            ? priorityByStatusId.get(statusId)
+    const deviceStates: Array<DeviceHealthState> = deviceGroups.map(
+      (group: DeviceHealthGroup) => {
+        return deviceRollupStateForGroup({
+          group: group,
+          monitorStatusPriority: group.monitorStatusId
+            ? priorityByStatusId.get(group.monitorStatusId)
             : undefined,
-          isReachable: device.isReachable,
-          lastPolledAt: device.lastPolledAt,
-          lastSeenAt: device.lastSeenAt,
-          pollingIntervalInMinutes: device.pollingIntervalInMinutes,
-        };
+          now: now,
+        });
       },
     );
 
@@ -929,9 +979,8 @@ export class Service extends DatabaseService<Model> {
       deviceStates: deviceStates,
       operationalStatus: operationalStatus,
       offlineStatus: offlineStatus,
+      now: now,
     });
-
-    const now: Date = OneUptimeDate.getCurrentDate();
     const currentStatusId: string | null =
       site.currentMonitorStatusId?.toString() || null;
 

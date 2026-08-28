@@ -2,6 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -24,7 +25,6 @@ import NetworkSiteLink from "Common/Models/DatabaseModels/NetworkSiteLink";
 import NetworkSiteStatusTimelineService from "Common/Server/Services/NetworkSiteStatusTimelineService";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
@@ -41,6 +41,10 @@ import {
   deviceHealthState,
   emptyDeviceHealthCounts,
 } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
+import {
+  DeviceHealthGroup,
+  deviceHealthInputForGroup,
+} from "Common/Server/Utils/NetworkDevice/DeviceHealthAggregation";
 import NetworkSiteMapUtil, {
   MapChildRow,
   MapLinkRow,
@@ -253,89 +257,79 @@ function toLinkStatusJson(
 }
 
 /*
- * How many device rows one page of the rollup fetch asks for, and the
- * ceiling the whole fetch stops at.
+ * How many sites a drill-down may name explicitly before the rollup stops
+ * trying to scope itself and just aggregates the project.
  *
- * A single findBy caps at LIMIT_PER_PROJECT (10,000). Issue #3320 reports
- * 21,713 devices, so a single page would have silently rolled up less than
- * half the estate — and "silently" is the problem: the level would report a
- * store as healthy because the only down device in it happened to fall
- * outside the page, and the "Needs attention" filter would then hide that
- * store completely. A drill-down that omits the site somebody is looking
- * for is a worse failure than the flat map it replaced.
- *
- * The ceiling exists so a pathological project cannot turn one page load
- * into an unbounded scan; hitting it sets the truncation flag rather than
- * lying about the total.
+ * Scoping is the cheap option right up until the id list stops being cheap: a
+ * franchise root with twenty thousand stores under it would turn into twenty
+ * thousand UUIDs of SQL text to parse and plan, which costs more than the scan
+ * it was meant to avoid. Past this many, the whole-project aggregate is both
+ * simpler and faster — and it is a superset, so the answer is identical either
+ * way.
  */
-const DEVICE_ROLLUP_PAGE_SIZE: number = LIMIT_PER_PROJECT;
-const MAX_ROLLUP_DEVICES: number = 200000;
-
-interface DeviceRollupPage {
-  devices: Array<NetworkDevice>;
-  isTruncated: boolean;
-}
+const MAX_SCOPED_ROLLUP_SITES: number = 1000;
 
 /*
- * Every site-attached device in the project, in pages.
+ * Site-attached devices as HEALTH BUCKETS per site, over the subtree in view.
  *
- * Sorted by id so paging stays stable: a device's id never changes, so no
- * row can be skipped or counted twice even while the estate is being
- * edited underneath the walk. Same pattern, and the same reason, as
- * NetworkDeviceService.runAssignmentRule.
+ * This used to read the devices themselves, in 10,000-row pages, up to a
+ * 200,000-row ceiling — because issue #3320 reports an estate of 21,713
+ * devices and one page would have rolled up less than half of it. Paging fixed
+ * the honesty problem and left the cost: eight-plus sequential queries whose
+ * OFFSET grows with every page, tens of thousands of hydrated model objects
+ * per request, and a ceiling that is still a lie for anyone past it.
+ *
+ * The rollup never wanted the devices. It wanted, per site, how many devices
+ * are down / degraded / healthy / unknown. `getHealthGroups` asks Postgres to
+ * bucket the fleet by the facts the classifier reads, so a large fleet comes
+ * back as a few rows per site — one query, no ceiling, and the counts are
+ * exact for an estate of any size.
+ *
+ * The verdicts are still decided by the shared classifier, from the facts in
+ * each bucket. See DeviceHealthAggregation.
+ *
+ * Archived devices are decommissioned: they keep their siteId but must not
+ * count. An archived, never-monitored device otherwise falls through to the
+ * freshness fallback and pins its whole ancestor chain red for ever, with the
+ * drill-down showing zero devices because that query excludes archived rows.
  */
-async function fetchAttachedDevicesForRollup(
-  projectId: ObjectID,
-  props: DatabaseCommonInteractionProps,
-): Promise<DeviceRollupPage> {
-  const devices: Array<NetworkDevice> = [];
-  let skip: number = 0;
-
-  for (;;) {
-    const page: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-      query: {
-        projectId: projectId,
-        siteId: QueryHelper.notNull(),
-        isArchived: false,
-      },
-      /*
-       * Issue #3320: the drill-down reports device HEALTH per level, not
-       * just a count, so these rows carry the same columns the topology map
-       * reads and are classified by the same shared rule
-       * (DeviceHealthStateUtil). Selecting them here is what lets a level of
-       * 949 sites say which ones hold a problem without drawing one device
-       * node.
-       */
-      select: {
-        _id: true,
-        siteId: true,
-        isReachable: true,
-        lastPolledAt: true,
-        lastSeenAt: true,
-        pollingIntervalInMinutes: true,
-        currentMonitorStatusId: true,
-        interfacesDown: true,
-      },
-      sort: {
-        _id: SortOrder.Ascending,
-      },
-      limit: DEVICE_ROLLUP_PAGE_SIZE,
-      skip: skip,
-      props: props,
+async function fetchDeviceHealthBySite(data: {
+  projectId: ObjectID;
+  /*
+   * The sites this level's rollups can possibly draw from: the drilled site
+   * and its whole subtree. Empty when listing roots, where the answer really
+   * is the project.
+   */
+  scopedSiteIds: Array<ObjectID>;
+  props: DatabaseCommonInteractionProps;
+  now: Date;
+}): Promise<Array<DeviceHealthGroup>> {
+  if (
+    data.scopedSiteIds.length > 0 &&
+    data.scopedSiteIds.length <= MAX_SCOPED_ROLLUP_SITES
+  ) {
+    /*
+     * Drilling into one region should not aggregate every other region. The
+     * ids are exactly the sites whose devices can appear in this response, so
+     * scoping changes nothing about the answer — only how much of the fleet is
+     * read to produce it.
+     */
+    return NetworkDeviceService.getHealthGroupsForSites({
+      projectId: data.projectId,
+      siteIds: data.scopedSiteIds,
+      groupBySite: true,
+      now: data.now,
+      props: data.props,
     });
-
-    devices.push(...page);
-
-    if (page.length < DEVICE_ROLLUP_PAGE_SIZE) {
-      return { devices: devices, isTruncated: false };
-    }
-
-    skip += page.length;
-
-    if (skip >= MAX_ROLLUP_DEVICES) {
-      return { devices: devices, isTruncated: true };
-    }
   }
+
+  return NetworkDeviceService.getHealthGroups({
+    projectId: data.projectId,
+    onlyAttachedToSite: true,
+    groupBySite: true,
+    now: data.now,
+    props: data.props,
+  });
 }
 
 export default class NetworkSiteHierarchyAPI {
@@ -414,10 +408,18 @@ export default class NetworkSiteHierarchyAPI {
            * direct children, the whole subtree (for descendant rollups),
            * device attachments, project links and breadcrumb ancestors.
            */
-          const [childRows, subtreeRows, deviceFetch, linkRows, ancestorRows]: [
+          /*
+           * One clock for the whole response, taken before anything is
+           * fetched: the staleness predicate the device buckets are grouped
+           * by is measured against it in SQL, and the classifier below reads
+           * the same instant. Two clocks would let a device be judged stale
+           * by one half of this handler and fresh by the other.
+           */
+          const now: Date = OneUptimeDate.getCurrentDate();
+
+          const [childRows, subtreeRows, linkRows, ancestorRows]: [
             Array<NetworkSite>,
             Array<NetworkSite>,
-            DeviceRollupPage,
             Array<NetworkSiteLink>,
             Array<NetworkSite>,
           ] = await Promise.all([
@@ -472,7 +474,6 @@ export default class NetworkSiteHierarchyAPI {
               skip: 0,
               props: props,
             }),
-            fetchAttachedDevicesForRollup(projectId, props),
             NetworkSiteLinkService.findBy({
               query: {
                 projectId: projectId,
@@ -604,6 +605,37 @@ export default class NetworkSiteHierarchyAPI {
             ),
           ]);
 
+          /*
+           * The device rollup runs after the batch above rather than inside
+           * it, because the sites it should be scoped to are what that batch
+           * just fetched. One extra round trip buys reading one region's
+           * devices instead of the whole project's on every drill-down.
+           *
+           * The drilled site itself is in the list: its OWN devices (the
+           * distribution centre's core switches above a dozen stores) belong
+           * to no child's subtree and are tallied separately below.
+           */
+          const scopedSiteIds: Array<ObjectID> = siteId
+            ? [
+                new ObjectID(siteId),
+                ...subtreeRows
+                  .filter((row: NetworkSite): boolean => {
+                    return Boolean(row._id);
+                  })
+                  .map((row: NetworkSite): ObjectID => {
+                    return new ObjectID(row._id!.toString());
+                  }),
+              ]
+            : [];
+
+          const deviceGroups: Array<DeviceHealthGroup> =
+            await fetchDeviceHealthBySite({
+              projectId: projectId,
+              scopedSiteIds: scopedSiteIds,
+              props: props,
+              now: now,
+            });
+
           // Every status id any part of the response needs, fetched once.
           const statusIds: Set<string> = new Set<string>();
           for (const child of childRows) {
@@ -626,9 +658,9 @@ export default class NetworkSiteHierarchyAPI {
            * walk at all, so without these rows every one of them would fall
            * through to reachability and be tallied "unknown" forever.
            */
-          for (const device of deviceFetch.devices) {
-            if (device.currentMonitorStatusId) {
-              statusIds.add(device.currentMonitorStatusId.toString());
+          for (const group of deviceGroups) {
+            if (group.monitorStatusId) {
+              statusIds.add(group.monitorStatusId);
             }
           }
           for (const statusId of statusIdByMonitorId.values()) {
@@ -649,60 +681,56 @@ export default class NetworkSiteHierarchyAPI {
           }
 
           /*
-           * One health verdict per device, computed once against a single
-           * clock so every rollup on this response agrees with every other
-           * one. Devices whose site was deleted out from under them (or that
-           * the caller cannot read the site of) simply have no siteId and
-           * belong to no level.
+           * One health verdict per BUCKET, computed once against the single
+           * clock taken at the top of this handler, so every rollup on this
+           * response agrees with every other one.
+           *
+           * A bucket is a set of devices the classifier cannot tell apart —
+           * same status, same reachability, same staleness, same dark-port
+           * answer — so one verdict covers all of them and the count rides
+           * along. Buckets whose site was deleted out from under them (or
+           * whose site the caller cannot read) have no siteId and belong to
+           * no level.
            */
-          const now: Date = OneUptimeDate.getCurrentDate();
-          const deviceAttachments: Array<DeviceAttachmentRow> =
-            deviceFetch.devices
-              .map((device: NetworkDevice): DeviceAttachmentRow | null => {
-                const deviceSiteId: string | undefined =
-                  device.siteId?.toString();
-                if (!deviceSiteId) {
-                  return null;
-                }
-                const deviceStatus: StatusInfo | undefined =
-                  device.currentMonitorStatusId
-                    ? statusById.get(device.currentMonitorStatusId.toString())
-                    : undefined;
-                return {
-                  siteId: deviceSiteId,
-                  healthState: deviceHealthState(
-                    {
-                      /*
-                       * isOfflineState, NOT isOperationalState. MonitorStatus is
-                       * a ladder, not a pair: a "Degraded" row is neither
-                       * operational nor offline. The device map reads the
-                       * offline end (NetworkDeviceTopology.ts: `isOfflineState ?
-                       * "down" : "up"`), so reading the operational end here
-                       * would count every degraded-but-reachable device as down
-                       * on the card while the map it opens draws the same device
-                       * green — the exact contradiction the shared classifier
-                       * exists to prevent.
-                       */
-                      monitorStatusIsOffline: deviceStatus
-                        ? deviceStatus.isOfflineState
-                        : undefined,
-                      isReachable: device.isReachable,
-                      lastPolledAt: device.lastPolledAt,
-                      lastSeenAt: device.lastSeenAt,
-                      pollingIntervalInMinutes: device.pollingIntervalInMinutes,
-                      interfacesDown: device.interfacesDown,
-                    },
-                    now,
-                  ),
-                };
-              })
-              .filter(
-                (
-                  row: DeviceAttachmentRow | null,
-                ): row is DeviceAttachmentRow => {
-                  return row !== null;
-                },
-              );
+          const deviceAttachments: Array<DeviceAttachmentRow> = deviceGroups
+            .map((group: DeviceHealthGroup): DeviceAttachmentRow | null => {
+              if (!group.siteId) {
+                return null;
+              }
+              const deviceStatus: StatusInfo | undefined = group.monitorStatusId
+                ? statusById.get(group.monitorStatusId)
+                : undefined;
+              return {
+                siteId: group.siteId,
+                deviceCount: group.deviceCount,
+                healthState: deviceHealthState(
+                  deviceHealthInputForGroup({
+                    group: group,
+                    /*
+                     * isOfflineState, NOT isOperationalState. MonitorStatus is
+                     * a ladder, not a pair: a "Degraded" row is neither
+                     * operational nor offline. The device map reads the
+                     * offline end (NetworkDeviceTopology.ts: `isOfflineState ?
+                     * "down" : "up"`), so reading the operational end here
+                     * would count every degraded-but-reachable device as down
+                     * on the card while the map it opens draws the same device
+                     * green — the exact contradiction the shared classifier
+                     * exists to prevent.
+                     */
+                    monitorStatusIsOffline: deviceStatus
+                      ? deviceStatus.isOfflineState
+                      : undefined,
+                    now: now,
+                  }),
+                  now,
+                ),
+              };
+            })
+            .filter(
+              (row: DeviceAttachmentRow | null): row is DeviceAttachmentRow => {
+                return row !== null;
+              },
+            );
 
           const aggregates: Map<string, ChildAggregate> =
             NetworkSiteHierarchyUtil.aggregateChildStats({
@@ -863,33 +891,53 @@ export default class NetworkSiteHierarchyAPI {
             : emptyDeviceHealthCounts();
 
           /*
-           * How the project splits between sites and nothing: the topology
+           * How the PROJECT splits between sites and nothing: the topology
            * explorer opens on the hierarchy only when devices are actually
            * attached to sites, and falls back to the flat device map when
            * they are not. `attachedDeviceCount` is what it reads to decide,
            * and `unattachedDeviceCount` is what the hierarchy tells the user
            * it is NOT showing them.
+           *
+           * Both are counted here rather than summed from the buckets above,
+           * and that is load-bearing now that the rollup is scoped to the
+           * subtree in view: summing the buckets would answer "devices under
+           * THIS level", and the explorer would fall back to the flat map on
+           * every drill into an empty branch of a fully-populated estate.
+           * Two indexed counts, no rows.
+           *
+           * Deliberately NO limit on either. countBy applies limit as a
+           * `.take()` on the counted set (DatabaseService.countBy), so
+           * passing LIMIT_PER_PROJECT here would cap the ANSWER at 10,000 — a
+           * project with fifty thousand unattached devices would be told ten
+           * thousand of them are missing from the hierarchy, which is exactly
+           * the kind of quietly wrong number this note exists to prevent.
+           * Omitted, it defaults to Infinity.
            */
-          const unattachedDeviceCount: number = (
-            await NetworkDeviceService.countBy({
-              query: {
-                projectId: projectId,
-                siteId: QueryHelper.isNull(),
-                isArchived: false,
-              },
-              /*
-               * Deliberately NO limit. countBy applies limit as a `.take()`
-               * on the counted set (DatabaseService.countBy), so passing
-               * LIMIT_PER_PROJECT here would cap the ANSWER at 10,000 — a
-               * project with fifty thousand unattached devices would be told
-               * ten thousand of them are missing from the hierarchy, which is
-               * exactly the kind of quietly wrong number this note exists to
-               * prevent. Omitted, it defaults to Infinity.
-               */
-              skip: 0,
-              props: props,
-            })
-          ).toNumber();
+          const [attachedDeviceCount, unattachedDeviceCount]: [number, number] =
+            await Promise.all([
+              NetworkDeviceService.countBy({
+                query: {
+                  projectId: projectId,
+                  siteId: QueryHelper.notNull(),
+                  isArchived: false,
+                },
+                skip: 0,
+                props: props,
+              }).then((count: PositiveNumber): number => {
+                return count.toNumber();
+              }),
+              NetworkDeviceService.countBy({
+                query: {
+                  projectId: projectId,
+                  siteId: QueryHelper.isNull(),
+                  isArchived: false,
+                },
+                skip: 0,
+                props: props,
+              }).then((count: PositiveNumber): number => {
+                return count.toNumber();
+              }),
+            ]);
 
           return Response.sendJsonObjectResponse(req, res, {
             breadcrumb: breadcrumb,
@@ -897,14 +945,19 @@ export default class NetworkSiteHierarchyAPI {
             links: links,
             ownDeviceStats: ownDeviceStats,
             deviceScope: {
-              attachedDeviceCount: deviceAttachments.length,
+              attachedDeviceCount: attachedDeviceCount,
               unattachedDeviceCount: unattachedDeviceCount,
             },
             // Caps hit → the rollups below this level may be partial.
             childrenTruncated: childRows.length >= LIMIT_PER_PROJECT,
-            descendantCountsTruncated:
-              subtreeRows.length >= LIMIT_PER_PROJECT ||
-              deviceFetch.isTruncated,
+            /*
+             * Only the SITE cap can truncate a rollup now. The device half
+             * of this flag was a real cap — the rollup walked device rows and
+             * gave up at 200,000 — and it is gone: the health counts come
+             * from a grouped aggregate over the whole fleet, so they are
+             * exact whatever its size.
+             */
+            descendantCountsTruncated: subtreeRows.length >= LIMIT_PER_PROJECT,
           } as unknown as JSONObject);
         } catch (err) {
           return next(err);

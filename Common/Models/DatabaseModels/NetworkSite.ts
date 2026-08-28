@@ -94,6 +94,21 @@ const decimalTransformer: ValueTransformer = {
 @CrudApiEndpoint(new Route("/network-site"))
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "parentSiteId"])
+/*
+ * "This project's sites that are rolling up one of these statuses" — the
+ * Overview's unhealthy-sites list, and the Sites page's status chip.
+ *
+ * The standalone `currentMonitorStatusId` index cannot serve them: it has no
+ * project to narrow by first, and a status id is shared across every tenant's
+ * sites.
+ *
+ * Measured note, so nobody widens the claim: this does NOT speed up the
+ * grouped status COUNT behind the summary strip. That query has to visit the
+ * heap for `deletedAt` either way, so it cannot go index-only, and the
+ * planner reasonably prefers the smaller single-column `projectId` index for
+ * it.
+ */
+@Index(["projectId", "currentMonitorStatusId"])
 @TableMetadata({
   tableName: "NetworkSite",
   singularName: "Network Site",
