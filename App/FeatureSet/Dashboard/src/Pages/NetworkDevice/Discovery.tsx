@@ -1525,7 +1525,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * a shortfall rather than the thing the operator asked for.
              */
             isIcmpOnlyReview
-              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off; bind a Ping or IP monitor to give each one a status."
+              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off. Turn on 'Create a Ping monitor' below to give each one a status, or bind a monitor yourself afterwards."
               : "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones."
           }${
             /*

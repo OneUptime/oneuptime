@@ -701,7 +701,14 @@ describe("the review dialog reads differently for a scan that only pinged", () =
 
     expect(icmpOnly).toContain("ICMP only");
     expect(icmpOnly).toContain("monitor-backed");
-    expect(icmpOnly).toContain("Ping or IP monitor");
+    /*
+     * Named the way the dialog's own control names it. Every host an
+     * ICMP-only scan finds is a host without SNMP, so the "Create a Ping
+     * monitor for each host without SNMP" option covers the whole import —
+     * pointing at it beats telling the operator to go and bind 2,890
+     * monitors by hand.
+     */
+    expect(icmpOnly).toContain("Create a Ping monitor");
   });
 
   test("the ICMP-only branch is exactly this sentence", () => {
@@ -712,7 +719,7 @@ describe("the review dialog reads differently for a scan that only pinged", () =
      * description of it.
      */
     expect(reviewDescriptionBranches().icmpOnly).toEqual(
-      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off; bind a Ping or IP monitor to give each one a status.",
+      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off. Turn on 'Create a Ping monitor' below to give each one a status, or bind a monitor yourself afterwards.",
     );
   });
 
@@ -855,7 +862,14 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
 
     expect(badge).toContain("title=");
     expect(badge).toContain("monitor-backed device");
-    expect(badge).toContain("Ping or IP monitor");
+    /*
+     * What the pill has to convey, not the exact route to it: the wording
+     * moved from "bind a Ping or IP monitor" to pointing at the "Create a
+     * Ping monitor" option once that option existed. Both say the same thing
+     * — a host that arrives this way has no status until a monitor is bound —
+     * and that is the sentence worth pinning.
+     */
+    expect(badge).toContain("needs a monitor bound to it");
   });
 
   test("the pill's wording and the description's agree about what arrives", () => {
