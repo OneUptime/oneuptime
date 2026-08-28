@@ -551,10 +551,11 @@ import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUser
 import { AddNameToNetworkDeviceDiscoveryScan1789400000000 } from "./1789400000000-AddNameToNetworkDeviceDiscoveryScan";
 import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./1789512000000-AddDetectionRuleDistinctCountColumns";
 import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./1789600000000-AddAutoProvisionedNetworkDeviceMonitors";
+import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
-import { AddNetworkSiteRollupPolicyAndMaintenance1789800000000 } from "./1789800000000-AddNetworkSiteRollupPolicyAndMaintenance";
+import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
 
 export default [
   InitialMigration,
@@ -1113,5 +1114,6 @@ export default [
   AddDetectionRuleDistinctCountColumns1789512000000,
   AddAutoProvisionedNetworkDeviceMonitors1789600000000,
   AddNetworkScaleIndexes1789700000000,
-  AddNetworkSiteRollupPolicyAndMaintenance1789800000000,
+  WidenSecurityEventLastErrorColumns1789800000000,
+  AddNetworkSiteRollupPolicyAndMaintenance1789900000000,
 ];

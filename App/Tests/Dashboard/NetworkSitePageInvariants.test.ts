@@ -978,7 +978,15 @@ describe("SiteGeoMap", () => {
    * because a thread nobody can see is ink for nothing.
    */
   test("a pushed name keeps a thread back to its marker", () => {
-    expect(source).toContain(squash("{labelPlacement.leaderLine ? ("));
+    /*
+     * The thread is a position line like the marker's own anchor thread is,
+     * so it answers to the same switch (issue #3432) — but only to that
+     * switch. Nothing else here may gate it, or a pushed name goes back to
+     * floating unattached.
+     */
+    expect(source).toContain(
+      squash("{layers.positionLines && labelPlacement.leaderLine ? ("),
+    );
     expect(source).toContain(
       squash("x1={ marker.x + labelPlacement.leaderLine.x1 / zoom }"),
     );
@@ -994,10 +1002,20 @@ describe("SiteGeoMap", () => {
    */
   test("the label threads get their own key, and only when there are some", () => {
     expect(source).toContain(
-      squash("const hasThreadedLabels: boolean = Array.from("),
+      squash("const threadedLabelCount: number = Array.from("),
     );
     expect(source).toContain(squash("return placement.leaderLine !== null;"));
-    expect(source).toContain(squash("{hasThreadedLabels ? ("));
+    expect(source).toContain(
+      squash("const hasThreadedLabels: boolean = threadedLabelCount > 0;"),
+    );
+    /*
+     * ...and not when the reader has switched off either of the two layers
+     * it takes to draw one. A key for ink that is not on screen is the
+     * clutter the key exists to prevent.
+     */
+    expect(source).toContain(
+      squash("{layers.names && layers.positionLines && hasThreadedLabels ? ("),
+    );
     expect(source).toContain('data-testid="site-geo-map-label-thread-key"');
   });
 
@@ -1008,7 +1026,7 @@ describe("SiteGeoMap", () => {
    */
   test("a displaced marker keeps a leader line to where it really is", () => {
     const leaders: string = source
-      .split('<g style={{ pointerEvents: "none" }}>')[1]!
+      .split('data-testid="site-geo-map-position-lines"')[1]!
       .split("</g>")[0]!;
     expect(leaders).toContain("return marker.needsLeaderLine;");
     expect(leaders).toContain("x1={marker.anchorX}");
@@ -1019,9 +1037,14 @@ describe("SiteGeoMap", () => {
 
   test("the leader lines are explained, and only when there are some", () => {
     expect(source).toContain(
-      squash("const hasNudgedMarkers: boolean = placedMarkers.some("),
+      squash("const nudgedMarkerCount: number = placedMarkers.filter("),
     );
-    expect(source).toContain(squash("{hasNudgedMarkers ? ("));
+    expect(source).toContain(
+      squash("const hasNudgedMarkers: boolean = nudgedMarkerCount > 0;"),
+    );
+    expect(source).toContain(
+      squash("{layers.positionLines && hasNudgedMarkers ? ("),
+    );
     expect(source).toContain('data-testid="site-geo-map-nudged-key"');
   });
 
@@ -1130,11 +1153,22 @@ describe("SiteGeoMap draws the site links", () => {
   test("each line carries a hit area and a name", () => {
     expect(source).toContain('stroke="transparent"');
     expect(source).toContain("<title>{link.tooltip}</title>");
-    expect(source).toContain("label: link.tooltip,");
+    expect(source).toContain("tooltip: link.tooltip,");
+    /*
+     * And it names the line it belongs to. Without the key the hover card
+     * would appear and nothing on the map would light up — the emphasis is
+     * keyed on what is under the pointer, not on where it is.
+     */
+    expect(source).toContain("linkKey: link.key,");
   });
 
   test("the lines are explained, and only when there are some", () => {
-    expect(source).toContain(squash("{linkLines.length > 0 ? ("));
+    expect(source).toContain(
+      squash(
+        "const hasDrawnLinks: boolean = layers.links && linkLines.length > 0;",
+      ),
+    );
+    expect(source).toContain(squash("{hasDrawnLinks ? ("));
     expect(source).toContain('data-testid="site-geo-map-link-key"');
     expect(source).toContain(
       "Site link — colored by its monitor; dashed when it has none",
@@ -1146,22 +1180,28 @@ describe("SiteGeoMap draws the site links", () => {
    * zoomed in". What that reported was the marker LEADER THREADS, which
    * correctly melt away as zoom pulls the markers apart — there were no
    * link lines on the map at all. Now that there are, they must never
-   * acquire a zoom condition of their own: the lines are a sibling of the
-   * other layers, drawn unconditionally, and only their stroke widths
-   * divide by the zoom to stay a constant size on screen.
+   * acquire a zoom condition of their own.
+   *
+   * The ONE gate they are allowed is the reader's own layer switch (issue
+   * #3432), which is a choice rather than a rule the map made up. Weight is
+   * not a gate: a line the map has calmed down is still drawn, and still
+   * hoverable — that is the whole difference between an ink hierarchy and
+   * hiding things.
    */
-  test("the lines are drawn at every zoom, not gated on one", () => {
+  test("the lines are drawn at every zoom, gated only on the reader's switch", () => {
     expect(code).toContain(
-      '</g> { } <g data-testid="site-geo-map-links"> {linkLines.map(',
+      '</g> { } {layers.links ? ( <g data-testid="site-geo-map-links"> {linkLines.map(',
     );
-    // Up to the leader-line group, which is the next layer on the map.
+    // Up to the position-line group, which is the next layer on the map.
     const group: string = code
       .split('data-testid="site-geo-map-links"')[1]!
-      .split('{ } <g style={{ pointerEvents: "none" }}>')[0]!;
+      .split("{ } {layers.positionLines ? (")[0]!;
     expect(group).not.toMatch(/zoom\s*[<>]/);
     expect(group).not.toContain("MAX_ZOOM");
     expect(group).not.toContain("needsDetail");
     expect(group).not.toContain("needsLeaderLine");
+    // The hit area is never quietened — a calm line is still a target.
+    expect(group).toContain('stroke="transparent" strokeWidth={12 / zoom}');
   });
 
   /*
@@ -1423,5 +1463,339 @@ describe("NetworkDeviceMonitorStepForm carries no data-collection controls", () 
     ["snmpOids"],
   ])("does not configure %s", (collectionField: string) => {
     expect(source).not.toContain(collectionField);
+  });
+});
+
+/*
+ * Issue #3432: "the lines on the Network Map are clutter — give me a switch
+ * to hide them."
+ *
+ * The switch shipped, and it is pinned at the bottom of this block. What is
+ * pinned above it is the reason a switch alone would have been the wrong
+ * answer.
+ *
+ * A marker is pushed off its coordinates only because it would otherwise be
+ * invisible under another marker, and the thread back to its real spot is
+ * the entire licence for that move. A map that hid the threads by default
+ * would draw a store twenty pixels from where the customer pinned it with
+ * nothing on screen admitting so — decluttered and quietly wrong.
+ *
+ * So the map got an ink HIERARCHY instead (SiteMapInk.ts, pinned by
+ * SiteMapInk.test.ts): a crowded frame draws its threads as hairlines
+ * rather than at the same weight as the markers, a frame with two of them
+ * is left exactly as it was, and pointing at anything hands its weight
+ * straight back while everything unrelated fades. Every assertion here is
+ * one wire in that, and each one fails if its line is reverted.
+ */
+describe("SiteGeoMap calms its ink rather than hiding it", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteGeoMap.tsx",
+  );
+  const code: string = readCode("Components", "NetworkSite", "SiteGeoMap.tsx");
+
+  /*
+   * The decisions live in the react-free module so they can be unit-tested
+   * in a plain Node environment — the same split as the projection, the
+   * viewport and the collision layout. A threshold re-derived here would be
+   * a threshold nothing tests.
+   */
+  test("the ink decisions come from the pure module, not from the renderer", () => {
+    expect(source).toContain('} from "./SiteMapInk";');
+    for (const helper of [
+      "planMapInk",
+      "markerRole",
+      "linkRole",
+      "opacityForRole",
+      "positionLineInk",
+      "labelThreadInk",
+      "linkInk",
+      "positionAnchorDot",
+      "buildMapAdjacency",
+    ]) {
+      expect([helper, source.includes(helper)]).toEqual([helper, true]);
+    }
+  });
+
+  /*
+   * The plan is fed the counts the map is ACTUALLY drawing. Counting a
+   * layer the reader has switched off would let hidden ink calm down the
+   * layers still on screen — a map with its links off would draw its two
+   * remaining threads as hairlines for no reason anybody could see.
+   */
+  test("the plan counts what is drawn, not what exists", () => {
+    expect(source).toContain(
+      squash(
+        "const inkPlan: MapInkPlan = planMapInk({ positionLineCount: layers.positionLines ? nudgedMarkerCount : 0, labelThreadCount: layers.positionLines && layers.names ? threadedLabelCount : 0, linkCount: layers.links ? linkLines.length : 0, });",
+      ),
+    );
+  });
+
+  /*
+   * Every stroke on the three line layers reads its weight off the ink, and
+   * every one of them still divides by the zoom. A literal left behind here
+   * is a line that ignores the hierarchy — and the failure is invisible on
+   * the calm maps everybody develops against, because there the plan hands
+   * back exactly the old numbers.
+   */
+  test("no line layer carries a hard-coded stroke weight any more", () => {
+    const positionLines: string = code
+      .split('data-testid="site-geo-map-position-lines"')[1]!
+      .split("</g>")[0]!;
+    expect(positionLines).toContain("strokeWidth={ink.haloWidth / zoom}");
+    expect(positionLines).toContain("strokeWidth={ink.width / zoom}");
+    expect(positionLines).not.toMatch(/strokeWidth=\{[\d.]+ \/ zoom\}/);
+
+    const links: string = code
+      .split('data-testid="site-geo-map-links"')[1]!
+      .split("{ } {layers.positionLines ? (")[0]!;
+    expect(links).toContain("strokeWidth={ink.haloWidth / zoom}");
+    expect(links).toContain("strokeWidth={ink.width / zoom}");
+
+    // The label thread reads the same way, off its own ink.
+    expect(source).toContain("strokeWidth={threadInk.haloWidth / zoom}");
+    expect(source).toContain("strokeWidth={threadInk.width / zoom}");
+  });
+
+  /*
+   * The pip on the end of a position thread is sized from that thread, so
+   * it fades with it. A constant here draws a full-strength full stop on
+   * the end of a hairline, which reads as a marker of its own.
+   */
+  test("the anchor dot is sized from its own thread", () => {
+    expect(source).toContain(
+      squash(
+        "const dot: { radius: number; haloRadius: number } = positionAnchorDot(ink);",
+      ),
+    );
+    expect(source).toContain("r={dot.haloRadius / zoom}");
+    expect(source).toContain("r={dot.radius / zoom}");
+  });
+
+  /*
+   * A quiet thread gives up its colour with its weight and takes it back
+   * when it is pointed at — decided by the ink, never re-derived here.
+   */
+  test("a thread's colour follows its ink", () => {
+    expect(source).toContain(
+      squash(
+        "const color: string = ink.isColored ? CLUSTER_COLORS[marker.colorKey] : QUIET_LINE_COLOR;",
+      ),
+    );
+  });
+
+  /*
+   * The emphasis is keyed on WHAT is under the pointer, not on where it is.
+   * Without the keys on the hover state the card would appear and nothing
+   * on the map would light up.
+   */
+  test("the hover state names the thing it is describing", () => {
+    expect(source).toContain("interface HoveredTarget {");
+    expect(source).toContain("markerKey: string | null;");
+    expect(source).toContain("linkKey: string | null;");
+    expect(source).toContain(squash("markerKey: key, linkKey: null,"));
+  });
+
+  /*
+   * The pointer wins over keyboard focus: a mouse that has moved onto a
+   * marker is a more recent statement of intent than a focus ring a tab
+   * left behind. Reading focusedKey first would leave the whole map
+   * emphasising something nobody is looking at.
+   */
+  test("the pointer outranks a focus ring left behind by a tab", () => {
+    const memo: string = source
+      .split("const focus: MapFocus = useMemo(() => {")[1]!
+      .split("]);")[0]!;
+    expect(memo).toContain(
+      squash(
+        "if (hovered) { return { markerKey: hovered.markerKey, linkKey: hovered.linkKey }; }",
+      ),
+    );
+    expect(memo.indexOf("hovered")).toBeLessThan(memo.indexOf("focusedKey"));
+    // Re-derived when either changes — the split above eats the closing.
+    expect(memo).toContain("}, [hovered, focusedKey");
+  });
+
+  /*
+   * Adjacency is rebuilt with the LINES. Rebuilt with the pointer instead,
+   * it would walk every link on the level on every frame of a hover — on
+   * the dense estates this feature is for, that is the hover being laggy
+   * exactly where it matters most.
+   */
+  test("who-is-wired-to-whom is computed once per frame, not per pointer move", () => {
+    expect(source).toContain(
+      squash(
+        "const adjacency: MapAdjacency = useMemo(() => { return layers.links ? buildMapAdjacency(linkLines) : EMPTY_MAP_ADJACENCY; }, [linkLines, layers.links]);",
+      ),
+    );
+  });
+
+  /*
+   * Fading is how the map answers a question, never a way of taking half of
+   * it away. A muted marker keeps its hit area, its tab stop and its
+   * accessible name — anything else would make the emphasis a trap for a
+   * reader using a keyboard or a screen reader.
+   */
+  test("the emphasis is opacity and nothing else", () => {
+    const markerGroup: string = code
+      .split(
+        "{placedMarkers.map((marker: PlacedMapMarker): ReactElement => {",
+      )[1]!
+      .split("onClick=")[0]!;
+    expect(markerGroup).toContain('role="button"');
+    expect(markerGroup).toContain("tabIndex={0}");
+    expect(markerGroup).toContain("aria-label={marker.tooltip}");
+    expect(markerGroup).toContain("opacity={opacityForRole(emphasis)}");
+    // No display/visibility gate, and no pointer-events opt-out.
+    expect(markerGroup).not.toContain("display:");
+    expect(markerGroup).not.toContain("visibility");
+    expect(markerGroup).not.toContain('pointerEvents: "none"');
+  });
+
+  test("every layer that fades also transitions, so a crossed pointer does not flash", () => {
+    expect(
+      source.split("transition: `opacity ${EMPHASIS_TRANSITION_MS}ms ease`")
+        .length - 1,
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * A thread drawn at a hairline is easy to miss, so somebody who cannot
+   * see where a marker really sits has to be told the answer is a hover
+   * away rather than gone.
+   */
+  test("the map says when it has calmed something down", () => {
+    expect(source).toContain(
+      squash(
+        'const isInkCalmed: boolean = inkPlan.positionLines === "quiet" || inkPlan.labelThreads === "quiet" || inkPlan.links === "quiet";',
+      ),
+    );
+    expect(source).toContain('" Hover one to trace what it connects to."');
+    expect(source).toContain('" Hover one to see exactly where it sits."');
+    expect(source).toContain('data-testid="site-geo-map-hint"');
+  });
+
+  /*
+   * The tooltip is one " · "-joined line because that is exactly right for
+   * the marker's accessible name and exactly wrong for a card, where a
+   * twelve-word grey sentence hides the one thing the reader was pointing
+   * at the marker to find out.
+   */
+  test("the hover card leads with the name", () => {
+    expect(source).toContain(
+      squash(
+        'const hoverText: MapTooltipText = splitMapTooltip(hovered?.tooltip || "");',
+      ),
+    );
+    expect(source).toContain('data-testid="site-geo-map-hover-card"');
+    expect(source).toContain(squash("{hoverText.title}"));
+    expect(source).toContain(squash('{hoverText.detail.join(" · ")}'));
+  });
+});
+
+/*
+ * The switch issue #3432 actually asked for. It is the escape hatch rather
+ * than the design — the hierarchy above is what makes the default map
+ * readable — but a customer who wants a bare map of dots should have one,
+ * and it has to survive a reload and a drill-down or it reads as a control
+ * that does not work.
+ */
+describe("SiteGeoMap lets the reader switch layers off", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteGeoMap.tsx",
+  );
+
+  test("there is a control, and it lists every layer from the shared table", () => {
+    expect(source).toContain('data-testid="site-geo-map-layers-toggle"');
+    expect(source).toContain('data-testid="site-geo-map-layers-panel"');
+    expect(source).toContain(squash("{MAP_LAYER_OPTIONS.map("));
+    expect(source).toContain(
+      squash("data-testid={`site-geo-map-layer-${option.key}`}"),
+    );
+    // A switch, so a screen reader is told it is one and which way it is.
+    expect(source).toContain(squash('role="switch" aria-checked={isVisible}'));
+  });
+
+  /*
+   * The choice is about how a reader wants maps to look, not about which
+   * level they happen to be on. Held in component state alone it would
+   * reset on every drill-down and every reload.
+   */
+  test("the choice is read from storage on the first render and written back", () => {
+    expect(source).toContain(
+      squash(
+        "const [layers, setLayers] = useState<MapLayerSettings>(readStoredMapLayers);",
+      ),
+    );
+    expect(source).toContain(
+      squash(
+        "return normalizeMapLayers(LocalStorage.getItem(MAP_LAYERS_STORAGE_KEY));",
+      ),
+    );
+    expect(source).toContain(squash("setLayers(next); storeMapLayers(next);"));
+  });
+
+  /*
+   * Storage can be unavailable outright — a locked-down browser, a private
+   * window with its quota at zero. A map is not worth an exception.
+   */
+  test("neither the read nor the write can take the map down", () => {
+    const read: string = source
+      .split("const readStoredMapLayers:")[1]!
+      .split("const storeMapLayers:")[0]!;
+    expect(read).toContain("try {");
+    expect(read).toContain("} catch {");
+    const write: string = source
+      .split("const storeMapLayers:")[1]!
+      .split("const dotColorForSite:")[0]!;
+    expect(write).toContain("try {");
+    expect(write).toContain("} catch {");
+  });
+
+  /*
+   * THE thing switching the position lines off must not do. The
+   * displacement does not go away with the lines that explain it, so the
+   * map says it in words instead — and says how to get the lines back.
+   */
+  test("hiding the position lines still admits the markers were moved", () => {
+    expect(source).toContain(
+      squash("{!layers.positionLines && hasNudgedMarkers ? ("),
+    );
+    expect(source).toContain('data-testid="site-geo-map-nudged-hidden-key"');
+    expect(source).toContain("nudged apart to stay visible");
+  });
+
+  /*
+   * A layer switched off last month and forgotten is a support ticket about
+   * missing data. The control carries a dot while anything is hidden, so
+   * the map says so without being opened.
+   */
+  test("the control says when something is hidden", () => {
+    expect(source).toContain(
+      squash("const hiddenLayerCount: number = countHiddenMapLayers(layers);"),
+    );
+    expect(source).toContain(squash("{hiddenLayerCount > 0 ? ("));
+    expect(source).toContain('data-testid="site-geo-map-layers-hidden-dot"');
+  });
+
+  /*
+   * The panel floats over the map it is about, so touching the map has to
+   * dismiss it — otherwise it sits over the markers somebody just dragged
+   * into view and they have to go back and close it.
+   */
+  test("touching the map dismisses the panel", () => {
+    const down: string = source
+      .split("const onPointerDown:")[1]!
+      .split("const onPointerMove:")[0]!;
+    expect(down).toContain("setIsLayerPanelOpen(false);");
+    const change: string = source
+      .split(
+        "const changeViewport: (next: MapViewport) => void = useCallback(",
+      )[1]!
+      .split("[],")[0]!;
+    expect(change).toContain("setIsLayerPanelOpen(false);");
   });
 });
