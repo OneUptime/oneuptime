@@ -3,6 +3,7 @@ process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
 import SubnetScanner, {
+  type SubnetScanSnmpConfig,
   DiscoveredHost,
   SubnetScanResult,
 } from "../../../Utils/Discovery/SubnetScanner";
@@ -11,6 +12,7 @@ import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor"
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import logger from "Common/Server/Utils/Logger";
 import {
   afterEach,
@@ -56,6 +58,28 @@ import {
 
 // A /29 sweeps six hosts: 10.0.0.1 .. 10.0.0.6.
 const SIX_HOSTS: string = "10.0.0.0/29";
+/*
+ * The one credential set every SNMP-path sweep in this file uses.
+ *
+ * A scan's credentials became an ordered LIST in issue #3458, and the scanner
+ * refuses an SNMP sweep that carries none — so the tests below that exercise
+ * the SNMP path have to supply one. What they are actually about is the
+ * METHOD gate (issue #3445), so the set is deliberately the plainest possible:
+ * v2c, "public", port 161, which is what the flattened columns these calls
+ * used to leave unset defaulted to.
+ *
+ * The ICMP-only calls supply none, which is the point of them.
+ */
+const SNMP_SWEEP_CONFIGS: Array<SubnetScanSnmpConfig> = [
+  {
+    id: "default",
+    label: "SNMP config 1 (V2c)",
+    snmpVersion: SnmpVersion.V2c,
+    communityString: "public",
+    port: 161,
+  },
+];
+
 const ALL_SIX: Array<string> = [
   "10.0.0.1",
   "10.0.0.2",
@@ -249,10 +273,23 @@ describe("SubnetScanner — an ICMP-only sweep sends no SNMP", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: false,
-      snmpVersion: "V3",
-      snmpV3Auth: v3Auth,
-      snmpCommunityString: "private",
-      snmpPort: 1610,
+      /*
+       * A fully-populated credential SET on an ICMP-only scan — the shape a
+       * row has when the operator filled the SNMP step in and then turned
+       * Check SNMP off. Credentials moved into this list in issue #3458; the
+       * guarantee is unchanged and is the important one: carrying them must
+       * not cause a single SNMP packet to be sent.
+       */
+      snmpConfigs: [
+        {
+          id: "core-routers",
+          label: "Core routers (V3)",
+          snmpVersion: SnmpVersion.V3,
+          communityString: "private",
+          snmpV3Auth: v3Auth,
+          port: 1610,
+        },
+      ],
     });
 
     expect(recorder.hosts).toEqual([]);
@@ -425,10 +462,12 @@ describe("SubnetScanner — what an ICMP-only sweep returns", () => {
   });
 
   /*
-   * scannedPort feeds the "Nothing answered SNMP on port N. Check that UDP/N
+   * scannedPorts feeds the "Nothing answered SNMP on port N. Check that UDP/N
    * is permitted" advice. An ICMP-only sweep dials no port at all, so naming
    * 161 there would send the operator to a firewall rule for traffic the probe
-   * never sent — undefined is the only honest answer.
+   * never sent — an empty list is the only honest answer. (It became a LIST in
+   * issue #3458, because a scan's credential sets may disagree on the port;
+   * before that it was a single optional number whose undefined said this.)
    */
   it("reports no scanned port, because no port was dialled", async () => {
     mockPingAlive(ALL_SIX);
@@ -439,7 +478,7 @@ describe("SubnetScanner — what an ICMP-only sweep returns", () => {
       isSnmpEnabled: false,
     });
 
-    expect(result.scannedPort).toBeUndefined();
+    expect(result.scannedPorts).toEqual([]);
   });
 
   it("reports no scanned port even when the row configures a custom one", async () => {
@@ -449,10 +488,18 @@ describe("SubnetScanner — what an ICMP-only sweep returns", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: false,
-      snmpPort: 1610,
+      snmpConfigs: [
+        {
+          id: "custom-port",
+          label: "Custom port (V2c)",
+          snmpVersion: SnmpVersion.V2c,
+          communityString: "public",
+          port: 1610,
+        },
+      ],
     });
 
-    expect(result.scannedPort).toBeUndefined();
+    expect(result.scannedPorts).toEqual([]);
   });
 
   /*
@@ -733,6 +780,7 @@ describe("SubnetScanner — an ICMP-only sweep with no usable ping", () => {
 
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     expect(recorder.hosts).toHaveLength(6);
@@ -743,7 +791,10 @@ describe("SubnetScanner — an ICMP-only sweep with no usable ping", () => {
     mockPingUnusable();
     recordSnmpProbes([]);
 
-    await SubnetScanner.scan({ cidr: SIX_HOSTS });
+    await SubnetScanner.scan({
+      cidr: SIX_HOSTS,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
+    });
 
     const warnings: string = loggedWarnings();
     expect(warnings).toContain("Falling back to SNMP-probing every host");
@@ -939,6 +990,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
 
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     expect([...recorder.hosts].sort()).toEqual(ALL_SIX);
@@ -948,7 +1000,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
      * absence — toBeFalsy() would also accept a stray false, 0 or "".
      */
     expect(result.isIcmpOnlySweep).toBeUndefined();
-    expect(result.scannedPort).toBe(161);
+    expect(result.scannedPorts).toEqual([161]);
   });
 
   it("probes SNMP when the field is explicitly undefined", async () => {
@@ -958,6 +1010,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: undefined,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     expect([...recorder.hosts].sort()).toEqual(ALL_SIX);
@@ -971,6 +1024,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: null,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     } as unknown as Parameters<typeof SubnetScanner.scan>[0]);
 
     expect(recorder.hosts).toHaveLength(6);
@@ -984,6 +1038,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: true,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     expect([...recorder.hosts].sort()).toEqual(ALL_SIX);
@@ -1008,6 +1063,14 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
         sysContact: undefined,
         sysUpTimeSeconds: undefined,
         snmpReachable: true,
+        /*
+         * Stamped with the credential set that answered (issue #3458), so the
+         * import path builds this device with the credentials that actually
+         * work for it. The ping-only records around it deliberately carry no
+         * such key: no config found them, and inventing one would import a
+         * monitor-backed host as an SNMP-polled device.
+         */
+        snmpConfigId: "default",
       },
       { ipAddress: "10.0.0.5", snmpReachable: false },
       { ipAddress: "10.0.0.6", snmpReachable: false },
@@ -1028,6 +1091,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const result: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: true,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     expect([...recorder.hosts].sort()).toEqual(ALL_SIX);
@@ -1055,6 +1119,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const withSnmp: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: true,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     // Both ping-alive hosts were asked; only one answered.
@@ -1069,8 +1134,12 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
         sysContact: undefined,
         sysUpTimeSeconds: undefined,
         snmpReachable: true,
+        snmpConfigId: "default",
       },
-      // Kept, not discarded — and shaped like an ICMP-only record.
+      /*
+       * Kept, not discarded — and shaped like an ICMP-only record, with no
+       * credential id: nothing answered for it.
+       */
       { ipAddress: "10.0.0.3", snmpReachable: false },
     ]);
     expect(withSnmp.isIcmpOnlySweep).toBeUndefined();
@@ -1097,6 +1166,7 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     const withSnmp: SubnetScanResult = await SubnetScanner.scan({
       cidr: SIX_HOSTS,
       isSnmpEnabled: true,
+      snmpConfigs: SNMP_SWEEP_CONFIGS,
     });
 
     // Same hosts found, same tallies.
@@ -1107,8 +1177,8 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
     // And only these differ.
     expect(icmpOnly.isIcmpOnlySweep).toBe(true);
     expect(withSnmp.isIcmpOnlySweep).toBeUndefined();
-    expect(icmpOnly.scannedPort).toBeUndefined();
-    expect(withSnmp.scannedPort).toBe(161);
+    expect(icmpOnly.scannedPorts).toEqual([]);
+    expect(withSnmp.scannedPorts).toEqual([161]);
     expect(icmpOnly.icmpFilteredFallbackHostCount).toBe(0);
     expect(withSnmp.icmpFilteredFallbackHostCount).toBe(5);
   });

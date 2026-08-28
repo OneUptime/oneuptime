@@ -2,6 +2,9 @@ import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../Types/ObjectID";
+import SnmpScanConfigUtil, {
+  DiscoveryScanSnmpConfig,
+} from "./SnmpScanConfigUtil";
 import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
 
 /*
@@ -67,9 +70,18 @@ export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
  * NetworkDeviceDiscoveryScan model satisfies this structurally, so both the
  * dashboard (holding a scan model) and the rule engine (holding a scan row it
  * selected itself) can pass their scan straight in.
+ *
+ * `snmpConfigs` is the scan's ordered list of credential sets; the flattened
+ * columns beside it are the single set a scan carried before that list existed
+ * (and are still mirrored from the list's first entry). Neither is read
+ * directly here — SnmpScanConfigUtil reconciles the two — but BOTH have to be
+ * SELECTED by every caller, or the credentials silently arrive undefined and
+ * the device is created unable to poll. That is what
+ * Common/Tests/Server/Services/AutoImportScanCredentialSelect.test.ts pins.
  */
 export interface DiscoveredDeviceScanSource {
   probeId?: ObjectID | undefined;
+  snmpConfigs?: Array<DiscoveryScanSnmpConfig> | null | undefined;
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | undefined;
   snmpPort?: number | undefined;
@@ -142,41 +154,60 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
     device.probeId = new ObjectID(data.scan.probeId.toString());
   }
 
-  if (data.scan.snmpVersion) {
-    device.snmpVersion = data.scan.snmpVersion;
+  /*
+   * THE credential set that answered this host, not the scan's first one.
+   *
+   * A scan can now try several, and the probe records which one worked as
+   * `host.snmpConfigId`. Copying the scan's first set regardless would create
+   * a device carrying a community string its device rejects — a device that
+   * polls red forever, with nothing on it to say the credential is simply the
+   * wrong one of several the scan holds.
+   *
+   * resolveForHost falls back to the first config when the host names none,
+   * which is every result stored before this existed and every result from an
+   * older probe; for a scan with no `snmpConfigs` that first config IS the
+   * flattened columns, so those cases import exactly as they always did.
+   */
+  const snmpConfig: DiscoveryScanSnmpConfig = SnmpScanConfigUtil.resolveForHost(
+    data.scan,
+    host.snmpConfigId,
+  );
+
+  if (snmpConfig.snmpVersion) {
+    device.snmpVersion = snmpConfig.snmpVersion;
   }
 
-  if (data.scan.snmpCommunityString) {
-    device.snmpCommunityString = data.scan.snmpCommunityString;
+  if (snmpConfig.snmpCommunityString) {
+    device.snmpCommunityString = snmpConfig.snmpCommunityString;
   }
 
-  if (data.scan.snmpPort) {
-    device.snmpPort = data.scan.snmpPort;
+  if (snmpConfig.snmpPort) {
+    device.snmpPort = snmpConfig.snmpPort;
   }
 
   // Carry the v3 credentials so a v3 scan imports as a v3 device.
-  if (data.scan.snmpV3SecurityLevel) {
-    device.snmpV3SecurityLevel = data.scan.snmpV3SecurityLevel;
+  if (snmpConfig.snmpV3SecurityLevel) {
+    device.snmpV3SecurityLevel = snmpConfig.snmpV3SecurityLevel;
   }
 
-  if (data.scan.snmpV3Username) {
-    device.snmpV3Username = data.scan.snmpV3Username;
+  if (snmpConfig.snmpV3Username) {
+    device.snmpV3Username = snmpConfig.snmpV3Username;
   }
 
-  if (data.scan.snmpV3AuthProtocol) {
-    device.snmpV3AuthProtocol = data.scan.snmpV3AuthProtocol;
+  if (snmpConfig.snmpV3AuthProtocol) {
+    device.snmpV3AuthProtocol = snmpConfig.snmpV3AuthProtocol;
   }
 
-  if (data.scan.snmpV3AuthKey) {
-    device.snmpV3AuthKey = data.scan.snmpV3AuthKey;
+  if (snmpConfig.snmpV3AuthKey) {
+    device.snmpV3AuthKey = snmpConfig.snmpV3AuthKey;
   }
 
-  if (data.scan.snmpV3PrivProtocol) {
-    device.snmpV3PrivProtocol = data.scan.snmpV3PrivProtocol;
+  if (snmpConfig.snmpV3PrivProtocol) {
+    device.snmpV3PrivProtocol = snmpConfig.snmpV3PrivProtocol;
   }
 
-  if (data.scan.snmpV3PrivKey) {
-    device.snmpV3PrivKey = data.scan.snmpV3PrivKey;
+  if (snmpConfig.snmpV3PrivKey) {
+    device.snmpV3PrivKey = snmpConfig.snmpV3PrivKey;
   }
 
   return device;

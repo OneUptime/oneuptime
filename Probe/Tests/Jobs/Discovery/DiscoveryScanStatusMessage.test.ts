@@ -4,7 +4,11 @@ process.env["PROBE_KEY"] = "test-probe-key";
 process.env["PROBE_ID"] = "11111111-2222-3333-4444-555555555555";
 
 import { buildScanStatusMessage } from "../../../Jobs/Discovery/FetchScans";
-import { SubnetScanResult } from "../../../Utils/Discovery/SubnetScanner";
+import {
+  SubnetScanResult,
+  SubnetScanSnmpConfig,
+} from "../../../Utils/Discovery/SubnetScanner";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -32,17 +36,81 @@ import { describe, expect, test } from "@jest/globals";
  */
 const STATUS_MESSAGE_COLUMN_LENGTH: number = 500;
 
+/*
+ * MAX_CREDENTIAL_LABEL_LENGTH in FetchScans.ts, which is not exported.
+ *
+ * Mirrored rather than imported on purpose: the assertions below are about the
+ * PROMISE — "one operator-typed name is printed in at most forty characters" —
+ * and importing the module's own number would make them agree with whatever it
+ * happens to hold, including nothing at all.
+ */
+const MAX_CREDENTIAL_LABEL_LENGTH: number = 40;
+
+/*
+ * A config label longer than that cap, in the shape an operator really types.
+ *
+ * Deliberately not `"N".repeat(100)`: a run of identical characters is cut
+ * invisibly — the truncated and untruncated forms share every prefix — so a
+ * `toContain` on the head of such a label is satisfied whether the cap fired
+ * or not. That is precisely the hole in the neighbouring "ten fully-named
+ * credentials" test, and repeating the trick here would reproduce it.
+ */
+const VERBOSE_LABEL: string =
+  "Datacenter east row 4 core and distribution switches (V3)";
+
+/*
+ * The other side of the boundary: a label exactly AT the cap, which must be
+ * printed whole. Its length is asserted in the test rather than trusted, so a
+ * later edit to the wording cannot quietly turn this into a second
+ * over-the-cap case that passes for the wrong reason.
+ */
+const EXACTLY_AT_CAP_LABEL: string = "Distribution switches - building 12 (V1)";
+
 function makeResult(overrides?: Partial<SubnetScanResult>): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    /*
+     * A sweep now reports the DISTINCT ports it touched rather than the single
+     * port a scan used to carry, because a scan can hold several credential
+     * sets and they are allowed to disagree about the port. The default here
+     * is the one-port shape, which is still what almost every sweep produces.
+     */
+    scannedPorts: [161],
+    /*
+     * Present and empty rather than absent: the sweep seeds a zero for every
+     * config it ran with, so an empty record is "this sweep declared no
+     * credential sets", which is exactly the single-config shape these tests
+     * describe.
+     */
+    responderCountByConfigId: {},
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     mostCommonSnmpError: undefined,
     icmpFilteredFallbackHostCount: 0,
     ...overrides,
   } as SubnetScanResult;
+}
+
+/*
+ * One credential set as the sweep reports it back — already parsed, and
+ * carrying the NON-SECRET label that is the only thing the status message is
+ * allowed to print. Built with a community string and v3 keys on purpose, so
+ * the "no secret reaches statusMessage" assertions below have something real
+ * to look for.
+ */
+function makeSnmpConfig(
+  overrides?: Partial<SubnetScanSnmpConfig>,
+): SubnetScanSnmpConfig {
+  return {
+    id: "config-1",
+    label: "Access switches (V2c)",
+    snmpVersion: SnmpVersion.V2c,
+    communityString: "s3cret-community",
+    snmpV3Auth: undefined,
+    port: 161,
+    ...overrides,
+  } as SubnetScanSnmpConfig;
 }
 
 describe("buildScanStatusMessage — the headline", () => {
@@ -189,7 +257,7 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
 
   test("names the non-default port a scan actually used", () => {
     const message: string = buildScanStatusMessage(
-      makeResult({ scannedPort: 1610 }),
+      makeResult({ scannedPorts: [1610] }),
       0,
     );
 
@@ -198,13 +266,15 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
   });
 
   /*
-   * Defensive: a result from an older probe carries no scannedPort. Naming
-   * "port undefined" in the one message meant to tell an operator what to
-   * check would be worse than useless.
+   * Defensive: a result from an older probe carries no scannedPorts (and one
+   * from a probe older still carried a single scannedPort under a different
+   * name, which reads as absent here). Naming "port undefined" in the one
+   * message meant to tell an operator what to check would be worse than
+   * useless.
    */
-  test("falls back to the SNMP default when the probe sent no port", () => {
+  test("falls back to the SNMP default when the probe sent no ports", () => {
     const message: string = buildScanStatusMessage(
-      makeResult({ scannedPort: undefined } as never),
+      makeResult({ scannedPorts: undefined } as never),
       0,
     );
 
@@ -232,6 +302,65 @@ describe("buildScanStatusMessage — nothing answered at all", () => {
   });
 });
 
+/*
+ * A scan carries an ordered LIST of credential sets now, and they are allowed
+ * to disagree about the UDP port — an estate running a vendor agent on 1161
+ * beside the stock daemon on 161 is a real shape, not a hypothetical one. The
+ * checklist below is the operator's instruction to go and open a firewall
+ * port, so naming only one of the two ports the sweep actually dialled would
+ * send them to fix half the problem.
+ */
+describe("buildScanStatusMessage — the ports the sweep actually touched", () => {
+  test("one port reads as a singular 'port'", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on port 161.");
+    expect(message).not.toContain("on ports");
+  });
+
+  test("two ports are both named, as a plural list, in the order swept", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161, 1161] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on ports 161, 1161.");
+  });
+
+  /*
+   * The same list has to reach the firewall half of the sentence. An operator
+   * who opens UDP/161 because that is the only port the message named will
+   * re-run the scan and get the identical zero back.
+   */
+  test("every port swept is also named in the UDP checklist", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [161, 1161] }),
+      0,
+    );
+
+    expect(message).toContain("UDP/161, 1161 is permitted to it");
+  });
+
+  /*
+   * An empty array is the same state as a missing one — no probe should send
+   * it, since the sweep derives the list from the configs it ran with and
+   * refuses to run with none, but the fallback must not be reachable only
+   * through `undefined`.
+   */
+  test("an empty port list falls back to the SNMP default rather than printing nothing", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({ scannedPorts: [] }),
+      0,
+    );
+
+    expect(message).toContain("Nothing answered SNMP on port 161.");
+    expect(message).not.toContain("on port .");
+  });
+});
+
 describe("buildScanStatusMessage — fits the column it is stored in", () => {
   /*
    * The message goes into a varchar(500). Postgres rejects an over-long value
@@ -253,6 +382,293 @@ describe("buildScanStatusMessage — fits the column it is stored in", () => {
     );
 
     expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  /*
+   * The per-credential sentences are new, and they are the part of this
+   * message that grows with the operator's configuration rather than with the
+   * subnet. Four credential sets is the realistic shape of a mixed segment
+   * (the ceiling is ten), and every one of them contributes a label to either
+   * "Answered by credentials" or "No host answered".
+   *
+   * The two shapes asserted below are the expensive ones a multi-credential
+   * sweep actually produces, and the pathological one at the end of this
+   * describe is the ceiling the operator is allowed to configure. All three
+   * are bounded by the probe itself: the credential summary gets a fixed
+   * slice of the message (MAX_CREDENTIAL_SUMMARY_LENGTH in FetchScans.ts),
+   * naming as many credentials as fit and counting the rest, and the whole
+   * message is clipped as a last resort.
+   *
+   * The ingest endpoint clips too, but that is a backstop, not the plan: what
+   * it cuts is the TAIL, and the tail is where the credential summary lives —
+   * so relying on it would make a multi-credential sweep the one case that
+   * silently loses the sentence this feature exists to print.
+   */
+  test("a multi-credential sweep that found nothing still fits the column", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [
+      makeSnmpConfig({ id: "core", label: "Core switches (V3)" }),
+      makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+      makeSnmpConfig({ id: "printers", label: "Printers (V1)" }),
+      makeSnmpConfig({ id: "vendor", label: "Vendor block (V2c)" }),
+    ];
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 0,
+        icmpFilteredFallbackHostCount: 4096,
+        snmpErrorHostCount: 0,
+        scannedPorts: [161, 1161],
+        responderCountByConfigId: {},
+      }),
+      0,
+      snmpConfigs,
+    );
+
+    // Every credential is named, and so is the port checklist — the long shape.
+    expect(message).toContain("No host answered: Core switches (V3)");
+    expect(message).toContain("Nothing answered SNMP on ports 161, 1161.");
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  test("a multi-credential sweep that found devices stays well inside the column", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [
+      makeSnmpConfig({ id: "core", label: "Core switches (V3)" }),
+      makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+      makeSnmpConfig({ id: "printers", label: "Printers (V1)" }),
+      makeSnmpConfig({ id: "vendor", label: "Vendor block (V2c)" }),
+    ];
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 4096,
+        snmpErrorHostCount: 4096,
+        scannedPorts: [161, 1161],
+        mostCommonSnmpError: "E".repeat(120),
+        responderCountByConfigId: { core: 4096, access: 4096 },
+      }),
+      4096,
+      snmpConfigs,
+    );
+
+    expect(message).toContain("Answered by credentials:");
+    expect(message).toContain("No host answered:");
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+  });
+
+  /*
+   * The ceiling the product actually permits: ten credential sets
+   * (MAX_SNMP_CONFIGS_PER_SCAN), each named to the full length a config name
+   * may be (MAX_SNMP_CONFIG_NAME_LENGTH, 100 characters), with every other
+   * branch firing at the same time. Unbounded, this is over 1,500 characters
+   * of operator-typed names in a 500-character column.
+   *
+   * The assertion is not only that it fits, but that it still SAYS something:
+   * at least one credential is named — never a bare "and 10 more" — and the
+   * older diagnostics that share the message survive alongside it.
+   */
+  test("ten fully-named credentials with every branch firing still fits", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [];
+
+    for (let index: number = 0; index < 10; index++) {
+      snmpConfigs.push(
+        makeSnmpConfig({
+          id: `config-${index}`,
+          label: `${"N".repeat(100)} (V2c)`,
+        }),
+      );
+    }
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 4096,
+        respondedToPingCount: 4096,
+        icmpFilteredFallbackHostCount: 4096,
+        snmpErrorHostCount: 4096,
+        scannedPorts: [161, 1161],
+        mostCommonSnmpError: "E".repeat(120),
+        responderCountByConfigId: { "config-0": 12 },
+      }),
+      12,
+      snmpConfigs,
+    );
+
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+
+    /*
+     * Two guarantees, and it is worth being precise about which is which.
+     *
+     * The credential summary is BOUNDED — a single 100-character name is cut
+     * to 40 so one verbose label cannot swallow the slice — so the sentence
+     * that says which credential is doing the work survives even here.
+     *
+     * The whole message is CLIPPED as a last resort, and in this extreme it
+     * does fire: the ICMP-filtered note and the 120-character quoted SNMP
+     * error take most of the column before the credentials are reached. The
+     * ellipsis is the point — a truncated message must not be readable as a
+     * complete one.
+     */
+    expect(message).toContain("Answered by credentials: NNN");
+    expect(message).toContain("answered ICMP ping");
+    expect(message.endsWith("\u2026")).toBe(true);
+  });
+
+  /*
+   * The per-label cap, asserted directly \u2014 because the test immediately above
+   * does NOT assert it, despite saying so in its own comment.
+   *
+   * `toContain("Answered by credentials: NNN")` is satisfied by the first
+   * three N of an UNTRUNCATED hundred-character label exactly as well as by a
+   * truncated one. Delete summarizeConfigLabel's cap entirely and that test
+   * stays green: the whole-message clip still holds the length inside the
+   * column, and the only casualty is WHICH sentences survive to be read. So
+   * the cap is pinned here on its own, against a message where no other
+   * branch fires and the printed label can be looked at directly.
+   *
+   * What the cap buys: a config name may be as long as a scan name
+   * (MAX_SNMP_CONFIG_NAME_LENGTH, 100 characters), while the entire credential
+   * summary gets 120. Uncapped, ONE verbose name eats the budget, and the
+   * sentence that exists to tell the operator which credential is doing the
+   * work names that one and counts the other nine \u2014 on a sweep where the
+   * interesting answer is usually one of the nine.
+   */
+  test("a label longer than the cap is printed cut to exactly the cap, ellipsis included", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        respondedToPingCount: 4,
+        responderCountByConfigId: { access: 4 },
+      }),
+      4,
+      [
+        makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+        makeSnmpConfig({ id: "core", label: VERBOSE_LABEL }),
+      ],
+    );
+
+    /*
+     * The label as the operator would read it, pulled back out of the sentence
+     * rather than recomputed. Re-deriving `substring(0, 39) + "\u2026"` here would
+     * be the production line copied into its own test, and would agree with
+     * the module however it were rewritten.
+     */
+    const printed: RegExpMatchArray | null = message.match(
+      /No host answered: (.+)\.$/,
+    );
+
+    expect(printed).not.toBeNull();
+
+    const printedLabel: string = printed![1]!;
+
+    expect(printedLabel.length).toBe(MAX_CREDENTIAL_LABEL_LENGTH);
+    /*
+     * The ellipsis counts toward the forty and has to be there: a name cut at
+     * a word boundary reads as the operator's actual name, and they would go
+     * looking for a config card that does not exist.
+     */
+    expect(printedLabel.endsWith("\u2026")).toBe(true);
+    // What survived is the head of their own name, not a rewrite of it.
+    expect(VERBOSE_LABEL.startsWith(printedLabel.slice(0, -1))).toBe(true);
+    // And the untruncated name is nowhere in the message.
+    expect(message).not.toContain(VERBOSE_LABEL);
+  });
+
+  /*
+   * The same cap on the other sentence. The two are built by separate loops
+   * over the same list, so a cap applied to one and not the other is a live
+   * regression \u2014 and "Answered by credentials" is the sentence a long name is
+   * most likely to appear in, because a credential that answers is one the
+   * operator bothered to name carefully.
+   */
+  test("the cap applies to a credential that answered as well as to a silent one", () => {
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        respondedToPingCount: 4,
+        responderCountByConfigId: { core: 4 },
+      }),
+      4,
+      [
+        makeSnmpConfig({ id: "core", label: VERBOSE_LABEL }),
+        makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+      ],
+    );
+
+    const printed: RegExpMatchArray | null = message.match(
+      /Answered by credentials: (.+) on 4\./,
+    );
+
+    expect(printed).not.toBeNull();
+
+    const printedLabel: string = printed![1]!;
+
+    expect(printedLabel.length).toBe(MAX_CREDENTIAL_LABEL_LENGTH);
+    expect(printedLabel.endsWith("\u2026")).toBe(true);
+    expect(VERBOSE_LABEL.startsWith(printedLabel.slice(0, -1))).toBe(true);
+    expect(message).not.toContain(VERBOSE_LABEL);
+  });
+
+  /*
+   * The boundary from the other side. Almost every real label is well under
+   * the cap, and a cap that fired one character early would put an ellipsis on
+   * names that fit \u2014 turning "Printers (V1)" into something the operator
+   * cannot match against the card in front of them, for no gain at all.
+   */
+  test("a label exactly at the cap is printed whole, with no ellipsis", () => {
+    // Asserted, not assumed: the constant is the boundary or this proves nothing.
+    expect(EXACTLY_AT_CAP_LABEL.length).toBe(MAX_CREDENTIAL_LABEL_LENGTH);
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        respondedToPingCount: 4,
+        responderCountByConfigId: { access: 4 },
+      }),
+      4,
+      [
+        makeSnmpConfig({ id: "access", label: "Access switches (V2c)" }),
+        makeSnmpConfig({ id: "printers", label: EXACTLY_AT_CAP_LABEL }),
+      ],
+    );
+
+    expect(message).toContain(`No host answered: ${EXACTLY_AT_CAP_LABEL}.`);
+    expect(message).not.toContain("\u2026");
+  });
+
+  /*
+   * The same ten credentials with ordinary names, which is what the budget
+   * itself is for: as many as fit are NAMED, and the remainder are COUNTED
+   * rather than silently dropped. Nothing else fires, so the clip above is
+   * not involved and this is the bounding logic on its own.
+   */
+  test("names as many credentials as fit and counts the rest", () => {
+    const snmpConfigs: Array<SubnetScanSnmpConfig> = [];
+
+    for (let index: number = 0; index < 10; index++) {
+      snmpConfigs.push(
+        makeSnmpConfig({
+          id: `config-${index}`,
+          label: `Building ${index} switches (V2c)`,
+        }),
+      );
+    }
+
+    const message: string = buildScanStatusMessage(
+      makeResult({
+        scannedHostCount: 254,
+        respondedToPingCount: 10,
+        responderCountByConfigId: { "config-0": 10 },
+      }),
+      10,
+      snmpConfigs,
+    );
+
+    expect(message.length).toBeLessThanOrEqual(STATUS_MESSAGE_COLUMN_LENGTH);
+    expect(message).toContain(
+      "Answered by credentials: Building 0 switches (V2c) on 10.",
+    );
+    // The nine silent ones do not all fit, so the tail is a count, not silence.
+    expect(message).toMatch(/No host answered: .* and \d more\./);
+    // Nothing was clipped: the budget alone kept this inside the column.
+    expect(message.endsWith("\u2026")).toBe(false);
   });
 
   test("every single-branch message is comfortably short", () => {
@@ -334,10 +750,12 @@ function makeIcmpOnlyResult(
     scannedHostCount: 254,
     /*
      * No port was dialled, so there is none to report. The SNMP fixture above
-     * sets 161; an ICMP-only sweep that carried a port would be describing a
-     * probe it never sent.
+     * sets [161]; an ICMP-only sweep that carried a port would be describing a
+     * probe it never sent. (A LIST since issue #3458 — a scan's credential sets
+     * may disagree on the port — where this was a single optional number.)
      */
-    scannedPort: undefined,
+    scannedPorts: [],
+    responderCountByConfigId: {},
     respondedToPingCount: 12,
     snmpErrorHostCount: 0,
     mostCommonSnmpError: undefined,
@@ -413,7 +831,13 @@ describe("buildScanStatusMessage — an ICMP-only sweep", () => {
         snmpErrorHostCount: 9,
         mostCommonSnmpError: "Authentication failure",
         icmpFilteredFallbackHostCount: 242,
-        scannedPort: 161,
+        scannedPorts: [161],
+        /*
+         * A stray per-credential tally as well, for the same reason as the
+         * SNMP ones beside it: an ICMP-only sweep tried no credential, so the
+         * summary must not start naming them however the result is shaped.
+         */
+        responderCountByConfigId: { "config-1": 4 },
       }),
       4,
     );
@@ -685,18 +1109,25 @@ describe("buildScanStatusMessage — the ICMP-only message and the column it lan
   });
 
   /*
-   * The one combination that does NOT fit: caveat (196) + headline (89) +
-   * checklist (285) is 572 characters, and SubnetScanner cannot produce it
-   * (an unusable ping sweep that confirmed nothing throws instead of
+   * The one combination that does not fit on its own: caveat (196) + headline
+   * (89) + checklist (285) is 572 characters, and SubnetScanner cannot produce
+   * it (an unusable ping sweep that confirmed nothing throws instead of
    * returning). It is asserted anyway, because it is the only case that says
    * WHAT THE CLIP COSTS, and the answer has to be "the tail of the advice" —
    * never the caveat that makes the number readable, and never the number.
    *
-   * Containment alone would not say that: caveat + headline is 286 characters,
-   * so both survive a 500-character clip under every ordering of the three
-   * parts. The assertions below are therefore positional — the caveat starts
-   * the message, the headline is present WHOLE, and the last clause of the
-   * advice is the part that falls off the end. Moving any parts.push in
+   * The PROBE does the clipping, not the server. It used to be the other way
+   * round on this path: the message was returned at its full 572 characters
+   * and the ingest endpoint cut it to fit the column. That was a worse place
+   * for the decision — the server clips blind, and this file's own contract is
+   * that the probe keeps itself inside the column — so buildScanStatusMessage
+   * now clips every one of its returns and marks the cut.
+   *
+   * Containment alone would not say what is lost: caveat + headline is 286
+   * characters, so both survive a 500-character clip under every ordering of
+   * the three parts. The assertions are therefore positional — the caveat
+   * starts the message, the headline is present WHOLE, and the last clause of
+   * the advice is the part that falls off the end. Moving any parts.push in
    * buildScanStatusMessage breaks at least one of them.
    */
   test("the clip costs the tail of the advice, never the caveat or the tally", () => {
@@ -709,24 +1140,26 @@ describe("buildScanStatusMessage — the ICMP-only message and the column it lan
       0,
     );
 
-    // The premise: this really is a message the server has to clip.
-    expect(message.length).toBeGreaterThan(STATUS_MESSAGE_COLUMN_LENGTH);
+    /*
+     * The premise: this is a message that had to be cut. It comes back at
+     * exactly the column width with the ellipsis that marks the cut, rather
+     * than over the width and left for the server — a truncated message must
+     * not be readable as a complete one.
+     */
+    expect(message.length).toBe(STATUS_MESSAGE_COLUMN_LENGTH);
+    expect(message.endsWith("\u2026")).toBe(true);
 
-    const clipped: string = message.substring(0, STATUS_MESSAGE_COLUMN_LENGTH);
-    expect(clipped.indexOf("This ping sweep stopped early")).toBe(0);
-    expect(clipped).toContain(
+    expect(message.indexOf("This ping sweep stopped early")).toBe(0);
+    expect(message).toContain(
       "The hosts reported are the ones confirmed before it stopped.",
     );
     // Whole, not clipped through the middle of the count.
-    expect(clipped).toContain(
+    expect(message).toContain(
       "Swept 32768 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping.",
     );
 
     // And what is lost is the last clause of the advice, which is the least of it.
-    expect(message).toContain(
-      "turn Check SNMP on if you expect managed devices here",
-    );
-    expect(clipped).not.toContain(
+    expect(message).not.toContain(
       "turn Check SNMP on if you expect managed devices here",
     );
   });

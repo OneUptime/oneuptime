@@ -2,6 +2,7 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import SnmpScanConfigUtil from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 
@@ -209,6 +210,45 @@ export const validateRescanInterval: RescanIntervalValidatorFunction = (
   }
 
   return null;
+};
+
+/*
+ * The credential LIST the SNMP Credentials step now collects
+ * (Components/NetworkDevice/SnmpConfigListEditor).
+ *
+ * Every rule is delegated to SnmpScanConfigUtil — the same module
+ * NetworkDeviceDiscoveryScanService validates the write with — so the sentence
+ * shown under the editor is, word for word, the sentence the API would have
+ * returned. That is the whole reason the rules live in Common: a scan that
+ * saves is a scan the probe can run.
+ *
+ * A module-level constant rather than an inline arrow inside the field
+ * factory: the edit dialog builds its fields by calling the wizard's factory a
+ * second time, and Common/Tests/App/Dashboard/DiscoveryScanEditForm.test.tsx
+ * compares the two field arrays' validators BY IDENTITY to prove the two
+ * layouts judge every field by the same rule. A per-call closure would fail
+ * that — correctly, because it would no longer be the same rule object.
+ */
+export type SnmpConfigsValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+) => string | null;
+
+export const validateSnmpConfigs: SnmpConfigsValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+): string | null => {
+  const raw: unknown = values.snmpConfigs;
+
+  /*
+   * Untouched on a form the editor has not reported into yet. `required`
+   * speaks for that case, exactly as it does for every other field here —
+   * see readRawString above for why emptiness is not this validator's
+   * business.
+   */
+  if (raw === undefined || raw === null || raw === "") {
+    return null;
+  }
+
+  return SnmpScanConfigUtil.getValidationError(raw);
 };
 
 export type ScanModePredicateFunction = (

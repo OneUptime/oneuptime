@@ -16,6 +16,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { DiscoveryScanSnmpConfig } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 export interface DiscoveredNetworkDevice {
@@ -41,6 +42,28 @@ export interface DiscoveredNetworkDevice {
    * before this field existed (those hosts all answered SNMP).
    */
   snmpReachable?: boolean | undefined;
+  /*
+   * WHICH of the scan's SNMP configs answered this host — the `id` of an entry
+   * in the `snmpConfigs` column below.
+   *
+   * A scan can now try several credential sets, so this is what makes an
+   * import correct: without it, a host found by the fourth config would be
+   * created carrying the first config's community string and would then fail
+   * every poll, with nothing on the device to say why. See
+   * SnmpScanConfigUtil.resolveForHost, which is what the two import paths ask.
+   *
+   * Undefined on ping-only hosts (no config found them), on results stored
+   * before this field existed, and on results from a probe that predates it —
+   * all three fall back to the scan's first config, which for a
+   * single-config scan is exactly the credential set the old code used.
+   *
+   * It is an OPAQUE ID on purpose. This column is readable by roles that must
+   * never see a credential (Viewer, SettingsViewer), so the credential itself
+   * — and even the config's name — stays in the narrower-permissioned
+   * `snmpConfigs` column and is resolved from there by callers that may read
+   * it.
+   */
+  snmpConfigId?: string | undefined;
 }
 
 @EnableDocumentation()
@@ -393,6 +416,73 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public cidr?: string = undefined;
+
+  /*
+   * The ordered list of SNMP credential sets this scan tries against every
+   * host, first match wins.
+   *
+   * Real subnets are mixed — v2c access switches, a v3 core, a vendor block on
+   * its own community — and a scan carrying one credential set silently missed
+   * everything speaking anything else (OneUptime issue #3458). The flattened
+   * snmp* columns below are what that single set was stored in; they are kept,
+   * populated from this list's FIRST entry, for two reasons that are not
+   * negotiable:
+   *
+   *   - a probe is deployed separately from the server and is routinely a
+   *     version behind. A probe that has never heard of this column reads the
+   *     flattened ones and nothing else, so without the mirror every older
+   *     probe in the fleet would sweep a saved multi-config scan with the
+   *     column defaults and report a confident zero.
+   *   - every scan created before this column exists has NULL here, and its
+   *     flattened columns are its one credential set.
+   *
+   * SnmpScanConfigUtil.resolve is the single reader that reconciles the two,
+   * and is what the probe, the form and both import paths ask.
+   *
+   * READ is the NARROW list — no Viewer, no SettingsViewer — for the same
+   * reason snmpCommunityString and the two v3 keys below have one: entries in
+   * this array carry those very secrets, and a jsonb column has a single
+   * permission for the whole value, so it takes the strictest of the
+   * permissions of what it contains.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "SNMP Configs",
+    description:
+      "Ordered list of SNMP credential sets tried against every host in the subnet, first match wins. Each entry carries an id, an optional name, a version, a community string or the v3 credentials, and a port. When empty, the scan uses the single flattened SNMP configuration on this row.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public snmpConfigs?: Array<DiscoveryScanSnmpConfig> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -255,6 +255,20 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
        * so the two can never disagree on a stored row.
        */
       "isSnmpEnabled",
+      /*
+       * The ordered credential list (issue #3458) is a SETTING of the sweep,
+       * not something the scan reported, so it belongs on this side of the
+       * line — and it has to be here specifically because the Edit dialog
+       * renders it: ModelForm drops a field whose column grants no update
+       * permission, so a create-only `snmpConfigs` would leave the operator
+       * an editor that silently cannot save the one thing it edits.
+       *
+       * It is also the column the method above CLEARS. A method that is
+       * editable while the credentials it governs are not would give the
+       * service an update it cannot honour: turning SNMP off has to null this
+       * list, and a create-only column cannot be nulled by an update.
+       */
+      "snmpConfigs",
       "snmpVersion",
       "snmpCommunityString",
       "snmpPort",
@@ -299,19 +313,46 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
         update: scan.getColumnAccessControlFor(column)?.update,
       }).toEqual({ column: column, update: [] });
     }
+
+    /*
+     * And the column that looks like it belongs on this side but must not be
+     * moved here. `snmpConfigs` holds community strings and v3 passphrases,
+     * so the instinct on reading it is to lock it down beside the results —
+     * but it is the operator's own input, not something the scan reported,
+     * and an empty update list is precisely what makes a column unsavable
+     * from the Edit dialog. Its secrets are guarded by a narrow READ list
+     * instead, which the test below pins.
+     *
+     * Asserted in both directions so the two halves of this divide cannot be
+     * quietly edited into agreeing with each other: the name is absent from
+     * the list AND the model really does grant updates on it.
+     */
+    expect(resultColumns).not.toContain("snmpConfigs");
+    expect(scan.getColumnAccessControlFor("snmpConfigs")?.update).not.toEqual(
+      [],
+    );
   });
 
   /*
-   * Widening `update` must not have widened `read`. The three credential
-   * columns are read by a narrower list than the rest of the model on purpose
-   * — a passphrase is not something every reader of the scans list should be
+   * Widening `update` must not have widened `read`. The credential columns are
+   * read by a narrower list than the rest of the model on purpose — a
+   * passphrase is not something every reader of the scans list should be
    * handed — and every editor is already inside it, so the Edit dialog can
    * still prefill them.
+   *
+   * `snmpConfigs` is the fourth, and the one most easily got wrong. It is a
+   * jsonb column, so it has ONE permission for the whole value, and the value
+   * contains the community strings and v3 passphrases of every credential set
+   * the scan tries. A jsonb column therefore has to take the STRICTEST of the
+   * permissions of what it contains: granting it the model's usual read list
+   * would hand a Viewer, in one array, every secret the three flattened
+   * columns beside it are narrowed to keep from them.
    */
   test("does not widen read access to the credentials", () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
 
     const credentialColumns: Array<string> = [
+      "snmpConfigs",
       "snmpCommunityString",
       "snmpV3AuthKey",
       "snmpV3PrivKey",
@@ -332,6 +373,39 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
         expect(readers).toContain(editor);
       }
     }
+  });
+
+  /*
+   * The other half of that divide, and the place the two changes that landed
+   * together are easiest to confuse for one another.
+   *
+   * `isSnmpEnabled` (issue #3445) and `snmpConfigs` (issue #3458) arrived on
+   * this model at the same time and sit beside each other on the sweep, so the
+   * temptation on reading them is to give them one permission set. They must
+   * not have one: the METHOD is a boolean saying which question the sweep
+   * asked, and every reader of the scans list needs it to tell an ICMP-only
+   * scan from an SNMP one — the results dialog says "Ping only" and explains
+   * why a host has no sysName, and a Viewer who cannot read the flag is shown a
+   * scan that looks broken rather than one that was deliberately narrow. The
+   * CREDENTIALS are passphrases, and no widening of the flag beside them may
+   * drag them along.
+   *
+   * Asserted as exact equality with the model's usual read list rather than
+   * "contains Viewer", so narrowing the flag to the credential list — the
+   * mistake this test exists to catch — fails here instead of silently
+   * emptying a column of the scans table for viewers.
+   */
+  test("lets every reader see the scan's method, without seeing its credentials", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    expect(scan.getColumnAccessControlFor("isSnmpEnabled")?.read).toEqual(
+      READERS,
+    );
+
+    // And the list it governs is emphatically NOT read by that same set.
+    expect(scan.getColumnAccessControlFor("snmpConfigs")?.read).not.toEqual(
+      READERS,
+    );
   });
 
   /*

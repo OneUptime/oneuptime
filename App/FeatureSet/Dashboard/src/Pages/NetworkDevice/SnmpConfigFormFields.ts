@@ -124,28 +124,105 @@ export const validateSnmpPort: SnmpPortValidatorFunction = (
   return null;
 };
 
+/*
+ * The reveal chain, and the dropdown option lists, expressed against a PLAIN
+ * object rather than against form values.
+ *
+ * They are exported because a second SNMP editor now exists: the discovery
+ * scan collects an ordered LIST of credential sets
+ * (Components/NetworkDevice/SnmpConfigListEditor), which cannot be built out
+ * of flat Fields — a repeated block is not something Fields can express — but
+ * which must ask for exactly the same things, under the same labels, revealed
+ * by exactly the same rules. Sharing the predicates and the option lists is
+ * what keeps "when do we ask for a privacy key?" one answer instead of two.
+ *
+ * The showIf callbacks below are thin wrappers over these, and stay
+ * module-level constants: several tests compare two separately-built field
+ * arrays and would see a per-call closure as a difference.
+ */
+export interface SnmpV3RevealSource {
+  snmpVersion?: string | undefined;
+  snmpV3SecurityLevel?: string | undefined;
+}
+
+export function isSnmpV3(config: SnmpV3RevealSource): boolean {
+  return SnmpVersionUtil.isV3(config.snmpVersion);
+}
+
+export function isSnmpV3WithAuth(config: SnmpV3RevealSource): boolean {
+  return (
+    isSnmpV3(config) &&
+    (config.snmpV3SecurityLevel === SnmpSecurityLevel.AuthNoPriv ||
+      config.snmpV3SecurityLevel === SnmpSecurityLevel.AuthPriv)
+  );
+}
+
+export function isSnmpV3WithPriv(config: SnmpV3RevealSource): boolean {
+  return (
+    isSnmpV3(config) &&
+    config.snmpV3SecurityLevel === SnmpSecurityLevel.AuthPriv
+  );
+}
+
+export interface SnmpDropdownOption {
+  label: string;
+  value: string;
+}
+
+export const SNMP_VERSION_DROPDOWN_OPTIONS: Array<SnmpDropdownOption> = [
+  { label: "V1", value: "V1" },
+  { label: "V2c", value: "V2c" },
+  { label: "V3", value: "V3" },
+];
+
+export const SNMP_V3_SECURITY_LEVEL_DROPDOWN_OPTIONS: Array<SnmpDropdownOption> =
+  [
+    { label: "No Auth, No Priv", value: SnmpSecurityLevel.NoAuthNoPriv },
+    { label: "Auth, No Priv", value: SnmpSecurityLevel.AuthNoPriv },
+    { label: "Auth, Priv", value: SnmpSecurityLevel.AuthPriv },
+  ];
+
+export const SNMP_V3_AUTH_PROTOCOL_DROPDOWN_OPTIONS: Array<SnmpDropdownOption> =
+  [
+    { label: "MD5", value: SnmpAuthProtocol.MD5 },
+    { label: "SHA", value: SnmpAuthProtocol.SHA },
+    { label: "SHA-256", value: SnmpAuthProtocol.SHA256 },
+    { label: "SHA-512", value: SnmpAuthProtocol.SHA512 },
+  ];
+
+export const SNMP_V3_PRIV_PROTOCOL_DROPDOWN_OPTIONS: Array<SnmpDropdownOption> =
+  [
+    { label: "DES", value: SnmpPrivProtocol.DES },
+    { label: "AES", value: SnmpPrivProtocol.AES },
+    { label: "AES-256", value: SnmpPrivProtocol.AES256 },
+  ];
+
+// The reveal source a set of form values describes.
+function toRevealSource(
+  item: FormValues<SnmpConfigModelFields>,
+): SnmpV3RevealSource {
+  return {
+    snmpVersion: item["snmpVersion"] as string | undefined,
+    snmpV3SecurityLevel: item["snmpV3SecurityLevel"] as string | undefined,
+  };
+}
+
 const isV3: (item: FormValues<SnmpConfigModelFields>) => boolean = (
   item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
-  return SnmpVersionUtil.isV3(item["snmpVersion"] as string | undefined);
+  return isSnmpV3(toRevealSource(item));
 };
 
 const isV3WithAuth: (item: FormValues<SnmpConfigModelFields>) => boolean = (
   item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
-  return (
-    isV3(item) &&
-    (item["snmpV3SecurityLevel"] === SnmpSecurityLevel.AuthNoPriv ||
-      item["snmpV3SecurityLevel"] === SnmpSecurityLevel.AuthPriv)
-  );
+  return isSnmpV3WithAuth(toRevealSource(item));
 };
 
 const isV3WithPriv: (item: FormValues<SnmpConfigModelFields>) => boolean = (
   item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
-  return (
-    isV3(item) && item["snmpV3SecurityLevel"] === SnmpSecurityLevel.AuthPriv
-  );
+  return isSnmpV3WithPriv(toRevealSource(item));
 };
 
 export function getSnmpConfigFormFields(
@@ -158,11 +235,7 @@ export function getSnmpConfigFormFields(
       },
       title: "SNMP Version",
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: [
-        { label: "V1", value: "V1" },
-        { label: "V2c", value: "V2c" },
-        { label: "V3", value: "V3" },
-      ],
+      dropdownOptions: SNMP_VERSION_DROPDOWN_OPTIONS,
       required: true,
       /*
        * Default it, do not just hint it. A required Dropdown whose
@@ -199,11 +272,7 @@ export function getSnmpConfigFormFields(
       },
       title: "SNMP v3 Security Level",
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: [
-        { label: "No Auth, No Priv", value: SnmpSecurityLevel.NoAuthNoPriv },
-        { label: "Auth, No Priv", value: SnmpSecurityLevel.AuthNoPriv },
-        { label: "Auth, Priv", value: SnmpSecurityLevel.AuthPriv },
-      ],
+      dropdownOptions: SNMP_V3_SECURITY_LEVEL_DROPDOWN_OPTIONS,
       required: true,
       placeholder: "Auth, Priv",
       description:
@@ -227,12 +296,7 @@ export function getSnmpConfigFormFields(
       },
       title: "SNMP v3 Authentication Protocol",
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: [
-        { label: "MD5", value: SnmpAuthProtocol.MD5 },
-        { label: "SHA", value: SnmpAuthProtocol.SHA },
-        { label: "SHA-256", value: SnmpAuthProtocol.SHA256 },
-        { label: "SHA-512", value: SnmpAuthProtocol.SHA512 },
-      ],
+      dropdownOptions: SNMP_V3_AUTH_PROTOCOL_DROPDOWN_OPTIONS,
       required: true,
       placeholder: "SHA",
       showIf: isV3WithAuth,
@@ -258,11 +322,7 @@ export function getSnmpConfigFormFields(
       },
       title: "SNMP v3 Privacy Protocol",
       fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: [
-        { label: "DES", value: SnmpPrivProtocol.DES },
-        { label: "AES", value: SnmpPrivProtocol.AES },
-        { label: "AES-256", value: SnmpPrivProtocol.AES256 },
-      ],
+      dropdownOptions: SNMP_V3_PRIV_PROTOCOL_DROPDOWN_OPTIONS,
       required: true,
       placeholder: "AES",
       showIf: isV3WithPriv,

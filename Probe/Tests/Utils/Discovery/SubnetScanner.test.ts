@@ -2,7 +2,10 @@
 process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
-import SubnetScanner from "../../../Utils/Discovery/SubnetScanner";
+import SubnetScanner, {
+  SubnetScanConfig,
+  SubnetScanSnmpConfig,
+} from "../../../Utils/Discovery/SubnetScanner";
 import SnmpMonitor from "../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
@@ -17,6 +20,47 @@ import {
   it,
   jest,
 } from "@jest/globals";
+
+/*
+ * A scan carries an ORDERED LIST of credential sets rather than one flattened
+ * set, so every sweep below is built through these two helpers.
+ *
+ * Every guarantee in THIS file is about the sweep itself — which addresses are
+ * probed, which hosts are recorded, how errors are counted — and none of them
+ * depend on how many credential sets the scan carries. So they all sweep with
+ * exactly ONE config, and the helper keeps that config out of the way. The
+ * multi-config behaviour (first match wins, adaptive ordering, per-config
+ * responder counts) is pinned in SubnetScannerMultiConfig.test.ts.
+ *
+ * Note the shape of `snmpVersion` here: SubnetScanSnmpConfig carries the
+ * PARSED enum value (SnmpVersion.V3, i.e. "3"), never the stored dropdown key
+ * ("V3"). Parsing the stored spelling is the caller's job now — see
+ * FetchScans.buildProbeSnmpConfigs.
+ */
+const ONLY_CONFIG_ID: string = "config-1";
+
+function buildSnmpConfig(
+  overrides: Partial<SubnetScanSnmpConfig> = {},
+): SubnetScanSnmpConfig {
+  return {
+    id: ONLY_CONFIG_ID,
+    label: "SNMP v2c on port 161",
+    snmpVersion: SnmpVersion.V2c,
+    communityString: "public",
+    port: 161,
+    ...overrides,
+  };
+}
+
+function scanConfig(
+  cidr: string,
+  overrides: Partial<SubnetScanSnmpConfig> = {},
+): SubnetScanConfig {
+  return {
+    cidr: cidr,
+    snmpConfigs: [buildSnmpConfig(overrides)],
+  };
+}
 
 describe("SubnetScanner.countHosts", () => {
   it("counts a /24 as 254 usable hosts (excludes network + broadcast)", () => {
@@ -78,31 +122,31 @@ describe("SubnetScanner.countHosts", () => {
 describe("SubnetScanner.scan oversized-target guard", () => {
   it("rejects an oversized subnet before expanding it (no OOM)", async () => {
     // A /8 would materialize ~16.7M strings if the guard ran after expansion.
-    await expect(SubnetScanner.scan({ cidr: "10.0.0.0/8" })).rejects.toThrow(
+    await expect(SubnetScanner.scan(scanConfig("10.0.0.0/8"))).rejects.toThrow(
       /exceeding the/,
     );
   });
 
   it("rejects an oversized octet range before expanding it", async () => {
     await expect(
-      SubnetScanner.scan({ cidr: "10.0-255.0-255.1-10" }),
+      SubnetScanner.scan(scanConfig("10.0-255.0-255.1-10")),
     ).rejects.toThrow(/exceeding the/);
   });
 
   it("rejects a malformed target", async () => {
-    await expect(SubnetScanner.scan({ cidr: "not-a-cidr" })).rejects.toThrow(
+    await expect(SubnetScanner.scan(scanConfig("not-a-cidr"))).rejects.toThrow(
       /not a valid scan target/,
     );
   });
 
   it("rejects a reversed octet range rather than sweeping nothing", async () => {
     await expect(
-      SubnetScanner.scan({ cidr: "10.22-16.0.1-20" }),
+      SubnetScanner.scan(scanConfig("10.22-16.0.1-20")),
     ).rejects.toThrow(/reversed/);
   });
 
   it("rejects an empty target", async () => {
-    await expect(SubnetScanner.scan({ cidr: "" })).rejects.toThrow(
+    await expect(SubnetScanner.scan(scanConfig(""))).rejects.toThrow(
       /scan target is required/,
     );
   });
@@ -136,7 +180,7 @@ describe("SubnetScanner octet-range sweeps", () => {
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: "10.1-2.0.5-6" });
+      await SubnetScanner.scan(scanConfig("10.1-2.0.5-6"));
 
     expect([...probed].sort()).toEqual([
       "10.1.0.5",
@@ -155,7 +199,7 @@ describe("SubnetScanner octet-range sweeps", () => {
     const probed: Array<string> = mockSnmpAnsweringEverywhere();
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
-    await SubnetScanner.scan({ cidr: "10.0.0.0-255" });
+    await SubnetScanner.scan(scanConfig("10.0.0.0-255"));
 
     expect(probed).toContain("10.0.0.0");
     expect(probed).toContain("10.0.0.255");
@@ -169,7 +213,7 @@ describe("SubnetScanner octet-range sweeps", () => {
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: "10.9.8.7" });
+      await SubnetScanner.scan(scanConfig("10.9.8.7"));
 
     expect(probed).toEqual(["10.9.8.7"]);
     expect(result.scannedHostCount).toBe(1);
@@ -180,7 +224,7 @@ describe("SubnetScanner octet-range sweeps", () => {
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: "10.1-2.0.8-9" });
+      await SubnetScanner.scan(scanConfig("10.1-2.0.8-9"));
 
     expect(
       result.discoveredHosts.map((discovered: { ipAddress: string }) => {
@@ -198,7 +242,7 @@ describe("SubnetScanner octet-range sweeps", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: "10.1-2.0.5-6" });
+      await SubnetScanner.scan(scanConfig("10.1-2.0.5-6"));
 
     expect(probed).toEqual(["10.1.0.6"]);
     expect(result.scannedHostCount).toBe(4);
@@ -215,17 +259,18 @@ describe("SubnetScanner octet-range sweeps", () => {
       });
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
-    await SubnetScanner.scan({
-      cidr: "10.0.0.1-2",
-      snmpVersion: "V3",
-      snmpV3Auth: {
-        securityLevel: SnmpSecurityLevel.AuthNoPriv,
-        username: "monitoring",
-        authProtocol: SnmpAuthProtocol.SHA,
-        authKey: "auth-passphrase",
-      },
-      snmpPort: 1610,
-    });
+    await SubnetScanner.scan(
+      scanConfig("10.0.0.1-2", {
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: {
+          securityLevel: SnmpSecurityLevel.AuthNoPriv,
+          username: "monitoring",
+          authProtocol: SnmpAuthProtocol.SHA,
+          authKey: "auth-passphrase",
+        },
+        port: 1610,
+      }),
+    );
 
     expect(captured.length).toBe(2);
     for (const config of captured) {
@@ -243,8 +288,18 @@ describe("SubnetScanner octet-range sweeps", () => {
  * so casting the stored string instead of parsing it leaves "V3" !== SnmpVersion.V3.
  * The v3 branch is then skipped and the host is silently probed as v2c with
  * community "public" — the wrong protocol on the wire, and no error to notice.
- * These tests assert on the config actually handed to probeSystemInfo, because
- * that is the only place the downgrade is visible.
+ *
+ * That STORED -> ENUM parse no longer happens in the scanner: it moved out to
+ * FetchScans.buildProbeSnmpConfigs, which hands this layer a
+ * SubnetScanSnmpConfig whose snmpVersion is already the enum, and it is pinned
+ * there by Probe/Tests/Jobs/Discovery/FetchScansSnmpConfigs.test.ts.
+ *
+ * What remains the scanner's job — and what these tests pin — is passing that
+ * parsed version STRAIGHT THROUGH to the SNMP layer for every host, without
+ * re-deriving, re-defaulting or casting it. Doing any of those here would
+ * resurrect exactly the silent v2c downgrade the parse exists to prevent, so
+ * these tests still assert on the config actually handed to probeSystemInfo:
+ * that is the only place the downgrade would be visible.
  */
 describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
   const V3_AUTH: SnmpV3Auth = {
@@ -283,44 +338,63 @@ describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
     jest.restoreAllMocks();
   });
 
-  it("normalizes the stored V3 dropdown key to the SnmpVersion enum value", async () => {
+  it("hands the SNMP layer the V3 version its config carries, not a re-derived one", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({
-      cidr: TINY_CIDR,
-      snmpVersion: "V3",
-      snmpV3Auth: V3_AUTH,
-    });
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, {
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: V3_AUTH,
+      }),
+    );
 
     expect(captured.length).toBeGreaterThan(0);
     // Not the literal "V3" — that would silently downgrade to v2c.
     expect(captured[0]!.snmpVersion).toBe(SnmpVersion.V3);
   });
 
-  it("normalizes the stored V1 dropdown key rather than downgrading it to v2c", async () => {
+  it("hands the SNMP layer the V1 version its config carries rather than downgrading it to v2c", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({ cidr: TINY_CIDR, snmpVersion: "V1" });
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, { snmpVersion: SnmpVersion.V1 }),
+    );
 
     expect(captured[0]!.snmpVersion).toBe(SnmpVersion.V1);
   });
 
-  it("tolerates the raw enum spelling a non-dropdown writer may have stored", async () => {
+  it("puts the enum VALUE on the wire, which is the spelling SnmpMonitor branches on", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({
-      cidr: TINY_CIDR,
-      snmpVersion: "3",
-      snmpV3Auth: V3_AUTH,
-    });
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, {
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: V3_AUTH,
+      }),
+    );
 
+    /*
+     * Spelled out as the raw value because that is the whole point of the
+     * seam: the stored key "V3" is NOT equal to SnmpVersion.V3 ("3"), and a
+     * scanner that passed the key through would take the v2c branch.
+     */
     expect(captured[0]!.snmpVersion).toBe(SnmpVersion.V3);
+    expect(String(captured[0]!.snmpVersion)).toBe("3");
   });
 
-  it("defaults to v2c when no version is configured", async () => {
+  it("hands the SNMP layer v2c when that is the version its config carries", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({ cidr: TINY_CIDR });
+    /*
+     * v2c is what a scan with no configured version ends up with — the
+     * defaulting itself is SnmpVersionUtil.parse's, applied in
+     * FetchScans.buildProbeSnmpConfigs and pinned in
+     * Probe/Tests/Jobs/Discovery/FetchScansSnmpConfigs.test.ts. Here the only
+     * guarantee is that the scanner does not second-guess it.
+     */
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, { snmpVersion: SnmpVersion.V2c }),
+    );
 
     expect(captured[0]!.snmpVersion).toBe(SnmpVersion.V2c);
   });
@@ -328,11 +402,12 @@ describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
   it("carries the v3 credentials through to every host probed", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({
-      cidr: TINY_CIDR,
-      snmpVersion: "V3",
-      snmpV3Auth: V3_AUTH,
-    });
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, {
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: V3_AUTH,
+      }),
+    );
 
     for (const config of captured) {
       expect(config.snmpV3Auth).toEqual(V3_AUTH);
@@ -342,11 +417,12 @@ describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
   it("leaves snmpV3Auth undefined for a v2c scan", async () => {
     const captured: Array<MonitorStepSnmpMonitor> = captureProbedConfigs();
 
-    await SubnetScanner.scan({
-      cidr: TINY_CIDR,
-      snmpVersion: "V2c",
-      snmpCommunityString: "private",
-    });
+    await SubnetScanner.scan(
+      scanConfig(TINY_CIDR, {
+        snmpVersion: SnmpVersion.V2c,
+        communityString: "private",
+      }),
+    );
 
     expect(captured[0]!.snmpV3Auth).toBeUndefined();
     expect(captured[0]!.communityString).toBe("private");
@@ -390,7 +466,7 @@ describe("SubnetScanner ICMP pre-sweep", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     // Only the ping-alive host reaches the SNMP layer.
     expect(probed).toEqual(["10.0.0.1"]);
@@ -412,7 +488,7 @@ describe("SubnetScanner ICMP pre-sweep", () => {
       .mockRejectedValue(new Error("ICMP sockets require elevated privileges"));
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     // No host was dropped: the pre-sweep failure degraded to a plain SNMP sweep.
     expect([...probed].sort()).toEqual(["10.0.0.0", "10.0.0.1"]);
@@ -421,23 +497,30 @@ describe("SubnetScanner ICMP pre-sweep", () => {
     expect(result.respondedToPingCount).toBeUndefined();
   });
 
-  it("flags SNMP responders with snmpReachable: true", async () => {
+  it("flags SNMP responders with snmpReachable: true and the id of the config that answered", async () => {
     mockSnmpAnsweringEverywhere();
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
+    /*
+     * snmpConfigId is what lets the import path build the device with the
+     * credentials that actually worked for it, so it is asserted as part of
+     * the whole host object rather than left to a looser check.
+     */
     expect(result.discoveredHosts).toEqual([
       {
         ipAddress: "10.0.0.0",
         sysName: "device-10.0.0.0",
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
       {
         ipAddress: "10.0.0.1",
         sysName: "device-10.0.0.1",
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
     ]);
   });
@@ -455,7 +538,7 @@ describe("SubnetScanner ICMP pre-sweep", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     // The host whose ping errored falls through to SNMP, not into a skip.
     expect(probed).toContain("10.0.0.1");
@@ -483,17 +566,25 @@ describe("SubnetScanner ping-only host recording", () => {
     jest.restoreAllMocks();
   });
 
-  it("records a ping-alive, SNMP-silent host with snmpReachable: false", async () => {
+  it("records a ping-alive, SNMP-silent host with snmpReachable: false and no config id", async () => {
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
     jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
+    /*
+     * No snmpConfigId: no config found this host, and stamping one would tell
+     * the import path to build the device with credentials that were never
+     * shown to work for it.
+     */
     expect(result.discoveredHosts).toEqual([
       { ipAddress: "10.0.0.0", snmpReachable: false },
       { ipAddress: "10.0.0.1", snmpReachable: false },
     ]);
+    for (const host of result.discoveredHosts) {
+      expect(host.snmpConfigId).toBeUndefined();
+    }
     // Counts are unchanged by the recording.
     expect(result.scannedHostCount).toBe(2);
     expect(result.respondedToPingCount).toBe(2);
@@ -511,7 +602,7 @@ describe("SubnetScanner ping-only host recording", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     expect(result.discoveredHosts).toEqual([
       { ipAddress: "10.0.0.0", snmpReachable: false },
@@ -520,6 +611,7 @@ describe("SubnetScanner ping-only host recording", () => {
         sysName: "sw1",
         sysDescr: "Cisco IOS",
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
     ]);
   });
@@ -531,7 +623,7 @@ describe("SubnetScanner ping-only host recording", () => {
     jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     /*
      * Without the pre-sweep there is no ICMP evidence the host exists, so
@@ -551,7 +643,7 @@ describe("SubnetScanner ping-only host recording", () => {
     jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     expect(result.discoveredHosts).toEqual([]);
   });
@@ -591,7 +683,7 @@ describe("SubnetScanner ICMP-filtered subnet fallback", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+      await SubnetScanner.scan(scanConfig(SMALL_CIDR));
 
     // Every address was SNMP-probed despite answering no ping at all.
     expect([...probed].sort()).toEqual([
@@ -609,6 +701,7 @@ describe("SubnetScanner ICMP-filtered subnet fallback", () => {
         sysName: "core-sw1",
         sysDescr: "Cisco IOS",
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
     ]);
     expect(result.respondedToPingCount).toBe(0);
@@ -631,7 +724,7 @@ describe("SubnetScanner ICMP-filtered subnet fallback", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+      await SubnetScanner.scan(scanConfig(SMALL_CIDR));
 
     // One SNMP responder is enough: the other five keep their skipped 2s.
     expect(probed).toEqual(["10.0.0.2"]);
@@ -653,7 +746,7 @@ describe("SubnetScanner ICMP-filtered subnet fallback", () => {
       });
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+      await SubnetScanner.scan(scanConfig(SMALL_CIDR));
 
     expect(probed).toHaveLength(6);
     expect(new Set(probed).size).toBe(6);
@@ -663,8 +756,8 @@ describe("SubnetScanner ICMP-filtered subnet fallback", () => {
 
 /*
  * "Returned null" used to cover both "nothing is at this address" (a timeout)
- * and "the agent refused these credentials" (an auth failure). One credential
- * set is applied to the whole sweep, so a single wrong v3 key blanks every
+ * and "the agent refused these credentials" (an auth failure). With a single
+ * credential set applied to the whole sweep, one wrong v3 key blanks every
  * host — and the scan reported a clean zero with no way to tell that apart
  * from an empty subnet.
  */
@@ -694,7 +787,7 @@ describe("SubnetScanner SNMP error reporting", () => {
     mockSnmpFailingWith("Authentication failure");
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     expect(result.snmpErrorHostCount).toBe(2);
     expect(result.mostCommonSnmpError).toBe("Authentication failure");
@@ -705,7 +798,7 @@ describe("SubnetScanner SNMP error reporting", () => {
     mockSnmpFailingWith("Request timed out");
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     expect(result.snmpErrorHostCount).toBe(0);
     expect(result.mostCommonSnmpError).toBeUndefined();
@@ -732,7 +825,7 @@ describe("SubnetScanner SNMP error reporting", () => {
       );
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: "10.0.0.0/29" });
+      await SubnetScanner.scan(scanConfig("10.0.0.0/29"));
 
     expect(result.snmpErrorHostCount).toBe(6);
     // Five of six hosts, versus one ECONNREFUSED.
@@ -746,11 +839,64 @@ describe("SubnetScanner SNMP error reporting", () => {
       .mockRejectedValue(new Error("unexpected decode failure"));
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
-      await SubnetScanner.scan({ cidr: TINY_CIDR });
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
 
     expect(result.discoveredHosts).toEqual([
       { ipAddress: "10.0.0.0", snmpReachable: false },
       { ipAddress: "10.0.0.1", snmpReachable: false },
     ]);
+  });
+});
+
+/*
+ * The single-config sweep still has to report the port it used and account for
+ * the one credential set it carries — the list-shaped result fields degrade to
+ * exactly the one-entry answers a single-config scan had before the list
+ * existed.
+ */
+describe("SubnetScanner single-config result shape", () => {
+  const TINY_CIDR: string = "10.0.0.0/31";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reports the one port it probed as a one-element list", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
+
+    const custom: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan(scanConfig(TINY_CIDR, { port: 1610 }));
+    expect(custom.scannedPorts).toEqual([1610]);
+
+    const standard: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
+    expect(standard.scannedPorts).toEqual([161]);
+  });
+
+  it("reports the one config's responder count, zero included", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
+
+    const silent: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
+
+    /*
+     * A zero-valued entry rather than an absent one: "this credential found
+     * nobody" is exactly what the operator needs told, and an empty map would
+     * leave the summary unable to say it.
+     */
+    expect(silent.responderCountByConfigId).toEqual({ [ONLY_CONFIG_ID]: 0 });
+
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        return { sysName: "device-" + config.hostname };
+      });
+
+    const answered: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan(scanConfig(TINY_CIDR));
+
+    expect(answered.responderCountByConfigId).toEqual({ [ONLY_CONFIG_ID]: 2 });
   });
 });

@@ -18,6 +18,7 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import SubnetScanner, {
   SubnetScanResult,
+  type SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import { fetchAndRunScans, runScan } from "../../../Jobs/Discovery/FetchScans";
 
@@ -160,6 +161,23 @@ function sweepConfig(callIndex: number = 0): JSONObject {
   return scanSpy.mock.calls[callIndex]![0] as unknown as JSONObject;
 }
 
+/*
+ * The credential sets the sweep was handed.
+ *
+ * A scan's credentials became an ordered LIST in issue #3458, so "what did
+ * this sweep get to authenticate with?" is a question about this array rather
+ * than about flat keys on the config. Typed, so an assertion against a set's
+ * snmpV3Auth is checked rather than reaching into an untyped JSONObject and
+ * finding undefined for a spelling that never existed.
+ */
+function sweptSnmpConfigs(callIndex: number = 0): Array<SubnetScanSnmpConfig> {
+  return (
+    (sweepConfig(callIndex)["snmpConfigs"] as
+      | Array<SubnetScanSnmpConfig>
+      | undefined) || []
+  );
+}
+
 function loggedDebug(): string {
   return debugSpy.mock.calls
     .map((call: Array<unknown>) => {
@@ -175,11 +193,18 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
     expect(scanSpy).toHaveBeenCalledWith({
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
-      // Cleared on create, and carried through untouched.
-      snmpVersion: null,
-      snmpCommunityString: null,
-      snmpV3Auth: undefined,
-      snmpPort: null,
+      /*
+       * EMPTY, and that is the whole assertion.
+       *
+       * Credentials became an ordered list in issue #3458, so the flat
+       * snmpVersion/snmpCommunityString/snmpV3Auth/snmpPort keys this used to
+       * pin as null no longer exist on a sweep config at all. The guarantee is
+       * unchanged and is stated more directly here: an ICMP-only scan reaches
+       * the sweep with NOTHING to authenticate with, however much its row
+       * still carries. An exact-object assertion, so a credential set added
+       * back by a later refactor fails here rather than going out on the wire.
+       */
+      snmpConfigs: [],
     });
   });
 
@@ -199,7 +224,13 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
   test("builds no v3 auth for the sweep", async () => {
     await runScan(makeIcmpOnlyScan());
 
-    expect(sweepConfig()["snmpV3Auth"]).toBeUndefined();
+    /*
+     * Asked of the credential LIST, not of a `snmpV3Auth` key on the sweep
+     * config. That key moved onto each list entry in issue #3458, so reading
+     * it here would find undefined on an object that never had it and pass for
+     * a reason that has nothing to do with the scan's method.
+     */
+    expect(sweptSnmpConfigs()).toEqual([]);
   });
 
   /*
@@ -221,7 +252,7 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
       }),
     );
 
-    expect(sweepConfig()["snmpV3Auth"]).toBeUndefined();
+    expect(sweptSnmpConfigs()).toEqual([]);
     expect(sweepConfig()["isSnmpEnabled"]).toBe(false);
   });
 
@@ -304,7 +335,7 @@ describe("runScan — a broken v3 value does not fail an ICMP-only scan", () => 
   test("the broken value never reaches the sweep config either", async () => {
     await runScan(makeIcmpOnlyScan(BROKEN_V3));
 
-    expect(sweepConfig()["snmpV3Auth"]).toBeUndefined();
+    expect(sweptSnmpConfigs()).toEqual([]);
   });
 });
 
@@ -360,7 +391,7 @@ describe("runScan — an SNMP scan is unaffected", () => {
       }),
     );
 
-    expect(sweepConfig()["snmpV3Auth"]).toEqual({
+    expect(sweptSnmpConfigs()[0]!.snmpV3Auth).toEqual({
       securityLevel: "authPriv",
       username: "monitoring",
       authProtocol: "SHA",
@@ -382,7 +413,7 @@ describe("runScan — an SNMP scan is unaffected", () => {
       }),
     );
 
-    expect(sweepConfig()["snmpV3Auth"]).toEqual({
+    expect(sweptSnmpConfigs()[0]!.snmpV3Auth).toEqual({
       securityLevel: "authNoPriv",
       username: "monitoring",
       authProtocol: "SHA",

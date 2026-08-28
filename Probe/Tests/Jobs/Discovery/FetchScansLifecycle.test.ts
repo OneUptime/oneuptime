@@ -15,8 +15,10 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SubnetScanner, {
   SubnetScanResult,
+  SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import { fetchAndRunScans, runScan } from "../../../Jobs/Discovery/FetchScans";
 
@@ -56,13 +58,43 @@ function makeScanResult(
         sysName: "sw1",
         sysDescr: "Cisco IOS",
         snmpReachable: true,
+        snmpConfigId: "legacy",
       },
     ],
     scannedHostCount: 254,
+    /*
+     * A scan carries an ordered LIST of credential sets now, so the sweep
+     * reports the distinct ports it touched and how many hosts each credential
+     * answered. This default is the single-credential shape — the one a scan
+     * with only the flattened columns produces.
+     */
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 1 },
     respondedToPingCount: 12,
     ...overrides,
   } as SubnetScanResult;
 }
+
+/*
+ * The one credential set a legacy scan row resolves to, exactly as
+ * buildProbeSnmpConfigs hands it to the sweep.
+ *
+ * Written out in full rather than asserted field by field: this object IS the
+ * probe's half of the contract between the stored scan and the SNMP layer, and
+ * the two conversions it encodes are both silent when they go wrong — a
+ * version left as the stored spelling downgrades a v3 session to v2c in
+ * cleartext, and a missing community sweeps with nothing at all.
+ */
+const legacyResolvedConfig: SubnetScanSnmpConfig = {
+  // SnmpScanConfigUtil.LEGACY_SNMP_CONFIG_ID — the stable id for a flattened row.
+  id: "legacy",
+  label: "SNMP config 1 (V2c)",
+  // The PARSED enum value ("2c"), not the stored spelling ("V2c").
+  snmpVersion: SnmpVersion.V2c,
+  communityString: "public",
+  snmpV3Auth: undefined,
+  port: 161,
+};
 
 // eslint-disable-next-line @typescript-eslint/typedef
 let fetchSpy = jest.spyOn(API, "fetch");
@@ -152,10 +184,17 @@ describe("runScan — a successful sweep", () => {
        * asserted as `true` on a fixture that never sets it.
        */
       isSnmpEnabled: true,
-      snmpVersion: "V2c",
-      snmpCommunityString: "public",
-      snmpV3Auth: undefined,
-      snmpPort: 161,
+      /*
+       * The flattened snmpVersion / snmpCommunityString / snmpPort columns no
+       * longer reach the sweep on their own (issue #3458): they describe ONE
+       * credential set, and the sweep now takes an ordered LIST of them. So
+       * the contract asserted here is the resolved list, not the columns —
+       * this fixture's three columns resolving to the single legacy entry is
+       * exactly the conversion buildProbeSnmpConfigs exists to perform, and
+       * the whole point of pinning it is that nothing downstream re-reads the
+       * flat columns.
+       */
+      snmpConfigs: [legacyResolvedConfig],
     });
 
     const calls: Array<FetchCall> = fetchCalls();
@@ -202,6 +241,7 @@ describe("runScan — a successful sweep", () => {
             sysName: "sw1",
             sysDescr: "Cisco IOS",
             snmpReachable: true,
+            snmpConfigId: "legacy",
           },
           { ipAddress: "10.0.0.9", snmpReachable: false },
         ],
@@ -269,7 +309,8 @@ describe("runScan — a successful sweep", () => {
         discoveredHosts: [],
         respondedToPingCount: 0,
         snmpErrorHostCount: 0,
-        scannedPort: 161,
+        scannedPorts: [161],
+        responderCountByConfigId: { legacy: 0 },
       }) as never,
     );
 
@@ -329,15 +370,245 @@ describe("runScan — a successful sweep", () => {
       }),
     );
 
-    const scanArg: JSONObject = scanSpy.mock
-      .calls[0]![0] as unknown as JSONObject;
-    expect(scanArg["snmpV3Auth"]).toEqual({
+    /*
+     * The flattened columns still describe one credential set — they are how
+     * every scan written before the list column existed is configured — so the
+     * sweep gets a one-entry list, with the v3 block assembled on that entry.
+     */
+    const sweptConfigs: Array<SubnetScanSnmpConfig> = (
+      scanSpy.mock.calls[0]![0] as unknown as {
+        snmpConfigs: Array<SubnetScanSnmpConfig>;
+      }
+    ).snmpConfigs;
+
+    expect(sweptConfigs).toHaveLength(1);
+    expect(sweptConfigs[0]!.snmpVersion).toBe(SnmpVersion.V3);
+    expect(sweptConfigs[0]!.snmpV3Auth).toEqual({
       securityLevel: "authPriv",
       username: "monitoring",
       authProtocol: "SHA",
       authKey: "auth-pass",
       privProtocol: "AES",
       privKey: "priv-pass",
+    });
+  });
+});
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3445 crossed with
+ * github.com/OneUptime/oneuptime/issues/3458 — the sweep config runScan builds
+ * is the single object where the two changes meet, so the contract is pinned
+ * here in BOTH modes rather than only in the SNMP one above.
+ *
+ * #3445 gave a scan a mode (`isSnmpEnabled`); #3458 replaced its one set of
+ * SNMP columns with an ordered LIST of credential sets. Each has a way of
+ * quietly undoing the other inside this object:
+ *
+ *   - buildProbeSnmpConfigs never returns an empty list. Handed a scan with no
+ *     stored list it SYNTHESIZES one out of the flattened columns, which is
+ *     right for a legacy SNMP scan and catastrophic for an ICMP-only one: the
+ *     scan would be "Ping only" everywhere the operator can see it, and an
+ *     SNMP scan on the wire. Only runScan's `isSnmpEnabled ? … : []` stands
+ *     between those two, which is why the empty list is asserted rather than
+ *     assumed.
+ *   - the same list is what the credential summary is written from, so a list
+ *     that leaks into an ICMP-only sweep comes back out in the status message
+ *     the operator reads — naming credentials for a scan that opened no SNMP
+ *     session.
+ *
+ * The service nulls the SNMP columns when a scan is saved as ICMP-only, so a
+ * row like the fixture below should not exist. The probe must not RELY on
+ * that: rows written before that service change, rows created through the API
+ * directly, and rows whose credential list was stored by an older build all
+ * reach this code carrying credentials they must not be swept with. The mode
+ * is the deciding fact; the leftover columns are noise.
+ */
+describe("runScan — the sweep config carries the scan's mode and its credentials", () => {
+  /*
+   * An ICMP-only scan that still carries a full set of SNMP credentials, in
+   * both shapes at once: the flattened columns from makeScan() and a stored
+   * `snmpConfigs` list. Either one alone would be enough for
+   * buildProbeSnmpConfigs to hand the sweep something to try.
+   *
+   * TWO stored sets rather than one, deliberately. The credential summary in
+   * the status message only renders when a sweep ran with more than one set,
+   * so a single-set fixture would make the "names no credential" assertions
+   * below pass for a reason that has nothing to do with the mode. With two,
+   * a leaked list is a leaked SENTENCE, and the assertion has something to
+   * catch.
+   */
+  function makeIcmpOnlyScanWithLeftoverCredentials(): NetworkDeviceDiscoveryScan {
+    return makeScan({
+      isSnmpEnabled: false,
+      snmpConfigs: [
+        {
+          id: "core",
+          name: "Core switches",
+          snmpVersion: "V2c",
+          snmpCommunityString: "s3cret-community",
+          snmpPort: 1161,
+        },
+        {
+          id: "access",
+          name: "Access switches",
+          snmpVersion: "V2c",
+          snmpCommunityString: "another-secret",
+          snmpPort: 161,
+        },
+      ],
+    });
+  }
+
+  function makeIcmpOnlyScanResult(
+    overrides?: Partial<SubnetScanResult>,
+  ): SubnetScanResult {
+    return {
+      /*
+       * snmpReachable false and NO snmpConfigId on any host: no credential set
+       * ran, so none can be said to have found these addresses. The id is what
+       * the import path builds a device's credentials from, and inventing one
+       * here would build managed devices out of hosts that only ever answered
+       * a ping.
+       */
+      discoveredHosts: [
+        { ipAddress: "10.0.0.5", snmpReachable: false },
+        { ipAddress: "10.0.0.9", snmpReachable: false },
+      ],
+      scannedHostCount: 254,
+      // Nothing was dialled and no credential was tried, so both are empty.
+      scannedPorts: [],
+      responderCountByConfigId: {},
+      respondedToPingCount: 2,
+      isIcmpOnlySweep: true,
+      isIcmpSweepIncomplete: false,
+      ...overrides,
+    } as SubnetScanResult;
+  }
+
+  test("an ICMP-only scan is swept with an empty credential list, even though its row still carries credentials", async () => {
+    scanSpy.mockResolvedValue(makeIcmpOnlyScanResult() as never);
+
+    await runScan(makeIcmpOnlyScanWithLeftoverCredentials());
+
+    /*
+     * Asserted as the whole object rather than field by field: what matters is
+     * that NOTHING else rides along. A config that also carried the row's
+     * community string would sweep exactly as an SNMP scan does the moment any
+     * layer below reads a field other than this flag.
+     */
+    expect(scanSpy).toHaveBeenCalledWith({
+      cidr: "10.0.0.0/24",
+      isSnmpEnabled: false,
+      snmpConfigs: [],
+    });
+  });
+
+  /*
+   * SubnetScanner decides on `isSnmpEnabled !== false`, so anything other than
+   * the literal false is an SNMP sweep. The object assertion above would still
+   * pass if the flag were dropped and the empty list were read as "no
+   * credentials configured", so the two halves are pinned separately: the mode
+   * says whether to ask, the list says what to ask with, and neither one
+   * substitutes for the other.
+   */
+  test("the mode reaches the sweep as the literal false and the credential list is empty rather than absent", async () => {
+    scanSpy.mockResolvedValue(makeIcmpOnlyScanResult() as never);
+
+    await runScan(makeIcmpOnlyScanWithLeftoverCredentials());
+
+    const sweptConfig: JSONObject = scanSpy.mock
+      .calls[0]![0] as unknown as JSONObject;
+
+    expect(sweptConfig["isSnmpEnabled"]).toBe(false);
+    expect(sweptConfig["snmpConfigs"]).toEqual([]);
+  });
+
+  /*
+   * The credential summary is the sentence #3458 added to statusMessage, and
+   * it is written from the same list this scan is not allowed to have. An
+   * ICMP-only sweep must therefore never name a credential — not "answered by"
+   * and not "no host answered", which on a scan that asked nobody would read
+   * as a broken credential rather than as a mode.
+   */
+  test("an ICMP-only sweep uploads a status message that names no credential", async () => {
+    scanSpy.mockResolvedValue(makeIcmpOnlyScanResult() as never);
+
+    await runScan(makeIcmpOnlyScanWithLeftoverCredentials());
+
+    const body: JSONObject = fetchCalls()[0]!.body;
+    const message: string = body["statusMessage"] as string;
+
+    expect(message).toBe(
+      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping.",
+    );
+    expect(message).not.toContain("Answered by credentials");
+    expect(message).not.toContain("No host answered");
+    // And neither credential's own name — nor its community — leaks in.
+    expect(message).not.toContain("Core switches");
+    expect(message).not.toContain("Access switches");
+    expect(message).not.toContain("s3cret-community");
+    expect(message).not.toContain("another-secret");
+  });
+
+  /*
+   * The rest of the request contract this file exists to pin is unchanged by
+   * the mode: the same URL, the same auth fields, the same success/scanId/host
+   * payload. Asserted for the ICMP-only path too, because it is the one path
+   * that takes a different branch through buildScanStatusMessage and could
+   * plausibly have grown a different upload alongside it.
+   */
+  test("an ICMP-only sweep reports on the same endpoint, with the same auth and payload fields", async () => {
+    scanSpy.mockResolvedValue(makeIcmpOnlyScanResult() as never);
+
+    await runScan(makeIcmpOnlyScanWithLeftoverCredentials());
+
+    const calls: Array<FetchCall> = fetchCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url).toBe(
+      "https://oneuptime.example.com/probe-ingest/probe/discovery-scan/result",
+    );
+
+    const body: JSONObject = calls[0]!.body;
+    expect(body["probeId"]).toBe("11111111-2222-3333-4444-555555555555");
+    expect(body["probeKey"]).toBe("test-probe-key");
+    expect(body["scanId"]).toBe(scanId.toString());
+    expect(body["success"]).toBe(true);
+    expect(body["scannedHostCount"]).toBe(254);
+
+    /*
+     * Every host is uploaded WITHOUT a credential id. runScan forwards the
+     * sweep's hosts verbatim, so this is the contract that the probe never
+     * stamps one on after the fact — the server stores this field on the
+     * discovered-host row and the import path builds a device's credentials
+     * out of it, so a fabricated id would turn a ping-only host into a
+     * managed device configured with credentials nothing ever answered.
+     */
+    const devices: Array<JSONObject> = body[
+      "discoveredDevices"
+    ] as Array<JSONObject>;
+    expect(devices).toHaveLength(2);
+    for (const device of devices) {
+      expect(device["snmpReachable"]).toBe(false);
+      expect(device["snmpConfigId"]).toBeUndefined();
+    }
+  });
+
+  /*
+   * The other direction, and the reason the mode is read through ScanModeUtil
+   * rather than off the column: a scan the server explicitly marked SNMP still
+   * gets its credential list resolved and swept with. Had the two changes been
+   * merged by making the credential list conditional on the raw column, a row
+   * whose `isSnmpEnabled` arrived as a string, a 1, or anything else truthy-
+   * but-not-`true` would have swept with an empty list — an SNMP scan that
+   * silently asks nobody anything.
+   */
+  test("a scan explicitly marked SNMP is swept with its resolved credential list", async () => {
+    await runScan(makeScan({ isSnmpEnabled: true }));
+
+    expect(scanSpy).toHaveBeenCalledWith({
+      cidr: "10.0.0.0/24",
+      isSnmpEnabled: true,
+      snmpConfigs: [legacyResolvedConfig],
     });
   });
 });

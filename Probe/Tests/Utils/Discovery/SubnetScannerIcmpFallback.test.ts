@@ -4,7 +4,9 @@ process.env["PROBE_KEY"] = "test-probe-key";
 
 import SubnetScanner, {
   DiscoveredHost,
+  SubnetScanConfig,
   SubnetScanResult,
+  SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import SnmpMonitor from "../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
@@ -42,6 +44,41 @@ const ALL_SIX: Array<string> = [
   "10.0.0.5",
   "10.0.0.6",
 ];
+
+/*
+ * A scan carries an ORDERED LIST of credential sets, and none of the ICMP
+ * behaviour below depends on how long that list is, so every sweep here runs
+ * with exactly one — built by this helper so the migration to the list shape
+ * costs one line per test rather than a rewritten fixture.
+ *
+ * SubnetScanSnmpConfig.snmpVersion is the PARSED enum (SnmpVersion.V3, i.e.
+ * "3"), not the stored dropdown key ("V3"): parsing the stored spelling is
+ * FetchScans.buildProbeSnmpConfigs' job now.
+ */
+const ONLY_CONFIG_ID: string = "config-1";
+
+function buildSnmpConfig(
+  overrides: Partial<SubnetScanSnmpConfig> = {},
+): SubnetScanSnmpConfig {
+  return {
+    id: ONLY_CONFIG_ID,
+    label: "SNMP v2c on port 161",
+    snmpVersion: SnmpVersion.V2c,
+    communityString: "public",
+    port: 161,
+    ...overrides,
+  };
+}
+
+function scanConfig(
+  cidr: string,
+  overrides: Partial<SubnetScanSnmpConfig> = {},
+): SubnetScanConfig {
+  return {
+    cidr: cidr,
+    snmpConfigs: [buildSnmpConfig(overrides)],
+  };
+}
 
 type ProbeRecorder = {
   hosts: Array<string>;
@@ -98,9 +135,9 @@ describe("SubnetScanner — an entirely ICMP-filtered subnet", () => {
     mockPingAlive([]);
     const recorder: ProbeRecorder = recordProbes(["10.0.0.4", "10.0.0.5"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect([...recorder.hosts].sort()).toEqual(ALL_SIX);
     expect(discoveredAddresses(result)).toEqual(["10.0.0.4", "10.0.0.5"]);
@@ -112,16 +149,22 @@ describe("SubnetScanner — an entirely ICMP-filtered subnet", () => {
     mockPingAlive([]);
     recordProbes(["10.0.0.4"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
+    /*
+     * snmpConfigId travels with the host: the import path builds the device
+     * with the credentials that actually answered it, so a host found in the
+     * fallback pass has to carry the same stamp as one found in the first.
+     */
     expect(result.discoveredHosts).toEqual([
       {
         ipAddress: "10.0.0.4",
         sysName: "device-10.0.0.4",
         sysDescr: undefined,
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
     ]);
   });
@@ -130,9 +173,9 @@ describe("SubnetScanner — an entirely ICMP-filtered subnet", () => {
     mockPingAlive([]);
     recordProbes([]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.scannedHostCount).toBe(6);
   });
@@ -146,9 +189,9 @@ describe("SubnetScanner — an entirely ICMP-filtered subnet", () => {
     mockPingAlive([]);
     recordProbes([]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.discoveredHosts).toEqual([]);
     expect(result.icmpFilteredFallbackHostCount).toBe(6);
@@ -166,9 +209,9 @@ describe("SubnetScanner — a partially ICMP-filtered subnet", () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
     const recorder: ProbeRecorder = recordProbes(["10.0.0.6"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     // First pass: the two ping-alive hosts. Then the four it skipped.
     expect(recorder.hosts.slice(0, 2).sort()).toEqual(["10.0.0.1", "10.0.0.2"]);
@@ -180,10 +223,14 @@ describe("SubnetScanner — a partially ICMP-filtered subnet", () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
     recordProbes(["10.0.0.6"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
+    /*
+     * The ping-only hosts carry NO snmpConfigId — no credential set found
+     * them — while the SNMP responder carries the id of the one that did.
+     */
     expect(result.discoveredHosts).toEqual([
       { ipAddress: "10.0.0.1", snmpReachable: false },
       { ipAddress: "10.0.0.2", snmpReachable: false },
@@ -192,6 +239,7 @@ describe("SubnetScanner — a partially ICMP-filtered subnet", () => {
         sysName: "device-10.0.0.6",
         sysDescr: undefined,
         snmpReachable: true,
+        snmpConfigId: ONLY_CONFIG_ID,
       },
     ]);
   });
@@ -200,9 +248,9 @@ describe("SubnetScanner — a partially ICMP-filtered subnet", () => {
     mockPingAlive(["10.0.0.1", "10.0.0.2"]);
     recordProbes(["10.0.0.6"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     // Two answered echo; the fallback probing four more does not change that.
     expect(result.respondedToPingCount).toBe(2);
@@ -216,9 +264,9 @@ describe("SubnetScanner — a partially ICMP-filtered subnet", () => {
     mockPingAlive(["10.0.0.6"]);
     recordProbes(["10.0.0.2", "10.0.0.4"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(discoveredAddresses(result)).toEqual([
       "10.0.0.2",
@@ -238,9 +286,9 @@ describe("SubnetScanner — when the fallback must NOT run", () => {
     mockPingAlive(["10.0.0.2"]);
     const recorder: ProbeRecorder = recordProbes(["10.0.0.2"]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(recorder.hosts).toEqual(["10.0.0.2"]);
     expect(result.icmpFilteredFallbackHostCount).toBe(0);
@@ -252,9 +300,9 @@ describe("SubnetScanner — when the fallback must NOT run", () => {
       .mockRejectedValue(new Error("ICMP sockets require elevated privileges"));
     const recorder: ProbeRecorder = recordProbes([]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(recorder.hosts).toHaveLength(6);
     expect(new Set(recorder.hosts).size).toBe(6);
@@ -267,9 +315,9 @@ describe("SubnetScanner — when the fallback must NOT run", () => {
     mockPingAlive(ALL_SIX);
     const recorder: ProbeRecorder = recordProbes([]);
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(recorder.hosts).toHaveLength(6);
     expect(result.icmpFilteredFallbackHostCount).toBe(0);
@@ -279,7 +327,7 @@ describe("SubnetScanner — when the fallback must NOT run", () => {
     mockPingAlive(["10.0.0.3"]);
     const recorder: ProbeRecorder = recordProbes([]);
 
-    await SubnetScanner.scan({ cidr: SIX_HOSTS });
+    await SubnetScanner.scan(scanConfig(SIX_HOSTS));
 
     expect(recorder.hosts).toHaveLength(6);
     expect(new Set(recorder.hosts).size).toBe(6);
@@ -298,12 +346,13 @@ describe("SubnetScanner — the fallback pass is a real scan, not a degraded one
     mockPingAlive([]);
     const recorder: ProbeRecorder = recordProbes([]);
 
-    await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-      snmpVersion: "V3",
-      snmpV3Auth: V3_AUTH,
-      snmpPort: 1610,
-    });
+    await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS, {
+        snmpVersion: SnmpVersion.V3,
+        snmpV3Auth: V3_AUTH,
+        port: 1610,
+      }),
+    );
 
     expect(recorder.configs).toHaveLength(6);
     for (const config of recorder.configs) {
@@ -320,16 +369,20 @@ describe("SubnetScanner — the fallback pass is a real scan, not a degraded one
     mockPingAlive([]);
     recordProbes([]);
 
-    const custom: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-      snmpPort: 1610,
-    });
-    expect(custom.scannedPort).toBe(1610);
+    /*
+     * The result reports a LIST of ports now, because a scan's configs can
+     * disagree about which one to use. A single-config sweep still reports
+     * exactly the one port it touched.
+     */
+    const custom: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS, { port: 1610 }),
+    );
+    expect(custom.scannedPorts).toEqual([1610]);
 
-    const standard: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
-    expect(standard.scannedPort).toBe(161);
+    const standard: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
+    expect(standard.scannedPorts).toEqual([161]);
   });
 
   /*
@@ -352,7 +405,7 @@ describe("SubnetScanner — the fallback pass is a real scan, not a degraded one
     });
 
     // 126 hosts, well past the 32-worker wave size.
-    await SubnetScanner.scan({ cidr: "10.0.0.0/25" });
+    await SubnetScanner.scan(scanConfig("10.0.0.0/25"));
 
     expect(inFlight.peak).toBeGreaterThan(1);
     expect(inFlight.peak).toBeLessThanOrEqual(32);
@@ -369,7 +422,7 @@ describe("SubnetScanner — the fallback pass is a real scan, not a degraded one
       });
     recordProbes([]);
 
-    await SubnetScanner.scan({ cidr: SIX_HOSTS });
+    await SubnetScanner.scan(scanConfig(SIX_HOSTS));
 
     expect([...pinged].sort()).toEqual(ALL_SIX);
   });
@@ -377,8 +430,8 @@ describe("SubnetScanner — the fallback pass is a real scan, not a degraded one
 
 /*
  * "Returned null" covered both "nothing is at this address" and "the agent
- * refused these credentials". One credential set is applied to every host in
- * a sweep, so a single wrong v3 key blanks all 254 results — and the scan
+ * refused these credentials". A single credential set applied to every host in
+ * a sweep means one wrong v3 key blanks all 254 results — and the scan
  * reported a clean zero with nothing to distinguish it from empty space.
  */
 describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
@@ -405,9 +458,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "Authentication failure";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(6);
     expect(result.mostCommonSnmpError).toBe("Authentication failure");
@@ -419,9 +472,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "Request timed out";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(0);
     expect(result.mostCommonSnmpError).toBeUndefined();
@@ -435,9 +488,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
         : "socket Timeout";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(0);
   });
@@ -448,9 +501,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return host === "10.0.0.1" ? "connect ECONNREFUSED" : "Unknown user name";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(6);
     expect(result.mostCommonSnmpError).toBe("Unknown user name");
@@ -464,9 +517,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
         : "Request timed out";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(2);
     expect(result.mostCommonSnmpError).toBe("Authentication failure");
@@ -482,9 +535,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return `AUTH${"x".repeat(5000)}`;
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.mostCommonSnmpError).toHaveLength(120);
     expect(result.mostCommonSnmpError?.startsWith("AUTH")).toBe(true);
@@ -496,9 +549,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "   ";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(0);
   });
@@ -517,9 +570,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
         },
       );
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(6);
     expect(result.mostCommonSnmpError).toBe("usmStatsUnknownEngineIDs");
@@ -531,9 +584,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       .spyOn(SnmpMonitor, "probeSystemInfo")
       .mockRejectedValue(new Error("unexpected decode failure"));
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.snmpErrorHostCount).toBe(6);
     expect(result.mostCommonSnmpError).toBe("unexpected decode failure");
@@ -550,9 +603,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "Authentication failure";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.icmpFilteredFallbackHostCount).toBe(6);
     expect(result.snmpErrorHostCount).toBe(6);
@@ -571,9 +624,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "Authentication failure";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.discoveredHosts).toEqual([]);
   });
@@ -584,9 +637,9 @@ describe("SubnetScanner — SNMP errors are evidence, not noise", () => {
       return "Authentication failure";
     });
 
-    const result: SubnetScanResult = await SubnetScanner.scan({
-      cidr: SIX_HOSTS,
-    });
+    const result: SubnetScanResult = await SubnetScanner.scan(
+      scanConfig(SIX_HOSTS),
+    );
 
     expect(result.discoveredHosts).toEqual([
       { ipAddress: "10.0.0.3", snmpReachable: false },

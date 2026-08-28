@@ -65,7 +65,15 @@ function makeScanResult(): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    /*
+     * The sweep reports the distinct ports it touched (a scan can carry
+     * several credential sets, and they may disagree about the port) and how
+     * many hosts each credential answered. This is the single-credential
+     * shape, which is what a scan configured through the flattened columns
+     * produces.
+     */
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 0 },
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     icmpFilteredFallbackHostCount: 0,

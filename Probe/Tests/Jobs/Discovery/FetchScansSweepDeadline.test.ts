@@ -41,6 +41,7 @@ import ObjectID from "Common/Types/ObjectID";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SubnetScanner, {
   SubnetScanConfig,
   SubnetScanResult,
@@ -87,15 +88,33 @@ function makeScanResult(): SubnetScanResult {
   return {
     discoveredHosts: [],
     scannedHostCount: 254,
-    scannedPort: 161,
+    scannedPorts: [161],
+    responderCountByConfigId: { legacy: 0 },
     respondedToPingCount: 0,
     snmpErrorHostCount: 0,
     icmpFilteredFallbackHostCount: 0,
   } as unknown as SubnetScanResult;
 }
 
+/*
+ * The sweep config is the pair the deadline wraps: a target and the credential
+ * sets to try against it. Written out in full because scanWithDeadline is
+ * asserted to hand it through UNTOUCHED — a deadline that quietly rebuilt or
+ * trimmed the credential list would sweep with something other than what the
+ * scan says, and the operator would have no way to see it.
+ */
 const scanConfig: SubnetScanConfig = {
   cidr: "10.240-249.0-254.220-226",
+  snmpConfigs: [
+    {
+      id: "legacy",
+      label: "SNMP config 1 (V2c)",
+      snmpVersion: SnmpVersion.V2c,
+      communityString: "public",
+      snmpV3Auth: undefined,
+      port: 161,
+    },
+  ],
 };
 
 // A sweep that never settles, exactly as a wedged ping/SNMP promise behaves.
