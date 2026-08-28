@@ -100,6 +100,9 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [showProcessorForm, setShowProcessorForm] = useState<boolean>(false);
+  const [processorToEdit, setProcessorToEdit] = useState<
+    LogPipelineProcessor | undefined
+  >(undefined);
   const [refreshProcessorToggle, setRefreshProcessorToggle] =
     useState<string>("initial");
 
@@ -206,6 +209,26 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         isDeleteable={true}
         isEditable={false}
         isCreateable={false}
+        selectMoreFields={{
+          configuration: true,
+          isEnabled: true,
+          sortOrder: true,
+        }}
+        actionButtons={[
+          {
+            title: "Edit",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Edit,
+            onClick: (
+              item: LogPipelineProcessor,
+              onCompleteAction: () => void,
+            ) => {
+              setProcessorToEdit(item);
+              setShowProcessorForm(true);
+              onCompleteAction();
+            },
+          },
+        ]}
         sortBy="sortOrder"
         sortOrder={SortOrder.Ascending}
         enableDragAndDrop={true}
@@ -219,6 +242,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
               title: "Add Processor",
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
+                setProcessorToEdit(undefined);
                 setShowProcessorForm(true);
               },
               icon: IconProp.Add,
@@ -280,12 +304,15 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
       {showProcessorForm && (
         <ProcessorForm
           pipelineId={modelId}
-          onProcessorCreated={() => {
+          initialProcessor={processorToEdit}
+          onProcessorSaved={() => {
             setShowProcessorForm(false);
+            setProcessorToEdit(undefined);
             setRefreshProcessorToggle(Date.now().toString());
           }}
           onCancel={() => {
             setShowProcessorForm(false);
+            setProcessorToEdit(undefined);
           }}
         />
       )}
