@@ -253,7 +253,17 @@ export default class Response {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     oneUptimeResponse.logBody = { message: error.message }; // To be used in 'auditLog' middleware to log response data;
-    const status: number = error.code || 500;
+    /*
+     * Exception.code is an ExceptionCode, and several of its members are not
+     * HTTP statuses at all (APIException is 2, GeneralException 1,
+     * BadOperationException 5, WebRequestException 6). `|| 500` only rescues
+     * the zero-valued one; the rest reach res.status(), where Node throws
+     * ERR_HTTP_INVALID_STATUS_CODE and Express answers with an HTML 500 that
+     * carries none of this message. Fall back for every out-of-range code.
+     */
+    const status: number = StatusCode.isValidStatusCode(error.code)
+      ? error.code
+      : 500;
     const message: string = error.message || "Server Error";
 
     logger.error(error, getLogAttributesFromRequest(_req as any));

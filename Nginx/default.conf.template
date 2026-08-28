@@ -1206,6 +1206,21 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection $connection_upgrade;
         proxy_pass ${BACKEND_APP_TARGET};
 
+        # The synchronous "Generate with AI" endpoints (incident and episode
+        # postmortems, and incident/alert/scheduled-maintenance notes) hold
+        # this connection open for a whole LLM completion and write nothing --
+        # not even response headers -- until it finishes, so nginx sees one
+        # uninterrupted idle read. A self-hosted Ollama routinely needs
+        # minutes, and the 60s default turned that into a gateway error the
+        # dashboard could only render as "Error connecting to server. Please
+        # try again in few minutes." -- while the generation itself completed
+        # upstream and was thrown away. The app bounds itself below this
+        # ceiling -- see INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS in
+        # Common/Server/Services/AIService.ts -- so a genuinely stuck provider
+        # still answers with its own error message instead of this timeout.
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+
         client_max_body_size 50M;
     }
 

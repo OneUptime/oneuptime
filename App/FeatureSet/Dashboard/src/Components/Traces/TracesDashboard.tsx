@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -124,6 +125,17 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const [globalP95, setGlobalP95] = useState<number>(0);
   const [globalP99, setGlobalP99] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * Generation token for the in-flight batch. Both the scope picker and the
+   * time picker commit immediately — no apply step, no debounce — and the
+   * loading state still renders both, so two quick changes leave two capped
+   * 5000-span fetches racing. Without this the batch that RESOLVES last
+   * wins rather than the one the user asked for last, and 30-day percentiles
+   * paint under a "past one hour" label and stay there. Same guard the Logs
+   * Insights page has carried since it was written.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
   const [error, setError] = useState<string>("");
 
   /*
@@ -154,9 +166,21 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     initialUrlScope.savedViewId,
   );
   const [savedViewName, setSavedViewName] = useState<string>("");
+  /*
+   * The Viewer's own search text and root-spans-only toggle. Both are real
+   * predicates — search compiles through the traces grammar, rootOnly drives
+   * isRootSpan — and this page can apply neither, so they are carried and
+   * announced exactly like an unapplicable chip. Not carrying them silently
+   * widened the slice on the way here and destroyed the user's search on the
+   * way back.
+   */
+  const [carriedSearch] = useState<string | null>(initialUrlScope.search);
+  const [carriedRootOnly] = useState<boolean | null>(initialUrlScope.rootOnly);
 
   const loadDashboard: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const generation: number = ++loadGenerationRef.current;
+
       try {
         setIsLoading(true);
         setError("");
@@ -239,6 +263,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             referencedServiceIds,
             projectId: ProjectUtil.getCurrentProjectId()!,
           });
+        // A batch the user has already moved on from must not commit.
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setServices(loadedServices);
 
         // Build per-service summaries
@@ -401,9 +430,15 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           .slice(0, 8);
         setRecentSlowTraces(slowTraces);
       } catch (err) {
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setError(API.getFriendlyErrorMessage(err as Error));
       } finally {
-        setIsLoading(false);
+        if (loadGenerationRef.current === generation) {
+          setIsLoading(false);
+        }
       }
     }, [timeRange, selectedServiceIds]);
 
@@ -424,9 +459,18 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         unappliedFilters,
         savedViewId,
         grammar: "pairs",
+        search: carriedSearch,
+        rootOnly: carriedRootOnly,
       }),
     );
-  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+    carriedRootOnly,
+  ]);
 
   /*
    * The name behind the carried saved-view id, so the page can say where its
@@ -491,14 +535,26 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           unappliedFilters,
           savedViewId,
           grammar: "pairs",
+          search: carriedSearch,
+          rootOnly: carriedRootOnly,
         }),
       ),
     );
-  }, [timeRange, selectedServiceIds, unappliedFilters, savedViewId]);
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+    carriedRootOnly,
+  ]);
 
   const unappliedFiltersHint: string = useMemo(() => {
-    return describeUnappliedScopeFilters(unappliedFilters);
-  }, [unappliedFilters]);
+    return describeUnappliedScopeFilters(unappliedFilters, {
+      search: carriedSearch,
+      rootOnly: carriedRootOnly,
+    });
+  }, [unappliedFilters, carriedSearch, carriedRootOnly]);
 
   const serviceOptions: Array<DropdownOption> = useMemo(() => {
     return services.map((service: Service): DropdownOption => {

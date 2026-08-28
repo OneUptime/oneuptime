@@ -98,6 +98,10 @@ import {
   InitialSavedViewResolution,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
+import {
+  LOGS_CHIP_FACET_KEYS,
+  buildSavedViewQueryForOverrides,
+} from "../../Utils/SavedViewQueryMerge";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
@@ -111,7 +115,6 @@ import {
 import {
   applyLogsFacetFiltersToQuery,
   applyLogsSessionScopeToQuery,
-  BODY_FACET_KEY,
   buildLogsPivotScope,
   buildSessionReplayRoute,
   buildSpanChipOpenRoute,
@@ -193,13 +196,7 @@ const SAVED_VIEWS_LIMIT: number = 100;
  * chip says so — and the histogram, which builds its request from the
  * chips, then counts rows the list excludes.
  */
-const FACET_FILTER_KEYS: Array<string> = [
-  "severityText",
-  "primaryEntityId",
-  "traceId",
-  "spanId",
-  BODY_FACET_KEY,
-];
+const FACET_FILTER_KEYS: ReadonlyArray<string> = LOGS_CHIP_FACET_KEYS;
 
 interface InitialUrlState {
   facetFilters: Map<string, Set<string>>;
@@ -630,8 +627,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
   const [savedViews, setSavedViews] = useState<Array<LogSavedView>>([]);
+  /*
+   * Seeded from the URL like every other carried field.
+   *
+   * Seeded null, the mirror effect below ran on the first commit with
+   * nothing to write, and buildTelemetryViewerUrlParams pre-nulls every
+   * owned param — so setQueryString DELETED the id the link had just handed
+   * over, and the notify pushed the stripped query string into the nav tabs,
+   * taking it out of the Insights href too. It came back once the saved-view
+   * fetch resolved, but was lost for good if that fetch failed, and lost for
+   * any refresh or tab click inside that window.
+   */
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
-    null,
+    initialUrlState?.savedViewId ?? null,
   );
   const [selectedColumns, setSelectedColumns] = useState<Array<string>>(() => {
     return loadSelectedColumns(props.id);
@@ -1261,29 +1269,26 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           query: savedQuery,
         });
 
-      const merged: JSONObject = {
-        ...(savedQuery as unknown as JSONObject),
-        ...(baseQuery as unknown as JSONObject),
-      };
-
-      if (options?.overrideFacetFilters) {
-        /*
-         * Chip-able keys the override does not mention are cleared off the
-         * saved query first. applyLogsFacetFiltersToQuery only ever WRITES
-         * the keys a selection holds — it cannot know that a service the
-         * saved view carried was deselected somewhere else — so without this
-         * a scope narrowed on the Insights tab would come back widened by
-         * whatever the view originally had. Keys the host imposed through
-         * baseQuery are left alone: those are the page's scope, not the
-         * view's.
-         */
-        for (const facetKey of FACET_FILTER_KEYS) {
-          if ((baseQuery as any)[facetKey] === undefined) {
-            delete merged[facetKey];
-          }
-        }
-        delete merged["resourceFilters"];
-      }
+      /*
+       * With an override chip set, every user-removable predicate is stripped
+       * off the saved query first so the incoming chips are the whole truth.
+       * applyLogsFacetFiltersToQuery only ever WRITES the keys a selection
+       * holds — and for attributes it MERGES into the existing object — so
+       * without the strip, a scope narrowed elsewhere comes back widened by
+       * whatever the view originally had, with no chip to show for it.
+       *
+       * The strip lives in Utils/SavedViewQueryMerge so it can be tested
+       * against the read-back directly, and so the two lists cannot drift.
+       */
+      const merged: JSONObject = options?.overrideFacetFilters
+        ? buildSavedViewQueryForOverrides({
+            savedQuery: savedQuery as unknown as JSONObject,
+            baseQuery: baseQuery as unknown as JSONObject,
+          })
+        : {
+            ...(savedQuery as unknown as JSONObject),
+            ...(baseQuery as unknown as JSONObject),
+          };
 
       const mergedQuery: Query<Log> = withResolvedTime(
         merged as unknown as Query<Log>,
@@ -1440,6 +1445,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         ),
       });
 
+    if (resolution.isUrlSavedViewMissing) {
+      /*
+       * The link named a view that is gone — deleted, or another project's.
+       * Clear it deliberately so the stale id stops travelling in the URL
+       * promising a view nothing can produce, rather than leaving it to the
+       * prune effect's side effect.
+       */
+      setSelectedSavedViewId(null);
+    }
+
     if (resolution.savedView) {
       applySavedView(
         resolution.savedView,
@@ -1471,7 +1486,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   ]);
 
   useEffect(() => {
-    if (!selectedSavedViewId) {
+    /*
+     * Gated on the fetch having settled. Without the gate this clears the
+     * freshly-seeded id against a still-empty list on the very first commit,
+     * which strips it from the URL a render later and undoes the seeding
+     * above.
+     */
+    if (!selectedSavedViewId || !hasFetchedSavedViews) {
       return;
     }
 
@@ -1482,7 +1503,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (!exists) {
       setSelectedSavedViewId(null);
     }
-  }, [savedViews, selectedSavedViewId]);
+  }, [savedViews, selectedSavedViewId, hasFetchedSavedViews]);
 
   /*
    * Live polling. The list and the histogram come from different endpoints,

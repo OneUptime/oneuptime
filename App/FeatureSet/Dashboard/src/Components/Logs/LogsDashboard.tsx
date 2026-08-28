@@ -71,6 +71,11 @@ import {
   withTelemetryTabScopeParams,
 } from "../../Utils/TelemetryTabScope";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  ScopedServiceCoverage,
+  computeScopedServiceCoverage,
+} from "../../Utils/ServiceCoverage";
+import { hasResourceEntityFacetSelections } from "Common/Types/Telemetry/ResourceEntityFacet";
 
 /*
  * The Logs Insights page.
@@ -640,19 +645,21 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   ).length;
   /*
    * The denominator for "quiet services" and "N of M services" is the SCOPE,
-   * not the project. Under a scope of five services the project's other
-   * fifteen are not quiet, they are excluded — reporting them as quiet turns
-   * a filter the user applied into an alarm about services they deliberately
-   * filtered out.
+   * not the project — and under a scope with no service dimension at all (a
+   * host, a Kubernetes cluster) there is no denominator, so the question
+   * goes away rather than being answered with the project's total. See
+   * Utils/ServiceCoverage for why.
    */
-  const scopedServiceCount: number =
-    scope.serviceIds && scope.serviceIds.length > 0
-      ? scope.serviceIds.length
-      : services.length;
-  const quietServices: number = Math.max(
-    0,
-    scopedServiceCount - reportingServices,
-  );
+  const coverage: ScopedServiceCoverage = computeScopedServiceCoverage({
+    scopedServiceIds: scope.serviceIds || [],
+    hasNonServiceResourceScope: hasResourceEntityFacetSelections(
+      scope.resourceFilters,
+    ),
+    projectServiceCount: services.length,
+    reportingServices,
+  });
+  const showQuietServices: boolean =
+    coverage.isCoverageMeaningful && coverage.quietServices > 0;
   const maxResourceVolume: number = Math.max(
     ...resourceBreakdown.map((row: ResourceLogBreakdown): number => {
       return row.total;
@@ -692,17 +699,19 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           tone={errorPatterns.length > 0 ? "amber" : "emerald"}
         />
         <StatCard
-          label={quietServices > 0 ? "Quiet services" : "Reporting sources"}
-          value={quietServices > 0 ? quietServices : reportingResources}
+          label={showQuietServices ? "Quiet services" : "Reporting sources"}
+          value={
+            showQuietServices ? coverage.quietServices : reportingResources
+          }
           subtext={
-            quietServices > 0
+            showQuietServices
               ? "no logs in range"
-              : scopedServiceCount > 0
-                ? `${reportingServices} of ${scopedServiceCount} services`
+              : coverage.isCoverageMeaningful && coverage.scopedServiceCount > 0
+                ? `${reportingServices} of ${coverage.scopedServiceCount} services`
                 : "sending logs"
           }
-          icon={quietServices > 0 ? IconProp.Alert : IconProp.CheckCircle}
-          tone={quietServices > 0 ? "amber" : "emerald"}
+          icon={showQuietServices ? IconProp.Alert : IconProp.CheckCircle}
+          tone={showQuietServices ? "amber" : "emerald"}
         />
       </div>
 
