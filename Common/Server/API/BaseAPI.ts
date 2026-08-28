@@ -23,6 +23,7 @@ import {
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
+import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -468,10 +469,20 @@ export default class BaseAPI<
      * coerce them — a sample percentage of "10" was rejected as "not a
      * number" on a form that had one filled in.
      * github.com/OneUptime/oneuptime/issues/3027
+     *
+     * Date columns have the same problem for the same reason: an
+     * `<input type="date">` posts "2027-01-01", and a hook that reads the
+     * column back gets a string where it expects a Date. See
+     * Types/Database/DateColumnValue.
      */
-    const item: PartialEntity<TBaseModel> = coerceNumericColumnsInJSON(
-      JSONFunctions.deserialize(dataInBody as JSONObject),
-      new this.entityType(),
+    const entityModel: TBaseModel = new this.entityType();
+
+    const item: PartialEntity<TBaseModel> = coerceDateColumnsInJSON(
+      coerceNumericColumnsInJSON(
+        JSONFunctions.deserialize(dataInBody as JSONObject),
+        entityModel,
+      ),
+      entityModel,
     ) as PartialEntity<TBaseModel>;
 
     delete (item as any)["_id"];

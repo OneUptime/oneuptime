@@ -5,6 +5,7 @@ import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import Project from "../../../Models/DatabaseModels/Project";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
+import { resolveEmittedMarketingEvent } from "../Utils/Marketing/EmittedMarketingEvent";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, afterEach } from "@jest/globals";
@@ -202,7 +203,9 @@ describe("ProjectService project creation - subscription_started", () => {
   }
 
   function getEmittedEvent(spies: CreateSpies): MarketingEvent {
-    return spies.emitInBackground.mock.calls[0]![0] as MarketingEvent;
+    return resolveEmittedMarketingEvent(
+      spies.emitInBackground.mock.calls[0]![0],
+    );
   }
 
   function getEmittedData(spies: CreateSpies): JSONObject {
@@ -298,7 +301,7 @@ describe("ProjectService project creation - subscription_started", () => {
 
       const emittedTypes: Array<string> = spies.emitInBackground.mock.calls.map(
         (call: Array<unknown>) => {
-          return (call[0] as MarketingEvent).eventType as string;
+          return resolveEmittedMarketingEvent(call[0]).eventType as string;
         },
       );
 

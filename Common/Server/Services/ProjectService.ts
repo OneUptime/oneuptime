@@ -979,14 +979,20 @@ These are no longer recorded against the project and have to be cancelled by han
       properties["currency"] = "USD";
     }
 
+    /*
+     * Captured before the deferred builder below closes over it: the narrowing
+     * from the createdOwnerEmail guard above does not survive into a callback.
+     */
+    const ownerEmail: string = data.project.createdOwnerEmail.toString();
+
     ProductAnalytics.capture({
       event: "server/subscription_started",
-      distinctId: data.project.createdOwnerEmail.toString(),
+      distinctId: ownerEmail,
       properties: properties,
     });
 
-    MarketingEventUtil.emitInBackground(
-      MarketingEventUtil.buildEvent({
+    MarketingEventUtil.emitInBackground(() => {
+      return MarketingEventUtil.buildEvent({
         eventType: MarketingEventType.SubscriptionStarted,
         /*
          * Naturally unique: a project has exactly one first subscription, so a
@@ -996,11 +1002,11 @@ These are no longer recorded against the project and have to be cancelled by han
          */
         eventId: `${MarketingEventType.SubscriptionStarted}:${data.project.id?.toString()}`,
         occurredAt: data.project.createdAt || new Date(),
-        email: data.project.createdOwnerEmail.toString(),
+        email: ownerEmail,
         attributionSource: data.project,
         data: properties,
-      }),
-    );
+      });
+    });
   }
 
   /*
@@ -1138,8 +1144,8 @@ These are no longer recorded against the project and have to be cancelled by han
 
     const occurredAt: Date = new Date();
 
-    MarketingEventUtil.emitInBackground(
-      MarketingEventUtil.buildEvent({
+    MarketingEventUtil.emitInBackground(() => {
+      return MarketingEventUtil.buildEvent({
         eventType: eventType,
         /*
          * A project can legitimately upgrade, downgrade and upgrade again, so
@@ -1151,8 +1157,8 @@ These are no longer recorded against the project and have to be cancelled by han
         email: data.project.createdOwnerEmail?.toString(),
         attributionSource: data.project,
         data: data.properties,
-      }),
-    );
+      });
+    });
   }
 
   private async sendSubscriptionChangeWebhookSlackNotification(
