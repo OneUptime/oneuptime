@@ -8,11 +8,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   
-      - 'release'
+    branches:
+      - master
 
 
 jobs:

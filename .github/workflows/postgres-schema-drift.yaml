@@ -11,9 +11,8 @@ concurrency:
 on:
   pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   # Migrates an empty database with every migration registered in
