@@ -174,6 +174,29 @@ function renderScanCell(scan: Partial<NetworkDeviceDiscoveryScan>): string {
   return container.textContent || "";
 }
 
+/*
+ * What the Recurrence column puts on screen. Rendered rather than inspected,
+ * for the same reason the Scan cell is: the thing under test is a sentence an
+ * operator reads, not a shape in the element tree.
+ */
+function renderRecurrenceCell(
+  scan: Partial<NetworkDeviceDiscoveryScan>,
+): string {
+  const column: CapturedColumn = columnNamed("isRecurring");
+
+  if (!column.getElement) {
+    throw new Error("The Recurrence column renders no element");
+  }
+
+  const { container } = render(
+    <MemoryRouter>
+      {column.getElement(scan as NetworkDeviceDiscoveryScan)}
+    </MemoryRouter>,
+  );
+
+  return container.textContent || "";
+}
+
 function validate(key: string, values: Record<string, unknown>): string | null {
   const field: CapturedFormField = fieldNamed(key);
 
@@ -692,6 +715,65 @@ describe("Name identifies the scan in the list", () => {
       .mockReturnValue([Permission.ProjectAdmin]);
 
     expect(edit?.isVisible?.(scan)).toBe(true);
+  });
+
+  test("a one-time scan reads as one-time", async () => {
+    await renderPage();
+
+    expect(renderRecurrenceCell({ isRecurring: false })).toContain("One-time");
+  });
+
+  test("a scheduled recurring scan says when it next runs", async () => {
+    await renderPage();
+
+    const cell: string = renderRecurrenceCell({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+      nextScanAt: new Date(Date.now() + 30 * 60000),
+    });
+
+    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("Next scan");
+  });
+
+  /*
+   * The half-truth this column used to tell. A recurring scan whose
+   * nextScanAt is NULL is never re-queued — the worker's predicate is
+   * `nextScanAt <= now`, and that is UNKNOWN for NULL — but the cell printed
+   * the cadence and simply omitted the second line, so a scan that would never
+   * run again was indistinguishable from one due in an hour.
+   */
+  test("a recurring scan with nothing scheduled says so rather than showing a bare cadence", async () => {
+    await renderPage();
+
+    const cell: string = renderRecurrenceCell({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+    });
+
+    expect(cell).toContain("Every 60 min");
+    expect(cell).toContain("No next scan is scheduled");
+  });
+
+  /*
+   * ...but that is only alarming once the scan has finished. A run that is
+   * queued or under way has its next one scheduled when it reports.
+   */
+  test("a recurring scan mid-run explains that the next one waits for it", async () => {
+    await renderPage();
+
+    for (const status of ["Pending", "In Progress"]) {
+      const cell: string = renderRecurrenceCell({
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+        status: status,
+      });
+
+      expect(cell).toContain("when this run finishes");
+      expect(cell).not.toContain("No next scan is scheduled");
+    }
   });
 
   /*

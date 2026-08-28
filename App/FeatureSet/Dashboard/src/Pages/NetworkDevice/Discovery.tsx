@@ -855,6 +855,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 ? OneUptimeDate.fromString(item.nextScanAt)
                 : null;
 
+              /*
+               * A recurring scan with no next run used to render as the
+               * interval alone, and the second line was simply left off. That
+               * is the one state where the row most needs a second line: a
+               * scan whose recurrence is on and whose nextScanAt is NULL is
+               * never picked up by the requeue worker, because `NULL <= now`
+               * is UNKNOWN in SQL — so "Every 60 min" was, for those rows, a
+               * flat untruth with nothing to hint at it (OneUptime issue
+               * #3444). The server now derives the column instead, so a row
+               * like that should no longer exist; if one does, it says so.
+               */
+              const isRunUnderway: boolean =
+                item.status === "Pending" || item.status === "In Progress";
+
               return (
                 <div>
                   <div className="text-sm text-gray-900">
@@ -862,7 +876,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       ? `Every ${item.rescanIntervalInMinutes} min`
                       : "Recurring"}
                   </div>
-                  {nextScanAt && (
+                  {nextScanAt ? (
                     <div
                       className="text-xs text-gray-500"
                       title={OneUptimeDate.getDateAsLocalFormattedString(
@@ -871,6 +885,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     >
                       {/* fromNow renders e.g. "in 12 minutes". */}
                       {`Next scan ${OneUptimeDate.fromNow(nextScanAt)}`}
+                    </div>
+                  ) : isRunUnderway ? (
+                    <div className="text-xs text-gray-500">
+                      Next scan is scheduled when this run finishes
+                    </div>
+                  ) : (
+                    <div className="text-xs text-yellow-600">
+                      No next scan is scheduled. Open Edit and save to schedule
+                      one.
                     </div>
                   )}
                 </div>
