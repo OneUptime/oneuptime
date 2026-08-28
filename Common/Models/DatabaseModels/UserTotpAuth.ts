@@ -172,6 +172,7 @@ class UserTotpAuth extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "userId",
     type: TableColumnType.Entity,
+    modelType: User,
     title: "User",
     description: "Relation to User who owns this TOTP authentication",
   })

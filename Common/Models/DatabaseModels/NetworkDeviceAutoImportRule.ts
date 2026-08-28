@@ -470,10 +470,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
+      Permission.CreateNetworkDeviceAutoImportRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -488,10 +485,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
+      Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
   @TableColumn({
@@ -523,10 +517,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
+      Permission.CreateNetworkDeviceAutoImportRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -541,10 +532,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
+      Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
   @Index("IDX_network_device_auto_import_rule_monitorTemplateId")
