@@ -42,7 +42,7 @@ jest.mock("../../../Server/Services/NetworkDeviceService", () => {
       create: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
-      getRegisteredHostnames: jest.fn(),
+      getDevicesByHostnames: jest.fn(),
     },
   };
 });
@@ -63,6 +63,26 @@ jest.mock("../../../Server/Services/NetworkDeviceAutoImportRuleService", () => {
     __esModule: true,
     default: {
       findOneBy: jest.fn(),
+      findBy: jest.fn(),
+    },
+  };
+});
+
+jest.mock("../../../Server/Services/MonitorService", () => {
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(),
+      findBy: jest.fn(),
+      findOneBy: jest.fn(),
+    },
+  };
+});
+
+jest.mock("../../../Server/Services/MonitorTemplateService", () => {
+  return {
+    __esModule: true,
+    default: {
       findBy: jest.fn(),
     },
   };
@@ -96,16 +116,22 @@ import NetworkDeviceAutoImportRuleEngineService, {
   AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
   AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
   ExistingHostnamesByProjectId,
+  ImportAttemptBudgetsByProjectId,
   MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+  MAX_MONITORS_PER_AUTO_IMPORT_RUN,
   MAX_RESULT_AGE_IN_HOURS,
   MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN,
 } from "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import MonitorService from "../../../Server/Services/MonitorService";
+import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import logger from "../../../Server/Utils/Logger";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
@@ -113,6 +139,9 @@ import NetworkDeviceDiscoveryScan, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   AutoImportRuleRunResult,
   MAX_MATCHED_IP_SAMPLE,
@@ -139,6 +168,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const SCAN_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const RULE_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+const TEMPLATE_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
+);
+const TEMPLATE_DEVICE_ID: string = "99999999-9999-4999-8999-999999999999";
 
 // What the mocked Semaphore.lock hands back and release must get back.
 const FAKE_MUTEX: { id: string } = { id: "fake-sweep-mutex" };
@@ -147,19 +180,29 @@ const createMock: jest.Mock =
   NetworkDeviceService.create as unknown as jest.Mock;
 const deviceFindByMock: jest.Mock =
   NetworkDeviceService.findBy as unknown as jest.Mock;
-/*
- * "Which of THESE addresses already have a device", asked of the database
- * per scan. It replaced a paged walk of every hostname in the project — which
- * ordered by `createdAt`, a value a bulk import stamps identically on every
- * row it creates, so its pages overlapped and skipped and a missed hostname
- * created a DUPLICATE device. The engine still folds the answer into the
- * running set it mutates as it creates, which is what makes overlapping scans
- * and repeat runs idempotent.
- */
-const registeredHostnamesMock: jest.Mock =
-  NetworkDeviceService.getRegisteredHostnames as unknown as jest.Mock;
 const deviceFindOneByMock: jest.Mock =
   NetworkDeviceService.findOneBy as unknown as jest.Mock;
+/*
+ * "Which of THESE addresses already have a device", asked of the database per
+ * scan. It replaced a paged walk of every device in the project — which sorted
+ * by `createdAt`, a value a bulk import stamps identically on every row it
+ * creates, so its pages overlapped and skipped and a missed hostname created a
+ * DUPLICATE device.
+ *
+ * Backed by the same `deviceFindByMock` fixtures every case already sets up, so
+ * a test still says "the inventory contains these devices" and this narrows
+ * them the way the real query does.
+ */
+const devicesByHostnamesMock: jest.Mock =
+  NetworkDeviceService.getDevicesByHostnames as unknown as jest.Mock;
+const monitorCreateMock: jest.Mock =
+  MonitorService.create as unknown as jest.Mock;
+const monitorFindByMock: jest.Mock =
+  MonitorService.findBy as unknown as jest.Mock;
+const monitorFindOneByMock: jest.Mock =
+  MonitorService.findOneBy as unknown as jest.Mock;
+const monitorTemplateFindByMock: jest.Mock =
+  MonitorTemplateService.findBy as unknown as jest.Mock;
 const scanFindOneByMock: jest.Mock =
   NetworkDeviceDiscoveryScanService.findOneBy as unknown as jest.Mock;
 const scanFindByMock: jest.Mock =
@@ -224,6 +267,67 @@ function makeHost(
     sysDescr: "Cisco IOS Software, C2960X",
     ...overrides,
   };
+}
+
+function makeMonitorSteps(
+  networkDeviceId: string = TEMPLATE_DEVICE_ID,
+): MonitorSteps {
+  const step: MonitorStep = new MonitorStep();
+  step.data!.networkDeviceMonitor = {
+    networkDeviceId: networkDeviceId,
+    monitorInterfaces: true,
+    collectEndpoints: true,
+    oids: [
+      {
+        oid: "1.3.6.1.2.1.1.3.0",
+        name: "sysUpTime",
+        description: "System uptime",
+      },
+    ],
+  };
+
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+  monitorSteps.data = {
+    monitorStepsInstanceArray: [step],
+    defaultMonitorStatusId: new ObjectID(
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ),
+  };
+  return monitorSteps;
+}
+
+function makeTemplate(
+  overrides: Record<string, unknown> = {},
+): MonitorTemplate {
+  const template: MonitorTemplate = new MonitorTemplate();
+  template.id = TEMPLATE_ID;
+  template.projectId = PROJECT_ID;
+  template.templateName = "Core switch health";
+  template.monitorName = "SNMP health";
+  template.monitorDescription = "Provisioned from discovery";
+  template.monitorType = MonitorType.NetworkDevice;
+  template.monitorSteps = makeMonitorSteps();
+  template.monitoringInterval = "*/5 * * * *";
+  template.minimumProbeAgreement = 2;
+  template.customFields = { source: "auto-import" };
+  Object.assign(template, overrides);
+  return template;
+}
+
+function makeExistingDevice(
+  overrides: Record<string, unknown> = {},
+): NetworkDevice {
+  const device: NetworkDevice = new NetworkDevice();
+  device.id = new ObjectID("44444444-4444-4444-8444-444444444444");
+  device.projectId = PROJECT_ID;
+  device.name = "core-switch-01";
+  device.hostname = "10.0.0.5";
+  Object.assign(device, overrides);
+  return device;
+}
+
+function provisionedMonitor(callIndex: number): Monitor {
+  return monitorCreateMock.mock.calls[callIndex]![0].data as Monitor;
 }
 
 // Enough unique in-target addresses to overrun the attempt budget.
@@ -296,9 +400,40 @@ beforeEach(() => {
    * lock — the happy defaults each test narrows as needed.
    */
   deviceFindByMock.mockResolvedValue([]);
-  registeredHostnamesMock.mockResolvedValue(new Set<string>());
+  devicesByHostnamesMock.mockImplementation(
+    async (data: {
+      hostnames: Array<string>;
+    }): Promise<Map<string, NetworkDevice>> => {
+      const wanted: Set<string> = new Set<string>(data.hostnames);
+      const inventory: Array<NetworkDevice> =
+        (await deviceFindByMock.mock.results[
+          deviceFindByMock.mock.results.length - 1
+        ]?.value) || (await deviceFindByMock());
+      const found: Map<string, NetworkDevice> = new Map<string, NetworkDevice>();
+      for (const device of inventory) {
+        if (device.hostname && wanted.has(device.hostname)) {
+          found.set(device.hostname, device);
+        }
+      }
+      return found;
+    },
+  );
   deviceFindOneByMock.mockResolvedValue(null);
-  createMock.mockResolvedValue({});
+  createMock.mockImplementation(
+    ({ data }: { data: NetworkDevice }): Promise<NetworkDevice> => {
+      data.id = data.id || ObjectID.generate();
+      return Promise.resolve(data);
+    },
+  );
+  monitorFindByMock.mockResolvedValue([]);
+  monitorFindOneByMock.mockResolvedValue(null);
+  monitorTemplateFindByMock.mockResolvedValue([]);
+  monitorCreateMock.mockImplementation(
+    ({ data }: { data: Monitor }): Promise<Monitor> => {
+      data.id = data.id || ObjectID.generate();
+      return Promise.resolve(data);
+    },
+  );
   scanUpdateMock.mockResolvedValue(undefined);
   ruleFindByMock.mockResolvedValue([makeRule()]);
   semaphoreLockMock.mockResolvedValue(FAKE_MUTEX);
@@ -399,6 +534,8 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     });
 
     expect(createMock).toHaveBeenCalledTimes(1);
+    expect(monitorFindByMock).not.toHaveBeenCalled();
+    expect(monitorTemplateFindByMock).not.toHaveBeenCalled();
     const device: NetworkDevice = createdDevice(0);
     // The address is the hostname AND the dedup key downstream.
     expect(device.hostname).toBe("10.0.0.5");
@@ -438,7 +575,9 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     scanFindOneByMock.mockResolvedValue(
       makeScan({ discoveredDevices: [makeHost()] }),
     );
-    registeredHostnamesMock.mockResolvedValue(new Set<string>(["10.0.0.5"]));
+    deviceFindByMock.mockResolvedValue([
+      { hostname: "10.0.0.5" } as unknown as NetworkDevice,
+    ]);
 
     const result: AutoImportRuleRunResult | null = await processScan();
 
@@ -453,6 +592,502 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     // Nothing created, so the stamp carries the marker alone.
     const updateCall: any = scanUpdateMock.mock.calls[0]![0];
     expect(Object.keys(updateCall.data)).toEqual(["autoImportProcessedAt"]);
+  });
+
+  describe("monitor-template provisioning", () => {
+    it("creates an active monitor from the selected template and rebinds it to the new device", async () => {
+      const template: MonitorTemplate = makeTemplate();
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([template]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        devicesCreated: 1,
+        monitorsCreated: 1,
+        monitorsWouldCreate: 0,
+        monitorsFailed: 0,
+      });
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+
+      const device: NetworkDevice = createdDevice(0);
+      const monitor: Monitor = provisionedMonitor(0);
+      expect(monitor.name).toBe("core-switch-01 - SNMP health");
+      expect(monitor.description).toBe("Provisioned from discovery");
+      expect(monitor.monitorType).toBe(MonitorType.NetworkDevice);
+      expect(monitor.monitorTemplateId?.toString()).toBe(
+        TEMPLATE_ID.toString(),
+      );
+      expect(monitor.autoProvisionedNetworkDeviceId?.toString()).toBe(
+        device.id?.toString(),
+      );
+      expect(
+        monitor.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data
+          ?.networkDeviceMonitor?.networkDeviceId,
+      ).toBe(device.id?.toString());
+      expect(monitor.monitoringInterval).toBe("*/5 * * * *");
+      expect(monitor.minimumProbeAgreement).toBe(2);
+      expect(monitor.customFields).toEqual({ source: "auto-import" });
+      expect(monitorCreateMock.mock.calls[0]![0].props).toEqual({
+        isRoot: true,
+        tenantId: PROJECT_ID,
+      });
+
+      // A cached template is reused across an estate and must never mutate.
+      expect(
+        template.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data
+          ?.networkDeviceMonitor?.networkDeviceId,
+      ).toBe(TEMPLATE_DEVICE_ID);
+    });
+
+    it("backfills a selected template monitor for an already-registered matching device", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({
+          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+        }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        hostsSkippedAlreadyRegistered: 1,
+        devicesCreated: 0,
+        monitorsCreated: 1,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(devicesByHostnamesMock.mock.calls[0]![0].select.projectId).toBe(
+        true,
+      );
+      expect(
+        provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
+      ).toBe(existingDevice.id?.toString());
+    });
+
+    it("does not duplicate a manually configured monitor already watching the device", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const manualMonitor: Monitor = new Monitor();
+      manualMonitor.id = ObjectID.generate();
+      manualMonitor.monitorType = MonitorType.NetworkDevice;
+      manualMonitor.monitorSteps = makeMonitorSteps(
+        existingDevice.id!.toString(),
+      );
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([manualMonitor]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+      expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses provenance to skip an automatic monitor that already exists", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const existingMonitor: Monitor = new Monitor();
+      existingMonitor.id = ObjectID.generate();
+      existingMonitor.monitorType = MonitorType.NetworkDevice;
+      existingMonitor.monitorTemplateId = TEMPLATE_ID;
+      existingMonitor.autoProvisionedNetworkDeviceId = existingDevice.id!;
+      existingMonitor.monitorSteps = makeMonitorSteps(
+        existingDevice.id!.toString(),
+      );
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([existingMonitor]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+      expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("deduplicates two matching rules that select the same template", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+        makeRule({
+          id: ObjectID.generate(),
+          ipMatchTarget: undefined,
+          sysNamePattern: "core-switch",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result?.monitorsCreated).toBe(1);
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+      expect(monitorTemplateFindByMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("creates one monitor per distinct template selected by matching rules", async () => {
+      const secondTemplateId: ObjectID = new ObjectID(
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      );
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+        makeRule({
+          id: ObjectID.generate(),
+          ipMatchTarget: undefined,
+          sysNamePattern: "core-switch",
+          monitorTemplateId: secondTemplateId,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([
+        makeTemplate(),
+        makeTemplate({
+          id: secondTemplateId,
+          monitorName: "Interface health",
+        }),
+      ]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result?.monitorsCreated).toBe(2);
+      expect(monitorCreateMock).toHaveBeenCalledTimes(2);
+      expect(
+        monitorCreateMock.mock.calls.map((call: Array<any>): string => {
+          return call[0].data.monitorTemplateId.toString();
+        }),
+      ).toEqual([TEMPLATE_ID.toString(), secondTemplateId.toString()]);
+    });
+
+    it("reports monitor failures separately and leaves them retryable", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      monitorCreateMock.mockRejectedValueOnce(new Error("plan limit reached"));
+
+      const firstResult: AutoImportRuleRunResult | null = await processScan();
+
+      expect(firstResult).toMatchObject({
+        devicesCreated: 1,
+        monitorsCreated: 0,
+        monitorsFailed: 1,
+      });
+
+      const created: NetworkDevice = createdDevice(0);
+      jest.clearAllMocks();
+      deviceFindByMock.mockResolvedValue([created]);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorFindOneByMock.mockResolvedValue(null);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      scanUpdateMock.mockResolvedValue(undefined);
+      monitorCreateMock.mockImplementation(
+        ({ data }: { data: Monitor }): Promise<Monitor> => {
+          return Promise.resolve(data);
+        },
+      );
+
+      const retryResult: AutoImportRuleRunResult | null = await processScan();
+
+      expect(retryResult).toMatchObject({
+        devicesCreated: 0,
+        monitorsCreated: 1,
+        monitorsFailed: 0,
+      });
+    });
+
+    it("defensively skips inert Network Device monitors for ping-only hosts", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({
+          discoveredDevices: [makeHost({ snmpReachable: false })],
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({
+          includePingOnlyHosts: true,
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        devicesCreated: 1,
+        monitorsCreated: 0,
+        monitorsSkippedUnsupportedHost: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("does not backfill an SNMP monitor onto an existing monitor-backed device", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice({
+        monitoringMethod: "Monitor",
+      });
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost({ snmpReachable: true })] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedUnsupportedHost: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("sees a manual monitor created after the initial project snapshot", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const manualMonitor: Monitor = new Monitor();
+      manualMonitor.monitorType = MonitorType.NetworkDevice;
+      manualMonitor.monitorSteps = makeMonitorSteps(
+        existingDevice.id!.toString(),
+      );
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([manualMonitor]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+      expect(monitorFindByMock).toHaveBeenCalledTimes(2);
+      expect(monitorFindByMock.mock.calls[1]![0].select.monitorType).toBe(true);
+    });
+
+    it("reports a conflicting drifted provenance row instead of treating it as a successful race winner", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const otherDeviceId: ObjectID = new ObjectID(
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      );
+      const driftedMonitor: Monitor = new Monitor();
+      driftedMonitor.monitorType = MonitorType.NetworkDevice;
+      driftedMonitor.monitorTemplateId = TEMPLATE_ID;
+      driftedMonitor.autoProvisionedNetworkDeviceId = existingDevice.id!;
+      driftedMonitor.monitorSteps = makeMonitorSteps(otherDeviceId.toString());
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([driftedMonitor]);
+      monitorCreateMock.mockRejectedValue(new Error("duplicate key"));
+      monitorFindOneByMock.mockResolvedValue(driftedMonitor);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 0,
+        monitorsFailed: 1,
+      });
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+      expect(monitorFindOneByMock.mock.calls[0]![0].select).toMatchObject({
+        monitorType: true,
+        monitorSteps: true,
+        monitorTemplateId: true,
+        autoProvisionedNetworkDeviceId: true,
+      });
+    });
+
+    it("classifies a valid concurrent automatic create as an idempotent skip", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const concurrentMonitor: Monitor = new Monitor();
+      concurrentMonitor.monitorType = MonitorType.NetworkDevice;
+      concurrentMonitor.monitorTemplateId = TEMPLATE_ID;
+      concurrentMonitor.autoProvisionedNetworkDeviceId = existingDevice.id!;
+      concurrentMonitor.monitorSteps = makeMonitorSteps(
+        existingDevice.id!.toString(),
+      );
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorCreateMock.mockRejectedValue(new Error("duplicate key"));
+      monitorFindOneByMock.mockResolvedValue(concurrentMonitor);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+        monitorsFailed: 0,
+      });
+    });
+
+    it("treats an automatic monitor orphaned from its template as an existing operator-managed monitor", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const orphanedMonitor: Monitor = new Monitor();
+      orphanedMonitor.monitorType = MonitorType.NetworkDevice;
+      orphanedMonitor.autoProvisionedNetworkDeviceId = existingDevice.id!;
+      orphanedMonitor.monitorSteps = makeMonitorSteps(
+        existingDevice.id!.toString(),
+      );
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([orphanedMonitor]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+    });
+
+    it("attempts one failed device-template key only once per run even when the host is duplicated", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost(), makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      monitorCreateMock.mockRejectedValue(new Error("plan limit reached"));
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsFailed: 1,
+      });
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("reports a missing template consistently instead of promising it in a dry run", async () => {
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
+
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        monitorsWouldCreate: 0,
+        monitorsFailed: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("caps missing-template failures across a large existing estate", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: MAX_MONITORS_PER_AUTO_IMPORT_RUN + 1 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.2.${Math.floor(index / 256)}.${index % 256}`,
+            sysName: `missing-template-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorTemplateFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        monitorsWouldCreate: 0,
+        monitorsFailed: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+        isTruncated: true,
+        isDryRun: true,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
   });
 
   /*
@@ -538,6 +1173,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       const result: AutoImportRuleRunResult | null = await processScan();
 
       expect(createMock).toHaveBeenCalledTimes(1);
+      expect(deviceFindOneByMock.mock.calls[0]![0].select.projectId).toBe(true);
       expect(result).toMatchObject({
         hostsMatched: 1,
         hostsSkippedAlreadyRegistered: 1,
@@ -577,6 +1213,126 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
   });
 
+  it("does not stamp a later scan when an earlier scan exactly exhausted the shared project budget", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+    const attemptBudgets: ImportAttemptBudgetsByProjectId = new Map([
+      [
+        PROJECT_ID.toString(),
+        {
+          deviceCount: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+          monitorCount: 0,
+        },
+      ],
+    ]);
+
+    const result: AutoImportRuleRunResult | null =
+      await NetworkDeviceAutoImportRuleEngineService.processCompletedScan({
+        scanId: SCAN_ID,
+        existingHostnamesByProjectId: new Map(),
+        attemptBudgetsByProjectId: attemptBudgets,
+      });
+
+    expect(result).toMatchObject({
+      devicesCreated: 0,
+      devicesFailed: 0,
+      isTruncated: true,
+    });
+    expect(createMock).not.toHaveBeenCalled();
+    // This scan contains unattempted work. The next sweep must see it again.
+    expect(scanUpdateMock).not.toHaveBeenCalled();
+    expect(
+      loggerErrorMock.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes("without making progress");
+      }),
+    ).toBe(false);
+  });
+
+  it("does not run a per-device monitor JSON search after the inherited monitor budget is exhausted", async () => {
+    const existingDevice: NetworkDevice = makeExistingDevice();
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+    deviceFindByMock.mockResolvedValue([existingDevice]);
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ monitorTemplateId: TEMPLATE_ID }),
+    ]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+    const attemptBudgets: ImportAttemptBudgetsByProjectId = new Map([
+      [
+        PROJECT_ID.toString(),
+        {
+          deviceCount: 0,
+          monitorCount: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+        },
+      ],
+    ]);
+
+    const result: AutoImportRuleRunResult | null =
+      await NetworkDeviceAutoImportRuleEngineService.processCompletedScan({
+        scanId: SCAN_ID,
+        existingHostnamesByProjectId: new Map(),
+        existingMonitorsByProjectId: new Map(),
+        attemptBudgetsByProjectId: attemptBudgets,
+      });
+
+    expect(result).toMatchObject({
+      monitorsCreated: 0,
+      monitorsFailed: 0,
+      isTruncated: true,
+    });
+    // One project snapshot only; no second JSON-search refresh for the host.
+    expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(scanUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not retire unattempted hosts when a partial inherited budget is exhausted by failures", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({
+        discoveredDevices: [
+          makeHost(),
+          makeHost({ ipAddress: "10.0.0.6", sysName: "core-switch-02" }),
+        ],
+      }),
+    );
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+    createMock.mockRejectedValue(new BadDataException("create is broken"));
+    deviceFindOneByMock.mockResolvedValue(null);
+    const attemptBudgets: ImportAttemptBudgetsByProjectId = new Map([
+      [
+        PROJECT_ID.toString(),
+        {
+          deviceCount: MAX_DEVICES_PER_AUTO_IMPORT_RUN - 1,
+          monitorCount: 0,
+        },
+      ],
+    ]);
+
+    const result: AutoImportRuleRunResult | null =
+      await NetworkDeviceAutoImportRuleEngineService.processCompletedScan({
+        scanId: SCAN_ID,
+        existingHostnamesByProjectId: new Map(),
+        attemptBudgetsByProjectId: attemptBudgets,
+      });
+
+    expect(result).toMatchObject({
+      hostsEvaluated: 2,
+      hostsMatched: 2,
+      devicesCreated: 0,
+      devicesFailed: 1,
+      isTruncated: true,
+    });
+    expect(createMock).toHaveBeenCalledTimes(2); // primary + fallback name
+    expect(scanUpdateMock).not.toHaveBeenCalled();
+  });
+
   /*
    * The resume protocol's other half: a truncated pass that created NOTHING
    * — every attempt failed — is stamped anyway. Leaving the marker NULL
@@ -611,7 +1367,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     // And the operator is told, loudly, why nothing imported.
     expect(
       loggerErrorMock.mock.calls.some((call: Array<unknown>) => {
-        return String(call[0]).includes("every create failing");
+        return String(call[0]).includes("without making progress");
       }),
     ).toBe(true);
   });
@@ -691,6 +1447,75 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
     expect(scanUpdateMock).not.toHaveBeenCalled();
     // And no lock: a run that writes nothing has nothing to serialize.
     expect(semaphoreLockMock).not.toHaveBeenCalled();
+  });
+
+  it("dry-runs monitor reconciliation without creating a device or monitor", async () => {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ monitorTemplateId: TEMPLATE_ID }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+    mockRunNowScans([
+      makeScan({ discoveredDevices: [makeHost(), makeHost()] }),
+    ]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({
+      hostsMatched: 2,
+      hostsSkippedAlreadyRegistered: 1,
+      devicesCreated: 0,
+      monitorsWouldCreate: 1,
+      monitorsCreated: 0,
+      monitorsSkippedAlreadyExisting: 1,
+      monitorsFailed: 0,
+      isDryRun: true,
+    });
+    expect(createMock).not.toHaveBeenCalled();
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(scanUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("caps monitor backfill work even when every matching device already exists", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+      { length: MAX_MONITORS_PER_AUTO_IMPORT_RUN + 1 },
+      (_value: unknown, index: number): DiscoveredNetworkDevice => {
+        return makeHost({
+          ipAddress: `10.1.${Math.floor(index / 256)}.${index % 256}`,
+          sysName: `existing-switch-${index}`,
+        });
+      },
+    );
+    const devices: Array<NetworkDevice> = hosts.map(
+      (host: DiscoveredNetworkDevice): NetworkDevice => {
+        return makeExistingDevice({
+          id: ObjectID.generate(),
+          hostname: host.ipAddress,
+          name: host.sysName,
+        });
+      },
+    );
+
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({
+        ipMatchTarget: "10.0.0.0/8",
+        monitorTemplateId: TEMPLATE_ID,
+      }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    deviceFindByMock.mockResolvedValue(devices);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+    mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({
+      devicesCreated: 0,
+      monitorsWouldCreate: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      isTruncated: true,
+      isDryRun: true,
+    });
+    expect(monitorCreateMock).not.toHaveBeenCalled();
   });
 
   /*
@@ -939,6 +1764,24 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
       await expect(runRule(false)).rejects.toThrow(
         "Auto-import rule not found.",
       );
+    });
+
+    it("rejects a rule whose template changed after the caller authorized it", async () => {
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+
+      await expect(
+        NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans({
+          ruleId: RULE_ID,
+          projectId: PROJECT_ID,
+          isDryRun: true,
+          expectedMonitorTemplateId: null,
+        }),
+      ).rejects.toThrow("changed while the run was being authorized");
+
+      expect(scanFindByMock).not.toHaveBeenCalled();
+      expect(monitorCreateMock).not.toHaveBeenCalled();
     });
   });
 });

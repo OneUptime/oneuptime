@@ -15,8 +15,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   device list, Status facet        13.7 ms → 0.12 ms
  *   probe claim (40,000 devices)      117 ms → 0.85 ms   (2,702 → 86 buffers)
  */
-export class AddNetworkScaleIndexes1789600000000 implements MigrationInterface {
-  public name: string = "AddNetworkScaleIndexes1789600000000";
+export class AddNetworkScaleIndexes1789700000000 implements MigrationInterface {
+  public name: string = "AddNetworkScaleIndexes1789700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*

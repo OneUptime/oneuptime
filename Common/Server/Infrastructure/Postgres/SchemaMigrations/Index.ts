@@ -550,9 +550,10 @@ import { AddCampaignUtmFields1789500000000 } from "./1789500000000-AddCampaignUt
 import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUserTwoFactorBackupCode";
 import { AddNameToNetworkDeviceDiscoveryScan1789400000000 } from "./1789400000000-AddNameToNetworkDeviceDiscoveryScan";
 import { AddDetectionRuleDistinctCountColumns1789512000000 } from "./1789512000000-AddDetectionRuleDistinctCountColumns";
+import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./1789600000000-AddAutoProvisionedNetworkDeviceMonitors";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
-import { AddNetworkScaleIndexes1789600000000 } from "./1789600000000-AddNetworkScaleIndexes";
+import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 
 export default [
   InitialMigration,
@@ -1109,5 +1110,6 @@ export default [
   AddNameToNetworkDeviceDiscoveryScan1789400000000,
   AddCampaignUtmFields1789500000000,
   AddDetectionRuleDistinctCountColumns1789512000000,
-  AddNetworkScaleIndexes1789600000000,
+  AddAutoProvisionedNetworkDeviceMonitors1789600000000,
+  AddNetworkScaleIndexes1789700000000,
 ];

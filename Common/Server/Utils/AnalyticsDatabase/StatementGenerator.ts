@@ -45,6 +45,9 @@ import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
+import Wildcard from "../../../Types/BaseDatabase/Wildcard";
+import { MAX_WILDCARD_PATTERNS } from "../../../Types/BaseDatabase/WildcardPattern";
+import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import GenericObject from "../../../Types/GenericObject";
@@ -123,6 +126,40 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
    * would compile to SQL ClickHouse rejects with a cryptic type error.
    * Fail with the same loud BadDataException the fallback uses.
    */
+  /*
+   * `(<subject> ILIKE {p0} OR <subject> ILIKE {p1} ...)` — the disjunction a
+   * multi-glob Wildcard compiles to. Always parenthesised, so a caller can
+   * wrap it in `NOT` or AND it into a lambda body without the OR escaping
+   * its intended scope.
+   */
+  private static buildIlikeDisjunction(input: {
+    patterns: Array<string>;
+    subject: Statement;
+  }): Statement {
+    if (input.patterns.length > MAX_WILDCARD_PATTERNS) {
+      throw new BadDataException(
+        `A wildcard filter cannot carry more than ${MAX_WILDCARD_PATTERNS} patterns`,
+      );
+    }
+
+    const disjunction: Statement = SQL`(`;
+
+    input.patterns.forEach((pattern: string, index: number) => {
+      if (index > 0) {
+        disjunction.append(SQL` OR `);
+      }
+
+      disjunction.append(input.subject).append(
+        SQL` ILIKE ${{
+          value: pattern,
+          type: TableColumnType.Text,
+        }}`,
+      );
+    });
+
+    return disjunction.append(SQL`)`);
+  }
+
   private throwIfMapOrJsonColumn(input: {
     operator: QueryOperator<GenericObject | number | string>;
     tableColumn: AnalyticsTableColumn;
@@ -1146,6 +1183,63 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             }}) OR ${columnRef(key)} IS NULL)`,
           );
         }
+      } else if (value instanceof Wildcard || value instanceof NotWildcard) {
+        /*
+         * Glob matching (`api-*`, `*.internal`, `svc-?`), one ILIKE per glob
+         * OR-ed together so an any-of list can mix patterns with literals.
+         * The patterns come from `toLikePattern`, which is the only place
+         * that decides which `%`/`_` are wildcards and which are literal
+         * characters the user typed — escaping here as well would escape the
+         * wildcards it just produced.
+         *
+         * The negated form mirrors NotContains rather than simply wrapping
+         * the positive one in NOT: on a nullable scalar `NOT (NULL ILIKE
+         * ...)` is NULL, and a row with no value at all trivially fails to
+         * match a glob, so NULL rows are let through explicitly.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const wildcardPatterns: Array<string> = value.toPatterns();
+        const isNegated: boolean = value instanceof NotWildcard;
+
+        /*
+         * An empty pattern list constrains nothing — "All", the same reading
+         * the empty Includes branch below takes. Emitting `()` would be a
+         * parse error and dropping to a bare NOT would match everything.
+         */
+        if (wildcardPatterns.length > 0) {
+          if (tableColumn.type === TableColumnType.ArrayText) {
+            const elementDisjunction: Statement =
+              StatementGenerator.buildIlikeDisjunction({
+                patterns: wildcardPatterns,
+                subject: SQL`x`,
+              });
+
+            whereStatement.append(
+              (isNegated
+                ? SQL`AND NOT arrayExists(x -> `
+                : SQL`AND arrayExists(x -> `
+              )
+                .append(elementDisjunction)
+                .append(SQL`, ${columnRef(key)})`),
+            );
+          } else {
+            const columnDisjunction: Statement =
+              StatementGenerator.buildIlikeDisjunction({
+                patterns: wildcardPatterns,
+                subject: SQL`${columnRef(key)}`,
+              });
+
+            if (isNegated) {
+              whereStatement.append(
+                SQL`AND (NOT `
+                  .append(columnDisjunction)
+                  .append(SQL` OR ${columnRef(key)} IS NULL)`),
+              );
+            } else {
+              whereStatement.append(SQL`AND `.append(columnDisjunction));
+            }
+          }
+        }
       } else if (
         value instanceof IncludesAll &&
         tableColumn.type === TableColumnType.ArrayText
@@ -1213,6 +1307,38 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            * is what the IsNull / NotNull / NotEqual branches below
            * mirror to preserve the previous semantics.
            */
+          /*
+           * Several operators AND-ed onto ONE attribute — `@k:a* @k:*b`, or
+           * a chip plus a typed filter on the same key. The attributes map
+           * has a single slot per key, so without this the second predicate
+           * either overwrote the first or (worse) an array reached the
+           * bare-value branch below and bound as `String(array)`, a silent
+           * match-nothing. Each element compiles through a single-key
+           * recursive call, so every branch below applies unchanged.
+           */
+          if (
+            Array.isArray(mapEntry) &&
+            mapEntry.length > 0 &&
+            mapEntry.every((element: unknown) => {
+              return element instanceof QueryOperator;
+            })
+          ) {
+            for (const operator of mapEntry) {
+              const fragment: Statement = this.toWhereStatement(
+                { [key]: { [mapKey]: operator } } as Query<TBaseModel>,
+                options,
+              );
+
+              if (!fragment.query) {
+                continue;
+              }
+
+              whereStatement.append(fragment);
+            }
+
+            continue;
+          }
+
           if (mapEntry instanceof IsNull) {
             whereStatement.append(
               SQL`AND ((NOT mapContains(${columnRef(key)}, ${{
@@ -1254,6 +1380,56 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 value: mapEntry as Search<string>,
                 type: TableColumnType.Text,
               }}, mapKeys(${columnRef(key)}), mapValues(${columnRef(key)}))`,
+            );
+            continue;
+          }
+
+          if (mapEntry instanceof Wildcard || mapEntry instanceof NotWildcard) {
+            /*
+             * Glob matching on an attribute value — `@platform.team:a*`.
+             *
+             * Case-insensitive key match (the arrayExists form) for the same
+             * reason Search / StartsWith / EndsWith use it: the key was typed
+             * by a person, not read off a column list, so `requestId` and
+             * `requestid` have to be the same filter. That also rules out
+             * `appendMapKeyPresenceFilter`, whose `hasAny` prunes on an
+             * EXACT key and would drop rows whose stored key differs only in
+             * case.
+             *
+             * The negated form is `NOT arrayExists(...)`, so a row that does
+             * not carry the attribute at all passes — it trivially does not
+             * match the glob. That mirrors the NotContains branch below and
+             * the missing-key semantics of the scalar map subscript.
+             */
+            const wildcardPatterns: Array<string> = mapEntry.toPatterns();
+
+            if (wildcardPatterns.length === 0) {
+              // Empty means "All" — see the Includes branch below.
+              continue;
+            }
+
+            const negated: boolean = mapEntry instanceof NotWildcard;
+
+            const valueDisjunction: Statement =
+              StatementGenerator.buildIlikeDisjunction({
+                patterns: wildcardPatterns,
+                subject: SQL`v`,
+              });
+
+            const wildcardPredicate: Statement =
+              SQL`arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+                value: mapKey,
+                type: TableColumnType.Text,
+              }}) AND `
+                .append(valueDisjunction)
+                .append(
+                  SQL`, mapKeys(${columnRef(key)}), mapValues(${columnRef(
+                    key,
+                  )}))`,
+                );
+
+            whereStatement.append(
+              (negated ? SQL`AND NOT ` : SQL`AND `).append(wildcardPredicate),
             );
             continue;
           }

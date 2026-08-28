@@ -1,13 +1,23 @@
 import DatabaseService from "./DatabaseService";
+import MonitorTemplateService from "./MonitorTemplateService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import ObjectID from "../../Types/ObjectID";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 /*
  * Write-time validation for auto-import rules, following the
@@ -23,6 +33,19 @@ import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
  * same reason as CidrMatchUtil.
  */
 const OID_PATTERN_SHAPE: RegExp = /^\.?[\d.*]+$/;
+const MONITOR_TEMPLATE_KEYS: Array<string> = [
+  "monitorTemplateId",
+  "monitorTemplate",
+];
+
+function readMonitorTemplateId(data: Record<string, unknown>): ObjectID | null {
+  return RelationIdUtil.readConsistent(
+    data,
+    MONITOR_TEMPLATE_KEYS,
+    "Monitor Template",
+  );
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -39,6 +62,20 @@ export class Service extends DatabaseService<Model> {
       sysObjectIdPattern: createBy.data.sysObjectIdPattern,
     });
 
+    const monitorTemplateId: ObjectID | null = readMonitorTemplateId(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (monitorTemplateId) {
+      await this.validateMonitorTemplateSelection({
+        monitorTemplateId: monitorTemplateId,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        isExclusion: createBy.data.isExclusion,
+        includePingOnlyHosts: createBy.data.includePingOnlyHosts,
+        props: createBy.props,
+      });
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -54,7 +91,13 @@ export class Service extends DatabaseService<Model> {
       dataKeys.includes("sysDescrPattern") ||
       dataKeys.includes("sysObjectIdPattern");
 
-    if (!isCriteriaChange) {
+    const isMonitorProvisioningChange: boolean =
+      RelationIdUtil.isWritten(dataKeys, MONITOR_TEMPLATE_KEYS) ||
+      dataKeys.includes("isExclusion") ||
+      dataKeys.includes("includePingOnlyHosts") ||
+      dataKeys.includes("isEnabled");
+
+    if (!isCriteriaChange && !isMonitorProvisioningChange) {
       return { updateBy, carryForward: null };
     }
 
@@ -63,13 +106,26 @@ export class Service extends DatabaseService<Model> {
      * stored row, so validate the RESULTING state of every matched row.
      */
     const existingRules: Array<Model> = await this.findBy({
-      query: updateBy.query,
+      /*
+       * Hooks run before DatabaseService applies tenant permissions. Scope
+       * this privileged snapshot now so a guessed cross-project rule ID
+       * cannot become a state oracle through template validation errors.
+       */
+      query:
+        !updateBy.props.isRoot && updateBy.props.tenantId
+          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+          : updateBy.query,
       select: {
         _id: true,
+        projectId: true,
         ipMatchTarget: true,
         sysNamePattern: true,
         sysDescrPattern: true,
         sysObjectIdPattern: true,
+        isExclusion: true,
+        includePingOnlyHosts: true,
+        isEnabled: true,
+        monitorTemplateId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -82,25 +138,152 @@ export class Service extends DatabaseService<Model> {
       string,
       unknown
     >;
+    const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      MONITOR_TEMPLATE_KEYS,
+    );
+    const writtenMonitorTemplateId: ObjectID | null =
+      readMonitorTemplateId(data);
 
     for (const existingRule of existingRules) {
-      this.validateCriteria({
-        ipMatchTarget: dataKeys.includes("ipMatchTarget")
-          ? (data["ipMatchTarget"] as string | null)
-          : existingRule.ipMatchTarget,
-        sysNamePattern: dataKeys.includes("sysNamePattern")
-          ? (data["sysNamePattern"] as string | null)
-          : existingRule.sysNamePattern,
-        sysDescrPattern: dataKeys.includes("sysDescrPattern")
-          ? (data["sysDescrPattern"] as string | null)
-          : existingRule.sysDescrPattern,
-        sysObjectIdPattern: dataKeys.includes("sysObjectIdPattern")
-          ? (data["sysObjectIdPattern"] as string | null)
-          : existingRule.sysObjectIdPattern,
-      });
+      if (isCriteriaChange) {
+        this.validateCriteria({
+          ipMatchTarget: dataKeys.includes("ipMatchTarget")
+            ? (data["ipMatchTarget"] as string | null)
+            : existingRule.ipMatchTarget,
+          sysNamePattern: dataKeys.includes("sysNamePattern")
+            ? (data["sysNamePattern"] as string | null)
+            : existingRule.sysNamePattern,
+          sysDescrPattern: dataKeys.includes("sysDescrPattern")
+            ? (data["sysDescrPattern"] as string | null)
+            : existingRule.sysDescrPattern,
+          sysObjectIdPattern: dataKeys.includes("sysObjectIdPattern")
+            ? (data["sysObjectIdPattern"] as string | null)
+            : existingRule.sysObjectIdPattern,
+        });
+      }
+
+      const isCriteriaChangeOnEnabledTemplateRule: boolean = Boolean(
+        isCriteriaChange &&
+          existingRule.monitorTemplateId &&
+          (dataKeys.includes("isEnabled")
+            ? data["isEnabled"] === true
+            : existingRule.isEnabled),
+      );
+
+      if (
+        isMonitorProvisioningChange ||
+        isCriteriaChangeOnEnabledTemplateRule
+      ) {
+        const monitorTemplateId: ObjectID | null = isMonitorTemplateWritten
+          ? writtenMonitorTemplateId
+          : existingRule.monitorTemplateId || null;
+
+        const isOnlyDisablingRule: boolean =
+          dataKeys.includes("isEnabled") &&
+          data["isEnabled"] === false &&
+          !isMonitorTemplateWritten &&
+          !dataKeys.includes("isExclusion") &&
+          !dataKeys.includes("includePingOnlyHosts");
+
+        if (monitorTemplateId && !isOnlyDisablingRule) {
+          await this.validateMonitorTemplateSelection({
+            monitorTemplateId: monitorTemplateId,
+            projectId: updateBy.props.tenantId || existingRule.projectId,
+            isExclusion: dataKeys.includes("isExclusion")
+              ? data["isExclusion"] === true
+              : existingRule.isExclusion,
+            includePingOnlyHosts: dataKeys.includes("includePingOnlyHosts")
+              ? data["includePingOnlyHosts"] === true
+              : existingRule.includePingOnlyHosts,
+            props: updateBy.props,
+          });
+        }
+      }
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  private async validateMonitorTemplateSelection(data: {
+    monitorTemplateId: ObjectID;
+    projectId: ObjectID | undefined;
+    isExclusion?: boolean | null | undefined;
+    includePingOnlyHosts?: boolean | null | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.isExclusion) {
+      throw new BadDataException(
+        "Exclusion rules cannot select a monitor template.",
+      );
+    }
+
+    if (data.includePingOnlyHosts) {
+      throw new BadDataException(
+        "Rules that include ping-only hosts cannot select a Network Device monitor template.",
+      );
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "A project is required when selecting a monitor template.",
+      );
+    }
+
+    if (!data.props.isRoot && !data.props.isMasterAdmin) {
+      TablePermission.checkTableLevelPermissions(
+        Monitor,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+      TablePermission.checkTableLevelBlockPermissions(
+        Monitor,
+        data.props,
+        DatabaseRequestType.Create,
+      );
+    }
+
+    const monitorTemplate: MonitorTemplate | null =
+      await MonitorTemplateService.findOneById({
+        id: data.monitorTemplateId,
+        select: {
+          _id: true,
+          projectId: true,
+          monitorType: true,
+          monitorSteps: true,
+        },
+        /*
+         * Selecting a template is also a read of that template. Preserve the
+         * caller's tenant, ownership and label scopes here; otherwise a user
+         * who may edit rules and create monitors could attach a template they
+         * cannot see, and the background worker would later clone it as root.
+         */
+        props: data.props,
+      });
+
+    if (!monitorTemplate) {
+      throw new BadDataException("Monitor template not found.");
+    }
+
+    if (
+      !monitorTemplate.projectId ||
+      monitorTemplate.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "Monitor template must belong to the same project.",
+      );
+    }
+
+    if (monitorTemplate.monitorType !== MonitorType.NetworkDevice) {
+      throw new BadDataException(
+        "Monitor template must be a Network Device monitor template.",
+      );
+    }
+
+    NetworkDeviceMonitorTemplateUtil.validateMonitorSteps(
+      monitorTemplate.monitorSteps,
+      "Monitor template",
+    );
   }
 
   private validateCriteria(data: {

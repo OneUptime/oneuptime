@@ -10,6 +10,12 @@ interface HelpRow {
   example: string;
 }
 
+/*
+ * The syntax table. Every row here is honoured by the shared search grammar
+ * in Common/Types/Telemetry/TelemetrySearchQuery — the help used to advertise
+ * a wildcard row whose own example ("service:api-*") matched nothing, so the
+ * rule is that a row is only listed once its behaviour is pinned by a test.
+ */
 const HELP_ROWS: Array<HelpRow> = [
   {
     syntax: "free text",
@@ -18,7 +24,7 @@ const HELP_ROWS: Array<HelpRow> = [
   },
   {
     syntax: '"quoted phrase"',
-    description: "Exact phrase match",
+    description: "Keep spaces together",
     example: '"out of memory"',
   },
   {
@@ -37,28 +43,38 @@ const HELP_ROWS: Array<HelpRow> = [
     example: "trace:abc123def456",
   },
   {
-    syntax: "span:<id>",
-    description: "Filter by span ID",
-    example: "span:e1f7f671fe78",
-  },
-  {
     syntax: "@<attr>:<value>",
     description: "Filter by attribute",
     example: "@http.status_code:500",
   },
   {
-    syntax: "-field:value",
-    description: "Exclude matching logs",
-    example: "-severity:debug",
+    syntax: "@<attr>:<value>*",
+    description: "Wildcard — * is any text, ? is one character",
+    example: "@platform.team:a*",
   },
   {
-    syntax: "field:value*",
-    description: "Wildcard match",
-    example: "service:api-*",
+    syntax: "@<attr>:*",
+    description: "Attribute is present",
+    example: "@user.id:*",
   },
   {
-    syntax: "@attr:>N",
-    description: "Numeric comparison",
+    syntax: "@<attr>:~<text>",
+    description: "Attribute contains",
+    example: "@url.host:~internal",
+  },
+  {
+    syntax: "-<filter>",
+    description: "Exclude — works with every filter above",
+    example: "-@platform.team:a*",
+  },
+  {
+    syntax: "@<attr>:(a OR b)",
+    description: "Any of these values",
+    example: "@http.method:(GET OR POST)",
+  },
+  {
+    syntax: "@<attr>:>N",
+    description: "Numeric comparison (also >=, <, <=)",
     example: "@duration:>1000",
   },
 ];
@@ -115,10 +131,12 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
           <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
             Enter
           </kbd>{" "}
-          to search · Combine filters:{" "}
+          to search · Filters combine with AND ·{" "}
           <code className="font-mono text-[10px] text-gray-500">
             severity:error service:api &quot;timeout&quot;
-          </code>
+          </code>{" "}
+          · Use <code className="font-mono text-[10px]">\*</code> for a literal
+          asterisk
         </span>
       </div>
     </div>

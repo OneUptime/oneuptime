@@ -29,7 +29,6 @@ import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
-import TimeRange from "Common/Types/Time/TimeRange";
 import { getSeverityTheme } from "Common/UI/Components/LogsViewer/components/severityTheme";
 import AppLink from "../AppLink/AppLink";
 import ErrorPatternDetail from "./ErrorPatternDetail";
@@ -43,21 +42,35 @@ import {
   fetchScopeFacets,
   fetchTopErrorPatterns,
 } from "./LogsInsightsApi";
+import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
+import Navigation from "Common/UI/Utils/Navigation";
+import HintChip from "../Metrics/HintChip";
 import {
   INSIGHTS_SCOPE_FACET_KEYS,
   INSIGHTS_SCOPE_FACET_LABELS,
+  LOGS_TAB_DEFAULT_TIME_RANGE,
   LogVolumeSummary,
   LogsInsightsScope,
+  LogsInsightsUrlScope,
   ParsedScopeSelections,
   ResourceLogBreakdown,
   ScopeFacetValue,
   SeverityShare,
   TopErrorPatternRow,
+  buildLogsInsightsUrlParams,
   describeTimeRange,
   encodeScopeSelection,
   parseScopeSelections,
+  readLogsInsightsUrlScope,
   summarizeSeverityBuckets,
 } from "../../Utils/LogsInsights";
+import {
+  TelemetryFilterTuple,
+  describeUnappliedScopeFilters,
+  toPresentParams,
+  withTelemetryTabScopeParams,
+} from "../../Utils/TelemetryTabScope";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 /*
  * The Logs Insights page.
@@ -77,8 +90,20 @@ const TOP_ERROR_LIMIT: number = 12;
 const RESOURCE_CARD_LIMIT: number = 12;
 
 const LogsDashboard: FunctionComponent = (): ReactElement => {
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_DAY,
+  /*
+   * The slice the Viewer tab handed over, read once on mount.
+   *
+   * This is the whole answer to "selecting a saved view in the Viewer and
+   * switching to Insights shows All services and hosts": the Viewer already
+   * mirrors its scope into the URL, the tab link carries those params here,
+   * and this page starts from them instead of from nothing.
+   */
+  const [initialUrlScope] = useState<LogsInsightsUrlScope>(() => {
+    return readLogsInsightsUrlScope(Navigation.getQueryString());
+  });
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(() => {
+    return initialUrlScope.timeRange || { range: LOGS_TAB_DEFAULT_TIME_RANGE };
   });
   /*
    * Encoded "<facetKey>:<id>" values — one flat multi-select over Services
@@ -87,8 +112,29 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
    * by parseScopeSelections.
    */
   const [selectedScopeValues, setSelectedScopeValues] = useState<Array<string>>(
-    [],
+    initialUrlScope.scopeValues,
   );
+
+  /*
+   * Viewer chips this page has no dimension for — a body search, a trace id,
+   * a severity selection. Held, never applied, and re-emitted on the way
+   * back so the round trip does not quietly drop them.
+   */
+  const [unappliedFilters] = useState<Array<TelemetryFilterTuple>>(
+    initialUrlScope.unappliedFilters,
+  );
+
+  /*
+   * The saved view this scope came from. Provenance only: it names the chip
+   * the page shows, and it is what lets the trip back land the user inside
+   * the same view rather than on its filters with nothing selected. Cleared
+   * the moment the user edits the scope, because at that point the scope is
+   * no longer the view's.
+   */
+  const [savedViewId, setSavedViewId] = useState<string | null>(
+    initialUrlScope.savedViewId,
+  );
+  const [savedViewName, setSavedViewName] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [scopeFacets, setScopeFacets] = useState<
@@ -128,6 +174,106 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
 
     return { timeRange, ...selections };
   }, [timeRange, selectedScopeValues]);
+
+  /*
+   * Mirror this page's scope into the URL, in the Logs Viewer's own grammar.
+   *
+   * Two things fall out of writing the Viewer's grammar rather than a
+   * private one. The tab link back needs no translation — an Insights URL IS
+   * a Viewer URL — and a refresh, a bookmark or a pasted link restores the
+   * scope the user built here, which the page previously forgot on every
+   * reload.
+   */
+  useEffect(() => {
+    writeTelemetryViewerUrlState(
+      buildLogsInsightsUrlParams({
+        timeRange,
+        scopeValues: selectedScopeValues,
+        unappliedFilters,
+        savedViewId,
+      }),
+    );
+  }, [timeRange, selectedScopeValues, unappliedFilters, savedViewId]);
+
+  /*
+   * The name behind the carried saved-view id, so the page can say WHERE its
+   * scope came from rather than showing an unexplained set of services.
+   *
+   * Best-effort: a view that has been deleted (or belongs to another
+   * project) drops the reference instead of surfacing an error — the scope
+   * itself came over in the URL and is still perfectly usable.
+   */
+  useEffect(() => {
+    if (!savedViewId) {
+      setSavedViewName("");
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    ModelAPI.getItem({
+      modelType: LogSavedView,
+      id: new ObjectID(savedViewId),
+      select: { name: true },
+    })
+      .then((savedView: LogSavedView | null): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        const name: string = savedView?.name?.toString() || "";
+
+        if (name) {
+          setSavedViewName(name);
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      })
+      .catch((): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [savedViewId]);
+
+  /*
+   * Every in-page route back to the Viewer carries this scope, not just the
+   * tab. A user who followed "Open Viewer" out of an empty Insights page and
+   * landed on the unfiltered firehose would reasonably read that as the
+   * filter having been lost.
+   */
+  const viewerRoute: Route = useMemo(() => {
+    /*
+     * Built from the same state the URL write above is built from, NOT by
+     * reading the query string: that write happens in an effect, so during
+     * this render the URL still describes the previous scope and the link
+     * would always be one change behind.
+     */
+    return withTelemetryTabScopeParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+      toPresentParams(
+        buildLogsInsightsUrlParams({
+          timeRange,
+          scopeValues: selectedScopeValues,
+          unappliedFilters,
+          savedViewId,
+        }),
+      ),
+    );
+  }, [timeRange, selectedScopeValues, unappliedFilters, savedViewId]);
+
+  const unappliedFiltersHint: string = useMemo(() => {
+    return describeUnappliedScopeFilters(unappliedFilters);
+  }, [unappliedFilters]);
 
   const loadServices: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -312,14 +458,54 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
 
   const rangeLabel: string = describeTimeRange(timeRange);
 
+  /*
+   * The user editing the scope by hand means it is no longer the saved
+   * view's scope, so the provenance chip goes and the id stops travelling —
+   * carrying it on would send the user back into a view whose filters no
+   * longer match what they are looking at.
+   */
+  const applyScopeSelection: (values: Array<string>) => void = (
+    values: Array<string>,
+  ): void => {
+    setSelectedScopeValues(values);
+    setSavedViewId(null);
+  };
+
   const headerBar: ReactElement = (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Insights</h2>
         <p className="text-xs text-gray-500">
           What your services are logging in {rangeLabel} — and what is going
           wrong.
         </p>
+        {(savedViewName || unappliedFiltersHint) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {savedViewName && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+                <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+                <span>
+                  Scoped by saved view{" "}
+                  <span className="font-medium">{savedViewName}</span>
+                </span>
+                <button
+                  type="button"
+                  className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+                  title="Stop scoping by this saved view"
+                  aria-label="Stop scoping by this saved view"
+                  onClick={() => {
+                    applyScopeSelection([]);
+                  }}
+                >
+                  <Icon icon={IconProp.Close} className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {unappliedFiltersHint && (
+              <HintChip>{unappliedFiltersHint}</HintChip>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[16rem]">
@@ -333,7 +519,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
               value: DropdownValue | Array<DropdownValue> | null,
             ): void => {
               if (!value) {
-                setSelectedScopeValues([]);
+                applyScopeSelection([]);
                 return;
               }
 
@@ -341,7 +527,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                 ? value
                 : [value];
 
-              setSelectedScopeValues(
+              applyScopeSelection(
                 values
                   .map((item: DropdownValue): string => {
                     return String(item);
@@ -419,9 +605,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.LOGS] as Route,
-              )}
+              to={viewerRoute}
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
@@ -454,9 +638,20 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       return serviceById.has(row.resourceId);
     },
   ).length;
+  /*
+   * The denominator for "quiet services" and "N of M services" is the SCOPE,
+   * not the project. Under a scope of five services the project's other
+   * fifteen are not quiet, they are excluded — reporting them as quiet turns
+   * a filter the user applied into an alarm about services they deliberately
+   * filtered out.
+   */
+  const scopedServiceCount: number =
+    scope.serviceIds && scope.serviceIds.length > 0
+      ? scope.serviceIds.length
+      : services.length;
   const quietServices: number = Math.max(
     0,
-    services.length - reportingServices,
+    scopedServiceCount - reportingServices,
   );
   const maxResourceVolume: number = Math.max(
     ...resourceBreakdown.map((row: ResourceLogBreakdown): number => {
@@ -502,8 +697,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           subtext={
             quietServices > 0
               ? "no logs in range"
-              : services.length > 0
-                ? `${reportingServices} of ${services.length} services`
+              : scopedServiceCount > 0
+                ? `${reportingServices} of ${scopedServiceCount} services`
                 : "sending logs"
           }
           icon={quietServices > 0 ? IconProp.Alert : IconProp.CheckCircle}
@@ -586,7 +781,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         </div>
         <AppLink
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-          to={RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route)}
+          to={viewerRoute}
         >
           <span>Open Viewer</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
