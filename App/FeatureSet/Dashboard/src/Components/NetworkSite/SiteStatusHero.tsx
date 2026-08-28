@@ -10,8 +10,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SiteUptimeUtil, {
+  SiteMaintenanceWindow,
   SiteStatusTimelineRow,
+  SiteUptimeMeasurement,
 } from "Common/Utils/NetworkSite/SiteUptimeUtil";
+import fetchSiteMaintenanceWindows from "./SiteMaintenanceWindows";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -31,11 +34,18 @@ export interface ComponentProps {
 }
 
 const UPTIME_WINDOW_DAYS: number = 30;
+const DAILY_UPTIME_WINDOW_DAYS: number = 1;
 
 /*
- * Status hero for the site Overview: rolled-up health, 30-day uptime from
- * the site's status timeline (same math the map uses — SiteUptimeUtil),
- * device fleet counts, child sites, and endpoints, all in one strip.
+ * Status hero for the site Overview: rolled-up health, uptime over the last
+ * 24 hours AND the last 30 days from the site's status timeline (same math
+ * the map uses — SiteUptimeUtil), device fleet counts, child sites, and
+ * endpoints, all in one strip.
+ *
+ * Both uptime figures exclude any scheduled maintenance window covering this
+ * site. The health chip deliberately does NOT — a unit that is off for a
+ * planned cutover still reads Offline, with a badge next to it saying the
+ * outage was on the calendar.
  */
 const SiteStatusHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +58,8 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
     childSiteCount: number;
     endpointCount: number;
     uptimePercent: number | null;
+    dailyUptimePercent: number | null;
+    isUnderMaintenance: boolean;
   }
 
   const [data, setData] = useState<HeroData | null>(null);
@@ -60,12 +72,20 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
       const windowStart: Date =
         OneUptimeDate.getSomeDaysAgo(UPTIME_WINDOW_DAYS);
 
-      const [site, deviceResult, childSiteCount, endpointCount, timeline]: [
+      const [
+        site,
+        deviceResult,
+        childSiteCount,
+        endpointCount,
+        timeline,
+        maintenanceWindows,
+      ]: [
         NetworkSite | null,
         ListResult<NetworkDevice>,
         number,
         number,
         ListResult<NetworkSiteStatusTimeline>,
+        Array<SiteMaintenanceWindow>,
       ] = await Promise.all([
         ModelAPI.getItem<NetworkSite>({
           modelType: NetworkSite,
@@ -124,6 +144,19 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             startsAt: SortOrder.Descending,
           },
         }),
+        /*
+         * Resolved server-side, so this needs nothing from the site row and
+         * rides in the same batch. A failure must not blank the whole strip
+         * — it degrades to "no windows", which is what the hero showed
+         * before maintenance could be attached to a site at all.
+         */
+        fetchSiteMaintenanceWindows({
+          siteId: props.modelId,
+          windowStart: windowStart,
+          windowEnd: windowEnd,
+        }).catch((): Array<SiteMaintenanceWindow> => {
+          return [];
+        }),
       ]);
 
       let devicesUp: number = 0;
@@ -144,6 +177,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
        * paint an unmonitored site as perfect — show "—" instead.
        */
       let uptimePercent: number | null = null;
+      let dailyUptimePercent: number | null = null;
       if (timeline.data.length > 0) {
         const rows: Array<SiteStatusTimelineRow> = timeline.data.map(
           (row: NetworkSiteStatusTimeline): SiteStatusTimelineRow => {
@@ -159,11 +193,36 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           },
         );
 
-        uptimePercent = SiteUptimeUtil.calculateUptimePercent(
+        /*
+         * measureUptime rather than the scalar form: a period spent entirely
+         * inside a maintenance window has nothing to measure, and the scalar
+         * has to answer 100 — "100% uptime" on a site that was switched off
+         * for the whole month being exactly the misreading this feature
+         * exists to remove. Null renders as a dash.
+         */
+        const monthly: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
           rows,
           windowStart,
           windowEnd,
+          maintenanceWindows,
         );
+        uptimePercent = monthly.measuredInMs > 0 ? monthly.uptimePercent : null;
+
+        /*
+         * Exactly 24 hours, not a calendar day — the strip on the Status
+         * Timeline page uses fixed buckets and the two must agree.
+         */
+        const daily: SiteUptimeMeasurement = SiteUptimeUtil.measureUptime(
+          rows,
+          SiteUptimeUtil.trailingWindowStart(
+            windowEnd,
+            DAILY_UPTIME_WINDOW_DAYS,
+          ),
+          windowEnd,
+          maintenanceWindows,
+        );
+        dailyUptimePercent =
+          daily.measuredInMs > 0 ? daily.uptimePercent : null;
       }
 
       setData({
@@ -174,6 +233,11 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         childSiteCount: childSiteCount,
         endpointCount: endpointCount,
         uptimePercent: uptimePercent,
+        dailyUptimePercent: dailyUptimePercent,
+        isUnderMaintenance: SiteUptimeUtil.isUnderMaintenanceAt(
+          maintenanceWindows,
+          windowEnd,
+        ),
       });
       setError("");
     } catch (err) {
@@ -196,8 +260,8 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         data-testid="site-status-hero-skeleton"
         className="mb-5 rounded-lg bg-white p-6 shadow"
       >
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 xl:grid-cols-6">
-          {[0, 1, 2, 3, 4, 5].map((index: number) => {
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 xl:grid-cols-7">
+          {[0, 1, 2, 3, 4, 5, 6].map((index: number) => {
             return (
               <div key={index} className="space-y-2">
                 <div className="h-4 w-20 animate-pulse rounded bg-gray-100"></div>
@@ -224,7 +288,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
       data-testid="site-status-hero"
       className="mb-5 rounded-lg bg-white p-6 shadow"
     >
-      <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-7">
         <div>
           <div className="text-sm font-medium text-gray-500">Health</div>
           <div className="mt-1.5">
@@ -236,6 +300,21 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
               />
             ) : (
               <span className="text-sm text-gray-400">No data yet</span>
+            )}
+            {/*
+             * The chip above still reads whatever the rollup says, planned
+             * work included, because someone looking at this page needs to
+             * know the site is off right now. This badge is what says the
+             * outage was scheduled — and that the uptime figures beside it
+             * have already discounted it.
+             */}
+            {data.isUnderMaintenance && (
+              <span
+                className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                title="A scheduled maintenance window covers this site right now. Its downtime is excluded from the uptime percentages."
+              >
+                In maintenance
+              </span>
             )}
           </div>
           {lastRollupAt && (
@@ -250,10 +329,26 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
 
         <div>
           <div className="text-sm font-medium text-gray-500">
+            Uptime ({DAILY_UPTIME_WINDOW_DAYS * 24}h)
+          </div>
+          <div
+            className="mt-1.5 text-2xl font-semibold text-gray-900"
+            data-testid="site-hero-daily-uptime"
+          >
+            {formatUptimePercent(data.dailyUptimePercent)}
+          </div>
+          <div className="mt-1.5 text-xs text-gray-500">Last 24 hours</div>
+        </div>
+
+        <div>
+          <div className="text-sm font-medium text-gray-500">
             Uptime ({UPTIME_WINDOW_DAYS}d)
           </div>
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
             {formatUptimePercent(data.uptimePercent)}
+          </div>
+          <div className="mt-1.5 text-xs text-gray-500">
+            Maintenance excluded
           </div>
         </div>
 

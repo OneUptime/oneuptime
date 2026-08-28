@@ -3,9 +3,14 @@ import ObjectID from "Common/Types/ObjectID";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import SiteHealthRollupPolicy, {
+  getSiteHealthRollupPolicyLabel,
+  parseSiteHealthRollupPolicy,
+} from "Common/Types/NetworkSite/SiteHealthRollupPolicy";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -260,6 +265,104 @@ const NetworkSiteSettings: FunctionComponent<
                   );
                 }
                 return <span>{item.alertSeverity.name}</span>;
+              },
+            },
+          ],
+        }}
+      />
+
+      <CardModelDetail<NetworkSite>
+        name="Health Rollup"
+        cardProps={{
+          title: "Health Rollup",
+          description:
+            "How this site's status is derived from the devices at it and at every site beneath it.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Health Rollup"
+        formFields={[
+          {
+            field: {
+              healthRollupPolicy: true,
+            },
+            title: "Rollup Policy",
+            description:
+              "Worst status: any offline device makes this site offline — right for a single unit, where four switches in one building are not independent. Percentage of devices down: the share decides — right for a region, where one dark switch in one store should not paint four hundred of them red.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: [
+              {
+                value: SiteHealthRollupPolicy.WorstStatus,
+                label: getSiteHealthRollupPolicyLabel(
+                  SiteHealthRollupPolicy.WorstStatus,
+                ),
+              },
+              {
+                value: SiteHealthRollupPolicy.PercentThreshold,
+                label: getSiteHealthRollupPolicyLabel(
+                  SiteHealthRollupPolicy.PercentThreshold,
+                ),
+              },
+            ],
+            required: false,
+            placeholder: "Worst status of any device",
+          },
+          {
+            field: {
+              offlineThresholdPercent: true,
+            },
+            title: "Offline Threshold (%)",
+            description:
+              "Only used by the percentage policy. At or above this share of reporting devices down, the site is offline. Below it, but above zero, the site is degraded.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "50",
+            showIf: (item: FormValues<NetworkSite>): boolean => {
+              return (
+                item.healthRollupPolicy ===
+                SiteHealthRollupPolicy.PercentThreshold
+              );
+            },
+          },
+        ]}
+        modelDetailProps={{
+          modelType: NetworkSite,
+          id: "network-site-health-rollup",
+          modelId: modelId,
+          fields: [
+            {
+              field: {
+                healthRollupPolicy: true,
+              },
+              title: "Rollup Policy",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                return (
+                  <span>
+                    {getSiteHealthRollupPolicyLabel(
+                      parseSiteHealthRollupPolicy(item.healthRollupPolicy),
+                    )}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                offlineThresholdPercent: true,
+              },
+              title: "Offline Threshold (%)",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (
+                  parseSiteHealthRollupPolicy(item.healthRollupPolicy) !==
+                  SiteHealthRollupPolicy.PercentThreshold
+                ) {
+                  return (
+                    <span className="text-gray-400">
+                      Not used by this policy
+                    </span>
+                  );
+                }
+                return <span>{item.offlineThresholdPercent}%</span>;
               },
             },
           ],

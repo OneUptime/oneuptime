@@ -7,6 +7,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -20,6 +21,7 @@ import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 
 export interface ComponentProps {
@@ -32,6 +34,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   /*
    * Caller can hide categories that don't apply (e.g. Alert lists its monitor
@@ -46,6 +49,7 @@ export interface ComponentProps {
   hideCephClusters?: boolean | undefined;
   hideDockerSwarmClusters?: boolean | undefined;
   hideIoTFleets?: boolean | undefined;
+  hideNetworkSites?: boolean | undefined;
   hideServices?: boolean | undefined;
   emptyMessage?: string | undefined;
 }
@@ -196,6 +200,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const dockerSwarmClusters: Array<DockerSwarmCluster> =
     props.dockerSwarmClusters || [];
   const iotFleets: Array<IoTFleet> = props.iotFleets || [];
+  const networkSites: Array<NetworkSite> = props.networkSites || [];
   const services: Array<Service> = props.services || [];
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
@@ -210,6 +215,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showSwarm: boolean =
     !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
   const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
+  const showNetworkSites: boolean =
+    !props.hideNetworkSites && networkSites.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
 
   if (
@@ -222,6 +229,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showCeph &&
     !showSwarm &&
     !showIoTFleets &&
+    !showNetworkSites &&
     !showServices
   ) {
     return (
@@ -250,6 +258,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showCeph ? cephClusters.length : 0) +
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
+    (showNetworkSites ? networkSites.length : 0) +
     (showServices ? services.length : 0);
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
@@ -261,6 +270,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showCeph ? 1 : 0) +
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
+    (showNetworkSites ? 1 : 0) +
     (showServices ? 1 : 0);
   const resourceWord: string = totalCount === 1 ? "resource" : "resources";
   const categoryWord: string = categoryCount === 1 ? "category" : "categories";
@@ -410,6 +420,21 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={iotFleets}
             renderItem={(fleet: IoTFleet) => {
               return <IoTFleetElement iotFleet={fleet} />;
+            }}
+          />
+        )}
+        {showNetworkSites && (
+          <CategoryCard<NetworkSite>
+            icon={IconProp.BuildingOffice}
+            label="Network Sites"
+            iconBgClass="bg-indigo-50"
+            iconColorClass="text-indigo-600"
+            accentBarClass="bg-indigo-500"
+            countBgClass="bg-indigo-50"
+            countTextClass="text-indigo-700"
+            items={networkSites}
+            renderItem={(networkSite: NetworkSite) => {
+              return <NetworkSiteElement networkSite={networkSite} />;
             }}
           />
         )}

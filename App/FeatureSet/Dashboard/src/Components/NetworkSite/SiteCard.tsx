@@ -166,6 +166,19 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               {status ? status.name : "Not reporting"}
             </span>
           </span>
+          {/*
+           * Planned work is not suppressed in the status chip — the site
+           * still reads Offline, because it IS — so this badge is the only
+           * thing that tells a viewer the outage was on the calendar.
+           */}
+          {site.isUnderMaintenance && (
+            <span
+              className="flex-shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase leading-4 tracking-wider text-amber-700"
+              title="A scheduled maintenance window covers this site right now. It is excluded from the uptime percentage."
+            >
+              Maintenance
+            </span>
+          )}
           <span className="flex-shrink-0 text-[10px] font-semibold uppercase leading-4 tracking-wider text-gray-400">
             {site.siteType}
           </span>
@@ -207,7 +220,24 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               <div className="text-sm font-semibold leading-6 tabular-nums text-gray-900">
                 {formatUptimePercent(site.uptimePercent)}
               </div>
-              <div className="text-[10px] leading-4 text-gray-400">uptime</div>
+              <div className="text-[10px] leading-4 text-gray-400">
+                30d uptime
+              </div>
+              {/*
+               * The 24-hour figure sits under the 30-day one rather than
+               * replacing it: a bad day moves a 30-day average by at most
+               * 3.3 points, so a region can read 99% for the month while
+               * today is a disaster. Hidden when there is no rollup history
+               * to measure — an em dash under an em dash says nothing twice.
+               */}
+              {site.dailyUptimePercent !== null && (
+                <div
+                  className="text-[10px] leading-4 tabular-nums text-gray-500"
+                  title="Uptime over the last 24 hours"
+                >
+                  {formatUptimePercent(site.dailyUptimePercent)} today
+                </div>
+              )}
             </div>
           </div>
 

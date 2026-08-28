@@ -15,6 +15,7 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
 import NetworkSiteService from "Common/Server/Services/NetworkSiteService";
@@ -29,7 +30,14 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import SiteUptimeUtil from "Common/Utils/NetworkSite/SiteUptimeUtil";
+import SiteUptimeUtil, {
+  SiteMaintenanceWindow,
+  SiteUptimeMeasurement,
+} from "Common/Utils/NetworkSite/SiteUptimeUtil";
+import SiteMaintenanceUtil, {
+  MaintenanceEventWindow,
+} from "Common/Utils/NetworkSite/SiteMaintenanceUtil";
+import NetworkSiteMaintenanceSuppression from "Common/Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
@@ -439,6 +447,13 @@ export default class NetworkSiteHierarchyAPI {
                 latitude: true,
                 longitude: true,
                 currentMonitorStatusId: true,
+                /*
+                 * Needed to resolve which maintenance windows cover this
+                 * child: a window attached to an ancestor covers it, and the
+                 * path is the only place that ancestry is available here
+                 * without another query per child.
+                 */
+                materializedPath: true,
               },
               sort: {
                 name: SortOrder.Ascending,
@@ -571,9 +586,10 @@ export default class NetworkSiteHierarchyAPI {
            * at once, and the monitors backing the surviving links — both
            * batched, both dependent on the child set resolved above.
            */
-          const [timelineRows, statusIdByMonitorId]: [
+          const [timelineRows, statusIdByMonitorId, maintenanceEvents]: [
             Array<NetworkSiteStatusTimeline>,
             Map<string, string>,
+            Array<MaintenanceEventWindow>,
           ] = await Promise.all([
             childIds.length > 0
               ? NetworkSiteStatusTimelineService.findBy({
@@ -603,6 +619,40 @@ export default class NetworkSiteHierarchyAPI {
               linksBetweenChildren,
               props,
             ),
+            /*
+             * Maintenance windows overlapping the uptime window, for the
+             * whole project rather than per child: one query, and a window
+             * attached to an ancestor of a child has to be found anyway.
+             * Events with no sites attached are dropped by the util.
+             *
+             * Read under root props, deliberately. Uptime is a fact about
+             * the estate and must not change with who is looking - a viewer
+             * who cannot read maintenance events would otherwise see a
+             * DIFFERENT percentage for the same site than the colleague
+             * standing next to them. What crosses the wire is still only
+             * the resulting number, never the events themselves.
+             */
+            childIds.length > 0
+              ? NetworkSiteMaintenanceSuppression.getMaintenanceEventWindows({
+                  projectId: new ObjectID(projectId.toString()),
+                  windowStart: windowStart,
+                  windowEnd: windowEnd,
+                }).catch((error: Error): Array<MaintenanceEventWindow> => {
+                  /*
+                   * Maintenance is a CORRECTION to the uptime numbers, not a
+                   * precondition for them. Letting this reject would turn a
+                   * failure in an optional refinement into a 500 for the
+                   * whole drill-down — breadcrumbs, device counts, links and
+                   * all — so it degrades to "no windows", exactly what the
+                   * dashboard does on its own side.
+                   */
+                  logger.error(
+                    "NetworkSiteHierarchy: could not read maintenance windows; uptime will not discount them.",
+                  );
+                  logger.error(error);
+                  return [];
+                })
+              : Promise.resolve([]),
           ]);
 
           /*
@@ -801,6 +851,38 @@ export default class NetworkSiteHierarchyAPI {
             uptimeRowsBySiteId.set(rowSiteId, bucket);
           }
 
+          /*
+           * Which windows cover which child, resolved once for the whole
+           * page. Coverage is inherited DOWN the tree, so a child sits under
+           * a window attached to itself or to any of its ancestors.
+           */
+          const maintenanceWindowsBySiteId: Map<
+            string,
+            Array<SiteMaintenanceWindow>
+          > = SiteMaintenanceUtil.windowsBySite({
+            sites: childRows
+              .filter((child: NetworkSite) => {
+                return Boolean(child._id);
+              })
+              .map((child: NetworkSite) => {
+                return {
+                  id: child._id!.toString(),
+                  materializedPath: child.materializedPath,
+                };
+              }),
+            events: maintenanceEvents,
+          });
+
+          /*
+           * The 24-hour slice the daily figure is measured over — exactly 24
+           * hours, matching the strip's fixed buckets rather than a calendar
+           * day (see SiteUptimeUtil.trailingWindowStart).
+           */
+          const dailyWindowStart: Date = SiteUptimeUtil.trailingWindowStart(
+            windowEnd,
+            1,
+          );
+
           const children: Array<JSONObject> = childRows.map(
             (child: NetworkSite): JSONObject => {
               const childId: string = child._id!.toString();
@@ -824,14 +906,56 @@ export default class NetworkSiteHierarchyAPI {
                     isOperationalState: boolean;
                   }>
                 | undefined = uptimeRowsBySiteId.get(childId);
+              const childMaintenanceWindows: Array<SiteMaintenanceWindow> =
+                maintenanceWindowsBySiteId.get(childId) || [];
+
+              const hasUptimeRows: boolean = Boolean(
+                uptimeRows && uptimeRows.length > 0,
+              );
+
+              /*
+               * measureUptime, not the scalar form: a period entirely inside
+               * a maintenance window has nothing to measure and the scalar
+               * has to answer 100. Reporting a site that was switched off all
+               * month as "100% uptime" is the misreading this feature exists
+               * to remove, so it goes out as null and the card draws a dash.
+               */
+              const monthly: SiteUptimeMeasurement | null = hasUptimeRows
+                ? SiteUptimeUtil.measureUptime(
+                    uptimeRows!,
+                    windowStart,
+                    windowEnd,
+                    childMaintenanceWindows,
+                  )
+                : null;
               const uptimePercent: number | null =
-                uptimeRows && uptimeRows.length > 0
-                  ? SiteUptimeUtil.calculateUptimePercent(
-                      uptimeRows,
-                      windowStart,
-                      windowEnd,
-                    )
+                monthly && monthly.measuredInMs > 0
+                  ? monthly.uptimePercent
                   : null;
+
+              /*
+               * The same measurement over the last 24 hours. A bad Tuesday
+               * inside a healthy month is invisible in the 30-day figure -
+               * 24 hours of a 30-day window moves it by at most 3.3 points -
+               * so the two are shown side by side rather than one replacing
+               * the other.
+               */
+              const daily: SiteUptimeMeasurement | null = hasUptimeRows
+                ? SiteUptimeUtil.measureUptime(
+                    uptimeRows!,
+                    dailyWindowStart,
+                    windowEnd,
+                    childMaintenanceWindows,
+                  )
+                : null;
+              const dailyUptimePercent: number | null =
+                daily && daily.measuredInMs > 0 ? daily.uptimePercent : null;
+
+              const isUnderMaintenance: boolean =
+                SiteUptimeUtil.isUnderMaintenanceAt(
+                  childMaintenanceWindows,
+                  windowEnd,
+                );
 
               return {
                 id: childId,
@@ -854,6 +978,8 @@ export default class NetworkSiteHierarchyAPI {
                 deviceStats: aggregate.deviceStats,
                 unitStats: aggregate.unitStats,
                 uptimePercent: uptimePercent,
+                dailyUptimePercent: dailyUptimePercent,
+                isUnderMaintenance: isUnderMaintenance,
               } as unknown as JSONObject;
             },
           );
@@ -1598,6 +1724,106 @@ export default class NetworkSiteHierarchyAPI {
              * let them read a partial list as the whole answer.
              */
             isTruncated: matchedSites.length >= SEARCH_RESULT_LIMIT,
+          } as unknown as JSONObject);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * The scheduled maintenance windows covering ONE site, for the pages
+     * that draw that site's uptime.
+     *
+     * This endpoint exists so the browser never reads ScheduledMaintenance
+     * itself. It used to: the site Overview and Status Timeline pages
+     * queried the model directly, which made their uptime depend on the
+     * VIEWER's permissions — a user without ScheduledMaintenance read (or
+     * with a label-scoped grant, which narrows the query silently rather
+     * than erroring) saw the un-discounted number on the site page while the
+     * hierarchy card beside it, computed here under root, showed the
+     * discounted one. Two numbers for the same site, differing by who was
+     * looking.
+     *
+     * So the same root read serves both, gated on being able to read the
+     * SITE. Only the resolved intervals cross the wire — never the events,
+     * their titles, or which resources they touch.
+     */
+    router.post(
+      "/network-site/maintenance-windows",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          if (!props.tenantId) {
+            throw new BadDataException("Project not found in request");
+          }
+          const projectId: ObjectID = props.tenantId;
+
+          const body: JSONObject = (req.body || {}) as JSONObject;
+          const rawSiteId: unknown = body["siteId"];
+
+          if (typeof rawSiteId !== "string" || !rawSiteId) {
+            throw new BadDataException("siteId is required");
+          }
+
+          const windowStart: Date = OneUptimeDate.getSomeDaysAgo(
+            NetworkSiteHierarchyUtil.clampUptimeWindowDays(
+              body["windowInDays"],
+            ),
+          );
+          const windowEnd: Date = OneUptimeDate.getCurrentDate();
+
+          /*
+           * Read the site through the CALLER's props. That is the whole
+           * permission gate: a user who cannot read this site gets nothing,
+           * and one who can gets the same windows as everybody else.
+           */
+          const site: NetworkSite | null = await NetworkSiteService.findOneBy({
+            query: {
+              projectId: projectId,
+              _id: rawSiteId,
+            },
+            select: {
+              _id: true,
+              materializedPath: true,
+            },
+            props: props,
+          });
+
+          if (!site || !site._id) {
+            throw new BadDataException("Network site not found");
+          }
+
+          const events: Array<MaintenanceEventWindow> =
+            await NetworkSiteMaintenanceSuppression.getMaintenanceEventWindows({
+              projectId: new ObjectID(projectId.toString()),
+              windowStart: windowStart,
+              windowEnd: windowEnd,
+            });
+
+          const windows: Array<SiteMaintenanceWindow> =
+            SiteMaintenanceUtil.windowsCoveringSite({
+              siteId: site._id.toString(),
+              materializedPath: site.materializedPath,
+              events: events,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            windows: windows.map(
+              (window: SiteMaintenanceWindow): JSONObject => {
+                return {
+                  startsAt: window.startsAt,
+                  endsAt: window.endsAt,
+                } as unknown as JSONObject;
+              },
+            ),
           } as unknown as JSONObject);
         } catch (err) {
           return next(err);

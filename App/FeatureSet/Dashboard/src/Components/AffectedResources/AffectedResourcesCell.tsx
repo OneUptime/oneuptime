@@ -7,6 +7,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -19,6 +20,7 @@ import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
 import MonitorElement from "../Monitor/Monitor";
+import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 
 /*
@@ -44,6 +46,7 @@ type ResourceItem =
   | { _key: string; type: "CephCluster"; model: CephCluster }
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
   | { _key: string; type: "IoTFleet"; model: IoTFleet }
+  | { _key: string; type: "NetworkSite"; model: NetworkSite }
   | { _key: string; type: "Service"; model: Service };
 
 export interface ComponentProps {
@@ -56,6 +59,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   noItemsMessage?: string | undefined;
   onNavigateComplete?: (() => void) | undefined;
@@ -135,6 +139,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `IoTFleet:${fleet._id ? String(fleet._id) : Math.random()}`,
       type: "IoTFleet",
       model: fleet,
+    });
+  }
+  for (const networkSite of props.networkSites || []) {
+    items.push({
+      _key: `NetworkSite:${
+        networkSite._id ? String(networkSite._id) : Math.random()
+      }`,
+      type: "NetworkSite",
+      model: networkSite,
     });
   }
   for (const service of props.services || []) {
@@ -227,6 +240,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <IoTFleetElement
               iotFleet={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "NetworkSite") {
+          return (
+            <NetworkSiteElement
+              networkSite={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

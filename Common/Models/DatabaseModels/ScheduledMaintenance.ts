@@ -9,6 +9,7 @@ import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
 import IoTFleet from "./IoTFleet";
+import NetworkSite from "./NetworkSite";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import ScheduledMaintenanceState from "./ScheduledMaintenanceState";
 import Service from "./Service";
@@ -818,6 +819,72 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public iotFleets?: Array<IoTFleet> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  /*
+   * Network Sites under this window, and with them everything beneath them:
+   * attaching a Region covers every Market and Unit in it, so a planned
+   * regional cutover does not have to enumerate four hundred stores.
+   *
+   * Attaching a site does NOT freeze its live status - a unit under
+   * maintenance still reads Down on the map, because someone looking at it
+   * needs to know it is off. What the attachment changes is the arithmetic:
+   * the window is excluded from the site's uptime percentage, and the site's
+   * devices stop voting in its ancestors' health rollups for the duration.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: NetworkSite,
+    title: "Network Sites",
+    description:
+      "List of network sites affected by this event. Their descendants are covered too.",
+  })
+  @ManyToMany(
+    () => {
+      return NetworkSite;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceNetworkSite",
+    inverseJoinColumn: {
+      name: "networkSiteId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public networkSites?: Array<NetworkSite> = undefined;
 
   @ColumnAccessControl({
     create: [

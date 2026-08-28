@@ -380,12 +380,17 @@ export function deviceHealthInputForGroup(data: {
 /**
  * One bucket, expressed as the input the site ROLLUP rule takes.
  *
- * `SiteStatusRollupUtil.worstStatus` answers a different question from
+ * `SiteStatusRollupUtil` answers a different question from
  * `deviceHealthState` — which MonitorStatus a site inherits, rather than how
  * healthy one device is — but it reads the same reachability facts, so the
- * same buckets serve it. It is a worst-of, so a bucket's COUNT does not enter
- * into it: one representative per bucket produces the identical winner that
- * every device in the bucket would have.
+ * same buckets serve it.
+ *
+ * `deviceCount` is carried through because the two rollup policies disagree
+ * about whether it matters. Worst-of is indifferent: one representative per
+ * bucket produces the identical winner that every device in the bucket
+ * would have. A percentage is not — a bucket of four hundred healthy devices
+ * and a bucket of one dark device are the same NUMBER of buckets, and
+ * scoring the share off buckets would read that region as 50% down.
  *
  * The synthetic timestamps are chosen exactly as in
  * `deviceHealthInputForGroup`, and for the same reason.
@@ -394,6 +399,12 @@ export function deviceRollupStateForGroup(data: {
   group: DeviceHealthGroup;
   // Priority of the bucket's stamped MonitorStatus, when it has one.
   monitorStatusPriority?: number | undefined;
+  /*
+   * Whether that stamped status is the project's operational row. Undefined
+   * when the row could not be resolved, which drops the bucket back to its
+   * reachability facts — the same fallback the missing-priority case takes.
+   */
+  monitorStatusIsOperational?: boolean | undefined;
   now: Date;
 }): DeviceHealthState {
   const { group, now } = data;
@@ -405,10 +416,12 @@ export function deviceRollupStateForGroup(data: {
   return {
     currentMonitorStatusId: group.monitorStatusId,
     monitorStatusPriority: data.monitorStatusPriority,
+    monitorStatusIsOperational: data.monitorStatusIsOperational,
     isReachable: group.isReachable,
     lastPolledAt: group.hasBeenPolled ? contactAt : null,
     lastSeenAt: group.hasBeenSeen ? contactAt : null,
     // See deviceHealthInputForGroup — staleness is already applied.
     pollingIntervalInMinutes: undefined,
+    deviceCount: group.deviceCount,
   };
 }

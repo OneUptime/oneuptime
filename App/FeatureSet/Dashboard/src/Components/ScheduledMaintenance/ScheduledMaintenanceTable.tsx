@@ -197,6 +197,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     },
     buildAffectedResourcesFacet<ScheduledMaintenance>({
       parentModelType: ScheduledMaintenance,
+      // Only maintenance events can be attached to a network site.
+      includeNetworkSite: true,
     }),
   ];
 
@@ -652,6 +654,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          networkSites: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -775,6 +782,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              networkSites: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -798,6 +810,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   cephClusters={item.cephClusters || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
+                  networkSites={item.networkSites || []}
                   services={item.services || []}
                 />
               );
