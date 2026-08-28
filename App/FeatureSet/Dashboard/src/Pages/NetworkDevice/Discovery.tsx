@@ -614,9 +614,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * The scan's identity, in one column: its name if it has one, with
            * the address range it sweeps underneath. A scan with no name reads
            * exactly as it did before names existed — the target alone, on the
-           * first line — so this replaces the old Scan Target column rather
-           * than sitting beside it and leaving half the rows with an empty
-           * cell where their name would be (issue #3391).
+           * first line — so this is the DEFAULT identity cell rather than a
+           * name column sitting beside a target column and leaving half the
+           * rows with an empty cell where their name would be (issue #3391).
+           *
+           * The target is also available on its own, as the Scan Target column
+           * below — off by default, so it is never printed twice in the layout
+           * this was designed to produce.
            */
           {
             /*
@@ -650,6 +654,69 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 </div>
               );
             },
+          },
+          /*
+           * The scan target on its own (issue #3446). The Scan column above
+           * already puts it on screen in every row, so this is not how the
+           * target becomes visible — it is how it becomes a COLUMN: a header
+           * that says the words the filter says, one you can sort on, and one
+           * the CSV carries under its own heading instead of glued to the name
+           * with a semicolon.
+           *
+           * It ships switched off. The filter for it was added by the same
+           * commit that folded the standalone column into Scan, which is the
+           * mismatch #3446 reports; putting it back visible would print the
+           * target twice in every named row and undo #3391's layout for
+           * everyone, so it lives in Customize Columns and each viewer decides.
+           *
+           * The `id` is explicit and deliberately NOT the `cidr` that
+           * getColumnBaseId would derive from the field. A column with that
+           * derived id shipped as the FIRST column of this same table (same
+           * userPreferencesKey) up to 12.0.22, so a viewer who arranged their
+           * columns back then still has "cidr" sitting in the stored `order`
+           * in localStorage — and an id present in `order` overrides
+           * isHiddenByDefault (Common/UI/Components/ModelTable/
+           * ColumnPreference.ts). Reusing it would silently switch this column
+           * ON for exactly those viewers, in a column set where it now
+           * duplicates the Scan cell. An id that has never shipped keeps the
+           * stale entry being dropped by sanitizeColumnPreference instead.
+           *
+           * Sorting is left enabled, matching every other address-shaped text
+           * column in the product (NetworkDevice Endpoints "IP Address",
+           * NetworkSite Assignment Rules "Subnet CIDR"). It is a lexicographic
+           * sort over a varchar holding two notations — so 9.9.9.0/24 lands
+           * after 192.168.1.0/24 — which groups a project's 10.x and 192.168.x
+           * sweeps together without claiming to be address order.
+           *
+           * With this column switched on the target appears in two CSV
+           * columns: here, and inside "Scan", whose exportKeys are
+           * ["name", "cidr"]. That is accepted rather than fixed by trimming
+           * the Scan column's fields — see the comment above it for why those
+           * two fields are load-bearing.
+           */
+          {
+            id: "scanTarget",
+            field: {
+              cidr: true,
+            },
+            title: "Scan Target",
+            type: FieldType.Text,
+            isHiddenByDefault: true,
+            /*
+             * `cidr` is NOT NULL, so this is near-hypothetical — but a bare
+             * FieldType.Text cell renders "" for a missing value, and the
+             * mobile card drops the whole labelled block, so the "Scan Target"
+             * label itself would vanish. Every other cell on this table shows
+             * an em-dash instead.
+             */
+            noValueMessage: "—",
+            /*
+             * The six sibling columns all wrap their content in a gray-900 /
+             * gray-600 span; the default cell class is a lighter gray-500,
+             * which would make the column a viewer just switched on read as
+             * disabled. This gives parity without paying for a getElement.
+             */
+            contentClassName: "text-sm text-gray-900",
           },
           {
             field: {
