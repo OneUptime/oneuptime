@@ -4,6 +4,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ObjectID from "../../Types/ObjectID";
 import {
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
@@ -99,7 +101,121 @@ export class Service extends DatabaseService<Model> {
       minimumConfidence: updateBy.data.minimumConfidence as number | undefined,
     });
 
-    return { updateBy, carryForward: null };
+    await this.validateCredentialExclusivity(updateBy);
+
+    /*
+     * Repointing a feed invalidates its poll position: the added_after
+     * cursor (and any saved page token) is a position in ONE collection's
+     * date_added timeline. Carrying it to a different API root or
+     * collection would silently skip the new collection's entire history.
+     * Flagged here, reset in onUpdateSuccess — the cursor columns have
+     * update: [] access control, so writing them into updateBy.data would
+     * be rejected for non-root callers; the root-props write after the
+     * update bypasses the column ACL the same legitimate way the poller's
+     * own bookkeeping does.
+     */
+    const repointed: boolean =
+      updateBy.data.apiRootUrl !== undefined ||
+      updateBy.data.collectionId !== undefined;
+
+    return { updateBy, carryForward: { repointed } };
+  }
+
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    if (
+      (onUpdate.carryForward as { repointed?: boolean } | null)?.repointed ===
+      true
+    ) {
+      for (const updatedItemId of updatedItemIds) {
+        /*
+         * Cannot recurse: this inner update carries neither apiRootUrl
+         * nor collectionId, so its own onBeforeUpdate flags nothing.
+         */
+        await this.updateOneById({
+          id: updatedItemId,
+          data: {
+            cursor: null as unknown as string,
+            nextPageToken: null as unknown as string,
+            lastPolledAt: null as unknown as Date,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * The create-time either/or rule, enforced on updates too — including
+   * against what the row ALREADY stores, since the API updates secrets
+   * one at a time. TaxiiClient silently prefers the token over basic
+   * auth, so a row holding both would poll with whichever secret the
+   * user was NOT trying to use.
+   */
+  private async validateCredentialExclusivity(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const settingToken: boolean = Boolean(updateBy.data.apiToken);
+    const settingBasicPassword: boolean = Boolean(
+      updateBy.data.basicAuthPassword,
+    );
+
+    if (settingToken && settingBasicPassword) {
+      throw new BadDataException(
+        "Configure either an API token or basic-auth credentials, not both.",
+      );
+    }
+
+    if (!settingToken && !settingBasicPassword) {
+      return;
+    }
+
+    /*
+     * Setting one kind while the update leaves the other kind's stored
+     * value untouched (undefined = not in the update; null = explicit
+     * clear, which is fine) — check the matched rows.
+     */
+    const otherKindUntouched: boolean = settingToken
+      ? updateBy.data.basicAuthPassword === undefined
+      : updateBy.data.apiToken === undefined;
+
+    if (!otherKindUntouched) {
+      return;
+    }
+
+    const matchedFeeds: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        apiToken: true,
+        basicAuthPassword: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const feed of matchedFeeds) {
+      const storesOtherKind: boolean = settingToken
+        ? Boolean(feed.basicAuthPassword)
+        : Boolean(feed.apiToken);
+
+      if (storesOtherKind) {
+        throw new BadDataException(
+          settingToken
+            ? "This feed uses basic auth. Clear the basic-auth password in the same update (or use the Update Credentials action, which switches automatically) before setting an API token."
+            : "This feed uses an API token. Clear the API token in the same update (or use the Update Credentials action, which switches automatically) before setting a basic-auth password.",
+        );
+      }
+    }
   }
 }
 

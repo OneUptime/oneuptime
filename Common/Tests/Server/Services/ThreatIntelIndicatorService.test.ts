@@ -1,6 +1,7 @@
 import ThreatIntelIndicatorService, {
   ActiveIndicator,
   IndicatorMatchGroup,
+  StoredIndicatorVersion,
 } from "../../../Server/Services/ThreatIntelIndicatorService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -108,7 +109,7 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  test("reads version-aware per (feed, value) identity with the active predicate in HAVING", async () => {
+  test("resolves versions per FULL identity, then collapses per (feed, value) keeping any active identity", async () => {
     const spy: Spy = stubExecuteQuery([]);
 
     await ThreatIntelIndicatorService.findActiveIndicatorsByValues({
@@ -120,18 +121,31 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
     const query: string = capturedQueryText(spy);
 
     // Version-aware current state: argMax over every read column.
-    expect(query).toContain("argMax(stixId, version)");
     expect(query).toContain("argMax(confidence, version)");
     expect(query).toContain("argMax(revoked, version) AS revokedLatest");
     expect(query).toContain("argMax(validUntil, version) AS validUntilLatest");
 
-    // Identity: one row per (feed, value).
-    expect(query).toContain("GROUP BY feedId, indicatorValue");
+    /*
+     * THE regression pin for the revoked-duplicate masking bug: version
+     * resolution must group by the full ReplacingMergeTree identity —
+     * stixId INCLUDED — or the latest-modified STIX object sharing a
+     * value (a revocation of a superseded duplicate, say) masks another
+     * object's still-active claim.
+     */
+    expect(query).toContain("GROUP BY feedId, indicatorValue, stixId");
 
-    // Active is a predicate over the RESOLVED latest version.
+    // Active is a predicate over each RESOLVED identity...
     expect(query).toContain("HAVING revokedLatest = false");
     expect(query).toContain("validFromLatest <=");
     expect(query).toContain("validUntilLatest >");
+
+    /*
+     * ...and only the surviving (active) identities collapse to one row
+     * per (feed, value), the highest-confidence one representing it.
+     */
+    expect(query).toContain(") GROUP BY feedId, indicatorValue");
+    expect(query).toContain("argMax(stixId, confidence)");
+    expect(query).toContain("max(confidence) AS confidence");
 
     // The value list rides as a bound array parameter.
     expect(query).toContain("indicatorValue IN");
@@ -213,9 +227,17 @@ describe("ThreatIntelIndicatorService.findIndicatorMatches", () => {
       "ON lowerUTF8(matchedObservable) = i.indicatorValue",
     );
 
-    // The indicator side is version-aware and active-filtered.
+    /*
+     * The indicator side is version-aware PER FULL IDENTITY (stixId in
+     * the GROUP BY — the revoked-duplicate masking regression pin),
+     * active-filtered per identity, and only then collapsed to one row
+     * per value so matchCount counts events, never events x identities.
+     */
     expect(query).toContain("argMax(revoked, version) AS revokedLatest");
+    expect(query).toContain("GROUP BY indicatorValue, stixId");
     expect(query).toContain("HAVING revokedLatest = false");
+    expect(query).toContain(") GROUP BY indicatorValue");
+    expect(query).toContain("argMax(stixId, confidence)");
 
     /*
      * Findings never feed the matcher — Sigma's and our own class-2004
@@ -262,5 +284,83 @@ describe("ThreatIntelIndicatorService.findIndicatorMatches", () => {
     stubExecuteQuery(undefined);
 
     expect(await callFindIndicatorMatches()).toEqual([]);
+  });
+});
+
+describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
+  test("returns [] for an empty id list without touching the database", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    expect(
+      await ThreatIntelIndicatorService.findLatestVersionsByStixIds({
+        projectId: PROJECT_ID,
+        feedId: FEED_ID,
+        stixIds: [],
+      }),
+    ).toEqual([]);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("reads the latest version and the retention high-water mark per (stixId, value) identity", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await ThreatIntelIndicatorService.findLatestVersionsByStixIds({
+      projectId: PROJECT_ID,
+      feedId: FEED_ID,
+      stixIds: ["indicator--0001"],
+    });
+
+    const query: string = capturedQueryText(spy);
+
+    expect(query).toContain("GROUP BY stixId, indicatorValue");
+    expect(query).toContain("max(version) AS version");
+    /*
+     * max, not argMax: the poller's monotonic-retention clamp needs the
+     * highest retention any version ever carried, not the latest
+     * version's own.
+     */
+    expect(query).toContain("max(retentionDate) AS retentionDate");
+    expect(query).toContain("argMax(validUntil, version) AS validUntil");
+    // Deliberately NO active predicate — retraction must see dead rows too.
+    expect(query).not.toContain("HAVING");
+    expect(query).toContain("stixId IN");
+    expect(query).not.toContain("indicator--0001");
+  });
+
+  test("maps rows with numeric version and confidence", async () => {
+    stubExecuteQuery([
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "evil.example",
+        indicatorType: "domain-name",
+        indicatorName: "C2",
+        confidence: "85",
+        version: "1756000000000",
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2026-12-31 00:00:00",
+        retentionDate: "2027-01-01",
+      },
+    ]);
+
+    const result: Array<StoredIndicatorVersion> =
+      await ThreatIntelIndicatorService.findLatestVersionsByStixIds({
+        projectId: PROJECT_ID,
+        feedId: FEED_ID,
+        stixIds: ["indicator--0001"],
+      });
+
+    expect(result).toEqual([
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "evil.example",
+        indicatorType: "domain-name",
+        indicatorName: "C2",
+        confidence: 85,
+        version: 1756000000000,
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2026-12-31 00:00:00",
+        retentionDate: "2027-01-01",
+      },
+    ]);
   });
 });

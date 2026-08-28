@@ -1,6 +1,6 @@
 # Threat Intelligence (STIX/TAXII)
 
-OneUptime enriches your [security events](/docs/telemetry/security-events) against threat-intelligence feeds you subscribe to. Feeds speak the open standards — **TAXII 2.1** for transport, **STIX 2.1** for the indicator objects — so anything from a public collection like MITRE's ATT&CK TAXII server to your own MISP or OpenTAXII instance works. Supported authentication is anonymous, bearer-token, or HTTP basic; feeds that require TLS client-certificate (mutual TLS) authentication, such as CISA AIS, are not supported. There is no bundled feed content: you bring the collections, the same way you bring the Sigma rules.
+OneUptime enriches your [security events](/docs/telemetry/security-events) against threat-intelligence feeds you subscribe to. Feeds speak the open standards — **TAXII 2.1** for transport, **STIX 2.1** for the indicator objects — so anything that publishes STIX `indicator` objects over TAXII 2.1 works: your own MISP, OpenCTI, or OpenTAXII instance, or a commercial provider's TAXII collection. Supported authentication is anonymous, bearer-token, or HTTP basic; feeds that require TLS client-certificate (mutual TLS) authentication, such as CISA AIS, are not supported. (Note also that MITRE's public ATT&CK TAXII server carries the ATT&CK knowledge base — attack-patterns and groups, not indicators — so subscribing it yields an empty feed.) There is no bundled feed content: you bring the collections, the same way you bring the Sigma rules.
 
 ## Subscribing a feed
 
@@ -33,7 +33,7 @@ Anything beyond that — `AND`, `FOLLOWEDBY`, temporal qualifiers, negation, `LI
 Each supported pattern becomes one indicator row per IOC value, carrying the STIX id, confidence, labels, and validity window:
 
 - **`valid_from` / `valid_until`** bound when the indicator matches. An indicator with no `valid_until` stays active for 365 days from `valid_from` — the window is anchored at `valid_from` and is not extended by re-polling; only a producer update that moves `valid_from` (or sets `valid_until`) changes the expiry. Expiry is enforced at query time on every match and lookup; storage cleanup follows separately via TTL.
-- **Revocations** (`revoked: true`) and **updated objects** arrive as newer versions and replace the older row for each IOC value the new pattern still contains — re-polls are idempotent. A value that an update drops from the pattern (a corrected typo, say) is not retracted: its last-seen row stays active until its `valid_until` passes.
+- **Revocations** (`revoked: true`), **expired updates** (a `valid_until` moved into the past — the other standard STIX deactivation idiom), and **updated objects** all arrive as newer versions and supersede the older rows — re-polls are idempotent. A value that an update drops from the pattern (a corrected typo, say) is retracted with a tombstone version at the same time, so it stops matching immediately rather than lingering until its original `valid_until`.
 
 Indicator values are matched **case-insensitively** against event observables, matching the case-insensitive semantics observables already have platform-wide.
 
@@ -55,11 +55,11 @@ When several indicators match one event, the highest-confidence one wins the sca
 
 Because these are ordinary flattened attributes, they work everywhere attributes already work, with no new query language: a Sigma rule can say `threat.matched: "true"` or `threat.confidence|gte: 80`, a Security Events monitor can filter on them, and they appear in the explorer's attribute column picker.
 
-Enrichment can only stamp indicators that are *already known* at ingest time; ClickHouse rows are immutable, so events are never retro-stamped. Intel that arrives after the events is covered by the matcher below.
+Enrichment can only stamp indicators that are *already known* at ingest time; ClickHouse rows are immutable, so events are never retro-stamped. Intel that lands between an event's ingest and the close of its matcher window is still caught by the matcher below; intel arriving later than that only affects future events.
 
 ## Matching on a schedule
 
-Every minute, each enabled feed's active indicators are joined against the security events ingested since the feed's last evaluation (capped at 24 hours). This is the lane that catches **late-arriving intel** — the events were already stored when the indicator appeared.
+Every minute, each enabled feed's active indicators are joined against the security events whose **event time** falls in the window since the feed's last evaluation (capped at 24 hours). Each window is evaluated once, at close, against the indicators known at that moment: intel that arrived after the enricher saw an event but before the event's window closed is caught here (and after matcher downtime, the next evaluation catches up to 24 hours), but intel arriving later than that is not retroactively joined against already-evaluated events. One consequence worth knowing: the window keys on each event's own `time`, not its arrival — an event ingested late with an older source timestamp that predates the current window is not picked up by the matcher (it is still enriched at ingest against the indicators known at that moment).
 
 A match behaves exactly like a Sigma rule match:
 

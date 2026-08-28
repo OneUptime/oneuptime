@@ -56,10 +56,12 @@ import {
  * through the same shared machinery (SecurityEventAlerting,
  * buildSecurityEventDbRow) as the detection engine.
  *
- * This scheduled lane is what catches intel that arrives AFTER the
- * events did: the ingest-time enricher can only stamp what is already
- * known, but the matcher re-joins every window against the freshest
- * indicator set.
+ * Each window is evaluated ONCE, at close, against the indicators known
+ * at that moment: the matcher catches intel that landed between an
+ * event's ingest and its window's close (and, after downtime, anything
+ * inside the 24-hour catch-up), but intel arriving later is not
+ * retroactively joined against already-evaluated events — lastEvaluatedAt
+ * only moves forward.
  */
 
 // Cap on one evaluation's scan, whatever lastEvaluatedAt says.

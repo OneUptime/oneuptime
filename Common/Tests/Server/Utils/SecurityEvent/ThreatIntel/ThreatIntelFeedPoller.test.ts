@@ -1,5 +1,6 @@
 import ThreatIntelFeedPoller, {
   FeedPollResult,
+  MAX_INDICATOR_DATE_MILLIS,
   MAX_PAGES_PER_POLL,
   StixIndicatorParseResult,
   StixParseContext,
@@ -114,12 +115,17 @@ function buildClientServingPages(pages: Array<TaxiiObjectsPage>): {
 let insertSpy: Spy;
 let updateSpy: Spy;
 let invalidateSpy: Spy;
+let storedVersionsSpy: Spy;
 
 beforeEach(() => {
   insertSpy = getJestSpyOn(
     ThreatIntelIndicatorService,
     "insertJsonRows",
   ).mockResolvedValue(undefined as never);
+  storedVersionsSpy = getJestSpyOn(
+    ThreatIntelIndicatorService,
+    "findLatestVersionsByStixIds",
+  ).mockResolvedValue([] as never);
   updateSpy = getJestSpyOn(
     ThreatIntelFeedService,
     "updateOneById",
@@ -269,19 +275,61 @@ describe("ThreatIntelFeedPoller.parseStixIndicator", () => {
     ).toBe(0);
   });
 
-  test("already-expired indicators are skipped; revoked ones are written to deactivate", () => {
-    expect(
+  test("deactivations are INGESTED, never skipped: revocations and already-expired updates", () => {
+    /*
+     * An update whose valid_until moved into the past is the other
+     * standard STIX deactivation idiom. Skipping it would leave the
+     * older, still-active version the argMax winner forever — so it
+     * lands as a newer, dead-on-arrival version.
+     */
+    const expired: StixIndicatorParseResult =
       ThreatIntelFeedPoller.parseStixIndicator(
         buildStixIndicator({ valid_until: "2026-01-01T00:00:00.000Z" }),
         CONTEXT,
         NOW,
-      ).outcome,
-    ).toBe("expired");
+      );
+
+    expect(expired.outcome).toBe("ingested");
+    expect(expired.deadOnArrival).toBe(true);
+    expect(expired.rows[0]!["revoked"]).toBe(false);
 
     const revoked: StixIndicatorParseResult =
       ThreatIntelFeedPoller.parseStixIndicator(
         buildStixIndicator({ revoked: true }),
         CONTEXT,
+        NOW,
+      );
+
+    expect(revoked.outcome).toBe("ingested");
+    expect(revoked.deadOnArrival).toBe(true);
+    expect(revoked.rows[0]!["revoked"]).toBe(true);
+  });
+
+  test("dead-on-arrival rows get tombstone retention at least a year out — TTL must never drop the mask before what it masks", () => {
+    const expired: StixIndicatorParseResult =
+      ThreatIntelFeedPoller.parseStixIndicator(
+        buildStixIndicator({ valid_until: "2026-01-01T00:00:00.000Z" }),
+        CONTEXT,
+        NOW,
+      );
+
+    const retention: Date = new Date(String(expired.rows[0]!["retentionDate"]));
+    const daysOut: number =
+      (retention.getTime() - NOW.getTime()) / (24 * 60 * 60 * 1000);
+
+    expect(daysOut).toBeGreaterThanOrEqual(365);
+  });
+
+  test("revocations bypass the confidence filter — retractions are not new claims", () => {
+    const strictContext: StixParseContext = {
+      ...CONTEXT,
+      minimumConfidence: 50,
+    };
+
+    const revoked: StixIndicatorParseResult =
+      ThreatIntelFeedPoller.parseStixIndicator(
+        buildStixIndicator({ revoked: true, confidence: 30 }),
+        strictContext,
         NOW,
       );
 
@@ -297,6 +345,33 @@ describe("ThreatIntelFeedPoller.parseStixIndicator", () => {
       ThreatIntelFeedPoller.parseStixIndicator(indicator, CONTEXT, NOW);
 
     expect(result.outcome).toBe("ingested");
+    expect(result.deadOnArrival).toBe(false);
+  });
+
+  test("far-future dates are clamped to the ClickHouse-representable range", () => {
+    /*
+     * 9999-12-31 is a common "never expires" idiom; unclamped it
+     * overflows DateTime64 and lands retentionDate in a wrapped ~1970
+     * partition that TTL would drop immediately.
+     */
+    const result: StixIndicatorParseResult =
+      ThreatIntelFeedPoller.parseStixIndicator(
+        buildStixIndicator({ valid_until: "9999-12-31T23:59:59.000Z" }),
+        CONTEXT,
+        NOW,
+      );
+
+    expect(result.outcome).toBe("ingested");
+    expect(result.deadOnArrival).toBe(false);
+
+    // A day of slack: ClickHouse strings parse in local time here.
+    const validUntil: Date = new Date(String(result.rows[0]!["validUntil"]));
+    expect(validUntil.getTime()).toBeLessThanOrEqual(
+      MAX_INDICATOR_DATE_MILLIS + 24 * 60 * 60 * 1000,
+    );
+
+    const retention: Date = new Date(String(result.rows[0]!["retentionDate"]));
+    expect(retention.getTime()).toBeGreaterThan(NOW.getTime());
   });
 });
 
@@ -481,6 +556,231 @@ describe("ThreatIntelFeedPoller.pollFeed", () => {
     feed.apiRootUrl = "" as unknown as string;
 
     await expect(ThreatIntelFeedPoller.pollFeed(feed)).rejects.toThrow();
+  });
+
+  test("new versions inherit their object's stored retention ceiling — a superseding row must outlive what it masks", async () => {
+    storedVersionsSpy.mockResolvedValue([
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "198.51.100.7",
+        indicatorType: "ipv4-addr",
+        indicatorName: "Known C2 address",
+        confidence: 85,
+        version: new Date("2026-08-01T00:00:00.000Z").getTime(),
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2028-06-01 00:00:00",
+        retentionDate: "2028-06-02 00:00:00",
+      },
+    ] as never);
+
+    const { client } = buildClientServingPages([
+      {
+        // An update that shortens validity into the near future.
+        objects: [
+          buildStixIndicator({ valid_until: "2026-09-01T00:00:00.000Z" }),
+        ],
+        more: false,
+        next: null,
+        dateAddedLast: null,
+      },
+    ]);
+
+    await ThreatIntelFeedPoller.pollFeed(buildFeed(), client);
+
+    const rows: Array<JSONObject> = insertSpy.mock
+      .calls[0]![0] as Array<JSONObject>;
+    const retention: Date = new Date(String(rows[0]!["retentionDate"]));
+
+    // Raised to the stored 2028 ceiling, not its own 2026-09-02.
+    expect(retention.getFullYear()).toBe(2028);
+  });
+
+  test("values dropped by an updated pattern are retracted with tombstone versions", async () => {
+    storedVersionsSpy.mockResolvedValue([
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "198.51.100.7",
+        indicatorType: "ipv4-addr",
+        indicatorName: "Known C2 address",
+        confidence: 85,
+        version: new Date("2026-08-01T00:00:00.000Z").getTime(),
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2026-12-31 00:00:00",
+        retentionDate: "2027-01-01 00:00:00",
+      },
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "203.0.113.9",
+        indicatorType: "ipv4-addr",
+        indicatorName: "Known C2 address",
+        confidence: 85,
+        version: new Date("2026-08-01T00:00:00.000Z").getTime(),
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2026-12-31 00:00:00",
+        retentionDate: "2027-01-01 00:00:00",
+      },
+    ] as never);
+
+    const { client } = buildClientServingPages([
+      {
+        /*
+         * The update (modified 2026-08-21, newer than stored 2026-08-01)
+         * keeps 198.51.100.7 and drops 203.0.113.9.
+         */
+        objects: [buildStixIndicator()],
+        more: false,
+        next: null,
+        dateAddedLast: null,
+      },
+    ]);
+
+    const result: FeedPollResult = await ThreatIntelFeedPoller.pollFeed(
+      buildFeed(),
+      client,
+    );
+
+    expect(result.valuesRetracted).toBe(1);
+
+    const rows: Array<JSONObject> = insertSpy.mock
+      .calls[0]![0] as Array<JSONObject>;
+    const tombstone: JSONObject | undefined = rows.find(
+      (row: JSONObject): boolean => {
+        return row["indicatorValue"] === "203.0.113.9";
+      },
+    );
+
+    expect(tombstone).toBeDefined();
+    expect(tombstone!["revoked"]).toBe(true);
+    expect(tombstone!["stixId"]).toBe("indicator--0001");
+    // The tombstone carries the UPDATE's version, so it wins the argMax.
+    expect(tombstone!["version"]).toBe(
+      new Date("2026-08-21T00:00:00.000Z").getTime(),
+    );
+
+    // Retraction changes match state — the enricher cache must drop.
+    expect(invalidateSpy).toHaveBeenCalled();
+
+    const data: JSONObject = (updateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as JSONObject;
+    expect(String(data["lastPollSummary"])).toContain("retracted 1 value");
+  });
+
+  test("a stored value is NOT retracted when the stored version is newer than the fetched object", async () => {
+    storedVersionsSpy.mockResolvedValue([
+      {
+        stixId: "indicator--0001",
+        indicatorValue: "203.0.113.9",
+        indicatorType: "ipv4-addr",
+        indicatorName: "Known C2 address",
+        confidence: 85,
+        // Stored is NEWER than the page's 2026-08-21 modified.
+        version: new Date("2026-09-01T00:00:00.000Z").getTime(),
+        validFrom: "2026-08-01 00:00:00",
+        validUntil: "2026-12-31 00:00:00",
+        retentionDate: "2027-01-01 00:00:00",
+      },
+    ] as never);
+
+    const { client } = buildClientServingPages([
+      {
+        objects: [buildStixIndicator()],
+        more: false,
+        next: null,
+        dateAddedLast: null,
+      },
+    ]);
+
+    const result: FeedPollResult = await ThreatIntelFeedPoller.pollFeed(
+      buildFeed(),
+      client,
+    );
+
+    expect(result.valuesRetracted).toBe(0);
+  });
+
+  test("a saved page token resumes an interrupted pagination with the unchanged cursor", async () => {
+    const { client, calls } = buildClientServingPages([
+      {
+        objects: [],
+        more: false,
+        next: null,
+        dateAddedLast: null,
+      },
+    ]);
+
+    const feed: ThreatIntelFeed = buildFeed({
+      cursor: "2026-08-27T10:00:00.000Z",
+    });
+    feed.nextPageToken = "saved-token";
+
+    await ThreatIntelFeedPoller.pollFeed(feed, client);
+
+    expect(calls[0]!["next"]).toBe("saved-token");
+    expect(calls[0]!["addedAfter"]).toBe("2026-08-27T10:00:00.000Z");
+
+    // Drained: the token is cleared.
+    const data: JSONObject = (updateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as JSONObject;
+    expect(data["nextPageToken"]).toBeNull();
+  });
+
+  test("an undrained poll on a header-less server persists the next token — the sync must progress", async () => {
+    const { client } = buildClientServingPages([
+      {
+        objects: [buildStixIndicator()],
+        more: true,
+        next: "token-for-next-page",
+        dateAddedLast: null,
+      },
+    ]);
+
+    await ThreatIntelFeedPoller.pollFeed(buildFeed(), client);
+
+    const data: JSONObject = (updateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as JSONObject;
+    expect(data["nextPageToken"]).toBe("token-for-next-page");
+    expect(String(data["lastPollSummary"])).toContain("saved page token");
+  });
+
+  test("a header cursor supersedes the page token — tokens pair with the added_after they were issued under", async () => {
+    const { client } = buildClientServingPages([
+      {
+        objects: [buildStixIndicator()],
+        more: true,
+        next: "token-2",
+        dateAddedLast: "2026-08-27T11:45:00.000Z",
+      },
+    ]);
+
+    await ThreatIntelFeedPoller.pollFeed(buildFeed(), client);
+
+    const data: JSONObject = (updateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as JSONObject;
+    expect(data["cursor"]).toBe("2026-08-27T11:45:00.000Z");
+    expect(data["nextPageToken"]).toBeNull();
+  });
+
+  test("more with neither next token nor header is reported as a stall, not as progress", async () => {
+    const { client } = buildClientServingPages([
+      {
+        objects: [buildStixIndicator()],
+        more: true,
+        next: null,
+        dateAddedLast: null,
+      },
+    ]);
+
+    await ThreatIntelFeedPoller.pollFeed(buildFeed(), client);
+
+    const data: JSONObject = (updateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as JSONObject;
+    expect(data["nextPageToken"]).toBeNull();
+    expect(String(data["lastPollSummary"])).toContain("no resume point");
   });
 });
 

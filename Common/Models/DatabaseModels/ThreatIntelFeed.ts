@@ -147,7 +147,7 @@ export default class ThreatIntelFeed extends BaseModel {
     type: TableColumnType.Name,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Friendly name for this feed, e.g. 'MITRE ATT&CK'.",
+    description: "Friendly name for this feed, e.g. 'Corporate MISP'.",
   })
   @Column({
     nullable: false,
@@ -534,6 +534,29 @@ export default class ThreatIntelFeed extends BaseModel {
     length: ColumnLength.LongText,
   })
   public cursor?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Next Page Token",
+    required: false,
+    /*
+     * Unbounded: TAXII next tokens are opaque and some servers encode
+     * whole query state into them.
+     */
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: true,
+    description:
+      "Resume token for a poll that ended mid-pagination on a server that sends no X-TAXII-Date-Added-Last header. Cleared once the collection drains or the cursor advances.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public nextPageToken?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

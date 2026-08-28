@@ -35,8 +35,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *    never cost a customer their events.
  *
  * Events ingested BEFORE an indicator arrives are never retro-stamped
- * (ClickHouse rows are immutable in practice); the scheduled matcher is
- * the lane that catches late-arriving intel.
+ * (ClickHouse rows are immutable in practice); the scheduled matcher
+ * covers intel that lands before the event's match window closes, and
+ * intel arriving later than that only affects future events.
  */
 
 const HAS_INDICATORS_CACHE_TTL_IN_MS: number = 60 * 1000;

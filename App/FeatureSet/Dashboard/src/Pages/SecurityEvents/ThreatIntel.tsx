@@ -6,7 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import {
@@ -48,7 +48,7 @@ A feed subscribes one **TAXII 2.1 collection** — public or private. OneUptime 
 Two things then happen, continuously:
 
 - **Enrichment at ingest** — an incoming security event whose observables match an active indicator is stamped with \`threat.matched\`, \`threat.indicator_id\`, \`threat.feed\` and \`threat.confidence\` attributes. Sigma rules and Security Events monitors can filter on those keys immediately, with no new query language.
-- **Matching on a schedule** — every minute, the events ingested since the last evaluation are joined against the feed's active indicators. A match writes a **Detection Finding** back into the event stream (product \`OneUptime Threat Intel\`, \`oneuptime.threat.*\` attributes) and opens a **deduplicated alert** per indicator — the same downstream machinery as Sigma detection rules, including optional incidents and on-call. This lane also catches intel that arrives *after* the events did.
+- **Matching on a schedule** — every minute, the events whose event time falls in the window since the feed's last evaluation are joined against the feed's active indicators. A match writes a **Detection Finding** back into the event stream (product \`OneUptime Threat Intel\`, \`oneuptime.threat.*\` attributes) and opens a **deduplicated alert** per indicator — the same downstream machinery as Sigma detection rules, including optional incidents and on-call. Each window is evaluated once, at close, against the indicators known at that moment — so this lane catches intel that arrived after the enricher saw the event but before the window closed (and, after matcher downtime, anything inside the 24-hour catch-up); intel arriving later than that is not retroactively joined against already-evaluated events.
 
 Supported patterns are plain IOC equality — \`[ipv4-addr:value = '...']\`, \`domain-name\`, \`url\`, \`email-addr\`, and \`file:hashes\` (SHA-256, SHA-1, MD5), including OR-lists. Anything more elaborate (AND, temporal qualifiers, regex) is counted in **Last Poll Summary** as unsupported rather than half-translated.
 
@@ -162,7 +162,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "e.g. MITRE ATT&CK",
+            placeholder: "e.g. Corporate MISP",
             validation: {
               minLength: 2,
             },
@@ -484,6 +484,27 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              lastError: true,
+            },
+            title: "Last Error",
+            type: FieldType.LongText,
+            noValueMessage: "-",
+          },
+          /*
+           * The matching side, separate from the polling side above —
+           * the split the help content promises, so a broken TAXII
+           * server and a broken match query are distinguishable here.
+           */
+          {
+            field: {
+              lastEvaluatedAt: true,
+            },
+            title: "Last Evaluated",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          {
+            field: {
               lastMatchAt: true,
             },
             title: "Last Match",
@@ -492,9 +513,9 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              lastError: true,
+              lastMatchError: true,
             },
-            title: "Last Error",
+            title: "Last Match Error",
             type: FieldType.LongText,
             noValueMessage: "-",
           },
@@ -515,7 +536,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Indicators",
           description:
-            "Normalized IOCs ingested from the feeds above. Rows upsert by STIX identity on re-polls and expire at each indicator's valid-until. Matching always checks validity and revocation at query time.",
+            "Raw ingested indicator rows from the feeds above, eventually consistent: a re-polled indicator can briefly appear twice until ClickHouse merges versions, and revoked or expired rows remain listed until retention cleanup. Matching always checks validity and revocation at query time, so a stale row here is never matched.",
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -543,6 +564,11 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             title: "Feed",
           },
+          {
+            field: { revoked: true },
+            type: FieldType.Boolean,
+            title: "Revoked",
+          },
         ]}
         columns={[
           {
@@ -554,6 +580,33 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             field: { indicatorType: true },
             title: "Type",
             type: FieldType.Text,
+          },
+          {
+            field: { revoked: true },
+            title: "Status",
+            type: FieldType.Boolean,
+            getElement: (item: ThreatIntelIndicator): ReactElement => {
+              if (item.revoked) {
+                return <Pill color={Red} text="Revoked" />;
+              }
+
+              /*
+               * Defensive parse: the analytics wire hands DateTime64
+               * values back as strings.
+               */
+              const validUntilMillis: number = new Date(
+                item.validUntil as unknown as string,
+              ).getTime();
+
+              if (
+                Number.isFinite(validUntilMillis) &&
+                validUntilMillis <= Date.now()
+              ) {
+                return <Pill color={Yellow} text="Expired" />;
+              }
+
+              return <Pill color={Green} text="Active" />;
+            },
           },
           {
             field: { feedName: true },
@@ -595,20 +648,42 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               setIsLoading(true);
 
               /*
-               * Only send what was typed: an untouched field must not
-               * blank the stored secret.
+               * The chosen mode REPLACES the feed's authentication
+               * outright: setting one credential kind explicitly clears
+               * the other (and Anonymous clears both). This is what
+               * makes switching auth methods possible at all — stored
+               * secrets are write-only, and TaxiiClient prefers a token
+               * over basic auth whenever one is stored, so a leftover
+               * secret would silently win over the one the user means
+               * to use. The server enforces the same either/or rule.
                */
-              const update: JSONObject = {};
+              const mode: string = String(data["authenticationMode"] || "");
 
-              if (data["apiToken"]) {
-                update["apiToken"] = data["apiToken"];
+              let update: JSONObject | null = null;
+
+              if (mode === "api-token" && data["apiToken"]) {
+                update = {
+                  apiToken: data["apiToken"],
+                  basicAuthUsername: null,
+                  basicAuthPassword: null,
+                };
+              } else if (mode === "basic-auth" && data["basicAuthPassword"]) {
+                update = {
+                  apiToken: null,
+                  ...(data["basicAuthUsername"]
+                    ? { basicAuthUsername: data["basicAuthUsername"] }
+                    : {}),
+                  basicAuthPassword: data["basicAuthPassword"],
+                };
+              } else if (mode === "anonymous") {
+                update = {
+                  apiToken: null,
+                  basicAuthUsername: null,
+                  basicAuthPassword: null,
+                };
               }
 
-              if (data["basicAuthPassword"]) {
-                update["basicAuthPassword"] = data["basicAuthPassword"];
-              }
-
-              if (Object.keys(update).length > 0) {
+              if (update) {
                 await ModelAPI.updateById<ThreatIntelFeed>({
                   modelType: ThreatIntelFeed,
                   id: currentlyEditingItem.id!,
@@ -628,14 +703,50 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             fields: [
               {
                 field: {
+                  authenticationMode: true,
+                },
+                title: "Authentication",
+                description:
+                  "How the poller authenticates to the TAXII server. The choice replaces the feed's current authentication — any previously stored secret of the other kind is cleared.",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: [
+                  { label: "API Token (Bearer)", value: "api-token" },
+                  { label: "Basic Auth", value: "basic-auth" },
+                  {
+                    label: "Anonymous (clear stored credentials)",
+                    value: "anonymous",
+                  },
+                ],
+                required: true,
+                placeholder: "Select authentication",
+              },
+              {
+                field: {
                   apiToken: true,
                 },
                 title: "API Token",
                 description:
-                  "The new bearer token. Encrypted at rest and never returned by the API — once saved it cannot be retrieved. Leave empty to keep the current one.",
+                  "The new bearer token. Encrypted at rest and never returned by the API — once saved it cannot be retrieved.",
                 fieldType: FormFieldSchemaType.Password,
+                required: true,
+                placeholder: "Paste the new token",
+                showIf: (values: FormValues<JSONObject>): boolean => {
+                  return values["authenticationMode"] === "api-token";
+                },
+              },
+              {
+                field: {
+                  basicAuthUsername: true,
+                },
+                title: "Basic Auth Username",
+                description:
+                  "Leave empty to keep the currently stored username.",
+                fieldType: FormFieldSchemaType.Text,
                 required: false,
-                placeholder: "Leave empty to keep the current token",
+                placeholder: "Leave empty to keep the current username",
+                showIf: (values: FormValues<JSONObject>): boolean => {
+                  return values["authenticationMode"] === "basic-auth";
+                },
               },
               {
                 field: {
@@ -643,10 +754,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Basic Auth Password",
                 description:
-                  "The new basic-auth password. Encrypted at rest and never returned by the API. Leave empty to keep the current one.",
+                  "The new basic-auth password. Encrypted at rest and never returned by the API.",
                 fieldType: FormFieldSchemaType.Password,
-                required: false,
-                placeholder: "Leave empty to keep the current password",
+                required: true,
+                placeholder: "Enter the new password",
+                showIf: (values: FormValues<JSONObject>): boolean => {
+                  return values["authenticationMode"] === "basic-auth";
+                },
               },
             ],
           }}

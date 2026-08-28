@@ -2,7 +2,13 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+/*
+ * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
+ * type annotations below must resolve to the same @types/jest global
+ * namespace as the jest.fn()/jest.mock() calls, or tsc sees two
+ * incompatible Mock shapes (the PollGoogleSecOpsConnectionsJob pattern).
+ */
+import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The two threat-intel crons are SCHEDULED AT ALL, and scheduled the way
@@ -110,7 +116,12 @@ const WORKERS_INDEX_PATH: string = path.join(WORKERS_DIR, "Index.ts");
 const JOB_FILES: Array<{ name: string; file: string }> = [
   {
     name: POLL_JOB_NAME,
-    file: path.join(WORKERS_DIR, "Jobs", "ThreatIntel", "PollThreatIntelFeeds.ts"),
+    file: path.join(
+      WORKERS_DIR,
+      "Jobs",
+      "ThreatIntel",
+      "PollThreatIntelFeeds.ts",
+    ),
   },
   {
     name: MATCH_JOB_NAME,

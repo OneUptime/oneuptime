@@ -5,7 +5,8 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, test } from "@jest/globals";
+import { getJestSpyOn } from "../../Spy";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * ThreatIntelFeedService validates at save time so a feed that stores is
@@ -190,5 +191,161 @@ describe("ThreatIntelFeedService.onBeforeUpdate", () => {
         updateBy({ apiRootUrl: "https://new-taxii.example.com/root/" }),
       ),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("ThreatIntelFeedService — credential exclusivity on update", () => {
+  type Spy = ReturnType<typeof getJestSpyOn>;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function stubStoredFeeds(
+    options: {
+      apiToken?: string;
+      basicAuthPassword?: string;
+    } = {},
+  ): Spy {
+    const stored: ThreatIntelFeed = new ThreatIntelFeed();
+    stored._id = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    ).toString();
+    if (options.apiToken) {
+      stored.apiToken = options.apiToken;
+    }
+    if (options.basicAuthPassword) {
+      stored.basicAuthPassword = options.basicAuthPassword;
+    }
+
+    return getJestSpyOn(ThreatIntelFeedService, "findBy").mockResolvedValue([
+      stored,
+    ] as never);
+  }
+
+  test("setting both credential kinds in one update is rejected", async () => {
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({ apiToken: "tok", basicAuthPassword: "hunter2" }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  test("setting a token while the row stores a basic-auth password is rejected", async () => {
+    stubStoredFeeds({ basicAuthPassword: "hunter2" });
+
+    await expect(
+      service.onBeforeUpdate(updateBy({ apiToken: "tok" })),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  test("setting a basic-auth password while the row stores a token is rejected", async () => {
+    stubStoredFeeds({ apiToken: "tok" });
+
+    await expect(
+      service.onBeforeUpdate(updateBy({ basicAuthPassword: "hunter2" })),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  test("switching auth by clearing the other kind in the same update passes without a lookup", async () => {
+    const findSpy: Spy = stubStoredFeeds({ basicAuthPassword: "hunter2" });
+
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({
+          apiToken: "tok",
+          basicAuthPassword: null as unknown as string,
+        }),
+      ),
+    ).resolves.toBeDefined();
+
+    // Explicitly clearing the other kind needs no stored-state check.
+    expect(findSpy).not.toHaveBeenCalled();
+  });
+
+  test("an update touching no credentials never queries stored secrets", async () => {
+    const findSpy: Spy = stubStoredFeeds({ apiToken: "tok" });
+
+    await service.onBeforeUpdate(updateBy({ name: "renamed" }));
+
+    expect(findSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("ThreatIntelFeedService — repointing resets the poll position", () => {
+  type Spy = ReturnType<typeof getJestSpyOn>;
+
+  type SuccessHookCaller = {
+    onUpdateSuccess: (
+      onUpdate: OnUpdate<ThreatIntelFeed>,
+      updatedItemIds: Array<ObjectID>,
+    ) => Promise<OnUpdate<ThreatIntelFeed>>;
+  };
+
+  const successCaller: SuccessHookCaller =
+    ThreatIntelFeedService as unknown as SuccessHookCaller;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("onBeforeUpdate flags apiRootUrl/collectionId changes; unrelated updates are not flagged", async () => {
+    const repointed: OnUpdate<ThreatIntelFeed> = await service.onBeforeUpdate(
+      updateBy({ collectionId: "col-2" }),
+    );
+    expect((repointed.carryForward as { repointed: boolean }).repointed).toBe(
+      true,
+    );
+
+    const unrelated: OnUpdate<ThreatIntelFeed> = await service.onBeforeUpdate(
+      updateBy({ name: "renamed" }),
+    );
+    expect((unrelated.carryForward as { repointed: boolean }).repointed).toBe(
+      false,
+    );
+  });
+
+  test("onUpdateSuccess clears cursor, page token and lastPolledAt for repointed feeds", async () => {
+    const updateSpy: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "updateOneById",
+    ).mockResolvedValue(undefined as never);
+
+    const feedId: ObjectID = new ObjectID(
+      "55555555-5555-4555-8555-555555555555",
+    );
+
+    await successCaller.onUpdateSuccess(
+      {
+        updateBy: updateBy({ collectionId: "col-2" }),
+        carryForward: { repointed: true },
+      },
+      [feedId],
+    );
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    const call: { id: ObjectID; data: Record<string, unknown> } = updateSpy.mock
+      .calls[0]![0] as { id: ObjectID; data: Record<string, unknown> };
+    expect(call.id.toString()).toBe(feedId.toString());
+    expect(call.data["cursor"]).toBeNull();
+    expect(call.data["nextPageToken"]).toBeNull();
+    expect(call.data["lastPolledAt"]).toBeNull();
+  });
+
+  test("onUpdateSuccess touches nothing when the update was not a repoint", async () => {
+    const updateSpy: Spy = getJestSpyOn(
+      ThreatIntelFeedService,
+      "updateOneById",
+    ).mockResolvedValue(undefined as never);
+
+    await successCaller.onUpdateSuccess(
+      {
+        updateBy: updateBy({ name: "renamed" }),
+        carryForward: { repointed: false },
+      },
+      [new ObjectID("55555555-5555-4555-8555-555555555555")],
+    );
+
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });
