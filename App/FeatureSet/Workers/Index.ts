@@ -195,6 +195,8 @@ import "./Jobs/Llm/EvaluateLlmCostBudgets";
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollGoogleSecOpsConnections";
+import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
+import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";

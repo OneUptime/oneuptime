@@ -13,6 +13,7 @@ import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionR
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsMonitorsPage from "../Pages/SecurityEvents/Monitors";
 import SecurityEventsGoogleSecOpsConnectionsPage from "../Pages/SecurityEvents/GoogleSecOpsConnections";
+import SecurityEventsThreatIntelPage from "../Pages/SecurityEvents/ThreatIntel";
 
 const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -71,6 +72,19 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityEventsGoogleSecOpsConnectionsPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_THREAT_INTEL] || ""
+          }
+          element={
+            <SecurityEventsThreatIntelPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_THREAT_INTEL] as Route
+              }
             />
           }
         />

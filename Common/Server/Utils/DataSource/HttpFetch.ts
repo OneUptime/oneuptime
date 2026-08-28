@@ -47,6 +47,13 @@ export interface DataSourceHttpResponse {
   bodyText: string;
   // Parsed JSON body, or undefined when the body is not valid JSON.
   bodyJson: unknown;
+  /*
+   * Response headers with lowercased names. Some protocols carry
+   * pagination state in headers rather than the body (TAXII 2.1's
+   * X-TAXII-Date-Added-Last cursor), so the transport surfaces them.
+   * Optional so hand-built responses (test fixtures) stay minimal.
+   */
+  headers?: Dictionary<string> | undefined;
 }
 
 export default class DataSourceHttpFetch {
@@ -148,10 +155,21 @@ export default class DataSourceHttpFetch {
         bodyJson = undefined;
       }
 
+      const responseHeaders: Dictionary<string> = {};
+      for (const key of Object.keys(response.headers || {})) {
+        const value: unknown = (response.headers as Record<string, unknown>)[
+          key
+        ];
+        if (value !== undefined && value !== null) {
+          responseHeaders[key.toLowerCase()] = String(value);
+        }
+      }
+
       return {
         statusCode: response.status,
         bodyText: bodyText,
         bodyJson: bodyJson,
+        headers: responseHeaders,
       };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {

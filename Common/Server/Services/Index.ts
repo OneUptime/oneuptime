@@ -307,6 +307,8 @@ import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
+import ThreatIntelFeedService from "./ThreatIntelFeedService";
+import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -704,6 +706,7 @@ const services: Array<BaseService> = [
   AlertSeverityService,
   DetectionRuleService,
   GoogleSecOpsConnectionService,
+  ThreatIntelFeedService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -851,6 +854,7 @@ export const AnalyticsServices: Array<
   RumSessionChunkService,
   AuditLogService,
   SecurityEventService,
+  ThreatIntelIndicatorService,
   ChangeEventService,
 ];
 

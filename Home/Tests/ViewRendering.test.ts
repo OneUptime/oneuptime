@@ -649,6 +649,20 @@ describe("security-events.ejs", () => {
     expect(html).toContain("the floor is one minute");
     expect(html).toMatch(/UEBA and behaviou?ral baselining/);
   });
+
+  test("claims threat intel the way the feature actually works", () => {
+    /*
+     * Threat intel shipped as bring-your-own STIX/TAXII feeds: the page
+     * must claim the enrichment attributes and the customer-supplied
+     * collections, and must no longer list threat intelligence under
+     * "Not in the box" (the scope list still excludes UEBA/baselining
+     * and bundled feed content).
+     */
+    expect(html).toContain("STIX/TAXII");
+    expect(html).toContain("threat.*");
+    expect(html).toContain("You bring the TAXII collections");
+    expect(html).not.toContain("Threat intelligence enrichment, UEBA");
+  });
 });
 
 describe("aligned marketing pages still render", () => {

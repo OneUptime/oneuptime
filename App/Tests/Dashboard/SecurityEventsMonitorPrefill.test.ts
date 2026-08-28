@@ -4,7 +4,12 @@ import nodePath from "path";
 import {
   DETECTION_FINDING_MONITOR_WINDOW_SECONDS,
   buildDetectionRuleMonitorPrefill,
+  buildThreatIntelFeedMonitorPrefill,
 } from "../../FeatureSet/Dashboard/src/Utils/SecurityEventsMonitorPrefill";
+import {
+  THREAT_FEED_ID_ATTRIBUTE,
+  THREAT_FEED_NAME_ATTRIBUTE,
+} from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -181,5 +186,77 @@ describe("buildDetectionRuleMonitorPrefill", () => {
     expect(DETECTION_FINDING_CLASS_NAME).toBe("Detection Finding");
     expect(DETECTION_RULE_ID_ATTRIBUTE).toBe("oneuptime.detection.rule_id");
     expect(DETECTION_RULE_NAME_ATTRIBUTE).toBe("oneuptime.detection.rule_name");
+  });
+});
+
+/*
+ * The threat-intel twin. Same contract, same silent-killer: the matcher's
+ * finding rows must MATCH the class name and attribute key this prefill
+ * filters on, or a "monitor this feed" monitor counts zero forever.
+ */
+describe("buildThreatIntelFeedMonitorPrefill", () => {
+  const FEED_ID: string = "34343434-5656-4777-8888-909090909090";
+
+  const prefill: JSONObject = buildThreatIntelFeedMonitorPrefill({
+    feedId: FEED_ID,
+    feedName: "CISA AIS",
+    operationalStatusId: OPERATIONAL_STATUS_ID,
+  });
+
+  test("selects the Security Events monitor type and names after the feed", () => {
+    expect(prefill["monitorType"]).toBe(MonitorType.SecurityEvents);
+    expect(prefill["name"]).toBe("CISA AIS — threat intel matches");
+    expect(String(prefill["description"])).toContain("CISA AIS");
+  });
+
+  test("serializes monitorSteps in the envelope fromJSON accepts", () => {
+    expect(() => {
+      return MonitorSteps.fromJSON(prefill["monitorSteps"] as JSONObject);
+    }).not.toThrow();
+  });
+
+  test("scopes the step to this feed's Threat Intel findings by immutable feed id", () => {
+    const config: MonitorStepSecurityEventsMonitor = stepConfigOf(prefill);
+
+    expect(config.classNames).toEqual([DETECTION_FINDING_CLASS_NAME]);
+    expect(config.attributes).toEqual({
+      [THREAT_FEED_ID_ATTRIBUTE]: FEED_ID,
+    });
+    // Never the renameable name — the detection-rule rename lesson.
+    expect(Object.keys(config.attributes)).not.toContain(
+      THREAT_FEED_NAME_ATTRIBUTE,
+    );
+  });
+
+  test("uses the burst-cadence window, not the 60s default", () => {
+    const config: MonitorStepSecurityEventsMonitor = stepConfigOf(prefill);
+
+    expect(config.lastXSecondsOfEvents).toBe(
+      DETECTION_FINDING_MONITOR_WINDOW_SECONDS,
+    );
+  });
+
+  test("carries the operational status and degrades to none on a failed fetch", () => {
+    const steps: MonitorSteps = MonitorSteps.fromJSON(
+      prefill["monitorSteps"] as JSONObject,
+    );
+    expect(steps.data?.defaultMonitorStatusId?.toString()).toBe(
+      OPERATIONAL_STATUS_ID.toString(),
+    );
+
+    const withoutStatus: JSONObject = buildThreatIntelFeedMonitorPrefill({
+      feedId: FEED_ID,
+      feedName: "CISA AIS",
+      operationalStatusId: null,
+    });
+    const stepsWithout: MonitorSteps = MonitorSteps.fromJSON(
+      withoutStatus["monitorSteps"] as JSONObject,
+    );
+    expect(stepsWithout.data?.defaultMonitorStatusId).toBeFalsy();
+  });
+
+  test("the wire literals never change", () => {
+    expect(THREAT_FEED_ID_ATTRIBUTE).toBe("oneuptime.threat.feed_id");
+    expect(THREAT_FEED_NAME_ATTRIBUTE).toBe("oneuptime.threat.feed_name");
   });
 });

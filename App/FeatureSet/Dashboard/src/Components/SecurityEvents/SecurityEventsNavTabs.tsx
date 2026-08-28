@@ -9,6 +9,7 @@ export type SecurityEventsTabKey =
   | "events"
   | "correlate"
   | "detection-rules"
+  | "threat-intel"
   | "monitors"
   | "connections"
   | "setup";
@@ -44,6 +45,14 @@ const SecurityEventsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.ShieldCheck,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route,
+      ),
+    },
+    {
+      key: "threat-intel",
+      label: "Threat Intel",
+      icon: IconProp.ShieldExclamation,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS_THREAT_INTEL] as Route,
       ),
     },
     {
