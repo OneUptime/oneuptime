@@ -23,20 +23,20 @@ import ThreatIntelEnricher from "./ThreatIntelEnricher";
  *
  * Cursor semantics: added_after tracks the X-TAXII-Date-Added-Last
  * response header — the spec's own resume point — so a large initial
- * sync progresses across ticks (MAX_PAGES_PER_POLL pages per tick) and a
- * timed-out run resumes where it left off. When a server omits the
- * header, a fully drained poll falls back to "now minus a minute of
- * overlap"; redelivered objects are harmless because rows upsert by
- * (identity, version).
+ * sync progresses across successive polls (MAX_PAGES_PER_POLL pages per
+ * poll, polls one poll-interval apart) and a timed-out run resumes where
+ * it left off. When a server omits the header, a fully drained poll
+ * falls back to "now minus a minute of overlap"; redelivered objects are
+ * harmless because rows upsert by (identity, version).
  */
 
 // TAXII page size asked for; servers may serve less.
 export const TAXII_PAGE_SIZE: number = 500;
 
 /*
- * Pages fetched per feed per tick. Bounds one tick's memory and wall
+ * Pages fetched per feed per poll. Bounds one poll's memory and wall
  * clock against a multi-million-object collection; the cursor carries
- * the sync forward next tick.
+ * the sync forward on the feed's next due poll.
  */
 export const MAX_PAGES_PER_POLL: number = 10;
 

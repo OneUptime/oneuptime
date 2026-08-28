@@ -147,7 +147,7 @@ export default class ThreatIntelFeed extends BaseModel {
     type: TableColumnType.Name,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Friendly name for this feed, e.g. 'CISA AIS'.",
+    description: "Friendly name for this feed, e.g. 'MITRE ATT&CK'.",
   })
   @Column({
     nullable: false,

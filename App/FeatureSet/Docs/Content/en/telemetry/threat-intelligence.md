@@ -1,6 +1,6 @@
 # Threat Intelligence (STIX/TAXII)
 
-OneUptime enriches your [security events](/docs/telemetry/security-events) against threat-intelligence feeds you subscribe to. Feeds speak the open standards — **TAXII 2.1** for transport, **STIX 2.1** for the indicator objects — so anything from a public feed like CISA AIS to your own MISP or OpenTAXII server works. There is no bundled feed content: you bring the collections, the same way you bring the Sigma rules.
+OneUptime enriches your [security events](/docs/telemetry/security-events) against threat-intelligence feeds you subscribe to. Feeds speak the open standards — **TAXII 2.1** for transport, **STIX 2.1** for the indicator objects — so anything from a public collection like MITRE's ATT&CK TAXII server to your own MISP or OpenTAXII instance works. Supported authentication is anonymous, bearer-token, or HTTP basic; feeds that require TLS client-certificate (mutual TLS) authentication, such as CISA AIS, are not supported. There is no bundled feed content: you bring the collections, the same way you bring the Sigma rules.
 
 ## Subscribing a feed
 
@@ -14,7 +14,7 @@ OneUptime enriches your [security events](/docs/telemetry/security-events) again
 | **Poll Interval (Minutes)** | How often new objects are fetched. Whole minutes, `1`–`1440`; default `60`. |
 | **Minimum Confidence** | Skip indicators whose STIX `confidence` is below this (0–100). `0` ingests everything. Indicators that carry no confidence always pass, so an unscored feed does not go silently empty when you set a minimum. |
 
-The poller tracks each feed with an `added_after` cursor (the server's `X-TAXII-Date-Added-Last` header), fetching up to ten pages per minute-tick — a large initial sync simply progresses across ticks, and **Last Poll Summary** on the feed row says how far it got.
+The poller tracks each feed with an `added_after` cursor (the server's `X-TAXII-Date-Added-Last` header), fetching up to ten pages per poll — a large initial sync progresses across successive polls, one poll interval apart, and **Last Poll Summary** on the feed row says how far it got. To drain a big collection quickly, set a short poll interval (down to 1 minute) until the sync catches up.
 
 ## What gets ingested
 
@@ -32,8 +32,8 @@ Anything beyond that — `AND`, `FOLLOWEDBY`, temporal qualifiers, negation, `LI
 
 Each supported pattern becomes one indicator row per IOC value, carrying the STIX id, confidence, labels, and validity window:
 
-- **`valid_from` / `valid_until`** bound when the indicator matches. An indicator with no `valid_until` stays active for 365 days from `valid_from` (re-polling refreshes the window). Expiry is enforced at query time on every match and lookup; storage cleanup follows separately via TTL.
-- **Revocations** (`revoked: true`) and **updated objects** arrive as newer versions of the same identity and replace the older row — re-polls are idempotent.
+- **`valid_from` / `valid_until`** bound when the indicator matches. An indicator with no `valid_until` stays active for 365 days from `valid_from` — the window is anchored at `valid_from` and is not extended by re-polling; only a producer update that moves `valid_from` (or sets `valid_until`) changes the expiry. Expiry is enforced at query time on every match and lookup; storage cleanup follows separately via TTL.
+- **Revocations** (`revoked: true`) and **updated objects** arrive as newer versions and replace the older row for each IOC value the new pattern still contains — re-polls are idempotent. A value that an update drops from the pattern (a corrected typo, say) is not retracted: its last-seen row stays active until its `valid_until` passes.
 
 Indicator values are matched **case-insensitively** against event observables, matching the case-insensitive semantics observables already have platform-wide.
 
@@ -63,7 +63,7 @@ Every minute, each enabled feed's active indicators are joined against the secur
 
 A match behaves exactly like a Sigma rule match:
 
-- a **Threat Intel finding** is written back into the events table — OCSF class 2004 (`Detection Finding`), product `OneUptime Threat Intel`, attributed to a telemetry service of the same name, one finding per matched indicator value per evaluation;
+- a **Threat Intel finding** is written back into the events table — OCSF class 2004 (`Detection Finding`), product `OneUptime Threat Intel`, attributed to a telemetry service of the same name, one finding per matched indicator value per evaluation (capped at the 100 busiest indicator values per feed per evaluation, ordered by match count; values beyond the cap are picked up when they match again in a later window);
 - a **deduplicated alert** opens per `(feed, indicator value)` — a still-matching indicator does not stack alerts, and a resolved alert can re-open as a fresh one;
 - optionally an **incident** opens (off by default — incidents drive on-call, SLAs and status pages, so opt in per feed).
 
@@ -87,4 +87,4 @@ Because Threat Intel findings are ordinary security events, everything that comp
 
 ## Retention and billing
 
-Indicators are configuration, not telemetry — they are not metered as ingest. Finding rows written on matches are ordinary security events and follow the `securityEvents` retention pillar like everything else in the events table. Indicator rows are TTL-deleted by ClickHouse shortly after their `valid_until` passes.
+Indicators are configuration, not telemetry — they are not metered as ingest. Finding rows written on matches are ordinary security events and follow the `securityEvents` retention pillar like everything else in the events table. Indicator rows carry a ClickHouse TTL of one day past their `valid_until`, but expired rows are dropped a whole monthly partition at a time — a row can remain on disk (and visible in the Indicators table) for up to about a month after it expires. That is storage cleanup only: expiry and revocation are always enforced at query time, so a stale row is never matched.

@@ -6,8 +6,9 @@ import ThreatIntelFeedPoller from "Common/Server/Utils/SecurityEvent/ThreatIntel
  * Threat-intel feed tick. Each run polls every enabled TAXII feed that
  * is due (per-feed poll interval) for new STIX indicator objects and
  * upserts them into the ThreatIntelIndicator table. Per-feed added_after
- * cursors and page caps mean a huge initial sync progresses across
- * ticks, and a timed-out run resumes where it left off.
+ * cursors and per-poll page caps mean a huge initial sync progresses
+ * across successive due polls, and a timed-out run resumes where it
+ * left off.
  */
 RunCron(
   "ThreatIntel:PollThreatIntelFeeds",

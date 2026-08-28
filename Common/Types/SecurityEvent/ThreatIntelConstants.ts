@@ -108,8 +108,11 @@ export const THREAT_INTEL_MINIMUM_CONFIDENCE_MAX: number = 100;
 /*
  * Indicators whose STIX object carries no valid_until stay active this
  * long after valid_from. STIX says "valid until revoked"; unbounded
- * validity would grow the IOC table forever, so a year is the ceiling —
- * re-polling the feed refreshes the window because the re-ingested row
- * carries a later version.
+ * validity would grow the IOC table forever, so a year is the ceiling.
+ * The window is ANCHORED at the object's own valid_from — re-polling does
+ * not extend it (an unchanged object is never re-fetched past the
+ * added_after cursor, and an updated one keeps its valid_from); only a
+ * producer update that moves valid_from or sets valid_until changes the
+ * expiry, and objects already past the window are skipped at ingest.
  */
 export const THREAT_INTEL_DEFAULT_VALID_DAYS: number = 365;

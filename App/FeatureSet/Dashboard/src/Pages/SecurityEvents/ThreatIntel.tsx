@@ -162,7 +162,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "e.g. CISA AIS",
+            placeholder: "e.g. MITRE ATT&CK",
             validation: {
               minLength: 2,
             },
