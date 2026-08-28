@@ -539,6 +539,42 @@ describe.each(GENERATE_ROUTES)(
   },
 );
 
+/*
+ * The shape of the gate's own read is load-bearing, and wrong in a way no
+ * route-level assertion above would notice — because getting either half
+ * wrong leaves the switch silently dead rather than throwing:
+ *
+ *   - `select` must ask for enableAi. Drop it and project.enableAi comes back
+ *     undefined on every row, which this gate deliberately reads as "not
+ *     disabled" (the column is NOT NULL DEFAULT true). The kill switch would
+ *     then pass every request and every test above would still be green.
+ *   - `props` must be isRoot. The toggle has to be readable whatever the
+ *     caller can see; a permission-filtered read returning null would flip the
+ *     fail-closed branch into refusing legitimate callers.
+ */
+describe("the shape of the gate's project read", () => {
+  test("asks for enableAi, and reads it as root", async () => {
+    const route: GenerateRoute = GENERATE_ROUTES[0] as GenerateRoute;
+    route.stub(PROJECT_ID);
+    mockProject(true);
+
+    await callRoute(route);
+
+    expect(projectLookup).toHaveBeenCalledTimes(1);
+
+    const read: {
+      select: Dictionary<boolean>;
+      props: { isRoot?: boolean };
+    } = projectLookup.mock.calls[0]![0] as {
+      select: Dictionary<boolean>;
+      props: { isRoot?: boolean };
+    };
+
+    expect(read.select["enableAi"]).toBe(true);
+    expect(read.props.isRoot).toBe(true);
+  });
+});
+
 type RegisteredRoute = {
   method: string;
   uri: string;
