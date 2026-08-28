@@ -3,6 +3,7 @@ import EnterpriseLicense from "../../Models/DatabaseModels/EnterpriseLicense";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import { OnCreate } from "../Types/Database/Hooks";
+import OneUptimeDate from "../../Types/Date";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<EnterpriseLicense> {
@@ -29,8 +30,8 @@ export class Service extends DatabaseService<EnterpriseLicense> {
      * reported honestly rather than defaulted to zero, which would quietly
      * drag reported contract value down.
      */
-    MarketingEventUtil.emitInBackground(
-      MarketingEventUtil.buildEvent({
+    MarketingEventUtil.emitInBackground(() => {
+      return MarketingEventUtil.buildEvent({
         eventType: MarketingEventType.EnterpriseLicenseIssued,
         eventId: `${MarketingEventType.EnterpriseLicenseIssued}:${createdItem.id?.toString()}`,
         occurredAt: createdItem.createdAt || new Date(),
@@ -56,12 +57,19 @@ export class Service extends DatabaseService<EnterpriseLicense> {
             createdItem.userLimit === null
               ? null
               : createdItem.userLimit,
-          expiresAt: createdItem.expiresAt
-            ? createdItem.expiresAt.toISOString()
-            : null,
+          /*
+           * Read through OneUptimeDate rather than calling toISOString on the
+           * column directly. TypeORM's save() returns the entity it was handed,
+           * so this is whatever the caller supplied — a Date from the coercion
+           * in BaseModel.fromJSON, but a raw string from any caller that skips
+           * it. This hook runs AFTER the INSERT has committed, so a TypeError
+           * here does not undo the licence: it only turns a licence that exists
+           * into a "Server Error" the admin retries, creating another one.
+           */
+          expiresAt: OneUptimeDate.toIsoStringOrNull(createdItem.expiresAt),
         },
-      }),
-    );
+      });
+    });
 
     return createdItem;
   }

@@ -239,9 +239,16 @@ export class Service extends DatabaseService<Model> {
      * direct signups (true) from invited users (false).
      */
     if (createdItem.email) {
+      /*
+       * Captured before the deferred builder below closes over it: the
+       * narrowing this `if` gives us does not survive into a callback, and
+       * `email` is what makes the signup conversion joinable at all.
+       */
+      const signUpEmail: string = createdItem.email.toString();
+
       ProductAnalytics.capture({
         event: "server/user_created",
-        distinctId: createdItem.email.toString(),
+        distinctId: signUpEmail,
         properties: {
           has_password: Boolean(createdItem.password),
           ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
@@ -263,19 +270,19 @@ export class Service extends DatabaseService<Model> {
        * users, only one is an acquisition, and the receiver decides which it
        * cares about rather than us deciding for it here.
        */
-      MarketingEventUtil.emitInBackground(
-        MarketingEventUtil.buildEvent({
+      MarketingEventUtil.emitInBackground(() => {
+        return MarketingEventUtil.buildEvent({
           eventType: MarketingEventType.SignUp,
           eventId: `${MarketingEventType.SignUp}:${createdItem.id?.toString()}`,
           occurredAt: createdItem.createdAt || new Date(),
-          email: createdItem.email.toString(),
+          email: signUpEmail,
           attributionSource: createdItem,
           data: {
             userId: createdItem.id?.toString() || "",
             hasPassword: Boolean(createdItem.password),
           },
-        }),
-      );
+        });
+      });
     }
 
     // A place holder method used for overriding.

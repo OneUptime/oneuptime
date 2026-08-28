@@ -636,6 +636,43 @@ export default class OneUptimeDate {
     return date.toISOString();
   }
 
+  /*
+   * The ISO instant for a value that is *declared* a Date but may not be one
+   * at runtime.
+   *
+   * TypeORM's save() hands back the entity it was given, so a date column read
+   * off a freshly created model holds whatever the caller supplied — a real
+   * Date once BaseModel.fromJSON has coerced it, a raw string from any caller
+   * that bypasses that path. `.toISOString()` on the latter is a TypeError,
+   * and post-create hooks are exactly where such a throw does the most damage:
+   * the row is already committed, so it converts a completed write into a
+   * server error the caller retries.
+   *
+   * Returns null for anything that is not a usable date, so a caller reporting
+   * an optional timestamp reports "unknown" instead of failing.
+   */
+  public static toIsoStringOrNull(
+    date: Date | string | undefined | null,
+  ): string | null {
+    if (!date) {
+      return null;
+    }
+
+    let parsedDate: Date;
+
+    try {
+      parsedDate = this.fromString(date);
+    } catch {
+      return null;
+    }
+
+    if (!(parsedDate instanceof Date) || Number.isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    return parsedDate.toISOString();
+  }
+
   public static getCurrentMomentDate(): moment.Moment {
     return moment();
   }
