@@ -82,7 +82,7 @@ Microsoft は本番アプリケーションではクライアントシークレ�
 
    **Identifier** は `incident-on-create-1` のままにしておきます。
 
-3. **Add Component** をクリックして **API Post (JSON)** ブロックを追加し、トリガーの **Success** ドットを接続してから設定を開きます。**Identifier** を `get-token` に設定して、次のように入力します。
+3. **コンポーネントを追加** をクリックして **API Post (JSON)** ブロックを追加し、トリガーの **Success** ドットを接続してから設定を開きます。**Identifier** を `get-token` に設定して、次のように入力します。
 
    - **URL**: `https://login.microsoftonline.com/{{global.variables.DYNAMICS_TENANT_ID}}/oauth2/v2.0/token`
    - **Request Headers**:
@@ -151,7 +151,7 @@ Microsoft は本番アプリケーションではクライアントシークレ�
 {{local.components.create-case.returnValues.response-body.ticketnumber}}
 ```
 
-ここでワークフローを有効にし — **Overview → Edit Workflow → Enabled** — テスト用インシデントを宣言して **Runs & Logs** で実行を確認します。`create-case` ブロックは `201` と、新しい `incidentid` を含むボディを表示するはずです。キャンバス上の変更は自動保存されます。保存ボタンはありません。
+ここでワークフローを有効にし — **概要 → ワークフローを編集 → 有効** — テスト用インシデントを宣言して **実行とログ** で実行を確認します。`create-case` ブロックは `201` と、新しい `incidentid` を含むボディを表示するはずです。キャンバス上の変更は自動保存されます。保存ボタンはありません。
 
 ### 重大度とステータスのマッピング
 
@@ -215,7 +215,7 @@ Dynamics の `severitycode` は既定で「Default Value」という選択肢が
 
      `Status` は解決済み状態における `statuscode` の値です — `5` は *問題解決済み* です。
 
-     **これに頼る前に、自分の環境でこのボディを試してください。** `CloseIncident` は `IncidentResolution` と `Status` の 2 つのパラメーターを取りますが、Microsoft は HTTP の例を公開しておらず、公式サンプルはすべて C# です。上記の形は慣例的な翻案です。環境がこれを拒否する場合は、`@odata.bind` 形式の代わりに単純な `"incidentid": "<the case id>"` プロパティでケースを指定してみてください。これは Microsoft の他のアクション例が既存レコードを参照する際の書き方です。
+     **これに頼る前に、自分の環境でこのボディを試してください。** `CloseIncident` は `IncidentResolution` と `Status` の 2 つのパラメーターを取りますが、Microsoft は HTTP の例を公開しておらず、公式サンプルはすべて C# です。上記の形は、それを HTTP に読み替えた慣例的なものです。環境がこれを拒否する場合は、`@odata.bind` 形式の代わりに単純な `"incidentid": "<the case id>"` プロパティでケースを指定してみてください。これは Microsoft の他のアクション例が既存レコードを参照する際の書き方です。
 
 **単にケースを `statecode: 1` に `PATCH` してはいけないのか？** できます。Microsoft は `statecode` と `statuscode` の `PATCH` を、旧来の SetState メッセージに相当する Web API の方法として文書化しており、ケースをアクティブなステータス間で動かすにはこれが適切な手段です。ただしこの方法では、Dynamics 365 Customer Service で解決済みのケースが持つべき **ケースの解決** アクティビティが作成されません。また、管理者がカスタムのステータス遷移を設定している環境では、そのまま拒否されます。解決には `CloseIncident` を、それ以外には `PATCH` を使ってください。そして `statecode` を書き込むときは常に、同じリクエストで `statuscode` も設定してください。そうしないと Dynamics はその状態の既定のステータスを黙って適用します。
 
@@ -230,7 +230,7 @@ Dynamics の `severitycode` は既定で「Default Value」という選択肢が
 ### 先に受信側のワークフローを作る
 
 1. **ワークフローを作成** し、`Dynamics 365 → OneUptime` という名前にして **Webhook** トリガーを追加します。
-2. そのワークフローの **Settings** を開いて **Webhook Secret Key** をコピーします。URL は次の形です。
+2. そのワークフローの **設定** を開いて **Webhook Secret Key** をコピーします。URL は次の形です。
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
@@ -323,7 +323,7 @@ Power Automate が使えない場合、Dataverse から OneUptime を直接呼�
 
 ## トラブルシューティング
 
-まず **Runs & Logs** で失敗したブロックを読んでください — Microsoft のどちらのエンドポイントも説明的な JSON ボディを返し、API コンポーネントはそれを `response-body` に保持します。
+まず **実行とログ** で失敗したブロックを読んでください — Microsoft のどちらのエンドポイントも説明的な JSON ボディを返し、API コンポーネントはそれを `response-body` に保持します。
 
 **トークンのリクエストが `400` と `invalid_request` またはサポートされない grant type で失敗する。** `Content-Type` ヘッダーが厳密に `Content-Type: application/x-www-form-urlencoded` になっておらず、ボディが JSON として送信されています。大文字小文字を確認してください。
 
@@ -343,7 +343,7 @@ Power Automate が使えない場合、Dataverse から OneUptime を直接呼�
 
 **`429 Too Many Requests`。** Dataverse のサービス保護制限です — おおよそ 5 分間のウィンドウごとに、Web サーバー単位・ユーザー単位で 6,000 リクエストおよび 20 分の実行時間です。レスポンスには秒単位の `Retry-After` が含まれます。ワークフローがバーストしている場合は **Delay** ブロックを入れるか、まとめて処理するスケジュール実行のワークフローに移してください。
 
-**OneUptime 側に何も届かない。** 自分で `curl` を使って Webhook URL にリクエストを送り、ワークフローの **Runs & Logs** を確認してください。自分のリクエストは現れるのに Dynamics のものが現れないなら、問題は上流にあります。Power Automate ならフロー自身の実行履歴を、ネイティブ Webhook なら **設定 → システム ジョブ** を失敗で絞り込んで見てください。
+**OneUptime 側に何も届かない。** 自分で `curl` を使って Webhook URL にリクエストを送り、ワークフローの **実行とログ** を確認してください。自分のリクエストは現れるのに Dynamics のものが現れないなら、問題は上流にあります。Power Automate ならフロー自身の実行履歴を、ネイティブ Webhook なら **設定 → システム ジョブ** を失敗で絞り込んで見てください。
 
 **ワークフローは実行されるのにインシデントが変わらない。** **Update One Incident** ブロックは、クエリが何にも一致しなかったとき `Items Updated: 0` と報告します — それはエラーではなく成功です。ペイロードの id が OneUptime のインシデント id であるか、そして `_id` で問い合わせているかを確認してください。
 

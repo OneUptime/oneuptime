@@ -41,7 +41,7 @@ Atlassian の API トークンについて、誰も見ていない連携をい�
 - **トークンには有効期限があります。** トークンは 1 日から 1 年の有効期間で作成され、既定は 1 年です。更新の仕組みはなく、期限切れのトークンは同じページで手作業で作り直し、`JIRA_AUTH` にエンコードし直す必要があります。有効期限をどこかのカレンダーに入れておいてください。何か月も動いていたワークフローが突然 `401` を返し始めたら、原因はこれです。
 - **スコープ付きトークンは別のベース URL を必要とします。** トークンのページには、従来の **Create API token** に加えて **Create API token with scopes** があります。スコープ付きトークンの方が安全な選択ですが、宛先はあなたのサイトではありません。宛先は `https://api.atlassian.com/ex/jira/<cloudId>` になるため、`JIRA_URL` をそちらに変更します。以下のパスはすべてそのまま後ろに続きます。`cloudId` は `https://your-domain.atlassian.net/_edge/tenant_info` の JSON にあります。スコープ付きトークンを `your-domain.atlassian.net` に送っても、単に失敗します。
 
-組織が Atlassian の集中ユーザー管理を利用している場合、有効期限の問題を回避できる 3 つ目の選択肢があります。[サービスアカウント用の OAuth 2.0 資格情報](https://support.atlassian.com/user-management/docs/create-oauth-2-0-credential-for-service-accounts/) です。トークンではなくクライアント ID とシークレットが得られ、ワークフローは実行のたびにそれらを短命のアクセストークンと交換します — [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) のページと同じ 2 ブロック構成で、**API Post (JSON)** ブロックがトークンを取得し、それ以降のブロックが `Bearer <token>` を送ります。1 年後に手作業で差し替えるものは何もありません。正確なトークンリクエストは Atlassian のページにあります。API のベース URL は `https://api.atlassian.com` です。
+組織が Atlassian の集中ユーザー管理を利用している場合、有効期限の問題を回避できる 3 つ目の選択肢があります。[サービスアカウント用の OAuth 2.0 資格情報](https://support.atlassian.com/user-management/docs/create-oauth-2-0-credential-for-service-accounts/) です。トークンではなくクライアント ID とシークレットが得られ、ワークフローは実行のたびに、その開始時にそれらを短命のアクセストークンと交換します — [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) のページと同じ 2 ブロック構成で、**API Post (JSON)** ブロックがトークンを取得し、それ以降のブロックが `Bearer <token>` を送ります。1 年後に手作業で差し替えるものは何もありません。正確なトークンリクエストは Atlassian のページにあります。API のベース URL は `https://api.atlassian.com` です。
 
 ## ステップ 2 — インシデントごとに Jira の課題を開く
 
@@ -60,7 +60,7 @@ Atlassian の API トークンについて、誰も見ていない連携をい�
 
    **Identifier** は `incident-on-create-1` のままにしておきます — 後続のブロックはこの名前で参照します。
 
-3. **Add Component** をクリックして **API Post (JSON)** ブロックを追加し、トリガーの **Success** ドットから新しいブロックの入力ドットへドラッグします。ブロックを開き、**Identifier** を `create-issue` に設定して、次のように入力します。
+3. **コンポーネントを追加** をクリックして **API Post (JSON)** ブロックを追加し、トリガーの **Success** ドットから新しいブロックの入力ドットへドラッグします。ブロックを開き、**Identifier** を `create-issue` に設定して、次のように入力します。
 
    - **URL**: `{{global.variables.JIRA_URL}}/rest/api/3/issue`
    - **Request Headers**:
@@ -104,7 +104,7 @@ Atlassian の API トークンについて、誰も見ていない連携をい�
 
 説明が重たく見えるのは、Jira Cloud の v3 API がリッチテキストを **Atlassian Document Format** — 文字列ではなくドキュメントツリー — として受け取るためです。上記の形は有効な最小のドキュメントで、テキストノードを 1 つ持つ段落 1 つです。同じことが `environment` や複数行テキストのカスタムフィールドにも当てはまります。1 行テキストのカスタムフィールドは今でもプレーン文字列を受け取ります。
 
-ここで **Overview → Edit Workflow → Enabled** からワークフローを有効にし、テスト用インシデントを宣言して **Runs & Logs** を開きます。`create-issue` ブロックは `201` と、新しい課題の `id`、`key`、`self` を含むボディを表示するはずです。キャンバス上の変更は自動保存されます — 保存ボタンはありません。また、無効なワークフローは手動実行も含めまったく実行できません。
+ここで **概要 → ワークフローを編集 → 有効** からワークフローを有効にし、テスト用インシデントを宣言して **実行とログ** を開きます。`create-issue` ブロックは `201` と、新しい課題の `id`、`key`、`self` を含むボディを表示するはずです。キャンバス上の変更は自動保存されます — 保存ボタンはありません。また、無効なワークフローは手動実行も含めまったく実行できません。
 
 新しい課題キーは、このブロック以降の任意のブロックから利用できます。
 
@@ -136,7 +136,7 @@ curl -u 'you@example.com:your_api_token' \
 
 ## ステップ 3 — インシデント id を Jira に持ち込む
 
-双方向同期の両側は、どちらか一方のシステムが相手側の識別子を保持する必要があります。そして Jira の方が保管場所として適しています。OneUptime の `customFields` 列は単一の JSON ブロブなので、ワークフローから 1 つの値を書き込むと、そのインシデントのすべてのカスタムフィールドが置き換わってしまうためです。
+双方向同期はどちらの向きも、2 つのシステムのどちらか一方が相手側の識別子を保持していることを前提とします。そして保管場所としては Jira の方が適しています。OneUptime の `customFields` 列は単一の JSON ブロブなので、ワークフローから 1 つの値を書き込むと、そのインシデントのすべてのカスタムフィールドが置き換わってしまうためです。
 
 **Jira 管理者がいる場合。** 短いテキストのカスタムフィールド — 名前は *OneUptime Incident ID* とします — をプロジェクトの作成画面に追加し、`createmeta` でその id を調べ、他の項目と一緒に設定します。
 
@@ -227,7 +227,7 @@ curl -u 'you@example.com:your_api_token' \
 ### 先に受信側のワークフローを作る
 
 1. **ワークフローを作成** し、`Jira → OneUptime` という名前にして **Webhook** トリガーを追加します。
-2. そのワークフローの **Settings** を開き、**Webhook Secret Key** をコピーします。URL は次の形です。
+2. そのワークフローの **設定** を開き、**Webhook Secret Key** をコピーします。URL は次の形です。
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
@@ -270,7 +270,7 @@ curl -u 'you@example.com:your_api_token' \
 
      ステップ 3 でカスタムフィールドではなくラベルを使った場合は `"labels": "{{issue.labels}}"` を送り、OneUptime 側の **Run Custom JavaScript** ブロックで id を取り出します。
 
-4. ルールを有効にし、テスト用の課題を Done に移動して、両側を確認します。Jira 側ではルール自身の監査ログを、OneUptime 側では **Runs & Logs** を見ます。
+4. ルールを有効にし、テスト用の課題を Done に移動して、両側を確認します。Jira 側ではルール自身の監査ログを、OneUptime 側では **実行とログ** を見ます。
 
 これに頼る前に知っておくべきこと。
 
@@ -342,7 +342,7 @@ Jira の管理者は **Settings → System → Advanced → WebHooks** から直
 
 ## トラブルシューティング
 
-まず **Runs & Logs** で失敗したブロックを開きます。Jira は何を拒否したかを正確に示す JSON ボディを返し、API コンポーネントはそれを `response-body` に保持します。
+まず **実行とログ** で失敗したブロックを開きます。Jira は何を拒否したかを正確に示す JSON ボディを返し、API コンポーネントはそれを `response-body` に保持します。
 
 **`401 Unauthorized`。** `email:api_token` を `printf` で再エンコードして `JIRA_AUTH` を更新してください。`echo` が付けた末尾の改行が典型的な原因です。次に、トークンを所有するアカウントがそのプロジェクトで課題を作成できるか確認します。Data Center では、`Basic` ではなく `Bearer` を送っているか確認してください。
 
@@ -356,7 +356,7 @@ Jira の管理者は **Settings → System → Advanced → WebHooks** から直
 
 **遷移の呼び出しが `400` を返す。** その遷移 id は課題の *現在の* ステータスからは有効ではありません。その課題の `/transitions` を取得し、レスポンスにある id を使ってください。
 
-**自動化ルールは成功と表示されるのに OneUptime に何も届かない。** まずポートを確認してください — 上記の制限リストを参照します。次に、自分で `curl` を使って Webhook URL にリクエストを送り、**Runs & Logs** に現れるか確認します。自分のリクエストは届くのに Jira のものが届かないなら、問題は Jira 側にあります。
+**自動化ルールは成功と表示されるのに OneUptime に何も届かない。** まずポートを確認してください — 上記の制限リストを参照します。次に、自分で `curl` を使って Webhook URL にリクエストを送り、**実行とログ** に現れるか確認します。自分のリクエストは届くのに Jira のものが届かないなら、問題は Jira 側にあります。
 
 **ワークフローは実行されるのにインシデントが変わらない。** **Update One Incident** ブロックは、クエリが何にも一致しなかったとき `Items Updated: 0` と報告し、それはエラーではなく成功として扱われます。ペイロードの id が本当に OneUptime のインシデント id であるか、そして `_id` で問い合わせているかを確認してください。
 
