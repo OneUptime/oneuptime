@@ -4,6 +4,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -40,6 +41,22 @@ import {
   summarizeSharedAttributes,
 } from "../../Utils/LogsInsights";
 import { fetchErrorPatternCorrelation } from "./LogsInsightsApi";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import EventName from "../../Utils/EventName";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "../Metrics/Utils/UseEventTimeReferenceLines";
+import {
+  ErrorPatternClassification,
+  ErrorPatternEvent,
+  ErrorPatternEvidence,
+  ErrorPatternFinding,
+  buildErrorPatternFindings,
+  buildErrorPatternPrompt,
+  classifyErrorPattern,
+  readEventKindFromLabel,
+} from "../../Utils/ErrorPatternInsights";
 
 /*
  * The drill-down the issue asked for: pick one error out of the Top Errors
@@ -205,13 +222,62 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
     props.pattern.sampleBody,
   );
 
-  const resourceLabel: (resourceId: string) => string = (
-    resourceId: string,
-  ): string => {
-    return (
-      props.serviceNameById.get(resourceId)?.name?.toString() || resourceId
+  const resourceLabel: (resourceId: string) => string = useCallback(
+    (resourceId: string): string => {
+      return (
+        props.serviceNameById.get(resourceId)?.name?.toString() || resourceId
+      );
+    },
+    [props.serviceNameById],
+  );
+
+  /*
+   * The window the user picked, resolved once for the whole panel. A preset
+   * range resolves against "now" on every call, so resolving it in two
+   * places would let the trend and the event overlay describe two slightly
+   * different windows.
+   */
+  const patternWindow: InBetween<Date> = useMemo(() => {
+    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+      props.scope.timeRange,
     );
-  };
+  }, [props.scope.timeRange]);
+
+  /*
+   * Deploys, config changes, incidents and alerts inside the window — the
+   * "what else happened around when this spiked" the issue behind this panel
+   * asked for. Reuses the same overlay the metric charts draw, so a deploy
+   * marked on a chart and a deploy named here are the same record.
+   */
+  const { lines: eventLines }: EventTimeReferenceLines =
+    useEventTimeReferenceLines({
+      enabled: true,
+      window: patternWindow,
+    });
+
+  const events: Array<ErrorPatternEvent> = useMemo(() => {
+    return eventLines
+      .map((line: ChartTimeReferenceLineProps): ErrorPatternEvent => {
+        const label: string = line.label || "Event";
+
+        return {
+          kind: readEventKindFromLabel(label),
+          label,
+          timeMs: line.date.getTime(),
+        };
+      })
+      .sort((left: ErrorPatternEvent, right: ErrorPatternEvent): number => {
+        return left.timeMs - right.timeMs;
+      });
+  }, [eventLines]);
+
+  /*
+   * Classified off the message alone, so it is available even while the
+   * correlation is still loading and even when the correlation fails.
+   */
+  const classification: ErrorPatternClassification = useMemo(() => {
+    return classifyErrorPattern(patternText, props.pattern.sampleBody);
+  }, [patternText, props.pattern.sampleBody]);
 
   const body: ReactElement = ((): ReactElement => {
     if (isLoading) {
@@ -236,17 +302,14 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * The window the user picked, so a pattern whose occurrences all sit at
-     * the start of it is measured against the silence that followed rather
-     * than against itself.
+     * Measured against the window the user picked, so a pattern whose
+     * occurrences all sit at the start of it is compared with the silence
+     * that followed rather than with itself.
      */
-    const window: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.scope.timeRange);
-
     const trend: ErrorPatternTrend = computeErrorPatternTrend(
       correlation.timeline,
-      window.startValue,
-      window.endValue,
+      patternWindow.startValue,
+      patternWindow.endValue,
     );
     const trendStyle: {
       label: string;
@@ -267,6 +330,35 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
       correlation.attributes,
       occurrenceTotal,
     );
+
+    const evidence: ErrorPatternEvidence = {
+      pattern: props.pattern,
+      correlation,
+      trend,
+      sharedAttributes,
+      occurrenceTotal,
+      windowStartMs: patternWindow.startValue.getTime(),
+      windowEndMs: patternWindow.endValue.getTime(),
+      events,
+      resourceLabel,
+    };
+
+    const findings: Array<ErrorPatternFinding> =
+      buildErrorPatternFindings(evidence);
+
+    const explainWithAi: VoidFunction = (): void => {
+      /*
+       * Opens Ask AI (never toggles it closed) with the whole evidence pack
+       * as an editable prompt — the issue behind this panel asked for
+       * exactly this: an AI answer about the selected error and window
+       * "without needing to separately open Ask AI and re-describe the
+       * problem". It pre-fills rather than sends, so the user reads the
+       * question before anything is asked on their behalf.
+       */
+      GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, {
+        prompt: buildErrorPatternPrompt(evidence, findings, classification),
+      });
+    };
 
     return (
       <Fragment>
@@ -322,6 +414,166 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
               <span>Open matching logs</span>
             </AppLink>
+          )}
+        </div>
+
+        {/* What this looks like, and what to do about it */}
+        <div className="py-5">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900">
+                Likely cause and what to check
+              </h4>
+              <p className="text-xs text-gray-500">
+                Read from this error&apos;s message and the evidence below — no
+                guesswork you cannot trace back.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              title="Open Ask AI with this error and all of its evidence as an editable prompt"
+              onClick={explainWithAi}
+            >
+              <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+              Explain with AI
+            </button>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
+                {classification.title}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-gray-700">
+              {classification.summary}
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Usually caused by
+                </p>
+                <ul className="space-y-1">
+                  {classification.likelyCauses.map(
+                    (cause: string): ReactElement => {
+                      return (
+                        <li
+                          key={cause}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300"
+                          />
+                          <span>{cause}</span>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  What to check
+                </p>
+                <ol className="space-y-1">
+                  {classification.whatToCheck.map(
+                    (step: string, index: number): ReactElement => {
+                      return (
+                        <li
+                          key={step}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
+                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
+                            {index + 1}
+                          </span>
+                          <span>{step}</span>
+                        </li>
+                      );
+                    },
+                  )}
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* What stands out about this particular error, right now */}
+        <div className="py-5">
+          <SectionHeading
+            title="What stands out"
+            subtitle="Read from this error's own timeline, sources and surroundings in the selected window."
+          />
+          <ul className="space-y-1.5">
+            {findings.map(
+              (finding: ErrorPatternFinding, index: number): ReactElement => {
+                return (
+                  <li
+                    key={`${index}-${finding.severity}`}
+                    className="flex items-start gap-2 text-sm text-gray-700"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                        finding.severity === "critical"
+                          ? "bg-red-500"
+                          : finding.severity === "warning"
+                            ? "bg-amber-500"
+                            : "bg-sky-400"
+                      }`}
+                    />
+                    <span>{finding.text}</span>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </div>
+
+        {/* Deploys, incidents and alerts around the same moments */}
+        <div className="py-5">
+          <SectionHeading
+            title="What else happened in this window"
+            subtitle="Deployments, config changes, incidents and alerts recorded over the same range."
+          />
+          {events.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No deployments, incidents or alerts were recorded in this window.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {events.map(
+                (event: ErrorPatternEvent, index: number): ReactElement => {
+                  return (
+                    <li
+                      key={`${event.timeMs}-${index}`}
+                      className="flex items-center justify-between gap-3 rounded-md border border-gray-100 px-3 py-2"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className={`h-2 w-2 shrink-0 rounded-full ${
+                            event.kind === "incident"
+                              ? "bg-red-400"
+                              : event.kind === "alert"
+                                ? "bg-amber-400"
+                                : "bg-indigo-500"
+                          }`}
+                        />
+                        <span className="min-w-0 break-words text-sm text-gray-800">
+                          {event.label}
+                        </span>
+                      </span>
+                      <span className="flex-shrink-0 text-xs text-gray-500">
+                        {formatTimestamp(new Date(event.timeMs))}
+                      </span>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
           )}
         </div>
 
