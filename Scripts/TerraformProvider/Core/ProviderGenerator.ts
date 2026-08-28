@@ -182,6 +182,8 @@ import (
     "regexp"
     "strings"
     "time"
+
+    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Client represents the API client for ${this.config.providerName}
@@ -330,9 +332,37 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
     return c.DoRequest(ctx, "DELETE", path, nil)
 }
 
-// rejectedSelectColumn matches the server's column-permission error, e.g.
-// "You do not have permissions to select on - serviceLanguage."
-var rejectedSelectColumn = regexp.MustCompile(\`select on - ([A-Za-z0-9_]+)\`)
+/*
+ * Server phrasings that name one column the select has to give up on. They are
+ * matched against the DECODED error message (apiErrorMessage), never the raw
+ * response body: the unknown-column phrasing quotes the column name, and the
+ * API JSON-encodes its errors, so on the wire those quotes arrive backslash-
+ * escaped. A pattern anchored on a bare quote therefore never fires
+ * against raw bytes, which is exactly how the unknown-column phrasing went
+ * unhandled while the (quote-free) permission phrasing kept working. The
+ * optional backslash keeps every pattern honest on the fallback path too,
+ * where apiErrorMessage hands back an undecodable body verbatim.
+ */
+var droppableSelectColumnPatterns = []*regexp.Regexp{
+    // "You do not have permissions to select on - serviceLanguage."
+    regexp.MustCompile(\`select on - ([A-Za-z0-9_]+)\`),
+    // Invalid select clause. Cannot select on "enableSearchEngineIndexing".
+    regexp.MustCompile(\`Cannot select on \\\\?"([A-Za-z0-9_]+)\`),
+    // ClickHouse-backed models reject an unknown column more tersely.
+    regexp.MustCompile(\`Unknown column: ([A-Za-z0-9_]+)\`),
+}
+
+// droppableSelectColumn returns the column named by a select-rejection error
+// response, or "" when the body is not one.
+func droppableSelectColumn(body []byte) string {
+    message := apiErrorMessage(body)
+    for _, pattern := range droppableSelectColumnPatterns {
+        if match := pattern.FindStringSubmatch(message); match != nil {
+            return match[1]
+        }
+    }
+    return ""
+}
 
 // PostWithSelect performs a POST request with a select parameter. When the
 // server rejects a column in the select (permission-gated columns, or
@@ -340,14 +370,20 @@ var rejectedSelectColumn = regexp.MustCompile(\`select on - ([A-Za-z0-9_]+)\`)
 // dropped and the request retried — a version- or permission-skewed column
 // must not fail the entire read.
 func (c *Client) PostWithSelect(ctx context.Context, path string, selectParam interface{}) (*http.Response, error) {
-    selectMap, _ := selectParam.(map[string]interface{})
+    return c.PostBodyWithSelect(ctx, path, map[string]interface{}{
+        "select": selectParam,
+    })
+}
+
+// PostBodyWithSelect is PostWithSelect for callers whose request body carries
+// more than the select — the data sources' by-name lookup also sends "query"
+// and "limit". Everything other than the rejected column survives each retry.
+func (c *Client) PostBodyWithSelect(ctx context.Context, path string, requestBody map[string]interface{}) (*http.Response, error) {
+    selectMap, _ := requestBody["select"].(map[string]interface{})
 
     // One attempt per droppable column, bounded to keep worst cases sane.
     maxAttempts := 8
     for attempt := 0; attempt < maxAttempts; attempt++ {
-        requestBody := map[string]interface{}{
-            "select": selectParam,
-        }
         resp, err := c.DoRequest(ctx, "POST", path, requestBody)
         if err != nil {
             return nil, err
@@ -363,25 +399,31 @@ func (c *Client) PostWithSelect(ctx context.Context, path string, selectParam in
             return nil, fmt.Errorf("failed to read response body: %w", readErr)
         }
 
-        match := rejectedSelectColumn.FindSubmatch(body)
         rebuilt := func() *http.Response {
             resp.Body = io.NopCloser(bytes.NewReader(body))
             return resp
         }
-        if match == nil {
+        column := droppableSelectColumn(body)
+        if column == "" {
             // Not a select-column rejection: surface the original error.
             return rebuilt(), nil
         }
-        column := string(match[1])
         if _, present := selectMap[column]; !present {
             return rebuilt(), nil
         }
         delete(selectMap, column)
+
+        /*
+         * A dropped column leaves its attribute null in state, which shows up
+         * later as an "inconsistent result after apply" or a spurious diff.
+         * Say so at WARN rather than letting the read look clean.
+         */
+        tflog.Warn(ctx, "OneUptime rejected a column in the select; dropping it and retrying", map[string]any{
+            "path":   path,
+            "column": column,
+        })
     }
 
-    requestBody := map[string]interface{}{
-        "select": selectParam,
-    }
     return c.DoRequest(ctx, "POST", path, requestBody)
 }
 
