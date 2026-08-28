@@ -307,6 +307,20 @@ Take this route with your eyes open:
 
 Classic Dynamics background workflows have no HTTP or webhook step at all, so they are not a third option here.
 
+## Doing the same for alerts
+
+Everything above is written around incidents because that is the common case, but alerts work identically — swap the record type and nothing else changes:
+
+| Incident                                                     | Alert                                               |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| **On Create Incident** (`incident-on-create-1`)               | **On Create Alert** (`alert-on-create-1`)           |
+| **On Update Incident** (`incident-on-update-1`)               | **On Update Alert** (`alert-on-update-1`)           |
+| `incidentNumber`, `currentIncidentState`, `incidentSeverity`  | `alertNumber`, `currentAlertState`, `alertSeverity` |
+| **Find One Incident State**                                   | **Find One Alert State**                            |
+| **Update One Incident**                                       | **Update One Alert**                                |
+
+A workflow has exactly one trigger, so incidents and alerts need one workflow each. If the two would do the same work, build the Dynamics half once and call it from both with the **Execute Workflow** component.
+
 ## Troubleshooting
 
 Read the failing block in **Runs & Logs** first — both Microsoft endpoints return an explanatory JSON body, and the API component keeps it in `response-body`.

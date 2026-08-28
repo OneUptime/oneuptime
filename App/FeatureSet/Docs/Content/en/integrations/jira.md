@@ -326,6 +326,20 @@ Other differences to plan for:
 - **From Data Center 10.0 webhook delivery is asynchronous** and there is no synchronous option, so events can arrive out of order. Make the receiving workflow idempotent.
 - **Jira 10 dropped the `$` in webhook URL variables** — `${issue.id}` became `{issue.id}` — and moved the webhook REST resource from `/rest/webhooks/1.0/webhook` to `/rest/jira-webhook/1.0/webhooks`.
 
+## Doing the same for alerts
+
+Everything above is written around incidents because that is the common case, but alerts work identically — swap the record type and nothing else changes:
+
+| Incident                                 | Alert                                       |
+| ---------------------------------------- | ------------------------------------------- |
+| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`)   |
+| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`)   |
+| `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
+| **Find One Incident State**              | **Find One Alert State**                    |
+| **Update One Incident**                  | **Update One Alert**                        |
+
+A workflow has exactly one trigger, so incidents and alerts need one workflow each. If the two would do the same work, build the Jira half once and call it from both with the **Execute Workflow** component.
+
 ## Troubleshooting
 
 Open the failing block in **Runs & Logs** first. Jira returns a JSON body naming exactly what it rejected, and the API component keeps it in `response-body`.
