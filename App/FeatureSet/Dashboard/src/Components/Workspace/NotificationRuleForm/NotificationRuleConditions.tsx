@@ -44,6 +44,9 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
     }
   }, [notificationRuleConditions]);
 
+  const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
+    NotificationRuleConditionUtil.getCheckOnByEventType(props.eventType);
+
   return (
     <div>
       {notificationRuleConditions.length === 0 && (
@@ -84,23 +87,33 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
           title="Add Condition"
           buttonSize={ButtonSize.Small}
           icon={IconProp.Add}
+          disabled={checkOnByEventType.length === 0}
           onClick={() => {
+            const firstCheckOn: NotificationRuleConditionCheckOn | undefined =
+              checkOnByEventType[0];
+
+            /*
+             * An event type with no check-ons has nothing to filter on. Adding
+             * a row anyway is what left the Filter Type dropdown empty on the
+             * On-Call Duty Policy rule editor (#3459): the row went in with an
+             * undefined checkOn over an empty option list, and the rule could
+             * not be saved or removed except by deleting the filter.
+             */
+            if (!firstCheckOn) {
+              return;
+            }
+
             const newNotificationRuleConditions: Array<NotificationRuleCondition> =
               [...notificationRuleConditions];
 
-            const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
-              NotificationRuleConditionUtil.getCheckOnByEventType(
-                props.eventType,
-              );
-
             const conditionTypes: Array<ConditionType> =
               NotificationRuleConditionUtil.getConditionTypeByCheckOn(
-                checkOnByEventType[0]!,
+                firstCheckOn,
               );
 
             newNotificationRuleConditions.push({
-              checkOn: checkOnByEventType[0]!,
-              conditionType: conditionTypes[0]!,
+              checkOn: firstCheckOn,
+              conditionType: conditionTypes[0],
               value: "",
             });
 
