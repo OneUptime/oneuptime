@@ -327,10 +327,13 @@ describe("Editing a discovery scan after it was created", () => {
 
     const wizardFields: Array<CapturedFormField> =
       capturedTableProps?.formFields || [];
+    const formSteps: Array<{ id: string; title: string }> =
+      capturedTableProps?.formSteps || [];
 
     expect(editFields()).toHaveLength(wizardFields.length);
 
     let headed: number = 0;
+    const titledStepIds: Set<string> = new Set<string>();
 
     editFields().forEach((field: CapturedFormField, index: number) => {
       const wizardField: CapturedFormField = wizardFields[
@@ -354,15 +357,35 @@ describe("Editing a discovery scan after it was created", () => {
         hasShowIf: Boolean(wizardField.showIf),
       });
 
-      // The only thing the edit layout adds is the group heading.
-      if (field.sectionTitle) {
+      let expectedSectionTitle: string | undefined = wizardField.sectionTitle;
+
+      /*
+       * The edit layout adds each wizard step's title to the first field in
+       * that step. Field-level subsection titles are part of the shared field
+       * definition, though, and must survive unchanged in both layouts. The
+       * scan-method toggle's "What to check" heading is one such subsection.
+       */
+      if (wizardField.stepId && !titledStepIds.has(wizardField.stepId)) {
+        expectedSectionTitle = formSteps.find(
+          (step: { id: string; title: string }): boolean => {
+            return step.id === wizardField.stepId;
+          },
+        )?.title;
+
+        expect(expectedSectionTitle).toBeDefined();
+        titledStepIds.add(wizardField.stepId);
         headed++;
       }
 
-      expect(wizardField.sectionTitle).toBeUndefined();
+      expect(field.sectionTitle).toBe(expectedSectionTitle);
     });
 
-    expect(headed).toBe((capturedTableProps?.formSteps || []).length);
+    expect(headed).toBe(formSteps.length);
+    expect(
+      wizardFields.find((field: CapturedFormField): boolean => {
+        return fieldKeyOf(field) === "isSnmpEnabled";
+      })?.sectionTitle,
+    ).toBe("What to check");
 
     // And the validators are really wired, not merely identical undefineds.
     expect(
@@ -402,13 +425,34 @@ describe("Editing a discovery scan after it was created", () => {
         return Boolean(title);
       }) as Array<string>;
 
-    expect(headings).toEqual(
-      (capturedTableProps?.formSteps || []).map(
-        (step: { title: string }): string => {
-          return step.title;
-        },
-      ),
-    );
+    const wizardFields: Array<CapturedFormField> =
+      capturedTableProps?.formFields || [];
+    const formSteps: Array<{ id: string; title: string }> =
+      capturedTableProps?.formSteps || [];
+    const titledStepIds: Set<string> = new Set<string>();
+    const expectedHeadings: Array<string> = [];
+
+    wizardFields.forEach((field: CapturedFormField): void => {
+      if (field.stepId && !titledStepIds.has(field.stepId)) {
+        const stepTitle: string | undefined = formSteps.find(
+          (step: { id: string; title: string }): boolean => {
+            return step.id === field.stepId;
+          },
+        )?.title;
+
+        expect(stepTitle).toBeDefined();
+        expectedHeadings.push(stepTitle as string);
+        titledStepIds.add(field.stepId);
+        return;
+      }
+
+      if (field.sectionTitle) {
+        expectedHeadings.push(field.sectionTitle);
+      }
+    });
+
+    expect(headings).toEqual(expectedHeadings);
+    expect(headings).toContain("What to check");
   });
 
   /*

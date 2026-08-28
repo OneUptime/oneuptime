@@ -285,10 +285,10 @@ const balancedBlockAt: BalancedBlockFunction = (data: {
 };
 
 type GuardedBlock = {
-  /* The condition chain, e.g. `!pendingLogin && showTwoFactorAuth`. */
+  // The condition chain, e.g. `!pendingLogin && showTwoFactorAuth`.
   guard: string;
 
-  /* Everything the condition renders, `(` to matching `)`. */
+  // Everything the condition renders, `(` to matching `)`.
   block: string;
 };
 
@@ -300,8 +300,10 @@ type GuardedBlock = {
  */
 const GUARD_OPENER: RegExp = /^\{([^<{()]*?)&&\s*\(/;
 
-/* Long enough for the five-clause guards in this file, short enough to bound
- * the regex. The longest real one is under 100 characters. */
+/*
+ * Long enough for the five-clause guards in this file, short enough to bound
+ * the regex. The longest real one is under 100 characters.
+ */
 const GUARD_WINDOW: number = 400;
 
 type GuardedBlockFunction = (needle: string) => GuardedBlock;
@@ -978,8 +980,10 @@ describe("the recovery link is offered to everyone, not only to accounts that ha
     expect(guard).not.toContain("selectedWebAuthn");
     expect(guard).toContain("!isUsingBackupCode");
 
-    /* One link, and it is not the picker's -- so the guard above is the only
-     * thing deciding whether any user ever sees it. */
+    /*
+     * One link, and it is not the picker's -- so the guard above is the only
+     * thing deciding whether any user ever sees it.
+     */
     expect(countOccurrences(loginSource, LOST_ACCESS_LINK)).toBe(1);
     expect(guardedBlockFor(METHOD_PICKER).block).not.toContain(
       LOST_ACCESS_LINK,

@@ -533,6 +533,7 @@ import { AddNetworkDeviceReachabilityColumns1787600000000 } from "./178760000000
 import { FixTotpOtpUrlAlgorithm1787700000000 } from "./1787700000000-FixTotpOtpUrlAlgorithm";
 import { AddScopeToNetworkDeviceLinkRule1787800000000 } from "./1787800000000-AddScopeToNetworkDeviceLinkRule";
 import { AddRestrictToAttachedProjectsToGlobalSso1787900000000 } from "./1787900000000-AddRestrictToAttachedProjectsToGlobalSso";
+import { MigrationName1787923136162 } from "./1787923136162-MigrationName";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "./1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { AddMeasurements1788100000000 } from "./1788100000000-AddMeasurements";
 import { AddLlmCostBudget1788200000000 } from "./1788200000000-AddLlmCostBudget";
@@ -554,7 +555,6 @@ import { AddAutoProvisionedNetworkDeviceMonitors1789600000000 } from "./17896000
 import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
-import { MigrationName1787923136162 } from "./1787923136162-MigrationName";
 import { AddNetworkScaleIndexes1789700000000 } from "./1789700000000-AddNetworkScaleIndexes";
 import { AddNetworkSiteRollupPolicyAndMaintenance1789900000000 } from "./1789900000000-AddNetworkSiteRollupPolicyAndMaintenance";
 import { AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000 } from "./1790003445000-AddSnmpEnabledToNetworkDeviceDiscoveryScan";
@@ -1089,7 +1089,6 @@ export default [
   AddAIConversationPageContext1787100000000,
   MigrationName1787142779538,
   MigrationName1787156982416,
-  MigrationName1787923136162,
   AddAIChatMessageFeedback1787200000000,
   AddEpisodeMemberNotifyIndexes1787300000000,
   AddDeviceRoleAndDeclaredLinkParent1787400000000,
@@ -1098,6 +1097,7 @@ export default [
   FixTotpOtpUrlAlgorithm1787700000000,
   AddScopeToNetworkDeviceLinkRule1787800000000,
   AddRestrictToAttachedProjectsToGlobalSso1787900000000,
+  MigrationName1787923136162,
   AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
   AddMeasurements1788100000000,
   AddLlmCostBudget1788200000000,
