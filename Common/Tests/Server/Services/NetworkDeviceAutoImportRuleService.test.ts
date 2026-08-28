@@ -30,13 +30,25 @@ const MONITOR_TEMPLATE_COLUMNS: Array<string> = [
   "monitorTemplate",
   "monitorTemplateId",
 ];
-const MONITOR_CREATE_PERMISSIONS: Array<Permission> = [
+/*
+ * The template columns are ordinary editable fields on the rule, so writing
+ * them is gated on the rule's own create/edit permission - exactly like every
+ * other editable column on this model. They must NOT require a granular monitor
+ * permission the rule's table never accepts (CreateProjectMonitor): a holder of
+ * CreateNetworkDeviceAutoImportRule would pass the table gate and then be denied
+ * on the column, which PermissionCatalogueCoverage flags as a cross-model
+ * mis-key. Provisioning the monitors the template describes happens at run time
+ * as a root operation, not under the rule editor's monitor permissions.
+ */
+const TEMPLATE_CREATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.MonitorAdmin,
-  Permission.MonitorMember,
-  Permission.CreateProjectMonitor,
+  Permission.CreateNetworkDeviceAutoImportRule,
+];
+const TEMPLATE_UPDATE_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.EditNetworkDeviceAutoImportRule,
 ];
 const MONITOR_TEMPLATE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -94,19 +106,20 @@ describe("NetworkDeviceAutoImportRule monitor template column access", () => {
   const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
 
   it.each(MONITOR_TEMPLATE_COLUMNS)(
-    "%s requires monitor-create permission to write",
+    "%s is writable by the rule's own create/edit permission, not a cross-model monitor permission",
     (columnName: string) => {
       const accessControl: ReturnType<
         NetworkDeviceAutoImportRule["getColumnAccessControlFor"]
       > = rule.getColumnAccessControlFor(columnName);
 
-      expect(accessControl?.create).toEqual(MONITOR_CREATE_PERMISSIONS);
-      expect(accessControl?.update).toEqual(MONITOR_CREATE_PERMISSIONS);
+      expect(accessControl?.create).toEqual(TEMPLATE_CREATE_PERMISSIONS);
+      expect(accessControl?.update).toEqual(TEMPLATE_UPDATE_PERMISSIONS);
+      // The granular gate must be the rule's, never the Monitor model's.
       expect(accessControl?.create).not.toContain(
-        Permission.CreateNetworkDeviceAutoImportRule,
+        Permission.CreateProjectMonitor,
       );
       expect(accessControl?.update).not.toContain(
-        Permission.EditNetworkDeviceAutoImportRule,
+        Permission.CreateProjectMonitor,
       );
     },
   );

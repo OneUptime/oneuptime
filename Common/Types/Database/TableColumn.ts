@@ -57,18 +57,23 @@ export default (props: TableColumnMetadata): ReflectionMetadataType => {
 };
 
 /*
- * Resolve a lazy modelTypeThunk into modelType on read. Returns the metadata
- * untouched when there is no thunk (the common case), and otherwise a shallow
- * copy with modelType filled in so the stored metadata is never mutated.
+ * Resolve a lazy modelTypeThunk into modelType on first read, in place.
+ *
+ * Mutating the singleton rather than returning a copy is deliberate: callers
+ * (and the caching layer below) rely on getTableColumn(s) handing back the very
+ * same metadata object every time - identity is part of the contract. The write
+ * is idempotent (once modelType is set the thunk is never called again) and
+ * every module has finished loading by the time any query reads a column, so
+ * the thunk resolves to the fully-defined related model.
  */
 function resolveModelType(
   metadata: TableColumnMetadata | undefined,
 ): TableColumnMetadata | undefined {
-  if (!metadata || metadata.modelType || !metadata.modelTypeThunk) {
-    return metadata;
+  if (metadata && !metadata.modelType && metadata.modelTypeThunk) {
+    metadata.modelType = metadata.modelTypeThunk();
   }
 
-  return { ...metadata, modelType: metadata.modelTypeThunk() };
+  return metadata;
 }
 
 type GetTableColumnFunction = <T extends BaseModel>(
