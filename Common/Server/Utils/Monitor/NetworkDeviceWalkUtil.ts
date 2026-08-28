@@ -88,12 +88,48 @@ export default class NetworkDeviceWalkUtil {
      * actually walked interfaces. Keeping the last GOOD counters across
      * failed polls means rates resume with a correct (longer-window) delta
      * instead of losing a cycle.
+     *
+     * Hook-free single-statement write, deliberately. A 48-interface walk
+     * log is ~28 KB of jsonb, stored out of line: the full updateOneById
+     * pipeline SELECTs the row before writing it (the column is in the
+     * payload), so every poll detoasted the PREVIOUS log a second time —
+     * it was already read above — only to overwrite it. Measured against
+     * the seeded 80,000-device fleet, that pre-read costs 8 buffer hits and
+     * ~0.6 ms where the same lookup without the column costs 4 and
+     * ~0.06 ms; at 267 walks/sec it is pure waste on the product's hottest
+     * table. It does NOT shrink the ~12 KB of WAL the rewrite itself emits
+     * (a plain one-column update is 144 B) — that is what storing less
+     * would fix, and it is a separate change.
+     *
+     * Nothing rides on the hooks for THIS write. NetworkDevice declares
+     * neither @EnableWorkflow nor @EnableAuditLog, so _updateBy's workflow,
+     * realtime and audit branches are inert for the model, and the payload
+     * carries exactly one column: no site-rule identity column
+     * (hostname/name/sysName), no siteId, no monitor binding, no
+     * monitoringMethod. Both of NetworkDeviceService's real update hooks —
+     * site-assignment re-evaluation and the monitor-status stamp — are
+     * therefore no-ops here. The inventory sync below still writes those
+     * columns through the hooked path, which is where they have to stay.
+     * Do not add a column to this payload: anything that lands here stops
+     * firing hooks silently.
+     *
+     * One thing IS lost, deliberately: `updateColumnsByIdWithoutHooks` does
+     * not bump the @VersionColumn, so this write leaves `version` alone where
+     * `updateOneById` incremented it. Nothing in the product reads
+     * NetworkDevice.version, and `sanitizeUpdateData` strips it from client
+     * payloads. Note this is the opposite call from the one the interface
+     * upsert makes a file away — NetworkInterfaceService hand-writes
+     * `version + 1` in its raw statements — and the difference is intended: a
+     * batched write REPLACES a path that bumped it and is the row's normal
+     * update path, whereas this is a delta-baseline cache write that happens
+     * every five minutes and would otherwise be the only thing moving the
+     * counter at all.
      */
     if (
       data.snmpResponse.interfaces &&
       data.snmpResponse.interfaces.length > 0
     ) {
-      await NetworkDeviceService.updateOneById({
+      await NetworkDeviceService.updateColumnsByIdWithoutHooks({
         id: device.id,
         data: {
           lastWalkLog: {
@@ -101,8 +137,15 @@ export default class NetworkDeviceWalkUtil {
             monitoredAt: OneUptimeDate.getCurrentDate(),
           },
         } as any,
-        props: {
-          isRoot: true,
+        /*
+         * The hooked path finds rows with `withDeleted: false`, so a device
+         * deleted between the read at the top of this walk and here was
+         * never written to. The raw path matches on `_id` alone, so keep
+         * that guard explicitly — a walk still in flight must not push a
+         * fresh log back onto a row the user just deleted.
+         */
+        expectedData: {
+          deletedAt: null,
         },
       });
     }

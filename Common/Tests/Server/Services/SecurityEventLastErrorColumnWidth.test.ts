@@ -5,7 +5,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
-import { WidenSecurityEventLastErrorColumns1789700000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1789700000000-WidenSecurityEventLastErrorColumns";
+import { WidenSecurityEventLastErrorColumns1789800000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1789800000000-WidenSecurityEventLastErrorColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DetectionRuleService from "../../../Server/Services/DetectionRuleService";
 import GoogleSecOpsConnectionService from "../../../Server/Services/GoogleSecOpsConnectionService";
@@ -82,7 +82,7 @@ const SCHEMA_MIGRATIONS_DIRECTORY: string = path.join(
 const MIGRATION_SOURCE: string = fs.readFileSync(
   path.join(
     SCHEMA_MIGRATIONS_DIRECTORY,
-    "1789700000000-WidenSecurityEventLastErrorColumns.ts",
+    "1789800000000-WidenSecurityEventLastErrorColumns.ts",
   ),
   "utf8",
 );
@@ -540,9 +540,9 @@ describe("the widest error the producers can emit is storable", () => {
   });
 });
 
-describe("WidenSecurityEventLastErrorColumns1789700000000 SQL contract", () => {
-  const migration: WidenSecurityEventLastErrorColumns1789700000000 =
-    new WidenSecurityEventLastErrorColumns1789700000000();
+describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {
+  const migration: WidenSecurityEventLastErrorColumns1789800000000 =
+    new WidenSecurityEventLastErrorColumns1789800000000();
 
   test("up() widens both tables' lastError to text", async () => {
     const { runner, query } = makeQueryRunner();
@@ -685,12 +685,12 @@ describe("WidenSecurityEventLastErrorColumns1789700000000 SQL contract", () => {
 
   test("the class name carries its own timestamp, matching the file name", () => {
     expect(migration.name).toBe(
-      "WidenSecurityEventLastErrorColumns1789700000000",
+      "WidenSecurityEventLastErrorColumns1789800000000",
     );
   });
 });
 
-describe("WidenSecurityEventLastErrorColumns1789700000000 registration", () => {
+describe("WidenSecurityEventLastErrorColumns1789800000000 registration", () => {
   /*
    * The nastiest way this bug comes back: everything above passes on an
    * unregistered migration, because entity metadata does not care whether
@@ -700,23 +700,23 @@ describe("WidenSecurityEventLastErrorColumns1789700000000 registration", () => {
    */
   test("is imported in SchemaMigrations/Index.ts", () => {
     expect(MIGRATIONS_INDEX_SOURCE).toContain(
-      `import { WidenSecurityEventLastErrorColumns1789700000000 } from "./1789700000000-WidenSecurityEventLastErrorColumns";`,
+      `import { WidenSecurityEventLastErrorColumns1789800000000 } from "./1789800000000-WidenSecurityEventLastErrorColumns";`,
     );
   });
 
   test("is listed in the exported migration array", () => {
     expect(SchemaMigrations).toContain(
-      WidenSecurityEventLastErrorColumns1789700000000,
+      WidenSecurityEventLastErrorColumns1789800000000,
     );
     expect(MIGRATIONS_INDEX_SOURCE).toContain(
-      "  WidenSecurityEventLastErrorColumns1789700000000,",
+      "  WidenSecurityEventLastErrorColumns1789800000000,",
     );
   });
 
   test("is registered exactly once", () => {
     const occurrences: number = SchemaMigrations.filter(
       (migration: unknown) => {
-        return migration === WidenSecurityEventLastErrorColumns1789700000000;
+        return migration === WidenSecurityEventLastErrorColumns1789800000000;
       },
     ).length;
     expect(occurrences).toBe(1);
@@ -757,7 +757,7 @@ describe("WidenSecurityEventLastErrorColumns1789700000000 registration", () => {
       AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
     );
     const widenTimestamp: number = migrationTimestamp(
-      WidenSecurityEventLastErrorColumns1789700000000,
+      WidenSecurityEventLastErrorColumns1789800000000,
     );
 
     // NaN would silently satisfy neither comparison below; rule it out first.
@@ -775,13 +775,13 @@ describe("WidenSecurityEventLastErrorColumns1789700000000 registration", () => {
    */
   test("does not collide with another registered migration's timestamp", () => {
     const widenTimestamp: number = migrationTimestamp(
-      WidenSecurityEventLastErrorColumns1789700000000,
+      WidenSecurityEventLastErrorColumns1789800000000,
     );
 
     const collisions: Array<unknown> = SchemaMigrations.filter(
       (migration: unknown) => {
         return (
-          migration !== WidenSecurityEventLastErrorColumns1789700000000 &&
+          migration !== WidenSecurityEventLastErrorColumns1789800000000 &&
           migrationTimestamp(migration) === widenTimestamp
         );
       },

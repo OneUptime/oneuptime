@@ -320,6 +320,65 @@ describe("tallies", () => {
     });
   });
 
+  /*
+   * The count defaults to one, and every caller written before the rollups
+   * moved into the database depends on that — the topology filter and every
+   * other place that still walks devices one at a time calls this with two
+   * arguments. A default that stopped being 1 would rescale those tallies
+   * without any of them mentioning a count at all.
+   */
+  test("the count defaults to one", () => {
+    const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
+    addDeviceHealth(counts, "healthy");
+    expect(counts).toEqual({
+      total: 1,
+      down: 0,
+      degraded: 0,
+      healthy: 1,
+      unknown: 0,
+    });
+  });
+
+  /*
+   * And the reason the parameter exists: a bucket arrives already standing
+   * for a hundred devices, so one call has to move the tally by the whole
+   * count — total and exactly one state, exactly as a hundred single calls
+   * would have.
+   */
+  test("a count above one moves total and exactly one state by that much", () => {
+    const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
+    addDeviceHealth(counts, "down", 37);
+    expect(counts).toEqual({
+      total: 37,
+      down: 37,
+      degraded: 0,
+      healthy: 0,
+      unknown: 0,
+    });
+    addDeviceHealth(counts, "healthy", 41169);
+    expect(counts).toEqual({
+      total: 41206,
+      down: 37,
+      degraded: 0,
+      healthy: 41169,
+      unknown: 0,
+    });
+    expect(
+      counts.down + counts.degraded + counts.healthy + counts.unknown,
+    ).toBe(counts.total);
+  });
+
+  /*
+   * A grouped aggregate over a filtered set can answer with a combination
+   * and a count of zero. Treating that as one device would invent a switch
+   * nobody owns — and a "down" one at that.
+   */
+  test("a count of zero is a no-op, not an increment", () => {
+    const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
+    addDeviceHealth(counts, "unknown", 0);
+    expect(counts).toEqual(emptyDeviceHealthCounts());
+  });
+
   test("the four states always sum to the total", () => {
     const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
     const states: Array<NetworkDeviceHealthState> = [

@@ -171,18 +171,26 @@ export function emptyDeviceHealthCounts(): DeviceHealthCounts {
 }
 
 /**
- * Add one device's verdict to a tally, in place.
+ * Add a verdict to a tally, in place.
  *
- * Mutating on purpose: the hierarchy aggregator walks tens of thousands of
- * devices into a few hundred buckets in one pass, and allocating a fresh
- * five-field object per device is the whole cost of that pass.
+ * `count` is how many devices share it, and defaults to one. It exists
+ * because the rollups no longer read devices one at a time: the database
+ * groups the fleet by the facts this module classifies and returns a bucket
+ * per distinct combination, so one verdict arrives already standing for a
+ * hundred devices. Adding them one call at a time would put the eighty
+ * thousand iterations back that the grouping removed.
+ *
+ * Mutating on purpose: the hierarchy aggregator folds every bucket into a few
+ * hundred tallies in one pass, and allocating a fresh five-field object per
+ * bucket is the whole cost of that pass.
  */
 export function addDeviceHealth(
   counts: DeviceHealthCounts,
   state: NetworkDeviceHealthState,
+  count: number = 1,
 ): void {
-  counts.total += 1;
-  counts[state] += 1;
+  counts.total += count;
+  counts[state] += count;
 }
 
 /** The sum of two tallies, as a new object. */

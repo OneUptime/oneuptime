@@ -108,10 +108,17 @@ export interface NetworkTopologyNode {
   // For unmanaged CDP peers this carries the reported platform string.
   deviceModel?: string | undefined;
   /*
-   * Endpoint identity (endpoint nodes only), all best-effort: MAC from the
-   * FDB, IP from the ARP join, classification from OUI/heuristics (e.g.
-   * "pos-terminal", "camera", "printer"), VLAN from the FDB entry that
-   * learned the MAC. Optional so older payloads stay valid.
+   * Endpoint identity, all best-effort: MAC from the FDB, IP from the ARP
+   * join, classification from OUI/heuristics (e.g. "pos-terminal",
+   * "camera", "printer"), VLAN from the FDB entry that learned the MAC.
+   * Optional so older payloads stay valid.
+   *
+   * `ipAddress` is the exception to "endpoint nodes only": an UNMANAGED
+   * peer carries it too, from the management address its neighbours
+   * advertise for it (CDP cdpCacheAddress / LLDP lldpRemManAddrTable). It
+   * is the field that makes such a peer actionable rather than merely
+   * visible — nothing can be monitored without an address — so a reader
+   * must not assume a node with an ipAddress is an endpoint.
    */
   macAddress?: string | undefined;
   ipAddress?: string | undefined;

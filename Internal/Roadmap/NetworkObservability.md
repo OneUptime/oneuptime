@@ -37,6 +37,137 @@ So this doc reads standalone: everything below exists today and is the substrate
 | 8 | Native ScheduledMaintenance + StatusPage relations | M | None |
 | 9 | Full hardware sensor tables | L | Metric-cardinality plan |
 | 10 | Per-project NetFlow retention | S | Billing/plan decision only |
+| 11 | Ingest write path at fleet scale | **L** — 11a/11c(a)/11d shipped; 11b, 11c(b–c) open | None — see below |
+
+---
+
+## 11. Ingest write path at fleet scale — L
+
+**Where this came from.** The read path was rebuilt for 80,000 devices (fleet counts moved from
+"download every row into the browser" to grouped aggregates in Postgres; indexes added; the
+site-hierarchy rollup went from an 8-page, 200,000-row walk to one grouped read). Measuring that
+work turned up three things on the **write** side that are hard walls rather than slowdowns. They
+are recorded here rather than fixed there because each is a substantial change to the SNMP ingest
+path with its own testing story, and none of them is on the surface the read work touched.
+
+The numbers below assume 80,000 devices on a five-minute interval — **267 walks/sec** — and ~50
+interfaces per device. Note that today `DEVICE_POLL_FETCH_LIMIT` (250 per probe per minute) is what
+stops a fleet reaching that rate: the real cadence at 80,000 devices is roughly one poll per device
+every 160 minutes. So these are latent until an operator raises the fetch limit, which is exactly
+what `NetworkDevicePoll.ts` tells them to do. Raising it without these fixes moves the bottleneck
+into Postgres.
+
+### 11a. Interfaces are written one row at a time — SHIPPED
+
+**Done.** `NetworkInterfaceService.upsertWalkedInterfaces` batches the walk into one `SELECT`, one
+`INSERT … ON CONFLICT` per 500 new ports and one `UPDATE … FROM (VALUES …)` per 500 known ones. The
+per-row decision is pure and lives in `Common/Utils/Monitor/InterfaceInventoryUtil.planWalkUpsert`.
+
+Measured on the seeded fleet, steady-state walk of a 50-port device: **101 statements → 2**, and
+**903 ms → 20 ms** wall clock. The first-discovery walk was worse than the roadmap said — 200
+statements, because `DatabaseService.create` wraps each row in its own transaction and
+`@UniqueColumnBy` adds a `countBy` per row — and is now also 2.
+
+Two things it deliberately does not do: there is **no no-op detection** (`lastSeenAt` is stamped
+every walk, so no row is ever unchanged; suppressing the write would mean letting "last seen" go
+stale on a port that is answering), and there is **no cap** on interfaces per walk. A failed chunk
+is retried row-by-row, so one malformed interface costs only itself rather than the other 499.
+
+<details><summary>Original problem statement</summary>
+
+### 11a (original) — Interfaces are written one row at a time
+
+`Common/Server/Utils/Monitor/NetworkInventoryUtil.ts` upserts each walked interface with its own
+`updateOneById` / `create`. `DatabaseService._updateBy` issues a SELECT before every UPDATE, so one
+walk of a 50-port switch is **101 statements**. At 267 walks/sec that is ~26,700 statements/sec, or
+roughly 18 seconds of database wait per wall-clock second.
+
+**Fix:** one `INSERT … ON CONFLICT ("networkDeviceId","interfaceIndex") DO UPDATE` per chunk. The
+unique partial index it needs already exists (`IDX_network_interface_device_ifindex`), and
+`NetworkEndpointService.upsertDiscoveredEndpoints` is a working template for exactly this shape.
+
+</details>
+
+### 11b. Every Network Device monitor in the project is fetched on every walk
+
+`Common/Server/Utils/Monitor/NetworkDeviceWalkUtil.ts` loads every `monitorType = NetworkDevice`
+monitor in the project — `monitorSteps` jsonb included — and filters in JavaScript, because the
+monitor→device link lives inside that step JSON. There is no `(projectId, monitorType)` index on
+`Monitor`. The cost is O(monitors) per walk, i.e. **O(monitors × devices) per polling cycle**: it
+degrades quadratically as the customer adds the monitors they are supposed to add.
+
+**Fix:** make the link queryable. Either a denormalised `Monitor.networkDeviceId` column maintained
+by the monitor-step save path and indexed `(projectId, networkDeviceId)`, or a generated column /
+GIN index over the referenced device id. A Redis cache keyed on the project's max monitor
+`updatedAt` is a stopgap, not the answer.
+
+### 11c. `lastWalkLog` is read twice and rewritten whole on every poll — (a) SHIPPED, (b)/(c) OPEN
+
+**(a) is done:** the delta-baseline write goes through `updateColumnsByIdWithoutHooks`, so the
+pre-update SELECT is gone — 2 statements → 1, 16.1 ms → 11.1 ms for a 19.8 KB log. Nothing rides on
+the hooks for that payload (it carries one column, and `NetworkDevice` declares no workflow, audit
+or realtime decorators); the soft-delete guard the SELECT used to provide is restored explicitly.
+
+**(b) and (c) are NOT done, and the headline numbers below are untouched by (a).** The ~12 KB of WAL
+per rewrite, and therefore the ~580 GB/day of dead TOAST and ~56 GB/day of WAL, are what storing
+less would fix. Do not tick this item off on the strength of (a).
+
+A realistic 48-interface walk log measures ~25 KB of jsonb — past the TOAST threshold, so stored
+out of line. Each poll detoasts it in the walk util, detoasts it again inside `_updateBy`'s
+pre-update SELECT, and writes a fresh 25 KB, orphaning the old one. Measured WAL for that write is
+2,429 B/row against 579 B/row for a plain HOT update. At 267 walks/sec that is ~580 GB/day of dead
+TOAST tuples for autovacuum to reclaim on the product's hottest table, and ~56 GB/day of WAL from
+one column.
+
+**Fix, in order of value:** (a) route the write through `updateColumnsByIdWithoutHooks`, which skips
+the pre-update SELECT; (b) store only the counter fields `SnmpInterfaceRateUtil` needs for a delta
+rather than the whole response — roughly 10× smaller; (c) treat it as the cache it is and move the
+baseline to Redis with a TTL of twice the poll interval.
+
+### 11d. Site-assignment rules re-run on every poll — SHIPPED
+
+**Done.** A project with no assignment rules is remembered as such for ten seconds, so an
+unattached device's poll skips both the device read and the rule read. Measured: **160,000 queries
+per five-minute cycle removed** at 80,000 devices, ~533/sec.
+
+Only the NEGATIVE answer is cached, and only for the path that retries: a device with no site is
+re-evaluated every poll, so a skip there is a deferral the next poll undoes. A device that already
+has a site is re-evaluated only on a real identity change — a one-shot event — so that path never
+consults the cache. Skipping it would not be a deferral but a permanent, silent loss.
+
+### 11e. Smaller, same area
+
+- **~~Site-assignment rules re-run on every poll for any device with no site.~~ (shipped, above.)** Every successful walk
+  writes `sysName`, which is an identity column, and `shouldReapplySiteAssignmentRules` returns true
+  unconditionally for a device with no `siteId` — so each such device re-reads the whole rule set
+  every cycle to conclude nothing. Cache the project's rules for a poll batch, and skip the path
+  entirely when the project has no rules (one count answers it).
+- **`materializedPath` cannot be served by its index, in either spelling.** `pathStartsWith` emits
+  `LIKE 'prefix%'`, which a plain btree cannot serve under a non-`C` collation; the hierarchy
+  endpoint's `QueryHelper.search()` emits `ILIKE '%…%'`, which nothing can serve. Both seq-scan
+  `NetworkSite`. Invisible at 1,200 sites, ~50–150 ms per call at 10–20k. Fix: index
+  `("projectId", "materializedPath" varchar_pattern_ops)` and use the prefix form everywhere, or
+  move the column to `ltree` with GiST.
+- **Topology passes up to 10,000 UUIDs as a literal `IN` list** (~390 KB of SQL text) and, when a
+  label-based link rule is resolvable, reads the whole fleet into request memory. Pass one
+  `= ANY($1::uuid[])` array parameter, and express the rule's question ("how many devices carrying
+  label set P are in site S") as a `GROUP BY siteId` aggregate over the label junction.
+- **The grouped health aggregate's plan is on a knife edge.** Postgres cannot estimate the
+  cardinality of expression group keys and over-estimates by ~13×; depending on current statistics
+  it picks HashAggregate (228 ms) or Sort → GroupAggregate (1,720 ms, ~3.7 MB spilled). Extended
+  statistics did not repair the estimate. Scoping the drill-down to the subtree in view (shipped)
+  shrinks both plans; raising `work_mem` on this path is the remaining lever.
+- **Dashboard surfaces still fetching to count:** the Latency Matrix pulls every `MonitorProbe` row
+  with its `lastMonitoringLog` jsonb and renders an unvirtualised monitors × probes grid with no
+  truncation flag; `DeviceMonitorLookupUtil` pulls every Network Device monitor in the project
+  (`monitorSteps` included) on every device Overview, and its 10,000-row cap can make a monitored
+  device render "no monitors are alerting on this device"; the discovery review modal renders up to
+  32,768 unvirtualised rows and imports them with one sequential create each; the CSV site import is
+  O(n²) in progress reporting and unvirtualised in both its tables.
+- **`ModelForm` pre-fetches 10,000 rows per entity dropdown** before the modal paints, even though
+  `EntityDropdown` does its own server-side search at 50 rows. Opening the device-link form on a
+  large fleet fetches ~40,000 rows for nothing. Shared infra, so the highest blast radius on this
+  list — and the cheapest fix.
 
 ---
 

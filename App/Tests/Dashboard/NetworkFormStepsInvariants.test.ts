@@ -57,17 +57,23 @@ const DASHBOARD_SRC: string = path.join(
 );
 
 /*
- * Every Network page whose form is stepped. Paths are relative to
- * Pages/ and use "/" regardless of platform — they are split before joining.
+ * Every Network form that is stepped. Paths are relative to the Dashboard's
+ * `src/` and use "/" regardless of platform — they are split before joining.
+ *
+ * Components as well as Pages: the topology map's "Add to Monitoring" dialog
+ * (issue #3435) is a stepped NetworkDevice create form that happens not to
+ * live on a page of its own, and it is exposed to both failures below in
+ * exactly the same way.
  */
 const STEPPED_FORM_PAGES: Array<string> = [
-  "NetworkDevice/Devices.tsx",
-  "NetworkDevice/Discovery.tsx",
-  "NetworkDevice/View/Settings.tsx",
-  "NetworkSite/Sites.tsx",
-  "NetworkSite/View/Settings.tsx",
-  "NetworkSite/View/Index.tsx",
-  "NetworkSite/View/ChildSites.tsx",
+  "Pages/NetworkDevice/Devices.tsx",
+  "Pages/NetworkDevice/Discovery.tsx",
+  "Pages/NetworkDevice/View/Settings.tsx",
+  "Pages/NetworkSite/Sites.tsx",
+  "Pages/NetworkSite/View/Settings.tsx",
+  "Pages/NetworkSite/View/Index.tsx",
+  "Pages/NetworkSite/View/ChildSites.tsx",
+  "Components/Topology/AddNeighborToMonitoringModal.tsx",
 ];
 
 function squash(text: string): string {
@@ -76,10 +82,7 @@ function squash(text: string): string {
 
 function readPage(page: string): string {
   return squash(
-    fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Pages", ...page.split("/")),
-      "utf8",
-    ),
+    fs.readFileSync(path.join(DASHBOARD_SRC, ...page.split("/")), "utf8"),
   );
 }
 
@@ -99,11 +102,19 @@ function matchAll(pattern: RegExp, text: string): Array<string> {
 }
 
 /*
- * The bodies of every `formSteps={[ ... ]}` prop on the page. Steps hold only
- * string literals, so the first "]}" after the opening always closes the prop.
+ * The bodies of every step list on the page.
+ *
+ * Two spellings, because the two hosts of a stepped form name the prop
+ * differently: ModelTable takes `formSteps={[ ... ]}` and ModelFormModal
+ * takes `steps: [ ... ]` inside its formProps. Both hold only string
+ * literals and predicate names, so the first terminator after the opening
+ * always closes the list.
  */
 function formStepBlocks(source: string): Array<string> {
-  return matchAll(/formSteps=\{\[(.*?)\]\}/, source);
+  return [
+    ...matchAll(/formSteps=\{\[(.*?)\]\}/, source),
+    ...matchAll(/\bsteps:\s*\[(.*?)\],\s*fields:/, source),
+  ];
 }
 
 // `id: "..."` inside a formSteps block — the steps the wizard actually has.
@@ -134,7 +145,9 @@ describe.each(STEPPED_FORM_PAGES)("%s form steps", (page: string) => {
   const source: string = readPage(page);
 
   test("renders its form as a wizard", () => {
-    expect(source).toContain("formSteps={[");
+    expect(source.includes("formSteps={[") || source.includes("steps: [")).toBe(
+      true,
+    );
   });
 
   /*

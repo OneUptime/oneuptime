@@ -1,9 +1,9 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
-import NetworkInterfaceService from "../../Services/NetworkInterfaceService";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import NetworkInterfaceService, {
+  InterfaceWalkUpsertResult,
+} from "../../Services/NetworkInterfaceService";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
@@ -252,107 +252,28 @@ export default class NetworkInventoryUtil {
       }
 
       if (walkedInterfaces.length > 0) {
-        // --- Interface upsert ---
-        const existingInterfaces: Array<NetworkInterface> =
-          await NetworkInterfaceService.findBy({
-            query: {
-              networkDeviceId: deviceId,
-            },
-            select: {
-              _id: true,
-              interfaceIndex: true,
-              isMonitored: true,
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
+        /*
+         * --- Interface upsert ---
+         * One SELECT plus one batched INSERT/UPDATE per 500 rows, inside the
+         * service. This was a per-interface create()/updateOneById() loop —
+         * 101 statements for a 50-port switch, because _updateBy SELECTs
+         * before every UPDATE — which is a hard wall once an operator raises
+         * DEVICE_POLL_FETCH_LIMIT and the fleet actually polls on its
+         * configured interval. Interfaces that exist in inventory but were
+         * NOT in this walk are still left exactly as they were: nothing here
+         * deletes or ages them out.
+         */
+        const upsertResult: InterfaceWalkUpsertResult =
+          await NetworkInterfaceService.upsertWalkedInterfaces({
+            projectId: data.projectId,
+            deviceId: deviceId,
+            walkedInterfaces: walkedInterfaces,
+            now: now,
           });
 
-        const existingByIndex: Map<number, NetworkInterface> = new Map();
-        for (const existing of existingInterfaces) {
-          if (existing.interfaceIndex !== undefined) {
-            existingByIndex.set(existing.interfaceIndex, existing);
-          }
-        }
-
-        const unmonitoredIndexes: Set<number> = new Set();
-
-        for (const walked of walkedInterfaces) {
-          const existing: NetworkInterface | undefined = existingByIndex.get(
-            walked.interfaceIndex,
-          );
-
-          if (existing && existing.isMonitored === false) {
-            unmonitoredIndexes.add(walked.interfaceIndex);
-          }
-
-          const interfaceData: Record<string, unknown> = {
-            name: (walked.name || "").substring(0, 100),
-            alias: walked.alias ? walked.alias.substring(0, 100) : null,
-            macAddress: walked.macAddress
-              ? walked.macAddress.substring(0, 100)
-              : null,
-            interfaceType: walked.interfaceType ?? null,
-            isOperationallyUp: walked.isOperationallyUp,
-            isAdministrativelyUp: walked.isAdministrativelyUp,
-            speedInMbps:
-              walked.speedInBitsPerSecond !== undefined
-                ? walked.speedInBitsPerSecond / 1000000
-                : null,
-            inRateMbps:
-              walked.inBitsPerSecond !== undefined
-                ? Math.round((walked.inBitsPerSecond / 1000000) * 1000) / 1000
-                : null,
-            outRateMbps:
-              walked.outBitsPerSecond !== undefined
-                ? Math.round((walked.outBitsPerSecond / 1000000) * 1000) / 1000
-                : null,
-            utilizationPercent: walked.utilizationPercent ?? null,
-            errorsPerSecond: walked.errorsPerSecond ?? null,
-            lastSeenAt: now,
-          };
-
-          if (existing && existing.id) {
-            await NetworkInterfaceService.updateOneById({
-              id: existing.id,
-              data: interfaceData as any,
-              props: {
-                isRoot: true,
-              },
-            });
-          } else {
-            const newInterface: NetworkInterface = new NetworkInterface();
-            newInterface.projectId = data.projectId;
-            newInterface.networkDeviceId = deviceId;
-            newInterface.interfaceIndex = walked.interfaceIndex;
-            newInterface.name = (walked.name || "").substring(0, 100);
-            if (walked.alias) {
-              newInterface.alias = walked.alias.substring(0, 100);
-            }
-            if (walked.macAddress) {
-              newInterface.macAddress = walked.macAddress.substring(0, 100);
-            }
-            if (walked.interfaceType !== undefined) {
-              newInterface.interfaceType = walked.interfaceType;
-            }
-            newInterface.isMonitored = true;
-            newInterface.isOperationallyUp = walked.isOperationallyUp;
-            newInterface.isAdministrativelyUp = walked.isAdministrativelyUp;
-            if (walked.speedInBitsPerSecond !== undefined) {
-              newInterface.speedInMbps = walked.speedInBitsPerSecond / 1000000;
-            }
-            newInterface.lastSeenAt = now;
-
-            await NetworkInterfaceService.create({
-              data: newInterface,
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+        const unmonitoredIndexes: Set<number> = new Set(
+          upsertResult.unmonitoredInterfaceIndexes,
+        );
 
         /*
          * Prune the in-flight response to monitored interfaces only, so

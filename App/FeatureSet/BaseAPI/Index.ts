@@ -114,6 +114,7 @@ import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
+import NetworkSummaryAPI from "./API/NetworkSummary";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import ApiKeyPermissionService, {
@@ -5057,6 +5058,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkSiteHierarchyAPI().getRouter(),
+    );
+    /*
+     * Fleet-wide counts for the device strip, the site strip and the network
+     * overview. Mounted after both CRUD routers, and safe there: BaseAPI
+     * claims no `/summary` or `/overview` path on either model.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkSummaryAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -122,11 +122,114 @@ const DEVICE_STATUS_SURFACES: Array<{ name: string; parts: Array<string> }> = [
     name: "the site status hero",
     parts: ["Components", "NetworkSite", "SiteStatusHero.tsx"],
   },
-  {
-    name: "the Network Overview fleet strip",
-    parts: ["Pages", "NetworkDevice", "Overview.tsx"],
-  },
 ];
+
+/*
+ * The Network Overview's fleet strip used to be in that list. It no longer
+ * fetches devices at all — its tally is counted in Postgres and classified on
+ * the server (App/FeatureSet/BaseAPI/API/NetworkSummary.ts) — so there is no
+ * client-side select left to hold to the rule.
+ *
+ * The invariant did not go away with the fetch: something still has to feed
+ * the shared rule every input it reads, and getting it wrong there is exactly
+ * as silent as getting it wrong in a select. It has moved to the block below,
+ * which holds the SERVER path to the same standard.
+ */
+const OVERVIEW_ENDPOINT: string = squash(
+  fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "BaseAPI",
+      "API",
+      "NetworkSummary.ts",
+    ),
+    "utf8",
+  ),
+);
+
+const HEALTH_AGGREGATION: string = squash(
+  fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "Server",
+      "Utils",
+      "NetworkDevice",
+      "DeviceHealthAggregation.ts",
+    ),
+    "utf8",
+  ),
+);
+
+describe("the server-side fleet tally reads the whole rule too", () => {
+  /*
+   * The tally goes through the SAME util the pills go through, not a
+   * reimplementation. A rule written twice is a rule that will disagree with
+   * itself, and this is the one place where "the strip at the top of the page"
+   * and "the pill one click away" could start describing different devices.
+   */
+  test("the tally goes through the shared reachability rule", () => {
+    expect(OVERVIEW_ENDPOINT).toContain("DeviceReachabilityUtil.getStatus(");
+    expect(OVERVIEW_ENDPOINT).toContain(
+      'from "Common/Utils/NetworkDevice/DeviceReachabilityUtil"',
+    );
+  });
+
+  /*
+   * `monitoringMethod` is the column that sends a monitor-backed device down
+   * the monitor branch. Grouped by SQL, and re-attached to the classifier
+   * input here — because `deviceHealthInputForGroup` deliberately does not
+   * emit it (the health classifier ignores it) and the reachability rule very
+   * much does not. Without it every ping-only device is Pending in the strip
+   * forever, which is issue #3392 all over again one level up.
+   */
+  test("the tally carries the monitoring method into the rule", () => {
+    expect(OVERVIEW_ENDPOINT).toContain(
+      squash("monitoringMethod: group.monitoringMethod,"),
+    );
+    expect(HEALTH_AGGREGATION).toContain(
+      squash('expression: column("monitoringMethod"),'),
+    );
+  });
+
+  /*
+   * ...and the OFFLINE end of the status ladder, resolved from the bucket's
+   * stamped status. Reading the operational end instead would count every
+   * "Degraded" device as down while the map draws it green.
+   */
+  test("the tally reads the ladder at its offline end", () => {
+    expect(OVERVIEW_ENDPOINT).toContain(
+      squash(
+        "monitorStatusIsOffline: status ? Boolean(status.isOfflineState) : undefined,",
+      ),
+    );
+    expect(OVERVIEW_ENDPOINT).not.toContain("monitorStatusIsOperational");
+  });
+
+  /*
+   * Every fact the rule reads has to be a GROUP BY key. One missing and
+   * devices the rule would judge differently land in the same bucket, so one
+   * of them silently inherits the other's verdict.
+   */
+  test("the buckets group by every input the rule reads", () => {
+    for (const column of [
+      "currentMonitorStatusId",
+      "monitoringMethod",
+      "isReachable",
+      "lastPolledAt",
+      "lastSeenAt",
+      "interfacesDown",
+    ]) {
+      expect(HEALTH_AGGREGATION).toContain(column);
+    }
+  });
+});
 
 describe("every device-status surface selects the whole rule", () => {
   test.each(DEVICE_STATUS_SURFACES)(
