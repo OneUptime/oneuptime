@@ -97,17 +97,27 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     const updateHooks: Array<string> = ["onBeforeUpdate", "onUpdateSuccess"];
 
     /*
-     * onUpdateSuccess is still un-overridden: nothing runs AFTER the write
-     * that the fast path would drop. Only onBeforeUpdate is overridden, and
-     * the tests below pin that it is inert for the claim payload.
+     * BOTH hooks are overridden now, so neither can be dismissed as "there is
+     * nothing to skip" — which is what this suite used to assert about
+     * onUpdateSuccess. What licenses the claim's hook-free write today is
+     * narrower and is pinned below instead: the hooks look only at columns the
+     * claim payload does not carry, and onBeforeUpdate is demonstrably a
+     * pass-through when handed that payload.
+     *
+     * onUpdateSuccess re-queues a scan whose target, probe or credentials just
+     * changed, and re-derives nextScanAt from the recurrence pair (OneUptime
+     * issue #3444). None of those columns is in the claim.
      */
-    test("NetworkDeviceDiscoveryScanService does not override onUpdateSuccess", () => {
-      expect(
-        Object.prototype.hasOwnProperty.call(
-          NetworkDeviceDiscoveryScanServiceClass.prototype,
-          "onUpdateSuccess",
-        ),
-      ).toBe(false);
+    test("both update hooks are overridden, so the disjointness below is what matters", () => {
+      for (const hook of updateHooks) {
+        expect(
+          Object.prototype.hasOwnProperty.call(
+            NetworkDeviceDiscoveryScanServiceClass.prototype,
+            hook,
+          ),
+        ).toBe(true);
+      }
+
       // The default export is an instance of the class checked above.
       expect(NetworkDeviceDiscoveryScanService).toBeInstanceOf(
         NetworkDeviceDiscoveryScanServiceClass,
@@ -128,13 +138,13 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     });
 
     /*
-     * The columns the claim write stamps and the column the onBeforeUpdate
-     * override validates must stay disjoint. This is the assertion that
-     * actually licenses the hookless claim write: if someone adds `cidr` to
-     * the claim payload, or teaches the hook to validate `status`, the
-     * overlap shows up here.
+     * The columns the claim write stamps and the columns the update hooks
+     * react to must stay disjoint. This is the assertion that actually
+     * licenses the hookless claim write: if someone adds `cidr` to the claim
+     * payload, or teaches a hook to react to `status`, the overlap shows up
+     * here.
      */
-    test("the claim write's columns are disjoint from what onBeforeUpdate validates", () => {
+    test("the claim write's columns are disjoint from what the hooks react to", () => {
       const claimWriteColumns: Array<string> = [
         "status",
         "startedAt",
@@ -142,14 +152,76 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
       ];
       /*
        * `name` joined `cidr` here when discovery scans became nameable
-       * (issue #3391): the hook validates and normalizes it on any update that
-       * carries it. The claim payload does not, which is what keeps the
-       * hookless write honest.
+       * (issue #3391), and the sweep and schedule columns joined them when a
+       * scan's settings became editable (issue #3444): an update carrying any
+       * of these makes the hooks read the row and, if a setting really
+       * changed, re-queue the scan afterwards. The claim payload carries none
+       * of them, which is what keeps the hookless write honest.
        */
-      const columnsValidatedByHook: Array<string> = ["cidr", "name"];
+      const columnsReactedToByHooks: Array<string> = [
+        "cidr",
+        "name",
+        "probe",
+        "probeId",
+        "snmpVersion",
+        "snmpCommunityString",
+        "snmpPort",
+        "snmpV3SecurityLevel",
+        "snmpV3Username",
+        "snmpV3AuthProtocol",
+        "snmpV3AuthKey",
+        "snmpV3PrivProtocol",
+        "snmpV3PrivKey",
+        "isRecurring",
+        "rescanIntervalInMinutes",
+      ];
 
       for (const column of claimWriteColumns) {
-        expect(columnsValidatedByHook).not.toContain(column);
+        expect(columnsReactedToByHooks).not.toContain(column);
+      }
+    });
+
+    /*
+     * The same disjointness asserted against the OTHER root writers of this
+     * model, because every one of them takes the same shortcut in spirit: the
+     * result ingest, the requeue worker, the stale-scan reaper, the
+     * unclaimed-scan diagnosis and the auto-import stamp all write run state
+     * and nothing else. If one of them ever carried a setting, it would start
+     * re-queueing the very scan it is reporting on.
+     */
+    test("no server-side writer of this model carries a column the hooks react to", () => {
+      const serverWrittenColumns: Array<string> = [
+        "status",
+        "statusMessage",
+        "startedAt",
+        "completedAt",
+        "nextScanAt",
+        "discoveredDevices",
+        "scannedHostCount",
+        "respondedHostCount",
+        "autoImportProcessedAt",
+      ];
+
+      const columnsReactedToByHooks: Array<string> = [
+        "cidr",
+        "name",
+        "probe",
+        "probeId",
+        "snmpVersion",
+        "snmpCommunityString",
+        "snmpPort",
+        "snmpV3SecurityLevel",
+        "snmpV3Username",
+        "snmpV3AuthProtocol",
+        "snmpV3AuthKey",
+        "snmpV3PrivProtocol",
+        "snmpV3PrivKey",
+        "isRecurring",
+        "rescanIntervalInMinutes",
+      ];
+
+      for (const column of serverWrittenColumns) {
+        expect(columnsReactedToByHooks).not.toContain(column);
       }
     });
 
@@ -171,11 +243,19 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         skip: 0,
       };
 
-      const result: { updateBy: unknown } = await (
+      const result: { updateBy: unknown; carryForward: unknown } = await (
         NetworkDeviceDiscoveryScanService as any
       ).onBeforeUpdate(claimUpdateBy);
 
       expect(result.updateBy).toBe(claimUpdateBy);
+
+      /*
+       * And nothing was carried forward, so onUpdateSuccess would have had
+       * nothing to reconcile even if the claim had gone the long way round.
+       * This is also the proof the hook did not read the database for a
+       * payload the probe polls with every minute.
+       */
+      expect(result.carryForward).toBeNull();
     });
 
     /*

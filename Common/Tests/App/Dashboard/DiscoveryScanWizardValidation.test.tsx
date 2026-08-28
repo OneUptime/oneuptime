@@ -641,11 +641,14 @@ describe("Name identifies the scan in the list", () => {
   });
 
   /*
-   * A name that cannot be corrected is worse than no name: "Region 1100" on
-   * the wrong range misleads everyone who reads the list afterwards, and the
-   * only other way to fix it would be deleting the scan and its results.
+   * A scan that cannot be corrected is worse than no scan: a name on the wrong
+   * range misleads everyone who reads the list afterwards, a typo'd subnet
+   * sweeps nothing, and a rejected community string finds nothing — and the
+   * only way to fix any of them used to be deleting the scan and its results
+   * and starting again (OneUptime issue #3444). One dialog fixes all of them;
+   * it replaced a Rename dialog that could only fix the first.
    */
-  test("a scan can be renamed after it was created", async () => {
+  test("a scan can be edited after it was created", async () => {
     await renderPage();
 
     const actions: Array<string> = (
@@ -654,22 +657,24 @@ describe("Name identifies the scan in the list", () => {
       return button.title || "";
     });
 
-    expect(actions).toContain("Rename");
+    expect(actions).toContain("Edit");
+    // Superseded: everything it offered is the first field of Edit.
+    expect(actions).not.toContain("Rename");
   });
 
   /*
    * The table is not editable, so this button is the page's only edit
    * affordance and nothing else gates it. Offered to a reader, it would open a
-   * dialog whose one field ModelForm has already dropped for want of the
-   * update permission — a box that cannot be saved and does not say why.
+   * dialog whose fields ModelForm has already dropped for want of the update
+   * permission — boxes that cannot be saved and do not say why.
    */
-  test("renaming is offered only to someone who could save it", async () => {
+  test("editing is offered only to someone who could save it", async () => {
     await renderPage();
 
-    const rename: CapturedActionButton | undefined = (
+    const edit: CapturedActionButton | undefined = (
       capturedTableProps?.actionButtons || []
     ).find((button: CapturedActionButton): boolean => {
-      return button.title === "Rename";
+      return button.title === "Edit";
     });
 
     const scan: NetworkDeviceDiscoveryScan = {
@@ -680,12 +685,41 @@ describe("Name identifies the scan in the list", () => {
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.Viewer]);
 
-    expect(rename?.isVisible?.(scan)).toBe(false);
+    expect(edit?.isVisible?.(scan)).toBe(false);
 
     jest
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.ProjectAdmin]);
 
-    expect(rename?.isVisible?.(scan)).toBe(true);
+    expect(edit?.isVisible?.(scan)).toBe(true);
+  });
+
+  /*
+   * The complaint in the issue was that a finished scan could not be given a
+   * schedule. Nothing may hide Edit behind a status: a Completed scan is the
+   * one people most need to change, and an In Progress one abandons its sweep
+   * and starts again with the new settings rather than refusing.
+   */
+  test("editing is offered whatever state the scan is in", async () => {
+    await renderPage();
+
+    const edit: CapturedActionButton | undefined = (
+      capturedTableProps?.actionButtons || []
+    ).find((button: CapturedActionButton): boolean => {
+      return button.title === "Edit";
+    });
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectAdmin]);
+
+    for (const status of ["Pending", "In Progress", "Completed", "Failed"]) {
+      const scan: NetworkDeviceDiscoveryScan = {
+        cidr: "10.0.0.0/24",
+        status: status,
+      } as NetworkDeviceDiscoveryScan;
+
+      expect(edit?.isVisible?.(scan)).toBe(true);
+    }
   });
 });

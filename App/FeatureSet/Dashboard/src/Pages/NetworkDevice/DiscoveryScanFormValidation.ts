@@ -2,6 +2,7 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 
 /*
  * Client-side validators for the "Create New Network Device Discovery Scan"
@@ -31,10 +32,12 @@ import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
  * module means App/Tests can exercise them directly, the same reason
  * SloFormFields.ts and DevicePollingFormFields.ts sit outside their pages.
  *
- * The field DEFINITIONS deliberately stay inline in Discovery.tsx: the wizard
+ * The field DEFINITIONS deliberately stay in Discovery.tsx: the wizard
  * invariants in App/Tests/Dashboard/NetworkFormStepsInvariants.test.ts match a
- * page's `formSteps={[...]}` ids against the `stepId: "..."` literals on that
- * same page, and moving the fields out would move the literals with them.
+ * page's declared step ids against the `stepId: "..."` literals on that same
+ * page, and moving the fields to another file would move the literals with
+ * them. (Module scope within Discovery.tsx is fine, and is where they live, so
+ * the create wizard and the edit dialog share one definition.)
  */
 
 /*
@@ -65,8 +68,13 @@ const readRawString: ReadRawStringFunction = (value: unknown): string => {
  * The floor RequeueRecurringScans is sized against: a sweep at the
  * ScanTargetUtil.MAX_SCAN_HOSTS ceiling can take the better part of an hour,
  * so re-queueing one more often than this stacks scans on the same probe.
+ *
+ * Re-exported rather than declared, so the form, the write hooks that derive
+ * the next run from it, and the probe-ingest endpoint that clamps to it are
+ * all quoting one number. It used to be written out separately in each of
+ * those three places.
  */
-export const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
+export { MINIMUM_RESCAN_INTERVAL_IN_MINUTES } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 
 export type ScanTargetValidatorFunction = (
   values: FormValues<NetworkDeviceDiscoveryScan>,

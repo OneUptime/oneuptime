@@ -191,7 +191,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "probeId",
@@ -233,7 +240,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @Index()
   @TableColumn({
@@ -270,11 +284,21 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
     /*
-     * Updatable, unlike everything that describes the sweep itself: changing
-     * the target or the credentials of a scan mid-flight would mean the stored
-     * row no longer described the sweep that ran, so those grant no update at
-     * all. (The recurrence pair is updatable too — it describes the NEXT run
-     * rather than the one that happened.)
+     * Updatable, like everything else that DESCRIBES the scan — its target,
+     * its probe, its credentials and its schedule. Only what the scan
+     * REPORTED (status, results, host counts, timestamps) is read-only,
+     * because those belong to a run that happened and cannot be edited into
+     * having happened differently.
+     *
+     * Every one of those settings used to be create-only, on the reasoning
+     * that a row must not stop describing the sweep that ran. The reasoning
+     * was sound and the conclusion was not: the only way to fix a typo'd
+     * subnet or a rejected community string was to delete the scan — losing
+     * its results — and recreate it (OneUptime issue #3444). The invariant is
+     * kept where it belongs instead, in
+     * Common/Server/Services/NetworkDeviceDiscoveryScanService: changing any
+     * of them re-queues the scan and clears the previous run's results, so the
+     * row never advertises findings from settings it no longer has.
      *
      * A name describes nothing but itself, and the whole point of it is to be
      * fixable after the fact: a scan mislabelled "Region 1100" is worse than
@@ -336,7 +360,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   /*
    * The address space this scan sweeps. Two notations are accepted (see
@@ -382,7 +413,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -418,7 +456,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -454,7 +499,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -473,9 +525,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
   /*
    * SNMP v3 credentials tried against every host in the subnet. These mirror
    * the flattened snmpV3* columns on NetworkDevice so a v3 scan can be imported
-   * into a v3 device without re-entering credentials. Like the other SNMP
-   * config columns above they are create+read only (update: []): a scan's
-   * config is fixed once it is dispatched to the probe.
+   * into a v3 device without re-entering credentials.
+   *
+   * Editable after creation, like the rest of the SNMP config above — a
+   * credential that the devices reject is exactly the thing an operator needs
+   * to correct without rebuilding the scan. Changing one re-queues the scan;
+   * see NetworkDeviceDiscoveryScanService. Their READ permissions stay
+   * narrower than the other columns' (no Viewer, no SettingsViewer): a
+   * passphrase is not a thing every reader of the scans list should be handed.
    */
   @ColumnAccessControl({
     create: [
@@ -496,7 +553,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -532,7 +596,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -567,7 +638,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -600,7 +678,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -633,7 +718,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,
@@ -666,7 +758,14 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsMember,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
   })
   @TableColumn({
     required: false,

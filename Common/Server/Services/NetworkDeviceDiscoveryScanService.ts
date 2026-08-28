@@ -5,8 +5,93 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
+import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
+
+/*
+ * The two spellings a many-to-one reference reaches a hook under: the
+ * dashboard posts the relation object, server callers write the FK column.
+ * See RelationIdUtil.
+ */
+const PROBE_RELATION_KEYS: Array<string> = ["probeId", "probe"];
+
+/*
+ * The columns that decide what the probe sweeps, and what it sweeps with.
+ * Changing any of them means the results already on the row describe a sweep
+ * that no longer exists — which is what onUpdateSuccess below acts on.
+ *
+ * `probe` is folded into `probeId` by RelationIdUtil rather than listed here,
+ * because the same reference arrives under either name.
+ */
+const SWEEP_COLUMNS: Array<string> = [
+  "cidr",
+  "probeId",
+  "snmpVersion",
+  "snmpCommunityString",
+  "snmpPort",
+  "snmpV3SecurityLevel",
+  "snmpV3Username",
+  "snmpV3AuthProtocol",
+  "snmpV3AuthKey",
+  "snmpV3PrivProtocol",
+  "snmpV3PrivKey",
+];
+
+/*
+ * The columns that decide WHEN the scan runs again, and nothing else. They
+ * never retire a result — they only re-derive nextScanAt.
+ */
+const SCHEDULE_COLUMNS: Array<string> = [
+  "isRecurring",
+  "rescanIntervalInMinutes",
+];
+
+/*
+ * Everything a finished run left on the row. Written together, as one
+ * statement, to put the scan back in the state a brand-new one is created in:
+ * queued, with nothing to show yet.
+ *
+ * This is the same reset the requeue worker performs on a recurring scan that
+ * is due (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts) with
+ * one deliberate difference: the results ARE cleared here. The worker keeps
+ * them because a recurring scan re-runs the SAME sweep, so last run's
+ * inventory is still the best answer available until the next one lands. A
+ * scan whose target or credentials just changed has no such excuse — its
+ * hosts came from somewhere the scan no longer points at.
+ */
+const RETIRE_RUN_PAYLOAD: Record<string, unknown> = {
+  status: "Pending",
+  statusMessage: null,
+  startedAt: null,
+  completedAt: null,
+  nextScanAt: null,
+  discoveredDevices: null,
+  scannedHostCount: null,
+  respondedHostCount: null,
+  autoImportProcessedAt: null,
+};
+
+/*
+ * What onUpdateSuccess has to know about each row being updated, worked out
+ * while the pre-update values are still readable.
+ */
+interface ScanUpdatePlan {
+  // A sweep-defining column really changed value (not merely was re-sent).
+  isSweepChanged: boolean;
+  // The schedule the row will hold once the update lands.
+  isRecurring: boolean | null | undefined;
+  rescanIntervalInMinutes: number | null | undefined;
+  // The run state the row holds now, which a retire would replace.
+  status: string | null | undefined;
+  completedAt: Date | null | undefined;
+  nextScanAt: Date | null | undefined;
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -57,21 +142,26 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The target column is not user-updatable (its ColumnAccessControl grants no
-   * update permission), but root writers — the probe-ingest endpoints, workers,
-   * migrations — bypass that. Validating any update that carries the column
-   * keeps the invariant true for every writer instead of just the form.
+   * Everything that has to be true of an update before it is allowed to land,
+   * plus the reading of the row that onUpdateSuccess needs and can no longer
+   * take once the write has happened.
+   *
+   * Two classes of writer arrive here. The form, editing a scan's settings —
+   * which is what this hook mostly exists for now (OneUptime issue #3444) —
+   * and the server's own root writers: the probe-ingest endpoints, the
+   * recurring-scan worker, migrations. The root writers carry only run-state
+   * columns and take the cheap exit below without paying for a read.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const dataKeys: Array<string> = Object.keys(updateBy.data || {});
+    const data: Record<string, unknown> = (updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+    const dataKeys: Array<string> = Object.keys(data);
 
     if (dataKeys.includes("cidr")) {
-      this.validateScanTarget(
-        (updateBy.data as Record<string, unknown>)["cidr"],
-      );
+      this.validateScanTarget(data["cidr"]);
     }
 
     /*
@@ -86,16 +176,310 @@ export class Service extends DatabaseService<Model> {
      * would try to write.
      */
     if (dataKeys.includes("name")) {
-      const data: Record<string, unknown> = updateBy.data as Record<
-        string,
-        unknown
-      >;
-
       this.validateScanName(data["name"]);
       data["name"] = ScanNameUtil.normalize(data["name"]);
     }
 
-    return { updateBy, carryForward: null };
+    const isSweepWritten: boolean =
+      RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS) ||
+      SWEEP_COLUMNS.some((column: string) => {
+        return dataKeys.includes(column);
+      });
+
+    const isScheduleWritten: boolean = SCHEDULE_COLUMNS.some(
+      (column: string) => {
+        return dataKeys.includes(column);
+      },
+    );
+
+    /*
+     * THE CHEAP EXIT, and it is load-bearing rather than an optimisation.
+     *
+     * Every server-side writer of this model touches run state only — the
+     * claim writes status/startedAt/statusMessage, the result ingest writes
+     * the results, the requeue worker and the stale-scan reaper write status
+     * and timestamps, the unclaimed-diagnosis pass writes statusMessage. None
+     * of them carries a sweep or schedule column, so none of them reads a row
+     * here, and none can trip the reconciliation below into retiring the very
+     * result it is in the middle of storing.
+     *
+     * `updateBy` is also handed back as the SAME object, which is what
+     * Common/Tests/Server/Services/DiscoveryScanClaimHookFreeSafety.test.ts
+     * pins: the claim's hook-free write is only safe while this hook is a
+     * pass-through for the claim's payload.
+     */
+    if (!isSweepWritten && !isScheduleWritten) {
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * probeId is NOT NULL. A payload that names the probe but resolves to
+     * nothing is an operator clearing the box, and without this it reaches
+     * Postgres as a constraint violation — a 500 where the truthful answer is
+     * a 400 with a sentence in it.
+     */
+    if (RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS)) {
+      const probeId: ObjectID | null = RelationIdUtil.readConsistent(
+        data,
+        PROBE_RELATION_KEYS,
+        "Probe",
+      );
+
+      if (!probeId) {
+        throw new BadDataException(
+          "A discovery scan needs a probe to run it. Pick the probe that can reach this address range.",
+        );
+      }
+    }
+
+    /*
+     * Scoped by hand, because this hook runs BEFORE
+     * ModelPermission.checkUpdateQueryPermissions and BaseAPI hands the
+     * service a bare `{_id}` query — so reading with the caller's own query as
+     * root, unscoped, would answer "does this id exist, and what are its
+     * credentials" for every project on the instance. Same shape as
+     * MonitorService.onBeforeUpdate.
+     */
+    const scans: Array<Model> = await this.findBy({
+      query:
+        !updateBy.props.isRoot && updateBy.props.tenantId
+          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+          : updateBy.query,
+      select: {
+        _id: true,
+        status: true,
+        isRecurring: true,
+        rescanIntervalInMinutes: true,
+        completedAt: true,
+        nextScanAt: true,
+        cidr: true,
+        probeId: true,
+        snmpVersion: true,
+        snmpCommunityString: true,
+        snmpPort: true,
+        snmpV3SecurityLevel: true,
+        snmpV3Username: true,
+        snmpV3AuthProtocol: true,
+        snmpV3AuthKey: true,
+        snmpV3PrivProtocol: true,
+        snmpV3PrivKey: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const plans: Record<string, ScanUpdatePlan> = {};
+
+    for (const scan of scans) {
+      const scanId: string | undefined = scan._id?.toString();
+
+      if (!scanId) {
+        continue;
+      }
+
+      plans[scanId] = {
+        isSweepChanged: isSweepWritten
+          ? this.hasSweepChanged(scan, data, dataKeys)
+          : false,
+        /*
+         * The schedule the row will hold AFTER the write: the update's value
+         * where it carries one, the stored value where it does not. Worked out
+         * here so onUpdateSuccess needs no second read.
+         */
+        isRecurring: dataKeys.includes("isRecurring")
+          ? (data["isRecurring"] as boolean | null | undefined)
+          : scan.isRecurring,
+        rescanIntervalInMinutes: dataKeys.includes("rescanIntervalInMinutes")
+          ? (data["rescanIntervalInMinutes"] as number | null | undefined)
+          : scan.rescanIntervalInMinutes,
+        status: scan.status,
+        completedAt: scan.completedAt,
+        nextScanAt: scan.nextScanAt,
+      };
+    }
+
+    return { updateBy, carryForward: plans };
+  }
+
+  /*
+   * Put the row back into a state that describes itself honestly.
+   *
+   * Two things can be wrong the moment a settings edit lands, and neither can
+   * be fixed in the update itself: the columns that would fix them
+   * (status, nextScanAt, the result columns) grant no update permission to
+   * anybody, and ModelPermission checks the payload AFTER onBeforeUpdate has
+   * run — so a payload carrying them would be refused for the very user doing
+   * the editing. They are written here instead, as root, through the same
+   * hook-free single-statement path the probe's claim uses.
+   *
+   *   1. A changed target, probe or credential leaves the row advertising
+   *      hosts from a sweep that is no longer the sweep this scan describes:
+   *      "12 of 254 hosts" beside a range it never visited, a Review Results
+   *      dialog offering them for import under the new credentials, and an
+   *      auto-import worker willing to create devices from them. The run is
+   *      retired and the scan re-queued, so the probe simply sweeps again.
+   *
+   *   2. nextScanAt is derived state that only the result-ingest endpoint used
+   *      to write. Turning recurrence ON for a scan that had already finished
+   *      therefore scheduled nothing at all — the column stayed NULL, and the
+   *      requeue worker's `nextScanAt <= now` is never true of NULL — so the
+   *      list said "Every 60 min" over a scan that would never run again.
+   *      Shortening the interval had the same shape of bug: the new cadence
+   *      only took effect one full old cadence later.
+   *
+   * A known and deliberate gap: this is a second statement, so between the two
+   * writes the row briefly holds the new settings with the old run state. A
+   * probe result landing inside that window is stamped onto the new settings.
+   * Closing it needs the probe to echo a run identity back, which is a probe
+   * protocol change; the window is one database round trip.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const plans: Record<string, ScanUpdatePlan> | null =
+      (onUpdate.carryForward as Record<string, ScanUpdatePlan> | null) || null;
+
+    if (!plans) {
+      return onUpdate;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    for (const itemId of updatedItemIds) {
+      const plan: ScanUpdatePlan | undefined = plans[itemId.toString()];
+
+      if (!plan) {
+        continue;
+      }
+
+      const reconcile: Record<string, unknown> = plan.isSweepChanged
+        ? { ...RETIRE_RUN_PAYLOAD }
+        : {};
+
+      /*
+       * Derived from the state the row is in once this update has landed —
+       * which, for a retired run, is the queued state written just above, not
+       * the finished one it held a moment ago.
+       */
+      const nextScanAt: Date | null = getNextScanAt(
+        {
+          isRecurring: plan.isRecurring,
+          rescanIntervalInMinutes: plan.rescanIntervalInMinutes,
+          status: plan.isSweepChanged ? "Pending" : plan.status,
+          completedAt: plan.isSweepChanged ? null : plan.completedAt,
+        },
+        now,
+      );
+
+      if (!this.isSameMoment(nextScanAt, plan.nextScanAt)) {
+        reconcile["nextScanAt"] = nextScanAt;
+      }
+
+      if (Object.keys(reconcile).length === 0) {
+        continue;
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: itemId,
+        // Cast: the model's JSON column makes DeepPartial recursion blow up.
+        data: reconcile as unknown as QueryDeepPartialEntity<Model>,
+      });
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * Whether this update actually changes what the probe would sweep.
+   *
+   * VALUE comparison, never key presence: ModelForm posts every field it
+   * declares on every save, dirty or not, so an operator who opened Edit and
+   * pressed Save without typing sends the whole sweep back verbatim. Keyed on
+   * presence, that would retire a good result set on every no-op save.
+   */
+  private hasSweepChanged(
+    scan: Model,
+    data: Record<string, unknown>,
+    dataKeys: Array<string>,
+  ): boolean {
+    if (RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS)) {
+      const probeId: ObjectID | null = RelationIdUtil.read(
+        data,
+        PROBE_RELATION_KEYS,
+      );
+
+      if (probeId?.toString() !== scan.probeId?.toString()) {
+        return true;
+      }
+    }
+
+    for (const column of SWEEP_COLUMNS) {
+      if (column === "probeId" || !dataKeys.includes(column)) {
+        continue;
+      }
+
+      if (
+        this.normalizeSweepValue(data[column]) !==
+        this.normalizeSweepValue(
+          (scan as unknown as Record<string, unknown>)[column],
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * A sweep column's value as a comparable string.
+   *
+   * An empty box and an unset column are the SAME setting and must compare
+   * equal, or a V3 scan — whose community string is NULL in the database and
+   * "" in the form — would read as changed on the first save and retire its
+   * own results. Numbers are compared as numbers so the port arriving as the
+   * string "161" from a form field does not read as a change either.
+   */
+  private normalizeSweepValue(value: unknown): string {
+    if (value === undefined || value === null || value === "") {
+      return "";
+    }
+
+    if (typeof value === "number") {
+      return String(value);
+    }
+
+    if (typeof value === "string") {
+      return value.trim();
+    }
+
+    return String(value);
+  }
+
+  /*
+   * Two nullable timestamps, compared by the instant they name. The stored
+   * value comes back from Postgres and the derived one is built here, so a
+   * strict equality between the two objects is never true even when the moment
+   * is identical, and every no-op save would write the column again.
+   */
+  private isSameMoment(
+    left: Date | null | undefined,
+    right: Date | null | undefined,
+  ): boolean {
+    if (!left || !right) {
+      return !left && !right;
+    }
+
+    return (
+      OneUptimeDate.fromString(left).getTime() ===
+      OneUptimeDate.fromString(right).getTime()
+    );
   }
 
   /*

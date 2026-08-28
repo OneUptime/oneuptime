@@ -14,6 +14,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons, {
@@ -27,6 +28,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ModelField from "Common/UI/Components/Forms/Types/Field";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -111,6 +113,219 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   customValidation: validateScanName,
 };
 
+/*
+ * The three questions a discovery scan is defined by, in the order they are
+ * asked. Declared once and handed to BOTH the create wizard on the table and
+ * the Edit dialog below, because a step the edit form does not have is a
+ * setting that can be created and then never corrected — which is the whole
+ * of OneUptime issue #3444.
+ */
+const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
+  { title: "Scan Target", id: "scan-target" },
+  { title: "SNMP Credentials", id: "snmp" },
+  { title: "Schedule", id: "schedule" },
+];
+
+export type GetDiscoveryScanFormFieldsFunction = (
+  probes: Array<Probe>,
+) => Array<ModelField<NetworkDeviceDiscoveryScan>>;
+
+/*
+ * Every field of a discovery scan, for both the create wizard and the Edit
+ * dialog. A factory rather than a constant only because the probe dropdown's
+ * options are fetched at runtime.
+ *
+ * ONE definition on purpose. Two copies would be two sets of descriptions, two
+ * validators and two `showIf` chains to keep in step, and the copy that
+ * drifted would be the edit one — the one nobody exercises until they are
+ * already trying to fix a scan that is not working.
+ */
+const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
+  probes: Array<Probe>,
+): Array<ModelField<NetworkDeviceDiscoveryScan>> => {
+  return [
+    SCAN_NAME_FORM_FIELD,
+    {
+      field: {
+        cidr: true,
+      },
+      title: "Scan Target",
+      stepId: "scan-target",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "192.168.1.0/24",
+      /*
+       * Both notations are described here rather than only CIDR because
+       * octet ranges are the only way to express the common real-world
+       * shape "the same handful of addresses in every one of these
+       * /24s" without creating hundreds of separate scans.
+       */
+      description:
+        "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. " +
+        `A single scan may cover at most ${ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US")} addresses.`,
+      /*
+       * Parses the target with exactly the function the server validates
+       * it with, on the step it was typed on. Without this the field's
+       * only check was `required`, so any non-empty string — a phone
+       * number, a hostname, a reversed octet range — walked through all
+       * three steps and surfaced as one combined banner above the
+       * Schedule step (issue #3377).
+       *
+       * It covers the length ceiling too, so no `validation.maxLength`
+       * is declared beside it: ModelForm infers 100 from the ShortText
+       * column, but customValidation runs after validateLength and would
+       * overwrite that message anyway — and the parser's own cap is the
+       * 64 the server enforces, not the column's 100.
+       */
+      customValidation: validateScanTarget,
+    },
+    {
+      field: {
+        probe: true,
+      },
+      title: "Probe",
+      stepId: "scan-target",
+      /*
+       * A probe can only sweep a subnet it can actually route to, so
+       * this list is the real constraint on what you can discover — not
+       * a preference. Say so here rather than letting the operator pick
+       * a probe in another network and wait for an empty result.
+       */
+      description:
+        "The probe that sweeps this subnet. It has to be able to reach the subnet directly — a probe in another network, or outside the firewall, will scan and find nothing. If you have no probe deployed on this network yet, create a custom probe and run it there; it appears in this list once it connects.",
+      sideLink: {
+        text: "Create a custom probe",
+        url: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+        ),
+        openLinkInNewTab: true,
+      },
+      fieldType: FormFieldSchemaType.Dropdown,
+      /*
+       * A probe with no id cannot be scanned with, so it is dropped.
+       * A probe with no NAME still can be, so it is kept under a
+       * stand-in label.
+       *
+       * This used to throw for either. The .map runs in the component's
+       * render body, not lazily when the create modal opens, so a single
+       * unnamed probe row — a global probe, or one registered before it
+       * was named — did not degrade the dropdown: it threw during render
+       * and blanked the entire Discovery Scans page, including the list
+       * of existing scans.
+       */
+      dropdownOptions: probes
+        .filter((probe: Probe) => {
+          return Boolean(probe._id);
+        })
+        .map((probe: Probe) => {
+          return {
+            label: probe.name || `Probe ${probe._id}`,
+            value: probe._id!,
+          };
+        }),
+      required: true,
+      placeholder: "Probe",
+    },
+    /*
+     * Shared SNMP fields (version, community, full v3 credential set
+     * with showIf reveal logic) — the same helper the NetworkDevice
+     * forms use, so a v3 subnet scan collects the same credentials a v3
+     * device needs and the two can never drift apart.
+     */
+    ...getSnmpConfigFormFields({
+      communityStringDescription:
+        "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
+      stepId: "snmp",
+    }),
+    {
+      field: {
+        isRecurring: true,
+      },
+      title: "Repeat this scan",
+      stepId: "schedule",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      description:
+        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
+    },
+    /*
+     * Only meaningful together with the toggle above, so it reveals
+     * itself the same way the v3 credential fields do in
+     * SnmpConfigFormFields.ts: showIf on the controlling value.
+     */
+    {
+      field: {
+        rescanIntervalInMinutes: true,
+      },
+      title: "Rescan Interval (Minutes)",
+      stepId: "schedule",
+      fieldType: FormFieldSchemaType.Number,
+      required: true,
+      placeholder: "60",
+      description: `How often to re-run this scan, in minutes. Minimum ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes.`,
+      /*
+       * One validator rather than a `validation: { minValue }` beside it:
+       * the built-in minimum runs the value through parseInt, so "20.5"
+       * reads as 20 and clears a floor of 15 before failing the INSERT
+       * against an integer column — and customValidation runs last, so a
+       * minValue declared alongside would only have its message
+       * overwritten. See DiscoveryScanFormValidation.
+       */
+      customValidation: validateRescanInterval,
+      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
+        return Boolean(item.isRecurring);
+      },
+    },
+  ];
+};
+
+/*
+ * The same fields, laid out for the Edit dialog: one page, grouped under the
+ * headings the create wizard uses as step titles.
+ *
+ * NOT a wizard. A stepped form has no Back button — the only way backwards is
+ * the step rail, which BasicForm hides below the `lg` breakpoint — and walking
+ * three steps to reach the toggle you came to flip is the wrong shape for a
+ * repair. The headings come from DISCOVERY_SCAN_FORM_STEPS rather than being
+ * written out again, so the two layouts can never describe the same field as
+ * belonging to two different things.
+ *
+ * BasicForm renders every field when a form declares no steps, and Validation
+ * skips its step guard for the same reason, so the fields keep the `stepId`
+ * the wizard needs and it simply goes unread here.
+ */
+const getDiscoveryScanEditFormFields: GetDiscoveryScanFormFieldsFunction = (
+  probes: Array<Probe>,
+): Array<ModelField<NetworkDeviceDiscoveryScan>> => {
+  const titledStepIds: Set<string> = new Set<string>();
+
+  return getDiscoveryScanFormFields(probes).map(
+    (field: ModelField<NetworkDeviceDiscoveryScan>) => {
+      const stepId: string | undefined = field.stepId;
+
+      if (!stepId || titledStepIds.has(stepId)) {
+        return field;
+      }
+
+      const step: FormStep<NetworkDeviceDiscoveryScan> | undefined =
+        DISCOVERY_SCAN_FORM_STEPS.find(
+          (candidate: FormStep<NetworkDeviceDiscoveryScan>) => {
+            return candidate.id === stepId;
+          },
+        );
+
+      if (!step) {
+        return field;
+      }
+
+      titledStepIds.add(stepId);
+
+      // The first field of each group carries the group's heading.
+      return { ...field, sectionTitle: step.title };
+    },
+  );
+};
+
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -123,12 +338,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
   // Review Results modal state.
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
   /*
-   * The scan the Rename dialog is open for, or null. A name that cannot be
-   * corrected is worse than no name at all — "Region 1100" on the wrong range
-   * misleads every operator who reads the list afterwards — and the only other
-   * way to fix one would be to delete the scan and lose its results with it.
+   * The scan the Edit dialog is open for, or null.
+   *
+   * Every setting a scan has used to be fixed at creation: a typo'd subnet, a
+   * probe on the wrong side of a firewall, a community string the devices
+   * reject — none of them could be corrected, and the only way out was to
+   * delete the scan and lose its results with it (OneUptime issue #3444).
    */
-  const [scanToRename, setScanToRename] =
+  const [scanToEdit, setScanToEdit] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
   const [scanToReview, setScanToReview] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
@@ -470,145 +687,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
         noItemsMessage={
           "No discovery scans yet. Start one to sweep a subnet or octet range for SNMP devices."
         }
-        formSteps={[
-          { title: "Scan Target", id: "scan-target" },
-          { title: "SNMP Credentials", id: "snmp" },
-          { title: "Schedule", id: "schedule" },
-        ]}
-        formFields={[
-          SCAN_NAME_FORM_FIELD,
-          {
-            field: {
-              cidr: true,
-            },
-            title: "Scan Target",
-            stepId: "scan-target",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "192.168.1.0/24",
-            /*
-             * Both notations are described here rather than only CIDR because
-             * octet ranges are the only way to express the common real-world
-             * shape "the same handful of addresses in every one of these
-             * /24s" without creating hundreds of separate scans.
-             */
-            description:
-              "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. " +
-              `A single scan may cover at most ${ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US")} addresses.`,
-            /*
-             * Parses the target with exactly the function the server validates
-             * it with, on the step it was typed on. Without this the field's
-             * only check was `required`, so any non-empty string — a phone
-             * number, a hostname, a reversed octet range — walked through all
-             * three steps and surfaced as one combined banner above the
-             * Schedule step (issue #3377).
-             *
-             * It covers the length ceiling too, so no `validation.maxLength`
-             * is declared beside it: ModelForm infers 100 from the ShortText
-             * column, but customValidation runs after validateLength and would
-             * overwrite that message anyway — and the parser's own cap is the
-             * 64 the server enforces, not the column's 100.
-             */
-            customValidation: validateScanTarget,
-          },
-          {
-            field: {
-              probe: true,
-            },
-            title: "Probe",
-            stepId: "scan-target",
-            /*
-             * A probe can only sweep a subnet it can actually route to, so
-             * this list is the real constraint on what you can discover — not
-             * a preference. Say so here rather than letting the operator pick
-             * a probe in another network and wait for an empty result.
-             */
-            description:
-              "The probe that sweeps this subnet. It has to be able to reach the subnet directly — a probe in another network, or outside the firewall, will scan and find nothing. If you have no probe deployed on this network yet, create a custom probe and run it there; it appears in this list once it connects.",
-            sideLink: {
-              text: "Create a custom probe",
-              url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
-              ),
-              openLinkInNewTab: true,
-            },
-            fieldType: FormFieldSchemaType.Dropdown,
-            /*
-             * A probe with no id cannot be scanned with, so it is dropped.
-             * A probe with no NAME still can be, so it is kept under a
-             * stand-in label.
-             *
-             * This used to throw for either. The .map runs in the component's
-             * render body, not lazily when the create modal opens, so a single
-             * unnamed probe row — a global probe, or one registered before it
-             * was named — did not degrade the dropdown: it threw during render
-             * and blanked the entire Discovery Scans page, including the list
-             * of existing scans.
-             */
-            dropdownOptions: probes
-              .filter((probe: Probe) => {
-                return Boolean(probe._id);
-              })
-              .map((probe: Probe) => {
-                return {
-                  label: probe.name || `Probe ${probe._id}`,
-                  value: probe._id!,
-                };
-              }),
-            required: true,
-            placeholder: "Probe",
-          },
-          /*
-           * Shared SNMP fields (version, community, full v3 credential set
-           * with showIf reveal logic) — the same helper the NetworkDevice
-           * forms use, so a v3 subnet scan collects the same credentials a v3
-           * device needs and the two can never drift apart.
-           */
-          ...getSnmpConfigFormFields({
-            communityStringDescription:
-              "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
-            stepId: "snmp",
-          }),
-          {
-            field: {
-              isRecurring: true,
-            },
-            title: "Repeat this scan",
-            stepId: "schedule",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
-          },
-          /*
-           * Only meaningful together with the toggle above, so it reveals
-           * itself the same way the v3 credential fields do in
-           * SnmpConfigFormFields.ts: showIf on the controlling value.
-           */
-          {
-            field: {
-              rescanIntervalInMinutes: true,
-            },
-            title: "Rescan Interval (Minutes)",
-            stepId: "schedule",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "60",
-            description: `How often to re-run this scan, in minutes. Minimum ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes.`,
-            /*
-             * One validator rather than a `validation: { minValue }` beside it:
-             * the built-in minimum runs the value through parseInt, so "20.5"
-             * reads as 20 and clears a floor of 15 before failing the INSERT
-             * against an integer column — and customValidation runs last, so a
-             * minValue declared alongside would only have its message
-             * overwritten. See DiscoveryScanFormValidation.
-             */
-            customValidation: validateRescanInterval,
-            showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
-              return Boolean(item.isRecurring);
-            },
-          },
-        ]}
+        formSteps={DISCOVERY_SCAN_FORM_STEPS}
+        formFields={getDiscoveryScanFormFields(probes)}
         columns={[
           /*
            * The scan's identity, in one column: its name if it has one, with
@@ -827,15 +907,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
         }}
         actionButtons={[
           {
-            title: "Rename",
+            title: "Edit",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Pencil,
             /*
-             * Hidden for anyone who could not save the rename anyway. The
-             * table sets isEditable={false}, so this button is the only edit
+             * Hidden for anyone who could not save the edit anyway. The table
+             * sets isEditable={false}, so this button is the only edit
              * affordance on the page and nothing else is gating it — a viewer
-             * would otherwise open a dialog whose one field ModelForm has
-             * already dropped for want of the update permission.
+             * would otherwise open a dialog whose fields ModelForm has already
+             * dropped for want of the update permission, and which says
+             * nothing about why it is empty.
              */
             isVisible: (): boolean => {
               return PermissionGate.check(
@@ -847,7 +928,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               item: NetworkDeviceDiscoveryScan,
               onCompleteAction: VoidFunction,
             ) => {
-              setScanToRename(item);
+              setScanToEdit(item);
               onCompleteAction();
             },
           },
@@ -869,36 +950,59 @@ const NetworkDeviceDiscovery: FunctionComponent<
         ]}
       />
 
-      {scanToRename && (
+      {scanToEdit && (
         /*
-         * One field, no steps. ModelFormModal fetches the scan, prefills the
-         * box and PATCHes just this column. The schedule pair (isRecurring,
-         * rescanIntervalInMinutes) is updatable on the model too, but it is
-         * deliberately not offered here: this dialog answers "what is this
-         * scan called", and nothing about the sweep itself.
+         * Everything about the scan except what it found. ModelFormModal
+         * fetches the row, prefills every box from it and PATCHes the lot;
+         * the server works out what actually changed and, if the sweep itself
+         * did, re-queues the scan — see NetworkDeviceDiscoveryScanService.
+         *
+         * This replaced a Rename dialog that offered the name alone. Name is
+         * still the first thing in the form, and a save that changes only the
+         * name is inert exactly as the rename was: the server compares values,
+         * not which keys the form posted.
          */
         <ModelFormModal<NetworkDeviceDiscoveryScan>
           modelType={NetworkDeviceDiscoveryScan}
-          modelIdToEdit={scanToRename.id!}
-          name="Rename Discovery Scan"
-          title="Rename Discovery Scan"
-          description={`Give this scan a name you will recognise in the list. It sweeps ${
-            scanToRename.cidr || "the address range it was created with"
+          modelIdToEdit={scanToEdit.id!}
+          name="Edit Discovery Scan"
+          title="Edit Discovery Scan"
+          description={`Change what this scan sweeps, which probe runs it, the credentials it tries, or how often it repeats. It currently sweeps ${
+            scanToEdit.cidr || "the address range it was created with"
           }.`}
+          /*
+           * The one consequence that is not obvious from the form: a changed
+           * sweep makes the last run's hosts describe a scan that no longer
+           * exists, so they go. Said before the operator saves rather than
+           * discovered afterwards in an empty Review Results dialog.
+           */
+          footer={
+            <Alert
+              type={AlertType.INFO}
+              strongTitle="Changing the target, probe or credentials re-runs the scan"
+              title="The scan goes back to Pending and sweeps again with the new settings, and the hosts the last run found are cleared - they describe settings this scan no longer has. Devices you have already imported are not touched. Changing only the name or the schedule leaves the results alone."
+            />
+          }
+          modalWidth={ModalWidth.Medium}
           submitButtonText="Save Changes"
           onClose={() => {
-            setScanToRename(null);
+            setScanToEdit(null);
           }}
           onSuccess={() => {
-            setScanToRename(null);
-            // Same refresh the import path uses, so the list shows the new name.
+            setScanToEdit(null);
+            /*
+             * Same refresh the import path uses. The server's re-queue runs
+             * inside onUpdateSuccess, which the request waits on, so the
+             * refetched row already shows Pending rather than the results it
+             * is about to lose.
+             */
             setRefreshToggle(Date.now().toString());
           }}
           formProps={{
-            name: "Rename Discovery Scan",
+            name: "Edit Discovery Scan",
             modelType: NetworkDeviceDiscoveryScan,
-            id: "rename-network-device-discovery-scan-form",
-            fields: [SCAN_NAME_FORM_FIELD],
+            id: "edit-network-device-discovery-scan-form",
+            fields: getDiscoveryScanEditFormFields(probes),
             formType: FormType.Update,
           }}
         />

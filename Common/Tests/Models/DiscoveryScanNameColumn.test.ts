@@ -208,7 +208,7 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
   });
 
   /*
-   * The Rename dialog on the Discovery page depends on this list being
+   * The Edit dialog on the Discovery page depends on this list being
    * non-empty — ModelForm drops a field whose column grants no update
    * permission, so an empty list here would turn the dialog into a permission
    * error rather than a text box.
@@ -221,21 +221,31 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
   });
 
   /*
-   * And the sweep itself stays read-only. This is the claim worth pinning:
-   * adding an editable column must not have made anything that DESCRIBES a
-   * sweep editable with it. A target or a credential changed after a probe
-   * took the scan would leave the stored row describing a sweep that never
-   * ran, and a status or a result changed by hand would be a lie about one
-   * that did.
+   * THE LINE THIS MODEL IS DIVIDED ALONG, and the reason both halves are
+   * pinned here rather than left to whoever edits the model next.
    *
-   * (The recurrence pair is editable, and always was — it describes the NEXT
-   * run rather than the one that happened.)
+   * Everything that DESCRIBES the scan is editable. That is a reversal: every
+   * one of these columns was create-only until OneUptime issue #3444, on the
+   * reasoning that a row must never stop describing the sweep that ran. The
+   * reasoning was right and the conclusion was wrong — it made a typo'd subnet
+   * or a rejected community string unfixable except by deleting the scan and
+   * losing its results. The invariant now lives in
+   * NetworkDeviceDiscoveryScanService instead: changing any of them re-queues
+   * the scan and clears the previous run.
+   *
+   * Everything the scan REPORTED stays read-only, and that half is
+   * load-bearing. The service writes those columns as root through the
+   * hook-free path, which has no column access control at all, so this list is
+   * the only thing standing between the public CRUD API and a hand-edited
+   * result: a scan that claims to have found hosts it never saw.
    */
-  test("does not make any part of the sweep editable", () => {
+  test("makes every setting of the sweep editable", () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
 
-    const sweepColumns: Array<string> = [
+    const settingColumns: Array<string> = [
       "cidr",
+      // Both spellings: the dashboard posts `probe`, API clients post `probeId`.
+      "probe",
       "probeId",
       "snmpVersion",
       "snmpCommunityString",
@@ -246,6 +256,23 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
       "snmpV3AuthKey",
       "snmpV3PrivProtocol",
       "snmpV3PrivKey",
+      // The pair that describes the NEXT run rather than the one that happened.
+      "isRecurring",
+      "rescanIntervalInMinutes",
+    ];
+
+    for (const column of settingColumns) {
+      expect({
+        column: column,
+        update: scan.getColumnAccessControlFor(column)?.update,
+      }).toEqual({ column: column, update: EDITORS });
+    }
+  });
+
+  test("keeps everything the scan reported read-only", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    const resultColumns: Array<string> = [
       "status",
       "statusMessage",
       "discoveredDevices",
@@ -253,10 +280,12 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
       "respondedHostCount",
       "startedAt",
       "completedAt",
+      // Derived by the server from the schedule; never set by hand.
       "nextScanAt",
+      "autoImportProcessedAt",
     ];
 
-    for (const column of sweepColumns) {
+    for (const column of resultColumns) {
       expect({
         column: column,
         update: scan.getColumnAccessControlFor(column)?.update,
@@ -264,12 +293,36 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
     }
   });
 
-  // ...while the two columns that describe a future run stay editable.
-  test("leaves the recurrence pair editable, as it already was", () => {
+  /*
+   * Widening `update` must not have widened `read`. The three credential
+   * columns are read by a narrower list than the rest of the model on purpose
+   * — a passphrase is not something every reader of the scans list should be
+   * handed — and every editor is already inside it, so the Edit dialog can
+   * still prefill them.
+   */
+  test("does not widen read access to the credentials", () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
 
-    for (const column of ["isRecurring", "rescanIntervalInMinutes"]) {
-      expect(scan.getColumnAccessControlFor(column)?.update).toEqual(EDITORS);
+    const credentialColumns: Array<string> = [
+      "snmpCommunityString",
+      "snmpV3AuthKey",
+      "snmpV3PrivKey",
+    ];
+
+    for (const column of credentialColumns) {
+      const readers: Array<Permission> =
+        scan.getColumnAccessControlFor(column)?.read || [];
+
+      expect(readers).not.toContain(Permission.Viewer);
+      expect(readers).not.toContain(Permission.SettingsViewer);
+
+      for (const editor of EDITORS) {
+        if (editor === Permission.EditNetworkDeviceDiscoveryScan) {
+          continue;
+        }
+
+        expect(readers).toContain(editor);
+      }
     }
   });
 
