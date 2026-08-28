@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -37,6 +38,28 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import Navigation from "Common/UI/Utils/Navigation";
+import HintChip from "./HintChip";
+import {
+  ServiceScopedInsightsUrlScope,
+  TelemetryFilterTuple,
+  buildServiceScopedInsightsUrlParams,
+  describeUnappliedScopeFilters,
+  readServiceScopedInsightsUrlScope,
+  toPresentParams,
+  withTelemetryTabScopeParams,
+} from "../../Utils/TelemetryTabScope";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  ScopedServiceCoverage,
+  computeScopedServiceCoverage,
+} from "../../Utils/ServiceCoverage";
 
 interface MetricCategory {
   name: string;
@@ -139,17 +162,60 @@ function timeRangeLabel(range: RangeStartAndEndDateTime): string {
 }
 
 const MetricsDashboard: FunctionComponent = (): ReactElement => {
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
+  /*
+   * The slice the Viewer tab handed over, read once on mount. Without this
+   * the Insights tab silently widened back out to the whole project every
+   * time the user switched lens on a scoped view.
+   */
+  const [initialUrlScope] = useState<ServiceScopedInsightsUrlScope>(() => {
+    return readServiceScopedInsightsUrlScope(Navigation.getQueryString());
   });
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(() => {
+    return initialUrlScope.timeRange || { range: TimeRange.PAST_ONE_HOUR };
+  });
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Array<string>>(
+    initialUrlScope.serviceIds,
+  );
+  /*
+   * Viewer chips with no counterpart here — a metric-name search, an
+   * attribute filter, a host selection. Carried so the trip back does not
+   * drop them, and announced so the numbers on this page are not mistaken
+   * for having honoured them.
+   */
+  const [unappliedFilters] = useState<Array<TelemetryFilterTuple>>(
+    initialUrlScope.unappliedFilters,
+  );
+  const [savedViewId, setSavedViewId] = useState<string | null>(
+    initialUrlScope.savedViewId,
+  );
+  const [savedViewName, setSavedViewName] = useState<string>("");
+  /*
+   * The Viewer's own search text — a real predicate compiled through the
+   * metrics grammar, which this page cannot apply. Carried and announced
+   * like an unapplicable chip rather than dropped, which used to widen the
+   * slice on the way here and destroy the user's search on the way back.
+   */
+  const [carriedSearch] = useState<string | null>(initialUrlScope.search);
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
   const [activeMetrics, setActiveMetrics] = useState<Array<Metric>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * Generation token for the in-flight batch. Both the scope picker and the
+   * time picker commit immediately, and the loading state still renders
+   * both, so two quick changes leave two capped 5000-point fetches racing.
+   * Without this the batch that RESOLVES last wins rather than the one the
+   * user asked for last. Same guard the Logs Insights page has always had.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
   const [error, setError] = useState<string>("");
 
   const loadDashboard: () => Promise<void> = useCallback(async () => {
+    const generation: number = ++loadGenerationRef.current;
+
     try {
       setIsLoading(true);
       setError("");
@@ -189,6 +255,16 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                 dateRange.startValue,
                 dateRange.endValue,
               ),
+              /*
+               * The service scope carried from the Viewer tab. Applied to
+               * the fetch rather than filtered client-side: the fetch is
+               * capped, so filtering after it would leave the numbers
+               * describing whichever 5000 points came back rather than the
+               * services the user selected.
+               */
+              ...(selectedServiceIds.length > 0
+                ? { primaryEntityId: new Includes(selectedServiceIds) }
+                : {}),
             } as Query<Metric>,
             limit: 5000,
             skip: 0,
@@ -202,22 +278,199 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           }),
         ]);
 
-      setServices(servicesResult.data || []);
-      setMetricTypes(metricTypesResult.data || []);
-      setActiveMetrics(
-        ((metricsResult as AnalyticsListResult<Metric>).data ||
-          []) as Array<Metric>,
+      const loadedMetrics: Array<Metric> = ((
+        metricsResult as AnalyticsListResult<Metric>
+      ).data || []) as Array<Metric>;
+
+      // A batch the user has already moved on from must not commit.
+      if (loadGenerationRef.current !== generation) {
+        return;
+      }
+
+      /*
+       * Telemetry with no service.name is tagged with the projectId and has
+       * no Service row, and serviceSummaries below injects a synthetic
+       * "Unknown Service" for it. That put it in the NUMERATOR while the
+       * denominator counted Postgres rows only — so a project with three
+       * services and one unattributed collector rendered "4 of 3 services",
+       * and the quiet-services count came out one too low. Wrapping the list
+       * here puts it in both populations, which is what the Traces Insights
+       * page already does.
+       */
+      const referencedServiceIds: Set<string> = new Set(
+        loadedMetrics
+          .map((metric: Metric): string => {
+            return metric.primaryEntityId?.toString() || "";
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
       );
+
+      setServices(
+        TelemetryServiceUtil.withUnknownServiceIfReferenced({
+          services: servicesResult.data || [],
+          referencedServiceIds,
+          projectId,
+        }),
+      );
+      setMetricTypes(metricTypesResult.data || []);
+      setActiveMetrics(loadedMetrics);
     } catch (err) {
+      if (loadGenerationRef.current !== generation) {
+        return;
+      }
+
       setError(API.getFriendlyMessage(err as Error));
     } finally {
-      setIsLoading(false);
+      if (loadGenerationRef.current === generation) {
+        setIsLoading(false);
+      }
     }
-  }, [timeRange]);
+  }, [timeRange, selectedServiceIds]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  /*
+   * Mirror this page's scope into the URL, in the Metrics Viewer's own
+   * grammar — so the tab link back needs no translation, and a refresh or a
+   * shared link restores what the user was looking at.
+   */
+  useEffect(() => {
+    writeTelemetryViewerUrlState(
+      buildServiceScopedInsightsUrlParams({
+        timeRange,
+        serviceIds: selectedServiceIds,
+        unappliedFilters,
+        savedViewId,
+        grammar: "pairs",
+        search: carriedSearch,
+      }),
+    );
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+  ]);
+
+  /*
+   * The name behind the carried saved-view id, so the page can say where its
+   * scope came from. Best-effort: a deleted view drops the reference rather
+   * than surfacing an error, since the scope itself arrived in the URL.
+   */
+  useEffect(() => {
+    if (!savedViewId) {
+      setSavedViewName("");
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    ModelAPI.getItem({
+      modelType: MetricSavedView,
+      id: new ObjectID(savedViewId),
+      select: { name: true },
+    })
+      .then((savedView: MetricSavedView | null): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        const name: string = savedView?.name?.toString() || "";
+
+        if (name) {
+          setSavedViewName(name);
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      })
+      .catch((): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [savedViewId]);
+
+  /*
+   * Built from the same state the URL write above is, not by reading the
+   * query string: that write happens in an effect, so during this render the
+   * URL is still one change behind.
+   */
+  const viewerRoute: Route = useMemo(() => {
+    return withTelemetryTabScopeParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      toPresentParams(
+        buildServiceScopedInsightsUrlParams({
+          timeRange,
+          serviceIds: selectedServiceIds,
+          unappliedFilters,
+          savedViewId,
+          grammar: "pairs",
+          search: carriedSearch,
+        }),
+      ),
+    );
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+  ]);
+
+  const unappliedFiltersHint: string = useMemo(() => {
+    return describeUnappliedScopeFilters(unappliedFilters, {
+      search: carriedSearch,
+    });
+  }, [unappliedFilters, carriedSearch]);
+
+  const serviceOptions: Array<DropdownOption> = useMemo(() => {
+    return services.map((service: Service): DropdownOption => {
+      return {
+        value: service.id?.toString() || "",
+        label: service.name?.toString() || "Unknown Service",
+      };
+    });
+  }, [services]);
+
+  const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
+    return selectedServiceIds.map((serviceId: string): DropdownOption => {
+      /*
+       * A carried selection has to render even before the service list has
+       * loaded — and even for a service that stopped reporting — or the user
+       * would have a filter they can see the effect of but not remove.
+       */
+      return (
+        serviceOptions.find((option: DropdownOption): boolean => {
+          return option.value === serviceId;
+        }) || { value: serviceId, label: serviceId }
+      );
+    });
+  }, [selectedServiceIds, serviceOptions]);
+
+  /*
+   * Editing the scope by hand means it is no longer the saved view's scope,
+   * so the provenance chip goes and the id stops travelling.
+   */
+  const applyServiceSelection: (serviceIds: Array<string>) => void = (
+    serviceIds: Array<string>,
+  ): void => {
+    setSelectedServiceIds(serviceIds);
+    setSavedViewId(null);
+  };
 
   // Aggregate client-side from analytics result
   const stats: {
@@ -333,10 +586,23 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
 
   const totalMetrics: number = stats.activeMetricNames.size;
   const reportingServices: number = serviceSummaries.length;
-  const dormantServices: number = Math.max(
-    0,
-    services.length - reportingServices,
-  );
+  /*
+   * Same shared rule as the Logs Insights page: the denominator is the
+   * SCOPE, not the project, and both terms must be drawn from the same
+   * population — which is why the synthetic "Unknown Service" is folded into
+   * `services` at load time rather than only into the summaries.
+   *
+   * This page has no non-service scope dimension, so coverage is always
+   * meaningful here; the flag is read anyway so the two pages cannot drift.
+   */
+  const coverage: ScopedServiceCoverage = computeScopedServiceCoverage({
+    scopedServiceIds: selectedServiceIds,
+    hasNonServiceResourceScope: false,
+    projectServiceCount: services.length,
+    reportingServices,
+  });
+  const scopedServiceCount: number = coverage.scopedServiceCount;
+  const dormantServices: number = coverage.quietServices;
   const avgPerService: number =
     reportingServices > 0 ? Math.round(totalMetrics / reportingServices) : 0;
   const cataloguedTypes: number = metricTypes.length;
@@ -345,14 +611,72 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   // -- Render --
 
   const headerBar: ReactElement = (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Insights</h2>
         <p className="text-xs text-gray-500">
           What your services are reporting in {rangeLabel}.
         </p>
+        {(savedViewName || unappliedFiltersHint) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {savedViewName && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+                <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+                <span>
+                  Scoped by saved view{" "}
+                  <span className="font-medium">{savedViewName}</span>
+                </span>
+                <button
+                  type="button"
+                  className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+                  title="Stop scoping by this saved view"
+                  aria-label="Stop scoping by this saved view"
+                  onClick={() => {
+                    applyServiceSelection([]);
+                  }}
+                >
+                  <Icon icon={IconProp.Close} className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {unappliedFiltersHint && (
+              <HintChip>{unappliedFiltersHint}</HintChip>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-[16rem]">
+          <Dropdown
+            options={serviceOptions}
+            value={selectedServiceOptions}
+            isMultiSelect={true}
+            placeholder="All services"
+            ariaLabel="Scope insights to a service"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (!value) {
+                applyServiceSelection([]);
+                return;
+              }
+
+              const values: Array<DropdownValue> = Array.isArray(value)
+                ? value
+                : [value];
+
+              applyServiceSelection(
+                values
+                  .map((item: DropdownValue): string => {
+                    return String(item);
+                  })
+                  .filter((item: string): boolean => {
+                    return item.length > 0;
+                  }),
+              );
+            }}
+          />
+        </div>
         <TelemetryTimeRangePicker
           value={timeRange}
           onChange={(value: RangeStartAndEndDateTime): void => {
@@ -422,9 +746,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.METRICS] as Route,
-              )}
+              to={viewerRoute}
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
@@ -469,8 +791,8 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           label="Reporting services"
           value={reportingServices}
           subtext={
-            services.length > 0
-              ? `${reportingServices} of ${services.length} services`
+            scopedServiceCount > 0
+              ? `${reportingServices} of ${scopedServiceCount} services`
               : "actively sending data"
           }
           icon={IconProp.CheckCircle}
@@ -559,7 +881,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         </div>
         <AppLink
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-          to={RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route)}
+          to={viewerRoute}
         >
           <span>Open Viewer</span>
           <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />

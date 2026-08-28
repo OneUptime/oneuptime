@@ -21,6 +21,7 @@ const TracesNavTabs: FunctionComponent<Props> = (
       label: "Viewer",
       icon: IconProp.List,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+      carriesScope: true,
     },
     {
       key: "insights",
@@ -29,6 +30,7 @@ const TracesNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.TRACES_INSIGHTS] as Route,
       ),
+      carriesScope: true,
     },
     {
       key: "setup",

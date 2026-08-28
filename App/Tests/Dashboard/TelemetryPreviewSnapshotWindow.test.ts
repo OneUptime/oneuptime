@@ -314,10 +314,18 @@ describe("the logs viewer seeds its time range from the query's window", () => {
     /*
      * A saved view carries its own time range and would move an embedded
      * preview off the moment it is about.
+     *
+     * The check now reads as `hostOwnsView` fed to resolveInitialSavedView,
+     * which returns no view when it is set — the precedence moved into that
+     * shared resolver when the Viewer and Insights tabs started handing each
+     * other a scope. The guarantee is unchanged and, if anything, wider:
+     * every embedded viewer (`!syncUrlState`) is covered now, not only the
+     * ones a host pinned a window on.
      */
     expect(LOGS_VIEWER).toContain(
-      "if (pinnedTimeRange || props.timeRangeOverride) { return; }",
+      "hostOwnsView: Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, )",
     );
+    expect(LOGS_VIEWER).toContain("if (resolution.savedView) {");
   });
 });
 

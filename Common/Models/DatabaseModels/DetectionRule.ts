@@ -523,15 +523,21 @@ export default class DetectionRule extends BaseModel {
   @TableColumn({
     title: "Last Error",
     required: false,
-    type: TableColumnType.LongText,
+    /*
+     * Unbounded text, not LongText's varchar(500): a ClickHouse error
+     * echoes the whole compiled query back, which overflows 500 and made
+     * the evaluator's own error-recording write throw — leaving this
+     * column, and lastEvaluatedAt with it, null forever. The evaluator
+     * still clamps what it stores.
+     */
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:
       "The most recent evaluation error, if any. Cleared on the next successful evaluation.",
   })
   @Column({
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    length: ColumnLength.LongText,
   })
   public lastError?: string = undefined;
 

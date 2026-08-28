@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import BadDataException from "../../../Types/Exception/BadDataException";
 
 /*
  * A many-to-one reference reaches a service hook under TWO different keys.
@@ -64,5 +65,46 @@ export default class RelationIdUtil {
     }
 
     return null;
+  }
+
+  /**
+   * Read one logical relation while rejecting payloads that point its scalar
+   * FK and relation-object spellings at different rows. TypeORM's precedence
+   * for two writes to the same join column is not a security boundary: a hook
+   * must validate the exact ID that can be persisted.
+   */
+  public static readConsistent(
+    data: Record<string, unknown> | undefined | null,
+    keys: Array<string>,
+    relationTitle: string,
+  ): ObjectID | null {
+    const ids: Array<ObjectID> = [];
+    const distinctIds: Set<string> = new Set();
+    let hasExplicitNull: boolean = false;
+
+    for (const key of keys) {
+      const value: unknown = (data || {})[key];
+
+      // Undefined is an omitted model property; null is an explicit clear.
+      if (value === undefined) {
+        continue;
+      }
+
+      const id: ObjectID | null = this.read(data, [key]);
+      if (id) {
+        ids.push(id);
+        distinctIds.add(id.toString());
+      } else {
+        hasExplicitNull = true;
+      }
+    }
+
+    if (distinctIds.size > 1 || (hasExplicitNull && distinctIds.size > 0)) {
+      throw new BadDataException(
+        `Conflicting ${relationTitle} references were provided.`,
+      );
+    }
+
+    return ids[0] || null;
   }
 }

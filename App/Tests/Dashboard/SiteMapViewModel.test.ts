@@ -3567,6 +3567,52 @@ describe("buildMapLinks", () => {
     expect([lines[0]!.x1, lines[0]!.x2]).toEqual([10, 90]);
   });
 
+  /*
+   * A line carries the MARKERS it joins, not the site ids off the link row.
+   * In "all" mode a clustered marker speaks for a dozen sites, so the site
+   * ids do not identify the things actually on screen — and the map's
+   * emphasis ("what is this marker wired to", issue #3432) is a question
+   * about what is drawn.
+   */
+  test("a line names the markers it joins, not the sites it came from", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1", fromSiteId: "s2", toSiteId: "s4" })],
+      markers: [
+        linkMarker("west", 10, 10, ["s1", "s2"]),
+        linkMarker("east", 90, 10, ["s3", "s4"]),
+      ],
+      zoom: 1,
+    });
+    expect(lines).toHaveLength(1);
+    expect([lines[0]!.fromMarkerKey, lines[0]!.toMarkerKey]).toEqual([
+      "west",
+      "east",
+    ]);
+  });
+
+  /*
+   * And the ends are recorded in the direction the LINK runs, so a bundle
+   * of parallel links between one pair all agree about which end is which.
+   */
+  test("the ends follow the link's own direction", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [
+        linkRow({ id: "l1", fromSiteId: "a", toSiteId: "b" }),
+        linkRow({ id: "l2", fromSiteId: "b", toSiteId: "a" }),
+      ],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 200, 0)],
+      zoom: 1,
+    });
+    expect([lines[0]!.fromMarkerKey, lines[0]!.toMarkerKey]).toEqual([
+      "a",
+      "b",
+    ]);
+    expect([lines[1]!.fromMarkerKey, lines[1]!.toMarkerKey]).toEqual([
+      "b",
+      "a",
+    ]);
+  });
+
   test("a link whose ends share one marker is a dot, so it is dropped", () => {
     const lines: Array<DrawableMapLink> = buildMapLinks({
       links: [

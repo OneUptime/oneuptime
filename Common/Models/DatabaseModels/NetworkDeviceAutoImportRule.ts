@@ -1,3 +1,4 @@
+import MonitorTemplate from "./MonitorTemplate";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -23,13 +24,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * manual "Review Results -> Import" step — the OneUptime shape of Zabbix's
  * autoregistration actions (issue #3378).
  *
- * The rule is deliberately a pure CREATION GATE: conditions decide WHICH
- * discovered hosts import, and the import itself goes through the same
- * builder as the manual dialog. Everything downstream of creation — site
- * assignment, owners, labels — already fires automatically from
+ * Conditions decide WHICH discovered hosts import, and the optional monitor
+ * template decides whether each imported SNMP device also gets a Network
+ * Device monitor. Everything else downstream of creation — site assignment,
+ * owners, labels — already fires automatically from
  * NetworkDeviceService.onCreateSuccess through the existing
  * NetworkSiteAssignmentRule / NetworkDeviceOwnerRule / NetworkDeviceLabelRule
- * engines, so this model carries no operation columns to fight them with.
+ * engines, so this model carries no competing operation columns.
  *
  * Conditions on one rule are ANDed; OR is more rules. An exclusion rule
  * (isExclusion) vetoes matching import rules — "never auto-import X".
@@ -76,7 +77,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Network Device Auto Import Rules",
   icon: IconProp.Automation,
   tableDescription:
-    "Automatically import matching hosts from network device discovery scan results as Network Devices, with no manual review step",
+    "Automatically import matching hosts from network device discovery scan results as Network Devices and optionally provision a monitor from a template",
 })
 /*
  * The index and foreign-key names below are written out rather than left to
@@ -464,6 +465,91 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     default: false,
   })
   public isExclusion?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorTemplateId",
+    type: TableColumnType.Entity,
+    modelType: MonitorTemplate,
+    title: "Monitor Template",
+    description:
+      "Optional Network Device monitor template to apply to devices imported by this rule",
+  })
+  @ManyToOne(
+    () => {
+      return MonitorTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "monitorTemplateId",
+    foreignKeyConstraintName: "FK_nd_auto_import_rule_monitorTemplateId",
+  })
+  public monitorTemplate?: MonitorTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @Index("IDX_network_device_auto_import_rule_monitorTemplateId")
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor Template ID",
+    description:
+      "ID of the optional Network Device monitor template to apply to devices imported by this rule",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
-import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
+import NetworkInterfaceService, {
+  InterfaceWalkUpsertResult,
+} from "../../../../Server/Services/NetworkInterfaceService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../../Models/DatabaseModels/NetworkInterface";
 import ObjectID from "../../../../Types/ObjectID";
@@ -40,8 +42,7 @@ type DeviceUpdatePayload = Record<string, unknown>;
 let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
-let interfaceUpdateSpy: jest.SpyInstance;
-let interfaceCreateSpy: jest.SpyInstance;
+let interfaceUpsertSpy: jest.SpyInstance;
 let endpointUpsertSpy: jest.SpyInstance;
 
 function mockServices(
@@ -65,15 +66,53 @@ function mockServices(
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(1);
+  /*
+   * The inventory read now happens INSIDE the batched service call, so this
+   * stub only exists to keep a stray direct read from reaching a database.
+   */
   interfaceFindSpy = jest
     .spyOn(NetworkInterfaceService, "findBy")
     .mockResolvedValue(existingInterfaces);
-  interfaceUpdateSpy = jest
-    .spyOn(NetworkInterfaceService, "updateOneById")
-    .mockResolvedValue(1);
-  interfaceCreateSpy = jest
-    .spyOn(NetworkInterfaceService, "create")
-    .mockResolvedValue(new NetworkInterface());
+  /*
+   * Interfaces are written by one batched service call now (one SELECT plus
+   * one INSERT/UPDATE per 500 rows) instead of a create()/updateOneById() per
+   * port. The column-by-column contract is pinned in
+   * Tests/Utils/Monitor/InterfaceInventoryUtil.test.ts and the SQL in
+   * Tests/Server/Services/NetworkInterfaceServiceUpsert.test.ts; this stub
+   * reproduces the one part of the contract this util depends on — which
+   * walked indexes come back reported as muted — so the response-pruning
+   * tests below still exercise the whole seam.
+   */
+  interfaceUpsertSpy = jest
+    .spyOn(NetworkInterfaceService, "upsertWalkedInterfaces")
+    .mockImplementation(
+      async (input: {
+        projectId: ObjectID;
+        deviceId: ObjectID;
+        walkedInterfaces: Array<SnmpInterface>;
+        now: Date;
+      }): Promise<InterfaceWalkUpsertResult> => {
+        const mutedIndexes: Set<number> = new Set(
+          existingInterfaces
+            .filter((row: NetworkInterface) => {
+              return row.isMonitored === false;
+            })
+            .map((row: NetworkInterface) => {
+              return row.interfaceIndex!;
+            }),
+        );
+
+        return {
+          unmonitoredInterfaceIndexes: input.walkedInterfaces
+            .map((walked: SnmpInterface) => {
+              return walked.interfaceIndex;
+            })
+            .filter((interfaceIndex: number) => {
+              return mutedIndexes.has(interfaceIndex);
+            }),
+        };
+      },
+    );
   endpointUpsertSpy = jest
     .spyOn(NetworkEndpointService, "upsertDiscoveredEndpoints")
     .mockResolvedValue(undefined as never);
@@ -231,8 +270,7 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
     });
 
     expect(deviceUpdateSpy).not.toHaveBeenCalled();
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
   });
 
   test("the ownership lookup is scoped to both the device id and the project id", async () => {
@@ -624,7 +662,17 @@ describe("NetworkInventoryUtil.updateFromWalk — cached interface counts", () =
 });
 
 describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
-  test("the update path passes macAddress and interfaceType through", async () => {
+  /*
+   * The util used to loop over the walk writing each interface with its own
+   * create() / updateOneById(); because DatabaseService._updateBy SELECTs
+   * before every UPDATE, a 50-port switch cost 101 statements. It now hands
+   * the whole walk to one batched service call. What is left to pin HERE is
+   * the hand-off and the response pruning that depends on its answer — the
+   * column-by-column contract lives in
+   * Tests/Utils/Monitor/InterfaceInventoryUtil.test.ts and the SQL in
+   * Tests/Server/Services/NetworkInterfaceServiceUpsert.test.ts.
+   */
+  test("the whole walk is handed to the batched upsert in one call", async () => {
     mockServices([existingInterface(1)]);
 
     await runWalk({
@@ -634,104 +682,42 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
           macAddress: "aa:bb:cc:dd:ee:ff",
           interfaceType: 6,
         }),
+        walkedInterface({ interfaceIndex: 2, name: "GigabitEthernet0/2" }),
       ],
     });
 
-    expect(interfaceUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
 
-    const updateData: Record<string, unknown> =
-      interfaceUpdateSpy.mock.calls[0][0].data;
-
-    expect(updateData["macAddress"]).toBe("aa:bb:cc:dd:ee:ff");
-    expect(updateData["interfaceType"]).toBe(6);
-    expect(updateData["name"]).toBe("GigabitEthernet0/1");
-    expect(updateData["lastSeenAt"]).toEqual(NOW);
+    const call: Record<string, any> = interfaceUpsertSpy.mock.calls[0][0];
+    expect(call["projectId"].toString()).toBe(PROJECT_ID);
+    expect(call["deviceId"].toString()).toBe(DEVICE_ID);
+    expect(call["walkedInterfaces"]).toHaveLength(2);
+    expect(call["walkedInterfaces"][0].interfaceIndex).toBe(1);
+    expect(call["walkedInterfaces"][0].macAddress).toBe("aa:bb:cc:dd:ee:ff");
+    expect(call["walkedInterfaces"][1].interfaceIndex).toBe(2);
   });
 
-  test("the update path clears macAddress and interfaceType when the walk stops reporting them", async () => {
+  /*
+   * One timestamp for the whole walk, shared with the device row's
+   * lastSeenAt. Per-row clock reads would make "which ports answered on this
+   * walk" unanswerable, because no two rows would share a value to group on.
+   */
+  test("the upsert is stamped with the same `now` as the device row", async () => {
     mockServices([existingInterface(1)]);
 
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1 })],
-    });
+    await runWalk({ interfaces: [walkedInterface({ interfaceIndex: 1 })] });
 
-    const updateData: Record<string, unknown> =
-      interfaceUpdateSpy.mock.calls[0][0].data;
-
-    expect(updateData["macAddress"]).toBeNull();
-    expect(updateData["interfaceType"]).toBeNull();
-  });
-
-  test("the create path passes macAddress and interfaceType through", async () => {
-    mockServices([]);
-
-    await runWalk({
-      interfaces: [
-        walkedInterface({
-          interfaceIndex: 7,
-          macAddress: "aa:bb:cc:dd:ee:ff",
-          interfaceType: 6,
-        }),
-      ],
-    });
-
-    expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-
-    expect(created.macAddress).toBe("aa:bb:cc:dd:ee:ff");
-    expect(created.interfaceType).toBe(6);
-    expect(created.interfaceIndex).toBe(7);
-    expect(created.name).toBe("GigabitEthernet0/1");
-    expect(created.isMonitored).toBe(true);
-    expect(created.networkDeviceId?.toString()).toBe(DEVICE_ID);
-    expect(created.projectId?.toString()).toBe(PROJECT_ID);
-  });
-
-  test("the create path leaves macAddress and interfaceType unset when the walk has none", async () => {
-    mockServices([]);
-
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 7 })],
-    });
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-
-    expect(created.macAddress).toBeUndefined();
-    expect(created.interfaceType).toBeUndefined();
-  });
-
-  test("over-long mac addresses are truncated on both paths", async () => {
-    const longMac: string = "a".repeat(150);
-
-    mockServices([existingInterface(1)]);
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1, macAddress: longMac })],
-    });
-
-    expect(interfaceUpdateSpy.mock.calls[0][0].data["macAddress"]).toBe(
-      longMac.substring(0, 100),
-    );
-
-    jest.restoreAllMocks();
-    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
-
-    mockServices([]);
-    await runWalk({
-      interfaces: [walkedInterface({ interfaceIndex: 1, macAddress: longMac })],
-    });
-
-    const created: NetworkInterface = interfaceCreateSpy.mock.calls[0][0].data;
-    expect(created.macAddress).toBe(longMac.substring(0, 100));
+    expect(interfaceUpsertSpy.mock.calls[0][0].now).toEqual(NOW);
+    expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
   });
 
   /*
    * A user muting an interface (isMonitored=false) keeps it in inventory but
    * prunes it from the in-flight response so criteria and metrics ignore it.
+   * If the pruning is lost, a muted port starts raising incidents again the
+   * moment it goes down — which is exactly what the user muted it to stop.
    */
-  test("an unmonitored interface is still updated in inventory but pruned from the response", async () => {
+  test("an unmonitored interface is still written to inventory but pruned from the response", async () => {
     const muted: NetworkInterface = existingInterface(1);
     muted.isMonitored = false;
     mockServices([muted]);
@@ -743,13 +729,54 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
       ],
     });
 
-    // Inventory keeps the full picture: one update (index 1), one create (index 2).
-    expect(interfaceUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
+    // Inventory keeps the full picture: both ports went into the upsert.
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(interfaceUpsertSpy.mock.calls[0][0].walkedInterfaces).toHaveLength(
+      2,
+    );
 
     // The in-flight response only keeps the monitored interface.
     expect(snmpResponse.interfaces).toHaveLength(1);
     expect(snmpResponse.interfaces?.[0]?.interfaceIndex).toBe(2);
+  });
+
+  test("a walk with nothing muted leaves the response untouched", async () => {
+    mockServices([existingInterface(1)]);
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1 }),
+        walkedInterface({ interfaceIndex: 2, name: "GigabitEthernet0/2" }),
+      ],
+    });
+
+    expect(snmpResponse.interfaces).toHaveLength(2);
+  });
+
+  /*
+   * Inventory bookkeeping must never fail the walk PIPELINE: an upsert that
+   * throws is logged and swallowed by updateFromWalk's own catch, so nothing
+   * escapes into the probe-ingest handler and the device row keeps the
+   * enrichment that was already written.
+   *
+   * Be precise about what it does NOT survive, because the obvious reading is
+   * wrong: the upsert call and the ARP/FDB endpoint block sit inside the SAME
+   * try, so a throw jumps past endpoint discovery and past the response
+   * pruning for that cycle. That is unchanged from the row-at-a-time loop, and
+   * it is why NetworkInterfaceService retries a failed chunk row by row —
+   * a single unwritable interface should never get as far as this catch.
+   */
+  test("a failing interface upsert does not abort the rest of the walk", async () => {
+    mockServices();
+    interfaceUpsertSpy.mockRejectedValue(new Error("deadlock detected"));
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk({
+      interfaces: [walkedInterface({ interfaceIndex: 1 })],
+    });
+
+    // The device row was still enriched, and nothing threw out of the util.
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(snmpResponse.interfaces).toHaveLength(1);
   });
 });
 
@@ -770,8 +797,7 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
     expect(update).not.toHaveProperty("interfacesDown");
 
     expect(interfaceFindSpy).not.toHaveBeenCalled();
-    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
-    expect(interfaceCreateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
   });
 
   test("a walk with no snmpResponse at all still records the poll", async () => {
@@ -791,6 +817,7 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
       lastSeenAt: NOW,
     });
     expect(interfaceFindSpy).not.toHaveBeenCalled();
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
   });
 });
 

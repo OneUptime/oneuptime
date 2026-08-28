@@ -782,7 +782,10 @@ export default class NetworkDevice extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "monitorId",
     type: TableColumnType.Entity,
-    modelType: Monitor,
+    // Lazy: Monitor and NetworkDevice import each other (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Monitor;
+    },
     title: "Monitor",
     description:
       "The monitor that reports this device's health when its monitoring method is Monitor. Any monitor type works — Ping and IP are the usual choices for gear that does not speak SNMP.",

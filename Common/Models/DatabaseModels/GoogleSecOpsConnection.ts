@@ -282,15 +282,21 @@ export default class GoogleSecOpsConnection extends BaseModel {
   @TableColumn({
     title: "Last Error",
     required: false,
-    type: TableColumnType.LongText,
+    /*
+     * Unbounded text, not LongText's varchar(500): a Google SecOps API
+     * failure is a prefix plus up to 500 characters of echoed response
+     * body, which overflows 500 and made the poller's own error-recording
+     * write throw — leaving this column, and lastPolledAt with it, null
+     * forever. The poller still clamps what it stores.
+     */
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:
       "The most recent poll error, if any. Cleared on the next successful poll.",
   })
   @Column({
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
     nullable: true,
-    length: ColumnLength.LongText,
   })
   public lastError?: string = undefined;
 

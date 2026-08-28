@@ -1,5 +1,9 @@
 import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
+import AddNeighborToMonitoringModal from "./AddNeighborToMonitoringModal";
+import { isAdoptableNode } from "./AdoptNeighborUtil";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
 import {
@@ -195,6 +199,15 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
   const [suppressionError, setSuppressionError] = useState<string>("");
+  /*
+   * The unmanaged neighbour the "Add to Monitoring" dialog is open for.
+   * Held as the node rather than as a boolean so the dialog is mounted only
+   * once it has something to pre-fill from — its form reads its initial
+   * values exactly once, on the render in which it first appears.
+   */
+  const [nodeToAdopt, setNodeToAdopt] = useState<NetworkTopologyNode | null>(
+    null,
+  );
   const [layoutMode, setLayoutMode] = useState<TopologyLayoutMode>(
     props.layoutMode || "force",
   );
@@ -331,6 +344,19 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     },
     [fetchTopology],
   );
+
+  /*
+   * Whether this user may create a device at all. Checked here rather than
+   * inside the panel so the action is simply absent for a viewer, instead of
+   * opening a form that renders as a permission error — and hidden, not
+   * disabled, when the gate has nothing honest to say (the permission
+   * snapshot lands on a response header, so it is empty for the first paint
+   * after a login or a project switch).
+   */
+  const canCreateDevice: boolean = PermissionGate.check(
+    new NetworkDevice(),
+    ModelAction.Create,
+  ).isAllowed;
 
   const restoreAllHiddenNodes: () => void = useCallback((): void => {
     setSuppressionError("");
@@ -1054,6 +1080,52 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             setSelectedEdgeKey(edgeKeyForEdge(edge));
           }}
           onHideNode={hideNode}
+          onAddToMonitoring={
+            canCreateDevice && isAdoptableNode(selectedNode)
+              ? (node: NetworkTopologyNode) => {
+                  /*
+                   * Close the drawer first, the same way hiding a node
+                   * does: SideOver has no backdrop, so leaving it open
+                   * behind the dialog stacks two surfaces the user can
+                   * still click through to.
+                   */
+                  setSelectedNodeId(null);
+                  setNodeToAdopt(node);
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <></>
+      )}
+
+      {nodeToAdopt ? (
+        <AddNeighborToMonitoringModal
+          key={nodeToAdopt.id}
+          node={nodeToAdopt}
+          edges={visibleTopology.edges}
+          nodeById={nodeById}
+          onClose={() => {
+            setNodeToAdopt(null);
+          }}
+          onSuccess={() => {
+            setNodeToAdopt(null);
+            /*
+             * Refetch rather than patching local state, for the reason
+             * hiding a node refetches: whether the new device absorbs the
+             * unmanaged node is decided server-side, by re-deriving the
+             * whole graph from the neighbour reports. Guessing at it here
+             * would show this user a map nobody else has. The BACKGROUND
+             * variant, so the viewport and the saved arrangement survive
+             * the refresh the operator just triggered — and, like the
+             * minute-by-minute refresh, a failure keeps the last graph
+             * rather than reporting an error about a device that WAS
+             * created.
+             */
+            fetchTopology(true).catch(() => {
+              // Non-fatal: the next scheduled refresh picks the device up.
+            });
+          }}
         />
       ) : (
         <></>

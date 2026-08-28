@@ -8,8 +8,9 @@ import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -18,6 +19,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
@@ -25,7 +27,9 @@ import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleR
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Select from "../Types/Database/Select";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
@@ -145,7 +149,134 @@ function toRuleMatchTarget(device: Model): {
   };
 }
 
+/*
+ * How long "this project has no site-assignment rules at all" is trusted
+ * without asking Postgres again.
+ *
+ * Every successful walk writes `sysName`, an identity column, so
+ * onUpdateSuccess re-evaluates the rules for every device that has no site.
+ * That rule is correct and stays (see shouldReapplySiteAssignmentRules), but
+ * on a project mid-rollout — devices imported, rules not written yet — it is
+ * EVERY device, and each one re-read the same empty rule set to conclude
+ * nothing: a findOneById plus an uncached findBy per device per poll, i.e.
+ * ~160,000 queries per five-minute cycle on an 80,000-device fleet.
+ *
+ * Ten seconds is measured against the thing a user would actually notice.
+ * The earliest a newly saved rule can reach an already-imported device is
+ * that device's next poll — five minutes by default — or the rule's "Run
+ * now" button, which never consults this cache. Ten seconds is a rounding
+ * error against that window, so this can never be the reason a rule looks
+ * like it did not take.
+ */
+export const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS: number = 10 * 1000;
+
+/*
+ * Bounded so an instance serving many projects cannot grow this forever.
+ * Only ever holds projects that had NO rules, so in practice it is small.
+ */
+const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS: number = 10000;
+
+/*
+ * Remembers ONLY the negative answer: "this project had zero site-assignment
+ * rules when we last looked."
+ *
+ * Deliberately not a cache of the rules themselves. A stale rule set causes a
+ * WRONG WRITE — a device assigned to a site by a rule that was edited or
+ * deleted seconds ago, and nothing ever moves it back — whereas a stale "no
+ * rules" only defers work that the polling interval already defers by
+ * minutes. The two failure modes are not comparable, so only the safe half is
+ * cached.
+ *
+ * Every read of the rule set feeds `record`, so the instant any code path in
+ * this process observes that the project does have rules, the skip is
+ * dropped. Across replicas nothing is invalidated by another replica's write
+ * — which is precisely why the TTL, not the invalidation, is the guarantee.
+ */
+export class EmptySiteAssignmentRuleCache {
+  private knownEmptyUntil: Map<string, number> = new Map<string, number>();
+
+  private ttlInMs: number;
+  private maxProjects: number;
+  private now: () => number;
+
+  public constructor(options?: {
+    ttlInMs?: number | undefined;
+    maxProjects?: number | undefined;
+    now?: (() => number) | undefined;
+  }) {
+    this.ttlInMs =
+      options?.ttlInMs ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS;
+    this.maxProjects =
+      options?.maxProjects ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS;
+    /*
+     * Wrapped rather than stored as `Date.now` itself, so moving the clock
+     * (a test, or a future injected clock) is actually observed here.
+     */
+    this.now =
+      options?.now ??
+      ((): number => {
+        return Date.now();
+      });
+  }
+
+  public isKnownEmpty(projectId: ObjectID): boolean {
+    const key: string = projectId.toString();
+    const expiresAt: number | undefined = this.knownEmptyUntil.get(key);
+
+    if (expiresAt === undefined) {
+      return false;
+    }
+
+    if (expiresAt <= this.now()) {
+      // Dropped on read, so an idle project's entry does not linger.
+      this.knownEmptyUntil.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+
+  public record(data: { projectId: ObjectID; isEmpty: boolean }): void {
+    const key: string = data.projectId.toString();
+
+    if (!data.isEmpty) {
+      this.knownEmptyUntil.delete(key);
+      return;
+    }
+
+    if (
+      this.knownEmptyUntil.size >= this.maxProjects &&
+      !this.knownEmptyUntil.has(key)
+    ) {
+      // Evict the oldest — a Map iterates in insertion order.
+      const oldestKey: string | undefined = this.knownEmptyUntil
+        .keys()
+        .next().value;
+
+      if (oldestKey !== undefined) {
+        this.knownEmptyUntil.delete(oldestKey);
+      }
+    }
+
+    this.knownEmptyUntil.set(key, this.now() + this.ttlInMs);
+  }
+
+  public clear(): void {
+    this.knownEmptyUntil.clear();
+  }
+}
+
 export class Service extends DatabaseService<Model> {
+  /*
+   * The projects known to have no site-assignment rules. Exposed so tests can
+   * reset it between cases, and so a future invalidation hook on
+   * NetworkSiteAssignmentRuleService has something to call — note that such a
+   * hook only clears the replica that ran the write, which is why the TTL
+   * above is what actually bounds staleness.
+   */
+  public readonly emptySiteAssignmentRuleCache: EmptySiteAssignmentRuleCache =
+    new EmptySiteAssignmentRuleCache();
+
   public constructor() {
     super(Model);
   }
@@ -291,7 +422,34 @@ export class Service extends DatabaseService<Model> {
     hostnames: Array<string>;
     props: DatabaseCommonInteractionProps;
   }): Promise<Set<string>> {
-    const registered: Set<string> = new Set<string>();
+    return new Set<string>(
+      (
+        await this.getDevicesByHostnames({
+          projectId: data.projectId,
+          hostnames: data.hostnames,
+          select: { hostname: true },
+          props: data.props,
+        })
+      ).keys(),
+    );
+  }
+
+  /**
+   * The devices at these addresses, keyed by hostname.
+   *
+   * The row-returning form of `getRegisteredHostnames`, for callers that need
+   * more than "does it exist" — the auto-import engine reads back the device's
+   * id and monitoring method to decide whether it also needs a monitor
+   * provisioned. Same chunked, indexed lookup; same reason for existing.
+   */
+  @CaptureSpan()
+  public async getDevicesByHostnames(data: {
+    projectId: ObjectID;
+    hostnames: Array<string>;
+    select: Select<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Model>> {
+    const registered: Map<string, Model> = new Map<string, Model>();
 
     const wanted: Array<string> = Array.from(
       new Set<string>(
@@ -323,6 +481,7 @@ export class Service extends DatabaseService<Model> {
           hostname: QueryHelper.any(chunk),
         },
         select: {
+          ...data.select,
           hostname: true,
         },
         sort: {},
@@ -333,7 +492,7 @@ export class Service extends DatabaseService<Model> {
 
       for (const device of found) {
         if (device.hostname) {
-          registered.add(device.hostname);
+          registered.set(device.hostname, device);
         }
       }
     }
@@ -488,6 +647,155 @@ export class Service extends DatabaseService<Model> {
     });
 
     return rows.map(parseDeviceHealthGroup);
+  }
+
+  /*
+   * The provenance FK uses RESTRICT as a final race backstop: PostgreSQL must
+   * never silently remove an active monitor with its device. An ordinary
+   * service deletion therefore authorizes and resolves the exact device rows
+   * first, then deletes their automatic monitors through MonitorService so
+   * Monitor delete permissions, workspace cleanup, workflows, audit,
+   * realtime, and billing hooks all run before the devices are removed.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const authorizedQuery: Query<Model> =
+      await ModelPermission.checkDeleteQueryPermission(
+        Model,
+        deleteBy.query,
+        deleteBy.props,
+      );
+
+    const devices: Array<Model> = await this.findBy({
+      query: authorizedQuery,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      limit: deleteBy.limit,
+      skip: deleteBy.skip,
+      props: { isRoot: true },
+    });
+
+    const countAutomaticMonitors: (
+      query: Query<Monitor>,
+    ) => Promise<number> = async (query: Query<Monitor>): Promise<number> => {
+      return (
+        await MonitorService.countBy({
+          query,
+          props: { isRoot: true },
+        })
+      ).toNumber();
+    };
+    const cleanupPlans: Array<{
+      automaticMonitorQuery: Query<Monitor>;
+      monitorDeleteProps: DatabaseCommonInteractionProps;
+      monitorCount: number;
+    }> = [];
+
+    /*
+     * Preflight every device in the bulk request before deleting the first
+     * monitor. Otherwise a later inaccessible device could abort the request
+     * after earlier devices had already lost their automatic monitors.
+     */
+    for (const device of devices) {
+      if (!device.id || !device.projectId) {
+        continue;
+      }
+
+      const automaticMonitorQuery: Query<Monitor> = {
+        projectId: device.projectId,
+        autoProvisionedNetworkDeviceId: device.id,
+      };
+      const monitorDeleteProps: DatabaseCommonInteractionProps = {
+        ...deleteBy.props,
+        tenantId: device.projectId,
+      };
+      const monitorCount: number = await countAutomaticMonitors(
+        automaticMonitorQuery,
+      );
+
+      if (monitorCount === 0) {
+        continue;
+      }
+
+      /*
+       * Prove access BEFORE deleting anything. Without this preflight an
+       * access-control query could delete only the monitors visible to the
+       * caller before the RESTRICT constraint rejects the device deletion,
+       * leaving a partially cleaned-up request. The authorized query is a
+       * subset of automaticMonitorQuery, so equal counts prove that it covers
+       * the full set at this instant.
+       */
+      const authorizedMonitorQuery: Query<Monitor> =
+        await ModelPermission.checkDeleteQueryPermission(
+          Monitor,
+          automaticMonitorQuery,
+          monitorDeleteProps,
+        );
+      const authorizedMonitorCount: number = await countAutomaticMonitors(
+        authorizedMonitorQuery,
+      );
+
+      if (authorizedMonitorCount !== monitorCount) {
+        throw new NotAuthorizedException(
+          "You do not have permission to delete every auto-provisioned monitor linked to this Network Device.",
+        );
+      }
+
+      cleanupPlans.push({
+        automaticMonitorQuery,
+        monitorDeleteProps,
+        monitorCount,
+      });
+    }
+
+    for (const cleanupPlan of cleanupPlans) {
+      /*
+       * LIMIT_MAX is a per-service-call cap, not a lifecycle cap. Always
+       * delete from offset zero because each successful batch shrinks the
+       * result set. Recount as root after every batch: a permission change or
+       * concurrent inaccessible insert must fail closed, with the FK's
+       * RESTRICT policy remaining the last guard before device deletion.
+       */
+      let remainingMonitorCount: number = cleanupPlan.monitorCount;
+      while (remainingMonitorCount > 0) {
+        await MonitorService.deleteBy({
+          query: cleanupPlan.automaticMonitorQuery,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: cleanupPlan.monitorDeleteProps,
+        });
+
+        const previousMonitorCount: number = remainingMonitorCount;
+        remainingMonitorCount = await countAutomaticMonitors(
+          cleanupPlan.automaticMonitorQuery,
+        );
+
+        if (remainingMonitorCount >= previousMonitorCount) {
+          throw new NotAuthorizedException(
+            "Could not delete every auto-provisioned monitor linked to this Network Device.",
+          );
+        }
+      }
+    }
+
+    return {
+      deleteBy: {
+        ...deleteBy,
+        query: {
+          _id: QueryHelper.any(
+            devices.flatMap((device: Model): Array<ObjectID> => {
+              return device.id ? [device.id] : [];
+            }),
+          ),
+        },
+        skip: 0,
+      },
+      carryForward: null,
+    };
   }
 
   /*
@@ -1068,7 +1376,27 @@ export class Service extends DatabaseService<Model> {
             continue;
           }
 
-          await this.applySiteAssignmentRulesToDevice(deviceId);
+          /*
+           * The previous snapshot already carries the device's project, so
+           * hand it over: it lets a project with no rules at all skip both
+           * the device read and the rule read, which is the whole cost of
+           * this branch for a fleet that has not been given rules yet.
+           *
+           * ...but ONLY for a device with no site, and that distinction is
+           * the whole safety of the skip. Those devices are re-evaluated on
+           * every poll, so a skip there defers work by one cycle and the next
+           * poll picks it up. A device that already HAS a site is re-evaluated
+           * only when its identity actually changed — a one-shot event, not a
+           * retry. Skipping that is not a deferral, it is a LOSS: the rename
+           * never happens again, the device keeps its old site indefinitely,
+           * and nothing says so. Ten seconds of staleness is a fine price for
+           * a deferral and an unacceptable one for a loss, so the identity
+           * path always reads the rules.
+           */
+          await this.applySiteAssignmentRulesToDevice(
+            deviceId,
+            previousDevice?.siteId ? undefined : previousDevice?.projectId,
+          );
         }
       }
     } catch (error) {
@@ -1126,7 +1454,26 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async applySiteAssignmentRulesToDevice(
     deviceId: ObjectID,
+    /*
+     * The device's project, when the caller already knows it AND the call is
+     * one that will happen again if it is skipped. Purely an optimisation,
+     * and only ever a SKIP: it lets the known-empty check run before the
+     * device read, so a project with no rules costs nothing per poll.
+     *
+     * Leaving it out gets the unconditional, always-fresh path, and two
+     * callers deliberately do: device creation (a rule saved moments ago must
+     * apply to the device being imported right now) and the identity-change
+     * branch of onUpdateSuccess (a one-shot event — see the note there).
+     */
+    projectId?: ObjectID | undefined,
   ): Promise<void> {
+    if (
+      projectId &&
+      this.emptySiteAssignmentRuleCache.isKnownEmpty(projectId)
+    ) {
+      return;
+    }
+
     const device: Model | null = await this.findOneById({
       id: deviceId,
       select: {
@@ -1165,6 +1512,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Feed the answer back either way: an empty set starts (or renews) the
+     * skip, and a non-empty one cancels it immediately — so a project that
+     * gains its first rule stops being skipped on this replica as soon as
+     * anything here looks at the rules, without waiting for the TTL.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: device.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     if (rules.length === 0) {
       return;
@@ -1254,6 +1612,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Read fresh above and never from the negative cache: this is the button
+     * an operator presses right after saving a rule, so it must see the rule
+     * it was pressed for. Recording the answer here also means pressing it
+     * lifts any "no rules" skip the poll path had cached for the project.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: data.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     const rule: NetworkSiteAssignmentRule | undefined = rules.find(
       (candidate: NetworkSiteAssignmentRule) => {

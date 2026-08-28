@@ -4,6 +4,8 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -33,6 +35,25 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Navigation from "Common/UI/Utils/Navigation";
+import Query from "Common/Types/BaseDatabase/Query";
+import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
+import HintChip from "../Metrics/HintChip";
+import {
+  ServiceScopedInsightsUrlScope,
+  TelemetryFilterTuple,
+  buildServiceScopedInsightsUrlParams,
+  describeUnappliedScopeFilters,
+  readServiceScopedInsightsUrlScope,
+  toPresentParams,
+  withTelemetryTabScopeParams,
+} from "../../Utils/TelemetryTabScope";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 function timeRangeLabel(range: RangeStartAndEndDateTime): string {
   if (range.range === TimeRange.CUSTOM) {
@@ -104,13 +125,62 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const [globalP95, setGlobalP95] = useState<number>(0);
   const [globalP99, setGlobalP99] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * Generation token for the in-flight batch. Both the scope picker and the
+   * time picker commit immediately — no apply step, no debounce — and the
+   * loading state still renders both, so two quick changes leave two capped
+   * 5000-span fetches racing. Without this the batch that RESOLVES last
+   * wins rather than the one the user asked for last, and 30-day percentiles
+   * paint under a "past one hour" label and stay there. Same guard the Logs
+   * Insights page has carried since it was written.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
   const [error, setError] = useState<string>("");
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_DAY,
+
+  /*
+   * The slice the Viewer tab handed over, read once on mount. Without this
+   * the Insights tab silently widened back out to the whole project every
+   * time the user switched lens on a scoped view.
+   */
+  const [initialUrlScope] = useState<ServiceScopedInsightsUrlScope>(() => {
+    return readServiceScopedInsightsUrlScope(Navigation.getQueryString());
   });
+
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(() => {
+    return initialUrlScope.timeRange || { range: TimeRange.PAST_ONE_DAY };
+  });
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Array<string>>(
+    initialUrlScope.serviceIds,
+  );
+  /*
+   * Viewer chips with no counterpart here — a span-name search, an attribute
+   * filter, a host selection. Carried so the trip back does not drop them,
+   * and announced so the numbers on this page are not mistaken for having
+   * honoured them.
+   */
+  const [unappliedFilters] = useState<Array<TelemetryFilterTuple>>(
+    initialUrlScope.unappliedFilters,
+  );
+  const [savedViewId, setSavedViewId] = useState<string | null>(
+    initialUrlScope.savedViewId,
+  );
+  const [savedViewName, setSavedViewName] = useState<string>("");
+  /*
+   * The Viewer's own search text and root-spans-only toggle. Both are real
+   * predicates — search compiles through the traces grammar, rootOnly drives
+   * isRootSpan — and this page can apply neither, so they are carried and
+   * announced exactly like an unapplicable chip. Not carrying them silently
+   * widened the slice on the way here and destroyed the user's search on the
+   * way back.
+   */
+  const [carriedSearch] = useState<string | null>(initialUrlScope.search);
+  const [carriedRootOnly] = useState<boolean | null>(initialUrlScope.rootOnly);
 
   const loadDashboard: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const generation: number = ++loadGenerationRef.current;
+
       try {
         setIsLoading(true);
         setError("");
@@ -141,7 +211,17 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
               startTime: new InBetween(startDate, endDate),
-            },
+              /*
+               * The service scope carried from the Viewer tab. Applied to
+               * the span fetch rather than filtered client-side: the fetch
+               * is capped, so filtering after it would leave the numbers
+               * describing whichever 5000 spans came back rather than the
+               * services the user selected.
+               */
+              ...(selectedServiceIds.length > 0
+                ? { primaryEntityId: new Includes(selectedServiceIds) }
+                : {}),
+            } as Query<Span>,
             select: {
               traceId: true,
               spanId: true,
@@ -183,6 +263,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             referencedServiceIds,
             projectId: ProjectUtil.getCurrentProjectId()!,
           });
+        // A batch the user has already moved on from must not commit.
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setServices(loadedServices);
 
         // Build per-service summaries
@@ -345,15 +430,166 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           .slice(0, 8);
         setRecentSlowTraces(slowTraces);
       } catch (err) {
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setError(API.getFriendlyErrorMessage(err as Error));
       } finally {
-        setIsLoading(false);
+        if (loadGenerationRef.current === generation) {
+          setIsLoading(false);
+        }
       }
-    }, [timeRange]);
+    }, [timeRange, selectedServiceIds]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  /*
+   * Mirror this page's scope into the URL, in the Traces Viewer's own
+   * grammar — so the tab link back needs no translation, and a refresh or a
+   * shared link restores what the user was looking at.
+   */
+  useEffect(() => {
+    writeTelemetryViewerUrlState(
+      buildServiceScopedInsightsUrlParams({
+        timeRange,
+        serviceIds: selectedServiceIds,
+        unappliedFilters,
+        savedViewId,
+        grammar: "pairs",
+        search: carriedSearch,
+        rootOnly: carriedRootOnly,
+      }),
+    );
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+    carriedRootOnly,
+  ]);
+
+  /*
+   * The name behind the carried saved-view id, so the page can say where its
+   * scope came from. Best-effort: a deleted view drops the reference rather
+   * than surfacing an error, since the scope itself arrived in the URL and
+   * is still usable.
+   */
+  useEffect(() => {
+    if (!savedViewId) {
+      setSavedViewName("");
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    ModelAPI.getItem({
+      modelType: TraceSavedView,
+      id: new ObjectID(savedViewId),
+      select: { name: true },
+    })
+      .then((savedView: TraceSavedView | null): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        const name: string = savedView?.name?.toString() || "";
+
+        if (name) {
+          setSavedViewName(name);
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      })
+      .catch((): void => {
+        if (isCancelled) {
+          return;
+        }
+
+        setSavedViewName("");
+        setSavedViewId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [savedViewId]);
+
+  /*
+   * Built from the same state the URL write above is, not by reading the
+   * query string: that write happens in an effect, so during this render the
+   * URL is still one change behind.
+   */
+  const viewerRoute: Route = useMemo(() => {
+    return withTelemetryTabScopeParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+      toPresentParams(
+        buildServiceScopedInsightsUrlParams({
+          timeRange,
+          serviceIds: selectedServiceIds,
+          unappliedFilters,
+          savedViewId,
+          grammar: "pairs",
+          search: carriedSearch,
+          rootOnly: carriedRootOnly,
+        }),
+      ),
+    );
+  }, [
+    timeRange,
+    selectedServiceIds,
+    unappliedFilters,
+    savedViewId,
+    carriedSearch,
+    carriedRootOnly,
+  ]);
+
+  const unappliedFiltersHint: string = useMemo(() => {
+    return describeUnappliedScopeFilters(unappliedFilters, {
+      search: carriedSearch,
+      rootOnly: carriedRootOnly,
+    });
+  }, [unappliedFilters, carriedSearch, carriedRootOnly]);
+
+  const serviceOptions: Array<DropdownOption> = useMemo(() => {
+    return services.map((service: Service): DropdownOption => {
+      return {
+        value: service.id?.toString() || "",
+        label: service.name?.toString() || "Unknown Service",
+      };
+    });
+  }, [services]);
+
+  const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
+    return selectedServiceIds.map((serviceId: string): DropdownOption => {
+      /*
+       * A carried selection has to render even before the service list has
+       * loaded — and even for a service that stopped reporting — or the user
+       * would have a filter they can see the effect of but not remove.
+       */
+      return (
+        serviceOptions.find((option: DropdownOption): boolean => {
+          return option.value === serviceId;
+        }) || { value: serviceId, label: serviceId }
+      );
+    });
+  }, [selectedServiceIds, serviceOptions]);
+
+  /*
+   * Editing the scope by hand means it is no longer the saved view's scope,
+   * so the provenance chip goes and the id stops travelling.
+   */
+  const applyServiceSelection: (serviceIds: Array<string>) => void = (
+    serviceIds: Array<string>,
+  ): void => {
+    setSelectedServiceIds(serviceIds);
+    setSavedViewId(null);
+  };
 
   const getServiceName: (primaryEntityId: string) => string = (
     primaryEntityId: string,
@@ -367,14 +603,72 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   const rangeLabel: string = timeRangeLabel(timeRange);
 
   const headerBar: ReactElement = (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Insights</h2>
         <p className="text-xs text-gray-500">
           Request health, error rates, and latency in {rangeLabel}.
         </p>
+        {(savedViewName || unappliedFiltersHint) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {savedViewName && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
+                <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+                <span>
+                  Scoped by saved view{" "}
+                  <span className="font-medium">{savedViewName}</span>
+                </span>
+                <button
+                  type="button"
+                  className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+                  title="Stop scoping by this saved view"
+                  aria-label="Stop scoping by this saved view"
+                  onClick={() => {
+                    applyServiceSelection([]);
+                  }}
+                >
+                  <Icon icon={IconProp.Close} className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {unappliedFiltersHint && (
+              <HintChip>{unappliedFiltersHint}</HintChip>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-[16rem]">
+          <Dropdown
+            options={serviceOptions}
+            value={selectedServiceOptions}
+            isMultiSelect={true}
+            placeholder="All services"
+            ariaLabel="Scope insights to a service"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (!value) {
+                applyServiceSelection([]);
+                return;
+              }
+
+              const values: Array<DropdownValue> = Array.isArray(value)
+                ? value
+                : [value];
+
+              applyServiceSelection(
+                values
+                  .map((item: DropdownValue): string => {
+                    return String(item);
+                  })
+                  .filter((item: string): boolean => {
+                    return item.length > 0;
+                  }),
+              );
+            }}
+          />
+        </div>
         <TelemetryTimeRangePicker
           value={timeRange}
           onChange={(value: RangeStartAndEndDateTime): void => {
@@ -442,9 +736,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.TRACES] as Route,
-              )}
+              to={viewerRoute}
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
@@ -541,9 +833,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           </div>
           <AppLink
             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TRACES] as Route,
-            )}
+            to={viewerRoute}
           >
             Open Viewer
           </AppLink>

@@ -1,4 +1,5 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
+import { compileAttributeChipValues } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -424,10 +425,25 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
         );
         const existing: Record<string, unknown> =
           ((query as any).attributes as Record<string, unknown>) || {};
-        existing[attributeKey] =
-          values.size === 1
-            ? Array.from(values)[0]!
-            : new Includes(Array.from(values));
+
+        /*
+         * An attribute chip carries the value exactly as it was typed into
+         * the search bar, so it is compiled with the SAME grammar the search
+         * string uses — `a*` is a prefix match here as well. Before this, a
+         * typed `@platform.team:a*` became an exact-equality chip on the
+         * three-character string "a*" and matched nothing, while the same
+         * text submitted with Ctrl+Enter went through the parser. Two paths,
+         * two answers, from one keystroke.
+         */
+        const compiled: unknown = compileAttributeChipValues(
+          Array.from(values),
+        );
+
+        if (compiled === undefined) {
+          continue;
+        }
+
+        existing[attributeKey] = compiled;
         (query as any).attributes = existing;
         continue;
       }

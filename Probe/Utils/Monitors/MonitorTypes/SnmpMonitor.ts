@@ -22,6 +22,14 @@ import SnmpPrivProtocol, {
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import {
+  CDP_CACHE_ADDRESS_COLUMNS,
+  LLDP_REM_MAN_ADDR_COLUMNS,
+  LLDP_REM_MAN_ADDR_TABLE_OID,
+  cdpAddressFromRow,
+  lldpNeighborJoinKey,
+  parseLldpManagementAddresses,
+} from "../../Snmp/NeighborAddressParsers";
 import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
 import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
@@ -147,10 +155,18 @@ const LLDP_REM_COLUMNS: {
  */
 const CDP_CACHE_TABLE_OID: string = "1.3.6.1.4.1.9.9.23.1.2.1";
 const CDP_CACHE_COLUMNS: {
+  cdpCacheAddressType: number;
+  cdpCacheAddress: number;
   cdpCacheDeviceId: number;
   cdpCacheDevicePort: number;
   cdpCachePlatform: number;
 } = {
+  /*
+   * The two address columns come from the shared parser so the column
+   * numbers and the code that decodes them cannot drift apart.
+   */
+  cdpCacheAddressType: CDP_CACHE_ADDRESS_COLUMNS.cdpCacheAddressType,
+  cdpCacheAddress: CDP_CACHE_ADDRESS_COLUMNS.cdpCacheAddress,
   cdpCacheDeviceId: 6,
   cdpCacheDevicePort: 7,
   cdpCachePlatform: 8,
@@ -995,6 +1011,12 @@ export default class SnmpMonitor {
         remotePlatform: SnmpMonitor.toDisplayString(
           row[CDP_CACHE_COLUMNS.cdpCachePlatform.toString()],
         ),
+        /*
+         * NOT toDisplayString: cdpCacheAddress is four raw bytes, which
+         * that helper would render as a MAC ("0a:00:00:05") because it is
+         * not printable text. The address parser knows it is an address.
+         */
+        remoteIpAddress: cdpAddressFromRow(row),
       });
     }
 
@@ -1009,6 +1031,17 @@ export default class SnmpMonitor {
       LLDP_REM_TABLE_OID,
       Object.values(LLDP_REM_COLUMNS),
     );
+
+    /*
+     * Only worth a second table walk once we know there is a neighbour to
+     * decorate. A device with LLDP enabled and nothing plugged into it is
+     * the common case across a fleet, and this walk would otherwise cost
+     * one wasted round trip per device per poll for an empty answer.
+     */
+    const addressByJoinKey: Map<string, string> =
+      Object.keys(table).length > 0
+        ? await SnmpMonitor.walkLldpManagementAddresses(session)
+        : new Map<string, string>();
 
     const neighbors: Array<LldpNeighbor> = [];
 
@@ -1026,6 +1059,8 @@ export default class SnmpMonitor {
         ? parseInt(localPortPart, 10)
         : undefined;
 
+      const joinKey: string | undefined = lldpNeighborJoinKey(rowKey);
+
       neighbors.push({
         localInterfaceIndex:
           localInterfaceIndex !== undefined && !isNaN(localInterfaceIndex)
@@ -1040,10 +1075,39 @@ export default class SnmpMonitor {
         remoteSysName: SnmpMonitor.toDisplayString(
           row[LLDP_REM_COLUMNS.lldpRemSysName.toString()],
         ),
+        remoteIpAddress: joinKey ? addressByJoinKey.get(joinKey) : undefined,
       });
     }
 
     return neighbors;
+  }
+
+  /*
+   * The neighbors' management addresses, keyed for the join above.
+   *
+   * Its own walk because lldpRemManAddrTable is its own table, and its own
+   * try/catch because it is the OPTIONAL half of LLDP: agents that do not
+   * implement it return noSuchObject, and a neighbour list is worth far
+   * more than the addresses decorating it. Failing here would take the
+   * whole LLDP walk down with it and empty the device's topology.
+   */
+  private static async walkLldpManagementAddresses(
+    session: snmp.Session,
+  ): Promise<Map<string, string>> {
+    try {
+      const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
+        session,
+        LLDP_REM_MAN_ADDR_TABLE_OID,
+        Object.values(LLDP_REM_MAN_ADDR_COLUMNS),
+      );
+
+      return parseLldpManagementAddresses(table);
+    } catch (err) {
+      logger.debug(
+        `SNMP LLDP management-address walk failed (device may not implement lldpRemManAddrTable): ${err}`,
+      );
+      return new Map<string, string>();
+    }
   }
 
   private static getOids(

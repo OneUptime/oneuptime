@@ -2,6 +2,7 @@ import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecO
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import GoogleSecOpsAlertNormalizer from "../../../../Utils/SecurityEvent/GoogleSecOpsAlertNormalizer";
 import GoogleSecOpsConnectionService from "../../../Services/GoogleSecOpsConnectionService";
@@ -12,6 +13,7 @@ import SecurityEventService from "../../../Services/SecurityEventService";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
 import GoogleSecOpsClient from "./GoogleSecOpsClient";
 
@@ -84,15 +86,29 @@ export default class GoogleSecOpsPoller {
         );
         logger.error(error);
 
+        /*
+         * Stamping the failure is best-effort and must never take the
+         * loop down with it: a throw here would skip every connection
+         * still due in this tick and leave this one's lastPolledAt and
+         * lastError null, so the poller would look like it had simply
+         * never run.
+         */
         if (connection.id) {
-          await GoogleSecOpsConnectionService.updateOneById({
-            id: connection.id,
-            data: {
-              lastPolledAt: OneUptimeDate.getCurrentDate(),
-              lastError: error instanceof Error ? error.message : String(error),
-            },
-            props: {
-              isRoot: true,
+          const connectionId: ObjectID = connection.id;
+
+          await ConnectorErrorMessage.recordFailure({
+            label: `GoogleSecOpsPoller: connection ${connectionId.toString()}`,
+            write: async (): Promise<void> => {
+              await GoogleSecOpsConnectionService.updateOneById({
+                id: connectionId,
+                data: {
+                  lastPolledAt: OneUptimeDate.getCurrentDate(),
+                  lastError: ConnectorErrorMessage.toMessage(error),
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
             },
           });
         }

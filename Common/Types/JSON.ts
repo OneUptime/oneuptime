@@ -12,6 +12,8 @@ import IncludesNone from "./BaseDatabase/IncludesNone";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
+import Wildcard from "./BaseDatabase/Wildcard";
+import NotWildcard from "./BaseDatabase/NotWildcard";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import NotEqual from "./BaseDatabase/NotEqual";
@@ -83,6 +85,8 @@ export enum ObjectType {
   StartsWith = "StartsWith",
   EndsWith = "EndsWith",
   NotContains = "NotContains",
+  Wildcard = "Wildcard",
+  NotWildcard = "NotWildcard",
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
 }
@@ -180,6 +184,10 @@ export type JSONValue =
   | Array<EndsWith<string>>
   | NotContains<string>
   | Array<NotContains<string>>
+  | Wildcard<string>
+  | Array<Wildcard<string>>
+  | NotWildcard<string>
+  | Array<NotWildcard<string>>
   | DashboardViewConfig;
 
 export interface JSONObject {

@@ -1,6 +1,11 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import Link from "Common/UI/Components/Link/Link";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -43,6 +48,14 @@ export interface ComponentProps {
    * still renders for a viewer who cannot create suppressions.
    */
   onHideNode?: ((node: NetworkTopologyNode) => void) | undefined;
+  /*
+   * Turn this unmanaged neighbour into a monitored NetworkDevice. Optional
+   * for the same reason as onHideNode — a viewer without create permission
+   * is shown the panel without the action rather than an action that fails
+   * — and the caller decides adoptability, so the panel does not have to
+   * know which node kinds qualify.
+   */
+  onAddToMonitoring?: ((node: NetworkTopologyNode) => void) | undefined;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -307,6 +320,37 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 </Link>
               </li>
             </ul>
+          </div>
+        ) : props.onAddToMonitoring ? (
+          /*
+           * The unmanaged counterpart of "Device details", and the answer to
+           * the dead end this drawer used to be: everything above is what
+           * the network reported about a device nobody is watching, and
+           * until now the only thing an operator could do about it was hide
+           * it from the map (issue #3435).
+           */
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translateString("Not monitored") || "Not monitored"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {translateString(
+                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows.",
+              ) ||
+                "This device was discovered by its neighbours. Add it to bring it into monitoring, pre-filled with what the map already knows."}
+            </p>
+            <Button
+              title={
+                translateString("Add to Monitoring") || "Add to Monitoring"
+              }
+              icon={IconProp.Add}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="network-topology-add-to-monitoring"
+              onClick={() => {
+                props.onAddToMonitoring?.(node);
+              }}
+            />
           </div>
         ) : (
           <></>

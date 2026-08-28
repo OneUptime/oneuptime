@@ -10,6 +10,8 @@ import NetworkDeviceAutoImportRuleEngineService, {
   AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
   AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
   ExistingHostnamesByProjectId,
+  ExistingMonitorsByProjectId,
+  ImportAttemptBudgetsByProjectId,
 } from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import Semaphore, {
   SemaphoreMutex,
@@ -136,27 +138,64 @@ RunCron(
        */
       const existingHostnamesByProjectId: ExistingHostnamesByProjectId =
         new Map();
+      const existingMonitorsByProjectId: ExistingMonitorsByProjectId =
+        new Map();
+      const attemptBudgetsByProjectId: ImportAttemptBudgetsByProjectId =
+        new Map();
+      const cappedProjectIds: Set<string> = new Set();
 
       for (const scan of unprocessedScans) {
+        const projectId: string = scan.projectId?.toString() || "";
+
+        /*
+         * Device and active-monitor caps are per project per sweep, not per
+         * scan. Once one scan reaches either cap, leave the rest of that
+         * project's markers untouched for the next tick while still serving
+         * other projects in this sweep.
+         */
+        if (projectId && cappedProjectIds.has(projectId)) {
+          continue;
+        }
+
         try {
           const result: AutoImportRuleRunResult | null =
             await NetworkDeviceAutoImportRuleEngineService.processCompletedScan(
               {
                 scanId: scan.id!,
                 existingHostnamesByProjectId: existingHostnamesByProjectId,
+                existingMonitorsByProjectId: existingMonitorsByProjectId,
+                attemptBudgetsByProjectId: attemptBudgetsByProjectId,
               },
             );
 
+          if (result?.isTruncated && projectId) {
+            cappedProjectIds.add(projectId);
+          }
+
           if (
             result &&
-            (result.devicesCreated > 0 || result.devicesFailed > 0)
+            (result.devicesCreated > 0 ||
+              result.devicesFailed > 0 ||
+              result.monitorsCreated > 0 ||
+              result.monitorsFailed > 0)
           ) {
             logger.info(
-              `NetworkDeviceDiscovery:ProcessAutoImportRules - scan ${scan.id?.toString()}: ${result.devicesCreated} device(s) auto-imported, ${result.hostsSkippedAlreadyRegistered} already registered, ${result.hostsExcluded} excluded, ${result.devicesFailed} failed${
+              `NetworkDeviceDiscovery:ProcessAutoImportRules - scan ${scan.id?.toString()}: ${result.devicesCreated} device(s) auto-imported, ${result.hostsSkippedAlreadyRegistered} already registered, ${result.hostsExcluded} excluded, ${result.devicesFailed} device import(s) failed; ${result.monitorsCreated} active Network Device monitor(s) created, ${result.monitorsSkippedAlreadyExisting} requested monitor(s) skipped because monitoring already existed, ${result.monitorsSkippedUnsupportedHost} requested monitor(s) unsupported, ${result.monitorsFailed} monitor create(s) failed${
                 result.isTruncated
                   ? "; capped — the next tick will resume this scan"
                   : ""
               }.`,
+              { projectId: scan.projectId?.toString() } as LogAttributes,
+            );
+          } else if (
+            result &&
+            (result.hostsSkippedAlreadyRegistered > 0 ||
+              result.hostsExcluded > 0 ||
+              result.monitorsSkippedAlreadyExisting > 0 ||
+              result.monitorsSkippedUnsupportedHost > 0)
+          ) {
+            logger.debug(
+              `NetworkDeviceDiscovery:ProcessAutoImportRules - scan ${scan.id?.toString()} required no writes: ${result.hostsSkippedAlreadyRegistered} host(s) already registered, ${result.hostsExcluded} excluded, ${result.monitorsSkippedAlreadyExisting} requested monitor(s) already covered, ${result.monitorsSkippedUnsupportedHost} requested monitor(s) unsupported.`,
               { projectId: scan.projectId?.toString() } as LogAttributes,
             );
           }

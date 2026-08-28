@@ -42,16 +42,29 @@ Google SecOps SOAR playbooks can POST alerts to any HTTP endpoint. Point one at 
 OneUptime polls your tenant's detection alerts on an interval — no SOAR configuration needed.
 
 1. In Google Cloud, create a **service account** with the **Chronicle API Viewer** role on the project your SecOps instance is bound to, and download its **JSON key**.
-2. In OneUptime, open **Security Events → Google SecOps Connections** and create a connection:
+2. In OneUptime, open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`) and create a connection on the **Google SecOps Connections** card:
 
-   - **Region**: your tenant's regional prefix (`us`, `europe`, ...).
+   - **Region**: your tenant's regional prefix, lowercase — `us`, `europe`, and so on. It is used to build the API base URL.
    - **Instance resource name**: `projects/{project}/locations/{location}/instances/{instance}` — from your SecOps **SIEM Settings → Profile**.
-   - **Service account JSON**: paste the key. It is encrypted at rest and never returned by the API.
-   - **Poll interval**: how often to fetch new detection alerts (default 5 minutes).
+   - **Service account JSON**: paste the key. It is write-only — encrypted at rest, never returned by the API, and never shown back to you on the page. To rotate it later, use the connection's **Update Service Account JSON** action.
+   - **Poll interval (minutes)**: a whole number from `1` to `1440`, default `5`. Anything outside that range is rejected when you save.
 
-3. New detections are ingested as **Detection Finding** events attributed to a `Google SecOps` telemetry service. Poll status (`last polled`, `last error`) is visible on the connection.
+3. New detections are ingested as **Detection Finding** events attributed to a `Google SecOps` telemetry service.
 
-> The connector uses the Chronicle `v1alpha` alerts API, which Google ships as pre-GA. If your tenant's API shape differs, the connection's **Last Error** field says exactly what the API returned.
+The connector ticks once a minute and polls every enabled connection that is due on its own interval. The first poll looks back **15 minutes**; every poll after that resumes from the connection's stored cursor with a **1 minute** overlap, so alerts landing on a window boundary are never missed. No single poll replays more than **24 hours** — a connection that sat disabled for a week resumes a day back, not a week.
+
+The connections list is the poll's health readout: **Name**, **Status** (Enabled/Disabled), **Region**, **Interval (Minutes)**, **Last Polled** and **Last Error**.
+
+> The connector uses the Chronicle `v1alpha` alerts API, which Google ships as pre-GA. If your tenant's API shape differs, the connection's **Last Error** field carries the beginning of what the API returned, behind a prefix naming the request that failed.
+
+### Troubleshooting
+
+- **Status is `Disabled`** — disabled connections are skipped entirely. The poller only picks up enabled ones.
+- **Last Polled is `Never` and Last Error is empty** — the background worker has not executed the poll job at all, so nothing has ever reached Chronicle. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Either set `DISABLE_QUEUE_WORKERS=false` (the `config.example.env` default that Docker Compose ships with), or run the dedicated worker deployment (Helm: `worker.enabled: true`, which is `false` by default).
+- **Last Error is populated** — a poll was attempted and something in it failed. The field holds that failure as OneUptime recorded it: a prefix naming the step and the HTTP status, then the first 500 characters of the response body, clamped overall and marked `... (truncated)` if it is still too long. Read the prefix first, because the failure is not always Chronicle's:
+  - `Google token exchange failed (HTTP ...)` — the service-account credential was rejected at Google's OAuth endpoint, before Chronicle was ever contacted. Usually a malformed, revoked, or wrong-project key.
+  - `Google SecOps alerts fetch failed (HTTP ...)` — Chronicle itself rejected the request. A `403` usually means the service account is missing the **Chronicle API Viewer** role on the project the instance is bound to; a `404` usually means the instance resource name points at a different instance.
+  - Anything else — read the message rather than assume a side. `Google SecOps alerts fetch returned a non-JSON body` and `Google token exchange returned no access_token` are Google answering with something unusable, often a proxy or gateway sitting in between; a message about the connection missing fields means this connection row is incomplete. Otherwise the alerts arrived and the failure was on OneUptime's side, most often writing them to the telemetry store.
 
 ## Option 3 — Forward UDM events
 

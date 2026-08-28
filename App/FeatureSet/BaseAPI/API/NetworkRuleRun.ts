@@ -25,7 +25,11 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorTemplateService from "Common/Server/Services/MonitorTemplateService";
 import NetworkDeviceAutoImportRuleEngineService from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
+import NetworkDeviceAutoImportRuleService from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceLabelRuleEngineService from "Common/Server/Services/NetworkDeviceLabelRuleEngineService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import {
@@ -165,6 +169,46 @@ function assertCanRunRule(data: {
 }
 
 /*
+ * A rule with a Monitor Template performs a second kind of create: after the
+ * inventory record is available it creates an active Network Device monitor.
+ * The worker runs that operation as root, but a human pressing Run Now must
+ * not gain Monitor-create access through a rule when their role explicitly
+ * lacks it. Kept separate from assertCanRunRule because device-only import
+ * rules retain their existing permission contract.
+ */
+function assertCanCreateMonitor(props: DatabaseCommonInteractionProps): void {
+  if (props.isMasterAdmin) {
+    return;
+  }
+
+  const held: Array<Permission> = callerPermissions(props);
+  const createPermissions: Array<Permission> =
+    new Monitor().getCreatePermissions() || [];
+
+  if (
+    !held.some((permission: Permission): boolean => {
+      return createPermissions.includes(permission);
+    })
+  ) {
+    throw new NotAuthorizedException(
+      `You do not have permission to create monitors, which running this auto-import rule does. Missing permission: ${PermissionHelper.getTitle(
+        Permission.CreateProjectMonitor,
+      )}.`,
+    );
+  }
+
+  /*
+   * Match BaseAPI's create path in both directions: a broad ProjectAdmin
+   * grant does not override a team's explicit block on Monitor creation.
+   */
+  TablePermission.checkTableLevelBlockPermissions(
+    Monitor,
+    props,
+    DatabaseRequestType.Create,
+  );
+}
+
+/*
  * ":ruleId" as an ObjectID, or a message the caller can act on. The format
  * check is explicit: ObjectID's constructor takes any string, so an id that
  * is not a UUID would otherwise reach the query layer and come back as a
@@ -277,14 +321,66 @@ export default class NetworkRuleRunAPI {
             deviceWriteKind: "create",
           });
 
+          const ruleId: ObjectID = readRuleId(req);
+
+          /*
+           * Resolve the rule inside the caller's project before deciding
+           * whether Monitor-create permission is needed. Requiring it for
+           * every auto-import rule would break the existing device-only
+           * operation; trusting an id without the project predicate would let
+           * one tenant use another tenant's rule to influence authorization.
+           */
+          const rule: NetworkDeviceAutoImportRule | null =
+            await NetworkDeviceAutoImportRuleService.findOneBy({
+              query: {
+                _id: ruleId,
+                projectId: projectId,
+              },
+              select: {
+                _id: true,
+                monitorTemplateId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!rule) {
+            throw new BadDataException("Auto-import rule not found.");
+          }
+
+          if (rule.monitorTemplateId) {
+            assertCanCreateMonitor(props);
+
+            /*
+             * Run Now is a fresh human-triggered use of the template, not an
+             * unattended continuation of the rule's persisted capability.
+             * Re-authorize the template under the current caller's tenant,
+             * ownership and label scope before the root engine can clone it.
+             */
+            const readableTemplate: MonitorTemplate | null =
+              await MonitorTemplateService.findOneById({
+                id: rule.monitorTemplateId,
+                select: { _id: true },
+                props,
+              });
+
+            if (!readableTemplate) {
+              throw new NotAuthorizedException(
+                "You do not have permission to read the Monitor Template selected by this auto-import rule.",
+              );
+            }
+          }
+
           const body: JSONObject = (req.body || {}) as JSONObject;
 
           const result: AutoImportRuleRunResult =
             await NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans(
               {
-                ruleId: readRuleId(req),
+                ruleId: ruleId,
                 projectId: projectId,
                 isDryRun: readBooleanFlag(body, "dryRun"),
+                expectedMonitorTemplateId: rule.monitorTemplateId || null,
               },
             );
 

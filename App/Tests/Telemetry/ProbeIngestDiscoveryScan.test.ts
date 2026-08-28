@@ -1,16 +1,16 @@
+import fs from "fs";
+import path from "path";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import Response from "Common/Server/Utils/Response";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -64,11 +64,18 @@ jest.mock("Common/Server/Services/NetworkDeviceDiscoveryScanService", () => {
   };
 });
 
+/*
+ * Only the one method this route uses. Deliberately narrow: the route used to
+ * page every device in the project itself with findBy, and leaving findBy on
+ * this mock would let that walk quietly come back — the tests here would keep
+ * passing while the request went back to eight full-table scans. With just
+ * this method mocked, any other call on the service throws.
+ */
 jest.mock("Common/Server/Services/NetworkDeviceService", () => {
   return {
     __esModule: true,
     default: {
-      findBy: jest.fn(),
+      getRegisteredHostnames: jest.fn(),
     },
   };
 });
@@ -99,8 +106,8 @@ type MockedService = {
 
 const scanService: MockedService =
   NetworkDeviceDiscoveryScanService as unknown as MockedService;
-const deviceService: { findBy: jest.Mock } =
-  NetworkDeviceService as unknown as { findBy: jest.Mock };
+const deviceService: { getRegisteredHostnames: jest.Mock } =
+  NetworkDeviceService as unknown as { getRegisteredHostnames: jest.Mock };
 const responseUtil: {
   sendErrorResponse: jest.Mock;
   sendEntityArrayResponse: jest.Mock;
@@ -395,7 +402,9 @@ describe("POST /probe/discovery-scan/result", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    deviceService.findBy.mockResolvedValue([] as never);
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>() as never,
+    );
     scanService.updateOneById.mockResolvedValue(undefined as never);
   });
 
@@ -541,9 +550,9 @@ describe("POST /probe/discovery-scan/result", () => {
   test("flags hosts that already exist as devices so the UI can't re-import them", async () => {
     scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
 
-    const existing: NetworkDevice = new NetworkDevice();
-    existing.hostname = "10.0.0.5";
-    deviceService.findBy.mockResolvedValue([existing] as never);
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
 
     await callResultEndpoint(
       makeRequest({
@@ -559,13 +568,11 @@ describe("POST /probe/discovery-scan/result", () => {
     );
 
     // Existing devices are looked up within the scan's project.
-    const deviceFindArgs: JSONObject = deviceService.findBy.mock
+    const lookupArgs: JSONObject = deviceService.getRegisteredHostnames.mock
       .calls[0]![0] as JSONObject;
-    expect(
-      (
-        (deviceFindArgs["query"] as JSONObject)["projectId"] as ObjectID
-      ).toString(),
-    ).toBe(projectId.toString());
+    expect((lookupArgs["projectId"] as ObjectID).toString()).toBe(
+      projectId.toString(),
+    );
 
     const devices: Array<JSONObject> = lastUpdateData()[
       "discoveredDevices"
@@ -854,7 +861,9 @@ describe("POST /probe/discovery-scan/result — a result for a superseded run", 
 
   beforeEach(() => {
     jest.clearAllMocks();
-    deviceService.findBy.mockResolvedValue([] as never);
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>() as never,
+    );
     scanService.updateOneById.mockResolvedValue(undefined as never);
   });
 
@@ -917,117 +926,583 @@ describe("POST /probe/discovery-scan/result — a result for a superseded run", 
 });
 
 /*
- * The already-registered flag used to come from ONE findBy at LIMIT_MAX with
- * no paging and no sort. A project with more devices than that got an
- * arbitrary 10,000 of them, so every device past the cap was reported to the
- * dashboard as NOT registered and the reviewer's "import" re-created devices
- * that already existed.
+ * Which discovered hosts already have a device — the flag the review modal
+ * uses to grey out "import", and therefore the thing standing between a
+ * re-scan and a duplicated inventory.
+ *
+ * The endpoint used to work this out itself, by copying every hostname in the
+ * project into a Set: first one findBy capped at 10,000 (so a larger fleet
+ * silently reported its devices as NOT registered), then a paged walk ordered
+ * by createdAt (so a bulk import's identically-stamped rows made the pages
+ * overlap and skip, with the same result). It now ASKS — one narrow question
+ * about the addresses this sweep actually found.
+ *
+ * That moved the interesting arithmetic — chunking, dedup, how many
+ * statements — into NetworkDeviceService, where
+ * Common/Tests/Server/Services/NetworkDeviceRegisteredHostnames.test.ts
+ * covers it. What is left for the endpoint, and what this block covers, is
+ * the contract between the two: ask about the right addresses in the right
+ * project, and put the answer on the right hosts.
  */
 describe("POST /probe/discovery-scan/result — flagging already-registered hosts", () => {
   const probeId: ObjectID = ObjectID.generate();
   const scanId: ObjectID = ObjectID.generate();
   const projectId: ObjectID = ObjectID.generate();
 
-  function makeFullPage(): Array<NetworkDevice> {
-    const page: Array<NetworkDevice> = [];
-    for (let index: number = 0; index < LIMIT_MAX; index++) {
-      const device: NetworkDevice = new NetworkDevice();
-      device.hostname = `10.99.${Math.floor(index / 256)}.${index % 256}`;
-      page.push(device);
-    }
-    return page;
-  }
-
-  function deviceWithHostname(hostname: string): NetworkDevice {
-    const device: NetworkDevice = new NetworkDevice();
-    device.hostname = hostname;
-    return device;
-  }
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    scanService.updateOneById.mockResolvedValue(undefined as never);
+  function makeScan(
+    status: string = "In Progress",
+  ): NetworkDeviceDiscoveryScan {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
       scanId,
     );
     scan.projectId = projectId;
-    scan.status = "In Progress";
-    scanService.findOneBy.mockResolvedValue(scan as never);
-  });
+    scan.status = status;
+    return scan;
+  }
 
-  function discoveredResultRequest(): ExpressRequest {
+  function resultRequest(discoveredDevices: Array<JSONObject>): ExpressRequest {
     return makeRequest({
       probeId,
       body: {
         scanId: scanId.toString(),
         success: true,
-        discoveredDevices: [
-          { ipAddress: "10.0.0.5" },
-          { ipAddress: "10.0.0.6" },
-        ],
+        discoveredDevices: discoveredDevices,
       },
     });
   }
 
-  test("a single short page is fetched once and not paged again", async () => {
-    deviceService.findBy.mockResolvedValue([
-      deviceWithHostname("10.0.0.5"),
-    ] as never);
+  // The argument the endpoint handed the service.
+  function lookupArgs(): JSONObject {
+    expect(deviceService.getRegisteredHostnames).toHaveBeenCalledTimes(1);
+    return deviceService.getRegisteredHostnames.mock.calls[0]![0] as JSONObject;
+  }
 
-    await callResultEndpoint(discoveredResultRequest());
+  function askedAbout(): Array<string> {
+    return lookupArgs()["hostnames"] as Array<string>;
+  }
 
-    expect(deviceService.findBy).toHaveBeenCalledTimes(1);
-
+  // The hosts as they were written to the scan row, flags and all.
+  function storedDevices(): Array<JSONObject> {
+    expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
     const data: JSONObject = expectPlainUpdateData(
       (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
     );
-    const devices: Array<JSONObject> = data[
-      "discoveredDevices"
-    ] as Array<JSONObject>;
-    expect(devices[0]!["isAlreadyRegistered"]).toBe(true);
-    expect(devices[1]!["isAlreadyRegistered"]).toBe(false);
-  });
+    return data["discoveredDevices"] as Array<JSONObject>;
+  }
 
-  test("a full page is followed by another, so device 10,001 is still seen", async () => {
-    deviceService.findBy
-      .mockResolvedValueOnce(makeFullPage() as never)
-      .mockResolvedValueOnce([deviceWithHostname("10.0.0.6")] as never);
-
-    await callResultEndpoint(discoveredResultRequest());
-
-    expect(deviceService.findBy).toHaveBeenCalledTimes(2);
-
-    // The second call must actually move the cursor, or this loops forever.
-    const firstCall: JSONObject = deviceService.findBy.mock
-      .calls[0]![0] as JSONObject;
-    const secondCall: JSONObject = deviceService.findBy.mock
-      .calls[1]![0] as JSONObject;
-    expect(firstCall["skip"]).toBe(0);
-    expect(secondCall["skip"]).toBe(LIMIT_MAX);
-
-    const data: JSONObject = expectPlainUpdateData(
-      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
+  beforeEach(() => {
+    jest.clearAllMocks();
+    scanService.updateOneById.mockResolvedValue(undefined as never);
+    scanService.findOneBy.mockResolvedValue(makeScan() as never);
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>() as never,
     );
-    const devices: Array<JSONObject> = data[
-      "discoveredDevices"
-    ] as Array<JSONObject>;
-    // Only found on the SECOND page — the case the old cap silently dropped.
-    expect(devices[1]!["isAlreadyRegistered"]).toBe(true);
   });
 
   /*
-   * Postgres makes no ordering promise without an ORDER BY, so an unsorted
-   * paged read can return a row twice, or skip one entirely, between pages.
+   * The load-bearing one. The question is about the sweep's addresses, so its
+   * cost is bounded by the sweep — not by the fleet, which is what made the
+   * old walk both slow and wrong.
    */
-  test("paging is stably ordered", async () => {
-    deviceService.findBy.mockResolvedValue([] as never);
-
-    await callResultEndpoint(discoveredResultRequest());
-
-    const findArgs: JSONObject = deviceService.findBy.mock
-      .calls[0]![0] as JSONObject;
-    expect((findArgs["sort"] as JSONObject)["createdAt"]).toBe(
-      SortOrder.Ascending,
+  test("asks about the addresses this sweep found, not about the whole project", async () => {
+    await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }, { ipAddress: "10.0.0.6" }]),
     );
+
+    expect(askedAbout()).toEqual(["10.0.0.5", "10.0.0.6"]);
+  });
+
+  test("asks within the scan's own project", async () => {
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+
+    expect((lookupArgs()["projectId"] as ObjectID).toString()).toBe(
+      projectId.toString(),
+    );
+  });
+
+  /*
+   * The probe is authenticated as a probe, not as a project member, so the
+   * lookup has no user permissions to ride on.
+   */
+  test("asks as root", async () => {
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+
+    expect((lookupArgs()["props"] as JSONObject)["isRoot"]).toBe(true);
+  });
+
+  /*
+   * One question for the whole sweep. The endpoint no longer loops: a large
+   * sweep must not turn into a page-at-a-time walk inside the request the
+   * probe is synchronously waiting on.
+   */
+  test("asks once, however many hosts the sweep found", async () => {
+    const discovered: Array<JSONObject> = [];
+    for (let index: number = 0; index < 300; index++) {
+      discovered.push({
+        ipAddress: `10.7.${Math.floor(index / 256)}.${index % 256}`,
+      });
+    }
+
+    await callResultEndpoint(resultRequest(discovered));
+
+    expect(deviceService.getRegisteredHostnames).toHaveBeenCalledTimes(1);
+    expect(askedAbout()).toHaveLength(300);
+  });
+
+  test("flags exactly the hosts the answer named", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5", "10.0.0.7"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5" },
+        { ipAddress: "10.0.0.6" },
+        { ipAddress: "10.0.0.7" },
+      ]),
+    );
+
+    expect(
+      storedDevices().map((device: JSONObject) => {
+        return device["isAlreadyRegistered"];
+      }),
+    ).toEqual([true, false, true]);
+  });
+
+  /*
+   * Every host carries the flag explicitly. A missing key reads as falsy in
+   * the review modal by accident rather than by decision, and "accidentally
+   * importable" is the failure mode that duplicates devices.
+   */
+  test("every host is flagged, never left undefined", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }, { ipAddress: "10.0.0.6" }]),
+    );
+
+    for (const device of storedDevices()) {
+      expect(Object.keys(device)).toContain("isAlreadyRegistered");
+      expect(typeof device["isAlreadyRegistered"]).toBe("boolean");
+    }
+  });
+
+  /*
+   * A host the probe found but could not name. It is asked about as the empty
+   * string — which the service drops — and must never come back flagged, or
+   * the modal would refuse to import a host that has no device at all.
+   */
+  test("a host with no ipAddress is asked about as an empty string and is not flagged", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }, { sysName: "unnamed" }]),
+    );
+
+    expect(askedAbout()).toEqual(["10.0.0.5", ""]);
+    expect(storedDevices()[1]!["isAlreadyRegistered"]).toBe(false);
+  });
+
+  test("a host reported with a null ipAddress is handled the same way", async () => {
+    await callResultEndpoint(resultRequest([{ ipAddress: null }]));
+
+    expect(askedAbout()).toEqual([""]);
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(false);
+  });
+
+  /*
+   * A sweep can report the same address twice — two interfaces answering, or
+   * a probe retry. Both entries describe the same device, so both must be
+   * flagged; flagging only the first would offer the second for import.
+   */
+  test("a repeated address is flagged on every entry that carries it", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", sysName: "first" },
+        { ipAddress: "10.0.0.5", sysName: "second" },
+      ]),
+    );
+
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(true);
+    expect(storedDevices()[1]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  /*
+   * Ping-only hosts are offered for import too (as ICMP-monitored devices),
+   * so they need the same guard against being imported twice.
+   */
+  test("ping-only hosts are asked about alongside the SNMP responders", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.20"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", snmpReachable: true },
+        { ipAddress: "10.0.0.20", snmpReachable: false },
+      ]),
+    );
+
+    expect(askedAbout()).toEqual(["10.0.0.5", "10.0.0.20"]);
+    expect(storedDevices()[1]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  test("addresses are asked about in the order the probe reported them", async () => {
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.9" },
+        { ipAddress: "10.0.0.5" },
+        { ipAddress: "10.0.0.7" },
+      ]),
+    );
+
+    expect(askedAbout()).toEqual(["10.0.0.9", "10.0.0.5", "10.0.0.7"]);
+  });
+
+  test("a sweep that found nothing asks about nothing and stores nothing", async () => {
+    await callResultEndpoint(resultRequest([]));
+
+    expect(askedAbout()).toEqual([]);
+    expect(storedDevices()).toEqual([]);
+  });
+
+  /*
+   * The flags have to survive onto the array that is actually persisted — the
+   * review modal reads them off the stored row, not off the request.
+   */
+  test("the flags land on the hosts written to the scan row", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", sysName: "known" },
+        { ipAddress: "10.0.0.9", sysName: "new" },
+      ]),
+    );
+
+    expect(storedDevices()).toEqual([
+      { ipAddress: "10.0.0.5", sysName: "known", isAlreadyRegistered: true },
+      { ipAddress: "10.0.0.9", sysName: "new", isAlreadyRegistered: false },
+    ]);
+  });
+
+  test("the hosts are flagged before the row is written", async () => {
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+
+    expect(
+      deviceService.getRegisteredHostnames.mock.invocationCallOrder[0]!,
+    ).toBeLessThan(scanService.updateOneById.mock.invocationCallOrder[0]!);
+  });
+
+  /*
+   * A result for a run that was already superseded is discarded, and a
+   * discarded result must not spend a query proving it.
+   */
+  test("a result for a superseded run never asks", async () => {
+    scanService.findOneBy.mockResolvedValue(makeScan("Pending") as never);
+
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+
+    expect(deviceService.getRegisteredHostnames).not.toHaveBeenCalled();
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * If the lookup fails, the honest answer is an error. Treating the failure
+   * as "none of these are registered" would offer the whole sweep for import
+   * and duplicate every device in it.
+   */
+  test("a failed lookup errors instead of storing every host as new", async () => {
+    const boom: Error = new Error("db down");
+    deviceService.getRegisteredHostnames.mockRejectedValue(boom as never);
+
+    const { next } = await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }]),
+    );
+
+    expect(next).toHaveBeenCalledWith(boom);
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The scale the endpoint has to survive: a sweep of ScanTargetUtil-sized
+   * range. Still one question, and the answer still lands on the right hosts.
+   */
+  test("a 5,000-host sweep is one question, and the flags still land correctly", async () => {
+    const discovered: Array<JSONObject> = [];
+    for (let index: number = 0; index < 5000; index++) {
+      discovered.push({
+        ipAddress: `10.60.${Math.floor(index / 256)}.${index % 256}`,
+      });
+    }
+
+    const registeredAddress: string = discovered[4999]!["ipAddress"] as string;
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>([registeredAddress]) as never,
+    );
+
+    await callResultEndpoint(resultRequest(discovered));
+
+    expect(deviceService.getRegisteredHostnames).toHaveBeenCalledTimes(1);
+    expect(askedAbout()).toHaveLength(5000);
+
+    const stored: Array<JSONObject> = storedDevices();
+    expect(stored[4999]!["isAlreadyRegistered"]).toBe(true);
+    expect(
+      stored.filter((device: JSONObject) => {
+        return device["isAlreadyRegistered"] === true;
+      }),
+    ).toHaveLength(1);
+  });
+
+  /*
+   * Three things and no more. The paging arguments the endpoint used to build
+   * itself — skip, limit, sort — are the service's business now, and passing
+   * one from here would mean the walk had started growing back.
+   */
+  test("asks with exactly three things: the project, the addresses, and root", () => {
+    return callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }])).then(
+      (): void => {
+        expect(Object.keys(lookupArgs()).sort()).toEqual([
+          "hostnames",
+          "projectId",
+          "props",
+        ]);
+      },
+    );
+  });
+
+  /*
+   * The flag is the endpoint's answer, not the probe's claim. A probe that
+   * sent isAlreadyRegistered itself — buggy, old, or hostile — could
+   * otherwise hide a host from the review modal, or offer a host that already
+   * has a device.
+   */
+  test("a flag the probe sent itself is overwritten, not trusted", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", isAlreadyRegistered: false },
+        { ipAddress: "10.0.0.9", isAlreadyRegistered: true },
+      ]),
+    );
+
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(true);
+    expect(storedDevices()[1]!["isAlreadyRegistered"]).toBe(false);
+  });
+
+  test("a numeric ipAddress is asked about as its string form", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["42"]) as never,
+    );
+
+    await callResultEndpoint(resultRequest([{ ipAddress: 42 }]));
+
+    expect(askedAbout()).toEqual(["42"]);
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  /*
+   * Exact string matching, and deliberately so — "10.0.0.5 " and "10.0.0.5"
+   * are different hostnames in the column this is asked of, and pretending
+   * otherwise here would flag a host against a device that does not exist.
+   */
+  test("matching is exact — a padded or differently-cased answer flags nothing", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>([" 10.0.0.5", "SWITCH-1"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }, { ipAddress: "switch-1" }]),
+    );
+
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(false);
+    expect(storedDevices()[1]!["isAlreadyRegistered"]).toBe(false);
+  });
+
+  test("an answer naming an address this sweep never reported changes nothing", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5", "192.168.1.1"]) as never,
+    );
+
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+
+    expect(storedDevices()).toHaveLength(1);
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  /*
+   * The two things the endpoint does to the host list are independent: a host
+   * that already has a device still answered SNMP, and still counts.
+   */
+  test("flagging a host does not take it out of respondedHostCount", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5", "10.0.0.6"]) as never,
+    );
+
+    await callResultEndpoint(
+      resultRequest([
+        { ipAddress: "10.0.0.5", snmpReachable: true },
+        { ipAddress: "10.0.0.6", snmpReachable: true },
+      ]),
+    );
+
+    const data: JSONObject = expectPlainUpdateData(
+      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
+    );
+    expect(data["respondedHostCount"]).toBe(2);
+  });
+
+  // A failed sweep still reports the hosts it managed to find.
+  test("a sweep the probe reports as failed still gets its hosts flagged", async () => {
+    deviceService.getRegisteredHostnames.mockResolvedValue(
+      new Set<string>(["10.0.0.5"]) as never,
+    );
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          success: false,
+          statusMessage: "probe crashed mid-sweep",
+          discoveredDevices: [{ ipAddress: "10.0.0.5" }],
+        },
+      }),
+    );
+
+    expect(storedDevices()[0]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  test("the happy path never reaches the error handler", async () => {
+    const { next } = await callResultEndpoint(
+      resultRequest([{ ipAddress: "10.0.0.5" }]),
+    );
+
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Every way the request can be turned away before the scan is in hand. None
+   * of them should spend a query on a result that is going to be refused.
+   */
+  test("a request refused before the scan is loaded never asks", async () => {
+    await callResultEndpoint(makeRequest({ probeId, body: {} }));
+    expect(deviceService.getRegisteredHostnames).not.toHaveBeenCalled();
+
+    await callResultEndpoint(
+      makeRequest({ body: { scanId: scanId.toString() } }),
+    );
+    expect(deviceService.getRegisteredHostnames).not.toHaveBeenCalled();
+
+    scanService.findOneBy.mockResolvedValue(null as never);
+    await callResultEndpoint(resultRequest([{ ipAddress: "10.0.0.5" }]));
+    expect(deviceService.getRegisteredHostnames).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The failure this file was recovered from, guarded from the other side.
+ *
+ * PR #3441 moved the already-registered lookup into
+ * NetworkDeviceService.getRegisteredHostnames. The mock factory at the top of
+ * this file still offered only findBy, so every test here died with
+ * "getRegisteredHostnames is not a function" and the App Test job went red on
+ * master.
+ *
+ * TypeScript could not see it coming: a jest.mock factory is an untyped
+ * object literal, and nothing checks it against the module it replaces. So
+ * the route's own source is read here and every service method it calls is
+ * required to exist on the stub. A method nobody stubbed now fails with a
+ * sentence naming it, instead of thirty identical TypeErrors.
+ */
+describe("the service stubs in this file track the route they stand in for", () => {
+  const ROUTE_SOURCE_PATH: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Telemetry",
+    "API",
+    "ProbeIngest",
+    "DiscoveryScan.ts",
+  );
+
+  /*
+   * Comments are stripped first: this file's own prose names these services
+   * and their methods, and the route's does too. Only real call sites count.
+   */
+  const routeCode: string = fs
+    .readFileSync(ROUTE_SOURCE_PATH, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+
+  function methodsCalledOn(serviceName: string): Array<string> {
+    const called: Set<string> = new Set<string>();
+    const callSite: RegExp = new RegExp(
+      `\\b${serviceName}\\.([A-Za-z0-9_]+)\\s*\\(`,
+      "g",
+    );
+
+    let match: RegExpExecArray | null = callSite.exec(routeCode);
+
+    while (match) {
+      called.add(match[1]!);
+      match = callSite.exec(routeCode);
+    }
+
+    return Array.from(called).sort();
+  }
+
+  function methodsMissingFrom(
+    stub: unknown,
+    serviceName: string,
+  ): Array<string> {
+    return methodsCalledOn(serviceName).filter((method: string): boolean => {
+      return typeof (stub as JSONObject)[method] !== "function";
+    });
+  }
+
+  /*
+   * If the route ever moves, the scan below would find nothing and pass
+   * vacuously. Pin what it is expected to see.
+   */
+  test("the route's source is found and its calls are visible", () => {
+    expect(methodsCalledOn("NetworkDeviceService")).toEqual([
+      "getRegisteredHostnames",
+    ]);
+    expect(methodsCalledOn("NetworkDeviceDiscoveryScanService")).toEqual(
+      expect.arrayContaining([
+        "findBy",
+        "findOneBy",
+        "updateColumnsByIdWithoutHooks",
+        "updateOneById",
+      ]),
+    );
+  });
+
+  test("every NetworkDeviceService method the route calls is stubbed here", () => {
+    expect(methodsMissingFrom(deviceService, "NetworkDeviceService")).toEqual(
+      [],
+    );
+  });
+
+  test("every NetworkDeviceDiscoveryScanService method the route calls is stubbed here", () => {
+    expect(
+      methodsMissingFrom(scanService, "NetworkDeviceDiscoveryScanService"),
+    ).toEqual([]);
   });
 });
