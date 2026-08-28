@@ -13,7 +13,12 @@ import {
   ResolvedStackFrame,
   SourceCodeSnippet,
 } from "../../../Types/Telemetry/SourceMap";
-import { TraceMap, originalPositionFor } from "@jridgewell/trace-mapping";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  AnyMap,
+  TraceMap,
+  originalPositionFor,
+} from "@jridgewell/trace-mapping";
 
 export interface SourceMapBundle {
   /** Bundle path the map was uploaded for, e.g. "main.a8f1b2.js". */
@@ -21,6 +26,13 @@ export interface SourceMapBundle {
   /** The raw source map JSON. */
   content: string;
 }
+
+/*
+ * Hard ceiling on one map. Matches MAX_MULTIPART_FILE_BYTES on the upload
+ * path; also enforced on the decoded string (invalid UTF-8 bytes expand to
+ * 3-byte U+FFFD on decode, so the string can outgrow the raw file).
+ */
+export const MAX_SOURCE_MAP_SIZE_IN_BYTES: number = 50 * 1024 * 1024;
 
 /** Lines of context shown on each side of the resolved line. */
 const SNIPPET_CONTEXT_LINES: number = 3;
@@ -32,7 +44,13 @@ const SNIPPET_CONTEXT_LINES: number = 3;
  */
 const MAX_SNIPPET_LINE_LENGTH: number = 512;
 
-/** Ceiling on frames processed per call — stack traces are never this deep. */
+/*
+ * Ceiling on frames actually resolved per call — stack traces are never
+ * this deep, but the frames array is attacker-shaped (parsed from
+ * client-supplied stack trace text). Frames past the cap still pass
+ * through unresolved so the output length always equals the input length,
+ * which the dashboard overlay relies on.
+ */
 const MAX_FRAMES_TO_RESOLVE: number = 500;
 
 interface ParsedBundle {
@@ -46,6 +64,90 @@ interface ParsedBundle {
 
 export default class SourceMapResolver {
   /**
+   * Throws BadDataException unless content parses as a source map v3:
+   * a JSON object with version 3 and either a mappings string (plain map)
+   * or a sections array (indexed map — resolveFrames flattens these via
+   * AnyMap). Canonical validator, shared by the upload endpoint and the
+   * model's onBeforeCreate hook.
+   */
+  public static validateSourceMapContent(content: string): void {
+    let json: {
+      version?: unknown;
+      mappings?: unknown;
+      sections?: unknown;
+    };
+
+    try {
+      json = JSON.parse(content);
+    } catch {
+      throw new BadDataException("Source map is not valid JSON.");
+    }
+
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      throw new BadDataException("Source map must be a JSON object.");
+    }
+
+    if (json.version !== 3) {
+      throw new BadDataException(
+        "Source map must be version 3 (the version field must be the number 3).",
+      );
+    }
+
+    if (typeof json.mappings !== "string" && !Array.isArray(json.sections)) {
+      throw new BadDataException(
+        "Source map must have a mappings string or a sections array.",
+      );
+    }
+  }
+
+  /**
+   * Coerce an untrusted JSON value (an API request body's frames array)
+   * into well-typed minified stack frames. Junk entries are dropped;
+   * junk fields are normalized. Never throws.
+   */
+  public static sanitizeMinifiedStackFrames(
+    value: unknown,
+  ): Array<MinifiedStackFrame> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const frames: Array<MinifiedStackFrame> = [];
+
+    for (const item of value) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        continue;
+      }
+
+      const raw: Record<string, unknown> = item as Record<string, unknown>;
+
+      frames.push({
+        functionName:
+          typeof raw["functionName"] === "string"
+            ? (raw["functionName"] as string)
+            : "",
+        fileName:
+          typeof raw["fileName"] === "string"
+            ? (raw["fileName"] as string)
+            : "",
+        lineNumber:
+          typeof raw["lineNumber"] === "number" &&
+          Number.isFinite(raw["lineNumber"] as number)
+            ? (raw["lineNumber"] as number)
+            : 0,
+        columnNumber:
+          typeof raw["columnNumber"] === "number" &&
+          Number.isFinite(raw["columnNumber"] as number)
+            ? (raw["columnNumber"] as number)
+            : undefined,
+        inApp: Boolean(raw["inApp"]),
+      });
+    }
+
+    return frames;
+  }
+
+  /**
    * Normalize a bundle path or stack frame file name for matching:
    * strip URL scheme + host, query string, hash, and leading slashes,
    * so "https://app.example.com/assets/main.js?v=1" and
@@ -53,6 +155,13 @@ export default class SourceMapResolver {
    */
   public static normalizePath(path: string): string {
     let normalized: string = (path || "").trim();
+
+    /*
+     * Windows build outputs hand paths like build\static\js\main.js to
+     * upload scripts. Frames always carry forward slashes (URLs), so
+     * normalize the separator before any other processing.
+     */
+    normalized = normalized.replace(/\\/g, "/");
 
     // Strip scheme + host of absolute URLs (http, https, webpack, ...).
     const schemeMatch: RegExpMatchArray | null = normalized.match(
@@ -146,21 +255,20 @@ export default class SourceMapResolver {
       let parsed: ParsedBundle | null = null;
 
       try {
-        const json: {
-          version?: number;
-          mappings?: string;
-          sources?: Array<string | null>;
-          sourcesContent?: Array<string | null>;
-        } = JSON.parse(bundle.content);
-
-        const traceMap: TraceMap = new TraceMap(bundle.content);
+        /*
+         * AnyMap, not TraceMap: it accepts both plain v3 maps and indexed
+         * ("sections") maps — which the upload validator deliberately
+         * admits — and flattens the latter, exposing the combined
+         * sources / resolvedSources / sourcesContent.
+         */
+        const traceMap: TraceMap = new AnyMap(bundle.content);
 
         parsed = {
           bundlePath: bundle.bundlePath,
           normalizedPath: SourceMapResolver.normalizePath(bundle.bundlePath),
           traceMap: traceMap,
-          sourcesContent: Array.isArray(json.sourcesContent)
-            ? json.sourcesContent
+          sourcesContent: Array.isArray(traceMap.sourcesContent)
+            ? traceMap.sourcesContent
             : [],
           sources: Array.isArray(traceMap.sources) ? traceMap.sources : [],
           resolvedSources: Array.isArray(traceMap.resolvedSources)
@@ -178,8 +286,22 @@ export default class SourceMapResolver {
 
     const results: Array<ResolvedStackFrame> = [];
 
-    for (const frame of frames.slice(0, MAX_FRAMES_TO_RESOLVE)) {
-      results.push(SourceMapResolver.resolveFrame(frame, bundles, parseBundle));
+    for (let i: number = 0; i < frames.length; i++) {
+      const frame: MinifiedStackFrame = frames[i]!;
+
+      if (i < MAX_FRAMES_TO_RESOLVE) {
+        results.push(
+          SourceMapResolver.resolveFrame(frame, bundles, parseBundle),
+        );
+      } else {
+        /*
+         * Past the resolution budget: pass through unresolved rather than
+         * truncating, so callers always get one output frame per input
+         * frame (the dashboard overlay discards length-mismatched
+         * responses wholesale).
+         */
+        results.push({ ...frame, resolved: false });
+      }
     }
 
     return results;

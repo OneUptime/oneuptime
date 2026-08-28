@@ -36,7 +36,10 @@ const mapBearerTokenMiddleware: RequestHandler = (
 /*
  * Authenticated source map upload for unminifying browser exception stack
  * traces. Mounted on TELEMETRY_PREFIXES, so it answers at both
- * /source-maps/v1/upload and /telemetry/source-maps/v1/upload.
+ * /source-maps/v1/upload and /telemetry/source-maps/v1/upload. The root
+ * path is the documented one: nginx gives /source-maps a 50M body cap,
+ * while the /telemetry alias inherits that location's 4M cap and will
+ * 413 on realistically sized maps.
  */
 router.post(
   "/source-maps/v1/upload",

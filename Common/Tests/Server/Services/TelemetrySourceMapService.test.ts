@@ -1,7 +1,7 @@
 import TelemetrySourceMapService, {
+  MAX_SOURCE_MAP_SIZE_IN_BYTES,
   MAX_SOURCE_MAPS_PER_RELEASE,
   SOURCE_MAP_RETENTION_DAYS,
-  Service as TelemetrySourceMapServiceClass,
 } from "../../../Server/Services/TelemetrySourceMapService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import TelemetrySourceMap from "../../../Models/DatabaseModels/TelemetrySourceMap";
@@ -76,6 +76,24 @@ const invokeOnBeforeCreate: InvokeOnBeforeCreateFunction = async (
   ).onBeforeCreate(createBy);
 };
 
+type MakeRowFunction = (
+  bundlePath: string,
+  content?: string,
+) => TelemetrySourceMap;
+
+const makeRow: MakeRowFunction = (
+  bundlePath: string,
+  content?: string,
+): TelemetrySourceMap => {
+  const row: TelemetrySourceMap = new TelemetrySourceMap();
+  row._id = ObjectID.generate().toString();
+  row.bundlePath = bundlePath;
+  if (content !== undefined) {
+    row.content = content;
+  }
+  return row;
+};
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -88,62 +106,6 @@ describe("retention configuration", () => {
     expect(TelemetrySourceMapService.hardDeleteItemsOlderThanDays).toBe(
       SOURCE_MAP_RETENTION_DAYS,
     );
-  });
-});
-
-describe("validateSourceMapContent", () => {
-  it("accepts a source map v3 with a mappings string", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        FIXTURE_MAP,
-      );
-    }).not.toThrow();
-  });
-
-  it("accepts an indexed map with sections instead of mappings", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        JSON.stringify({ version: 3, sections: [] }),
-      );
-    }).not.toThrow();
-  });
-
-  it("rejects invalid JSON", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        "{not json",
-      );
-    }).toThrow(BadDataException);
-  });
-
-  it("rejects a JSON array", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent("[1,2]");
-    }).toThrow(BadDataException);
-  });
-
-  it("rejects a map that is not version 3", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        JSON.stringify({ version: 2, mappings: "AAAA" }),
-      );
-    }).toThrow(BadDataException);
-  });
-
-  it("rejects a version given as a string, as required by the spec", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        JSON.stringify({ version: "3", mappings: "AAAA" }),
-      );
-    }).toThrow(BadDataException);
-  });
-
-  it("rejects a map with neither mappings nor sections", () => {
-    expect(() => {
-      return TelemetrySourceMapServiceClass.validateSourceMapContent(
-        JSON.stringify({ version: 3, sources: [] }),
-      );
-    }).toThrow(BadDataException);
   });
 });
 
@@ -167,7 +129,26 @@ describe("onBeforeCreate", () => {
     );
   });
 
-  it("rejects invalid source map content", async () => {
+  it("rejects content over the size ceiling", async () => {
+    /*
+     * A valid JSON envelope padded past 50 MB. The padding is a single
+     * string field so JSON.parse never runs (the size check comes first)
+     * — this stays fast.
+     */
+    const oversized: string = `{"version":3,"mappings":"AAAA","pad":"${"x".repeat(
+      MAX_SOURCE_MAP_SIZE_IN_BYTES,
+    )}"}`;
+
+    const createBy: CreateBy<TelemetrySourceMap> = makeCreateBy({
+      content: oversized,
+    });
+
+    await expect(invokeOnBeforeCreate(createBy)).rejects.toThrow(
+      BadDataException,
+    );
+  });
+
+  it("rejects invalid source map content (delegates to the canonical validator)", async () => {
     const createBy: CreateBy<TelemetrySourceMap> = makeCreateBy({
       content: "not a map",
     });
@@ -251,26 +232,47 @@ describe("replaceSourceMap", () => {
   });
 });
 
-describe("resolveFramesForService", () => {
-  type MakeRowFunction = (
-    bundlePath: string,
-    content: string,
-  ) => TelemetrySourceMap;
-
-  const makeRow: MakeRowFunction = (
-    bundlePath: string,
-    content: string,
-  ): TelemetrySourceMap => {
-    const row: TelemetrySourceMap = new TelemetrySourceMap();
-    row.bundlePath = bundlePath;
-    row.content = content;
-    return row;
-  };
-
-  it("resolves frames against the maps stored for the (service, release) pair", async () => {
+describe("getStoredBundlePathsForRelease", () => {
+  it("returns the bundle paths for the release, scoped to the tenant", async () => {
     const findBySpy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(TelemetrySourceMapService, "findBy")
-      .mockResolvedValue([makeRow("main.abc123.js", FIXTURE_MAP)] as never);
+      .mockResolvedValue([
+        makeRow("main.abc123.js"),
+        makeRow("vendor.9c3d4e.js"),
+        makeRow(""),
+      ] as never);
+
+    const bundlePaths: Array<string> =
+      await TelemetrySourceMapService.getStoredBundlePathsForRelease({
+        projectId: PROJECT_ID,
+        serviceId: SERVICE_ID,
+        serviceVersion: "1.4.2",
+      });
+
+    expect(bundlePaths).toEqual(["main.abc123.js", "vendor.9c3d4e.js"]);
+
+    const findArgs: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = findBySpy.mock.calls[0]![0] as never;
+    expect(findArgs.query["projectId"]).toBe(PROJECT_ID);
+    expect(findArgs.query["serviceId"]).toBe(SERVICE_ID);
+    expect(findArgs.query["serviceVersion"]).toBe("1.4.2");
+    // Cheap listing — content must not be selected.
+    expect(findArgs.select["content"]).toBeUndefined();
+  });
+});
+
+describe("resolveFramesForService", () => {
+  it("resolves frames against the maps stored for the (service, release) pair", async () => {
+    const listRow: TelemetrySourceMap = makeRow("main.abc123.js");
+
+    const findBySpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(TelemetrySourceMapService, "findBy")
+      // First call: bundle path listing (no content).
+      .mockResolvedValueOnce([listRow] as never)
+      // Second call: content for matched bundles only.
+      .mockResolvedValueOnce([makeRow("main.abc123.js", FIXTURE_MAP)] as never);
 
     const result: ResolveStackTraceResult =
       await TelemetrySourceMapService.resolveFramesForService({
@@ -294,26 +296,115 @@ describe("resolveFramesForService", () => {
     expect(result.frames[0]!.originalFileName).toBe("src/greet.ts");
     expect(result.frames[0]!.originalFunctionName).toBe("onSelect");
 
-    // The lookup is scoped to the exact tenant + service + release.
-    const findArgs: { query: Record<string, unknown>; limit: number } =
-      findBySpy.mock.calls[0]![0] as never;
-    expect(findArgs.query["projectId"]).toBe(PROJECT_ID);
-    expect(findArgs.query["serviceId"]).toBe(SERVICE_ID);
-    expect(findArgs.query["serviceVersion"]).toBe("1.4.2");
-    expect(findArgs.limit).toBe(MAX_SOURCE_MAPS_PER_RELEASE);
+    // The listing is scoped to the exact tenant + service + release.
+    const listArgs: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      limit: number;
+    } = findBySpy.mock.calls[0]![0] as never;
+    expect(listArgs.query["projectId"]).toBe(PROJECT_ID);
+    expect(listArgs.query["serviceId"]).toBe(SERVICE_ID);
+    expect(listArgs.query["serviceVersion"]).toBe("1.4.2");
+    expect(listArgs.limit).toBe(MAX_SOURCE_MAPS_PER_RELEASE);
+    // The listing must not pull content.
+    expect(listArgs.select["content"]).toBeUndefined();
+
+    // The content fetch stays tenant-scoped too.
+    const contentArgs: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = findBySpy.mock.calls[1]![0] as never;
+    expect(contentArgs.query["projectId"]).toBe(PROJECT_ID);
+    expect(contentArgs.select["content"]).toBe(true);
+  });
+
+  it("fetches content only for bundles that at least one frame matches", async () => {
+    const matchedRow: TelemetrySourceMap = makeRow("main.abc123.js");
+    const unmatchedRow: TelemetrySourceMap = makeRow("admin.f00baa.js");
+
+    const findBySpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(TelemetrySourceMapService, "findBy")
+      .mockResolvedValueOnce([matchedRow, unmatchedRow] as never)
+      .mockResolvedValueOnce([makeRow("main.abc123.js", FIXTURE_MAP)] as never);
+
+    const result: ResolveStackTraceResult =
+      await TelemetrySourceMapService.resolveFramesForService({
+        projectId: PROJECT_ID,
+        serviceId: SERVICE_ID,
+        serviceVersion: "1.4.2",
+        frames: [
+          {
+            functionName: "e.onSelect",
+            fileName: "main.abc123.js",
+            lineNumber: 1,
+            columnNumber: 46,
+            inApp: true,
+          },
+        ],
+      });
+
+    // Both stored maps are reported, but only the matched one was loaded.
+    expect(result.sourceMapCount).toBe(2);
+    expect(result.frames[0]!.resolved).toBe(true);
+
+    /*
+     * QueryHelper.any produces a TypeORM Raw operator whose parameters
+     * object holds the id list under a random key.
+     */
+    const contentArgs: { query: Record<string, unknown> } = findBySpy.mock
+      .calls[1]![0] as never;
+    const idOperator: { objectLiteralParameters?: Record<string, unknown> } =
+      contentArgs.query["_id"] as never;
+    const idList: Array<unknown> = Object.values(
+      idOperator.objectLiteralParameters || {},
+    )[0] as Array<unknown>;
+    expect(idList).toHaveLength(1);
+    expect(String(idList[0])).toBe(matchedRow.id!.toString());
+  });
+
+  it("skips the content fetch entirely when no stored bundle matches any frame", async () => {
+    const findBySpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(TelemetrySourceMapService, "findBy")
+      .mockResolvedValueOnce([makeRow("admin.f00baa.js")] as never);
+
+    const result: ResolveStackTraceResult =
+      await TelemetrySourceMapService.resolveFramesForService({
+        projectId: PROJECT_ID,
+        serviceId: SERVICE_ID,
+        serviceVersion: "1.4.2",
+        frames: [
+          {
+            functionName: "fn",
+            fileName: "main.abc123.js",
+            lineNumber: 1,
+            columnNumber: 1,
+            inApp: true,
+          },
+        ],
+      });
+
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+    expect(result.sourceMapCount).toBe(1);
+    expect(result.resolvedCount).toBe(0);
+    expect(result.frames[0]!.resolved).toBe(false);
   });
 
   it("dedupes bundles by normalized path, first (newest) row winning", async () => {
-    const emptyNamesMap: string = JSON.stringify({
+    const newestNamesMap: string = JSON.stringify({
       ...JSON.parse(FIXTURE_MAP),
       names: ["newest", "newest", "newest"],
     });
 
-    jest.spyOn(TelemetrySourceMapService, "findBy").mockResolvedValue([
+    const newestRow: TelemetrySourceMap = makeRow("main.abc123.js");
+    const olderDuplicateRow: TelemetrySourceMap = makeRow("/main.abc123.js");
+
+    jest
+      .spyOn(TelemetrySourceMapService, "findBy")
       // Sorted newest first by the service; same bundle appears twice.
-      makeRow("main.abc123.js", emptyNamesMap),
-      makeRow("/main.abc123.js", FIXTURE_MAP),
-    ] as never);
+      .mockResolvedValueOnce([newestRow, olderDuplicateRow] as never)
+      .mockResolvedValueOnce([
+        makeRow("main.abc123.js", newestNamesMap),
+      ] as never);
 
     const result: ResolveStackTraceResult =
       await TelemetrySourceMapService.resolveFramesForService({
@@ -367,7 +458,7 @@ describe("resolveFramesForService", () => {
   it("returns unresolved frames when no maps exist for the release", async () => {
     jest
       .spyOn(TelemetrySourceMapService, "findBy")
-      .mockResolvedValue([] as never);
+      .mockResolvedValueOnce([] as never);
 
     const result: ResolveStackTraceResult =
       await TelemetrySourceMapService.resolveFramesForService({

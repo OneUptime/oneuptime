@@ -23,17 +23,10 @@ import {
   FrameDisplayLocation,
 } from "../../Utils/SourceMapFrames";
 
-export interface StackFrame {
-  functionName: string;
-  fileName: string;
-  lineNumber: number;
-  columnNumber?: number;
-  inApp: boolean;
-}
-
 export interface ComponentProps {
   stackTrace: string;
-  parsedFrames?: string; // JSON stringified StackFrame[]
+  /** JSON-stringified Array<MinifiedStackFrame> (the parsedFrames column). */
+  parsedFrames?: string;
   /*
    * Output of POST /telemetry/exceptions/resolve-stack-trace for the same
    * frames — present when source maps were uploaded for the exception's
@@ -805,23 +798,6 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     return -1;
   }, [frames]);
 
-  // No parsed frames — show raw only
-  if (frames.length === 0) {
-    return (
-      <Card
-        title="Stack Trace"
-        description="Raw stack trace from the exception."
-      >
-        <div className="overflow-hidden">
-          <RawStackTraceViewer
-            stackTrace={props.stackTrace}
-            isStandalone={true}
-          />
-        </div>
-      </Card>
-    );
-  }
-
   // Build display items based on view mode
   const displayItems: DisplayItem[] = useMemo((): DisplayItem[] => {
     if (viewMode === ViewMode.AppOnly) {
@@ -916,6 +892,29 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
 
     return items;
   }, [frames, viewMode, topAppFrameIndex, expandedLibGroups]);
+
+  /*
+   * No parsed frames — show the raw trace only. This return sits BELOW
+   * every hook on purpose: frames can go from empty to populated between
+   * renders (parsedFrames and resolvedFrames both arrive async), and an
+   * early return above a hook would change the hook count mid-lifecycle —
+   * a Rules of Hooks violation React aborts the render for.
+   */
+  if (frames.length === 0) {
+    return (
+      <Card
+        title="Stack Trace"
+        description="Raw stack trace from the exception."
+      >
+        <div className="overflow-hidden">
+          <RawStackTraceViewer
+            stackTrace={props.stackTrace}
+            isStandalone={true}
+          />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card

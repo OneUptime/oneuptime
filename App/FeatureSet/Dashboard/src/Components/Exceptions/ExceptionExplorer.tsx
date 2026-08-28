@@ -507,6 +507,14 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const resolveStackFrames: ResolveStackFramesFunction = async (
     instance: ExceptionInstance,
   ): Promise<void> => {
+    /*
+     * Drop any previous overlay first: on a refresh (or when this
+     * component is reused for a different exception) the old resolution
+     * belongs to the old instance's frames, and every early return below
+     * would otherwise leave it applied to the new ones.
+     */
+    setResolvedFrames(undefined);
+
     try {
       if (
         !instance.parsedFrames ||

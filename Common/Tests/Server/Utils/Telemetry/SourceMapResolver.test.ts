@@ -8,6 +8,7 @@ import {
   MinifiedStackFrame,
   ResolvedStackFrame,
 } from "../../../../Types/Telemetry/SourceMap";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -90,6 +91,12 @@ describe("SourceMapResolver.normalizePath", () => {
   test("handles empty input", () => {
     expect(SourceMapResolver.normalizePath("")).toBe("");
   });
+
+  test("converts Windows backslash separators to forward slashes", () => {
+    expect(
+      SourceMapResolver.normalizePath("build\\static\\js\\main.abc123.js"),
+    ).toBe("build/static/js/main.abc123.js");
+  });
 });
 
 describe("SourceMapResolver.getMatchScore", () => {
@@ -136,6 +143,15 @@ describe("SourceMapResolver.getMatchScore", () => {
         "main.js",
       ),
     ).toBe(1);
+  });
+
+  test("a Windows-style bundle path matches a URL frame", () => {
+    expect(
+      SourceMapResolver.getMatchScore(
+        "https://app.example.com/static/js/main.abc123.js",
+        "build\\static\\js\\main.abc123.js",
+      ),
+    ).toBe(3);
   });
 });
 
@@ -202,6 +218,23 @@ describe("SourceMapResolver.resolveFrames", () => {
     // 1-based col 21 = 0-based 20 → exactly the `name` segment
     const frames: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
       [makeFrame("main.abc123.js", 1, 21)],
+      [FIXTURE_BUNDLE],
+    );
+
+    expect(frames[0]!.resolved).toBe(true);
+    expect(frames[0]!.originalLineNumber).toBe(2);
+    expect(frames[0]!.originalFunctionName).toBe("name");
+  });
+
+  test("a column BETWEEN segments resolves to the segment before it (greatest-lower-bound bias)", () => {
+    /*
+     * 1-based col 31 = 0-based 30 sits strictly between the segments at
+     * 0-based columns 20 (`name`, line 2) and 45 (`onSelect`, line 6).
+     * The lookup must land on the preceding segment — a probe of an exact
+     * segment start could not detect a bias regression.
+     */
+    const frames: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      [makeFrame("main.abc123.js", 1, 31)],
       [FIXTURE_BUNDLE],
     );
 
@@ -306,6 +339,36 @@ describe("SourceMapResolver.resolveFrames", () => {
     expect(frames[0]!.originalFunctionName).toBe("onSelect");
   });
 
+  test("resolves through an indexed (sections) source map", () => {
+    /*
+     * Indexed maps are what some bundlers emit for concatenated builds.
+     * The upload validator admits them, so the resolver must flatten them
+     * (AnyMap) rather than fail on the missing top-level mappings string.
+     */
+    const sectionedMap: string = JSON.stringify({
+      version: 3,
+      sections: [
+        {
+          offset: { line: 0, column: 0 },
+          map: JSON.parse(FIXTURE_MAP),
+        },
+      ],
+    });
+
+    const frames: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      [makeFrame("main.abc123.js", 1, 46)],
+      [{ bundlePath: "main.abc123.js", content: sectionedMap }],
+    );
+
+    expect(frames[0]!.resolved).toBe(true);
+    expect(frames[0]!.originalFileName).toBe("src/greet.ts");
+    expect(frames[0]!.originalLineNumber).toBe(6);
+    expect(frames[0]!.originalFunctionName).toBe("onSelect");
+    // sourcesContent survives the section flattening.
+    expect(frames[0]!.sourceCodeSnippet).toBeDefined();
+    expect(frames[0]!.sourceCodeSnippet!.highlightLine).toBe(6);
+  });
+
   test("empty inputs produce empty output", () => {
     expect(SourceMapResolver.resolveFrames([], [FIXTURE_BUNDLE])).toEqual([]);
     const frames: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
@@ -313,6 +376,142 @@ describe("SourceMapResolver.resolveFrames", () => {
       [],
     );
     expect(frames[0]!.resolved).toBe(false);
+  });
+
+  test("output length always equals input length, even past the resolution budget", () => {
+    /*
+     * The dashboard overlay discards a length-mismatched response
+     * wholesale, so frames past the 500-frame resolution budget must pass
+     * through unresolved rather than be truncated.
+     */
+    const manyFrames: Array<MinifiedStackFrame> = [];
+    for (let i: number = 0; i < 502; i++) {
+      manyFrames.push(makeFrame("main.abc123.js", 1, 46));
+    }
+
+    const frames: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      manyFrames,
+      [FIXTURE_BUNDLE],
+    );
+
+    expect(frames).toHaveLength(502);
+    // Within budget: resolved.
+    expect(frames[0]!.resolved).toBe(true);
+    expect(frames[499]!.resolved).toBe(true);
+    // Past budget: passed through unresolved, not dropped.
+    expect(frames[500]!.resolved).toBe(false);
+    expect(frames[501]!.resolved).toBe(false);
+    expect(frames[501]!.fileName).toBe("main.abc123.js");
+  });
+});
+
+describe("SourceMapResolver.validateSourceMapContent", () => {
+  test("accepts a source map v3 with a mappings string", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent(FIXTURE_MAP);
+    }).not.toThrow();
+  });
+
+  test("accepts an indexed map with sections instead of mappings", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent(
+        JSON.stringify({ version: 3, sections: [] }),
+      );
+    }).not.toThrow();
+  });
+
+  test("rejects invalid JSON", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent("{not json");
+    }).toThrow(BadDataException);
+  });
+
+  test("rejects a JSON array", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent("[1,2]");
+    }).toThrow(BadDataException);
+  });
+
+  test("rejects a map that is not version 3", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent(
+        JSON.stringify({ version: 2, mappings: "AAAA" }),
+      );
+    }).toThrow(BadDataException);
+  });
+
+  test("rejects a version given as a string, as required by the spec", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent(
+        JSON.stringify({ version: "3", mappings: "AAAA" }),
+      );
+    }).toThrow(BadDataException);
+  });
+
+  test("rejects a map with neither mappings nor sections", () => {
+    expect(() => {
+      return SourceMapResolver.validateSourceMapContent(
+        JSON.stringify({ version: 3, sources: [] }),
+      );
+    }).toThrow(BadDataException);
+  });
+});
+
+describe("SourceMapResolver.sanitizeMinifiedStackFrames", () => {
+  test("coerces a well-formed frames array", () => {
+    const frames: Array<MinifiedStackFrame> =
+      SourceMapResolver.sanitizeMinifiedStackFrames([
+        {
+          functionName: "e.onSelect",
+          fileName: "main.js",
+          lineNumber: 1,
+          columnNumber: 46,
+          inApp: true,
+        },
+      ]);
+
+    expect(frames).toEqual([
+      {
+        functionName: "e.onSelect",
+        fileName: "main.js",
+        lineNumber: 1,
+        columnNumber: 46,
+        inApp: true,
+      },
+    ]);
+  });
+
+  test("returns [] for non-array input", () => {
+    expect(SourceMapResolver.sanitizeMinifiedStackFrames(undefined)).toEqual(
+      [],
+    );
+    expect(SourceMapResolver.sanitizeMinifiedStackFrames("frames")).toEqual([]);
+    expect(SourceMapResolver.sanitizeMinifiedStackFrames({ a: 1 })).toEqual([]);
+  });
+
+  test("drops junk entries and normalizes junk fields", () => {
+    const frames: Array<MinifiedStackFrame> =
+      SourceMapResolver.sanitizeMinifiedStackFrames([
+        null,
+        "string",
+        [1, 2],
+        {
+          functionName: 42,
+          fileName: null,
+          lineNumber: "7",
+          columnNumber: Infinity,
+          inApp: 1,
+        },
+      ]);
+
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toEqual({
+      functionName: "",
+      fileName: "",
+      lineNumber: 0,
+      columnNumber: undefined,
+      inApp: true,
+    });
   });
 });
 

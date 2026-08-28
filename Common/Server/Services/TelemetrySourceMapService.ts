@@ -6,8 +6,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SourceMapResolver, {
+  MAX_SOURCE_MAP_SIZE_IN_BYTES,
   SourceMapBundle,
 } from "../Utils/Telemetry/SourceMapResolver";
 import {
@@ -16,11 +18,7 @@ import {
   ResolveStackTraceResult,
 } from "../../Types/Telemetry/SourceMap";
 
-/*
- * Hard ceiling on one stored map. Matches MAX_MULTIPART_FILE_BYTES on the
- * upload path, and protects the CRUD create path the same way.
- */
-export const MAX_SOURCE_MAP_SIZE_IN_BYTES: number = 50 * 1024 * 1024;
+export { MAX_SOURCE_MAP_SIZE_IN_BYTES };
 
 /*
  * How long uploaded maps are kept. Old releases age out automatically —
@@ -30,9 +28,10 @@ export const MAX_SOURCE_MAP_SIZE_IN_BYTES: number = 50 * 1024 * 1024;
 export const SOURCE_MAP_RETENTION_DAYS: number = 90;
 
 /*
- * How many maps one (service, release) pair may hold / how many the
- * resolver will load for one resolution pass. A build rarely emits more
- * than a few dozen chunks with maps.
+ * How many maps one (service, release) pair may hold. Enforced by the
+ * upload endpoint (existing bundles + new bundles must fit) and used as
+ * the resolver's read limit, so nothing stored is ever silently ignored.
+ * A build rarely emits more than a few dozen chunks with maps.
  */
 export const MAX_SOURCE_MAPS_PER_RELEASE: number = 100;
 
@@ -65,7 +64,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    Service.validateSourceMapContent(content);
+    SourceMapResolver.validateSourceMapContent(content);
 
     if (!createBy.data.bundlePath || !createBy.data.bundlePath.trim()) {
       throw new BadDataException("Bundle path is required.");
@@ -81,38 +80,40 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Throws BadDataException unless content parses as a source map v3
-   * (JSON object with version 3 and a string mappings field).
+   * Bundle paths currently stored for a (project, service, release) tuple.
+   * Used by the upload endpoint to enforce the per-release ceiling without
+   * pulling map content.
    */
-  public static validateSourceMapContent(content: string): void {
-    let json: {
-      version?: unknown;
-      mappings?: unknown;
-      sections?: unknown;
-    };
+  @CaptureSpan()
+  public async getStoredBundlePathsForRelease(data: {
+    projectId: ObjectID;
+    serviceId: ObjectID;
+    serviceVersion: string;
+  }): Promise<Array<string>> {
+    const rows: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        serviceId: data.serviceId,
+        serviceVersion: data.serviceVersion,
+      },
+      select: {
+        _id: true,
+        bundlePath: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
 
-    try {
-      json = JSON.parse(content);
-    } catch {
-      throw new BadDataException("Source map is not valid JSON.");
-    }
-
-    if (!json || typeof json !== "object" || Array.isArray(json)) {
-      throw new BadDataException("Source map must be a JSON object.");
-    }
-
-    if (json.version !== 3) {
-      throw new BadDataException(
-        "Source map must be version 3 (the version field must be the number 3).",
-      );
-    }
-
-    // Indexed maps carry sections instead of a top-level mappings string.
-    if (typeof json.mappings !== "string" && !Array.isArray(json.sections)) {
-      throw new BadDataException(
-        "Source map must have a mappings string or a sections array.",
-      );
-    }
+    return rows
+      .map((row: Model) => {
+        return row.bundlePath || "";
+      })
+      .filter((bundlePath: string) => {
+        return bundlePath.length > 0;
+      });
   }
 
   /**
@@ -184,7 +185,14 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    const sourceMaps: Array<Model> = await this.findBy({
+    /*
+     * Two-step fetch: list bundle paths first (cheap), then pull content
+     * only for bundles that at least one frame can match. Maps can be tens
+     * of megabytes each and a release may store up to
+     * MAX_SOURCE_MAPS_PER_RELEASE of them — loading them all for every
+     * exception view would be a memory hazard for no benefit.
+     */
+    const sourceMapRows: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
         serviceId: data.serviceId,
@@ -193,7 +201,6 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         bundlePath: true,
-        content: true,
         createdAt: true,
       },
       sort: {
@@ -210,16 +217,16 @@ export class Service extends DatabaseService<Model> {
      * Newest-first sort + first-wins dedupe: if a racing double upload left
      * two rows for one bundle, the newer one is used.
      */
-    const bundles: Array<SourceMapBundle> = [];
+    const dedupedRows: Array<Model> = [];
     const seenBundlePaths: Set<string> = new Set();
 
-    for (const sourceMap of sourceMaps) {
-      if (!sourceMap.bundlePath || !sourceMap.content) {
+    for (const row of sourceMapRows) {
+      if (!row.bundlePath) {
         continue;
       }
 
       const normalizedPath: string = SourceMapResolver.normalizePath(
-        sourceMap.bundlePath,
+        row.bundlePath,
       );
 
       if (seenBundlePaths.has(normalizedPath)) {
@@ -227,10 +234,56 @@ export class Service extends DatabaseService<Model> {
       }
 
       seenBundlePaths.add(normalizedPath);
-      bundles.push({
-        bundlePath: sourceMap.bundlePath,
-        content: sourceMap.content,
+      dedupedRows.push(row);
+    }
+
+    const matchedRows: Array<Model> = dedupedRows.filter((row: Model) => {
+      return data.frames.some((frame: MinifiedStackFrame) => {
+        return (
+          SourceMapResolver.getMatchScore(
+            frame.fileName,
+            row.bundlePath || "",
+          ) > 0
+        );
       });
+    });
+
+    const bundles: Array<SourceMapBundle> = [];
+
+    if (matchedRows.length > 0) {
+      const contentRows: Array<Model> = await this.findBy({
+        query: {
+          /*
+           * Tenant scoping repeated here even though ids are already
+           * tenant-scoped — defense in depth for a root query.
+           */
+          projectId: data.projectId,
+          _id: QueryHelper.any(
+            matchedRows.map((row: Model) => {
+              return new ObjectID(row.id!.toString());
+            }),
+          ),
+        },
+        select: {
+          _id: true,
+          bundlePath: true,
+          content: true,
+        },
+        limit: MAX_SOURCE_MAPS_PER_RELEASE,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const row of contentRows) {
+        if (row.bundlePath && row.content) {
+          bundles.push({
+            bundlePath: row.bundlePath,
+            content: row.content,
+          });
+        }
+      }
     }
 
     const resolvedFrames: Array<ResolvedStackFrame> =
@@ -241,7 +294,12 @@ export class Service extends DatabaseService<Model> {
       resolvedCount: resolvedFrames.filter((frame: ResolvedStackFrame) => {
         return frame.resolved;
       }).length,
-      sourceMapCount: bundles.length,
+      /*
+       * Stored (deduped) maps for the release — not just the ones a frame
+       * matched — so "maps exist but none matched your bundles" is
+       * distinguishable from "no maps uploaded".
+       */
+      sourceMapCount: dedupedRows.length,
     };
   }
 }

@@ -14,6 +14,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
+import SourceMapResolver from "../Utils/Telemetry/SourceMapResolver";
 import {
   MinifiedStackFrame,
   ResolveStackTraceResult,
@@ -287,6 +288,12 @@ router.post(
  * purpose: anyone who may see the exception may see the few original source
  * lines around its crash site (the snippets in the response). Bulk access to
  * whole maps stays restricted by the model's own column ACL on `content`.
+ * That is a deliberate trade-off, not an oversight: a caller with exception
+ * read access could reconstruct larger stretches of sourcesContent by
+ * probing many line/column pairs across requests, exactly as they could in
+ * Sentry or Elastic. The content column ACL exists to prevent trivial bulk
+ * export, not to be an information-flow boundary against a team member who
+ * is already trusted to read the project's exceptions.
  *
  * Tenant safety: source maps are queried by (tenantId from the authorized
  * request, serviceId from the body). A serviceId belonging to a different
@@ -337,35 +344,8 @@ router.post(
         );
       }
 
-      const frames: Array<MinifiedStackFrame> = [];
-
-      for (const rawFrame of body["frames"] as JSONArray) {
-        const frame: JSONObject = rawFrame as JSONObject;
-
-        if (!frame || typeof frame !== "object") {
-          continue;
-        }
-
-        frames.push({
-          functionName:
-            typeof frame["functionName"] === "string"
-              ? (frame["functionName"] as string)
-              : "",
-          fileName:
-            typeof frame["fileName"] === "string"
-              ? (frame["fileName"] as string)
-              : "",
-          lineNumber:
-            typeof frame["lineNumber"] === "number"
-              ? (frame["lineNumber"] as number)
-              : 0,
-          columnNumber:
-            typeof frame["columnNumber"] === "number"
-              ? (frame["columnNumber"] as number)
-              : undefined,
-          inApp: Boolean(frame["inApp"]),
-        });
-      }
+      const frames: Array<MinifiedStackFrame> =
+        SourceMapResolver.sanitizeMinifiedStackFrames(body["frames"]);
 
       const result: ResolveStackTraceResult =
         await TelemetrySourceMapService.resolveFramesForService({

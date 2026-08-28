@@ -57,8 +57,10 @@ Details:
 
 - Each uploaded file's bundle path is its file name with the trailing `.map` stripped — `main.a8f1b2.js.map` becomes `main.a8f1b2.js`. If your map file name does not follow that convention, upload one file per request and pass an explicit `bundlePath` field.
 - Re-uploading the same bundle for the same service and version replaces the previous map, so CI retries are safe.
-- Each `.map` file may be up to 50 MB. Up to 100 maps can be uploaded per request, and files must be [source map v3](https://tc39.es/ecma426/) JSON (which is what every modern bundler emits).
+- Files must be [source map v3](https://tc39.es/ecma426/) JSON (which is what every modern bundler emits — indexed maps with `sections` are supported too).
+- Limits: each `.map` file may be up to 50 MB, but the ingress also caps the **whole request body** at 50 MB — so upload large maps one per request. Up to 50 files are accepted per request, and one release (service + version) can hold at most 100 maps in total; an upload that would exceed that is rejected.
 - Build with `sourcesContent` included (the default for most bundlers) to get original source snippets around each resolved frame in the dashboard.
+- If your self-hosted operator has disabled telemetry ingestion (`DISABLE_TELEMETRY_INGESTION`), uploads return an empty success response and nothing is stored — the same behavior every telemetry ingest endpoint has in that mode. A successful upload always returns a JSON body listing the stored maps, so CI can assert on that.
 
 A typical CI step uploads every map the build emitted:
 

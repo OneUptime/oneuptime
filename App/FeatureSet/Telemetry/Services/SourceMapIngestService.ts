@@ -3,10 +3,12 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import TelemetrySourceMapService, {
-  MAX_SOURCE_MAP_SIZE_IN_BYTES,
   MAX_SOURCE_MAPS_PER_RELEASE,
-  Service as TelemetrySourceMapServiceClass,
 } from "Common/Server/Services/TelemetrySourceMapService";
+import SourceMapResolver, {
+  MAX_SOURCE_MAP_SIZE_IN_BYTES,
+} from "Common/Server/Utils/Telemetry/SourceMapResolver";
+import { MAX_MULTIPART_FILES } from "Common/Server/Middleware/MultipartFormData";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ColumnLength from "Common/Types/Database/ColumnLength";
@@ -76,6 +78,18 @@ export default class SourceMapIngestService {
         );
       }
 
+      /*
+       * Both fields land in ShortText (varchar 100) columns —
+       * Service.name and TelemetrySourceMap.serviceVersion. Reject
+       * over-long values with a clear 400 instead of letting the insert
+       * fail with an opaque 500.
+       */
+      if (serviceName.length > ColumnLength.ShortText) {
+        throw new BadDataException(
+          `serviceName must be at most ${ColumnLength.ShortText} characters.`,
+        );
+      }
+
       if (serviceVersion.length > ColumnLength.ShortText) {
         throw new BadDataException(
           `serviceVersion must be at most ${ColumnLength.ShortText} characters.`,
@@ -92,9 +106,14 @@ export default class SourceMapIngestService {
         );
       }
 
-      if (files.length > MAX_SOURCE_MAPS_PER_RELEASE) {
+      /*
+       * The multipart middleware already 413s past MAX_MULTIPART_FILES, so
+       * this branch is defense in depth — and the message states the real
+       * per-request limit rather than the (higher) per-release one.
+       */
+      if (files.length > MAX_MULTIPART_FILES) {
         throw new BadDataException(
-          `At most ${MAX_SOURCE_MAPS_PER_RELEASE} source maps can be uploaded in one request.`,
+          `At most ${MAX_MULTIPART_FILES} source maps can be uploaded in one request. Split the upload across requests — up to ${MAX_SOURCE_MAPS_PER_RELEASE} maps are kept per release.`,
         );
       }
 
@@ -149,8 +168,23 @@ export default class SourceMapIngestService {
 
         const content: string = file.buffer.toString("utf8");
 
+        /*
+         * Re-check the DECODED size here, not just the raw buffer above:
+         * invalid UTF-8 bytes decode to 3-byte U+FFFD, so a file under the
+         * cap can decode past it. onBeforeCreate enforces the same ceiling
+         * at save time — catching it in this validate-everything-first loop
+         * keeps a failed request from leaving a partial release behind.
+         */
+        if (Buffer.byteLength(content, "utf8") > MAX_SOURCE_MAP_SIZE_IN_BYTES) {
+          throw new BadDataException(
+            `Source map for bundle ${bundlePath} is too large after decoding. The maximum size is ${
+              MAX_SOURCE_MAP_SIZE_IN_BYTES / (1024 * 1024)
+            } MB.`,
+          );
+        }
+
         try {
-          TelemetrySourceMapServiceClass.validateSourceMapContent(content);
+          SourceMapResolver.validateSourceMapContent(content);
         } catch (validationError) {
           throw new BadDataException(
             `File for bundle ${bundlePath} is not a valid source map: ${
@@ -179,6 +213,30 @@ export default class SourceMapIngestService {
           serviceName: serviceName,
           projectId: projectId,
         });
+
+      /*
+       * Per-release ceiling: what is already stored, minus bundles this
+       * request replaces, plus this request's bundles must fit. Without
+       * this, maps past the resolver's read limit would store fine but
+       * silently never resolve.
+       */
+      const existingBundlePaths: Array<string> =
+        await TelemetrySourceMapService.getStoredBundlePathsForRelease({
+          projectId: projectId,
+          serviceId: serviceMetadata.primaryEntityId,
+          serviceVersion: serviceVersion,
+        });
+
+      const bundlePathsAfterUpload: Set<string> = new Set(existingBundlePaths);
+      for (const upload of validatedUploads) {
+        bundlePathsAfterUpload.add(upload.bundlePath);
+      }
+
+      if (bundlePathsAfterUpload.size > MAX_SOURCE_MAPS_PER_RELEASE) {
+        throw new BadDataException(
+          `This release already has ${existingBundlePaths.length} source maps and this upload would take it past the limit of ${MAX_SOURCE_MAPS_PER_RELEASE} per release. Delete unused maps or use a new serviceVersion.`,
+        );
+      }
 
       const savedSourceMaps: Array<JSONObject> = [];
 

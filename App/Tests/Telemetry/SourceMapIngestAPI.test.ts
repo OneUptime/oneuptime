@@ -58,6 +58,8 @@ jest.mock("Common/Server/Middleware/MultipartFormData", () => {
   return {
     __esModule: true,
     default: multipartMiddleware,
+    // Real value from the middleware — the per-request file guard uses it.
+    MAX_MULTIPART_FILES: 50,
   };
 });
 
@@ -105,33 +107,19 @@ jest.mock("Common/Server/Services/OpenTelemetryIngestService", () => {
   };
 });
 
+/*
+ * Only the database-touching service is mocked. Content validation runs
+ * for real: the ingest service calls
+ * SourceMapResolver.validateSourceMapContent, and that module is pure
+ * (no DB), so it is deliberately NOT mocked here.
+ */
 jest.mock("Common/Server/Services/TelemetrySourceMapService", () => {
-  class MockTelemetrySourceMapServiceClass {
-    public static validateSourceMapContent(content: string): void {
-      /*
-       * Stand-in for the real validator (fully covered by
-       * Common/Tests/Server/Services/TelemetrySourceMapService.test.ts):
-       * accepts anything that parses as JSON with version 3.
-       */
-      let json: { version?: unknown };
-      try {
-        json = JSON.parse(content);
-      } catch {
-        throw new Error("Source map is not valid JSON.");
-      }
-      if (json.version !== 3) {
-        throw new Error("Source map must be version 3.");
-      }
-    }
-  }
-
   return {
     __esModule: true,
     default: {
       replaceSourceMap: jest.fn(),
+      getStoredBundlePathsForRelease: jest.fn(),
     },
-    Service: MockTelemetrySourceMapServiceClass,
-    MAX_SOURCE_MAP_SIZE_IN_BYTES: 50 * 1024 * 1024,
     MAX_SOURCE_MAPS_PER_RELEASE: 100,
   };
 });
@@ -149,6 +137,8 @@ const telemetryServiceFromNameMock: MockedFn =
   OTelIngestService.telemetryServiceFromName as unknown as MockedFn;
 const replaceSourceMapMock: MockedFn =
   TelemetrySourceMapService.replaceSourceMap as unknown as MockedFn;
+const getStoredBundlePathsMock: MockedFn =
+  TelemetrySourceMapService.getStoredBundlePathsForRelease as unknown as MockedFn;
 const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
 
@@ -246,6 +236,8 @@ beforeEach(() => {
   replaceSourceMapMock.mockResolvedValue({
     id: ObjectID.generate(),
   } as never);
+
+  getStoredBundlePathsMock.mockResolvedValue([] as never);
 });
 
 describe("route registration", () => {
@@ -355,6 +347,60 @@ describe("uploadSourceMaps", () => {
     expect(replaceSourceMapMock).toHaveBeenCalledWith(
       expect.objectContaining({ bundlePath: "assets/entry.js" }),
     );
+  });
+
+  test("rejects an over-long serviceName with a 400 instead of an opaque insert failure", async () => {
+    const error: Error | null = await invokeHandler(
+      makeRequest({
+        body: {
+          serviceName: "s".repeat(101),
+          serviceVersion: "1.4.2",
+        },
+        files: [makeFile("main.js.map")],
+      }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(telemetryServiceFromNameMock).not.toHaveBeenCalled();
+    expect(replaceSourceMapMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects an upload that would take the release past the per-release map limit", async () => {
+    // 100 distinct bundles already stored; this upload adds a new one.
+    getStoredBundlePathsMock.mockResolvedValue(
+      Array.from({ length: 100 }, (_: unknown, i: number) => {
+        return `chunk-${i}.js`;
+      }) as never,
+    );
+
+    const error: Error | null = await invokeHandler(
+      makeRequest({
+        body: { serviceName: "my-web-app", serviceVersion: "1.4.2" },
+        files: [makeFile("brand-new.js.map")],
+      }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(replaceSourceMapMock).not.toHaveBeenCalled();
+  });
+
+  test("replacing an already-stored bundle does not count against the per-release limit", async () => {
+    // At the limit, but the upload replaces an existing bundle.
+    getStoredBundlePathsMock.mockResolvedValue(
+      Array.from({ length: 100 }, (_: unknown, i: number) => {
+        return i === 0 ? "main.abc123.js" : `chunk-${i}.js`;
+      }) as never,
+    );
+
+    const error: Error | null = await invokeHandler(
+      makeRequest({
+        body: { serviceName: "my-web-app", serviceVersion: "1.4.2" },
+        files: [makeFile("main.abc123.js.map")],
+      }),
+    );
+
+    expect(error).toBeNull();
+    expect(replaceSourceMapMock).toHaveBeenCalledTimes(1);
   });
 
   test("rejects a missing serviceName", async () => {
