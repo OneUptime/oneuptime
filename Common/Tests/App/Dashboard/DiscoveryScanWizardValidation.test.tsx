@@ -60,6 +60,19 @@ type CapturedFormStep = {
 type CapturedColumn = {
   field?: Record<string, unknown> | undefined;
   title?: string | undefined;
+  /*
+   * The layout flags are captured too, because "which columns does this table
+   * show by default, and which can the viewer switch on" is configuration in
+   * exactly the same way the form fields are — and it is decided entirely by
+   * these four properties. See the Scan Target describe block at the bottom.
+   */
+  id?: string | undefined;
+  type?: FieldType | undefined;
+  isHiddenByDefault?: boolean | undefined;
+  isNotCustomizable?: boolean | undefined;
+  isRemovable?: boolean | undefined;
+  disableSort?: boolean | undefined;
+  noValueMessage?: string | undefined;
   getElement?:
     | ((item: NetworkDeviceDiscoveryScan) => React.ReactElement)
     | undefined;
@@ -83,6 +96,14 @@ type CapturedTableProps = {
   actionButtons?: Array<CapturedActionButton>;
   selectMoreFields?: Record<string, boolean>;
   isEditable?: boolean | undefined;
+  /*
+   * BaseModelTable gates the entire "Customize Columns" picker on this pair
+   * (isColumnCustomizationEnabled). Nothing else in the repo reads this key,
+   * so dropping the prop would make every hidden-by-default column on this
+   * table permanently unreachable, with no other symptom.
+   */
+  userPreferencesKey?: string | undefined;
+  disableColumnCustomization?: boolean | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -109,6 +130,16 @@ import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
+import FieldType from "../../../UI/Components/Types/FieldType";
+import ModelTableColumn from "../../../UI/Components/ModelTable/Column";
+import ModelTableColumns from "../../../UI/Components/ModelTable/Columns";
+import {
+  ColumnPreference,
+  applyColumnPreference,
+  getColumnIds,
+} from "../../../UI/Components/ModelTable/ColumnPreference";
+import { getSelectFromColumns } from "../../../UI/Components/ModelTable/SelectFromColumns";
+import Select from "../../../Types/BaseDatabase/Select";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -149,6 +180,47 @@ function columnNamed(key: string): CapturedColumn {
   }
 
   return column;
+}
+
+function columnByTitle(title: string): CapturedColumn {
+  const column: CapturedColumn | undefined = capturedTableProps?.columns?.find(
+    (tableColumn: CapturedColumn): boolean => {
+      return tableColumn.title === title;
+    },
+  );
+
+  if (!column) {
+    throw new Error(`Discovery scans table column titled "${title}" not found`);
+  }
+
+  return column;
+}
+
+/*
+ * The captured columns handed to the real ColumnPreference helpers. The mock
+ * stores them as the loose CapturedColumn shape; they are the very objects the
+ * page declared, so the layout functions can be run over them directly rather
+ * than over a replica that could drift from the page.
+ */
+function declaredColumns(): ModelTableColumns<NetworkDeviceDiscoveryScan> {
+  return (capturedTableProps?.columns ||
+    []) as unknown as ModelTableColumns<NetworkDeviceDiscoveryScan>;
+}
+
+/*
+ * The titles a viewer sees, in order, for a given stored layout — computed by
+ * the same function BaseModelTable renders through, so these tests move when
+ * the real rule moves.
+ */
+function visibleColumnTitles(
+  preference: ColumnPreference | null,
+): Array<string> {
+  return applyColumnPreference<NetworkDeviceDiscoveryScan>({
+    columns: declaredColumns(),
+    preference: preference,
+  }).map((column: ModelTableColumn<NetworkDeviceDiscoveryScan>): string => {
+    return column.title || "";
+  });
 }
 
 /*
@@ -687,5 +759,274 @@ describe("Name identifies the scan in the list", () => {
       .mockReturnValue([Permission.ProjectAdmin]);
 
     expect(rename?.isVisible?.(scan)).toBe(true);
+  });
+});
+
+/*
+ * Issue #3446: "Scan Target column missing from the Discovery Scans table, but
+ * present as a filter option".
+ *
+ * THE ACTUAL HISTORY, because it is easy to get wrong and it decides the shape
+ * of the fix. Up to 12.0.22 this table had a standalone `{ cidr }` "Scan
+ * Target" column and no filters at all. The commit that added scan names
+ * (#3391) folded the target into the composite "Scan" cell AND introduced the
+ * Name / Scan Target filters, in one change — so the filter for the target
+ * appeared in the same release the column for it disappeared. The data was
+ * never lost (the Scan cell shows the target on every row, and 12.0.24 is
+ * byte-identical to this file's page in that respect); what was lost was the
+ * target as a COLUMN: a header saying what the filter says, something to sort
+ * on, and its own CSV heading.
+ *
+ * So the column comes back, switched off. That keeps #3391's default layout
+ * exactly as designed — putting it back visible would print the target twice
+ * in every named row — while making it one tick away in Customize Columns.
+ *
+ * WHAT THIS BLOCK GUARDS, in rough order of how expensive the mistake is:
+ *
+ *   - The column silently widening the default table (a dropped
+ *     `isHiddenByDefault`), which is the #3391 regression wearing a new hat.
+ *   - The recycled id. `getColumnBaseId` derives a column's identity from its
+ *     first declared field, which for `{ cidr: true }` is "cidr" — the exact
+ *     id the 12.0.22 column had, on this same userPreferencesKey. Stored
+ *     layouts live in localStorage, are sanitized on read but never rewritten,
+ *     and an id present in `order` OVERRIDES isHiddenByDefault. Ship the
+ *     derived id and every operator who arranged this table a few releases ago
+ *     silently gets the column back, on, duplicating the Scan cell. The
+ *     explicit `id` is the whole fix for that, and it looks like a redundant
+ *     line nobody would miss deleting — hence a test.
+ *   - The picker being switched off table-wide, which would make a
+ *     hidden-by-default column unreachable forever with no other symptom.
+ *
+ * These run against the columns the page really declared (captured through the
+ * ModelTable mock) and through the real ColumnPreference / SelectFromColumns
+ * helpers, so they follow the product rather than restating it.
+ */
+describe("Scan Target is reachable as a column, not only as a filter", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+
+    const probe: Probe = new Probe();
+    probe.id = new ObjectID("22222222-2222-4222-8222-222222222222");
+    probe.name = "Datacenter Probe";
+
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([probe] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  test("the table declares a Scan Target column keyed on the target", async () => {
+    await renderPage();
+
+    const column: CapturedColumn = columnByTitle("Scan Target");
+
+    expect(Object.keys(column.field || {})).toEqual(["cidr"]);
+    expect(column.type).toBe(FieldType.Text);
+  });
+
+  /*
+   * The title is not decoration here: it is the entire complaint in #3446.
+   * The filter dialog says "Scan Target", so the column has to say it too, and
+   * both have to mean the same field or the pair is a different lie.
+   */
+  test("what you can filter by, you can now also show", async () => {
+    await renderPage();
+
+    const filter: CapturedFilter | undefined = (
+      capturedTableProps?.filters || []
+    ).find((tableFilter: CapturedFilter): boolean => {
+      return tableFilter.title === "Scan Target";
+    });
+
+    expect(Object.keys(filter?.field || {})).toEqual(["cidr"]);
+    expect(Object.keys(columnByTitle("Scan Target").field || {})).toEqual(
+      Object.keys(filter?.field || {}),
+    );
+  });
+
+  /*
+   * The load-bearing one. #3391 decided this table shows ONE identity column,
+   * and a Scan Target column that arrives switched on quietly reverses that
+   * for every operator at once — the target rendered twice on every named row.
+   * Asserted through applyColumnPreference (what BaseModelTable renders
+   * through) rather than by reading the flag, so it fails if the rule that
+   * honours the flag changes too.
+   */
+  test("it ships switched off, so the default layout is unchanged", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Scan Target").isHiddenByDefault).toBe(true);
+
+    expect(visibleColumnTitles(null)).toEqual([
+      "Scan",
+      "Probe",
+      "Status",
+      "Responded Hosts",
+      "Recurrence",
+      "Started",
+    ]);
+  });
+
+  test("a viewer who switches it on gets it, between Scan and Probe", async () => {
+    await renderPage();
+
+    const preference: ColumnPreference = {
+      order: ["scanTarget"],
+      hidden: [],
+    };
+
+    expect(visibleColumnTitles(preference)).toEqual([
+      "Scan",
+      "Scan Target",
+      "Probe",
+      "Status",
+      "Responded Hosts",
+      "Recurrence",
+      "Started",
+    ]);
+  });
+
+  /*
+   * The regression test for the recycled id, written as the upgrade it
+   * describes: a layout saved on 12.0.22, when this table's first column was
+   * `{ field: { cidr: true }, title: "Scan Target" }` and therefore had the
+   * derived id "cidr". That entry is still in the viewer's localStorage today.
+   * With an explicit id it stays unknown and keeps being dropped; reuse the
+   * derived one and this viewer is upgraded straight into the duplicated
+   * layout, without ever asking for it.
+   */
+  test("a layout saved before 12.0.23 does not switch it back on", async () => {
+    await renderPage();
+
+    const staleLayout: ColumnPreference = {
+      order: [
+        "cidr",
+        "probe",
+        "status",
+        "respondedHostCount",
+        "isRecurring",
+        "createdAt",
+      ],
+      hidden: [],
+    };
+
+    expect(visibleColumnTitles(staleLayout)).not.toContain("Scan Target");
+  });
+
+  test("the column ids are unique, and the target's is not the recycled one", async () => {
+    await renderPage();
+
+    const ids: Array<string> =
+      getColumnIds<NetworkDeviceDiscoveryScan>(declaredColumns());
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).not.toContain("cidr");
+    expect(ids).toContain("scanTarget");
+
+    /*
+     * The Scan column's id has to stay "name". It declares `{ name, cidr }`,
+     * and an id derives from the FIRST key — so reordering that pair to
+     * `{ cidr, name }` would collide both columns onto "cidr", trigger
+     * title-slug disambiguation, and invalidate every stored layout for this
+     * table at once.
+     */
+    expect(ids[0]).toBe("name");
+  });
+
+  /*
+   * A column can be switched off in two very different ways. isHiddenByDefault
+   * means "off, but in the picker"; isNotCustomizable means "not the viewer's
+   * to touch" and makes isHiddenByDefault a no-op. Setting both would produce a
+   * column that lives in neither the table nor the picker — invisible, with
+   * nothing to click.
+   */
+  test("it is offered in the picker rather than pinned out of it", async () => {
+    await renderPage();
+
+    const column: CapturedColumn = columnByTitle("Scan Target");
+
+    expect(column.isNotCustomizable).toBeFalsy();
+    // Nothing put it there for the viewer to take away again.
+    expect(column.isRemovable).toBeFalsy();
+  });
+
+  /*
+   * BaseModelTable gates the whole picker on `userPreferencesKey` being set
+   * and `disableColumnCustomization` being absent. Neither is referenced
+   * anywhere else, so losing one turns every hidden column on this table into
+   * dead configuration and no other test would notice.
+   */
+  test("the picker this column depends on is switched on for the table", async () => {
+    await renderPage();
+
+    expect(capturedTableProps?.userPreferencesKey).toBe(
+      "network-device-discovery-scans-table",
+    );
+    expect(capturedTableProps?.disableColumnCustomization).toBeFalsy();
+  });
+
+  /*
+   * Sorting is the second thing the column buys over the subtitle already on
+   * screen, and it is on by default only because `cidr` is a plain text
+   * column — BaseModelTable disables sorting for entity columns. It sorts
+   * lexicographically, which is what every other address-shaped text column in
+   * the product does (Endpoints "IP Address", Assignment Rules "Subnet CIDR").
+   */
+  test("the target can be sorted on", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Scan Target").disableSort).toBeFalsy();
+    expect(new NetworkDeviceDiscoveryScan().isEntityColumn("cidr")).toBe(false);
+  });
+
+  /*
+   * `cidr` is NOT NULL so this is close to hypothetical, but a bare text cell
+   * renders "" for a missing value and the mobile card drops the whole
+   * labelled block when the value is empty — so the "Scan Target" label itself
+   * would disappear, where every other cell on this table shows an em-dash.
+   */
+  test("an empty target reads like every other empty cell here", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Scan Target").noValueMessage).toBe("—");
+  });
+
+  /*
+   * Every field any column declares has to be a real column on the model. A
+   * typo here does not blank one cell — getSelectFromColumns throws on an
+   * unknown PRIMARY field, which takes down the whole page.
+   */
+  test("the target is actually requested from the API", async () => {
+    await renderPage();
+
+    const select: Select<NetworkDeviceDiscoveryScan> =
+      getSelectFromColumns<NetworkDeviceDiscoveryScan>({
+        columns: declaredColumns(),
+        model: new NetworkDeviceDiscoveryScan(),
+      });
+
+    expect(select.cidr).toBe(true);
+    expect(select.name).toBe(true);
+  });
+
+  /*
+   * "Scan" is a strict prefix of "Scan Target", so both surface when someone
+   * types "scan" into the picker's search box. Duplicate titles there would
+   * leave two identical rows and no way to tell which checkbox does what.
+   */
+  test("no two columns share a title", async () => {
+    await renderPage();
+
+    const titles: Array<string> = (capturedTableProps?.columns || []).map(
+      (column: CapturedColumn): string => {
+        return column.title || "";
+      },
+    );
+
+    expect(new Set(titles).size).toBe(titles.length);
   });
 });

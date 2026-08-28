@@ -1,6 +1,7 @@
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSiteStatusTimelineService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
@@ -98,6 +99,7 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     timelineCreate: jest.SpyInstance;
     deviceHealthGroups: jest.SpyInstance;
     descendantSiteIds: jest.SpyInstance;
+    maintainedSiteIds: jest.SpyInstance;
   }
 
   /*
@@ -164,6 +166,8 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   function setupRollup(data: {
     site: NetworkSite | null;
     devices: Array<NetworkDevice>;
+    // Site ids an ongoing maintenance window is currently silencing.
+    maintainedSiteIds?: Array<ObjectID> | undefined;
   }): RollupSpies {
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(data.site);
     const descendantSiteIds: jest.SpyInstance = jest
@@ -172,6 +176,18 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const deviceHealthGroups: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "getHealthGroupsForSites")
       .mockResolvedValue(toHealthGroups(data.devices));
+    const maintainedSiteIds: jest.SpyInstance = jest
+      .spyOn(
+        NetworkSiteMaintenanceSuppression,
+        "getSiteIdsUnderOngoingMaintenance",
+      )
+      .mockResolvedValue(
+        new Set<string>(
+          (data.maintainedSiteIds || []).map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ),
+      );
     jest
       .spyOn(MonitorStatusService, "findBy")
       .mockResolvedValue(fakeStatuses());
@@ -192,6 +208,7 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
       timelineCreate,
       deviceHealthGroups,
       descendantSiteIds,
+      maintainedSiteIds,
     };
   }
 
@@ -342,6 +359,25 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     expect(expressions).toContain("currentMonitorStatusId");
   });
 
+  /*
+   * Every device in the subtree is classified against ONE instant, passed in
+   * rather than read from the database's clock. Two devices measured against
+   * two different "now"s can disagree about staleness by a whole polling
+   * interval, and the rollup would then flip between runs with nothing
+   * having changed.
+   */
+  it("classifies the whole subtree against one instant", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [],
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const args: any = spies.deviceHealthGroups.mock.calls[0]![0];
+    expect(args.now).toBeInstanceOf(Date);
+  });
+
   it("does nothing when the site does not exist", async () => {
     const spies: RollupSpies = setupRollup({ site: null, devices: [] });
 
@@ -353,11 +389,13 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
   });
 
   /*
-   * An archived device is decommissioned: it keeps its siteId but must not
-   * vote. Without this filter an archived, never-monitored device hits the
-   * freshness fallback and pins its whole ancestor chain Offline forever.
+   * The bucketing query is scoped to the site's own project and to its own
+   * subtree — one statement, not one per site, and never another tenant's
+   * devices. (The archived-device filter lives inside
+   * getHealthGroupsForSites and is pinned by
+   * App/Tests/BaseAPI/NetworkSiteHierarchyDeviceRollup.test.ts.)
    */
-  it("excludes archived devices from the subtree scan", async () => {
+  it("buckets the subtree's devices in one project-scoped call", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [],
@@ -373,8 +411,38 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
      * Asserted there — NetworkDeviceService's own suite pins that the method
      * really does send `isArchived: false`.
      */
-    expect(groupArgs.siteIds.length).toBeGreaterThan(0);
-    expect(groupArgs.siteIds[0].toString()).toBe(SITE_ID.toString());
+    expect(
+      groupArgs.siteIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SITE_ID.toString()]);
+  });
+
+  /*
+   * Issue #3431. A rollup must not fail because the maintenance lookup did —
+   * the util already degrades to "nothing suppressed", and this pins that
+   * the engine treats that as an ordinary answer rather than a reason to
+   * skip the run.
+   */
+  it("rolls up normally when nothing is under maintenance", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+        },
+      ] as unknown as Array<NetworkDevice>,
+      maintainedSiteIds: [],
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    expect(spies.maintainedSiteIds).toHaveBeenCalledTimes(1);
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
   });
 
   it("scopes the descendant lookup to the site's own project", async () => {

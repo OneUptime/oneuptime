@@ -290,6 +290,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/network-device-monitor",
       },
       {
+        title: "Network Sites (Health Rollup & Uptime)",
+        url: "/docs/monitor/network-sites",
+      },
+      {
         title: "Kubernetes Monitor",
         url: "/docs/monitor/kubernetes-monitor",
       },
