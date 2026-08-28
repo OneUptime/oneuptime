@@ -704,7 +704,10 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "autoProvisionedNetworkDeviceId",
     type: TableColumnType.Entity,
-    modelType: NetworkDevice,
+    // Lazy: Monitor and NetworkDevice import each other (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return NetworkDevice;
+    },
     title: "Auto-Provisioned Network Device",
     description:
       "Network Device that caused this monitor to be provisioned automatically",

@@ -21,6 +21,7 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       label: "Viewer",
       icon: IconProp.List,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      carriesScope: true,
     },
     {
       key: "insights",
@@ -29,6 +30,7 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.METRICS_INSIGHTS] as Route,
       ),
+      carriesScope: true,
     },
     {
       key: "setup",

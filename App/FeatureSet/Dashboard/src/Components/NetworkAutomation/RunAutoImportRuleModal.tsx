@@ -6,7 +6,6 @@ import {
   AutoImportRuleRunResult,
   RuleRunResultUtil,
 } from "Common/Types/NetworkAutomation/RuleRunResult";
-import { describeAutoImportRun } from "./AutoImportRunSummary";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -108,7 +107,7 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
         title={title}
         description={
           <div>
-            <div>{describeAutoImportRun(result)}</div>
+            <div>{RuleRunResultUtil.describeAutoImportRun(result)}</div>
             {result.matchedIpAddressSample.length > 0 ? (
               <div className="mt-4">
                 <div className="font-medium text-gray-900">

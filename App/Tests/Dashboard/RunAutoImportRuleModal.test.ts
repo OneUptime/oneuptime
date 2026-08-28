@@ -1,13 +1,16 @@
-import { describeAutoImportRun } from "../../FeatureSet/Dashboard/src/Components/NetworkAutomation/AutoImportRunSummary";
-import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunResult";
+import {
+  AutoImportRuleRunResult,
+  RuleRunResultUtil,
+} from "Common/Types/NetworkAutomation/RuleRunResult";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * No module mock any more: describeAutoImportRun now lives in a React-free
- * sibling module, so this test imports it directly instead of dragging the
- * modal's browser import graph (and react, which App does not install) in
- * behind it.
+ * describeAutoImportRun is pure text over the run counters and lives in
+ * Common — no react and no browser config in its import graph — so this
+ * suite runs in Node without mocking any browser-time seam.
  */
+const describeAutoImportRun: (result: AutoImportRuleRunResult) => string =
+  RuleRunResultUtil.describeAutoImportRun.bind(RuleRunResultUtil);
 
 function result(
   overrides: Partial<AutoImportRuleRunResult>,

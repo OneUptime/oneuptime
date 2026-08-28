@@ -1145,6 +1145,33 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    if (!createBy.props.tenantId) {
+      throw new BadDataException("ProjectId required to create monitor.");
+    }
+
+    /*
+     * Validate the request's shape before consulting billing. A conflicting
+     * Monitor Template reference, or one hidden by the caller's read scope, is
+     * a bad request regardless of the project's plan - and resolving it here,
+     * ahead of the plan lookup, keeps the checks reachable without a database
+     * (the billing lookup queries the DB) and mirrors onBeforeUpdate, which
+     * validates the template before any other work.
+     */
+    const monitorTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+      "Monitor Template",
+    );
+
+    if (monitorTemplateId) {
+      await this.validateMonitorTemplateReference({
+        monitorTemplateId: monitorTemplateId,
+        projectId: createBy.props.tenantId,
+        monitorType: createBy.data.monitorType,
+        props: createBy.props,
+      });
+    }
+
     if (IsBillingEnabled && createBy.props.tenantId) {
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
         createBy.props.tenantId,
@@ -1190,25 +1217,6 @@ export class Service extends DatabaseService<Model> {
 
     if (createBy.data.monitorType === MonitorType.IncomingEmail) {
       createBy.data.incomingEmailSecretKey = ObjectID.generate();
-    }
-
-    if (!createBy.props.tenantId) {
-      throw new BadDataException("ProjectId required to create monitor.");
-    }
-
-    const monitorTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
-      createBy.data as unknown as Record<string, unknown>,
-      MONITOR_TEMPLATE_RELATION_KEYS,
-      "Monitor Template",
-    );
-
-    if (monitorTemplateId) {
-      await this.validateMonitorTemplateReference({
-        monitorTemplateId: monitorTemplateId,
-        projectId: createBy.props.tenantId,
-        monitorType: createBy.data.monitorType,
-        props: createBy.props,
-      });
     }
 
     if (createBy.data.autoProvisionedNetworkDeviceId) {

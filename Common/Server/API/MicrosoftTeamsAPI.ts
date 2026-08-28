@@ -987,7 +987,22 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Test endpoint to verify Bot Framework setup
+    /*
+     * Echoes this deployment's bot configuration.
+     *
+     * It reads local environment variables and nothing else — it does not call
+     * Azure, so it cannot tell you the Azure Bot resource exists, that its
+     * messaging endpoint points back here, that the Teams channel is enabled, or
+     * that the installed Teams app package belongs to this deployment. It used
+     * to answer "Bot Framework endpoint is configured", which admins reasonably
+     * read as "the bot works" — and then spent days debugging a setup this
+     * endpoint had already blessed. It now says what it checked and, more
+     * importantly, what it did not.
+     *
+     * The one genuinely useful thing here is botId: it is the value that must
+     * appear in the installed Teams app package, and comparing the two is what
+     * settles the most common self-hosted failure.
+     */
     router.get(
       "/microsoft-bot/test",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -1004,9 +1019,23 @@ export default class MicrosoftTeamsAPI {
         }
 
         return Response.sendJsonObjectResponse(req, res, {
-          status: "Bot Framework endpoint is configured",
+          status:
+            "Local configuration is present. This does NOT confirm the integration works.",
           clientId: MicrosoftTeamsAppClientId,
+          botId: MicrosoftTeamsAppClientId,
           messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
+          verified: [
+            "MICROSOFT_TEAMS_APP_CLIENT_ID is set",
+            "MICROSOFT_TEAMS_APP_CLIENT_SECRET is set",
+          ],
+          notVerified: [
+            "That an Azure Bot resource exists for this client id",
+            "That the Azure Bot's messaging endpoint points at this deployment",
+            "That the Azure Bot has the Microsoft Teams channel enabled",
+            "That the client secret is valid and has not expired",
+            "That the Teams app package installed in your teams was built from this deployment",
+          ],
+          nextStep: `Open the installed OneUptime app in Microsoft Teams and confirm its bot id is ${MicrosoftTeamsAppClientId}. If it is not, that package cannot receive messages from this deployment — download the manifest from Project Settings > Workspace > Microsoft Teams and upload that instead.`,
         });
       },
     );

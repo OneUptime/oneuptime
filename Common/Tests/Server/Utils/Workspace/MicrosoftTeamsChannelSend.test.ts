@@ -1052,6 +1052,42 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translatio
     );
   });
 
+  test("a Graph permission refusal reaches the admin as a named grant, end to end", async () => {
+    /*
+     * The payoff of the whole PermissionDenied split, exercised through the real
+     * send path rather than against the message builder in isolation: Graph
+     * refuses the installed-apps read, the send is still attempted (a refusal is
+     * not a missing install), Microsoft rejects it on the roster, and the
+     * exception an admin actually reads names the one permission that would turn
+     * the guess into an answer.
+     *
+     * Unit-testing the pieces separately leaves this green even if PermissionDenied
+     * were wired to short-circuit at the preflight, which would break both halves.
+     */
+    mockProjectAuth({});
+    mockInstallState(MicrosoftTeamsAppInstallState.PermissionDenied);
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    let thrown: unknown = undefined;
+    try {
+      await sendCardToChannel({ teamId: TEAM_ID });
+    } catch (err) {
+      thrown = err;
+    }
+
+    const message: string = (thrown as Error).message;
+
+    // The send was attempted: a refusal to answer is not a missing install.
+    expect(message).not.toContain(
+      "The OneUptime app is not installed in the Microsoft Teams team",
+    );
+    // And the admin is told what to grant.
+    expect(message).toContain("TeamsAppInstallation.ReadForTeam.All");
+    expect(message).toContain("admin consent");
+    // Microsoft's raw wording survives the rewrite.
+    expect(message).toContain(ROSTER_ERROR_TEXT);
+  });
+
   test("a STALE local install record is re-checked, and a confirmed removal gets the install instructions", async () => {
     /*
      * The local record let this send skip the preflight, but the app has since
@@ -1449,14 +1485,25 @@ describe("MicrosoftTeamsUtil.getRosterRejectionMessage", () => {
     }
   });
 
-  test("a known install points at a bot id mismatch, not a missing install", () => {
+  test("a known install stops blaming the package and points at the Azure Bot", () => {
+    /*
+     * Graph confirmed a package carrying this deployment's app id is installed,
+     * so the package is no longer the lead suspect. It used to be named anyway,
+     * which read to admins as though the error had not registered what they had
+     * already done. The identifier stays in the text — it is what they compare
+     * against — but the instruction now points somewhere new.
+     */
     const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
       channelName: "General",
       installState: MicrosoftTeamsAppInstallState.Installed,
     });
 
     expect(message).toContain("MICROSOFT_TEAMS_APP_CLIENT_ID");
-    expect(message).toContain("the app is installed in this team");
+    expect(message).toContain("probably not the problem");
+    expect(message).toContain("Azure Bot resource");
+    expect(message).not.toContain(
+      "check that the Teams app package was built from this deployment",
+    );
   });
 
   test("an unknown install state still suggests adding the app", () => {
@@ -1658,16 +1705,66 @@ describe("MicrosoftTeamsUtil.isAppInstalledInTeam", () => {
     expect(get).toHaveBeenCalledTimes(2);
   });
 
-  test("a Graph error is Unknown, never NotInstalled", async () => {
+  test("a 403 is PermissionDenied, never NotInstalled", async () => {
     /*
      * The realistic case: a workspace connected before
      * TeamsAppInstallation.ReadForTeam.All was documented gets a 403 here. It
-     * must not be told its app is missing.
+     * must not be told its app is missing — and it is worth separating from a
+     * plain Unknown, because a refusal names the grant that would fix it.
      */
     mockGraph([new HTTPErrorResponse(403, { error: "Forbidden" }, {})]);
 
     await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.PermissionDenied,
+    );
+  });
+
+  test("a non-permission Graph error is still Unknown, never NotInstalled", async () => {
+    /*
+     * A 500 is Microsoft failing, not refusing. Reporting it as PermissionDenied
+     * would tell the admin to grant a permission they already have.
+     */
+    mockGraph([
+      new HTTPErrorResponse(500, { error: "Internal Server Error" }, {}),
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
       MicrosoftTeamsAppInstallState.Unknown,
+    );
+  });
+
+  test("a 401 is Unknown, not PermissionDenied — a stale token is not a missing grant", async () => {
+    /*
+     * Graph answers a missing application permission with 403 and reserves 401
+     * for a token it will not accept. getValidAccessToken can hand over a cached
+     * app token without revalidating it when no expiry was stored, so a 401 here
+     * is a live possibility — and telling that admin to grant a Graph permission
+     * would be a confidently wrong answer.
+     */
+    mockGraph([
+      new HTTPErrorResponse(
+        401,
+        { error: { code: "InvalidAuthenticationToken" } },
+        {},
+      ),
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Unknown,
+    );
+  });
+
+  test("an authorization error code is PermissionDenied whatever status carries it", async () => {
+    mockGraph([
+      new HTTPErrorResponse(
+        400,
+        { error: { code: "Authorization_RequestDenied" } },
+        {},
+      ),
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.PermissionDenied,
     );
   });
 

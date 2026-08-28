@@ -107,7 +107,10 @@ export default class AlertSeverity extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "projectId",
     type: TableColumnType.Entity,
-    modelType: Project,
+    // Lazy: Project imports AlertSeverity back (see modelTypeThunk).
+    modelTypeThunk: () => {
+      return Project;
+    },
     title: "Project",
     description: "Relation to Project Resource in which this object belongs",
   })
