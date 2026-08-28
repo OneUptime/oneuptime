@@ -42,6 +42,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
+import AIService, { AI_DISABLED_MESSAGE } from "../Services/AIService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
@@ -1287,6 +1288,21 @@ export default class SlackAPI {
                 return;
               }
 
+              /*
+               * The project's AI kill switch, read before we acknowledge —
+               * so a project with AI off gets one clear refusal instead of
+               * an "on it" that is never followed by anything.
+               */
+              if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+                await SlackUtil.sendMessageToThread({
+                  authToken: context.projectAuthToken,
+                  channelId: slackChannelId,
+                  threadTs: threadTs,
+                  text: SlackAPI.getAiDisabledMessage(),
+                });
+                return;
+              }
+
               // Immediate acknowledgement so the user sees we are working.
               try {
                 await SlackUtil.sendMessageToThread({
@@ -1419,6 +1435,25 @@ export default class SlackAPI {
               data: {
                 response_type: "ephemeral",
                 text: SlackAPI.getSlackAccountNotConnectedMessage(),
+              },
+              headers: {
+                ["Content-Type"]: "application/json",
+              },
+            });
+            return;
+          }
+
+          /*
+           * The project's AI kill switch. Ephemeral, like every other refusal
+           * on this slash-command path — the person who typed the command is
+           * the only one who needs to know the switch is off.
+           */
+          if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+            await API.post({
+              url: URL.fromString(responseUrl),
+              data: {
+                response_type: "ephemeral",
+                text: SlackAPI.getAiDisabledMessage(),
               },
               headers: {
                 ["Content-Type"]: "application/json",
@@ -1690,5 +1725,18 @@ export default class SlackAPI {
    */
   private static getSlackAccountNotConnectedMessage(): string {
     return "Unfortunately your Slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account.";
+  }
+
+  /*
+   * Both AI Ops entry points above run their real work in a DETACHED
+   * fire-and-forget IIFE whose .catch only logs. An exception thrown out of
+   * the assistant — including the kill-switch refusal executeWithLogging
+   * raises — therefore reaches nobody: the user is left staring at "Looking
+   * into it…" forever. So the switch is read HERE, before the assistant is
+   * started, and the refusal is posted back over the same channel the answer
+   * would have used.
+   */
+  private static getAiDisabledMessage(): string {
+    return AI_DISABLED_MESSAGE;
   }
 }

@@ -305,6 +305,16 @@ export interface AutonomousBudgetStatus {
  */
 export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
 
+/*
+ * The single wording for a refusal by the Project.enableAi kill switch. Every
+ * surface that has to tell somebody AI is switched off imports this, so the
+ * message a user reads in Slack, in Teams, on a runbook step and on a
+ * "Generate with AI" button is the same sentence, and it always names the
+ * screen where the switch can be turned back on.
+ */
+export const AI_DISABLED_MESSAGE: string =
+  "AI features are disabled for this project. Enable them in Project Settings > AI Credits.";
+
 export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -367,12 +377,12 @@ export class Service extends BaseService {
   /**
    * Assert the project-level `enableAi` kill switch, and nothing else.
    *
-   * This is the whole gate for the synchronous, user-triggered "Generate with
-   * AI" endpoints (incident/episode postmortems, incident/alert/maintenance
-   * notes). Those reach executeWithLogging directly, and executeWithLogging
-   * meters, bills and logs a call but never consults the project toggle — so
-   * without this a project that has switched AI off would still spend
-   * provider tokens through them.
+   * This is admission control, not the guarantee. The guarantee lives inside
+   * executeWithLogging (see assertProjectAIEnabledOnRow), which no caller can
+   * route around. What this buys on top is an EARLY refusal: the synchronous
+   * "Generate with AI" endpoints call it before their context builders run,
+   * so a project with AI off never pays for the expensive reads that only
+   * exist to build a prompt nobody is allowed to send.
    *
    * Fails closed: a project row we cannot read is not a project we can
    * confirm has AI enabled, so a missing project is refused rather than
@@ -386,6 +396,17 @@ export class Service extends BaseService {
       props: { isRoot: true },
     });
 
+    this.assertProjectAIEnabledOnRow(project);
+  }
+
+  /**
+   * The toggle verdict itself, over an already-loaded row. Split out so the
+   * one place that owns the rule is shared by every caller — the throwing
+   * assert above, the non-throwing predicate below, and the backstop inside
+   * executeWithLogging, which reads the row for its own reasons and must not
+   * pay for a second read to ask the same question.
+   */
+  private assertProjectAIEnabledOnRow(project: Project | null): void {
     if (!project) {
       throw new BadDataException("Project not found.");
     }
@@ -396,9 +417,32 @@ export class Service extends BaseService {
      * keep working — same semantics as every other enableAi read.
      */
     if (project.enableAi === false) {
-      throw new BadDataException(
-        "AI features are disabled for this project. Enable them in Project Settings > AI Credits.",
+      throw new BadDataException(AI_DISABLED_MESSAGE);
+    }
+  }
+
+  /**
+   * The same verdict as assertProjectAIEnabled, as a boolean.
+   *
+   * For the autonomous, fire-and-forget lanes — on-resolve grading and
+   * friends — where "this project has AI switched off" is not an error and
+   * must not be logged as one. Those callers sit inside a catch that reports
+   * failures, so letting the backstop throw would turn a deliberate,
+   * correctly-configured setting into recurring error noise. They ask this
+   * first and simply skip.
+   *
+   * Fails closed the same way: an unreadable project row answers false.
+   */
+  @CaptureSpan()
+  public async isProjectAIEnabled(projectId: ObjectID): Promise<boolean> {
+    try {
+      await this.assertProjectAIEnabled(projectId);
+      return true;
+    } catch (err) {
+      logger.debug(
+        `Project AI toggle: ${projectId.toString()} may not use AI — ${err}`,
       );
+      return false;
     }
   }
 
@@ -517,6 +561,40 @@ export class Service extends BaseService {
   ): Promise<AILogResponse> {
     this.assertSingleSubject(request);
 
+    /*
+     * ===================== The enableAi kill switch =======================
+     *
+     * Every AI call in this codebase — user-triggered, autonomous, chat-ops,
+     * runbook step, agent loop — comes through here. That makes this the only
+     * place the project toggle can be enforced ONCE and be true for callers
+     * that do not exist yet. Enforcing it at entry points instead is what
+     * this method used to rely on, and it leaked exactly the way per-site
+     * admission control always leaks: five endpoints were gated and nine
+     * other call sites were not, so a project with AI switched off could
+     * still be made to spend provider tokens through any of them.
+     *
+     * There is deliberately NO per-request opt-out. A `skipAICheck` flag
+     * would re-open the hole with a one-word diff, and the caller most likely
+     * to reach for it is the one that has not thought about the switch. A
+     * lane that must not throw — fire-and-forget autonomous work — asks
+     * isProjectAIEnabled() first and skips silently; a lane that owes the
+     * user a readable refusal (Slack, Teams) checks first and posts one. Both
+     * are about DELIVERY, and both still land here if they forget.
+     *
+     * The row is read once and carried to the balance check below, so on the
+     * billing path this costs no extra query. Off the billing path it adds a
+     * single primary-key read per LLM call — set against a provider round
+     * trip measured in seconds, and against the alternative of billing a
+     * project that told us not to.
+     */
+    const project: Project | null = await ProjectService.findOneById({
+      id: request.projectId,
+      select: { enableAi: true, aiCurrentBalanceInUSDCents: true },
+      props: { isRoot: true },
+    });
+
+    this.assertProjectAIEnabledOnRow(project);
+
     const startTime: Date = new Date();
 
     // Get LLM provider for the project (honoring an explicit per-chat choice).
@@ -598,29 +676,25 @@ export class Service extends BaseService {
       (llmProvider.isGlobalLlm || false) &&
       (llmProvider.costPerMillionTokensInUSDCents || 0) > 0;
 
-    // Check balance if billing enabled and using global provider
-    if (shouldBill) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: request.projectId,
-        select: { aiCurrentBalanceInUSDCents: true },
+    /*
+     * Check balance if billing enabled and using global provider. The row was
+     * already read for the kill switch above and is non-null past that gate,
+     * so this reuses it rather than issuing a second read of the same row.
+     */
+    if (shouldBill && (project!.aiCurrentBalanceInUSDCents || 0) <= 0) {
+      logEntry.status = LlmLogStatus.InsufficientBalance;
+      logEntry.statusMessage = "Insufficient AI balance";
+      logEntry.requestCompletedAt = new Date();
+      logEntry.durationMs = new Date().getTime() - startTime.getTime();
+
+      await LlmLogService.create({
+        data: logEntry,
         props: { isRoot: true },
       });
 
-      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
-        logEntry.status = LlmLogStatus.InsufficientBalance;
-        logEntry.statusMessage = "Insufficient AI balance";
-        logEntry.requestCompletedAt = new Date();
-        logEntry.durationMs = new Date().getTime() - startTime.getTime();
-
-        await LlmLogService.create({
-          data: logEntry,
-          props: { isRoot: true },
-        });
-
-        throw new BadDataException(
-          "Insufficient AI balance. Please recharge your AI balance in Project Settings > AI Credits.",
-        );
-      }
+      throw new BadDataException(
+        "Insufficient AI balance. Please recharge your AI balance in Project Settings > AI Credits.",
+      );
     }
 
     /*

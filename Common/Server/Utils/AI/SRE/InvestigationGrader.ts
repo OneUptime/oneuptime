@@ -136,6 +136,24 @@ export default class InvestigationGrader {
     const { incidentId, projectId } = data;
 
     try {
+      /*
+       * The project's AI kill switch, checked the non-throwing way.
+       *
+       * This runs fire-and-forget off an incident resolve, inside a catch
+       * that logs at error level. "This project switched AI off" is a
+       * setting, not a failure, so letting the backstop in
+       * executeWithLogging throw would file a permanent error for every
+       * incident such a project ever resolves. It is a silent skip instead —
+       * the same posture the sibling on-resolve job takes via
+       * AIInvestigationEngine.isEnabledForProject.
+       */
+      if (!(await AIService.isProjectAIEnabled(projectId))) {
+        logger.debug(
+          `AI grading: AI is disabled for project ${projectId.toString()} — skipping.`,
+        );
+        return;
+      }
+
       // The latest completed investigation for this incident (if any).
       const run: AIRun | null = await AIRunService.findOneBy({
         query: {

@@ -108,6 +108,7 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
  */
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
 import AccessTokenService from "../../../Services/AccessTokenService";
+import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 
@@ -3343,6 +3344,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       await turnContext.sendActivity(
         "I couldn't find your OneUptime account. Please connect your Microsoft Teams account in OneUptime User Settings before asking me questions.",
       );
+      return;
+    }
+
+    /*
+     * The project's AI kill switch, read before we acknowledge. The catch
+     * around the assistant below answers every failure with the same generic
+     * "I ran into a problem" — true for a provider outage, actively wrong for
+     * a setting somebody chose on purpose. Reading the switch here lets us
+     * say what actually happened, and where to undo it.
+     */
+    if (!(await AIService.isProjectAIEnabled(projectId))) {
+      logger.debug("AI Ops declined: AI is disabled for this project", {
+        projectId: projectId.toString(),
+      });
+      await turnContext.sendActivity(AI_DISABLED_MESSAGE);
       return;
     }
 
