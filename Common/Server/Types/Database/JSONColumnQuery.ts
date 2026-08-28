@@ -485,7 +485,9 @@ class KeyPredicateBuilder {
     }
 
     if (value instanceof NotWildcard) {
-      return this.negate(this.like(toLikePattern(String(toScalar(value.value)))));
+      return this.negate(
+        this.like(toLikePattern(String(toScalar(value.value)))),
+      );
     }
 
     if (value instanceof InBetween) {
