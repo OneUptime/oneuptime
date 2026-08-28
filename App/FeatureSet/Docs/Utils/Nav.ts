@@ -583,6 +583,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/servicenow",
       },
       {
+        title: "Microsoft Dynamics 365",
+        url: "/docs/integrations/microsoft-dynamics-365",
+      },
+      {
         title: "Prometheus Alertmanager",
         url: "/docs/integrations/prometheus-alertmanager",
       },

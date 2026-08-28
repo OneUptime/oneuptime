@@ -12,21 +12,21 @@ Jede Integration bewegt Daten in eine von zwei Richtungen (und viele nutzen beid
 
 Verwenden Sie dieses Muster, wenn ein externes System in OneUptime _etwas erstellen oder aktualisieren_ muss – üblicherweise einen Vorfall oder Alarm öffnen, wenn es ein Problem erkennt.
 
-1. Bauen Sie einen Workflow, der mit einem **[Webhook-Auslöser](/docs/workflows/triggers#webhook)** beginnt. OneUptime gibt Ihnen eine eindeutige URL.
+1. Bauen Sie einen Workflow, der mit einem **[Webhook-Trigger](/docs/workflows/triggers#webhook)** beginnt. OneUptime gibt Ihnen eine eindeutige URL.
 2. Im anderen Tool konfigurieren Sie eine Webhook- / Benachrichtigungsaktion, die bei einem Ereignis einen POST an diese URL sendet.
-3. Im Workflow lesen Sie die eingehende Payload und verwenden eine **Vorfall erstellen**- (oder Create Alert-)Komponente, um sie zu erfassen.
+3. Im Workflow lesen Sie die eingehende Payload und verwenden eine **Create Incident**- (oder Create Alert-)Komponente, um sie zu erfassen.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
-> **Tip:** Speziell für Alarmierungs-Tools ist ein **[Incoming Request-Monitor](/docs/monitor/incoming-request-monitor)** in der Regel der bessere eingehende Weg. Er liefert Ihnen eine Webhook-URL, ohne dass Sie einen Workflow bauen müssen, öffnet einen Vorfall pro Alarm in der Payload, eskaliert an eine Bereitschaftsrichtlinie und löst jeden Vorfall auf, sobald das Tool die Wiederherstellung meldet. Greifen Sie zu einem Workflow, wenn Sie Logik benötigen, die OneUptime nicht nativ bietet. Ein ausgearbeitetes Beispiel finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+> **Tipp:** Speziell für Alarmierungs-Tools ist ein **[Incoming Request-Monitor](/docs/monitor/incoming-request-monitor)** in der Regel der bessere eingehende Weg. Er liefert Ihnen eine Webhook-URL, ohne dass Sie einen Workflow bauen müssen, öffnet einen Vorfall pro Alarm in der Payload, eskaliert an eine Bereitschaftsrichtlinie und löst jeden Vorfall auf, sobald das Tool die Wiederherstellung meldet. Greifen Sie zu einem Workflow, wenn Sie Logik benötigen, die OneUptime nicht nativ bietet. Ein ausgearbeitetes Beispiel finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
 
 ### Ausgehend — OneUptime sendet Daten an ein anderes Tool
 
 Verwenden Sie dieses Muster, wenn _etwas in OneUptime in einem anderen Tool erscheinen soll_ – ein Jira-Ticket öffnen, jemanden in PagerDuty benachrichtigen, in Slack posten.
 
-1. Bauen Sie einen Workflow, der mit einem **[OneUptime-Ereignis-Auslöser](/docs/workflows/triggers#oneuptime-event-triggers)** beginnt – zum Beispiel **Vorfall → On Create**.
+1. Bauen Sie einen Workflow, der mit einem **[OneUptime-Ereignis-Trigger](/docs/workflows/triggers#oneuptime-event-triggers)** beginnt – zum Beispiel **Vorfall → On Create**.
 2. Fügen Sie eine **[API-Komponente](/docs/workflows/components#api)** hinzu, die die REST-API des anderen Tools mit den Vorfallsdetails aufruft.
 3. Speichern Sie alle API-Schlüssel als **geheime [globale Variablen](/docs/workflows/variables#global-variables)**, damit sie nie im Workflow oder dessen Logs erscheinen.
 
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Ausgehend (+ eingehend) | PagerDuty-Ereignisse aus OneUptime-Vorfällen auslösen und auflösen.                   |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Ausgehend (+ eingehend) | Opsgenie-Alarme erstellen und schließen.                                              |
 | [ServiceNow](/docs/integrations/servicenow)                           | Ausgehend (+ eingehend) | ServiceNow-Vorfälle aus OneUptime öffnen.                                             |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Ausgehend (+ eingehend) | Dynamics 365 Cases aus OneUptime-Vorfällen öffnen und auflösen.                       |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend               | Alertmanager-Benachrichtigungen in Vorfälle umwandeln.                                |
 | [Grafana](/docs/integrations/grafana)                                 | Eingehend               | Grafana-Alarme in Vorfälle umwandeln.                                                 |
 | [Datadog](/docs/integrations/datadog)                                 | Eingehend               | Datadog-Monitor-Alarme in Vorfälle umwandeln.                                         |
@@ -57,27 +58,28 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## Umgang mit Geheimnissen
 
-Fügen Sie niemals einen API-Schlüssel oder Token direkt in einen Block ein. Stattdessen:
+Fügen Sie niemals einen API-Schlüssel oder Token direkt in einen Baustein ein. Stattdessen:
 
 1. Gehen Sie zu **Arbeitsabläufe → Globale Variablen**.
-2. Erstellen Sie eine Variable – zum Beispiel `JIRA_AUTH` – und aktivieren Sie **Is Secret**.
-3. Referenzieren Sie sie überall mit `{{variable.JIRA_AUTH}}`.
+2. Erstellen Sie eine Variable – zum Beispiel `JIRA_AUTH` – und aktivieren Sie **Geheimnis**.
+3. Referenzieren Sie sie überall mit `{{global.variables.JIRA_AUTH}}`.
 
 Geheime Variablen werden in der Benutzeroberfläche nach dem Speichern verborgen und aus den Ausführungs-Logs entfernt. Siehe [Variablen](/docs/workflows/variables#global-variables).
 
 ## Authentifizierungs-Spickzettel
 
-Die meisten ausgehenden Integrationen benötigen einen `Authorization`-Header am API-Block. Die gängigen Formen:
+Die meisten ausgehenden Integrationen benötigen einen `Authorization`-Header am API-Baustein. Die gängigen Formen:
 
-| Schema               | Header-Wert                                | Verwendet von              |
-| -------------------- | ------------------------------------------ | -------------------------- |
-| Bearer-Token         | `Bearer {{variable.TOKEN}}`                | GitHub, viele moderne APIs |
-| Basic-Auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow           |
-| API-Key-Header       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                   |
-| Token im Body        | Feld `routing_key` im JSON-Body            | PagerDuty Events API       |
-| Private-Token-Header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                     |
+| Schema                       | Header-Wert                                        | Verwendet von                       |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer-Token                 | `Bearer {{global.variables.TOKEN}}`                | GitHub, viele moderne APIs          |
+| Basic-Auth                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API-Key-Header               | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token im Body                | Feld `routing_key` im JSON-Body                    | PagerDuty Events API                |
+| Private-Token-Header         | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 Client Credentials | `Bearer <token fetched by an earlier API block>` | Microsoft Dynamics 365 (Dataverse)  |
 
-Für Basic-Auth kodieren Sie `username:password` (oder `email:api_token`) einmalig mit Base64, und speichern Sie dann das Ergebnis als Geheimnis. Unter macOS/Linux:
+Für Basic-Auth kodieren Sie `username:password` (oder `email:api_token`) **einmalig** mit Base64, und speichern Sie dann das Ergebnis als Geheimnis. Unter macOS/Linux:
 
 ```bash
 printf '%s' 'you@example.com:your_api_token' | base64
@@ -87,17 +89,17 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Fast jedes Tool passt in eines der zwei oben genannten Muster:
 
-- Wenn das Tool **einen Webhook senden** kann, wenn etwas passiert, verwenden Sie das **eingehende** Muster – verweisen Sie dessen Webhook auf einen [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor), wenn es sich um ein Alarmierungs-Tool handelt, oder auf einen OneUptime-Webhook-Auslöser, wenn Sie eigene Logik benötigen.
+- Wenn das Tool **einen Webhook senden** kann, wenn etwas passiert, verwenden Sie das **eingehende** Muster – verweisen Sie dessen Webhook auf einen [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor), wenn es sich um ein Alarmierungs-Tool handelt, oder auf einen OneUptime-Webhook-Trigger, wenn Sie eigene Logik benötigen.
 - Wenn das Tool eine **REST-API** hat, verwenden Sie das **ausgehende** Muster – rufen Sie es aus einer **API-Komponente** auf.
-- Wenn Sie Daten zwischen beiden umformen müssen, fügen Sie einen **[Custom Code](/docs/workflows/components#custom-code)**-Block ein.
+- Wenn Sie Daten zwischen beiden umformen müssen, fügen Sie einen **[Custom Code](/docs/workflows/components#custom-code)**-Baustein ein.
 
 Das deckt den langen Schwanz ab – Zendesk, AWS CloudWatch (über SNS), New Relic, Splunk, StatusCake und so weiter. Das Rezept ist dasselbe; nur URL und Payload ändern sich.
 
 ## Weiterführende Themen
 
 - [Workflows – Überblick](/docs/workflows/index) — wie die Automatisierungs-Engine funktioniert.
-- [Auslöser](/docs/workflows/triggers) — Webhook- und OneUptime-Ereignis-Auslöser im Detail.
+- [Trigger](/docs/workflows/triggers) — Webhook- und OneUptime-Ereignis-Trigger im Detail.
 - [Komponenten](/docs/workflows/components) — die API-, Webhook- und Datenkomponenten.
 - [Variablen](/docs/workflows/variables) — Geheimnisse und Datenweitergabe zwischen Blöcken.
 - [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor) — der workflowfreie eingehende Weg für Alarmierungs-Tools.
-- [Zabbix](/docs/integrations/zabbix) und [Jira](/docs/integrations/jira) — vollständige Praxisbeispiele.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) und [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — vollständige Praxisbeispiele.

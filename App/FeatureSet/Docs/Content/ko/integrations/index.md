@@ -1,8 +1,8 @@
 # 통합
 
-OneUptime은 팀이 이미 사용하는 도구들 — Zabbix, Jira, PagerDuty, Slack 등 — 을 내장 자동화 엔진인 **[Workflows](/docs/workflows/index)** 를 통해 연결합니다. 별도 플러그인을 설치할 필요가 없습니다. 드래그 앤 드롭 캔버스에서 통합을 구성하면, 무언가 발생할 때마다 실행됩니다.
+OneUptime은 팀이 이미 사용하는 도구들 — Zabbix, Jira, PagerDuty, Slack 등 — 을 내장 자동화 엔진인 **[Workflows](/docs/workflows/index)** 를 통해 연결합니다. 별도로 설치할 플러그인은 없습니다. 드래그 앤 드롭 캔버스에서 통합을 구성하면, 무언가 발생할 때마다 실행됩니다.
 
-이 페이지는 모든 통합에서 사용하는 두 가지 패턴을 설명합니다. 이것을 이해하면, 이 페이지에 전용 항목이 없는 도구도 OneUptime에 연결할 수 있습니다.
+이 페이지는 모든 통합에서 사용하는 두 가지 패턴을 설명합니다. 이것을 이해하면, 여기에 전용 페이지가 없는 도구까지 포함해 거의 모든 것을 OneUptime에 연결할 수 있습니다.
 
 ## 두 가지 패턴
 
@@ -28,7 +28,7 @@ _OneUptime의 무언가가 다른 도구에도 나타나야 할 때_ — Jira �
 
 1. **[OneUptime 이벤트 트리거](/docs/workflows/triggers#oneuptime-event-triggers)** 로 시작하는 워크플로를 만듭니다 — 예를 들어 **Incident → On Create**.
 2. 인시던트 세부 정보로 다른 도구의 REST API를 호출하는 **[API 컴포넌트](/docs/workflows/components#api)** 를 추가합니다.
-3. API 키는 **시크릿 [전역 변수](/docs/workflows/variables#global-variables)** 로 저장해 워크플로나 로그에 노출되지 않도록 합니다.
+3. API 키는 **시크릿 [전역 변수](/docs/workflows/variables#global-variables)** 로 저장해 워크플로나 로그에 절대 노출되지 않도록 합니다.
 
 ```text
 OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
@@ -36,22 +36,23 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 ## 카탈로그
 
-| 도구                                                                  | 방향                    | 기능                                                                |
-| --------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------- |
-| [Zabbix](/docs/integrations/zabbix)                                   | 인바운드                | Zabbix 문제를 OneUptime 인시던트로 변환합니다(복구 시 해결도 가능). |
-| [Jira](/docs/integrations/jira)                                       | 아웃바운드 (+ 인바운드) | 모든 인시던트에 Jira 이슈를 열고 상태를 동기화합니다.               |
-| [PagerDuty](/docs/integrations/pagerduty)                             | 아웃바운드 (+ 인바운드) | OneUptime 인시던트에서 PagerDuty 이벤트를 트리거하고 해결합니다.    |
-| [Opsgenie](/docs/integrations/opsgenie)                               | 아웃바운드 (+ 인바운드) | Opsgenie 알림을 생성하고 닫습니다.                                  |
-| [ServiceNow](/docs/integrations/servicenow)                           | 아웃바운드 (+ 인바운드) | OneUptime에서 ServiceNow 인시던트를 엽니다.                         |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드                | Alertmanager 알림을 인시던트로 변환합니다.                          |
-| [Grafana](/docs/integrations/grafana)                                 | 인바운드                | Grafana 알림을 인시던트로 변환합니다.                               |
-| [Datadog](/docs/integrations/datadog)                                 | 인바운드                | Datadog 모니터 알림을 인시던트로 변환합니다.                        |
-| [GitHub](/docs/integrations/github)                                   | 아웃바운드              | 인시던트에 대한 GitHub 이슈를 엽니다.                               |
-| [GitLab](/docs/integrations/gitlab)                                   | 아웃바운드              | 인시던트에 대한 GitLab 이슈를 엽니다.                               |
-| [Discord](/docs/integrations/discord)                                 | 아웃바운드              | 인시던트 업데이트를 Discord 채널에 게시합니다.                      |
-| [Telegram](/docs/integrations/telegram)                               | 아웃바운드              | 인시던트 업데이트를 Telegram 채팅으로 전송합니다.                   |
-| [Slack](/docs/workspace-connections/slack)                            | 양방향                  | 네이티브 워크스페이스 연결 — 채널, 알림, 온콜.                      |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 양방향                  | 네이티브 워크스페이스 연결.                                         |
+| 도구                                                                  | 방향                    | 기능                                                                          |
+| --------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| [Zabbix](/docs/integrations/zabbix)                                   | 인바운드                | Zabbix 문제를 OneUptime 인시던트로 변환합니다(복구 시 해결도 가능).           |
+| [Jira](/docs/integrations/jira)                                       | 아웃바운드 (+ 인바운드) | 모든 인시던트에 Jira 이슈를 열고 상태를 다시 동기화합니다.                    |
+| [PagerDuty](/docs/integrations/pagerduty)                             | 아웃바운드 (+ 인바운드) | OneUptime 인시던트에서 PagerDuty 이벤트를 트리거하고 해결합니다.              |
+| [Opsgenie](/docs/integrations/opsgenie)                               | 아웃바운드 (+ 인바운드) | Opsgenie 알림을 생성하고 닫습니다.                                            |
+| [ServiceNow](/docs/integrations/servicenow)                           | 아웃바운드 (+ 인바운드) | OneUptime에서 ServiceNow 인시던트를 엽니다.                                   |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | 아웃바운드 (+ 인바운드) | OneUptime 인시던트에서 Dynamics 365 Case를 열고 해결합니다.                   |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드                | Alertmanager 알림을 인시던트로 변환합니다.                                    |
+| [Grafana](/docs/integrations/grafana)                                 | 인바운드                | Grafana 알림을 인시던트로 변환합니다.                                         |
+| [Datadog](/docs/integrations/datadog)                                 | 인바운드                | Datadog 모니터 알림을 인시던트로 변환합니다.                                  |
+| [GitHub](/docs/integrations/github)                                   | 아웃바운드              | 인시던트에 대한 GitHub 이슈를 엽니다.                                         |
+| [GitLab](/docs/integrations/gitlab)                                   | 아웃바운드              | 인시던트에 대한 GitLab 이슈를 엽니다.                                         |
+| [Discord](/docs/integrations/discord)                                 | 아웃바운드              | 인시던트 업데이트를 Discord 채널에 게시합니다.                                |
+| [Telegram](/docs/integrations/telegram)                               | 아웃바운드              | 인시던트 업데이트를 Telegram 채팅으로 전송합니다.                             |
+| [Slack](/docs/workspace-connections/slack)                            | 양방향                  | 네이티브 워크스페이스 연결 — 채널, 알림, 온콜.                                |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 양방향                  | 네이티브 워크스페이스 연결.                                                   |
 
 > **Slack과 Microsoft Teams** 는 워크플로를 넘어서는 더 깊은 네이티브 연결을 제공합니다 — 자동 인시던트 채널, 양방향 액션, 온콜 알림 등. 이 경우 워크플로를 구성하는 대신 [Slack](/docs/workspace-connections/slack) 및 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 워크스페이스 연결을 사용하세요.
 
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 API 키나 토큰을 블록에 직접 붙여넣지 마세요. 대신:
 
 1. **워크플로 → 전역 변수** 로 이동합니다.
-2. 변수를 만듭니다 — 예를 들어 `JIRA_AUTH` — 그리고 **Is Secret** 를 켭니다.
-3. 어디서든 `{{variable.JIRA_AUTH}}` 로 참조합니다.
+2. 변수를 만듭니다 — 예를 들어 `JIRA_AUTH` — 그리고 **Secret** 를 켭니다.
+3. 어디서든 `{{global.variables.JIRA_AUTH}}` 로 참조합니다.
 
 시크릿 변수는 저장 후 UI에서 숨겨지며 실행 로그에서도 제거됩니다. [변수](/docs/workflows/variables#global-variables)를 참조하시기 바랍니다.
 
@@ -69,13 +70,14 @@ API 키나 토큰을 블록에 직접 붙여넣지 마세요. 대신:
 
 대부분의 아웃바운드 통합은 API 블록에 `Authorization` 헤더가 필요합니다. 일반적인 형식:
 
-| 방식              | 헤더 값                                    | 사용처                |
-| ----------------- | ------------------------------------------ | --------------------- |
-| Bearer 토큰       | `Bearer {{variable.TOKEN}}`                | GitHub, 많은 최신 API |
-| Basic 인증        | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow      |
-| API 키 헤더       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie              |
-| 본문의 토큰       | JSON 본문의 `routing_key` 필드             | PagerDuty Events API  |
-| Private 토큰 헤더 | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                |
+| 방식                         | 헤더 값                                            | 사용처                              |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer 토큰                  | `Bearer {{global.variables.TOKEN}}`                | GitHub, 많은 최신 API               |
+| Basic 인증                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API 키 헤더                  | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| 본문의 토큰                  | JSON 본문의 `routing_key` 필드                     | PagerDuty Events API                |
+| Private 토큰 헤더            | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 클라이언트 자격 증명 | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 Basic 인증의 경우, `username:password` (또는 `email:api_token`) 를 **한 번** base64 인코딩한 후 결과를 시크릿으로 저장합니다. macOS/Linux에서:
 
@@ -100,4 +102,4 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [컴포넌트](/docs/workflows/components) — API, Webhook, 데이터 컴포넌트.
 - [변수](/docs/workflows/variables) — 시크릿과 블록 간 데이터 전달.
 - [Incoming Request 모니터](/docs/monitor/incoming-request-monitor) — 알림 도구를 위한 워크플로 없는 인바운드 경로.
-- [Zabbix](/docs/integrations/zabbix) 및 [Jira](/docs/integrations/jira) — 완성된 예시.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) 및 [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — 완성된 예시.

@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Outbound (+ inbound) | Trigger and resolve PagerDuty events from OneUptime incidents.                |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Outbound (+ inbound) | Create and close Opsgenie alerts.                                             |
 | [ServiceNow](/docs/integrations/servicenow)                           | Outbound (+ inbound) | Open ServiceNow incidents from OneUptime.                                     |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Outbound (+ inbound) | Open and resolve Dynamics 365 Cases from OneUptime incidents.                 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound              | Convert Alertmanager notifications into incidents.                            |
 | [Grafana](/docs/integrations/grafana)                                 | Inbound              | Convert Grafana alerts into incidents.                                        |
 | [Datadog](/docs/integrations/datadog)                                 | Inbound              | Convert Datadog monitor alerts into incidents.                                |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 Never paste an API key or token directly into a block. Instead:
 
 1. Go to **Workflows → Global Variables**.
-2. Create a variable — for example `JIRA_AUTH` — and turn on **Is Secret**.
-3. Reference it anywhere with `{{variable.JIRA_AUTH}}`.
+2. Create a variable — for example `JIRA_AUTH` — and turn on **Secret**.
+3. Reference it anywhere with `{{global.variables.JIRA_AUTH}}`.
 
 Secret variables are hidden in the UI after you save and are scrubbed from run logs. See [Variables](/docs/workflows/variables#global-variables).
 
@@ -69,13 +70,14 @@ Secret variables are hidden in the UI after you save and are scrubbed from run l
 
 Most outbound integrations need an `Authorization` header on the API block. The common forms:
 
-| Scheme               | Header value                               | Used by                  |
-| -------------------- | ------------------------------------------ | ------------------------ |
-| Bearer token         | `Bearer {{variable.TOKEN}}`                | GitHub, many modern APIs |
-| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow         |
-| API key header       | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                 |
-| Token in body        | `routing_key` field in the JSON body       | PagerDuty Events API     |
-| Private token header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                   |
+| Scheme                      | Header value                                       | Used by                             |
+| --------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer token                | `Bearer {{global.variables.TOKEN}}`                | GitHub, many modern APIs            |
+| Basic auth                  | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API key header              | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token in body               | `routing_key` field in the JSON body               | PagerDuty Events API                |
+| Private token header        | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 For Basic auth, base64-encode `username:password` (or `email:api_token`) **once**, then store the result as the secret. On macOS/Linux:
 
@@ -100,4 +102,4 @@ That covers the long tail — Zendesk, AWS CloudWatch (via SNS), New Relic, Splu
 - [Components](/docs/workflows/components) — the API, Webhook, and data components.
 - [Variables](/docs/workflows/variables) — secrets and passing data between blocks.
 - [Incoming Request Monitor](/docs/monitor/incoming-request-monitor) — the workflow-free inbound path for alerting tools.
-- [Zabbix](/docs/integrations/zabbix) and [Jira](/docs/integrations/jira) — full worked examples.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) and [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — full worked examples.

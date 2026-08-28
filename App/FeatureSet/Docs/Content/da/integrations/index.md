@@ -1,6 +1,6 @@
 # Integrationer
 
-OneUptime forbinder sig med de værktøjer, dit team allerede bruger — Zabbix, Jira, PagerDuty, Slack og mange flere — via **[Workflows](/docs/workflows/index)**, det indbyggede automatiseringsmotor. Der er ingen separat plugin at installere. Du sætter en integration sammen på et træk-og-slip-lærred, og den kører, når der sker noget.
+OneUptime forbinder sig med de værktøjer, dit team allerede bruger — Zabbix, Jira, PagerDuty, Slack og mange flere — via **[Workflows](/docs/workflows/index)**, den indbyggede automatiseringsmotor. Der er ingen separat plugin at installere. Du sætter en integration sammen på et træk-og-slip-lærred, og den kører, når der sker noget.
 
 Denne side forklarer de to mønstre, som alle integrationer bruger. Når du forstår dem, kan du forbinde OneUptime med næsten alt — selv værktøjer, der ikke har deres egen side her.
 
@@ -14,7 +14,7 @@ Brug dette, når et eksternt system har brug for at _oprette eller opdatere noge
 
 1. Byg et workflow, der starter med en **[Webhook-trigger](/docs/workflows/triggers#webhook)**. OneUptime giver dig en unik URL.
 2. I det andet værktøj konfigurerer du en webhook/notifikationshandling, der POSTer til den URL, når noget sker.
-3. I workflowet læser du den indkommende payload og bruger en **Opret hændelse**-komponent (eller Create Alert) til at registrere det.
+3. I workflowet læser du den indkommende payload og bruger en **Create Incident**-komponent (eller Create Alert) til at registrere det.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,9 +24,9 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 ### Udgående — OneUptime sender data til et andet værktøj
 
-Brug dette, når _noget i OneUptime skal vises i et andet værktøj_ — åbn en Jira-ticket, kontakt nogen i PagerDuty, post til Slack.
+Brug dette, når _noget i OneUptime skal vises i et andet værktøj_ — åbn en Jira-sag, kontakt nogen i PagerDuty, post til Slack.
 
-1. Byg et workflow, der starter med en **[OneUptime event-trigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for eksempel **Hændelse → On Create**.
+1. Byg et workflow, der starter med en **[OneUptime event-trigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for eksempel **Incident → On Create**.
 2. Tilføj en **[API-komponent](/docs/workflows/components#api)**, der kalder det andet værktøjs REST API med hændelsens detaljer.
 3. Gem eventuelle API-nøgler som **hemmelige [globale variabler](/docs/workflows/variables#global-variables)**, så de aldrig vises i workflowet eller dets logfiler.
 
@@ -43,6 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Udgående (+ indgående) | Udløs og løs PagerDuty-events fra OneUptime-hændelser.                        |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Udgående (+ indgående) | Opret og luk Opsgenie-alarmer.                                                |
 | [ServiceNow](/docs/integrations/servicenow)                           | Udgående (+ indgående) | Åbn ServiceNow-hændelser fra OneUptime.                                       |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Udgående (+ indgående) | Åbn og løs Dynamics 365 Cases fra OneUptime-hændelser.                        |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Indgående              | Konvertér Alertmanager-notifikationer til hændelser.                          |
 | [Grafana](/docs/integrations/grafana)                                 | Indgående              | Konvertér Grafana-alarmer til hændelser.                                      |
 | [Datadog](/docs/integrations/datadog)                                 | Indgående              | Konvertér Datadog-monitoralarmer til hændelser.                               |
@@ -60,8 +61,8 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 Indsæt aldrig en API-nøgle eller et token direkte i en blok. Gør i stedet følgende:
 
 1. Gå til **Arbejdsgange → Globale variabler**.
-2. Opret en variabel — for eksempel `JIRA_AUTH` — og slå **Is Secret** til.
-3. Referer til den overalt med `{{variable.JIRA_AUTH}}`.
+2. Opret en variabel — for eksempel `JIRA_AUTH` — og slå **Secret** til.
+3. Referer til den overalt med `{{global.variables.JIRA_AUTH}}`.
 
 Hemmelige variabler er skjulte i brugergrænsefladen, efter du gemmer, og renses fra kørselslogfiler. Se [Variabler](/docs/workflows/variables#global-variables).
 
@@ -69,13 +70,14 @@ Hemmelige variabler er skjulte i brugergrænsefladen, efter du gemmer, og renses
 
 De fleste udgående integrationer kræver en `Authorization`-header på API-blokken. De almindelige former:
 
-| Skema                | Headerværdi                                | Bruges af                    |
-| -------------------- | ------------------------------------------ | ---------------------------- |
-| Bearer-token         | `Bearer {{variable.TOKEN}}`                | GitHub, mange moderne API'er |
-| Basic auth           | `Basic {{variable.BASE64_USER_PASS}}`      | Jira, ServiceNow             |
-| API-nøgleheader      | `GenieKey {{variable.OPSGENIE_KEY}}`       | Opsgenie                     |
-| Token i body         | `routing_key`-feltet i JSON-bodyen         | PagerDuty Events API         |
-| Private token-header | `PRIVATE-TOKEN: {{variable.GITLAB_TOKEN}}` | GitLab                       |
+| Skema                        | Headerværdi                                        | Bruges af                           |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------- |
+| Bearer-token                 | `Bearer {{global.variables.TOKEN}}`                | GitHub, mange moderne API'er        |
+| Basic auth                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
+| API-nøgleheader              | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
+| Token i body                 | `routing_key`-feltet i JSON-bodyen                 | PagerDuty Events API                |
+| Private token-header         | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
+| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
 
 Til Basic auth base64-enkoder du `brugernavn:adgangskode` (eller `email:api_token`) **én gang**, og gemmer derefter resultatet som hemmelighed. På macOS/Linux:
 
@@ -100,4 +102,4 @@ Det dækker den lange hale — Zendesk, AWS CloudWatch (via SNS), New Relic, Spl
 - [Komponenter](/docs/workflows/components) — API-, Webhook- og datakomponenter.
 - [Variabler](/docs/workflows/variables) — hemmeligheder og videregivelse af data mellem blokke.
 - [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den workflow-frie indgående vej for alarmeringsværktøjer.
-- [Zabbix](/docs/integrations/zabbix) og [Jira](/docs/integrations/jira) — fuldt udarbejdede eksempler.
+- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) og [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — fuldt udarbejdede eksempler.

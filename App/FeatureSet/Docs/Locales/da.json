@@ -169,6 +169,7 @@
     "PagerDuty": "PagerDuty",
     "Opsgenie": "Opsgenie",
     "ServiceNow": "ServiceNow",
+    "Microsoft Dynamics 365": "Microsoft Dynamics 365",
     "Prometheus Alertmanager": "Prometheus Alertmanager",
     "Grafana": "Grafana",
     "Datadog": "Datadog",
