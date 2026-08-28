@@ -1922,6 +1922,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
+          ObjectID.validateUUID(req.params["incidentId"] as string);
           const incidentId: ObjectID = new ObjectID(
             req.params["incidentId"] as string,
           );
@@ -1950,6 +1951,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
+          ObjectID.validateUUID(req.params["scheduledMaintenanceId"] as string);
           const scheduledMaintenanceId: ObjectID = new ObjectID(
             req.params["scheduledMaintenanceId"] as string,
           );
@@ -1979,6 +1981,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
+          ObjectID.validateUUID(req.params["announcementId"] as string);
           const announcementId: ObjectID = new ObjectID(
             req.params["announcementId"] as string,
           );
@@ -2033,6 +2036,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
+          ObjectID.validateUUID(req.params["episodeId"] as string);
           const episodeId: ObjectID = new ObjectID(
             req.params["episodeId"] as string,
           );
