@@ -74,9 +74,15 @@ function mockPipeline(options?: {
     .mockResolvedValue(
       options && "device" in options ? options.device ?? null : buildDevice(),
     );
+  /*
+   * The delta baseline is persisted by a hook-free single-statement UPDATE:
+   * the log is ~25 KB of jsonb and the hooked path would re-SELECT (and
+   * re-detoast) the previous one before every write. See
+   * NetworkDeviceWalkLogWritePath.test.ts for the full contract.
+   */
   deviceUpdateSpy = jest
-    .spyOn(NetworkDeviceService, "updateOneById")
-    .mockResolvedValue(1);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined);
   monitorFindSpy = jest
     .spyOn(MonitorService, "findBy")
     .mockResolvedValue(options?.monitors || []);

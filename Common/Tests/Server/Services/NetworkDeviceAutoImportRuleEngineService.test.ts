@@ -42,6 +42,7 @@ jest.mock("../../../Server/Services/NetworkDeviceService", () => {
       create: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
+      getRegisteredHostnames: jest.fn(),
     },
   };
 });
@@ -146,6 +147,17 @@ const createMock: jest.Mock =
   NetworkDeviceService.create as unknown as jest.Mock;
 const deviceFindByMock: jest.Mock =
   NetworkDeviceService.findBy as unknown as jest.Mock;
+/*
+ * "Which of THESE addresses already have a device", asked of the database
+ * per scan. It replaced a paged walk of every hostname in the project — which
+ * ordered by `createdAt`, a value a bulk import stamps identically on every
+ * row it creates, so its pages overlapped and skipped and a missed hostname
+ * created a DUPLICATE device. The engine still folds the answer into the
+ * running set it mutates as it creates, which is what makes overlapping scans
+ * and repeat runs idempotent.
+ */
+const registeredHostnamesMock: jest.Mock =
+  NetworkDeviceService.getRegisteredHostnames as unknown as jest.Mock;
 const deviceFindOneByMock: jest.Mock =
   NetworkDeviceService.findOneBy as unknown as jest.Mock;
 const scanFindOneByMock: jest.Mock =
@@ -284,6 +296,7 @@ beforeEach(() => {
    * lock — the happy defaults each test narrows as needed.
    */
   deviceFindByMock.mockResolvedValue([]);
+  registeredHostnamesMock.mockResolvedValue(new Set<string>());
   deviceFindOneByMock.mockResolvedValue(null);
   createMock.mockResolvedValue({});
   scanUpdateMock.mockResolvedValue(undefined);
@@ -425,9 +438,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     scanFindOneByMock.mockResolvedValue(
       makeScan({ discoveredDevices: [makeHost()] }),
     );
-    deviceFindByMock.mockResolvedValue([
-      { hostname: "10.0.0.5" } as unknown as NetworkDevice,
-    ]);
+    registeredHostnamesMock.mockResolvedValue(new Set<string>(["10.0.0.5"]));
 
     const result: AutoImportRuleRunResult | null = await processScan();
 

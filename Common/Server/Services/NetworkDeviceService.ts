@@ -145,7 +145,134 @@ function toRuleMatchTarget(device: Model): {
   };
 }
 
+/*
+ * How long "this project has no site-assignment rules at all" is trusted
+ * without asking Postgres again.
+ *
+ * Every successful walk writes `sysName`, an identity column, so
+ * onUpdateSuccess re-evaluates the rules for every device that has no site.
+ * That rule is correct and stays (see shouldReapplySiteAssignmentRules), but
+ * on a project mid-rollout — devices imported, rules not written yet — it is
+ * EVERY device, and each one re-read the same empty rule set to conclude
+ * nothing: a findOneById plus an uncached findBy per device per poll, i.e.
+ * ~160,000 queries per five-minute cycle on an 80,000-device fleet.
+ *
+ * Ten seconds is measured against the thing a user would actually notice.
+ * The earliest a newly saved rule can reach an already-imported device is
+ * that device's next poll — five minutes by default — or the rule's "Run
+ * now" button, which never consults this cache. Ten seconds is a rounding
+ * error against that window, so this can never be the reason a rule looks
+ * like it did not take.
+ */
+export const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS: number = 10 * 1000;
+
+/*
+ * Bounded so an instance serving many projects cannot grow this forever.
+ * Only ever holds projects that had NO rules, so in practice it is small.
+ */
+const EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS: number = 10000;
+
+/*
+ * Remembers ONLY the negative answer: "this project had zero site-assignment
+ * rules when we last looked."
+ *
+ * Deliberately not a cache of the rules themselves. A stale rule set causes a
+ * WRONG WRITE — a device assigned to a site by a rule that was edited or
+ * deleted seconds ago, and nothing ever moves it back — whereas a stale "no
+ * rules" only defers work that the polling interval already defers by
+ * minutes. The two failure modes are not comparable, so only the safe half is
+ * cached.
+ *
+ * Every read of the rule set feeds `record`, so the instant any code path in
+ * this process observes that the project does have rules, the skip is
+ * dropped. Across replicas nothing is invalidated by another replica's write
+ * — which is precisely why the TTL, not the invalidation, is the guarantee.
+ */
+export class EmptySiteAssignmentRuleCache {
+  private knownEmptyUntil: Map<string, number> = new Map<string, number>();
+
+  private ttlInMs: number;
+  private maxProjects: number;
+  private now: () => number;
+
+  public constructor(options?: {
+    ttlInMs?: number | undefined;
+    maxProjects?: number | undefined;
+    now?: (() => number) | undefined;
+  }) {
+    this.ttlInMs =
+      options?.ttlInMs ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_TTL_IN_MS;
+    this.maxProjects =
+      options?.maxProjects ?? EMPTY_SITE_ASSIGNMENT_RULE_CACHE_MAX_PROJECTS;
+    /*
+     * Wrapped rather than stored as `Date.now` itself, so moving the clock
+     * (a test, or a future injected clock) is actually observed here.
+     */
+    this.now =
+      options?.now ??
+      ((): number => {
+        return Date.now();
+      });
+  }
+
+  public isKnownEmpty(projectId: ObjectID): boolean {
+    const key: string = projectId.toString();
+    const expiresAt: number | undefined = this.knownEmptyUntil.get(key);
+
+    if (expiresAt === undefined) {
+      return false;
+    }
+
+    if (expiresAt <= this.now()) {
+      // Dropped on read, so an idle project's entry does not linger.
+      this.knownEmptyUntil.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+
+  public record(data: { projectId: ObjectID; isEmpty: boolean }): void {
+    const key: string = data.projectId.toString();
+
+    if (!data.isEmpty) {
+      this.knownEmptyUntil.delete(key);
+      return;
+    }
+
+    if (
+      this.knownEmptyUntil.size >= this.maxProjects &&
+      !this.knownEmptyUntil.has(key)
+    ) {
+      // Evict the oldest — a Map iterates in insertion order.
+      const oldestKey: string | undefined = this.knownEmptyUntil
+        .keys()
+        .next().value;
+
+      if (oldestKey !== undefined) {
+        this.knownEmptyUntil.delete(oldestKey);
+      }
+    }
+
+    this.knownEmptyUntil.set(key, this.now() + this.ttlInMs);
+  }
+
+  public clear(): void {
+    this.knownEmptyUntil.clear();
+  }
+}
+
 export class Service extends DatabaseService<Model> {
+  /*
+   * The projects known to have no site-assignment rules. Exposed so tests can
+   * reset it between cases, and so a future invalidation hook on
+   * NetworkSiteAssignmentRuleService has something to call — note that such a
+   * hook only clears the replica that ran the write, which is why the TTL
+   * above is what actually bounds staleness.
+   */
+  public readonly emptySiteAssignmentRuleCache: EmptySiteAssignmentRuleCache =
+    new EmptySiteAssignmentRuleCache();
+
   public constructor() {
     super(Model);
   }
@@ -1068,7 +1195,27 @@ export class Service extends DatabaseService<Model> {
             continue;
           }
 
-          await this.applySiteAssignmentRulesToDevice(deviceId);
+          /*
+           * The previous snapshot already carries the device's project, so
+           * hand it over: it lets a project with no rules at all skip both
+           * the device read and the rule read, which is the whole cost of
+           * this branch for a fleet that has not been given rules yet.
+           *
+           * ...but ONLY for a device with no site, and that distinction is
+           * the whole safety of the skip. Those devices are re-evaluated on
+           * every poll, so a skip there defers work by one cycle and the next
+           * poll picks it up. A device that already HAS a site is re-evaluated
+           * only when its identity actually changed — a one-shot event, not a
+           * retry. Skipping that is not a deferral, it is a LOSS: the rename
+           * never happens again, the device keeps its old site indefinitely,
+           * and nothing says so. Ten seconds of staleness is a fine price for
+           * a deferral and an unacceptable one for a loss, so the identity
+           * path always reads the rules.
+           */
+          await this.applySiteAssignmentRulesToDevice(
+            deviceId,
+            previousDevice?.siteId ? undefined : previousDevice?.projectId,
+          );
         }
       }
     } catch (error) {
@@ -1126,7 +1273,26 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async applySiteAssignmentRulesToDevice(
     deviceId: ObjectID,
+    /*
+     * The device's project, when the caller already knows it AND the call is
+     * one that will happen again if it is skipped. Purely an optimisation,
+     * and only ever a SKIP: it lets the known-empty check run before the
+     * device read, so a project with no rules costs nothing per poll.
+     *
+     * Leaving it out gets the unconditional, always-fresh path, and two
+     * callers deliberately do: device creation (a rule saved moments ago must
+     * apply to the device being imported right now) and the identity-change
+     * branch of onUpdateSuccess (a one-shot event — see the note there).
+     */
+    projectId?: ObjectID | undefined,
   ): Promise<void> {
+    if (
+      projectId &&
+      this.emptySiteAssignmentRuleCache.isKnownEmpty(projectId)
+    ) {
+      return;
+    }
+
     const device: Model | null = await this.findOneById({
       id: deviceId,
       select: {
@@ -1165,6 +1331,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Feed the answer back either way: an empty set starts (or renews) the
+     * skip, and a non-empty one cancels it immediately — so a project that
+     * gains its first rule stops being skipped on this replica as soon as
+     * anything here looks at the rules, without waiting for the TTL.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: device.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     if (rules.length === 0) {
       return;
@@ -1254,6 +1431,17 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+    /*
+     * Read fresh above and never from the negative cache: this is the button
+     * an operator presses right after saving a rule, so it must see the rule
+     * it was pressed for. Recording the answer here also means pressing it
+     * lifts any "no rules" skip the poll path had cached for the project.
+     */
+    this.emptySiteAssignmentRuleCache.record({
+      projectId: data.projectId,
+      isEmpty: rules.length === 0,
+    });
 
     const rule: NetworkSiteAssignmentRule | undefined = rules.find(
       (candidate: NetworkSiteAssignmentRule) => {
