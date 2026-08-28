@@ -39,6 +39,11 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  MinifiedStackFrame,
+  ResolvedStackFrame,
+} from "Common/Types/Telemetry/SourceMap";
+import { parseFramesJson } from "../../Utils/SourceMapFrames";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
@@ -483,9 +488,79 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [latestInstance, setLatestInstance] = React.useState<
     ExceptionInstance | undefined
   >(undefined);
+  const [resolvedFrames, setResolvedFrames] = React.useState<
+    Array<ResolvedStackFrame> | undefined
+  >(undefined);
   const [breadcrumbEvents, setBreadcrumbEvents] = React.useState<
     BreadcrumbEvent[]
   >([]);
+
+  /*
+   * Ask the server to resolve the instance's parsed frames against the
+   * source maps uploaded for its (service, release). Best-effort: any
+   * failure just leaves the minified frames on screen.
+   */
+  type ResolveStackFramesFunction = (
+    instance: ExceptionInstance,
+  ) => Promise<void>;
+
+  const resolveStackFrames: ResolveStackFramesFunction = async (
+    instance: ExceptionInstance,
+  ): Promise<void> => {
+    /*
+     * Drop any previous overlay first: on a refresh (or when this
+     * component is reused for a different exception) the old resolution
+     * belongs to the old instance's frames, and every early return below
+     * would otherwise leave it applied to the new ones.
+     */
+    setResolvedFrames(undefined);
+
+    try {
+      if (
+        !instance.parsedFrames ||
+        !instance.release ||
+        !instance.primaryEntityId
+      ) {
+        return;
+      }
+
+      const frames: Array<MinifiedStackFrame> = parseFramesJson(
+        instance.parsedFrames,
+      );
+
+      if (frames.length === 0) {
+        return;
+      }
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/exceptions/resolve-stack-trace",
+          ),
+          data: {
+            serviceId: instance.primaryEntityId.toString(),
+            serviceVersion: instance.release,
+            frames: frames as unknown as JSONArray,
+          },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const responseFrames: unknown = (response.data as JSONObject)["frames"];
+
+      if (Array.isArray(responseFrames)) {
+        setResolvedFrames(
+          responseFrames as unknown as Array<ResolvedStackFrame>,
+        );
+      }
+    } catch {
+      // Best-effort — the minified stack trace still renders.
+      setResolvedFrames(undefined);
+    }
+  };
 
   /*
    * An exception's primaryEntityId is polymorphic (no Service relation). Load the
@@ -590,6 +665,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
         if (instanceResult.data.length > 0) {
           setLatestInstance(instanceResult.data[0]!);
+
+          // Resolve minified frames through uploaded source maps (best-effort)
+          await resolveStackFrames(instanceResult.data[0]!);
 
           // Fetch span events for breadcrumb timeline
           const instance: ExceptionInstance = instanceResult.data[0]!;
@@ -1347,6 +1425,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           {...(latestInstance?.parsedFrames
             ? { parsedFrames: latestInstance.parsedFrames }
             : {})}
+          {...(resolvedFrames ? { resolvedFrames: resolvedFrames } : {})}
         />
       )}
 

@@ -50,6 +50,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SERVICE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SERVICE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -57,6 +58,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
+  [PageMap.SERVICE_VIEW_SOURCE_MAPS]: `${RouteParams.ModelID}/source-maps`,
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -114,6 +116,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
@@ -186,6 +189,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DOCKER_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.DOCKER_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DOCKER_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DOCKER_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DOCKER_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DOCKER_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -209,6 +213,7 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.PODMAN_HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.PODMAN_HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PODMAN_HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.PODMAN_HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.PODMAN_HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.PODMAN_HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -235,6 +240,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.PROXMOX_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.PROXMOX_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.PROXMOX_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.PROXMOX_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -288,6 +294,7 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -314,6 +321,7 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.CEPH_CLUSTER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CEPH_CLUSTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.CEPH_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.CEPH_CLUSTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -341,6 +349,7 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.HOST_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.HOST_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.HOST_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.HOST_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.HOST_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.HOST_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -370,6 +379,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
@@ -2204,6 +2214,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SERVICE_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_FEED]
+    }`,
+  ),
+
   [PageMap.SERVICE_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_DELETE]
@@ -2243,6 +2259,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_SOURCE_MAPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_SOURCE_MAPS]
     }`,
   ),
 
@@ -2557,6 +2579,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_FEED]
     }`,
   ),
 
@@ -2949,6 +2977,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_FEED]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_SETTINGS]
@@ -3075,6 +3109,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_FEED]
     }`,
   ),
 
@@ -3222,6 +3262,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_FEED]
     }`,
   ),
 
@@ -3523,6 +3569,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AUDIT_LOGS]
@@ -3665,6 +3717,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CEPH_CLUSTER_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.CEPH_CLUSTER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_FEED]
     }`,
   ),
 
@@ -3814,6 +3872,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_FEED]
     }`,
   ),
 
@@ -3968,6 +4032,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_FEED]
     }`,
   ),
 

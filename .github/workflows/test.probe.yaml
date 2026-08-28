@@ -6,11 +6,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   test:

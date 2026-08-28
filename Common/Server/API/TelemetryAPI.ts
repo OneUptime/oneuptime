@@ -13,6 +13,12 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
+import SourceMapResolver from "../Utils/Telemetry/SourceMapResolver";
+import {
+  MinifiedStackFrame,
+  ResolveStackTraceResult,
+} from "../../Types/Telemetry/SourceMap";
 import LogAggregationService, {
   HistogramBucket,
   HistogramRequest,
@@ -272,6 +278,91 @@ router.post(
   ...requireExceptionReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Exception);
+  },
+);
+
+/*
+ * Lazily resolves an exception's parsed stack frames against the source
+ * maps uploaded for its (service, release) pair — see the TelemetrySourceMap
+ * model. Guarded by exception read access, not source-map read access, on
+ * purpose: anyone who may see the exception may see the few original source
+ * lines around its crash site (the snippets in the response). Bulk access to
+ * whole maps stays restricted by the model's own column ACL on `content`.
+ * That is a deliberate trade-off, not an oversight: a caller with exception
+ * read access could reconstruct larger stretches of sourcesContent by
+ * probing many line/column pairs across requests, exactly as they could in
+ * Sentry or Elastic. The content column ACL exists to prevent trivial bulk
+ * export, not to be an information-flow boundary against a team member who
+ * is already trusted to read the project's exceptions.
+ *
+ * Tenant safety: source maps are queried by (tenantId from the authorized
+ * request, serviceId from the body). A serviceId belonging to a different
+ * project simply matches no maps — nothing cross-tenant can be read.
+ */
+router.post(
+  "/telemetry/exceptions/resolve-stack-trace",
+  ...requireExceptionReadAccess,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      if (!body["serviceId"] || typeof body["serviceId"] !== "string") {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("serviceId is required"),
+        );
+      }
+
+      if (
+        !body["serviceVersion"] ||
+        typeof body["serviceVersion"] !== "string"
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("serviceVersion is required"),
+        );
+      }
+
+      if (!Array.isArray(body["frames"])) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("frames must be an array of stack frames"),
+        );
+      }
+
+      const frames: Array<MinifiedStackFrame> =
+        SourceMapResolver.sanitizeMinifiedStackFrames(body["frames"]);
+
+      const result: ResolveStackTraceResult =
+        await TelemetrySourceMapService.resolveFramesForService({
+          projectId: databaseProps.tenantId,
+          serviceId: new ObjectID(body["serviceId"] as string),
+          serviceVersion: body["serviceVersion"] as string,
+          frames: frames,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

@@ -3,6 +3,9 @@ import Service from "../../Models/DatabaseModels/Service";
 import ServiceLabelRule from "../../Models/DatabaseModels/ServiceLabelRule";
 import ServiceLabelRuleService from "./ServiceLabelRuleService";
 import ServiceService from "./ServiceService";
+import ServiceFeedService from "./ServiceFeedService";
+import { ServiceFeedEventType } from "../../Models/DatabaseModels/ServiceFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -59,6 +62,7 @@ class ServiceLabelRuleEngineServiceClass {
       }
 
       const labelIdsToAdd: Set<string> = new Set();
+      const matchedRuleNames: Array<string> = [];
 
       for (const rule of rules) {
         const matches: boolean = this.doesServiceMatchRule(
@@ -67,6 +71,11 @@ class ServiceLabelRuleEngineServiceClass {
         );
         if (!matches) {
           continue;
+        }
+        if ((rule.labelsToAdd || []).length > 0) {
+          matchedRuleNames.push(
+            rule.name || rule.id?.toString() || "Unnamed rule",
+          );
         }
         for (const label of rule.labelsToAdd || []) {
           if (label.id) {
@@ -122,6 +131,26 @@ class ServiceLabelRuleEngineServiceClass {
         `ServiceLabelRuleEngine attached ${newLabelIds.length} labels to service ${service.id}`,
         { projectId: service.projectId.toString() } as LogAttributes,
       );
+      /*
+       * Labels arriving from a rule rather than from a person is exactly the
+       * kind of thing the overview page cannot explain, so record which rules
+       * did it.
+       */
+      await ServiceFeedService.createServiceFeedItem({
+        serviceId: service.id,
+        projectId: service.projectId,
+        serviceFeedEventType: ServiceFeedEventType.LabelRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await ServiceService.getServiceMarkdownLink(
+          service.projectId,
+          service.id,
+        )} by label ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Label rules that matched**: ${matchedRuleNames
+          .map((name: string) => {
+            return `\`${name}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying service label rules: ${error}`, {
         projectId: service.projectId?.toString(),

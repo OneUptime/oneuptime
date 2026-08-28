@@ -823,6 +823,31 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    location /source-maps {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Source maps built with sourcesContent are large. This bounds the
+        # WHOLE request body; the App's multipart middleware separately caps
+        # each file at 50 MiB. A single map near that cap therefore needs a
+        # request to itself — the docs tell CI to upload one file per request.
+        client_max_body_size 50M;
+
+        # Reuse pooled upstream connections for this large-body ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+    }
+
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;

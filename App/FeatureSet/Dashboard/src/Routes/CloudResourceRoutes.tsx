@@ -13,6 +13,7 @@ import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
 import CloudResourceLogs from "../Pages/Cloud/View/Logs";
 import CloudResourceTraces from "../Pages/Cloud/View/Traces";
 import CloudResourceInstances from "../Pages/Cloud/View/Instances";
+import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
 import CloudResourceDelete from "../Pages/Cloud/View/Delete";
 import CloudLabelRules from "../Pages/Cloud/Settings/LabelRules";
@@ -119,6 +120,17 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route
               }
+            />
+          }
+        />
+
+        {/* Feed */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_FEED)}
+          element={
+            <CloudResourceFeed
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_FEED] as Route}
             />
           }
         />

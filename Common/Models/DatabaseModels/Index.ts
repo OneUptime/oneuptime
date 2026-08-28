@@ -319,6 +319,7 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
+import TelemetrySourceMap from "./TelemetrySourceMap";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
@@ -438,6 +439,15 @@ import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
+import KubernetesClusterFeed from "./KubernetesClusterFeed";
+import DockerHostFeed from "./DockerHostFeed";
+import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
+import CephClusterFeed from "./CephClusterFeed";
+import PodmanHostFeed from "./PodmanHostFeed";
+import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
+import HostFeed from "./HostFeed";
+import CloudResourceFeed from "./CloudResourceFeed";
+import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
@@ -807,6 +817,7 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
+  TelemetrySourceMap,
   InventoryItem,
   InventoryItemCustomField,
   InventoryItemRelationship,
@@ -826,6 +837,15 @@ const AllModelTypes: Array<{
   WorkspaceNotificationSummary,
 
   MonitorFeed,
+  KubernetesClusterFeed,
+  DockerHostFeed,
+  DockerSwarmClusterFeed,
+  CephClusterFeed,
+  PodmanHostFeed,
+  ProxmoxClusterFeed,
+  HostFeed,
+  CloudResourceFeed,
+  ServiceFeed,
 
   MetricType,
 

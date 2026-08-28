@@ -6,23 +6,37 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   test:
+    name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # One slow or broken shard should not hide the results of the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-      BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
+      CI_PIPELINE_ID: ${{ github.run_number }}
+      BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 26
-      - run: cd Common && bash test-setup.sh
-      - run: cd Common && npm install && rm -rf build && npm run test
-  
+          cache: npm
+          cache-dependency-path: Common/package-lock.json
+      - name: Set up test services
+        working-directory: Common
+        run: bash test-setup.sh
+      - name: Install dependencies
+        working-directory: Common
+        run: npm install
+      - name: Run test shard
+        working-directory: Common
+        run: rm -rf build && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}

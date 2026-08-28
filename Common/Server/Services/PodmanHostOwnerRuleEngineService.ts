@@ -7,6 +7,9 @@ import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
 import PodmanHostService from "./PodmanHostService";
+import PodmanHostFeedService from "./PodmanHostFeedService";
+import { PodmanHostFeedEventType } from "../../Models/DatabaseModels/PodmanHostFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -140,6 +143,26 @@ class PodmanHostOwnerRuleEngineServiceClass {
         `PodmanHostOwnerRuleEngine added owners to Podman host ${podmanHost.id}`,
         { projectId: podmanHost.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await PodmanHostFeedService.createPodmanHostFeedItem({
+        podmanHostId: podmanHost.id,
+        projectId: podmanHost.projectId,
+        podmanHostFeedEventType: PodmanHostFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await PodmanHostService.getPodmanHostMarkdownLink(
+          podmanHost.projectId,
+          podmanHost.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: PodmanHostOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying Podman host owner rules: ${error}`, {
         projectId: podmanHost.projectId?.toString(),

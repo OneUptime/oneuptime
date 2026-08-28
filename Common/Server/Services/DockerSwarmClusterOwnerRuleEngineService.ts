@@ -7,6 +7,9 @@ import DockerSwarmClusterOwnerRuleService from "./DockerSwarmClusterOwnerRuleSer
 import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserService";
 import DockerSwarmClusterOwnerTeamService from "./DockerSwarmClusterOwnerTeamService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
+import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
+import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
+import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -144,6 +147,27 @@ class DockerSwarmClusterOwnerRuleEngineServiceClass {
         `DockerSwarmClusterOwnerRuleEngine added owners to DockerSwarm cluster ${dockerSwarmCluster.id}`,
         { projectId: dockerSwarmCluster.projectId.toString() } as LogAttributes,
       );
+      /*
+       * The individual OwnerUserAdded / OwnerTeamAdded items say who was added;
+       * this one says which rule is responsible, which is what somebody asking
+       * "why am I on the hook for this?" actually needs.
+       */
+      await DockerSwarmClusterFeedService.createDockerSwarmClusterFeedItem({
+        dockerSwarmClusterId: dockerSwarmCluster.id,
+        projectId: dockerSwarmCluster.projectId,
+        dockerSwarmClusterFeedEventType:
+          DockerSwarmClusterFeedEventType.OwnerRuleExecuted,
+        displayColor: Purple500,
+        feedInfoInMarkdown: `👥 Owners were added to ${await DockerSwarmClusterService.getDockerSwarmClusterMarkdownLink(
+          dockerSwarmCluster.projectId,
+          dockerSwarmCluster.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
+        moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
+          .map((rule: DockerSwarmClusterOwnerRule) => {
+            return `\`${rule.name || rule.id?.toString() || "Unnamed rule"}\``;
+          })
+          .join(", ")}`,
+      });
     } catch (error) {
       logger.error(`Error applying DockerSwarm cluster owner rules: ${error}`, {
         projectId: dockerSwarmCluster.projectId?.toString(),

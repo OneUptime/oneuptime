@@ -6,11 +6,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request: 
+  pull_request:
   push:
-    branches-ignore:
-      - 'hotfix-*'   # excludes hotfix branches
-      - 'release'
+    branches:
+      - master
 
 jobs:
   # App tests run in the dedicated "App Test" workflow (test.app.yaml),

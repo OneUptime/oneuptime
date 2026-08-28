@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000000
+export class AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001
   implements MigrationInterface
 {
   public name: string =
-    "AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000000";
+    "AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*

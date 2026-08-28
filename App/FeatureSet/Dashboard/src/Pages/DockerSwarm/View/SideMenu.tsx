@@ -355,6 +355,16 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
+        <SideMenuItem
+          link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_SETTINGS] as Route,

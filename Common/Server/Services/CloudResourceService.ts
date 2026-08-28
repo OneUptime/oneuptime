@@ -10,7 +10,14 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import CloudResourceFeedService from "./CloudResourceFeedService";
+import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
+import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
+import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
+import { JSONObject } from "../../Types/JSON";
+import URL from "../../Types/API/URL";
+import DatabaseConfig from "../DatabaseConfig";
 import CloudResourceLabelRuleEngineService from "./CloudResourceLabelRuleEngineService";
 import CloudResourceOwnerRuleEngineService from "./CloudResourceOwnerRuleEngineService";
 
@@ -27,7 +34,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (createdItem.projectId && createdItem.id) {
@@ -52,6 +59,18 @@ export class Service extends DatabaseService<Model> {
           );
         });
     }
+    /*
+     * The overview page can say what this cloud resource looks like now; only
+     * the feed can say why it exists at all - whether a person added it or
+     * ingest registered it the first time telemetry named it. Fire and
+     * forget: a feed write must never fail the create it describes.
+     */
+    this.writeCloudResourceCreatedFeed(createdItem, onCreate).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
     return createdItem;
   }
 
@@ -328,6 +347,212 @@ export class Service extends DatabaseService<Model> {
           props: {
             isRoot: true,
           },
+        });
+      }
+    }
+  }
+
+  /**
+   * Display name for this cloud resource, or an empty string when the row is
+   * gone. Feed writers call this on a best-effort basis, so a missing row must
+   * not throw and take the surrounding write down with it.
+   */
+  @CaptureSpan()
+  public async getCloudResourceName(data: {
+    cloudResourceId: ObjectID;
+  }): Promise<string> {
+    const cloudResource: Model | null = await this.findOneById({
+      id: data.cloudResourceId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return cloudResource?.name || "";
+  }
+
+  @CaptureSpan()
+  public async getCloudResourceLinkInDashboard(
+    projectId: ObjectID,
+    cloudResourceId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/cloud/${cloudResourceId.toString()}`,
+    );
+  }
+
+  /**
+   * "[Cloud Resource prod-1](https://…)" - the form every feed item uses to
+   * name the resource it is about.
+   */
+  @CaptureSpan()
+  public async getCloudResourceMarkdownLink(
+    projectId: ObjectID,
+    cloudResourceId: ObjectID,
+  ): Promise<string> {
+    const name: string = await this.getCloudResourceName({
+      cloudResourceId: cloudResourceId,
+    });
+    const link: URL = await this.getCloudResourceLinkInDashboard(
+      projectId,
+      cloudResourceId,
+    );
+
+    return `[Cloud Resource ${name}](${link.toString()})`;
+  }
+
+  private async writeCloudResourceCreatedFeed(
+    createdItem: Model,
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const projectId: ObjectID | undefined = createdItem.projectId;
+    const cloudResourceId: ObjectID | undefined = createdItem.id || undefined;
+
+    if (!projectId || !cloudResourceId) {
+      return;
+    }
+
+    /*
+     * Ingest creates these rows with root props and no acting user; every
+     * dashboard, API and Terraform create carries one. That is the whole
+     * signal for "was this discovered automatically or added by a person".
+     */
+    const createdByUserId: ObjectID | undefined =
+      createdItem.createdByUserId ||
+      onCreate.createBy.props.userId ||
+      undefined;
+
+    const markdown: {
+      feedInfoInMarkdown: string;
+      moreInformationInMarkdown: string;
+    } = await ResourceFeedUtil.getCreatedFeedMarkdown({
+      resourceTypeName: "cloud resource",
+      resourceMarkdownLink: await this.getCloudResourceMarkdownLink(
+        projectId,
+        cloudResourceId,
+      ),
+      projectId: projectId,
+      createdByUserId: createdByUserId,
+      identifierName: "Resource identifier",
+      identifierValue: createdItem.resourceIdentifier,
+      description: createdItem.description,
+    });
+
+    await CloudResourceFeedService.createCloudResourceFeedItem({
+      cloudResourceId: cloudResourceId,
+      projectId: projectId,
+      cloudResourceFeedEventType:
+        CloudResourceFeedEventType.CloudResourceCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+      moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+      userId: createdByUserId,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    this.writeCloudResourceUpdatedFeed(onUpdate, updatedItemIds).catch(
+      (error: Error) => {
+        logger.error(error);
+      },
+    );
+
+    return onUpdate;
+  }
+
+  private async writeCloudResourceUpdatedFeed(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const updateData: JSONObject = onUpdate.updateBy
+      .data as unknown as JSONObject;
+
+    /*
+     * Heartbeats update lastSeenAt / otelCollectorStatus / agentVersion and the
+     * rollup counters constantly. Only the columns a person would recognise as
+     * a change earn a feed item - see MEANINGFUL_UPDATE_COLUMNS.
+     */
+    const changedColumns: Array<string> =
+      ResourceFeedUtil.getUpdatedColumnsWorthRecording(updateData);
+
+    if (changedColumns.length === 0 || updatedItemIds.length === 0) {
+      return;
+    }
+
+    const isArchiveChange: boolean =
+      ResourceFeedUtil.isArchiveChange(updateData);
+    const isArchived: boolean = Boolean(updateData["isArchived"]);
+    const otherColumns: Array<string> = changedColumns.filter(
+      (column: string) => {
+        return column !== "isArchived";
+      },
+    );
+
+    const updatedByUserId: ObjectID | undefined =
+      onUpdate.updateBy.props.userId || undefined;
+
+    for (const cloudResourceId of updatedItemIds) {
+      const cloudResource: Model | null = await this.findOneById({
+        id: cloudResourceId,
+        select: {
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const projectId: ObjectID | undefined = cloudResource?.projectId;
+
+      if (!projectId) {
+        continue;
+      }
+
+      const resourceMarkdownLink: string =
+        await this.getCloudResourceMarkdownLink(projectId, cloudResourceId);
+
+      if (isArchiveChange) {
+        await CloudResourceFeedService.createCloudResourceFeedItem({
+          cloudResourceId: cloudResourceId,
+          projectId: projectId,
+          cloudResourceFeedEventType: isArchived
+            ? CloudResourceFeedEventType.CloudResourceArchived
+            : CloudResourceFeedEventType.CloudResourceRestored,
+          displayColor: isArchived ? Yellow500 : Blue500,
+          feedInfoInMarkdown: isArchived
+            ? `🗄️ ${resourceMarkdownLink} was archived.`
+            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+          userId: updatedByUserId,
+        });
+      }
+
+      if (otherColumns.length > 0) {
+        const markdown: {
+          feedInfoInMarkdown: string;
+          moreInformationInMarkdown: string;
+        } = ResourceFeedUtil.getUpdatedFeedMarkdown({
+          resourceMarkdownLink: resourceMarkdownLink,
+          columns: otherColumns,
+        });
+
+        await CloudResourceFeedService.createCloudResourceFeedItem({
+          cloudResourceId: cloudResourceId,
+          projectId: projectId,
+          cloudResourceFeedEventType:
+            CloudResourceFeedEventType.CloudResourceUpdated,
+          displayColor: Gray500,
+          feedInfoInMarkdown: markdown.feedInfoInMarkdown,
+          moreInformationInMarkdown: markdown.moreInformationInMarkdown,
+          userId: updatedByUserId,
         });
       }
     }
