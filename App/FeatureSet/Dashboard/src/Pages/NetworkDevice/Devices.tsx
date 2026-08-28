@@ -412,7 +412,7 @@ const NetworkDevices: FunctionComponent<
         cardProps={{
           title: "Network Devices",
           description:
-            "Switches, routers, and firewalls monitored via SNMP in this project. Devices are polled by the probe you assign.",
+            "Switches, routers, firewalls, and any other gear on your network. SNMP devices are polled by the probe you assign; devices without SNMP are reported on by the monitor you bind to them.",
         }}
         showViewIdButton={true}
         formSteps={[
@@ -781,6 +781,29 @@ const NetworkDevices: FunctionComponent<
             type: FieldType.Entity,
             hideOnMobile: true,
             getElement: (item: NetworkDevice): ReactElement => {
+              /*
+               * A monitor-backed device is never walked, so it has no probe
+               * BY DESIGN — the import path withholds one deliberately
+               * because a host that answered no SNMP has nothing to walk
+               * with. Rendering the shared element's "No probe found." on it
+               * reads as a lookup failure and sent operators hunting for a
+               * probe to assign, which is what OneUptime/oneuptime#3447 is.
+               */
+              if (
+                NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                  item.monitoringMethod,
+                )
+              ) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them."
+                  >
+                    Not polled
+                  </span>
+                );
+              }
+
               return <ProbeElement probe={item["probe"]} />;
             },
           },
@@ -791,6 +814,28 @@ const NetworkDevices: FunctionComponent<
             title: "Interfaces (Up / Down)",
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
+              /*
+               * Interface counts are written by the SNMP walk and by nothing
+               * else, so on a monitor-backed device they are not "zero
+               * interfaces" — they are "never collected". "0 / 0" states the
+               * device has no working ports, which is a different and wrong
+               * claim (#3447).
+               */
+              if (
+                NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                  item.monitoringMethod,
+                )
+              ) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
+                  >
+                    —
+                  </span>
+                );
+              }
+
               const up: number = (item.interfacesUp as number) || 0;
               const down: number = (item.interfacesDown as number) || 0;
               return (
@@ -811,6 +856,29 @@ const NetworkDevices: FunctionComponent<
             title: "Last Seen",
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
+              /*
+               * `lastSeenAt` only ever moves on a successful SNMP walk, so a
+               * monitor-backed device's is NULL for life. "Never" reads as
+               * "this device has not been reachable once", which is exactly
+               * the wrong thing to tell an operator whose ping monitor says
+               * it is up (#3447).
+               */
+              if (
+                !item.lastSeenAt &&
+                NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                  item.monitoringMethod,
+                )
+              ) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Last contact is stamped by an SNMP walk, which does not run on a monitor-backed device. Its status comes from the monitor bound to it."
+                  >
+                    —
+                  </span>
+                );
+              }
+
               if (!item.lastSeenAt) {
                 return <span className="text-sm text-gray-400">Never</span>;
               }

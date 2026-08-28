@@ -3,6 +3,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
@@ -43,6 +44,16 @@ import {
   validateScanTarget,
 } from "./DiscoveryScanFormValidation";
 import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import {
+  buildPingMonitorForDiscoveredHost,
+  MonitorCriteriaSeedIds,
+} from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
+import PingMonitorSeedIds from "../../Components/NetworkDevice/PingMonitorSeedIds";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import {
   DiscoveryScanOutcome,
   getDiscoveredHosts,
@@ -111,6 +122,72 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   customValidation: validateScanName,
 };
 
+/**
+ * Create the Ping monitor that will report a ping-only host's health, and
+ * return its id so the device can be created already bound to it.
+ *
+ * The scan's own probe is attached explicitly rather than letting the monitor
+ * fall back to the project's defaults. That matters more than it looks: the
+ * defaults include GLOBAL probes, which sit on the public internet and cannot
+ * reach an RFC1918 address — so a monitor left on defaults for 10.246.174.13
+ * would fail every check and drive the device to "Offline". That is a worse
+ * answer than "Pending", because it looks like a real outage. The scan's probe
+ * is the one that just proved the host answers ping, so it is exactly the
+ * right one to keep asking.
+ */
+async function createPingMonitorForHost(data: {
+  host: DiscoveredDeviceEntry;
+  deviceName: string;
+  scan: NetworkDeviceDiscoveryScan;
+  seedIds: MonitorCriteriaSeedIds;
+}): Promise<ObjectID> {
+  const monitor: Monitor = buildPingMonitorForDiscoveredHost({
+    projectId: ProjectUtil.getCurrentProjectId()!,
+    host: data.host,
+    deviceName: data.deviceName,
+    seedIds: data.seedIds,
+  });
+
+  const response: HTTPResponse<
+    JSONObject | JSONArray | Monitor | Array<Monitor>
+  > = await ModelAPI.create<Monitor>({
+    model: monitor,
+    modelType: Monitor,
+    miscDataProps: data.scan.probeId
+      ? { probes: [data.scan.probeId.toString()] }
+      : {},
+  });
+
+  const createdMonitorId: ObjectID | undefined = (
+    response.data as Monitor | undefined
+  )?.id;
+
+  if (!createdMonitorId) {
+    throw new BadDataException(
+      "The Ping monitor was created but the server did not return its id, so it could not be bound to this device.",
+    );
+  }
+
+  return createdMonitorId;
+}
+
+/**
+ * Remove a monitor created moments ago for a device whose own create then
+ * failed. Swallows its own errors: the operator needs the import failure, not
+ * a second message about the cleanup of it. A monitor that survives this is
+ * visible and deletable in the monitor list.
+ */
+async function deleteMonitorQuietly(monitorId: ObjectID): Promise<void> {
+  try {
+    await ModelAPI.deleteItem<Monitor>({
+      modelType: Monitor,
+      id: monitorId,
+    });
+  } catch {
+    // Intentionally ignored - see above.
+  }
+}
+
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -142,6 +219,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
   );
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [importError, setImportError] = useState<string>("");
+  /*
+   * Whether the operator asked for a Ping monitor to be created and bound to
+   * each ping-only host in this import.
+   *
+   * OFF by default, and deliberately so: a monitor is a billable, plan-limited
+   * resource, and creating fourteen of them must be something the operator
+   * chose rather than a side effect of recording inventory. Without it the
+   * import behaves exactly as it always has.
+   */
+  const [createPingMonitors, setCreatePingMonitors] = useState<boolean>(false);
   /*
    * Addresses imported from each scan, per scan id. The scan's own
    * `isAlreadyRegistered` flags were frozen when the probe uploaded its
@@ -229,6 +316,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
     // Every scan opens on the whole list; narrowing is the operator's move.
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
+    /*
+     * Per-dialog, not per-page: opting a batch of phones into monitors says
+     * nothing about the next scan, which may be a rack of switches.
+     */
+    setCreatePingMonitors(false);
     setShowReviewModal(true);
   };
 
@@ -239,6 +331,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
     setSelectedIps({});
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
+    setCreatePingMonitors(false);
     /*
      * importedIpAddressesByScanId is deliberately NOT cleared. It is what
      * stops a reopened scan offering hosts that are already in the inventory,
@@ -282,23 +375,103 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
       const importedNow: Array<string> = [];
       const failures: Array<string> = [];
+      /*
+       * Hosts that imported fine but whose Ping monitor could not be created
+       * — a free-plan quota running out mid-batch is the usual cause. Kept
+       * apart from `failures` because the two need different words: those
+       * hosts ARE in the inventory, they just have nothing reporting on them
+       * yet, so the message tells the operator what is still missing rather
+       * than implying the import did not happen.
+       */
+      const monitorFailures: Array<string> = [];
+
+      /*
+       * Whether this run will provision monitors, and the four project-scoped
+       * ids they are seeded from.
+       *
+       * Resolved ONCE, before the loop: they describe the project, not any one
+       * host, and a fourteen-host import must not repeat these queries
+       * fourteen times. A project missing a status or a severity fails here,
+       * as one clear message, rather than fourteen times over as a per-host
+       * import failure.
+       */
+      const wantsPingMonitors: boolean =
+        createPingMonitors &&
+        entriesToImport.some((entry: DiscoveredDeviceEntry) => {
+          return isPingOnlyDiscoveredHost(entry);
+        });
+
+      let pingMonitorSeedIds: MonitorCriteriaSeedIds | null = null;
+
+      if (wantsPingMonitors) {
+        try {
+          pingMonitorSeedIds = await PingMonitorSeedIds.resolve();
+        } catch (err) {
+          setIsImporting(false);
+          setImportError(API.getFriendlyMessage(err));
+          return;
+        }
+      }
 
       for (const entry of entriesToImport) {
+        /*
+         * A monitor created for this host that must be cleaned up if the
+         * device create then fails — otherwise a failed import leaves a
+         * billable monitor behind pointing at a device that does not exist.
+         */
+        let provisionedMonitorId: ObjectID | null = null;
+
         try {
           /*
            * The shared recipe (Common/Utils/NetworkDiscovery/
            * DiscoveredDeviceBuilder): name, hostname, description, and — for
            * SNMP hosts — the scan's probe and credentials. A ping-only host
-           * gets none of the scan's SNMP setup and polling off; binding a
-           * monitor to it is a separate, deliberate step. The server-side
-           * auto-import rule engine builds through the same function, so a
-           * hand-imported host and a rule-imported host are the same device.
+           * gets none of the scan's SNMP setup and polling off. The
+           * server-side auto-import rule engine builds through the same
+           * function, so a hand-imported host and a rule-imported host are
+           * the same device.
            */
           const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
             projectId: ProjectUtil.getCurrentProjectId()!,
             host: entry,
             scan: scanToReview,
           });
+
+          /*
+           * The #3447 fix. A ping-only host imports monitor-backed: no probe,
+           * no credentials, nothing polling it. Without a monitor bound to it
+           * that device has no health source at all and reads "Pending"
+           * forever. So when the operator asked for it, create the Ping
+           * monitor FIRST and carry its id onto the device — binding at
+           * create time is what makes NetworkDeviceService stamp the
+           * monitor's status onto the device immediately, rather than leaving
+           * it Pending until the monitor's next status CHANGE (#3392).
+           *
+           * The monitor is an ENHANCEMENT to the import, not a precondition
+           * for it, so its failure must not cost the operator the device.
+           * A project on the free plan runs out of monitor quota partway
+           * through a fourteen-host batch; failing those hosts entirely
+           * would mean the operator gets neither the monitor nor the
+           * inventory they actually asked to import. So a monitor failure is
+           * recorded as its own warning and the device is created unbound —
+           * which is exactly the behaviour of an import with the option off.
+           */
+          if (pingMonitorSeedIds && isPingOnlyDiscoveredHost(entry)) {
+            try {
+              provisionedMonitorId = await createPingMonitorForHost({
+                host: entry,
+                deviceName: device.name || entry.ipAddress,
+                scan: scanToReview,
+                seedIds: pingMonitorSeedIds,
+              });
+
+              device.monitorId = provisionedMonitorId;
+            } catch (monitorErr) {
+              monitorFailures.push(
+                `${entry.ipAddress}: ${API.getFriendlyMessage(monitorErr)}`,
+              );
+            }
+          }
 
           await ModelAPI.create<NetworkDevice>({
             model: device,
@@ -307,6 +480,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
           importedNow.push(entry.ipAddress);
         } catch (err) {
+          /*
+           * Best effort, and deliberately silent on its own failure: the
+           * import error the operator needs to see is the one below, not a
+           * second error about tidying up after it.
+           */
+          if (provisionedMonitorId) {
+            await deleteMonitorQuietly(provisionedMonitorId);
+          }
+
           failures.push(`${entry.ipAddress}: ${API.getFriendlyMessage(err)}`);
         }
       }
@@ -343,6 +525,24 @@ const NetworkDeviceDiscovery: FunctionComponent<
        */
       const isStillTheSameReview: boolean =
         reviewedScanIdRef.current === runScanId;
+
+      /*
+       * A monitor that could not be created is reported alongside the import
+       * failures, but worded apart from them on purpose. A host in `failures`
+       * is NOT in the inventory. A host in `monitorFailures` IS — it just
+       * imported without the monitor that was going to report on it, so it is
+       * sitting on "Pending" and the operator needs to know which ones and
+       * why (a free-plan quota running out mid-batch is the usual reason).
+       *
+       * Folded in here rather than reported through a second channel so that
+       * either kind keeps the dialog open: closing on a monitor-only problem
+       * would show the message for exactly as long as it took to disappear.
+       */
+      if (monitorFailures.length > 0) {
+        failures.push(
+          `Imported, but no Ping monitor could be created for ${monitorFailures.length === 1 ? "this host" : "these hosts"} — they are in your inventory with nothing reporting on them yet: ${monitorFailures.join(" ")}`,
+        );
+      }
 
       if (failures.length > 0) {
         if (isStillTheSameReview) {
@@ -427,6 +627,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
     filter: hostFilter,
     selectedIpAddresses: selectedIps,
   });
+
+  /*
+   * Counted across the WHOLE scan rather than the group on screen, so the
+   * ping-monitor option does not appear and vanish as the operator switches
+   * filters. The import itself still only touches what is selected and shown.
+   */
+  const noSnmpHostCount: number = reviewEntries.filter(
+    (entry: DiscoveredDeviceEntry) => {
+      return isPingOnlyDiscoveredHost(entry);
+    },
+  ).length;
 
   return (
     <Fragment>
@@ -989,6 +1200,35 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 </p>
               </div>
             )}
+            {/*
+             * The way out of the dead end this dialog used to leave behind.
+             *
+             * A host that answered ping but not SNMP imports monitor-backed:
+             * no probe, nothing polling it, and — until someone hand-creates a
+             * Ping monitor and hand-binds it — no health source at all, so it
+             * reads "Pending" forever (OneUptime/oneuptime#3447). Fourteen
+             * discovered phones meant fourteen monitors and fourteen device
+             * edits by hand.
+             *
+             * OFF by default on purpose: monitors are billable and
+             * plan-limited, so creating a batch of them is the operator's
+             * decision, not a side effect of recording inventory. Shown only
+             * when this scan actually found hosts it applies to.
+             */}
+            {noSnmpHostCount > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <Toggle
+                  title={`Create a Ping monitor for each host without SNMP (${noSnmpHostCount.toLocaleString("en-US")})`}
+                  description="Hosts without SNMP are never polled, so without a monitor they stay on Pending with no status. This creates one Ping monitor per host — on the probe that ran this scan, so it can reach them — and binds it, so they report Up or Down straight away. Monitors count towards your plan. Incidents stay off; turn them on per monitor if you want paging."
+                  initialValue={createPingMonitors}
+                  value={createPingMonitors}
+                  dataTestId="discovered-device-create-ping-monitors"
+                  onChange={(value: boolean) => {
+                    setCreatePingMonitors(value);
+                  }}
+                />
+              </div>
+            )}
             {reviewEntries.length === 0 && (
               <p className="text-sm text-gray-500">
                 {getDiscoveredHostFilterEmptyMessage(DiscoveredHostFilter.All)}
@@ -1083,7 +1323,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       {isPingOnly && (
                         <span
                           className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                          title="Responds to ping only. Imports as a monitor-backed device: no polling and no credentials, so bind a Ping or IP monitor to it afterwards to give it a status."
+                          title="Responds to ping only. Imports as a monitor-backed device: no polling and no credentials, so it needs a monitor bound to it before it reports a status. Turn on 'Create a Ping monitor' above to have that done for you, or bind one yourself afterwards."
                         >
                           No SNMP
                         </span>
