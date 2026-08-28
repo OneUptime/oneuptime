@@ -68,6 +68,20 @@ export interface SiteChildView {
   deviceStats: DeviceHealthCounts;
   unitStats: SiteUnitStats;
   uptimePercent: number | null;
+  /*
+   * The same measurement over the last 24 hours. A bad day inside an
+   * otherwise healthy month barely moves the 30-day figure, so the card
+   * carries both. Null on a server that predates it, and on a site with no
+   * rollup history at all — the same absence the 30-day figure reports.
+   */
+  dailyUptimePercent: number | null;
+  /*
+   * Whether a scheduled maintenance window covers this site right now
+   * (attached to it, or to any of its ancestors). The site's status is NOT
+   * suppressed during one, so this is the only thing distinguishing planned
+   * work from a real outage on the card.
+   */
+  isUnderMaintenance: boolean;
 }
 
 /*
@@ -311,6 +325,7 @@ const parseChildRow: (value: unknown) => SiteChildView | null = (
   }
   const unitStatsRow: JSONObject = (row["unitStats"] || {}) as JSONObject;
   const rawUptime: unknown = row["uptimePercent"];
+  const rawDailyUptime: unknown = row["dailyUptimePercent"];
   return {
     id: id,
     name: asString(row["name"], "Unnamed site"),
@@ -328,6 +343,11 @@ const parseChildRow: (value: unknown) => SiteChildView | null = (
       typeof rawUptime === "number" && Number.isFinite(rawUptime)
         ? rawUptime
         : null,
+    dailyUptimePercent:
+      typeof rawDailyUptime === "number" && Number.isFinite(rawDailyUptime)
+        ? rawDailyUptime
+        : null,
+    isUnderMaintenance: row["isUnderMaintenance"] === true,
   };
 };
 

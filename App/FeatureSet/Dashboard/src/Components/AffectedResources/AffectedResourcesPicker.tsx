@@ -8,6 +8,7 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Service from "Common/Models/DatabaseModels/Service";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -43,6 +44,7 @@ export type AffectedResourceType =
   | "CephCluster"
   | "DockerSwarmCluster"
   | "IoTFleet"
+  | "NetworkSite"
   | "Service";
 
 export interface AffectedResourceItem {
@@ -67,6 +69,7 @@ export interface AffectedResourcesPayload {
   cephClusters: Array<string>;
   dockerSwarmClusters: Array<string>;
   iotFleets: Array<string>;
+  networkSites: Array<string>;
   services: Array<string>;
 }
 
@@ -80,6 +83,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
   onChange: (payload: AffectedResourcesPayload) => void;
@@ -91,6 +95,14 @@ interface ResourceConfig {
   label: string;
   icon: IconProp;
   modelType: { new (): BaseModel };
+  /*
+   * Whether the model carries a `labels` relation. The Labels tab bulk-adds
+   * by querying `{ labels: Includes([...]) }`, which is a 400 against a
+   * model with no such column — silently swallowed by fetchByQuery, but a
+   * wasted round trip per label per expand. Types that opt out are simply
+   * not offered to that query; they stay fully selectable by search.
+   */
+  supportsLabels: boolean;
 }
 
 const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
@@ -98,51 +110,71 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     label: "Monitor",
     icon: IconProp.AltGlobe,
     modelType: Monitor,
+    supportsLabels: true,
   },
   Host: {
     label: "Host",
     icon: IconProp.Server,
     modelType: Host,
+    supportsLabels: true,
   },
   KubernetesCluster: {
     label: "Kubernetes Cluster",
     icon: IconProp.Kubernetes,
     modelType: KubernetesCluster,
+    supportsLabels: true,
   },
   DockerHost: {
     label: "Docker Host",
     icon: IconProp.Docker,
     modelType: DockerHost,
+    supportsLabels: true,
   },
   PodmanHost: {
     label: "Podman Host",
     icon: IconProp.Podman,
     modelType: PodmanHost,
+    supportsLabels: true,
   },
   ProxmoxCluster: {
     label: "Proxmox Cluster",
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
+    supportsLabels: true,
   },
   CephCluster: {
     label: "Ceph Cluster",
     icon: IconProp.Ceph,
     modelType: CephCluster,
+    supportsLabels: true,
   },
   DockerSwarmCluster: {
     label: "Docker Swarm Cluster",
     icon: IconProp.DockerSwarm,
     modelType: DockerSwarmCluster,
+    supportsLabels: true,
   },
   IoTFleet: {
     label: "IoT Fleet",
     icon: IconProp.IoT,
     modelType: IoTFleet,
+    supportsLabels: true,
+  },
+  NetworkSite: {
+    label: "Network Site",
+    icon: IconProp.BuildingOffice,
+    modelType: NetworkSite,
+    /*
+     * NetworkSite has no labels relation — it is organised by its own
+     * hierarchy instead, and attaching a parent covers everything under it.
+     */
+    supportsLabels: false,
   },
   Service: {
     label: "Service",
     icon: IconProp.SquareStack,
     modelType: Service,
+    supportsLabels: true,
   },
 };
 
@@ -305,6 +337,17 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   }, [requestedTypes]);
 
   /*
+   * The subset the Labels tab can query. A model with no `labels` relation
+   * cannot be selected by label, and asking anyway is a guaranteed-failed
+   * request per label per expand.
+   */
+  const labelSelectableTypes: Array<AffectedResourceType> = useMemo(() => {
+    return resourceTypes.filter((type: AffectedResourceType): boolean => {
+      return RESOURCE_CONFIG[type].supportsLabels;
+    });
+  }, [resourceTypes]);
+
+  /*
    * nameCache survives across renders so that after the form serializes the
    * selected items down to bare IDs, we can still show user-recognisable
    * names. Keyed by `${type}:${id}` to avoid collisions across resource types.
@@ -353,6 +396,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("IoTFleet")) {
       items.push(...toItems(props.iotFleets, "IoTFleet", cache));
     }
+    if (resourceTypes.includes("NetworkSite")) {
+      items.push(...toItems(props.networkSites, "NetworkSite", cache));
+    }
     if (resourceTypes.includes("Service")) {
       items.push(...toItems(props.services, "Service", cache));
     }
@@ -367,6 +413,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.cephClusters,
     props.dockerSwarmClusters,
     props.iotFleets,
+    props.networkSites,
     props.services,
     resourceTypes,
   ]);
@@ -721,6 +768,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         .map((i: AffectedResourceItem): string => {
           return i._id;
         }),
+      networkSites: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "NetworkSite";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
       services: next
         .filter((i: AffectedResourceItem): boolean => {
           return i.type === "Service";
@@ -837,7 +891,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     );
     try {
       const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
-      for (const type of resourceTypes) {
+      for (const type of labelSelectableTypes) {
         requests.push(
           fetchByQuery(
             type,
@@ -938,7 +992,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     setLabelError("");
     try {
       const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
-      for (const type of resourceTypes) {
+      for (const type of labelSelectableTypes) {
         requests.push(
           fetchByQuery(
             type,

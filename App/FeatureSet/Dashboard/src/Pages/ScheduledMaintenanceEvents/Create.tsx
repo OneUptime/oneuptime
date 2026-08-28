@@ -17,6 +17,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -337,7 +338,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   title: "Resources Affected",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this scheduled maintenance.",
+                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -353,7 +354,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
                         podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                        networkSites={values.networkSites as Array<NetworkSite>}
                         services={values.services as Array<Service>}
+                        resourceTypes={[
+                          "Monitor",
+                          "Host",
+                          "KubernetesCluster",
+                          "DockerHost",
+                          "PodmanHost",
+                          "NetworkSite",
+                          "Service",
+                        ]}
                         onChange={(payload: unknown) => {
                           /*
                            * Field.onChange below handles the split; we still
@@ -389,6 +400,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
+                          networkSites: payload.networkSites,
                           services: payload.services,
                         } as FormValues<ScheduledMaintenance>);
                       });
@@ -436,11 +448,17 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     const servicesCount: number = Array.isArray(item.services)
                       ? item.services.length
                       : 0;
+                    const networkSitesCount: number = Array.isArray(
+                      item.networkSites,
+                    )
+                      ? item.networkSites.length
+                      : 0;
                     const totalCount: number =
                       monitorIds.length +
                       hostsCount +
                       clustersCount +
                       dockerCount +
+                      networkSitesCount +
                       servicesCount;
                     if (totalCount === 0) {
                       return (
@@ -464,6 +482,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (dockerCount > 0) {
                       otherCounts.push(
                         `${dockerCount} Docker host${dockerCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (networkSitesCount > 0) {
+                      otherCounts.push(
+                        `${networkSitesCount} network site${networkSitesCount === 1 ? "" : "s"}`,
                       );
                     }
                     if (servicesCount > 0) {
@@ -492,9 +515,10 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
-                 * hosts/kubernetesClusters/dockerHosts on load and submit. The
-                 * picker writes to all four relations, but only the anchor's
-                 * first key is otherwise captured.
+                 * hosts/kubernetesClusters/dockerHosts/podmanHosts/
+                 * networkSites/services on load and submit. The picker writes
+                 * to every one of these relations, but only the anchor
+                 * field's key (monitors) is otherwise captured.
                  */
                 {
                   field: { hosts: true },
@@ -528,6 +552,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 {
                   field: { podmanHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { networkSites: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,
