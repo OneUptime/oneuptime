@@ -22,6 +22,13 @@ import ObjectID from "../../Types/ObjectID";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Route from "../../Types/API/Route";
+import {
+  OnCallNotificationContext,
+  OnCallNotificationResourceReference,
+  detailsToJSON,
+  getOnCallNotificationContext,
+  getResourceReference,
+} from "../Utils/OnCallNotificationContext";
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
   UserOnCallLogTimeline,
@@ -130,22 +137,26 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 triggeredByIncidentId: true,
                 triggeredByIncident: {
                   title: true,
-                  description: true,
                 },
                 triggeredByAlertId: true,
                 triggeredByAlert: {
                   title: true,
-                  description: true,
                 },
                 triggeredByAlertEpisodeId: true,
                 triggeredByAlertEpisode: {
                   title: true,
-                  description: true,
                 },
                 triggeredByIncidentEpisodeId: true,
                 triggeredByIncidentEpisode: {
                   title: true,
-                  description: true,
+                },
+                /*
+                 * The timestamps below are rendered in the recipient's own
+                 * timezone. Formatting them in the container's zone would tell
+                 * an on-call engineer nothing.
+                 */
+                user: {
+                  timezone: true,
                 },
               },
               props: {
@@ -161,15 +172,28 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             );
           }
 
-          const notificationType: string = timelineItem.triggeredByIncidentId
-            ? "Incident"
-            : timelineItem.triggeredByIncidentEpisodeId
-              ? "Incident Episode"
-              : timelineItem.triggeredByAlertEpisodeId
-                ? "Alert Episode"
-                : "Alert";
+          const reference: OnCallNotificationResourceReference | null =
+            getResourceReference(timelineItem);
+
+          const notificationType: string = reference
+            ? reference.resourceType.toString()
+            : "Alert";
+
+          /*
+           * The context read is what puts severity, state, project, monitors
+           * and the time it was raised on the page. It is best effort on
+           * purpose: a deleted resource, or a resource this notification no
+           * longer points at, must still leave a page the engineer can
+           * acknowledge from.
+           */
+          const context: OnCallNotificationContext | null =
+            await getOnCallNotificationContext({
+              timelineItem: timelineItem,
+              timezone: timelineItem.user?.timezone?.toString(),
+            });
 
           const notificationTitle: string =
+            context?.resourceTitle ||
             timelineItem.triggeredByIncident?.title ||
             timelineItem.triggeredByIncidentEpisode?.title ||
             timelineItem.triggeredByAlertEpisode?.title ||
@@ -194,6 +218,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                   .addRoute(new UserOnCallLogTimeline().crudApiPath!)
                   .addRoute("/acknowledge/" + itemId.toString()),
               ).toString(),
+              resourceNumber: context?.resourceNumber || "",
+              resourceTitle: notificationTitle,
+              resourceDescription: context?.resourceDescription || "",
+              details: detailsToJSON(context?.details || []),
             },
           );
         } catch (error) {
@@ -245,6 +273,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 },
                 acknowledgedAt: true,
                 isAcknowledged: true,
+                user: {
+                  timezone: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -262,59 +293,38 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-          // Determine the resource type and ID for routing
-          type ResourceInfo = {
-            type: string;
-            path: string;
-            id: ObjectID;
-            title: string;
-          };
+          // Determine the resource type and ID for routing.
+          const reference: OnCallNotificationResourceReference | null =
+            getResourceReference(timelineItem);
 
-          const getResourceInfo: () => ResourceInfo = (): ResourceInfo => {
-            if (timelineItem.triggeredByIncidentId) {
-              return {
-                type: "Incident",
-                path: "incidents",
-                id: timelineItem.triggeredByIncidentId,
-                title: timelineItem.triggeredByIncident?.title || "",
-              };
-            }
-            if (timelineItem.triggeredByIncidentEpisodeId) {
-              return {
-                type: "Incident Episode",
-                path: "incidents/episodes",
-                id: timelineItem.triggeredByIncidentEpisodeId,
-                title: timelineItem.triggeredByIncidentEpisode?.title || "",
-              };
-            }
-            if (timelineItem.triggeredByAlertEpisodeId) {
-              return {
-                type: "Alert Episode",
-                path: "alerts/episodes",
-                id: timelineItem.triggeredByAlertEpisodeId,
-                title: timelineItem.triggeredByAlertEpisode?.title || "",
-              };
-            }
-            if (timelineItem.triggeredByAlertId) {
-              return {
-                type: "Alert",
-                path: "alerts",
-                id: timelineItem.triggeredByAlertId,
-                title: timelineItem.triggeredByAlert?.title || "",
-              };
-            }
-            return { type: "", path: "", id: new ObjectID(""), title: "" };
-          };
-
-          const resourceInfo: ResourceInfo = getResourceInfo();
+          const fallbackTitle: string =
+            timelineItem.triggeredByIncident?.title ||
+            timelineItem.triggeredByIncidentEpisode?.title ||
+            timelineItem.triggeredByAlertEpisode?.title ||
+            timelineItem.triggeredByAlert?.title ||
+            "";
 
           if (timelineItem.isAcknowledged) {
             // already acknowledged. Then show already acknowledged page with view details button.
 
+            /*
+             * Same context the acknowledge page shows. Someone who follows the
+             * link twice - or whose colleague got there first - still needs to
+             * know what the page they are looking at is about.
+             */
+            const context: OnCallNotificationContext | null =
+              await getOnCallNotificationContext({
+                timelineItem: timelineItem,
+                timezone: timelineItem.user?.timezone?.toString(),
+              });
+
+            const acknowledgedTitle: string =
+              context?.resourceTitle || fallbackTitle;
+
             const viewDetailsRoute: Route = new Route(
               DashboardRoute.toString(),
             ).addRoute(
-              `/${timelineItem.projectId?.toString()}/${resourceInfo.path}/${resourceInfo.id.toString()}`,
+              `/${timelineItem.projectId?.toString()}/${reference?.dashboardPath || ""}/${reference?.resourceId.toString() || ""}`,
             );
 
             const viewDetailsUrl: URL = new URL(
@@ -328,10 +338,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               res,
               "/usr/src/Common/Server/Views/ViewMessage.ejs",
               {
-                title: `Notification Already Acknowledged - ${resourceInfo.title}`,
+                title: `Notification Already Acknowledged - ${acknowledgedTitle}`,
                 message: `This notification has already been acknowledged.`,
-                viewDetailsText: `View ${resourceInfo.type}`,
+                viewDetailsText: `View ${reference?.resourceType.toString() || ""}`,
                 viewDetailsUrl: viewDetailsUrl.toString(),
+                resourceNumber: context?.resourceNumber || "",
+                resourceTitle: acknowledgedTitle,
+                resourceDescription: context?.resourceDescription || "",
+                details: detailsToJSON(context?.details || []),
               },
             );
           }
@@ -350,11 +364,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           });
 
           // redirect to dashboard to the resource page.
-          if (resourceInfo.path) {
+          if (reference) {
             const resourceRoute: Route = new Route(
               DashboardRoute.toString(),
             ).addRoute(
-              `/${timelineItem.projectId?.toString()}/${resourceInfo.path}/${resourceInfo.id.toString()}`,
+              `/${timelineItem.projectId?.toString()}/${reference.dashboardPath}/${reference.resourceId.toString()}`,
             );
 
             return Response.redirect(

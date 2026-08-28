@@ -39,6 +39,20 @@ export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
   APP_API_URL,
 ).addRoute(new Route("/user-webauthn/generate-authentication-options"));
 
+/*
+ * Mints a set of recovery codes for the user who is ALREADY signed in.
+ *
+ * An APP_API_URL route rather than an identity one, and that is the whole
+ * reason it can only be offered after the second step has completed: it is
+ * authenticated by the session cookie the login just set, not by the email and
+ * password the challenge routes re-submit. Offering it on the challenge screen
+ * would mean handing recovery codes to whoever is holding the password, which
+ * is exactly what a second factor exists to stop.
+ */
+export const GENERATE_BACKUP_CODES_API_URL: URL = URL.fromURL(
+  APP_API_URL,
+).addRoute(new Route("/user-two-factor-backup-code/generate"));
+
 export const VERIFY_WEBAUTHN_AUTH_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/verify-webauthn-auth"));

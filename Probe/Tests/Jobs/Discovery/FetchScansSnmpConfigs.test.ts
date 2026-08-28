@@ -19,7 +19,7 @@ import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol"
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
-import {
+import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
   LEGACY_SNMP_CONFIG_ID,
 } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
@@ -88,6 +88,26 @@ function makeLegacyScan(
 }
 
 /*
+ * A completely valid v3 credential set, held in one place because several
+ * describes below need "a set that is genuinely fine" to stand beside a set
+ * that is not — and a list built by hand in each of them would drift.
+ */
+function coreV3Set(): DiscoveryScanSnmpConfig {
+  return {
+    id: "core",
+    name: "Core switches",
+    snmpVersion: "V3",
+    snmpPort: 1161,
+    snmpV3Username: "nms",
+    snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+    snmpV3AuthProtocol: SnmpAuthProtocol.SHA,
+    snmpV3AuthKey: V3_AUTH_KEY,
+    snmpV3PrivProtocol: SnmpPrivProtocol.AES,
+    snmpV3PrivKey: V3_PRIV_KEY,
+  };
+}
+
+/*
  * The shape this feature exists for: a mixed segment with the core on v3 and
  * an access layer on its own v2c community, listed in the order the operator
  * wants them tried. The two entries deliberately disagree about the port as
@@ -102,18 +122,7 @@ function makeMultiConfigScan(
     name: "Mixed segment",
     cidr: "10.0.0.0/24",
     snmpConfigs: [
-      {
-        id: "core",
-        name: "Core switches",
-        snmpVersion: "V3",
-        snmpPort: 1161,
-        snmpV3Username: "nms",
-        snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
-        snmpV3AuthProtocol: SnmpAuthProtocol.SHA,
-        snmpV3AuthKey: V3_AUTH_KEY,
-        snmpV3PrivProtocol: SnmpPrivProtocol.AES,
-        snmpV3PrivKey: V3_PRIV_KEY,
-      },
+      coreV3Set(),
       {
         id: "access",
         name: "Access switches",
@@ -123,6 +132,41 @@ function makeMultiConfigScan(
     ],
     ...overrides,
   } as unknown as NetworkDeviceDiscoveryScan;
+}
+
+/*
+ * A value the v3 parsers cannot read. Held as a constant because it is
+ * asserted on from both sides — "this is ignored on a v2c set" and "this still
+ * fails a v3 set" — and the two claims are only about the same value if they
+ * are literally the same string.
+ */
+const UNREADABLE_AUTH_PROTOCOL: string = "SHA3";
+
+/*
+ * A v2c credential set carrying LEFTOVER v3 values, which is an ordinary
+ * stored shape rather than a corruption.
+ *
+ * The form's version dropdown reveals the v3 boxes and hides them again; it
+ * does not erase what was typed into them, deliberately — an operator who
+ * flips a card to v2c to test something and back to v3 must not find their
+ * keys gone. So a card that was v3 first and is v2c now still holds a
+ * username and whatever protocol was selected at the time, and the server
+ * stores all of it.
+ */
+function v2cSetWithLeftoverV3Values(
+  overrides?: Record<string, unknown>,
+): DiscoveryScanSnmpConfig {
+  return {
+    id: "access",
+    name: "Access switches",
+    snmpVersion: "V2c",
+    snmpCommunityString: ACCESS_COMMUNITY,
+    // The username is what buildSnmpV3Auth gates on.
+    snmpV3Username: "nms",
+    // And this is the value it throws over.
+    snmpV3AuthProtocol: UNREADABLE_AUTH_PROTOCOL,
+    ...overrides,
+  } as DiscoveryScanSnmpConfig;
 }
 
 /*
@@ -587,6 +631,138 @@ describe("buildProbeSnmpConfigs — one bad set fails the whole scan", () => {
   });
 });
 
+/*
+ * The exact counterpoint to the describe above, and the one that has to be
+ * asserted rather than assumed: a stale v3 value on a set that is NOT v3 is
+ * not an unreadable credential at all, and must not fail anything.
+ *
+ * THE DEFECT
+ *
+ * buildSnmpV3Auth gates on the USERNAME, not the version, and throws on an
+ * unrecognized security level or protocol. The shared validator that guards
+ * the write deliberately does NOT apply those three checks to a v1/v2c set —
+ * getConfigValidationError returns null as soon as the version is not v3 —
+ * because the form hides the v3 boxes rather than clearing them, and losing an
+ * operator's typed keys every time they glance at another version would be its
+ * own bug. So `snmpConfigs` legitimately holds a v2c set carrying a leftover
+ * username and a leftover protocol, and the server accepts it.
+ *
+ * Calling buildSnmpV3Auth for every set therefore threw on a list the server
+ * had just saved — and because the whole list is built before the sweep
+ * starts, the throw failed the ENTIRE scan. One stale dropdown value on one
+ * v2c card stopped every other credential set beside it from ever sweeping,
+ * and the operator's only symptom was a scan reporting Failed while quoting a
+ * v3 protocol on a card whose version is v2c and whose v3 fields are not even
+ * on screen to correct.
+ *
+ * The fix builds the v3 block only for a set that is actually v3. Both halves
+ * are pinned here: the leftover values are ignored, and the throw is still
+ * exactly where it was for a set that really is v3.
+ */
+describe("buildProbeSnmpConfigs — a v1/v2c set carrying leftover v3 values", () => {
+  /*
+   * The premise, executed against the real validator rather than described in
+   * a comment. If this ever starts returning an error the defect below stops
+   * being reachable — and the probe's guard would then be pinning a shape the
+   * product no longer stores.
+   */
+  test("the shared validator accepts such a set, which is why the probe must too", () => {
+    expect(
+      SnmpScanConfigUtil.getValidationError([v2cSetWithLeftoverV3Values()]),
+    ).toBeNull();
+  });
+
+  test("the set builds without throwing and carries no v3 credential block", () => {
+    const configs: Array<SubnetScanSnmpConfig> = buildProbeSnmpConfigs(
+      makeMultiConfigScan({ snmpConfigs: [v2cSetWithLeftoverV3Values()] }),
+    );
+
+    expect(configs).toHaveLength(1);
+    expect(configs[0]!.snmpVersion).toBe(SnmpVersion.V2c);
+    expect(configs[0]!.communityString).toBe(ACCESS_COMMUNITY);
+    /*
+     * Undefined, not "built from whatever parsed": a v2c session has nothing
+     * to authenticate with, so handing the SNMP layer a half-built v3 block
+     * would be a second bug wearing the first one's clothes.
+     */
+    expect(configs[0]!.snmpV3Auth).toBeUndefined();
+  });
+
+  /*
+   * The shape that cost the operator the sweep. The bad value is on the set
+   * the scan does not even use it for, and the set beside it is perfect — so
+   * "one unreadable value fails the scan" was, here, one hidden value failing
+   * a credential that had nothing wrong with it.
+   */
+  test("a list mixing such a set with a genuinely v3 set builds BOTH, in order", () => {
+    const configs: Array<SubnetScanSnmpConfig> = buildProbeSnmpConfigs(
+      makeMultiConfigScan({
+        snmpConfigs: [v2cSetWithLeftoverV3Values(), coreV3Set()],
+      }),
+    );
+
+    expect(configs).toHaveLength(2);
+    expect(configs[0]!.id).toBe("access");
+    expect(configs[0]!.snmpV3Auth).toBeUndefined();
+    // The valid set is untouched by its neighbour, down to every parsed field.
+    expect(configs[1]).toEqual(resolvedCoreConfig);
+  });
+
+  /*
+   * The guarantee must not be weakened in the course of narrowing it. The SAME
+   * unreadable protocol on a set that really is v3 is a credential the sweep
+   * cannot dial, and it still has to fail the scan with a sentence rather than
+   * blank the config and report an empty subnet.
+   */
+  test("the same unreadable value on a genuinely v3 set still fails the scan", () => {
+    const message: string = messageFrom(() => {
+      return buildProbeSnmpConfigs(
+        makeMultiConfigScan({
+          snmpConfigs: [
+            v2cSetWithLeftoverV3Values({
+              snmpVersion: "V3",
+              snmpV3SecurityLevel: SnmpSecurityLevel.AuthNoPriv,
+              snmpV3AuthKey: V3_AUTH_KEY,
+            }),
+          ],
+        }),
+      );
+    });
+
+    expect(message).toContain(
+      `authentication protocol "${UNREADABLE_AUTH_PROTOCOL}"`,
+    );
+    expect(message).toContain("not a recognized value");
+    // Still named, so the operator knows which card to open.
+    expect(message).toContain("Access switches (V3)");
+  });
+
+  /*
+   * And the other spelling of "actually v3": a hand-written row (direct API
+   * call, manual edit) holds "3" rather than the dropdown's "V3". The guard
+   * reads the version through the same parser the sweep does, so such a row is
+   * validated rather than waved through — otherwise the narrowing would have
+   * opened a hole exactly where the cleartext-downgrade bug already lives.
+   */
+  test('a hand-written "3" counts as v3 for the guard, not as something to skip', () => {
+    expect(() => {
+      return buildProbeSnmpConfigs(
+        makeMultiConfigScan({
+          snmpConfigs: [
+            v2cSetWithLeftoverV3Values({
+              snmpVersion: "3",
+              snmpV3SecurityLevel: SnmpSecurityLevel.AuthNoPriv,
+              snmpV3AuthKey: V3_AUTH_KEY,
+            }),
+          ],
+        }),
+      );
+    }).toThrow(
+      new RegExp(`authentication protocol "${UNREADABLE_AUTH_PROTOCOL}"`),
+    );
+  });
+});
+
 describe("buildScanStatusMessage — which credentials actually answered", () => {
   /*
    * The half of a multi-credential sweep the operator cannot see any other
@@ -765,6 +941,12 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
 
     expect(scanSpy).toHaveBeenCalledWith({
       cidr: "10.0.0.0/24",
+      /*
+       * The METHOD travels beside the credentials (issue #3445). An
+       * exact-object assertion, so the two cannot drift apart: a sweep handed
+       * credentials but no method, or a method but no credentials, fails here.
+       */
+      isSnmpEnabled: true,
       snmpConfigs: [resolvedCoreConfig, resolvedAccessConfig],
     });
   });
@@ -842,6 +1024,44 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
   });
 
   /*
+   * The whole point of narrowing the v3 build to v3 sets, stated as the thing
+   * the operator loses when it is not narrowed: the sweep RUNS.
+   *
+   * A leftover v3 username and an unreadable leftover protocol on the v2c card
+   * used to throw while the credential list was being assembled, before
+   * SubnetScanner was called at all — so the perfectly good v3 set beside it
+   * never dialled a single address, and the scan reported Failed. Asserting
+   * the parsed list alone would not catch a regression that moved the throw;
+   * this asserts that the sweep happened and the result was reported as a
+   * success.
+   */
+  test("a v2c set with leftover v3 values still lets the whole scan sweep", async () => {
+    await runScan(
+      makeMultiConfigScan({
+        snmpConfigs: [v2cSetWithLeftoverV3Values(), coreV3Set()],
+      }),
+    );
+
+    expect(scanSpy).toHaveBeenCalledTimes(1);
+    expect(scanSpy).toHaveBeenCalledWith({
+      cidr: "10.0.0.0/24",
+      isSnmpEnabled: true,
+      snmpConfigs: [
+        {
+          id: "access",
+          label: "Access switches (V2c)",
+          snmpVersion: SnmpVersion.V2c,
+          communityString: ACCESS_COMMUNITY,
+          snmpV3Auth: undefined,
+          port: 161,
+        },
+        resolvedCoreConfig,
+      ],
+    });
+    expect(uploadedBody()["success"]).toBe(true);
+  });
+
+  /*
    * A legacy scan must reach the sweep unchanged by any of this: one config,
    * the flattened columns, and a summary with no per-credential sentences in
    * it. Every scan in the installed estate is this shape until someone opens
@@ -854,6 +1074,7 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
 
     expect(scanSpy).toHaveBeenCalledWith({
       cidr: "10.0.0.0/24",
+      isSnmpEnabled: true,
       snmpConfigs: [
         {
           id: LEGACY_SNMP_CONFIG_ID,

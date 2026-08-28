@@ -47,10 +47,16 @@
       "securityKeyInstructions": "请按照安全密钥设备上的说明操作。",
       "codeFieldDescription": "请输入身份验证器应用中的代码",
       "selectDifferentMethod": "选择不同的双因素身份验证方法",
-      "useBackupCode": "改用备用代码",
       "backupCodeInstruction": "请输入您在设置双因素身份验证时保存的备用代码之一。每个代码只能使用一次。",
       "backupCodeFieldTitle": "备用代码",
-      "backupCodeFieldDescription": "备用代码的格式类似 ABCDE-12345。大小写和连字符均可忽略。"
+      "backupCodeFieldDescription": "备用代码的格式类似 ABCDE-12345。大小写和连字符均可忽略。",
+      "confirmSubtitle": "请确认是您本人，以完成登录。",
+      "recoverySubtitle": "请使用备用代码，或了解在没有备用代码时如何重新登录。",
+      "lostAccess": "无法使用身份验证器？",
+      "noBackupCodesStrong": "您没有备用代码。",
+      "noBackupCodes": "此处没有可输入的代码，因为此账户从未获得过一组备用代码。",
+      "noBackupCodesInstruction": "请联系此 OneUptime 实例的管理员，重置您账户的双因素身份验证。之后您就可以使用密码登录并设置新的身份验证器应用，同时系统会为您生成备用代码。",
+      "lostAccessSecurityKey": "无法使用安全密钥？"
     },
     "twoFactorEnrolment": {
       "title": "设置双重身份验证",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
       "submitButton": "验证并登录",
       "backToSignIn": "以其他用户身份登录"
+    },
+    "backupCodes": {
+      "title": "保存您的备用代码",
+      "subtitle": "如果您无法使用身份验证器应用或安全密钥，可以使用其中之一登录。",
+      "showOnceStrong": "这些代码仅显示这一次。",
+      "showOnce": "请将它们保存在生成代码的设备以外的地方。每个代码只能使用一次。",
+      "download": "下载为文本文件",
+      "savedConfirmation": "我已将这些代码保存在安全的地方。",
+      "continue": "继续前往仪表板",
+      "fileHeading": "OneUptime 双因素身份验证备用代码",
+      "fileInstruction": "每个代码只能使用一次。请将此文件保存在安全的地方，并与运行身份验证器应用的设备分开存放。",
+      "setUpTitle": "设置备用代码",
+      "setUpSubtitle": "在继续之前，还有最后一件事。",
+      "noneStrong": "您没有备用代码。",
+      "none": "如果您丢失了身份验证器应用或安全密钥，管理员必须先重置双因素身份验证，您才能重新登录。",
+      "generate": "生成备用代码",
+      "skip": "暂时跳过",
+      "generateFailed": "未返回任何备用代码。请在“用户配置 > 双因素身份验证”中重试。"
     }
   },
   "register": {

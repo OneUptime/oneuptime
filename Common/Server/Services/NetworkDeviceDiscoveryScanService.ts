@@ -19,6 +19,7 @@ import SnmpScanConfigUtil, {
   SnmpScanConfigSource,
 } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
+import ScanModeUtil from "../../Utils/NetworkDiscovery/ScanModeUtil";
 
 /*
  * The two spellings a many-to-one reference reaches a hook under: the
@@ -39,11 +40,17 @@ const SWEEP_COLUMNS: Array<string> = [
   "cidr",
   "probeId",
   /*
-   * The ordered credential list. Listed FIRST among the SNMP columns because
-   * it is the one the form actually posts now; the flattened columns below it
-   * are mirrored from its first entry (see mirrorLegacySnmpColumns) and remain
-   * here so a scan edited through the API with only those fields still retires
-   * its run.
+   * The method as well as the credentials: turning SNMP off (or back on)
+   * changes what the sweep asks of every address, so the hosts already on the
+   * row answered a different question (issue #3445).
+   */
+  "isSnmpEnabled",
+  /*
+   * The ordered credential list. Listed FIRST among the credential columns
+   * because it is the one the form actually posts now; the flattened columns
+   * below it are mirrored from its first entry (see applySnmpConfigs) and
+   * remain here so a scan edited through the API with only those fields still
+   * retires its run (issue #3458).
    */
   "snmpConfigs",
   "snmpVersion",
@@ -146,6 +153,16 @@ const RETIRE_RUN_PAYLOAD: Record<string, unknown> = {
 interface ScanUpdatePlan {
   isSweepChanged: boolean;
   /*
+   * Whether this row's credential LIST has to be rebuilt from its flattened
+   * columns once the update has landed — the answer to a save written through
+   * the old single-credential API (see reconcileLegacySnmpUpdate).
+   *
+   * Deferred to onUpdateSuccess rather than done in the payload because the
+   * rebuilt list is a function of the ROW, and one update payload is shared by
+   * every row the query matches. onUpdateSuccess already writes per row, by id.
+   */
+  isLegacySnmpWritten: boolean;
+  /*
    * Whether the save asked about the schedule at all. Only a save that did
    * gets its next run re-derived — so an edit that leaves the recurrence boxes
    * alone cannot move a scan the stale-scan reaper had made due immediately.
@@ -233,7 +250,20 @@ export class Service extends DatabaseService<Model> {
       return createData[key] !== undefined;
     });
 
-    this.applySnmpConfigs(createData, suppliedCreateKeys);
+    /*
+     * Only for a scan that will actually send SNMP. An ICMP-only scan has its
+     * whole SNMP set nulled at the end of this hook, so validating a credential
+     * list it is about to discard would refuse the create over a value nothing
+     * will ever read — and the wizard posts the field whether or not the step
+     * was visible.
+     */
+    const isSnmpEnabledOnCreate: boolean = ScanModeUtil.isSnmpEnabled(
+      createBy.data,
+    );
+
+    if (isSnmpEnabledOnCreate) {
+      this.applySnmpConfigs(createData, suppliedCreateKeys);
+    }
 
     /*
      * Every scan leaves this hook WITH a credential list, even one created
@@ -248,7 +278,10 @@ export class Service extends DatabaseService<Model> {
      * because rows written out of band exist; this just means the product
      * never creates one.
      */
-    if (!SnmpScanConfigUtil.readStoredList(createData["snmpConfigs"])) {
+    if (
+      isSnmpEnabledOnCreate &&
+      !SnmpScanConfigUtil.readStoredList(createData["snmpConfigs"])
+    ) {
       createData["snmpConfigs"] = SnmpScanConfigUtil.normalizeForStorage(
         SnmpScanConfigUtil.resolve(
           createData as unknown as SnmpScanConfigSource,
@@ -261,6 +294,24 @@ export class Service extends DatabaseService<Model> {
       dataKeys: Object.keys(createBy.data || {}),
       projectId: createBy.data.projectId || createBy.props.tenantId,
     });
+
+    /*
+     * A scan that will not send SNMP stores no SNMP settings. Enforced here
+     * rather than in the form alone, so it holds for a direct API call too —
+     * the same reason the scan target is validated on this hook rather than
+     * only in the wizard.
+     *
+     * Read through ScanModeUtil so an ABSENT flag reads as an SNMP scan, which
+     * is what every scan created before this column existed was, and what
+     * every API client that has never heard of the column means.
+     *
+     * LAST, after nullEmptyNumbers: that pass turns an empty snmpPort box into
+     * null, and this one nulls the whole SNMP set anyway, so running it after
+     * means there is exactly one answer for what an ICMP-only row holds.
+     */
+    if (ScanModeUtil.isIcmpOnly(createBy.data)) {
+      this.clearSnmpConfig(createBy.data);
+    }
 
     return { createBy, carryForward: null };
   }
@@ -307,13 +358,40 @@ export class Service extends DatabaseService<Model> {
     this.nullEmptyNumbers(data, dataKeys);
 
     /*
-     * Runs BEFORE isSweepWritten is computed, because it can ADD the flattened
-     * SNMP columns to the payload — and those are sweep columns. A mirror
-     * written after that flag was read would be invisible to the
-     * reconciliation and could hand the probe one credential while the row
-     * advertised another.
+     * Turning the method off clears the credentials in the same statement, so
+     * the row can never say "sends no SNMP" while carrying a community string
+     * or a v3 passphrase (issue #3445). The edit form posts every declared
+     * field regardless of visibility, so the SNMP boxes the operator just hid
+     * are still in this payload.
+     *
+     * Gated on the key being WRITTEN, not merely on the stored value being
+     * false: a rename, or the probe-ingest endpoints writing run state, must
+     * not reach in and null a column they never mentioned. `data` is mutated
+     * in place because onUpdateSuccess is handed back the same updateBy object.
      */
-    this.applySnmpConfigs(data, dataKeys);
+    const isTurningSnmpOff: boolean =
+      dataKeys.includes("isSnmpEnabled") && ScanModeUtil.isIcmpOnly(data);
+
+    if (isTurningSnmpOff) {
+      this.clearSnmpConfig(data);
+    } else {
+      /*
+       * Runs BEFORE isSweepWritten is computed, because it can ADD the
+       * flattened SNMP columns to the payload — and those are sweep columns. A
+       * mirror written after that flag was read would be invisible to the
+       * reconciliation and could hand the probe one credential while the row
+       * advertised another.
+       *
+       * Skipped entirely when the save is turning SNMP OFF, and that is not
+       * merely an optimisation: this pass VALIDATES the credential list, and
+       * the form posts every declared field whether or not it was visible. An
+       * operator who unticked Check SNMP would otherwise be refused their save
+       * over a half-finished credential set they had just told the product to
+       * stop using. clearSnmpConfig nulls the list along with the flattened
+       * columns, so there is nothing left to validate.
+       */
+      this.applySnmpConfigs(data, dataKeys);
+    }
 
     const dataKeysAfterMirror: Array<string> = Object.keys(data);
 
@@ -406,7 +484,7 @@ export class Service extends DatabaseService<Model> {
         projectId: scan.projectId,
       });
 
-      this.reconcileLegacySnmpUpdate({
+      const isLegacySnmpWritten: boolean = this.reconcileLegacySnmpUpdate({
         data: data,
         dataKeys: dataKeysAfterMirror,
         scan: scan,
@@ -417,6 +495,7 @@ export class Service extends DatabaseService<Model> {
           ? this.hasSweepChanged(scan, data, dataKeysAfterMirror)
           : false,
         isScheduleWritten: isScheduleWritten,
+        isLegacySnmpWritten: isLegacySnmpWritten,
       };
     }
 
@@ -490,7 +569,11 @@ export class Service extends DatabaseService<Model> {
        * Nothing to do at all: the save named a setting but changed none of
        * them, and never mentioned the schedule.
        */
-      if (!plan.isSweepChanged && !plan.isScheduleWritten) {
+      if (
+        !plan.isSweepChanged &&
+        !plan.isScheduleWritten &&
+        !plan.isLegacySnmpWritten
+      ) {
         continue;
       }
 
@@ -509,6 +592,22 @@ export class Service extends DatabaseService<Model> {
           rescanIntervalInMinutes: true,
           completedAt: true,
           nextScanAt: true,
+          /*
+           * For the legacy-write rebuild below. Read back rather than taken
+           * from the payload, so the list is built from the values the
+           * database actually holds — the payload may have named only some of
+           * them, and the rest are whatever the row already had.
+           */
+          isSnmpEnabled: true,
+          snmpVersion: true,
+          snmpCommunityString: true,
+          snmpPort: true,
+          snmpV3SecurityLevel: true,
+          snmpV3Username: true,
+          snmpV3AuthProtocol: true,
+          snmpV3AuthKey: true,
+          snmpV3PrivProtocol: true,
+          snmpV3PrivKey: true,
         },
         props: {
           isRoot: true,
@@ -526,21 +625,58 @@ export class Service extends DatabaseService<Model> {
         : {};
 
       /*
+       * The save came through the old single-credential API, so put the list
+       * back in step with the flattened columns it just wrote.
+       *
+       * Rebuilt from the ROW, which is why it happens here: one update payload
+       * is shared by every row the query matched, and the values to rebuild
+       * from are per row. resolve() over a row with no list synthesizes exactly
+       * one config from those columns, which is the whole of a
+       * single-credential scan — reconcileLegacySnmpUpdate has already refused
+       * the case where the row has more.
+       *
+       * An ICMP-only scan is skipped: it stores no SNMP settings at all, and
+       * materializing a list of the nulls it holds would be a credential set
+       * that says nothing, on a scan that sends nothing.
+       */
+      if (plan.isLegacySnmpWritten && ScanModeUtil.isSnmpEnabled(scan)) {
+        reconcile["snmpConfigs"] = SnmpScanConfigUtil.normalizeForStorage(
+          SnmpScanConfigUtil.resolve(scan as unknown as SnmpScanConfigSource),
+        );
+      }
+
+      /*
+       * Only a save that changed the sweep or asked about the schedule gets
+       * its next run re-derived — and the gate has to be stated here rather
+       * than left to the early `continue` above.
+       *
+       * It used to be left to it: that exit returned unless the sweep had
+       * changed or the schedule was written, so nothing else could reach this.
+       * Adding the credential-list rebuild to that condition opened a third
+       * way in, and a save through the flattened columns alone — which asks
+       * about neither — began re-deriving the column. On a recurring scan the
+       * stale-scan reaper had made due immediately (nextScanAt pulled back to
+       * completedAt so the requeue worker picks it up now), that pushed the
+       * recovery a full cadence into the future for a save that changed
+       * nothing about when the scan should run.
+       *
        * For a retired run the state to derive from is the queued one written
        * just above, not the finished one the row still shows.
        */
-      const nextScanAt: Date | null = getNextScanAt(
-        {
-          isRecurring: scan.isRecurring,
-          rescanIntervalInMinutes: scan.rescanIntervalInMinutes,
-          status: plan.isSweepChanged ? "Pending" : scan.status,
-          completedAt: plan.isSweepChanged ? null : scan.completedAt,
-        },
-        now,
-      );
+      if (plan.isSweepChanged || plan.isScheduleWritten) {
+        const nextScanAt: Date | null = getNextScanAt(
+          {
+            isRecurring: scan.isRecurring,
+            rescanIntervalInMinutes: scan.rescanIntervalInMinutes,
+            status: plan.isSweepChanged ? "Pending" : scan.status,
+            completedAt: plan.isSweepChanged ? null : scan.completedAt,
+          },
+          now,
+        );
 
-      if (!this.isSameMoment(nextScanAt, scan.nextScanAt)) {
-        reconcile["nextScanAt"] = nextScanAt;
+        if (!this.isSameMoment(nextScanAt, scan.nextScanAt)) {
+          reconcile["nextScanAt"] = nextScanAt;
+        }
       }
 
       if (Object.keys(reconcile).length === 0) {
@@ -745,18 +881,50 @@ export class Service extends DatabaseService<Model> {
      */
     if (Array.isArray(value)) {
       /*
-       * Through resolve(), NOT normalizeForStorage(): the latter MINTS a fresh
-       * random id for an entry that has none, so two identical id-less lists
-       * would normalize to different strings and every save would read as a
-       * change. resolve() falls back to a positional id instead, which is a
-       * pure function of the input — which is what a comparison needs.
+       * Compared on what the PROBE would do differently, which is neither the
+       * whole stored object nor a naive stringify of it. Two fields are
+       * deliberately excluded, and each one caused a real bug:
+       *
+       *   - `name` is the operator's label. It reaches a log line and the
+       *     scan's status message and nothing else — never the wire. Including
+       *     it meant renaming a credential card retired the run and deleted
+       *     every host the scan had found, for a change that alters nothing
+       *     about the sweep.
+       *   - `id` is server-minted bookkeeping. applySnmpConfigs runs BEFORE
+       *     this comparison and mints a fresh ObjectID for any entry that
+       *     arrived without one, so a client that does not echo ids back — an
+       *     API caller, a reconciler re-applying the same desired state — sent
+       *     a byte-identical body twice and had the second read as a credential
+       *     change. A scan under such a reconciler could never hold a result
+       *     set at all.
+       *
+       * What survives is exactly the session parameters: version, community,
+       * port and the v3 block, in the operator's order. A REORDER still reads
+       * as a change, because order decides which credential each host is tried
+       * with first.
+       *
+       * Through resolve(), NOT normalizeForStorage(): the latter mints ids, and
+       * a comparison has to be a pure function of its input.
        */
       const configs: Array<DiscoveryScanSnmpConfig> =
         SnmpScanConfigUtil.resolve({
           snmpConfigs: value as Array<DiscoveryScanSnmpConfig>,
         });
 
-      return value.length === 0 ? "" : JSON.stringify(configs);
+      const sweepShape: Array<Record<string, unknown>> = configs.map(
+        (config: DiscoveryScanSnmpConfig): Record<string, unknown> => {
+          const sweepFields: Record<string, unknown> = {
+            ...config,
+          } as unknown as Record<string, unknown>;
+
+          delete sweepFields["id"];
+          delete sweepFields["name"];
+
+          return sweepFields;
+        },
+      );
+
+      return value.length === 0 ? "" : JSON.stringify(sweepShape);
     }
 
     return String(value);
@@ -775,24 +943,31 @@ export class Service extends DatabaseService<Model> {
    * on how many configs the row holds:
    *
    *   - ONE (or none): the scan is single-credential, so the flattened columns
-   *     can describe it completely. The list is cleared and they become
-   *     authoritative again — precisely the behaviour this API had before the
-   *     list existed. The next save through the form rebuilds the list.
+   *     can describe it completely. This returns true and onUpdateSuccess
+   *     REBUILDS the list from the row's own flattened columns once the write
+   *     has landed — the behaviour this API had before the list existed, with
+   *     the list kept in step rather than discarded.
    *   - MORE THAN ONE: there is no flattened column set that could express the
    *     scan, and picking one config to overwrite would silently discard the
    *     others. Refused, naming the field to use instead.
    *
-   * Both branches are decided from the row but WRITTEN row-independently (the
-   * clear is the same value for every matched row), because `data` is one
-   * payload shared by every row an update query matches.
+   * It does NOT null the column, which is what it used to do. A NULL list is
+   * readable — SnmpScanConfigUtil.resolve falls back to the flattened columns
+   * — but it is not EDITABLE: the Edit dialog's only SNMP control is the list
+   * editor, so it selects `snmpConfigs` alone, and a NULL there opened a blank
+   * card over a scan that had real credentials. Saving that card then mirrored
+   * its emptiness back over all nine columns and wiped them. The invariant
+   * "every scan the product has touched has a list" is what makes that
+   * unreachable, and this is the third place that maintains it, after the
+   * backfill migration and onBeforeCreate.
    */
   private reconcileLegacySnmpUpdate(input: {
     data: Record<string, unknown>;
     dataKeys: Array<string>;
     scan: Model;
-  }): void {
+  }): boolean {
     if (input.dataKeys.includes("snmpConfigs")) {
-      return;
+      return false;
     }
 
     const isLegacyColumnWritten: boolean = LEGACY_SNMP_COLUMNS.some(
@@ -802,7 +977,7 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (!isLegacyColumnWritten) {
-      return;
+      return false;
     }
 
     const stored: Array<DiscoveryScanSnmpConfig> | null =
@@ -815,7 +990,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    input.data["snmpConfigs"] = null;
+    return true;
   }
 
   /*
@@ -913,6 +1088,55 @@ export class Service extends DatabaseService<Model> {
       OneUptimeDate.fromString(left).getTime() ===
       OneUptimeDate.fromString(right).getTime()
     );
+  }
+
+  /*
+   * The columns an ICMP-only scan must not carry (OneUptime issue #3445).
+   *
+   * Hiding the fields in the form is not enough on its own, for two separate
+   * reasons. ModelForm builds the request body out of every DECLARED field
+   * without checking whether it was visible, so a v3 passphrase typed before
+   * the operator changed their mind is still posted — and TypeORM OMITS an
+   * undefined property from the INSERT, at which point Postgres fills in the
+   * column defaults, which for this table are 'V2c' and 161. Either way the
+   * stored row claims to be an SNMP v2c scan on port 161 while its own method
+   * column says it sends no SNMP at all.
+   *
+   * An explicit null is the only value that beats a column default, which is
+   * why these are nulled rather than deleted.
+   */
+  private static readonly SNMP_CONFIG_COLUMNS: Array<string> = [
+    /*
+     * The credential LIST belongs here as much as the flattened columns do,
+     * and more urgently: it is where the community strings and v3 passphrases
+     * of a multi-credential scan actually live (issue #3458). Clearing the
+     * nine below while leaving this behind would store an ICMP-only scan whose
+     * own method column says it sends no SNMP, carrying every credential the
+     * operator had typed.
+     */
+    "snmpConfigs",
+    "snmpVersion",
+    "snmpCommunityString",
+    "snmpPort",
+    "snmpV3SecurityLevel",
+    "snmpV3Username",
+    "snmpV3AuthProtocol",
+    "snmpV3AuthKey",
+    "snmpV3PrivProtocol",
+    "snmpV3PrivKey",
+  ];
+
+  /*
+   * Written through a cast for the same reason the name normalize above is:
+   * the properties are typed `string | number | undefined` and
+   * exactOptionalPropertyTypes forbids assigning null to them directly.
+   */
+  private clearSnmpConfig(data: unknown): void {
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of Service.SNMP_CONFIG_COLUMNS) {
+      record[column] = null;
+    }
   }
 
   /*

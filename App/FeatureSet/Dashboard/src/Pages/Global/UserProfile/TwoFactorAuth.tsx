@@ -17,7 +17,6 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import QRCodeElement from "Common/UI/Components/QR/QR";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
@@ -51,6 +50,40 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
     React.useState<string | null>(null);
   const [webAuthnRegistrationLoading, setWebAuthnRegistrationLoading] =
     React.useState<boolean>(false);
+
+  /*
+   * Recovery codes the server minted for this account while the user was
+   * setting a factor up, on their way down to the Backup Codes card.
+   *
+   * Both enrolment routes -- validating a TOTP secret and registering a
+   * security key -- now mint a set when the account has none, and the response
+   * carries the ONLY copy of the plaintext. So it is held here for exactly as
+   * long as it takes the card to raise its acknowledge-before-closing modal,
+   * and dropped the moment the user confirms they have saved it. Nothing
+   * re-fetches it, because nothing can.
+   *
+   * An empty array is the normal outcome for a SECOND factor: the account
+   * already has codes and the server left them alone.
+   */
+  const [enrolmentBackupCodes, setEnrolmentBackupCodes] = React.useState<
+    Array<string>
+  >([]);
+
+  type ReadBackupCodesFunction = (response: HTTPResponse<JSONObject>) => void;
+
+  const readBackupCodesFromResponse: ReadBackupCodesFunction = (
+    response: HTTPResponse<JSONObject>,
+  ): void => {
+    const codes: Array<string> = (
+      (response.data["backupCodes"] as Array<unknown> | undefined) || []
+    ).map((code: unknown) => {
+      return String(code);
+    });
+
+    if (codes.length > 0) {
+      setEnrolmentBackupCodes(codes);
+    }
+  };
 
   return (
     <Page
@@ -213,7 +246,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * because it is the answer to "what happens when one of those stops
          * working" and only makes sense once the reader has seen them.
          */}
-        <BackupCodes />
+        <BackupCodes
+          codesFromEnrolment={enrolmentBackupCodes}
+          onEnrolmentCodesAcknowledged={() => {
+            setEnrolmentBackupCodes([]);
+          }}
+        />
 
         {showVerificationModal && selectedTotpAuth ? (
           <BasicFormModal
@@ -269,17 +307,16 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 setVerificationLoading(true);
                 setVerificationError("");
 
-                const response:
-                  | HTTPResponse<EmptyResponseData>
-                  | HTTPErrorResponse = await API.post({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-totp-auth/validate`,
-                  ),
-                  data: {
-                    code: values["code"],
-                    id: selectedTotpAuth.id?.toString(),
-                  },
-                });
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.post<JSONObject>({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
+                      `/user-totp-auth/validate`,
+                    ),
+                    data: {
+                      code: values["code"],
+                      id: selectedTotpAuth.id?.toString(),
+                    },
+                  });
                 if (response.isSuccess()) {
                   setShowVerificationModal(false);
                   setVerificationError(null);
@@ -290,6 +327,16 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 if (response instanceof HTTPErrorResponse) {
                   throw response;
                 }
+
+                /*
+                 * Read BEFORE the table refresh, and unconditionally. This is
+                 * the only moment these strings exist anywhere -- they are
+                 * stored as keyed digests and cannot be produced again by
+                 * anybody, this page included -- so dropping the response here
+                 * would leave the account holding ten codes it has never been
+                 * shown, which reads on the card as "you are covered".
+                 */
+                readBackupCodesFromResponse(response);
 
                 setTableRefreshToggle(
                   OneUptimeDate.getCurrentDate().toString(),
@@ -378,8 +425,8 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                 // Verify registration
                 const verifyResponse:
-                  | HTTPResponse<EmptyResponseData>
-                  | HTTPErrorResponse = await API.post({
+                  | HTTPResponse<JSONObject>
+                  | HTTPErrorResponse = await API.post<JSONObject>({
                   url: URL.fromString(APP_API_URL.toString()).addRoute(
                     `/user-webauthn/verify-registration`,
                   ),
@@ -406,6 +453,9 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 if (verifyResponse instanceof HTTPErrorResponse) {
                   throw verifyResponse;
                 }
+
+                /* The only copy -- see the note on the TOTP branch above. */
+                readBackupCodesFromResponse(verifyResponse);
 
                 setShowWebAuthnRegistrationModal(false);
                 setWebAuthnRegistrationError(null);

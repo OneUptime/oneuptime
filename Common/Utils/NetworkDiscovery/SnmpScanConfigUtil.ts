@@ -125,18 +125,40 @@ export const LEGACY_SNMP_CONFIG_ID: string = "legacy";
 /*
  * How many credential sets one scan may carry.
  *
- * This is a time budget, not a taste. The sweep tries configs in order and
- * stops at the first that answers, so a host that answers costs the same as it
- * always did — but a host that answers NOTHING costs one full SNMP timeout per
- * config. The probe abandons a sweep at PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS (90
- * minutes by default) and reports it Failed, so the ceiling has to keep the
- * worst case under that:
+ * WHAT AN EXTRA SET COSTS
  *
- *   max hosts (4096) x configs x 2s timeout / 32 concurrent probes
+ * The sweep tries sets in order and stops at the first that answers, so a host
+ * that ANSWERS costs what it always did. A host that answers nothing costs one
+ * full SNMP timeout per set, and the arithmetic for a whole range is
  *
- * which is ~43 minutes at ten configs, against ~4 minutes at one. Ten is
- * therefore comfortably inside the deadline while being far more than any real
- * segment needs — three or four is the realistic shape of a mixed subnet.
+ *   hosts x sets x 2s timeout / 32 concurrent probes
+ *
+ * WHICH DOES NOT FIT THE MAXIMUM TARGET, AND DID NOT BEFORE THIS EXISTED
+ *
+ * ScanTargetUtil.MAX_SCAN_HOSTS is 32,768, so a full-range sweep costs ~34
+ * minutes per set: about 34 minutes at one set, 68 at two, and past the
+ * probe's PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS deadline (90 minutes) at three.
+ * Ten sets would be some 5.7 hours. This ceiling therefore CANNOT be chosen to
+ * make the worst case fit — a single-credential scan of a maximum target
+ * already sits inside a factor of three of the deadline, and always has.
+ *
+ * WHAT ACTUALLY BOUNDS IT
+ *
+ * The ICMP pre-sweep. Only hosts that answered ping are SNMP-probed, so the
+ * realistic cost is proportional to LIVE hosts, not to the size of the range —
+ * and a 32,768-address range with a few hundred live hosts costs seconds per
+ * set. Exactly two paths pay the full-range price: a probe that cannot send
+ * ICMP at all (no ping binary, no NET_RAW), and the phase-3 fallback, which
+ * re-probes every ICMP-silent address when NO set answered anything. Both are
+ * already unusual, and the second is itself the "your credentials are wrong"
+ * case this feature exists to fix.
+ *
+ * When a sweep does cross the deadline the probe abandons it and reports the
+ * scan Failed with a sentence telling the operator to narrow the target — so
+ * the failure is loud and actionable rather than silent. This ceiling is the
+ * cheaper guard in front of that: ten is far more than any real segment needs
+ * (three or four is the shape of a mixed subnet), and the validation message
+ * below says what to do instead of a longer list.
  */
 export const MAX_SNMP_CONFIGS_PER_SCAN: number = 10;
 
@@ -149,6 +171,26 @@ export const MAX_SNMP_CONFIGS_PER_SCAN: number = 10;
  * bounded here.
  */
 export const MAX_SNMP_CONFIG_NAME_LENGTH: number = ColumnLength.ShortText;
+
+/*
+ * The credential fields are bounded to the columns they are MIRRORED INTO, not
+ * to the jsonb column they live in.
+ *
+ * A jsonb value has no length of its own, so nothing downstream would reject a
+ * novel typed into a community string — but the first config of every list is
+ * copied onto the flattened columns for probes that predate the list
+ * (getMirroredLegacyColumns), and those are a varchar(100) and a varchar(500).
+ * Postgres does not truncate an over-long value there, it throws, so without
+ * this the save failed on the WRITE with an error naming `snmpCommunityString`
+ * — a column that no longer appears on the form — and only when the offending
+ * value happened to be in card #1. In any other card it stored fine and became
+ * a credential the mirror could never carry.
+ *
+ * Bounding here makes it one rule, checked on every card, in the words of the
+ * field the operator is actually looking at.
+ */
+export const MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH: number = ColumnLength.ShortText;
+export const MAX_SNMP_CONFIG_KEY_LENGTH: number = ColumnLength.LongText;
 
 // Matches the UDP port range; see validateSnmpPort in the Dashboard's form.
 export const MINIMUM_SNMP_PORT: number = 1;
@@ -519,6 +561,44 @@ export class SnmpScanConfigUtil {
         `${position}: a name cannot be longer than ${MAX_SNMP_CONFIG_NAME_LENGTH} ` +
         `characters. This one is ${name.length}.`
       );
+    }
+
+    for (const [key, label, maxLength] of [
+      ["id", "id", MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH],
+      [
+        "snmpCommunityString",
+        "community string",
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+      ],
+      ["snmpV3Username", "v3 username", MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH],
+      [
+        "snmpV3SecurityLevel",
+        "v3 security level",
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+      ],
+      [
+        "snmpV3AuthProtocol",
+        "v3 authentication protocol",
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+      ],
+      [
+        "snmpV3PrivProtocol",
+        "v3 privacy protocol",
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+      ],
+      ["snmpV3AuthKey", "v3 authentication key", MAX_SNMP_CONFIG_KEY_LENGTH],
+      ["snmpV3PrivKey", "v3 privacy key", MAX_SNMP_CONFIG_KEY_LENGTH],
+    ] as Array<[keyof DiscoveryScanSnmpConfig, string, number]>) {
+      const value: string | undefined = SnmpScanConfigUtil.readString(
+        config[key],
+      );
+
+      if (value !== undefined && value.length > maxLength) {
+        return (
+          `${position}: the ${label} cannot be longer than ${maxLength} ` +
+          `characters. This one is ${value.length}.`
+        );
+      }
     }
 
     const portError: string | null = SnmpScanConfigUtil.getPortValidationError(

@@ -47,10 +47,16 @@
       "securityKeyInstructions": "請依照安全金鑰裝置上的指示操作。",
       "codeFieldDescription": "請輸入驗證器應用程式中的代碼",
       "selectDifferentMethod": "選擇不同的雙重驗證方式",
-      "useBackupCode": "改用備用代碼",
       "backupCodeInstruction": "請輸入您在設定雙重驗證時儲存的備用代碼之一。每個代碼只能使用一次。",
       "backupCodeFieldTitle": "備用代碼",
-      "backupCodeFieldDescription": "備用代碼的格式類似 ABCDE-12345。大小寫與連字號皆可忽略。"
+      "backupCodeFieldDescription": "備用代碼的格式類似 ABCDE-12345。大小寫與連字號皆可忽略。",
+      "confirmSubtitle": "請確認您的身分以完成登入。",
+      "recoverySubtitle": "請使用備用代碼，或了解沒有備用代碼時如何重新登入。",
+      "lostAccess": "無法使用驗證器應用程式？",
+      "noBackupCodesStrong": "您沒有備用代碼。",
+      "noBackupCodes": "此處沒有可輸入的代碼，因為此帳戶從未取得過任何一組備用代碼。",
+      "noBackupCodesInstruction": "請聯絡此 OneUptime 執行個體的管理員，為您的帳戶重設雙重驗證。之後您就可以使用密碼登入並設定新的驗證器應用程式，同時系統也會為您建立備用代碼。",
+      "lostAccessSecurityKey": "無法使用安全金鑰？"
     },
     "twoFactorEnrolment": {
       "title": "設定雙重驗證",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "請輸入驗證器應用程式顯示的六位數驗證碼。",
       "submitButton": "驗證並登入",
       "backToSignIn": "以其他使用者身分登入"
+    },
+    "backupCodes": {
+      "title": "儲存您的備用代碼",
+      "subtitle": "若您日後無法使用驗證器應用程式或安全金鑰，可使用其中一個代碼登入。",
+      "showOnceStrong": "這些代碼只會顯示這一次。",
+      "showOnce": "請將它們儲存在產生代碼的裝置以外的地方。每個代碼只能使用一次。",
+      "download": "下載為文字檔",
+      "savedConfirmation": "我已將這些代碼儲存在安全的地方。",
+      "continue": "繼續前往儀表板",
+      "fileHeading": "OneUptime 雙重驗證備用代碼",
+      "fileInstruction": "每個代碼只能使用一次。請將此檔案保存在安全的地方，並與執行驗證器應用程式的裝置分開存放。",
+      "setUpTitle": "設定備用代碼",
+      "setUpSubtitle": "在繼續之前，還有最後一件事。",
+      "noneStrong": "您沒有備用代碼。",
+      "none": "如果您遺失驗證器應用程式或安全金鑰，管理員必須先重設雙重驗證，您才能再次登入。",
+      "generate": "產生備用代碼",
+      "skip": "暫時略過",
+      "generateFailed": "未傳回任何備用代碼。請前往「使用者設定檔 > 雙重驗證」再試一次。"
     }
   },
   "register": {

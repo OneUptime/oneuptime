@@ -35,12 +35,18 @@ type CapturedFormField = {
   required?: boolean | undefined;
   placeholder?: string | undefined;
   /*
-   * Captured because the SNMP step's single field is a CustomComponent rather
-   * than an input — see the SNMP describe blocks below. A field that keeps the
-   * key but loses the schema type renders as a text box over a jsonb column,
-   * which types cleanly and saves a string.
+   * Captured for BOTH changes, which is why it is typed as the enum rather
+   * than as a string.
+   *
+   * Issue #3458: the SNMP step's single field is a CustomComponent rather than
+   * an input — see the SNMP describe blocks below. A field that keeps the key
+   * but loses the schema type renders as a text box over a jsonb column, which
+   * types cleanly and saves a string.
+   *
+   * Issue #3445: the scan's METHOD is asked as a Toggle, and the same
+   * assertion has to be able to tell the two apart.
    */
-  fieldType?: string | undefined;
+  fieldType?: FormFieldSchemaType | undefined;
   getCustomElement?: unknown;
   validation?:
     | {
@@ -53,11 +59,44 @@ type CapturedFormField = {
     | ((values: Record<string, unknown>) => string | null)
     | undefined;
   showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
+  /*
+   * The rest of a field's configuration, captured for issue #3445. A scan's
+   * METHOD is asked as a toggle whose defaultValue decides what an untouched
+   * wizard creates, whose onChange clears the credentials the operator has
+   * just said they do not want sent, and whose copy is the only place the
+   * product explains what an ICMP-only scan can and cannot find. None of that
+   * is reachable by rendering, because the table this configuration is handed
+   * to is mocked away — so it is read off the props, like everything above.
+   *
+   * `fieldType` belongs to this group too, and is declared once above.
+   */
+  defaultValue?: boolean | string | number | Date | undefined;
+  description?: string | undefined;
+  sectionTitle?: string | undefined;
+  sectionDescription?: string | undefined;
+  hideOptionalLabel?: boolean | undefined;
+  onChange?:
+    | ((
+        value: boolean,
+        currentFormValues: Record<string, unknown>,
+        setNewFormValues: (values: Record<string, unknown>) => void,
+      ) => void)
+    | undefined;
+  getFooterElement?:
+    | ((values: Record<string, unknown>) => React.ReactElement | undefined)
+    | undefined;
 };
 
 type CapturedFormStep = {
   id: string;
   title: string;
+  /*
+   * A step can remove itself, which is how "SNMP Version is required" stopped
+   * blocking a scan that sends no SNMP (issue #3445): BasicForm validates only
+   * the fields of the step being submitted, and a step that filtered itself
+   * out can never be that step.
+   */
+  showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
 };
 
 /*
@@ -127,6 +166,27 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
+/*
+ * The reveal chain the SNMP step used to declare as showIf callbacks on nine
+ * flat fields now lives inside SnmpConfigListEditor, which builds it out of
+ * exactly these predicates so it cannot drift from the NetworkDevice forms
+ * (issue #3458). They are imported here for the same reason the page itself
+ * is: the guarantee moved, so the assertion moves with it rather than being
+ * quietly dropped. See "the v3 reveal chain still gates a credential card"
+ * below.
+ *
+ * DEFAULT_SNMP_VERSION is the constant the method toggle RESTORES snmpVersion
+ * to when SNMP is switched off. The wizard no longer declares an SNMP Version
+ * field to read a defaultValue off, so the expectation is pinned to the shared
+ * constant the page itself writes from.
+ */
+import {
+  DEFAULT_SNMP_VERSION,
+  isSnmpV3,
+  isSnmpV3WithAuth,
+  isSnmpV3WithPriv,
+  SnmpV3RevealSource,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/SnmpConfigFormFields";
 import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import Project from "../../../Models/DatabaseModels/Project";
 import Probe from "../../../Models/DatabaseModels/Probe";
@@ -134,12 +194,13 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
 import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
   MAX_SNMP_CONFIGS_PER_SCAN,
 } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
@@ -153,6 +214,15 @@ import {
 } from "../../../UI/Components/ModelTable/ColumnPreference";
 import { getSelectFromColumns } from "../../../UI/Components/ModelTable/SelectFromColumns";
 import Select from "../../../Types/BaseDatabase/Select";
+/*
+ * The real validator BasicForm runs on every step change, so "a hidden field's
+ * rules do not fire" is asserted against the code that decides it rather than
+ * against a restatement of it here.
+ */
+import Validation from "../../../UI/Components/Forms/Validation";
+import Fields from "../../../UI/Components/Forms/Types/Fields";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import Dictionary from "../../../Types/Dictionary";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -346,6 +416,231 @@ function validate(key: string, values: Record<string, unknown>): string | null {
   }
 
   return field.customValidation(values);
+}
+
+/*
+ * The questions the SNMP Credentials step asks, in the order it asks them —
+ * ONE of them, since issue #3458 replaced the nine flat fields of
+ * getSnmpConfigFormFields with a single CustomComponent bound to the
+ * `snmpConfigs` column.
+ *
+ * Listed by hand rather than derived from the captured props: a list read back
+ * out of the thing under test would agree with it by construction, and the
+ * claim being made is that EVERY field on this step is gated on the scan's
+ * method — including one a later change adds and forgets to route through the
+ * gate (issue #3445). "the SNMP step holds exactly the fields gated below" is
+ * what fails until a new field is named here, which is what forces it through
+ * the gating assertions rather than past them.
+ */
+const GATED_SNMP_STEP_FIELD_KEYS: Array<string> = ["snmpConfigs"];
+
+/*
+ * The nine flattened SNMP columns the list replaced as QUESTIONS but did not
+ * remove from the model: the server mirrors the first credential set onto them
+ * so a probe a version behind keeps working (issue #3458). The wizard asks for
+ * none of them any more — "the nine flat SNMP fields the list replaced are gone
+ * from the wizard" pins that — but the method toggle still clears every one on
+ * its way past, so a value that reached the form some other way cannot ride
+ * along on a scan that will never send SNMP.
+ */
+const FLATTENED_SNMP_COLUMN_KEYS: Array<string> = [
+  "snmpVersion",
+  "snmpCommunityString",
+  "snmpV3SecurityLevel",
+  "snmpV3Username",
+  "snmpV3AuthProtocol",
+  "snmpV3AuthKey",
+  "snmpV3PrivProtocol",
+  "snmpV3PrivKey",
+  "snmpPort",
+];
+
+/*
+ * Everything the method toggle has to unsay when an operator turns SNMP off:
+ * the credential list the scan really carries, and the nine columns derived
+ * from it.
+ */
+const SNMP_KEYS_THE_TOGGLE_MUST_CLEAR: Array<string> = [
+  ...GATED_SNMP_STEP_FIELD_KEYS,
+  ...FLATTENED_SNMP_COLUMN_KEYS,
+];
+
+/*
+ * The form states that have to mean "this scan sends SNMP", listed once and
+ * asserted twice — at step level, where an operator sees the effect, and at
+ * field level, where it holds even in a form that declares no steps.
+ *
+ * The first group is the invariant this whole change rests on: ABSENT means
+ * SNMP. An untouched form has no value until the toggle's default is applied,
+ * a row written before the column existed has none, and a partially-selected
+ * row returns null.
+ */
+const VALUES_THAT_MEAN_THE_SCAN_SENDS_SNMP: Array<
+  [string, Record<string, unknown>]
+> = [
+  ["an untouched form", {}],
+  ["an explicit yes", { isSnmpEnabled: true }],
+  ["an absent flag", { isSnmpEnabled: undefined }],
+  [
+    "a null flag, as a partially-selected row returns it",
+    {
+      isSnmpEnabled: null,
+    },
+  ],
+];
+
+/*
+ * ...and the read is `!== false` rather than `Boolean(value)` on purpose, so
+ * only a real boolean off-switch turns SNMP off. Everything here is a value
+ * this form never wrote, and for those the safe reading is the one the product
+ * has always had: ask about SNMP. Falling back the other way would let a
+ * string "false" out of a JSON body, or a 0 out of a driver that maps booleans
+ * to integers, disable SNMP discovery wholesale.
+ */
+const VALUES_THAT_ARE_NOT_A_BOOLEAN_FALSE: Array<
+  [string, Record<string, unknown>]
+> = [
+  ['the string "false"', { isSnmpEnabled: "false" }],
+  ["a zero", { isSnmpEnabled: 0 }],
+  ["an empty string", { isSnmpEnabled: "" }],
+];
+
+function stepNamed(id: string): CapturedFormStep {
+  const step: CapturedFormStep | undefined =
+    capturedTableProps?.formSteps?.find(
+      (formStep: CapturedFormStep): boolean => {
+        return formStep.id === id;
+      },
+    );
+
+  if (!step) {
+    throw new Error(`Discovery scan wizard step "${id}" not found`);
+  }
+
+  return step;
+}
+
+/*
+ * Whether the wizard would render `key` for a form in this state. Throws
+ * rather than defaulting to `true` when the field carries no showIf at all:
+ * every field on the SNMP step must carry one — that rule IS the method gate
+ * (issue #3445) — and a field that lost it is the regression, not a passing
+ * test.
+ */
+function isFieldShown(key: string, values: Record<string, unknown>): boolean {
+  const field: CapturedFormField = fieldNamed(key);
+
+  if (!field.showIf) {
+    throw new Error(`Field "${key}" declares no showIf, so nothing hides it`);
+  }
+
+  return field.showIf(values);
+}
+
+/*
+ * The errors BasicForm would raise for a form in this state, sitting on this
+ * step — computed by the very function it validates through
+ * (Common/UI/Components/Forms/Validation), over the very fields the page
+ * declared.
+ *
+ * The only thing added to those fields is `name`, derived exactly as
+ * BasicForm's own getFieldName derives it: the first key of the field
+ * selector. ModelForm hands BasicForm ModelFields and BasicForm stamps the
+ * name on before Validation ever sees them, so a captured field without one
+ * would fail Validation's "Field name is required." guard for a reason that
+ * has nothing to do with this page.
+ *
+ * Used to assert the half of issue #3445 that no assertion about `required`
+ * can reach on its own: a required field's rules DO NOT FIRE while the field
+ * is hidden, which is what lets an ICMP-only scan be submitted at all.
+ */
+function validationErrorsOnStep(args: {
+  stepId: string;
+  values: Record<string, unknown>;
+}): Dictionary<string> {
+  const declared: Array<CapturedFormField> =
+    capturedTableProps?.formFields || [];
+
+  const named: Array<Record<string, unknown>> = declared.map(
+    (field: CapturedFormField): Record<string, unknown> => {
+      return { name: fieldKeyOf(field), ...field };
+    },
+  );
+
+  return Validation.validate<NetworkDeviceDiscoveryScan>({
+    formFields: named as unknown as Fields<NetworkDeviceDiscoveryScan>,
+    values: args.values as unknown as FormValues<NetworkDeviceDiscoveryScan>,
+    onValidate: undefined,
+    currentFormStepId: args.stepId,
+  });
+}
+
+/*
+ * Drives the method toggle's onChange the way FormField does — with the new
+ * value, the values as they stand, and the setter it is expected to call — and
+ * hands back the setter so a test can assert it was NOT called just as easily
+ * as it can read what it was called with.
+ */
+function toggleScanMethodTo(
+  value: boolean,
+  currentFormValues: Record<string, unknown>,
+): jest.Mock<any, any> {
+  const field: CapturedFormField = fieldNamed("isSnmpEnabled");
+
+  if (!field.onChange) {
+    throw new Error(
+      "The scan method toggle rewrites nothing when it is switched",
+    );
+  }
+
+  const setNewFormValues: jest.Mock<any, any> = jest.fn() as jest.Mock<
+    any,
+    any
+  >;
+
+  field.onChange(value, currentFormValues, setNewFormValues);
+
+  return setNewFormValues;
+}
+
+function valuesAfterTurningSnmpOff(
+  currentFormValues: Record<string, unknown>,
+): Record<string, unknown> {
+  const setNewFormValues: jest.Mock<any, any> = toggleScanMethodTo(
+    false,
+    currentFormValues,
+  );
+
+  expect(setNewFormValues).toHaveBeenCalledTimes(1);
+
+  return setNewFormValues.mock.calls[0][0] as Record<string, unknown>;
+}
+
+/*
+ * What the Scan Target field says underneath itself for a given target, or
+ * undefined when it says nothing. Rendered rather than inspected for the same
+ * reason renderScanCell is: the thousands separator and the singular "1
+ * address" are the product here, and reading them off the element tree would
+ * pin the markup instead of the sentence.
+ */
+function renderTargetSizeHint(target: unknown): string | undefined {
+  const field: CapturedFormField = fieldNamed("cidr");
+
+  if (!field.getFooterElement) {
+    throw new Error("The Scan Target field renders no footer");
+  }
+
+  const element: React.ReactElement | undefined = field.getFooterElement({
+    cidr: target,
+  });
+
+  if (!element) {
+    return undefined;
+  }
+
+  const { container } = render(element);
+
+  return container.textContent || "";
 }
 
 async function renderPage(): Promise<void> {
@@ -1457,5 +1752,830 @@ describe("Scan Target is reachable as a column, not only as a filter", () => {
     );
 
     expect(new Set(titles).size).toBe(titles.length);
+  });
+});
+
+/*
+ * The scan's METHOD (issue #3445).
+ *
+ * A discovery scan has always been a ping sweep followed by an SNMP probe, and
+ * the wizard had no way to say "just tell me what is alive in 10.20.30.0/24".
+ * Worse, it had no way to STOP saying it: SNMP Version is a required Dropdown
+ * on its own step, so an operator who wanted an ICMP-only sweep could not get
+ * past step 2 — "SNMP Version is required" blocked Next on a scan that was
+ * never going to send an SNMP packet.
+ *
+ * The fix does not relax that rule. It removes the QUESTION: the step filters
+ * itself out, and BasicForm validates only the fields of the step being
+ * submitted. Everything below pins the wiring that makes removing a step safe
+ * — where the toggle lives, what an absent flag means, and that each SNMP
+ * field is gated on the method as well as on its own reveal rule.
+ */
+describe("The scan method decides whether the wizard asks about SNMP", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  /*
+   * The single most important placement in this change.
+   *
+   * BasicForm navigates the FILTERED step array — the steps whose showIf
+   * passed — and locates itself in it with a findIndex on currentFormStepId.
+   * Put the toggle on the step it can remove, and switching it off deletes the
+   * step the form believes it is standing on: findIndex returns -1, the
+   * advance branch is skipped, and Next keeps reading "Next" while doing
+   * nothing at all. The wizard deadlocks on the very step whose error message
+   * this issue is named after, which is strictly worse than the bug.
+   */
+  test("the method toggle sits on the scan-target step, never on the step it hides", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed("isSnmpEnabled");
+
+    expect(field.stepId).toBe(STEP_SCAN_TARGET);
+    expect(field.stepId).not.toBe(STEP_SNMP);
+  });
+
+  /*
+   * And nothing may hide the toggle itself. A showIf here — even one that
+   * reads as harmless, "only once a probe is picked" — is the same deadlock
+   * from the other side: an operator who cannot see the control cannot turn
+   * SNMP back on, and the step stays gone.
+   */
+  test("the method toggle is never hidden by anything", async () => {
+    await renderPage();
+
+    expect(fieldNamed("isSnmpEnabled").showIf).toBeUndefined();
+  });
+
+  /*
+   * The entire product as it stood before this change. An operator who never
+   * touches the toggle must still get the ping + SNMP scan they have always
+   * got, and the FIELD's default is what puts `isSnmpEnabled: true` in the
+   * submitted body — the column default only speaks for a row the form never
+   * mentioned the column on.
+   */
+  test("the method toggle defaults to on, so an untouched wizard still creates an SNMP scan", async () => {
+    await renderPage();
+
+    expect(fieldNamed("isSnmpEnabled").defaultValue).toBe(true);
+  });
+
+  /*
+   * FieldLabel appends "(Optional)" to every non-required field, and "Check
+   * SNMP on hosts that answer (Optional)" reads as though the question may be
+   * left unanswered — a toggle is always answered, one way or the other.
+   */
+  test("the method is asked as a toggle that does not read as optional", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed("isSnmpEnabled");
+
+    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.required).toBe(false);
+    expect(field.hideOptionalLabel).toBe(true);
+    expect(field.sectionTitle).toBe("What to check");
+  });
+
+  /*
+   * The section header opens with what the scan ALREADY does. Without that
+   * sentence, "Check SNMP on hosts that answer" reads as the whole question —
+   * an operator who turns it off has no way to know a ping sweep still happens
+   * and still finds things, which is the entire feature #3445 adds.
+   */
+  test("the section says the ping sweep happens either way, before asking about SNMP", async () => {
+    await renderPage();
+
+    const sectionDescription: string =
+      fieldNamed("isSnmpEnabled").sectionDescription || "";
+
+    expect(sectionDescription).toContain(
+      "Every scan pings each address in the range to find what is alive",
+    );
+    /*
+     * Name and vendor, NOT model: the sweep reads the SNMP system group
+     * (sysName / sysDescr / sysObjectId), and a device's model arrives later
+     * from the ENTITY-MIB poll. Promising it here would have the wizard
+     * describe something the scan does not do.
+     */
+    expect(sectionDescription).toContain("name and vendor");
+  });
+
+  /*
+   * Where the toggle sits in the field list, which decides two separate
+   * things.
+   *
+   * BasicForm renders a step's fields in declaration order and `sectionTitle`
+   * draws a header above the field carrying it, so everything from there down
+   * reads as part of that section: a toggle declared before Probe would put
+   * the probe picker under a "What to check" heading it has nothing to do
+   * with. And the question has to be asked before the fields whose existence
+   * it decides — an operator filling the form top to bottom answers "do you
+   * want SNMP?" and only then is asked for credentials.
+   */
+  test("the toggle is the last question on its step and precedes every field it gates", async () => {
+    await renderPage();
+
+    const declared: Array<string> = (capturedTableProps?.formFields || []).map(
+      fieldKeyOf,
+    );
+
+    const onTheFirstStep: Array<string> = (capturedTableProps?.formFields || [])
+      .filter((field: CapturedFormField): boolean => {
+        return field.stepId === STEP_SCAN_TARGET;
+      })
+      .map(fieldKeyOf);
+
+    expect(onTheFirstStep[onTheFirstStep.length - 1]).toBe("isSnmpEnabled");
+
+    const toggleIndex: number = declared.indexOf("isSnmpEnabled");
+
+    for (const key of GATED_SNMP_STEP_FIELD_KEYS) {
+      expect({
+        field: key,
+        isAskedAfterTheToggle: declared.indexOf(key) > toggleIndex,
+      }).toEqual({ field: key, isAskedAfterTheToggle: true });
+    }
+  });
+
+  /*
+   * The copy IS the feature here. An ICMP-only scan finds addresses and
+   * nothing else — no name, no model, no vendor — and everything it imports
+   * arrives as a device with polling off. An operator who is not told that
+   * reads an empty device page as a broken import rather than as the scan they
+   * asked for.
+   */
+  test("the toggle says what an ICMP-only scan does and does not give you", async () => {
+    await renderPage();
+
+    const description: string = fieldNamed("isSnmpEnabled").description || "";
+
+    expect(description).toContain("ICMP-only");
+    expect(description).toContain("no credentials are asked for");
+    /*
+     * Points at the dialog's own "Create a Ping monitor" option rather than at
+     * hand-binding, because every host an ICMP-only scan finds is a host
+     * without SNMP — which is exactly the set that option covers.
+     */
+    expect(description).toContain("Ping monitor");
+  });
+
+  test("the SNMP step is removed for a scan that will send no SNMP", async () => {
+    await renderPage();
+
+    expect(stepNamed(STEP_SNMP).showIf?.({ isSnmpEnabled: false })).toBe(false);
+  });
+
+  /*
+   * The invariant this whole change rests on, and the one that fails
+   * silently: ABSENT means SNMP. Read an absent flag as "SNMP is off" and the
+   * wizard quietly stops collecting credentials for every scan in the project
+   * — a regression with no error message anywhere, whose only symptom is
+   * discovery finding addresses instead of devices.
+   */
+  test.each(VALUES_THAT_MEAN_THE_SCAN_SENDS_SNMP)(
+    "the SNMP step stands for %s",
+    async (_label: string, values: Record<string, unknown>) => {
+      await renderPage();
+
+      expect(stepNamed(STEP_SNMP).showIf?.(values)).toBe(true);
+    },
+  );
+
+  test.each(VALUES_THAT_ARE_NOT_A_BOOLEAN_FALSE)(
+    "%s does not remove the SNMP step",
+    async (_label: string, values: Record<string, unknown>) => {
+      await renderPage();
+
+      expect(stepNamed(STEP_SNMP).showIf?.(values)).toBe(true);
+    },
+  );
+
+  /*
+   * Only the middle one is conditional. A showIf that drifted onto Scan Target
+   * or Schedule would put the form's own step back in reach of being filtered
+   * out from under it — the deadlock described at the top of this file, moved
+   * to a step nobody was thinking about.
+   */
+  test("only the middle step can remove itself", async () => {
+    await renderPage();
+
+    expect(typeof stepNamed(STEP_SNMP).showIf).toBe("function");
+    expect(stepNamed(STEP_SCAN_TARGET).showIf).toBeUndefined();
+    expect(stepNamed(STEP_SCHEDULE).showIf).toBeUndefined();
+  });
+
+  /*
+   * Worth its own test, because it is the thing the issue title tempts you to
+   * change. #3445 is NOT "the SNMP question should be optional": a scan that
+   * does send SNMP needs credentials to dial with, and relaxing the rule would
+   * trade a blocked wizard for a scan the probe cannot run. What changed is
+   * that the field is no longer on any step the operator is asked to submit.
+   *
+   * Before issue #3458 the required question on this step was SNMP Version —
+   * the Dropdown "SNMP Version is required" names. The nine flat fields are one
+   * CustomComponent editor now, so the required SNMP question is the credential
+   * list: same rule, same step, one field.
+   */
+  test("the credential list is still required — it is the step that disappears, not the rule", async () => {
+    await renderPage();
+
+    const field: CapturedFormField = fieldNamed("snmpConfigs");
+
+    expect(field.required).toBe(true);
+    expect(field.stepId).toBe(STEP_SNMP);
+
+    /*
+     * The other half of the same sentence: what an ICMP-only scan changes is
+     * that the FIELD is not there to be answered. Either half on its own is
+     * satisfied by a bug — a required field nothing hides is exactly what
+     * blocked an ICMP-only scan, and a hidden field that quietly stopped being
+     * required would let a real SNMP scan be created with nothing to try.
+     */
+    expect(isFieldShown("snmpConfigs", { isSnmpEnabled: false })).toBe(false);
+  });
+
+  /*
+   * ...and hidden is what makes required harmless, asserted through the code
+   * that decides it rather than through a restatement of it. Validation checks
+   * showIf BEFORE it checks required (Common/UI/Components/Forms/Validation),
+   * so an operator who has turned SNMP off is never told "SNMP Configs is
+   * required" about an editor that is not on screen — that sentence, about a
+   * question they were not asked, IS issue #3445.
+   */
+  test("a required credential list stops blocking submission once the scan is ICMP-only", async () => {
+    await renderPage();
+
+    const icmpOnly: Dictionary<string> = validationErrorsOnStep({
+      stepId: STEP_SNMP,
+      values: { cidr: "10.20.30.0/24", isSnmpEnabled: false },
+    });
+
+    expect(icmpOnly).toEqual({});
+
+    /*
+     * The same untouched form with SNMP left on, to show the rule is alive and
+     * it really is the method that silences it: the list is demanded, on this
+     * step, before the wizard will move off it.
+     */
+    const withSnmp: Dictionary<string> = validationErrorsOnStep({
+      stepId: STEP_SNMP,
+      values: { cidr: "10.20.30.0/24", isSnmpEnabled: true },
+    });
+
+    expect(withSnmp["snmpConfigs"]).toContain("required");
+  });
+
+  /*
+   * Belt and braces, deliberately. The step-level showIf is what an operator
+   * sees; this is what holds when there is no step at all — BasicForm renders
+   * every field when a form declares no steps, which is exactly how the Edit
+   * dialog on this same page lays these fields out (issue #3444). A field gated
+   * only by its step would come back, required, in any such form.
+   *
+   * These are the assertions the nine flat fields used to make one by one,
+   * asked of the single field that replaced them (issue #3458) — the
+   * credentials are all in the list now, so hiding the list is what hides them.
+   */
+  test("the credential list is hidden when the scan sends no SNMP", async () => {
+    await renderPage();
+
+    expect(isFieldShown("snmpConfigs", { isSnmpEnabled: false })).toBe(false);
+  });
+
+  /*
+   * The other direction, and the one the negative test above cannot stand in
+   * for. A gate written as `if (!item.isSnmpEnabled) { return false; }` passes
+   * every hidden-when-off assertion and still hides the editor from an
+   * untouched form, from a row written before the column existed, and from a
+   * partially selected one — the ABSENT-means-SNMP invariant, broken at the
+   * only level that survives a form with no steps.
+   *
+   * The full state table is kept for exactly that reason: the absent case is
+   * the whole of #3445. It is also what "a field with no reveal rule of its own
+   * is shown whenever the method allows it" used to pin — snmpConfigs has no
+   * reveal rule beyond the gate, so the gate's answer IS the field's answer,
+   * for every state below.
+   */
+  test.each(VALUES_THAT_MEAN_THE_SCAN_SENDS_SNMP)(
+    "the credential list is asked for given %s",
+    async (_label: string, values: Record<string, unknown>) => {
+      await renderPage();
+
+      expect(isFieldShown("snmpConfigs", values)).toBe(true);
+    },
+  );
+
+  test.each(VALUES_THAT_ARE_NOT_A_BOOLEAN_FALSE)(
+    "%s does not hide the credential list",
+    async (_label: string, values: Record<string, unknown>) => {
+      await renderPage();
+
+      expect(isFieldShown("snmpConfigs", values)).toBe(true);
+    },
+  );
+
+  /*
+   * The inventory is the point: a second field added to this step later — a
+   * per-scan timeout, a retry count — reaches it without passing through
+   * anything above, and this test fails until GATED_SNMP_STEP_FIELD_KEYS names
+   * it, which is what forces it through the gating assertions rather than past
+   * them. It is one field today, and every claim made about "the SNMP fields"
+   * is a claim about that one.
+   */
+  test("the SNMP step holds exactly the fields gated on the scan's method", async () => {
+    await renderPage();
+
+    const onTheSnmpStep: Array<string> = (capturedTableProps?.formFields || [])
+      .filter((field: CapturedFormField): boolean => {
+        return field.stepId === STEP_SNMP;
+      })
+      .map(fieldKeyOf);
+
+    expect(onTheSnmpStep).toEqual(GATED_SNMP_STEP_FIELD_KEYS);
+
+    for (const key of GATED_SNMP_STEP_FIELD_KEYS) {
+      const field: CapturedFormField = fieldNamed(key);
+
+      /*
+       * The repeated editor, required — the shape the gate exists to switch
+       * off. (The wiring describe above owns the fuller claim about what this
+       * field is bound to and what it renders.)
+       */
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.required).toBe(true);
+
+      // ...and it really carries a gate of its own, not only a step that hides.
+      expect(typeof field.showIf).toBe("function");
+      expect(isFieldShown(key, { isSnmpEnabled: false })).toBe(false);
+    }
+  });
+
+  /*
+   * WHERE THE V3 REVEAL RULES WENT, and why they are still asserted here.
+   *
+   * They used to be showIf callbacks on the nine flat fields of this step, so
+   * "the method gate composes with the v3 reveal rules instead of replacing
+   * them" was a claim about two rules stacked on one field. Issue #3458 turned
+   * those nine fields into one repeated editor, and the reveal chain moved
+   * INSIDE it: SnmpConfigListEditor
+   * (App/FeatureSet/Dashboard/src/Components/NetworkDevice) asks isSnmpV3 /
+   * isSnmpV3WithAuth / isSnmpV3WithPriv per CARD, and imports all three from
+   * Pages/NetworkDevice/SnmpConfigFormFields so that it and the NetworkDevice
+   * forms cannot answer "when do we ask for a privacy key?" differently.
+   *
+   * So the composition is pinned where it now lives — against a config object,
+   * through the very predicates the editor calls — rather than dropped along
+   * with the fields that used to carry it. The guarantee is unchanged: a scan
+   * that sends SNMP is asked for exactly the credentials its version and
+   * security level need, and a scan that sends none is asked for nothing at
+   * all. The two levels compose the same way they always did; only the second
+   * one moved.
+   *
+   * (That the editor really calls these rather than re-deriving them, and that
+   * what it reveals matches what the validator demands, is
+   * App/Tests/Dashboard/SnmpConfigListEditorWiring.test.ts.)
+   */
+  test("the v3 reveal chain still gates a credential card, where it moved to", async () => {
+    await renderPage();
+
+    const v3AuthPriv: SnmpV3RevealSource = {
+      snmpVersion: "V3",
+      snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+    };
+
+    expect(isSnmpV3(v3AuthPriv)).toBe(true);
+    expect(isSnmpV3WithAuth(v3AuthPriv)).toBe(true);
+    expect(isSnmpV3WithPriv(v3AuthPriv)).toBe(true);
+
+    // Same security level, a version that has no v3 credentials at all.
+    const v2cAuthPriv: SnmpV3RevealSource = {
+      ...v3AuthPriv,
+      snmpVersion: "V2c",
+    };
+
+    expect(isSnmpV3(v2cAuthPriv)).toBe(false);
+    expect(isSnmpV3WithAuth(v2cAuthPriv)).toBe(false);
+    expect(isSnmpV3WithPriv(v2cAuthPriv)).toBe(false);
+
+    // Right version, a security level that sends no privacy material.
+    const v3AuthNoPriv: SnmpV3RevealSource = {
+      ...v3AuthPriv,
+      snmpV3SecurityLevel: SnmpSecurityLevel.AuthNoPriv,
+    };
+
+    expect(isSnmpV3(v3AuthNoPriv)).toBe(true);
+    expect(isSnmpV3WithAuth(v3AuthNoPriv)).toBe(true);
+    expect(isSnmpV3WithPriv(v3AuthNoPriv)).toBe(false);
+  });
+
+  /*
+   * ...and the community string still follows the VERSION, not the method. The
+   * editor asks for it on a v1/v2c card and swaps it for the v3 block on a v3
+   * card — `!isSnmpV3(config)` is the whole rule, and it is the same one the
+   * flat field's showIf used to carry.
+   *
+   * The method sits one level above that now: an ICMP-only scan has no cards at
+   * all, because the editor itself is hidden. That is the "the method still
+   * wins over the version when it is off" half of the old test, made at the
+   * level the method is now decided on.
+   */
+  test("the community string still follows the version, and the method still wins over both", async () => {
+    await renderPage();
+
+    expect(isSnmpV3({ snmpVersion: "V2c" })).toBe(false);
+    expect(isSnmpV3({ snmpVersion: "V3" })).toBe(true);
+
+    /*
+     * The card the editor seeds before the operator picks anything. It is a
+     * v2c card — never the v3 block — which is why an untouched SNMP step asks
+     * for a community string.
+     */
+    expect(isSnmpV3({})).toBe(false);
+
+    // ...and no card of any version is asked for when the scan sends no SNMP.
+    expect(isFieldShown("snmpConfigs", { isSnmpEnabled: false })).toBe(false);
+  });
+
+  /*
+   * The list has to fetch the method as well as ask for it: the results dialog
+   * describes an ICMP-only scan differently ("hosts answered ping", no SNMP
+   * filter buttons), and a column that is never selected reads as undefined,
+   * which every reader is required to treat as an SNMP scan.
+   */
+  test("the method is fetched with the list, so the results dialog can read it", async () => {
+    await renderPage();
+
+    expect(capturedTableProps?.selectMoreFields?.["isSnmpEnabled"]).toBe(true);
+  });
+});
+
+/*
+ * Turning the toggle off is not only a visibility change — it has to unsay
+ * what the operator already said. ModelForm builds the request body from every
+ * DECLARED field without asking whether it was visible, so a v3 passphrase
+ * typed before they changed their mind is still posted, stored, and sitting on
+ * a scan that will never send it.
+ */
+describe("Turning SNMP off clears the credentials the scan will never send", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  /*
+   * A form the operator has filled in and then changed their mind about.
+   *
+   * `snmpConfigs` is where a scan's community strings and v3 passphrases
+   * actually live since issue #3458 — three credential sets, one of them
+   * carrying an authPriv key pair — and the nine flat columns beside it are the
+   * ones the server mirrors from that list. Both have to be unsaid: the list
+   * because it is what would be stored, the columns because a value that
+   * reached the form some other way must not ride along either.
+   */
+  const TYPED_IN_CREDENTIALS: Record<string, unknown> = {
+    snmpConfigs: MIXED_SUBNET_SNMP_CONFIGS,
+    snmpVersion: "V3",
+    snmpCommunityString: "public",
+    snmpPort: 1161,
+    snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+    snmpV3Username: "netops",
+    snmpV3AuthProtocol: "sha",
+    snmpV3AuthKey: "auth-passphrase",
+    snmpV3PrivProtocol: "aes",
+    snmpV3PrivKey: "priv-passphrase",
+  };
+
+  test.each([
+    /*
+     * First, because it is the one that matters now: the credential list is
+     * what a scan actually sends, and ModelForm builds the request body from
+     * every DECLARED field without asking whether it was visible. A list left
+     * in the form is a list stored on a scan that will never dial it.
+     */
+    "snmpConfigs",
+    "snmpCommunityString",
+    "snmpPort",
+    "snmpV3SecurityLevel",
+    "snmpV3Username",
+    "snmpV3AuthProtocol",
+    "snmpV3AuthKey",
+    "snmpV3PrivProtocol",
+    "snmpV3PrivKey",
+  ])("%s is cleared on the way past", async (key: string) => {
+    await renderPage();
+
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff({
+      ...TYPED_IN_CREDENTIALS,
+    });
+
+    expect(Object.prototype.hasOwnProperty.call(cleared, key)).toBe(true);
+    expect(cleared[key]).toBeUndefined();
+  });
+
+  /*
+   * The one exception, and the reason it is an exception.
+   *
+   * Clearing snmpVersion would leave the column holding nothing where every
+   * other writer of this model — the NetworkDevice forms, the API — expects a
+   * version. It was a REQUIRED Dropdown on this very step until issue #3458
+   * folded it into the credential list, and emptying it then meant being told
+   * "SNMP Version is required" about a control that visibly read V2c the moment
+   * SNMP went back on: issue #3445's own symptom, reintroduced by the fix for
+   * it. The reset outlived the field, and so does the rule.
+   *
+   * Pinned to DEFAULT_SNMP_VERSION, the constant SnmpConfigFormFields exports
+   * and the page writes from, rather than to a field defaultValue this wizard
+   * no longer declares — one constant, so the two cannot drift.
+   */
+  test("snmpVersion is reset to the shared default rather than emptied", async () => {
+    await renderPage();
+
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff({
+      ...TYPED_IN_CREDENTIALS,
+    });
+
+    expect(cleared["snmpVersion"]).toBe(DEFAULT_SNMP_VERSION);
+    expect(cleared["snmpVersion"]).toBe("V2c");
+    expect(cleared["snmpVersion"]).not.toBeUndefined();
+    expect(cleared["snmpVersion"]).not.toBe("");
+    expect(cleared["snmpVersion"]).not.toBeNull();
+  });
+
+  /*
+   * The sweep across everything the toggle owns rather than key by key:
+   * whatever an individual value's treatment is — emptied, or reset to a
+   * default — nothing the operator typed may survive the switch. The credential
+   * list is in that sweep, because that is where the credentials are (issue
+   * #3458), and so are the nine columns derived from it.
+   *
+   * It does NOT force a new SNMP setting to be handled. Both
+   * SNMP_KEYS_THE_TOGGLE_MUST_CLEAR and TYPED_IN_CREDENTIALS are written by
+   * hand in this file and are blind to a key nobody listed. The test that fails
+   * until a new field is named is "the SNMP step holds exactly the fields gated
+   * on the scan's method".
+   */
+  test("every SNMP value is either cleared or reset, none is left as typed", async () => {
+    await renderPage();
+
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff({
+      ...TYPED_IN_CREDENTIALS,
+    });
+
+    for (const key of SNMP_KEYS_THE_TOGGLE_MUST_CLEAR) {
+      expect(Object.prototype.hasOwnProperty.call(cleared, key)).toBe(true);
+      expect(cleared[key]).not.toBe(TYPED_IN_CREDENTIALS[key]);
+    }
+  });
+
+  test("the method itself is recorded as off", async () => {
+    await renderPage();
+
+    expect(
+      valuesAfterTurningSnmpOff({ ...TYPED_IN_CREDENTIALS })["isSnmpEnabled"],
+    ).toBe(false);
+  });
+
+  /*
+   * FormField calls onChange BEFORE setFieldValue and setFieldValue spreads
+   * from the object handed back here, so anything this drops is dropped for
+   * good — including the three answers that have nothing to do with SNMP.
+   */
+  test("everything that is not an SNMP setting is left exactly as it was", async () => {
+    await renderPage();
+
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff({
+      name: "Router Discovery - Region 1100",
+      cidr: "10.16-22.0-255.51-66",
+      probe: "22222222-2222-4222-8222-222222222222",
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      ...TYPED_IN_CREDENTIALS,
+    });
+
+    expect(cleared["name"]).toBe("Router Discovery - Region 1100");
+    expect(cleared["cidr"]).toBe("10.16-22.0-255.51-66");
+    expect(cleared["probe"]).toBe("22222222-2222-4222-8222-222222222222");
+    expect(cleared["isRecurring"]).toBe(true);
+    expect(cleared["rescanIntervalInMinutes"]).toBe(60);
+  });
+
+  /*
+   * A NEW object, never the caller's. Mutating the values in place and handing
+   * the same reference back is the classic React state bug: the object is
+   * reference-equal to the one already in state, so nothing re-renders and the
+   * credential boxes keep showing what was supposedly cleared.
+   */
+  test("the operator's values are rewritten into a new object, not mutated", async () => {
+    await renderPage();
+
+    const typed: Record<string, unknown> = { ...TYPED_IN_CREDENTIALS };
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff(typed);
+
+    expect(cleared).not.toBe(typed);
+    expect(typed["snmpV3PrivKey"]).toBe("priv-passphrase");
+    expect(typed["snmpCommunityString"]).toBe("public");
+    /*
+     * The list too, and by reference: the editor holds the same array the form
+     * does, so splicing it here instead of dropping the key would empty the
+     * cards on screen under a component that never asked to be re-rendered.
+     */
+    expect(typed["snmpConfigs"]).toBe(MIXED_SUBNET_SNMP_CONFIGS);
+    expect(MIXED_SUBNET_SNMP_CONFIGS).toHaveLength(3);
+  });
+
+  /*
+   * A form where nothing was typed yet still has to come out cleared, and what
+   * that buys is FORM state, not wire state. setFieldValue spreads from the
+   * object handed back here, so a key this object does not carry leaves
+   * whatever the form already held in place — including a value typed on an
+   * earlier visit to the step, since the toggle sits BEFORE these fields and
+   * they are reachable again the moment SNMP goes back on.
+   *
+   * On the wire it buys nothing: the values written are `undefined`, and
+   * JSON.stringify drops undefined properties, so the create request carries
+   * no SNMP keys at all. What stops the column defaults filling them back in
+   * is the server hook nulling them, which is asserted in
+   * Tests/Server/Services/NetworkDeviceDiscoveryScanService.test.ts.
+   */
+  test("a form with nothing typed in it still comes out with the SNMP keys cleared", async () => {
+    await renderPage();
+
+    const cleared: Record<string, unknown> = valuesAfterTurningSnmpOff({});
+
+    for (const key of SNMP_KEYS_THE_TOGGLE_MUST_CLEAR) {
+      expect(Object.prototype.hasOwnProperty.call(cleared, key)).toBe(true);
+    }
+
+    expect(cleared["snmpConfigs"]).toBeUndefined();
+    expect(cleared["snmpCommunityString"]).toBeUndefined();
+    expect(cleared["snmpVersion"]).toBe(DEFAULT_SNMP_VERSION);
+  });
+
+  /*
+   * Turning it back ON must rewrite nothing. Re-applying a default here would
+   * stamp over credentials the operator had already typed on a previous visit
+   * to the step — and the toggle is on the step BEFORE those fields, so they
+   * are reachable again immediately.
+   */
+  test("turning SNMP back on rewrites nothing at all", async () => {
+    await renderPage();
+
+    expect(
+      toggleScanMethodTo(true, { ...TYPED_IN_CREDENTIALS }),
+    ).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The size of the sweep, said out loud before it is queued (issue #3445's
+ * sibling complaint: an ICMP-only scan is the one people run over big ranges).
+ *
+ * The most surprising thing about octet-range notation is how much of it there
+ * is — 10.16-22.0-255.51-66 is 28,672 addresses — and nothing on the form said
+ * so until the sweep had already been handed to a probe.
+ */
+describe("Scan Target says how big the sweep is while it is being typed", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  /*
+   * 254 rather than 256: the parser drops the network and broadcast addresses
+   * of any block bigger than a /31, exactly as the probe's expansion does, so
+   * the number on the form is the number of addresses that will actually be
+   * pinged.
+   */
+  test("a CIDR target renders its address count", async () => {
+    await renderPage();
+
+    expect(renderTargetSizeHint("192.168.1.0/24")).toBe(
+      "This target sweeps 254 addresses.",
+    );
+  });
+
+  test("an octet range renders the much larger count it expands to, with thousands separators", async () => {
+    await renderPage();
+
+    expect(renderTargetSizeHint("10.16-22.0-255.51-66")).toBe(
+      "This target sweeps 28,672 addresses.",
+    );
+  });
+
+  /*
+   * "1 addresses" is the kind of detail that makes a product feel unfinished,
+   * and a single-address target is a completely ordinary thing to type while
+   * checking one host.
+   */
+  test("a single-address target says 1 address, not 1 addresses", async () => {
+    await renderPage();
+
+    expect(renderTargetSizeHint("10.0.0.5")).toBe(
+      "This target sweeps 1 address.",
+    );
+  });
+
+  /*
+   * The hint is gated on the COUNT, not on validity — which is what makes it
+   * useful in the one case where the size IS the problem. A target over the
+   * ceiling states its size right next to the error explaining why that size
+   * is refused, and the two have to be the SAME number: the hint counts with
+   * ScanTargetUtil.countHosts while the refusal counts inside
+   * getValidationError's own parse, so nothing but these literals stops a form
+   * from reading "sweeps 16,777,216 addresses" above "expands to 16,777,214
+   * addresses, exceeding the 32,768-address scan limit".
+   */
+  test("a target over the address ceiling states its size, and the refusal quotes the same number", async () => {
+    await renderPage();
+
+    expect(renderTargetSizeHint("10.0.0.0/8")).toBe(
+      "This target sweeps 16,777,214 addresses.",
+    );
+
+    expect(ScanTargetUtil.getValidationError("10.0.0.0/8")).toContain(
+      "expands to 16,777,214 addresses, exceeding the 32,768-address scan limit",
+    );
+  });
+
+  test("a target exactly at the ceiling states the ceiling", async () => {
+    await renderPage();
+
+    const atLimit: string = "10.0.0-127.0-255";
+
+    expect(ScanTargetUtil.countHosts(atLimit)).toBe(
+      ScanTargetUtil.MAX_SCAN_HOSTS,
+    );
+    expect(renderTargetSizeHint(atLimit)).toBe(
+      "This target sweeps 32,768 addresses.",
+    );
+  });
+
+  /*
+   * countHosts returns 0 for anything it cannot parse, and a half-typed target
+   * is unparseable for most of the time it is being typed. Saying nothing is
+   * what keeps the hint from talking over the inline validation message.
+   */
+  test.each([
+    ["an empty box", ""],
+    ["a blank box", "   "],
+    ["an untouched box", undefined],
+    ["a cleared box", null],
+    ["free text", "not-a-target"],
+    ["a half-typed target", "10.0.0."],
+    ["a bad prefix", "192.168.1.0/99"],
+    ["a reversed range", "10.22-16.0.1"],
+    ["an out-of-range octet", "10.0.0.256"],
+    /*
+     * Over the parser's length cap — and deliberately just another unparseable
+     * input here rather than a test OF that cap. The grammar caps a
+     * well-formed target at 31 characters
+     * ("255-255.255-255.255-255.255-255"), so nothing longer than
+     * MAX_TARGET_LENGTH can be well-formed and no assertion about this hint
+     * can tell the length gate apart from the syntax rules. The gate is pinned
+     * where it is observable — by the message text, in "a target past the
+     * parser's length cap is refused on this step" — and its effect on this
+     * hint is pinned from below: lower the cap under 20 and the octet-range
+     * count above stops rendering.
+     */
+    [
+      "a target longer than the parser will look at",
+      "1".repeat(ScanTargetUtil.MAX_TARGET_LENGTH + 1),
+    ],
+  ])("%s renders nothing", async (_label: string, target: unknown) => {
+    await renderPage();
+
+    expect(renderTargetSizeHint(target)).toBeUndefined();
+  });
+
+  // The box is trimmed before it is counted, same as it is before it is validated.
+  test("surrounding whitespace does not stop the count", async () => {
+    await renderPage();
+
+    expect(renderTargetSizeHint("  192.168.1.0/24  ")).toBe(
+      "This target sweeps 254 addresses.",
+    );
   });
 });

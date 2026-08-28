@@ -4,9 +4,12 @@ import SnmpScanConfigUtil, {
   LEGACY_SNMP_CONFIG_ID,
   MAX_SNMP_CONFIGS_PER_SCAN,
   MAX_SNMP_CONFIG_NAME_LENGTH,
+  MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+  MAX_SNMP_CONFIG_KEY_LENGTH,
   MINIMUM_SNMP_PORT,
   MAXIMUM_SNMP_PORT,
 } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
+import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
@@ -96,6 +99,55 @@ const MIRRORED_COLUMN_KEYS: Array<string> = [
 ];
 
 /*
+ * The credential fields bounded to ColumnLength.ShortText, paired with the
+ * words the validation message uses for each, and listed here as data so the
+ * length rule is asserted for EVERY one of them rather than for whichever one
+ * a hand-written test happened to pick.
+ *
+ * These are exactly the fields getMirroredLegacyColumns copies onto a
+ * varchar(100) column, plus `id`, which is mirrored nowhere but is stored
+ * beside them and read back by findById. `name` is deliberately absent: it has
+ * its own constant and its own block above.
+ */
+const SHORT_TEXT_CREDENTIAL_FIELDS: Array<
+  [keyof DiscoveryScanSnmpConfig, string]
+> = [
+  ["id", "id"],
+  ["snmpCommunityString", "community string"],
+  ["snmpV3Username", "v3 username"],
+  ["snmpV3SecurityLevel", "v3 security level"],
+  ["snmpV3AuthProtocol", "v3 authentication protocol"],
+  ["snmpV3PrivProtocol", "v3 privacy protocol"],
+];
+
+/*
+ * The two fields mirrored onto a varchar(500) instead. Keys are localized
+ * passphrases, not digests, so they are genuinely longer than a community
+ * string and must not be squeezed into the ShortText bound.
+ */
+const KEY_CREDENTIAL_FIELDS: Array<[keyof DiscoveryScanSnmpConfig, string]> = [
+  ["snmpV3AuthKey", "v3 authentication key"],
+  ["snmpV3PrivKey", "v3 privacy key"],
+];
+
+/*
+ * A config carrying one field, chosen at runtime from the tables above.
+ * Written through a Record cast for the same reason the utility itself does
+ * it: a `keyof` index into a struct with mixed value types is not assignable
+ * in a literal.
+ */
+function configWithField(
+  key: keyof DiscoveryScanSnmpConfig,
+  value: string,
+): DiscoveryScanSnmpConfig {
+  const config: DiscoveryScanSnmpConfig = {};
+
+  (config as Record<string, unknown>)[key as string] = value;
+
+  return config;
+}
+
+/*
  * Builds a scan row whose `snmpConfigs` column holds an arbitrary value. The
  * column is jsonb, so an out-of-band writer really can put a string, a number
  * or an array of nonsense in it — the cast is the point of the helper, not a
@@ -166,6 +218,85 @@ describe("SnmpScanConfigUtil constants", () => {
   it("bounds a config name at the ShortText width the rest of the product uses", () => {
     expect(MAX_SNMP_CONFIG_NAME_LENGTH).toBe(ColumnLength.ShortText);
     expect(MAX_SNMP_CONFIG_NAME_LENGTH).toBe(100);
+  });
+
+  /*
+   * These two constants are not style choices, they are the widths of two
+   * database columns, and they exist only to protect those columns.
+   *
+   * `snmpConfigs` is jsonb and has no width at all, so on its own it would
+   * store a novel in a community string quite happily. But
+   * getMirroredLegacyColumns copies the FIRST config onto the flattened
+   * snmpCommunityString / snmpV3* columns that every probe older than this
+   * feature still reads, and those are varchar(100) and varchar(500).
+   * Postgres does not truncate an over-long value on the way in — it throws.
+   *
+   * So if either constant ever drifts away from the column it mirrors into,
+   * validation starts accepting values the write cannot store, and the save
+   * fails at the database with an error naming a column the operator can no
+   * longer see on the form. Asserted against ColumnLength rather than against
+   * a literal alone, so moving the column moves the bound with it.
+   */
+  it("bounds the short credential fields at the ShortText width of the columns they are mirrored into", () => {
+    expect(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH).toBe(ColumnLength.ShortText);
+    expect(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH).toBe(100);
+  });
+
+  /*
+   * The two v3 keys get the wider bound because the columns they mirror into
+   * are wider. Pinned as a strict inequality as well as a value, because the
+   * cheap way to write this rule — one bound for every credential field — is
+   * exactly the mistake that would silently refuse a legitimate 200-character
+   * privacy passphrase.
+   */
+  it("bounds the two v3 keys at the LongText width of the columns they are mirrored into", () => {
+    expect(MAX_SNMP_CONFIG_KEY_LENGTH).toBe(ColumnLength.LongText);
+    expect(MAX_SNMP_CONFIG_KEY_LENGTH).toBe(500);
+    expect(MAX_SNMP_CONFIG_KEY_LENGTH).toBeGreaterThan(
+      MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+    );
+  });
+
+  /*
+   * MAX_SNMP_CONFIGS_PER_SCAN is justified in prose by arithmetic over
+   * another module's constant — how long a full-range sweep takes per
+   * credential set, and therefore how many sets fit inside the probe's
+   * deadline. That prose once did its arithmetic against a 4,096-address
+   * ceiling that had already moved to 32,768, which made it claim a
+   * single-set full-range sweep cost a few minutes when it really costs
+   * something like thirty-four of them, and made the ceiling read as though
+   * it had been chosen to make the worst case fit. It cannot be: at this
+   * scan size THREE sets already cross the probe's 90-minute deadline, and a
+   * single-credential sweep of a maximum target has always sat within a
+   * factor of three of it.
+   *
+   * A comment that computes against a constant in another file goes stale in
+   * silence, because nothing links the two. This test is that link: it pins
+   * the scan ceiling the rationale rests on, and the numbers the rationale
+   * quotes, so moving MAX_SCAN_HOSTS again fails here instead of quietly
+   * turning the explanation into fiction.
+   */
+  it("keeps the sweep-cost rationale for the config ceiling tied to the real scan-size ceiling", () => {
+    expect(ScanTargetUtil.MAX_SCAN_HOSTS).toBe(32768);
+
+    /*
+     * The comment's own formula: hosts x sets x 2s SNMP timeout / 32
+     * concurrent probes, expressed in minutes for one set.
+     */
+    const minutesPerConfig: number =
+      (ScanTargetUtil.MAX_SCAN_HOSTS * 2) / 32 / 60;
+
+    expect(Math.round(minutesPerConfig)).toBe(34);
+
+    // Two sets fit inside the probe's 90-minute deadline. Three do not.
+    expect(minutesPerConfig * 2).toBeLessThan(90);
+    expect(minutesPerConfig * 3).toBeGreaterThan(90);
+
+    // And the ceiling itself is the "some 5.7 hours" the comment quotes.
+    const hoursAtTheCeiling: number =
+      (minutesPerConfig * MAX_SNMP_CONFIGS_PER_SCAN) / 60;
+
+    expect(Math.round(hoursAtTheCeiling * 10) / 10).toBe(5.7);
   });
 
   it("bounds the port to the UDP port range", () => {
@@ -1280,6 +1411,266 @@ describe("SnmpScanConfigUtil.getValidationError", () => {
       expect(
         SnmpScanConfigUtil.getValidationError([{ id: "x", name }]),
       ).toBeNull();
+    });
+  });
+
+  /*
+   * CREDENTIAL FIELD LENGTHS
+   *
+   * `snmpConfigs` is a jsonb column and jsonb has no width, so on the storage
+   * side nothing objects to a novel typed into a community string. The bound
+   * comes from somewhere else entirely: getMirroredLegacyColumns copies the
+   * FIRST config of the list onto the flattened snmpCommunityString /
+   * snmpV3* columns, because a probe is deployed separately from the server
+   * and a probe that has never heard of `snmpConfigs` reads those columns and
+   * nothing else. They are varchar(100) and varchar(500), and Postgres does
+   * not truncate an over-long value on the way in — it raises.
+   *
+   * Before these bounds existed the defect had two halves and both were bad:
+   *
+   *   - An over-long community string in card #1 failed the WRITE, and the
+   *     error the operator got back named `snmpCommunityString` — a column
+   *     that no longer appears anywhere on the multi-config form. They were
+   *     told to fix a field they cannot see.
+   *   - The IDENTICAL value in card #2 saved without a word, and became a
+   *     credential the mirror could never carry. Reordering the cards, or
+   *     deleting card #1, then turned a save that had always worked into the
+   *     database error above — arbitrarily far from the edit that caused it.
+   *
+   * So the rule below is one rule, checked on EVERY card, phrased in the
+   * words of the field the operator is looking at, and each field gets the
+   * width of the column it is actually mirrored into.
+   */
+  describe("credential field lengths", () => {
+    it("accepts every short credential field at exactly the ShortText bound", () => {
+      const value: string = "s".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH);
+
+      expect(value).toHaveLength(100);
+
+      for (const [key] of SHORT_TEXT_CREDENTIAL_FIELDS) {
+        expect(
+          SnmpScanConfigUtil.getValidationError([configWithField(key, value)]),
+        ).toBeNull();
+      }
+    });
+
+    /*
+     * One character over, for every field, with the message naming the card
+     * by position and quoting BOTH lengths. Position matters because a list
+     * of five credential sets makes "the community string is too long" an
+     * unactionable sentence; both lengths matter because the operator pasted
+     * a value out of a password manager and has no idea how long it is.
+     */
+    it("refuses every short credential field one character over the bound, naming the card and quoting both lengths", () => {
+      const value: string = "s".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH + 1);
+
+      expect(value).toHaveLength(101);
+
+      for (const [key, label] of SHORT_TEXT_CREDENTIAL_FIELDS) {
+        expect(errorForSecondConfig(configWithField(key, value))).toBe(
+          `SNMP config 2: the ${label} cannot be longer than ` +
+            `${MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH} characters. This one is 101.`,
+        );
+      }
+    });
+
+    /*
+     * A 400-character key is an ordinary SNMP v3 passphrase, not an abuse
+     * case, and it has a varchar(500) waiting for it. Refusing it would be a
+     * regression dressed up as a fix.
+     */
+    it("accepts a four-hundred character v3 key, which is an ordinary passphrase and fits its column", () => {
+      const value: string = "k".repeat(400);
+
+      for (const [key] of KEY_CREDENTIAL_FIELDS) {
+        expect(
+          SnmpScanConfigUtil.getValidationError([configWithField(key, value)]),
+        ).toBeNull();
+      }
+    });
+
+    it("accepts both v3 keys at exactly the LongText bound", () => {
+      const value: string = "k".repeat(MAX_SNMP_CONFIG_KEY_LENGTH);
+
+      expect(value).toHaveLength(500);
+
+      for (const [key] of KEY_CREDENTIAL_FIELDS) {
+        expect(
+          SnmpScanConfigUtil.getValidationError([configWithField(key, value)]),
+        ).toBeNull();
+      }
+    });
+
+    it("refuses both v3 keys one character over the LongText bound, naming the card and quoting both lengths", () => {
+      const value: string = "k".repeat(MAX_SNMP_CONFIG_KEY_LENGTH + 1);
+
+      expect(value).toHaveLength(501);
+
+      for (const [key, label] of KEY_CREDENTIAL_FIELDS) {
+        expect(errorForSecondConfig(configWithField(key, value))).toBe(
+          `SNMP config 2: the ${label} cannot be longer than ` +
+            `${MAX_SNMP_CONFIG_KEY_LENGTH} characters. This one is 501.`,
+        );
+      }
+    });
+
+    /*
+     * The two bounds have to stay APART. Collapsing them into one number is
+     * the obvious simplification and it is wrong in both directions: the
+     * ShortText bound applied to a key refuses a legitimate passphrase, and
+     * the LongText bound applied to a community string lets through exactly
+     * the value that raises on the mirrored varchar(100).
+     */
+    it("holds the two bounds apart, so 101 characters is fine in a v3 key and refused in a community string", () => {
+      const value: string = "x".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH + 1);
+
+      expect(
+        SnmpScanConfigUtil.getValidationError([{ snmpV3AuthKey: value }]),
+      ).toBeNull();
+      expect(
+        SnmpScanConfigUtil.getValidationError([{ snmpV3PrivKey: value }]),
+      ).toBeNull();
+      expect(
+        SnmpScanConfigUtil.getValidationError([{ snmpCommunityString: value }]),
+      ).toBe(
+        `SNMP config 1: the community string cannot be longer than ` +
+          `${MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH} characters. This one is 101.`,
+      );
+    });
+
+    /*
+     * Measured after trimming, exactly like the name bound above — and for
+     * the same reason: normalizeConfig trims before storing, so what reaches
+     * the mirrored column is the trimmed value, and validating the padded
+     * one would refuse a value that would have fitted.
+     */
+    it("measures every credential field after trimming, exactly as the name bound is measured", () => {
+      for (const [key] of SHORT_TEXT_CREDENTIAL_FIELDS) {
+        const padded: string = `  ${"s".repeat(
+          MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+        )}  `;
+
+        expect(padded.length).toBeGreaterThan(
+          MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH,
+        );
+        expect(
+          SnmpScanConfigUtil.getValidationError([configWithField(key, padded)]),
+        ).toBeNull();
+      }
+
+      for (const [key] of KEY_CREDENTIAL_FIELDS) {
+        const padded: string = `  ${"k".repeat(MAX_SNMP_CONFIG_KEY_LENGTH)}  `;
+
+        expect(padded.length).toBeGreaterThan(MAX_SNMP_CONFIG_KEY_LENGTH);
+        expect(
+          SnmpScanConfigUtil.getValidationError([configWithField(key, padded)]),
+        ).toBeNull();
+      }
+    });
+
+    // Padding neither rescues an over-long value nor inflates the number quoted back.
+    it("quotes the trimmed length when a padded credential is still too long", () => {
+      const padded: string = `   ${"c".repeat(
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH + 1,
+      )}   `;
+
+      expect(padded).toHaveLength(107);
+      expect(errorForSecondConfig({ snmpCommunityString: padded })).toBe(
+        `SNMP config 2: the community string cannot be longer than ` +
+          `${MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH} characters. This one is 101.`,
+      );
+    });
+
+    /*
+     * THE ASYMMETRY THAT WAS THE BUG.
+     *
+     * Only card #1 is mirrored, so only card #1 used to fail — at the
+     * database, in a column's words. The same value anywhere else stored
+     * happily and waited to detonate on a reorder. The rule must therefore be
+     * identical in every position: same wording, same bound, differing only
+     * in the card it names.
+     */
+    it("refuses an over-long community string in a card the mirror never touches, not only in the first card", () => {
+      const communityString: string = "c".repeat(
+        MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH + 1,
+      );
+
+      const inFirstCard: string | null = SnmpScanConfigUtil.getValidationError([
+        { id: "one", snmpCommunityString: communityString },
+        { id: "two" },
+      ]);
+      const inSecondCard: string | null = SnmpScanConfigUtil.getValidationError(
+        [{ id: "one" }, { id: "two", snmpCommunityString: communityString }],
+      );
+
+      expect(inFirstCard).toContain("SNMP config 1:");
+      expect(inSecondCard).toContain("SNMP config 2:");
+      expect(inFirstCard!.replace("SNMP config 1", "SNMP config 2")).toBe(
+        inSecondCard,
+      );
+    });
+
+    /*
+     * The length check runs BEFORE the v3 recognition checks, so an over-long
+     * security level or protocol is reported as too long rather than as
+     * unrecognized. It is both, but only one of those sentences tells the
+     * operator what to do about a value they pasted by accident.
+     */
+    it("reports an over-long v3 protocol as too long rather than as unrecognized", () => {
+      const error: string | null = errorForSecondConfig(
+        validAuthPrivConfig({
+          id: "second",
+          snmpV3AuthProtocol: "a".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH + 1),
+        }),
+      );
+
+      expect(error).toBe(
+        `SNMP config 2: the v3 authentication protocol cannot be longer than ` +
+          `${MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH} characters. This one is 101.`,
+      );
+      expect(error).not.toContain("not a recognized");
+    });
+
+    /*
+     * The whole point, stated as one property: anything getValidationError
+     * lets through must fit the columns getMirroredLegacyColumns writes it
+     * into. This is the assertion that would have caught the original defect
+     * even if every bound above were spelled differently.
+     */
+    it("guarantees that a list which validates mirrors into values that fit their varchar widths", () => {
+      const configs: Array<DiscoveryScanSnmpConfig> = [
+        {
+          id: "i".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          name: "n".repeat(MAX_SNMP_CONFIG_NAME_LENGTH),
+          snmpCommunityString: "c".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          snmpV3Username: "u".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          snmpV3SecurityLevel: "l".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          snmpV3AuthProtocol: "a".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          snmpV3PrivProtocol: "p".repeat(MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH),
+          snmpV3AuthKey: "k".repeat(MAX_SNMP_CONFIG_KEY_LENGTH),
+          snmpV3PrivKey: "v".repeat(MAX_SNMP_CONFIG_KEY_LENGTH),
+        },
+      ];
+
+      expect(SnmpScanConfigUtil.getValidationError(configs)).toBeNull();
+
+      const mirrored: Record<string, string | number | null> =
+        SnmpScanConfigUtil.getMirroredLegacyColumns(configs);
+
+      for (const column of MIRRORED_COLUMN_KEYS) {
+        const value: string | number | null | undefined = mirrored[column];
+
+        if (typeof value !== "string") {
+          continue;
+        }
+
+        const columnWidth: number =
+          column === "snmpV3AuthKey" || column === "snmpV3PrivKey"
+            ? ColumnLength.LongText
+            : ColumnLength.ShortText;
+
+        expect(value.length).toBeLessThanOrEqual(columnWidth);
+      }
     });
   });
 

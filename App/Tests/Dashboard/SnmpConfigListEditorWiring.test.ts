@@ -686,3 +686,193 @@ describe("toEditableConfigs — what the editor starts from", () => {
     ).toEqual(["access", "core"]);
   });
 });
+
+/*
+ * THE OTHER END OF THE LIST: the Discovery page's scans table.
+ *
+ * The editor above is only half the feature. What the operator typed into it
+ * has to come BACK out of the database when they open "Review Results" and
+ * import the hosts the sweep found — and a ModelTable only fetches the columns
+ * a page asks for. `snmpConfigs` is not a displayed column, so nothing in the
+ * table's own rendering needs it and nothing on screen changes if it is
+ * dropped from the selection; the loss surfaces days later, on the imported
+ * devices.
+ *
+ * Read as text for exactly the reason this whole file is: App/tsconfig.json
+ * excludes FeatureSet/Dashboard, so Discovery.tsx cannot be imported from
+ * here. As above, every scraped claim is paired with an executed assertion
+ * about the rule it serves.
+ */
+const DISCOVERY_PAGE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Pages",
+  "NetworkDevice",
+  "Discovery.tsx",
+);
+
+/*
+ * Comments stripped, whitespace collapsed — and the line-comment pattern
+ * deliberately refuses to fire after a colon, so a `https://` inside the page
+ * does not eat the rest of its line.
+ */
+function readDiscoveryPageCode(): string {
+  return fs
+    .readFileSync(DISCOVERY_PAGE_PATH, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+    .replace(/\s+/g, " ");
+}
+
+const DISCOVERY_PAGE: string = readDiscoveryPageCode();
+
+/*
+ * Only the object literal handed to the scans table's selectMoreFields.
+ *
+ * SLICED rather than searched, and that is the whole point of this helper:
+ * `snmpConfigs: true` also appears on the page as the form field that BINDS
+ * the editor to the column (`field: { snmpConfigs: true }`). A whole-file
+ * `toContain` would be satisfied by that one and would keep passing with the
+ * table's selection deleted — which is the defect, exactly.
+ */
+function getSelectMoreFieldsBlock(): string {
+  const start: number = DISCOVERY_PAGE.indexOf("selectMoreFields={{");
+
+  if (start === -1) {
+    throw new Error(
+      "The Discovery scans table no longer has a selectMoreFields block",
+    );
+  }
+
+  const end: number = DISCOVERY_PAGE.indexOf("}}", start);
+
+  if (end === -1) {
+    throw new Error(
+      "The Discovery scans table's selectMoreFields block is unterminated",
+    );
+  }
+
+  return DISCOVERY_PAGE.slice(start, end);
+}
+
+describe("the Discovery scans table fetches the credential list the import reads", () => {
+  /*
+   * The guard every slicing test needs. A rename that lost the block would
+   * make each assertion below throw rather than pass silently — but a slice
+   * that merely landed in the wrong place would not, so its contents are
+   * sampled against a field that has nothing to do with SNMP.
+   */
+  test("the slice this describe reads really is the table's selectMoreFields object", () => {
+    const block: string = getSelectMoreFieldsBlock();
+
+    expect(block.length).toBeGreaterThan("selectMoreFields={{".length);
+    expect(block).toContain("scannedHostCount: true");
+    expect(block).toContain("statusMessage: true");
+  });
+
+  /*
+   * The defect this test exists for.
+   *
+   * With `snmpConfigs` unselected, a scan row reaches the Review Results
+   * dialog with the column undefined — and SnmpScanConfigUtil.resolve then
+   * describes that scan by its FLATTENED columns, which are the mirror of
+   * config #1. So every host the probe found with config #2..N is imported
+   * carrying the FIRST config's community string: a device that authenticates
+   * against nothing, polls red forever, and carries no hint that the scan held
+   * the credential it actually needed.
+   *
+   * Nothing on screen changes when the selection is dropped — the column is
+   * not rendered in any cell — so this cannot be caught by looking at the
+   * page. It has to be pinned here.
+   */
+  test("selectMoreFields selects snmpConfigs, or every host imports on the first credential set", () => {
+    expect(getSelectMoreFieldsBlock()).toContain("snmpConfigs: true");
+  });
+
+  /*
+   * Why the assertion above is sliced rather than made against the whole file:
+   * the literal really does appear elsewhere on the page, so a whole-file
+   * check would be vacuous. Asserted rather than left as a comment, because a
+   * later refactor that moved the form field somewhere else would make the
+   * slicing look like superstition and invite someone to simplify it away.
+   */
+  test("the same literal appears outside the block, so a whole-file check would prove nothing", () => {
+    const outsideTheBlock: string = DISCOVERY_PAGE.split(
+      getSelectMoreFieldsBlock(),
+    ).join(" ");
+
+    expect(outsideTheBlock).toContain("snmpConfigs: true");
+  });
+
+  /*
+   * The flattened columns stay selected BESIDE the list rather than being
+   * replaced by it. They are what a legacy scan carries, and what a scan
+   * written by an API caller that only knows the old fields carries, and
+   * SnmpScanConfigUtil.resolve falls back to them — so dropping them would
+   * break the import for exactly the scans that predate this feature.
+   */
+  test("the flattened credential columns are still selected alongside the list", () => {
+    const block: string = getSelectMoreFieldsBlock();
+
+    for (const column of [
+      "snmpVersion: true",
+      "snmpCommunityString: true",
+      "snmpPort: true",
+      "snmpV3SecurityLevel: true",
+      "snmpV3Username: true",
+      "snmpV3AuthProtocol: true",
+      "snmpV3AuthKey: true",
+      "snmpV3PrivProtocol: true",
+      "snmpV3PrivKey: true",
+    ]) {
+      expect(block).toContain(column);
+    }
+  });
+
+  /*
+   * The executed half: what an unselected column actually costs, run against
+   * the real resolver the import path calls.
+   *
+   * Both rows below describe the SAME scan. One was fetched with the list and
+   * one without, and a host the probe recorded as answered by config #2
+   * resolves to two different community strings — the second of which is
+   * config #1's, on a device that will never poll with it.
+   */
+  test("a row fetched without the list resolves every host onto the first credential set", () => {
+    const storedList: Array<DiscoveryScanSnmpConfig> = [
+      {
+        id: "access",
+        name: "Access switches",
+        snmpVersion: "V2c",
+        snmpCommunityString: "access-community",
+      },
+      {
+        id: "core",
+        name: "Core switches",
+        snmpVersion: "V2c",
+        snmpCommunityString: "core-community",
+      },
+    ];
+
+    /*
+     * The flattened columns are the server's mirror of config #1, which is
+     * what makes the wrong answer below look so plausible: it is a real
+     * credential off the real scan, just not the one that answered this host.
+     */
+    const flattenedMirrorOfFirstConfig: Record<string, string> = {
+      snmpVersion: "V2c",
+      snmpCommunityString: "access-community",
+    };
+
+    expect(
+      SnmpScanConfigUtil.resolveForHost(
+        { ...flattenedMirrorOfFirstConfig, snmpConfigs: storedList },
+        "core",
+      ).snmpCommunityString,
+    ).toBe("core-community");
+
+    expect(
+      SnmpScanConfigUtil.resolveForHost(flattenedMirrorOfFirstConfig, "core")
+        .snmpCommunityString,
+    ).toBe("access-community");
+  });
+});

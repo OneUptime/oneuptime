@@ -432,7 +432,7 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Recent discovery scans"
-          description="Address-range sweeps that find SNMP devices to import."
+          description="Address-range sweeps that find devices to import - ping only, or ping plus SNMP."
           rightElement={
             <Button
               title="Run a Scan"

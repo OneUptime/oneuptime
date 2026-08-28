@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  isIcmpOnlyScan,
+  isSnmpStepNeeded,
   validateRescanInterval,
   validateScanName,
   validateScanTarget,
@@ -629,7 +631,7 @@ describe("validateScanName delegates to the rule the server enforces", () => {
  * ORDERED LIST through a CustomComponent (SnmpConfigListEditor), and this
  * validator is the gate on it.
  *
- * Two things make it worth its own set of tests rather than trusting
+ * Three things make it worth its own set of tests rather than trusting
  * SnmpScanConfigUtil's own suite:
  *
  *   - the VALUE is arbitrary JSON. Every other validator here reads a text
@@ -640,6 +642,11 @@ describe("validateScanName delegates to the rule the server enforces", () => {
  *     ten half-filled v3 cards with no usernames clear it — and Validation
  *     runs customValidation last, so this message is the one the operator
  *     reads.
+ *   - the step it lives on is OPTIONAL now. A scan can be ICMP-only (issue
+ *     #3445), and such a scan collects no credentials at all — so "what this
+ *     validator says about a list" and "whether anything ever asks it" became
+ *     two separate questions. This block answers the first; the block at the
+ *     bottom of the file answers the second.
  */
 describe("validateSnmpConfigs — stays silent on EMPTY so `required` keeps its message", () => {
   /*
@@ -978,5 +985,430 @@ describe("validateSnmpConfigs — survives values that are not credential lists"
    */
   test("zero is treated as a reported value, not as an untouched field", () => {
     expect(validateSnmpConfigs(snmpConfigs(0))).not.toBeNull();
+  });
+});
+
+/*
+ * Which sweep the operator asked for (issue #3445).
+ *
+ * "SNMP Version is required" blocked Next on a wizard the operator was trying
+ * to use for an ICMP-only sweep — there was no way to say "I only want to know
+ * what is alive in 10.20.30.0/24", so the SNMP step's `required` rules spoke
+ * for a scan that was never going to send an SNMP packet.
+ *
+ * The fix is not a new validator but the ABSENCE of one: `isSnmpStepNeeded` is
+ * the `showIf` on the wizard's middle step, and BasicForm validates only the
+ * fields of the step being submitted (the currentFormStepId guard in
+ * Common/UI/Components/Forms/Validation.ts). A step filtered out of `formSteps`
+ * can never BE that step, so `required: true` on SNMP Version simply stops
+ * speaking rather than blocking a field that is not on screen.
+ *
+ * WHY THE ABSENT CASE IS THE ONE THAT MATTERS
+ *
+ * `isSnmpEnabled` is a new optional flag, and three different writers hand one
+ * of these objects to the predicates with the key MISSING:
+ *
+ *   - a scan row created before the column existed (a legacy row read back for
+ *     the edit form, which carries no value for a column that was not there);
+ *   - a `select` that does not list the column, which yields a row with every
+ *     other field populated and this one undefined;
+ *   - an older server answering a newer client (or a plain API call that simply
+ *     omits it).
+ *
+ * Every one of those meant "ping sweep, then SNMP" before this change, because
+ * that is the only thing a discovery scan has ever done. So absence MUST read
+ * as "SNMP", and only an explicit `false` may turn it off. Reading absence as
+ * "SNMP is off" would not fail loudly anywhere — it would hide the SNMP step,
+ * strip the credentials, and silently stop doing SNMP discovery on every scan
+ * in the project.
+ */
+
+function scanMode(value: unknown): ScanTargetValues {
+  return { isSnmpEnabled: value } as ScanTargetValues;
+}
+
+/*
+ * ONE table, read by both predicates.
+ *
+ * isSnmpStepNeeded and isIcmpOnlyScan are used in different places — the
+ * former gates a wizard step, the latter gates a field's showIf and a branch of
+ * the review copy — and the whole point of shipping them as a pair is that a
+ * scan cannot be one kind of scan for the step and the other kind for the
+ * fields. Driving both off the same rows is what stops a later edit teaching
+ * one of them about a case the other has never heard of.
+ */
+const SCAN_MODE_CASES: Array<[string, ScanTargetValues, boolean]> = [
+  ["a form the operator has not touched yet", {} as ScanTargetValues, true],
+  ["a form where the toggle is on", scanMode(true), true],
+  [
+    "a form where the toggle key is present but undefined",
+    scanMode(undefined),
+    true,
+  ],
+  ["a legacy row that has no value for the column", scanMode(null), true],
+  ["a form where the operator turned the toggle off", scanMode(false), false],
+];
+
+describe("isSnmpStepNeeded — the wizard keeps asking about SNMP unless told not to", () => {
+  test.each(SCAN_MODE_CASES)(
+    "%s — isSnmpStepNeeded",
+    (_label: string, values: ScanTargetValues, needsSnmpStep: boolean) => {
+      expect(isSnmpStepNeeded(values)).toBe(needsSnmpStep);
+    },
+  );
+
+  test("an absent flag keeps the SNMP step, because that is what it has always meant", () => {
+    /*
+     * Stated on its own, away from the table, because it is the single
+     * invariant in this change whose breakage is silent. A legacy row, a select
+     * that omits the column and an older server all arrive here as an object
+     * with no `isSnmpEnabled` key at all, and every scan they describe is an
+     * SNMP scan.
+     */
+    expect(isSnmpStepNeeded({} as ScanTargetValues)).toBe(true);
+    expect(isSnmpStepNeeded(scanMode(undefined))).toBe(true);
+    expect(isSnmpStepNeeded(scanMode(null))).toBe(true);
+  });
+
+  test("only an explicit boolean false turns the step off", () => {
+    /*
+     * `!== false` rather than `Boolean(...)`. Everything below is falsy, or
+     * looks like a "no" written by something other than the Toggle field — a
+     * query string, a JSON body, a CSV import. None of them may switch SNMP off
+     * on their own, because the safe direction for an ambiguous value is the
+     * sweep the product has always done: a scan that probes SNMP when it did
+     * not need to costs one round of packets, whereas a scan that skips SNMP
+     * when it should not have finds nothing and says nothing about why.
+     */
+    for (const value of [0, "", "false", "off", "no", "0", [], {}, NaN]) {
+      expect(isSnmpStepNeeded(scanMode(value))).toBe(true);
+      expect(isIcmpOnlyScan(scanMode(value))).toBe(false);
+    }
+
+    expect(isSnmpStepNeeded(scanMode(false))).toBe(false);
+  });
+
+  test("a truthy value is not an off switch either", () => {
+    for (const value of [true, 1, "true", "yes", "SNMP"]) {
+      expect(isSnmpStepNeeded(scanMode(value))).toBe(true);
+    }
+  });
+});
+
+describe("isIcmpOnlyScan — the exact negation, on the same rows", () => {
+  test.each(SCAN_MODE_CASES)(
+    "%s — isIcmpOnlyScan",
+    (_label: string, values: ScanTargetValues, needsSnmpStep: boolean) => {
+      expect(isIcmpOnlyScan(values)).toBe(!needsSnmpStep);
+    },
+  );
+
+  test("an ICMP-only scan is the ONLY case that answers yes", () => {
+    expect(isIcmpOnlyScan(scanMode(false))).toBe(true);
+
+    expect(isIcmpOnlyScan({} as ScanTargetValues)).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(true))).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(undefined))).toBe(false);
+    expect(isIcmpOnlyScan(scanMode(null))).toBe(false);
+  });
+});
+
+describe("the predicates read the whole form they are handed", () => {
+  test("a whole form, not just the flag, is answered the same way", () => {
+    /*
+     * The predicates are handed the ENTIRE form values object by `showIf`, not
+     * a hand-built one, so they have to be indifferent to everything else on
+     * it. A structural read (`values.isSnmpEnabled !== false`) is indifferent
+     * by construction; a read that first narrowed to a model instance would
+     * not be.
+     */
+    const wholeForm: ScanTargetValues = {
+      cidr: "10.244.102.0/24",
+      name: "Region 1100 sweep",
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      isSnmpEnabled: false,
+    } as ScanTargetValues;
+
+    expect(isSnmpStepNeeded(wholeForm)).toBe(false);
+    expect(isIcmpOnlyScan(wholeForm)).toBe(true);
+  });
+});
+
+/*
+ * WHERE THE TWO CHANGES MEET: a credential list on a scan that sends no SNMP.
+ *
+ * The credential LIST (issue #3458) and the scan METHOD (issue #3445) were
+ * built independently and land on the same wizard step. Their combination has
+ * a failure mode neither side can see on its own: an operator who starts a v3
+ * card, thinks better of it and turns SNMP off is left on a form carrying a
+ * list that validateSnmpConfigs refuses — "SNMP config 1: SNMP v3 needs a
+ * username" — for a scan that will never send an SNMP packet. That is issue
+ * #3445 wearing a new costume: "Next" blocked by a field the operator cannot
+ * see, a credential list this time rather than a version dropdown.
+ *
+ * Three things prevent it, at three different levels. They are deliberately
+ * redundant, because each covers a case the others do not:
+ *
+ *   - the STEP disappears. `isSnmpStepNeeded` is the wizard's step-level
+ *     showIf, and BasicForm validates only the fields belonging to the step
+ *     being submitted (the currentFormStepId guard in
+ *     Common/UI/Components/Forms/Validation.ts) — so a step filtered out of
+ *     `formSteps` can never BE that step, and its fields are never judged.
+ *   - the FIELD disappears. Its own showIf is `!isIcmpOnlyScan`, which is what
+ *     holds in the Edit dialog: one page, no steps, nothing for a step filter
+ *     to remove.
+ *   - the VALUE is cleared. The method toggle's onChange hands back
+ *     `snmpConfigs: undefined` along with `isSnmpEnabled: false`, so on the
+ *     ordinary path there is nothing left to judge even if something asked.
+ *     (That onChange is a field definition inside Discovery.tsx, which App's
+ *     tsc cannot reach — it is pinned against the real captured fields in
+ *     Common/Tests/App/Dashboard/DiscoveryScanEditForm.test.tsx and
+ *     DiscoveryScanWizardValidation.test.tsx. What IS reachable from here, and
+ *     is asserted below, is that the form state that onChange produces is one
+ *     every rule in this module agrees is a saveable ICMP-only scan.)
+ *
+ * What this block deliberately does NOT do is teach validateSnmpConfigs about
+ * the scan's method. It is the same function the server validates the write
+ * with, and the server must refuse an unstorable list whoever sent it and
+ * whatever else is on the row; a client-side copy that fell silent for
+ * `isSnmpEnabled: false` would be a second, quieter rule standing in front of
+ * the shared one, and the "agrees with the server, exactly" assertions above
+ * would stop being true. Hiding the question is the FORM's job, and the form
+ * does it where the operator can see it.
+ */
+
+/*
+ * A whole form, shaped the way `showIf` and `customValidation` are actually
+ * handed one: both keys present, alongside the fields from the other steps.
+ * The point of every case below is that the two rules are read off the SAME
+ * object, so building one that carries only the key under test would test
+ * something the wizard never does.
+ */
+function scanFormWith(
+  isSnmpEnabled: unknown,
+  configs: unknown,
+): ScanTargetValues {
+  return {
+    cidr: "10.244.102.0/24",
+    name: "Region 1100 sweep",
+    isSnmpEnabled: isSnmpEnabled,
+    snmpConfigs: configs,
+  } as ScanTargetValues;
+}
+
+/*
+ * A card the shared rule refuses: v3 with no security name. A session built
+ * from it is rejected by every device, host after host, and the sweep reports
+ * a confident zero rather than failing loudly — which is why it is an error at
+ * all, and why it is the right value to prove the hiding with. If an ICMP-only
+ * scan were still judged against its credential list, THIS is the sentence
+ * that would block a ping sweep.
+ */
+const INCOMPLETE_V3_CONFIG: DiscoveryScanSnmpConfig = {
+  id: "core",
+  name: "Core",
+  snmpVersion: "V3",
+};
+
+const INCOMPLETE_V3_MESSAGE: string =
+  "SNMP config 1: SNMP v3 needs a username (the security name configured on the device).";
+
+/*
+ * Every list shape that would stop the wizard dead if an ICMP-only scan were
+ * still asked about it: the half-finished card, the list the operator emptied
+ * by deleting every card, and a list past the time-budget cap.
+ */
+const REFUSED_LIST_CASES: Array<[string, Array<DiscoveryScanSnmpConfig>]> = [
+  ["a half-finished v3 card", [INCOMPLETE_V3_CONFIG]],
+  ["a list the operator emptied by deleting every card", []],
+  [
+    "a list past the cap",
+    Array.from(
+      { length: MAX_SNMP_CONFIGS_PER_SCAN + 1 },
+      (_unused: unknown, index: number): DiscoveryScanSnmpConfig => {
+        return validV2cConfig(`config-${index}`);
+      },
+    ),
+  ],
+];
+
+describe("an ICMP-only scan is never asked for credentials", () => {
+  test("both gates are shut, so no field on the SNMP step is submitted at all", () => {
+    const icmpOnly: ScanTargetValues = scanFormWith(false, undefined);
+
+    expect(isSnmpStepNeeded(icmpOnly)).toBe(false);
+    expect(isIcmpOnlyScan(icmpOnly)).toBe(true);
+  });
+
+  test("the form state the method toggle leaves behind has nothing left to refuse", () => {
+    /*
+     * The ordinary path out of the SNMP step: the toggle's onChange clears the
+     * list as it switches the flag, so the form is left holding an absent
+     * value — and an absent value is the one case validateSnmpConfigs is
+     * silent about anyway, because `required` owns it. The two halves of the
+     * merge agree here without either having to know about the other.
+     */
+    const afterTurningSnmpOff: ScanTargetValues = scanFormWith(
+      false,
+      undefined,
+    );
+
+    expect(validateSnmpConfigs(afterTurningSnmpOff)).toBeNull();
+    expect(isSnmpStepNeeded(afterTurningSnmpOff)).toBe(false);
+  });
+
+  test.each(REFUSED_LIST_CASES)(
+    "%s is HIDDEN on an ICMP-only scan rather than blocking the save",
+    (_label: string, configs: Array<DiscoveryScanSnmpConfig>) => {
+      const icmpOnly: ScanTargetValues = scanFormWith(false, configs);
+
+      /*
+       * The guarantee: whatever is left in the list, an ICMP-only scan is
+       * saveable. Both gates have to answer, not just one — the step filter is
+       * what the wizard uses, the field's showIf is what the steppless Edit
+       * dialog uses, and a scan must not be a ping sweep for one and an SNMP
+       * sweep for the other.
+       */
+      expect(isSnmpStepNeeded(icmpOnly)).toBe(false);
+      expect(isIcmpOnlyScan(icmpOnly)).toBe(true);
+
+      /*
+       * And this is WHY the gates are load-bearing rather than belt-and-braces
+       * decoration: asked directly, the shared rule still refuses this list.
+       * If either gate were dropped, the sentence below is what an operator
+       * trying to save a ping sweep would read.
+       */
+      expect(validateSnmpConfigs(icmpOnly)).toBe(
+        SnmpScanConfigUtil.getValidationError(configs),
+      );
+      expect(validateSnmpConfigs(icmpOnly)).not.toBeNull();
+    },
+  );
+
+  test("the sentence a ping sweep would otherwise be blocked by is a real one", () => {
+    /*
+     * Spelled out rather than left as "not null", because the value of the
+     * test above is entirely in the concreteness of what it is preventing.
+     */
+    expect(
+      validateSnmpConfigs(scanFormWith(false, [INCOMPLETE_V3_CONFIG])),
+    ).toBe(INCOMPLETE_V3_MESSAGE);
+  });
+});
+
+describe("turning SNMP back on puts the credential gate back", () => {
+  /*
+   * The other direction, and the reason the hiding is expressed as a showIf on
+   * a live predicate rather than as a one-time strip on save: the operator can
+   * change their mind twice. A scan that is asking for credentials again must
+   * be held to every rule issue #3458 added, with nothing carried over from the
+   * spell it spent as a ping sweep.
+   */
+  test("an emptied list is refused again the moment the method flag is on", () => {
+    const snmpScan: ScanTargetValues = scanFormWith(true, []);
+
+    expect(isSnmpStepNeeded(snmpScan)).toBe(true);
+    expect(isIcmpOnlyScan(snmpScan)).toBe(false);
+    expect(validateSnmpConfigs(snmpScan)).toBe(
+      "Add at least one SNMP config, or the scan has no credentials to try.",
+    );
+  });
+
+  test("a half-finished v3 card is refused again, naming the card", () => {
+    expect(
+      validateSnmpConfigs(scanFormWith(true, [INCOMPLETE_V3_CONFIG])),
+    ).toBe(INCOMPLETE_V3_MESSAGE);
+  });
+
+  test("a scan carrying no method column at all is judged as the SNMP scan it is", () => {
+    /*
+     * The absent case, now that there is a credential list for it to be absent
+     * ALONGSIDE. A legacy row, a `select` that omits the column and an older
+     * server all arrive with no `isSnmpEnabled` key, and every scan they
+     * describe is an SNMP scan — so its credentials are still the wizard's
+     * business and are still validated. Reading absence as "ICMP-only" here
+     * would not fail loudly: it would hide the step, skip the rules, and let a
+     * list the probe cannot sweep be saved in silence.
+     */
+    const legacyRow: ScanTargetValues = {
+      cidr: "10.244.102.0/24",
+      snmpConfigs: [INCOMPLETE_V3_CONFIG],
+    } as ScanTargetValues;
+
+    expect(isSnmpStepNeeded(legacyRow)).toBe(true);
+    expect(isIcmpOnlyScan(legacyRow)).toBe(false);
+    expect(validateSnmpConfigs(legacyRow)).toBe(INCOMPLETE_V3_MESSAGE);
+  });
+});
+
+describe("the two rules read the same form without reading each other", () => {
+  /*
+   * The separation the merge is built on. The method predicates answer off the
+   * flag alone and the credential rule answers off the list alone, so neither
+   * change can quietly alter the other's verdict — which is what makes the
+   * gating auditable: exactly one thing (the showIf) decides whether the
+   * question is asked, and exactly one thing (the shared rule) decides the
+   * answer.
+   */
+  test("the method predicates ignore the credential list entirely", () => {
+    expect(isSnmpStepNeeded(scanFormWith(true, []))).toBe(true);
+    expect(
+      isSnmpStepNeeded(scanFormWith(false, [validV2cConfig("access")])),
+    ).toBe(false);
+    expect(isIcmpOnlyScan(scanFormWith(undefined, "not a list at all"))).toBe(
+      false,
+    );
+    expect(isIcmpOnlyScan(scanFormWith(false, [INCOMPLETE_V3_CONFIG]))).toBe(
+      true,
+    );
+  });
+
+  test("the credential rule gives the server's own answer whatever the method flag says", () => {
+    /*
+     * The identity assertion from the issue #3458 block above, re-run with the
+     * issue #3445 column present. The server's copy of this rule does not know
+     * the scan's method either — the service decides whether to RUN it, not
+     * what it says — so a client-side answer that varied with the flag would be
+     * a divergence by construction.
+     */
+    const configs: Array<DiscoveryScanSnmpConfig> = [INCOMPLETE_V3_CONFIG];
+
+    for (const mode of [undefined, null, true, false, "no", 0]) {
+      expect(validateSnmpConfigs(scanFormWith(mode, configs))).toBe(
+        SnmpScanConfigUtil.getValidationError(configs),
+      );
+    }
+  });
+
+  test("a list the probe can sweep is accepted on every kind of scan", () => {
+    const configs: Array<DiscoveryScanSnmpConfig> = [validV2cConfig("access")];
+
+    for (const mode of [undefined, null, true, false]) {
+      expect(validateSnmpConfigs(scanFormWith(mode, configs))).toBeNull();
+    }
+  });
+
+  test("nothing here throws, whichever half of the form is nonsense", () => {
+    /*
+     * validate() and every showIf run from a render pass on EVERY value
+     * change, so a throw takes the whole wizard down rather than showing a
+     * message. Both halves of the merged form value are exposed: the flag
+     * comes from a Toggle but can be written by an API caller, and the list
+     * comes from a custom component into a jsonb column.
+     */
+    for (const mode of [{}, [], "maybe", 0, Number.NaN]) {
+      for (const configs of [{}, "V2c", 161, [null], [[{ id: "a" }]]]) {
+        expect(() => {
+          return validateSnmpConfigs(scanFormWith(mode, configs));
+        }).not.toThrow();
+        expect(() => {
+          return isSnmpStepNeeded(scanFormWith(mode, configs));
+        }).not.toThrow();
+        expect(() => {
+          return isIcmpOnlyScan(scanFormWith(mode, configs));
+        }).not.toThrow();
+      }
+    }
   });
 });

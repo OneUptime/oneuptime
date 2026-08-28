@@ -10,6 +10,7 @@ import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
   clampRescanIntervalInMinutes,
 } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
+import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -75,6 +76,11 @@ router.post(
              */
             name: true,
             cidr: true,
+            /*
+             * The scan's method. Without it the probe cannot tell an ICMP-only
+             * scan from an SNMP one and would SNMP-probe both (issue #3445).
+             */
+            isSnmpEnabled: true,
             /*
              * The ordered credential list the sweep tries, first match wins.
              * The flattened columns below it are still selected and still
@@ -167,6 +173,16 @@ router.post(
             status: "Pending",
             probeId: probeId,
             cidr: scan.cidr ?? null,
+            /*
+             * The METHOD, not only the credentials. Turning Check SNMP off
+             * between the SELECT above and this UPDATE changes what the sweep
+             * asks of every address — it is a sweep column for exactly that
+             * reason (SWEEP_COLUMNS in NetworkDeviceDiscoveryScanService) — so
+             * a claim that ignored it would hand this probe an SNMP sweep of a
+             * scan the operator had just turned into a ping sweep, and stamp
+             * the row In Progress against it.
+             */
+            isSnmpEnabled: scan.isSnmpEnabled ?? null,
             /*
              * Compared as JSON. `IS NOT DISTINCT FROM` on a jsonb column is a
              * value comparison, and the value handed to the probe is the value
@@ -262,6 +278,13 @@ router.post(
             // Needed to schedule the next run of a recurring scan below.
             isRecurring: true,
             rescanIntervalInMinutes: true,
+            /*
+             * Needed to count what "responded" means for THIS scan — see
+             * respondedHostCount below. An ICMP-only sweep reports every host
+             * it found as snmpReachable:false, so counting SNMP responders
+             * would store a hard zero for a scan that worked perfectly.
+             */
+            isSnmpEnabled: true,
           },
           props: {
             isRoot: true,
@@ -355,6 +378,23 @@ router.post(
       ).length;
 
       /*
+       * What "responded" means depends on what the scan asked (issue #3445).
+       *
+       * On an SNMP scan it is the SNMP responders: the ping-only hosts are
+       * reported separately, and collapsing them together would hide the very
+       * distinction the "+N alive without SNMP" line exists to show.
+       *
+       * On an ICMP-only scan every host is snmpReachable:false by
+       * construction, so that same count is always zero — and the Discovery
+       * Scans list would render a perfect sweep of a busy subnet as
+       * "0 of 254 hosts", the exact false negative issue #3287 was about. The
+       * hosts DID respond; ping was the question. So count them.
+       */
+      const respondedHostCount: number = ScanModeUtil.isSnmpEnabled(scan)
+        ? snmpResponderCount
+        : discoveredDevices.length;
+
+      /*
        * Plain object, NOT a model instance: a `new
        * NetworkDeviceDiscoveryScan()` payload carries non-column base props
        * (isPermissionIf) that made the update below throw and lose the
@@ -364,7 +404,7 @@ router.post(
         // Column is a JSON array of host suggestions, stored as-is.
         status: success ? "Completed" : "Failed",
         discoveredDevices: discoveredDevices,
-        respondedHostCount: snmpResponderCount,
+        respondedHostCount: respondedHostCount,
         completedAt: OneUptimeDate.getCurrentDate(),
         /*
          * New results, so the auto-import worker's bookkeeping starts over:
@@ -443,7 +483,10 @@ router.post(
       });
 
       logger.debug(
-        `Discovery scan ${scanId} completed: ${discoveredDevices.length} alive host(s), ${snmpResponderCount} answered SNMP.`,
+        `Discovery scan ${scanId} completed: ${discoveredDevices.length} alive host(s)` +
+          (ScanModeUtil.isSnmpEnabled(scan)
+            ? `, ${snmpResponderCount} answered SNMP.`
+            : " (ICMP-only scan)."),
       );
 
       return Response.sendJsonObjectResponse(req, res, { result: "ok" });

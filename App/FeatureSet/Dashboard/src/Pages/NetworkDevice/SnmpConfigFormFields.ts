@@ -64,6 +64,18 @@ export interface SnmpConfigFormFieldOptions {
   stepId?: string | undefined;
 }
 
+/*
+ * The version a scan or a device gets when nobody picks one.
+ *
+ * Exported because the discovery wizard has to RESTORE it when an operator
+ * turns SNMP back on after switching a scan to ICMP-only: clearing the box to
+ * undefined on the way out leaves a required Dropdown holding nothing, which
+ * fails with "SNMP Version is required" on a control that visibly reads V2c —
+ * the exact symptom of OneUptime issue #3445, reintroduced on the way out of
+ * fixing it. One constant, so the wizard and the field cannot drift.
+ */
+export const DEFAULT_SNMP_VERSION: string = "V2c";
+
 export const MINIMUM_SNMP_PORT: number = 1;
 export const MAXIMUM_SNMP_PORT: number = 65535;
 
@@ -232,7 +244,7 @@ export function getSnmpConfigFormFields(
        * "SNMP Version is required" on a field the user could see filled in.
        * V2c matches the column default on both models.
        */
-      defaultValue: "V2c",
+      defaultValue: DEFAULT_SNMP_VERSION,
     },
     {
       field: {

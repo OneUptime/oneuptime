@@ -2,6 +2,7 @@ import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { isPingOnlyDiscoveredHost } from "./DiscoveredHostFilter";
+import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 
 /*
  * Pure, react-free reading of "what did this discovery scan actually find".
@@ -44,6 +45,12 @@ export interface DiscoveryScanOutcome {
    * when the probe sent none, e.g. rows written by an older probe.
    */
   explanation: string | null;
+  /*
+   * True when this scan sent no SNMP at all (issue #3445). Its responders are
+   * ping answers, so "alive without SNMP" is not a caveat about them — it is
+   * the same set again, counted a second time.
+   */
+  isIcmpOnly: boolean;
 }
 
 /*
@@ -106,13 +113,35 @@ export function summarizeDiscoveryScan(
   const hasReported: boolean =
     respondedHostCount !== undefined && respondedHostCount !== null;
 
+  /*
+   * Asked through ScanModeUtil so this page, the probe and the ingest endpoint
+   * cannot disagree about what a scan was: a row with no method column — every
+   * scan created before the column existed — is an SNMP scan, which it was.
+   */
+  const isIcmpOnly: boolean = ScanModeUtil.isIcmpOnly(scan);
+
   return {
+    /*
+     * "12 of 254 hosts answered ping" rather than "12 of 254 hosts" for an
+     * ICMP-only sweep. The bare phrasing is read against the SNMP column title
+     * it sits under, and on a scan that asked nothing about SNMP that invites
+     * exactly the wrong conclusion about what the number means.
+     */
     respondedHostSummary: hasReported
-      ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
+      ? isIcmpOnly
+        ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts answered ping`
+        : `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
       : null,
     hasReported: hasReported,
-    pingOnlyHostCount: countPingOnlyHosts(scan),
+    /*
+     * Every host an ICMP-only sweep found is ping-only by construction, and
+     * respondedHostCount already counts exactly those hosts — so the
+     * "+N alive without SNMP" line beneath would repeat the headline back as
+     * though it were a shortfall.
+     */
+    pingOnlyHostCount: isIcmpOnly ? 0 : countPingOnlyHosts(scan),
     // Empty string is "no explanation", not an explanation.
     explanation: scan?.statusMessage || null,
+    isIcmpOnly: isIcmpOnly,
   };
 }

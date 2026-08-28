@@ -48,6 +48,18 @@ function buildScan(
 ): NetworkDeviceDiscoveryScan {
   return {
     cidr: "10.0.0.0/24",
+    /*
+     * A v3 scan, stated explicitly.
+     *
+     * buildProbeSnmpConfigs only assembles (and therefore only validates) the
+     * v3 block for a set whose VERSION is v3 — a v1/v2c set legitimately
+     * carries leftover v3 values, because switching a card's version back and
+     * forth must not lose the keys already typed into it, and the server's
+     * validator skips them for exactly that reason. Without this the fixture
+     * would default to V2c and every "an unreadable value fails the scan" test
+     * below would pass vacuously, by never reaching the check at all.
+     */
+    snmpVersion: "V3",
     snmpV3Username: "monitoring",
     snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
     snmpV3AuthProtocol: SnmpAuthProtocol.SHA,

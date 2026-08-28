@@ -47,10 +47,16 @@
       "securityKeyInstructions": "セキュリティキーデバイスの指示に従ってください。",
       "codeFieldDescription": "認証アプリからコードを入力してください",
       "selectDifferentMethod": "別の二要素認証方法を選択",
-      "useBackupCode": "代わりにバックアップコードを使用する",
       "backupCodeInstruction": "二要素認証を設定したときに保存したバックアップコードのいずれかを入力してください。各コードは一度だけ使用できます。",
       "backupCodeFieldTitle": "バックアップコード",
-      "backupCodeFieldDescription": "バックアップコードは ABCDE-12345 のような形式です。大文字と小文字、ハイフンの有無は問いません。"
+      "backupCodeFieldDescription": "バックアップコードは ABCDE-12345 のような形式です。大文字と小文字、ハイフンの有無は問いません。",
+      "confirmSubtitle": "サインインを完了するには、ご本人であることを確認してください。",
+      "recoverySubtitle": "バックアップコードを使用するか、コードがない場合にアカウントへ再度アクセスする方法をご確認ください。",
+      "lostAccess": "認証アプリにアクセスできませんか？",
+      "noBackupCodesStrong": "バックアップコードがありません。",
+      "noBackupCodes": "このアカウントには一度もバックアップコードが発行されていないため、ここに入力できるコードはありません。",
+      "noBackupCodesInstruction": "このOneUptimeインスタンスの管理者に、アカウントの二要素認証をリセットするよう依頼してください。リセット後は、パスワードでサインインして新しい認証アプリを設定でき、その際にバックアップコードも同時に作成されます。",
+      "lostAccessSecurityKey": "セキュリティキーにアクセスできませんか？"
     },
     "twoFactorEnrolment": {
       "title": "二要素認証の設定",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "認証アプリに表示されている 6 桁のコードを入力してください。",
       "submitButton": "確認してサインイン",
       "backToSignIn": "別のユーザーとしてサインイン"
+    },
+    "backupCodes": {
+      "title": "バックアップコードを保存",
+      "subtitle": "認証アプリやセキュリティキーにアクセスできなくなった場合は、これらのいずれかを使用してサインインしてください。",
+      "showOnceStrong": "これらのコードが表示されるのはこの一度だけです。",
+      "showOnce": "コードを生成するデバイスとは別の場所に保存してください。各コードは一度だけ使用できます。",
+      "download": "テキストファイルとしてダウンロード",
+      "savedConfirmation": "これらのコードを安全な場所に保存しました。",
+      "continue": "ダッシュボードへ進む",
+      "fileHeading": "OneUptime二要素認証のバックアップコード",
+      "fileInstruction": "各コードは一度だけ使用できます。このファイルは、認証アプリを実行しているデバイスとは別の安全な場所に保管してください。",
+      "setUpTitle": "バックアップコードの設定",
+      "setUpSubtitle": "続行する前に、最後にもう一つだけ。",
+      "noneStrong": "バックアップコードがありません。",
+      "none": "認証アプリやセキュリティキーを紛失した場合、再びサインインするには管理者が二要素認証をリセットする必要があります。",
+      "generate": "バックアップコードを生成",
+      "skip": "今はスキップ",
+      "generateFailed": "バックアップコードが返されませんでした。ユーザープロファイル > 二要素認証 からもう一度お試しください。"
     }
   },
   "register": {

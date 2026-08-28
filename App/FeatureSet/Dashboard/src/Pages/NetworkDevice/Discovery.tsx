@@ -41,14 +41,20 @@ import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import SnmpConfigListEditor from "../../Components/NetworkDevice/SnmpConfigListEditor";
+import { DEFAULT_SNMP_VERSION } from "./SnmpConfigFormFields";
 import { DiscoveryScanSnmpConfig } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  isIcmpOnlyScan,
+  isSnmpStepNeeded,
   validateRescanInterval,
   validateScanName,
   validateScanTarget,
   validateSnmpConfigs,
 } from "./DiscoveryScanFormValidation";
+import ScanModeUtil, {
+  ScanMethodLabel,
+} from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import {
   buildPingMonitorForDiscoveredHost,
@@ -136,7 +142,18 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
  */
 const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
   { title: "Scan Target", id: "scan-target" },
-  { title: "SNMP Credentials", id: "snmp" },
+  /*
+   * The middle step is SKIPPED for an ICMP-only scan, rather than shown with
+   * everything on it hidden: BasicForm validates only the fields of the step
+   * being submitted, so a step that is not in this list can never be that step
+   * — which is what stops "SNMP Version is required" blocking a scan that was
+   * never going to send SNMP (issue #3445).
+   *
+   * A NAMED predicate, not an inline arrow: NetworkFormStepsInvariants parses
+   * this block out of the source expecting string literals and predicate names,
+   * and an inline arrow could carry a `]}` that truncates its match.
+   */
+  { title: "SNMP Credentials", id: "snmp", showIf: isSnmpStepNeeded },
   { title: "Schedule", id: "schedule" },
 ];
 
@@ -192,6 +209,36 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * 64 the server enforces, not the column's 100.
        */
       customValidation: validateScanTarget,
+      /*
+       * The most surprising thing about an octet range is how much of it there
+       * is: 10.16-22.0-255.51-66 is 28,672 addresses, and nothing on the form
+       * said so until the sweep had been queued.
+       *
+       * Gated on the COUNT rather than on validity, so a target OVER the
+       * ceiling — the one case where the size is the entire problem — still
+       * states its size next to the error explaining it. countHosts returns 0
+       * for anything it cannot parse, so a half-typed target says nothing at
+       * all and never talks over the inline validation message.
+       */
+      getFooterElement: (
+        values: FormValues<NetworkDeviceDiscoveryScan>,
+      ): ReactElement | undefined => {
+        const hostCount: number = ScanTargetUtil.countHosts(
+          String(values.cidr ?? "").trim(),
+        );
+
+        if (!hostCount) {
+          return undefined;
+        }
+
+        return (
+          <p className="mt-1 text-xs text-gray-500">
+            {`This target sweeps ${hostCount.toLocaleString("en-US")} ${
+              hostCount === 1 ? "address" : "addresses"
+            }.`}
+          </p>
+        );
+      },
     },
     {
       field: {
@@ -241,20 +288,104 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       placeholder: "Probe",
     },
     /*
+     * The scan's method, on the step BEFORE the one it hides — never on the
+     * step it hides. BasicForm navigates the FILTERED step array, so a toggle
+     * living on a step it can remove would leave currentFormStepId naming a
+     * step that is no longer there: findIndex returns -1, the advance branch is
+     * skipped, and Next silently does nothing while still reading "Next".
+     */
+    {
+      field: {
+        isSnmpEnabled: true,
+      },
+      title: "Check SNMP on hosts that answer",
+      stepId: "scan-target",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      defaultValue: true,
+      /*
+       * A toggle is never "optional" in the sense that label means, and
+       * FieldLabel appends "(Optional)" to every non-required field.
+       */
+      hideOptionalLabel: true,
+      sectionTitle: "What to check",
+      sectionDescription:
+        "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
+      description:
+        "Leave this on to identify what answers, using the credentials on the next step. Turn it off for an ICMP-only sweep: no SNMP packet is sent, no credentials are asked for, and the SNMP step is skipped. Everything an ICMP-only scan finds imports as a monitor-backed device with polling off, so give it a Ping monitor when you import it.",
+      /*
+       * Clear the credentials on the way past. Hiding the fields is not enough
+       * on its own: ModelForm builds the request body from every DECLARED field
+       * without checking whether it was visible, so a v3 passphrase typed
+       * before the operator changed their mind would be stored on a scan that
+       * will never send it.
+       *
+       * FormField calls this BEFORE setFieldValue, and setFieldValue spreads
+       * from the object handed back here, so the clearing survives the very
+       * keystroke that caused it.
+       *
+       * snmpVersion is RESET to its default rather than cleared. Clearing it
+       * leaves a required Dropdown holding nothing, which then fails with
+       * "SNMP Version is required" on a control that visibly reads V2c the
+       * moment the operator turns SNMP back on — issue #3445's own symptom,
+       * reintroduced on the way out of it.
+       */
+      onChange: (
+        value: boolean,
+        currentFormValues: FormValues<NetworkDeviceDiscoveryScan>,
+        setNewFormValues: (
+          values: FormValues<NetworkDeviceDiscoveryScan>,
+        ) => void,
+      ): void => {
+        if (value) {
+          return;
+        }
+
+        setNewFormValues({
+          ...currentFormValues,
+          isSnmpEnabled: false,
+          /*
+           * The credential LIST first, because that is where a scan's
+           * community strings and v3 passphrases actually live now (issue
+           * #3458). The flattened fields below it are no longer collected by
+           * this form at all — the editor writes them server-side, mirrored
+           * from the list's first entry — but they are cleared here too, so a
+           * value that reached the form some other way cannot ride along on a
+           * scan that will never send SNMP.
+           */
+          snmpConfigs: undefined,
+          snmpVersion: DEFAULT_SNMP_VERSION,
+          snmpCommunityString: undefined,
+          snmpPort: undefined,
+          snmpV3SecurityLevel: undefined,
+          snmpV3Username: undefined,
+          snmpV3AuthProtocol: undefined,
+          snmpV3AuthKey: undefined,
+          snmpV3PrivProtocol: undefined,
+          snmpV3PrivKey: undefined,
+        });
+      },
+    },
+    /*
      * The scan's ORDERED LIST of SNMP credential sets, first match wins.
      *
      * This step used to spread the nine flat fields from
-     * getSnmpConfigFormFields — the same helper the NetworkDevice forms
-     * still use — which allowed exactly one credential set per scan. Real
-     * subnets are mixed, so that scan quietly missed every device speaking
-     * a version or community it was not configured for, and the only
-     * workaround was one scan per credential (issue #3458).
+     * getSnmpConfigFormFields — the same helper the NetworkDevice forms still
+     * use — which allowed exactly one credential set per scan. Real subnets are
+     * mixed, so such a scan quietly missed every device speaking a version or
+     * community it was not configured for, and the only workaround was one scan
+     * per credential (issue #3458).
      *
-     * A repeated block cannot be expressed as Fields — a Field is one value
-     * at one key — so this is a CustomComponent bound to the `snmpConfigs`
-     * column, exactly like the device's Health OIDs list. The editor still
-     * takes its labels, dropdown options and v3 reveal chain FROM
-     * SnmpConfigFormFields, so it and the device forms cannot drift.
+     * A repeated block cannot be expressed as Fields — a Field is one value at
+     * one key — so this is a CustomComponent bound to the `snmpConfigs` column,
+     * exactly like the device's Health OIDs list. The editor still takes its
+     * labels, dropdown options and v3 reveal chain FROM SnmpConfigFormFields,
+     * so it and the device forms cannot drift.
+     *
+     * Gated on the scan's method as well, exactly as the flat fields were. The
+     * step-level showIf is what an operator sees in the wizard; this is what
+     * holds where there are no steps at all — the Edit dialog lays these same
+     * fields out on one page (issue #3445).
      */
     {
       field: {
@@ -274,6 +405,14 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       description:
         "Every credential set this scan tries, in order, stopping at the first that answers each host. Add one per group of devices that share a version and community or v3 user.",
       customValidation: validateSnmpConfigs,
+      /*
+       * An ICMP-only scan sends no SNMP packet, so it asks for no credentials.
+       * Hidden rather than merely ignored: Validation skips a hidden field's
+       * rules, so `required` above cannot block a ping sweep from being saved.
+       */
+      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
+        return !isIcmpOnlyScan(item);
+      },
       getCustomElement: (
         value: FormValues<NetworkDeviceDiscoveryScan>,
         customElementProps: CustomElementProps,
@@ -305,6 +444,8 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       stepId: "schedule",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
+      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
+      hideOptionalLabel: true,
       description:
         "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
     },
@@ -910,6 +1051,19 @@ const NetworkDeviceDiscovery: FunctionComponent<
     },
   ).length;
 
+  /*
+   * Whether the scan under review asked anything about SNMP. Null-safe on
+   * purpose: this is computed on every render, including the ones where no
+   * scan is being reviewed at all, and a scan with no method column — every
+   * scan created before issue #3445 — reads as an SNMP scan, which it was.
+   *
+   * Note it is NOT the same question as noSnmpHostCount above: that counts
+   * hosts this sweep found without SNMP, which an ordinary SNMP scan of a
+   * subnet full of unmanaged gear produces too. This one is about what the
+   * scan was allowed to ask.
+   */
+  const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);
+
   return (
     <Fragment>
       <ModelTable<NetworkDeviceDiscoveryScan>
@@ -947,10 +1101,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         cardProps={{
           title: "Discovery Scans",
           description:
-            "Scan a subnet or octet range for SNMP devices from a probe, then review the results and import the devices you want to monitor.",
+            "Sweep a subnet or octet range from a probe - ping only, or ping plus SNMP - then review what answered and import the devices you want to monitor.",
         }}
         noItemsMessage={
-          "No discovery scans yet. Start one to sweep a subnet or octet range for SNMP devices."
+          "No discovery scans yet. Start one to sweep a subnet or octet range and see what answers."
         }
         formSteps={DISCOVERY_SCAN_FORM_STEPS}
         formFields={getDiscoveryScanFormFields(probes)}
@@ -988,8 +1142,35 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
               return (
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {name || item.cidr || "—"}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-gray-900">
+                      {name || item.cidr || "—"}
+                    </div>
+                    {/*
+                     * What this scan checks with, for the rows where nothing
+                     * else says: a Pending or In Progress ICMP-only scan has no
+                     * result summary yet, and every other cell on the row looks
+                     * exactly like an SNMP scan's.
+                     *
+                     * Read from selectMoreFields rather than declared in this
+                     * column's `field`, deliberately. getExportKeysFromColumn
+                     * builds the CSV row out of a column's declared fields, and
+                     * this column's pair is its identity — the name and the
+                     * range it sweeps. A badge is decoration on that identity,
+                     * not a third thing the cell is keyed on.
+                     *
+                     * The label comes from the shared enum, not a literal, so
+                     * the badge and any other surface that names a scan's
+                     * method say the same word.
+                     */}
+                    {ScanModeUtil.isIcmpOnly(item) && (
+                      <span
+                        className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                        title="This scan pings each address and asks nothing else of what answers. Its hosts import as monitor-backed devices with polling off."
+                      >
+                        {ScanMethodLabel.PingOnly}
+                      </span>
+                    )}
                   </div>
                   {name && item.cidr ? (
                     <div className="text-xs text-gray-500">{item.cidr}</div>
@@ -1244,6 +1425,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
         selectMoreFields={{
           scannedHostCount: true,
           discoveredDevices: true,
+          /*
+           * The scan's method — read by the outcome summary and by the Review
+           * dialog, both of which say different things about a sweep that
+           * asked nothing about SNMP.
+           */
+          isSnmpEnabled: true,
           // Recurrence details rendered inside the "Recurrence" column.
           rescanIntervalInMinutes: true,
           nextScanAt: true,
@@ -1384,7 +1571,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
           description={`Hosts that responded in ${
             ScanNameUtil.getScanLabel(scanToReview) ||
             "the scanned address range"
-          }. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones.${
+          }. ${
+            /*
+             * An ICMP-only sweep has exactly one group, so the sentence about
+             * choosing between two would be describing a filter row that is
+             * not on screen — and "hosts without SNMP" reads as a caveat about
+             * a shortfall rather than the thing the operator asked for.
+             */
+            isIcmpOnlyReview
+              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off. Turn on 'Create a Ping monitor' below to give each one a status, or bind a monitor yourself afterwards."
+              : "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones."
+          }${
             /*
              * The probe's summary of the sweep. Most valuable precisely when
              * this list is empty, which is the one case where the operator
@@ -1409,13 +1606,25 @@ const NetworkDeviceDiscovery: FunctionComponent<
             {reviewEntries.length > 0 && (
               <div className="mb-3 border-b border-gray-200 pb-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <FilterButtons
-                    options={hostFilterOptions}
-                    selectedValue={hostFilter}
-                    onSelect={(value: string) => {
-                      setHostFilter(value as DiscoveredHostFilter);
-                    }}
-                  />
+                  {/*
+                   * Not offered on a scan that asked nothing about SNMP. The
+                   * row would read "All (2,890) · SNMP (0) · No SNMP (2,890)"
+                   * — two identical groups and one permanently empty button
+                   * whose empty message, "No host in this scan answered SNMP.",
+                   * reads as a credential failure on a sweep that carried no
+                   * credentials. hostFilter is reset to All when the dialog
+                   * opens and closes, so hiding the row cannot strand anyone
+                   * on a group they can no longer leave.
+                   */}
+                  {!isIcmpOnlyReview && (
+                    <FilterButtons
+                      options={hostFilterOptions}
+                      selectedValue={hostFilter}
+                      onSelect={(value: string) => {
+                        setHostFilter(value as DiscoveredHostFilter);
+                      }}
+                    />
+                  )}
                   {/*
                    * The answer to "2,890 hosts are pre-checked and I only want
                    * the switches": clear this group, or take all of it, in one
