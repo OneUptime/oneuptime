@@ -4,77 +4,139 @@ import nodePath from "path";
 
 /*
  * ---------------------------------------------------------------------------
- * THE RECOVERY PATH ON THE SIGN-IN SCREEN: "use a backup code instead".
+ * THE RECOVERY PATH ON THE SIGN-IN SCREEN.
  *
  * Everybody who ever reaches this form is ALREADY locked out. Their phone is
- * gone, their security key is in a taxi, and the piece of paper in their hand
- * is the last thing standing between them and a support ticket. Every failure
- * mode below is silent -- the page renders, nothing throws, and the user is
- * simply refused:
+ * gone, their security key is in a taxi, and whatever is in their hand is the
+ * last thing standing between them and a support ticket.
  *
- *  - the field name. Login.tsx declares `field: { backupCode: true }` and posts
- *    `backupCode: data["backupCode"]`; Authentication.ts reads
+ * THE BUG THIS FILE WAS REWRITTEN FOR (OneUptime/oneuptime#3382)
+ *
+ * Single-use backup codes shipped, and the sign-in page still showed a locked
+ * out user one row saying "Authenticator App" and nothing else. Two things
+ * were wrong at once and each hid the other:
+ *
+ *  - nothing in the product ever MINTED codes except a button on the profile
+ *    page that a user had to go and find, so `backupCodeCount` was 0 for very
+ *    nearly every account; and
+ *  - the only recovery affordance on the page was gated on
+ *    `backupCodeCount > 0`, so it rendered for very nearly nobody.
+ *
+ * A gate on a counter that is always zero is indistinguishable, from the
+ * outside, from a feature that was never shipped -- which is exactly what the
+ * reporter saw. Worse, the link lived inside the METHOD PICKER only, so even
+ * an account that did have codes never saw it on the code-entry screen, which
+ * is the screen the issue actually named.
+ *
+ * So the assertions below deliberately pin the OPPOSITE of what the previous
+ * version of this file pinned. The old file asserted that the link was gated
+ * on `backupCodeCount > 0` and that it appeared exactly once; both of those
+ * assertions were descriptions of the bug, and both had to be inverted rather
+ * than deleted.
+ *
+ * THE SILENT FAILURE MODES, WHICH IS WHY EACH ASSERTION EXISTS
+ *
+ *  - THE LINK'S GUARD. If any part of the recovery affordance is ever put back
+ *    behind `backupCodeCount`, it disappears again for the whole population
+ *    the issue was about, and the page still renders, still 200s, and still
+ *    looks correct to whoever made the change (their own test account has
+ *    codes). `lostAccessGuard` is derived FROM THE SOURCE rather than matched
+ *    against a hardcoded string, so the assertion is about what the condition
+ *    contains, not about how it happens to be spelled today;
+ *  - THE EMPTY SCREEN. Once the link is ungated, a user with no codes can
+ *    reach a branch that used to render only a code entry form. Without the
+ *    `backupCodeCount === 0` branch they would click "Lost access to your
+ *    authenticator?" and land on a blank card -- a worse dead end than the one
+ *    being fixed, and one that throws nothing;
+ *  - THE FIELD NAME. Login.tsx declares `field: { backupCode: true }` and
+ *    posts `backupCode: data["backupCode"]`; Authentication.ts reads
  *    `data["backupCode"]` and CredentialGuard.assertPresent then answers
- *    "Backup code is required". A rename on EITHER side turns a correctly typed
- *    code into that message, and the user -- reasonably -- concludes their
- *    printed codes have stopped working;
- *  - the host. VERIFY_BACKUP_CODE_API_URL must hang off IDENTITY_URL, not
- *    APP_API_URL. The two siblings in the same file split exactly that way
- *    (the WebAuthn *options* call is an APP_API_URL call, the verify is an
- *    identity call), so the wrong constant is one line away and 404s only at
- *    the moment somebody needs it;
- *  - the credentials. There is NO SESSION at this point -- /login answered the
- *    password step with a list of factors and nothing else -- so the request
- *    has to re-submit email and password out of `initialValues`. Dropping the
- *    spread leaves the server with "Email and password are required.";
- *  - the link's gate. `backupCodeCount` comes off the /login response and
- *    starts at 0. Rendering the link unconditionally sends somebody with no
- *    codes into a form that can only refuse them, at the worst possible moment;
- *  - and the four locale keys. i18next's fallbackLng is "en", so a locale file
- *    missing them renders English inside an otherwise translated page -- or,
- *    for a key missing from en.json too, renders the raw dotted path as the
- *    label of the field somebody is trying to type a recovery code into.
+ *    "Backup code is required". A rename on EITHER side turns a correctly
+ *    typed code into that message, and the user -- reasonably -- concludes
+ *    their printed codes have stopped working;
+ *  - THE HOST, TWICE OVER, AND IN OPPOSITE DIRECTIONS.
+ *    VERIFY_BACKUP_CODE_API_URL must hang off IDENTITY_URL because there is no
+ *    session yet; GENERATE_BACKUP_CODES_API_URL must hang off APP_API_URL
+ *    because it is authenticated by the session cookie the login just set.
+ *    They sit four lines apart in the same file. Swapping either one produces
+ *    a URL that resolves and then 401s or 404s, only for somebody who is
+ *    already having the worst day of their account's life;
+ *  - THE CREDENTIALS. There is NO SESSION on the challenge screens -- /login
+ *    answered the password step with a list of factors and nothing else -- so
+ *    those requests have to re-submit email and password out of
+ *    `initialValues`. Dropping the spread leaves the server with "Email and
+ *    password are required.";
+ *  - THE DISCARDED MISC BAG. The forced-enrolment handler used to finish with
+ *    a literal `{}` in place of the response's misc data. The server now mints
+ *    a set of recovery codes behind that enrolment and returns the PLAINTEXT
+ *    in exactly that bag, exactly once, forever. A literal `{}` there signs
+ *    the user in with ten codes on their account that no human has ever seen
+ *    -- silently, and unrecoverably;
+ *  - THE UNTICKED BOX. The show-once screen is the only place those codes will
+ *    ever exist. Continue has to be disabled until the user says they have
+ *    saved them, because continuing without saving is the one mistake on that
+ *    screen that trying again cannot fix;
+ *  - THE LOCALE KEYS, now thirty-three of them across two blocks. i18next's
+ *    fallbackLng is "en", so a locale file missing a key renders English
+ *    inside an otherwise translated page -- or, for a key missing from en.json
+ *    too, renders the raw dotted path as the label of the field somebody is
+ *    trying to type a recovery code into.
  *
  * WHY A LOCALE SWEEP LIVES HERE AT ALL
  *
  * There was no locale parity test for the Accounts feature set before this
- * file -- not for these keys, not for any of them. Scripts/I18n/ValidateLocales
- * .js does cover App/FeatureSet/Accounts/src/Locales, but it is an ESM module
- * that this CommonJS suite cannot require() and it runs only in the js-lint CI
- * job. So adding a key to en.json and forgetting the other fifteen files goes
- * GREEN in the App suite and red much later, in a different job, to a different
- * person. The sweep at the bottom closes that gap for the whole directory, not
- * just for the four keys this feature added.
+ * file. Scripts/I18n/ValidateLocales.js does cover
+ * App/FeatureSet/Accounts/src/Locales, but it is an ESM module that this
+ * CommonJS suite cannot require() and it runs only in the js-lint CI job. So
+ * adding a key to en.json and forgetting the other fifteen files goes GREEN in
+ * the App suite and red much later, in a different job, to a different person.
+ * The sweep at the bottom closes that gap for the whole directory, not just
+ * for the keys this feature added -- and this feature added a whole new
+ * `login.backupCodes` block of sixteen.
  *
  * NOTHING IS MOCKED, AND NOTHING IS IMPORTED. The App jest suite is
  * testEnvironment "node" with no React renderer, and Login.tsx is a component
  * that pulls in Common/UI; ApiPaths.ts resolves IDENTITY_URL out of
  * Common/UI/Config at module load. What is being asserted on is which literals
- * these files contain, and no runtime value exposes that -- so the files are
- * read off disk as text, exactly as
- * App/Tests/AdminDashboard/BulkTwoFactorAuthWiring.test.ts and
+ * and which CONDITIONS these files contain, and no runtime value in this
+ * environment exposes either -- so the files are read off disk as text,
+ * exactly as App/Tests/AdminDashboard/BulkTwoFactorAuthWiring.test.ts and
  * App/Tests/AdminDashboard/AutoAcceptInvitationWiring.test.ts do. The parity
  * sweep is modelled on App/Tests/Dashboard/RunnerVersionLabel.test.ts.
+ *
+ * Blocks are located by CONTENT (a form id, a data-testid) and their guarding
+ * condition is then read back out of the source, rather than by matching the
+ * condition itself. That is deliberate: an assertion that a block is guarded
+ * by the literal string it was found with proves nothing, and the previous
+ * version of this file broke at module load the moment the guard was
+ * reworded. Extraction is lazy and memoized for the same reason -- a marker
+ * that stops matching should fail as the assertion it belongs to, naming what
+ * it could not find, rather than as an unloadable suite that hides the other
+ * thirty checks.
  *
  * ADJACENT GROUND, DELIBERATELY NOT REPEATED HERE:
  *
  *  - Common/Tests/Server/Utils/TwoFactorBackupCode.test.ts owns generation,
  *    the alphabet, the HMAC construction and normalization -- which is why
  *    nothing below asserts anything about the SHAPE of a code;
+ *  - Common/Tests/Server/API/UserTwoFactorBackupCodeAPI.test.ts owns the
+ *    generate route itself, including that it answers with `codes`;
  *  - App/Tests/FeatureSet/Identity/BackupCodeLoginVerification.test.ts owns
- *    the server end of this exact request: the order of the gates in front of
+ *    the server end of the verify request: the order of the gates in front of
  *    the code check, single use, and what the route refuses. Nothing here
  *    re-states any of it -- this file only pins that the browser sends what
  *    that handler reads;
  *  - App/Tests/FeatureSet/Identity/TotpForcedEnrolment.test.ts and
- *    TotpLoginVerification.test.ts own the rest of the login state machine;
+ *    TotpLoginVerification.test.ts own the rest of the login state machine,
+ *    including the minting the enrolment response now carries;
  *  - App/Tests/Dashboard/BackupCodesCardWiring.test.ts owns the other end of
- *    the feature, the profile card that mints the codes in the first place.
+ *    the feature, the profile card.
  *
  * Comments are stripped before every assertion. That matters more than usual
- * here: Login.tsx and ApiPaths.ts both explain in prose that the request
- * re-submits the password and that the route is an identity route, which are
- * two of the things asserted below.
+ * here: Login.tsx and ApiPaths.ts both explain in prose that the requests
+ * re-submit the password, that one route is an identity route and the other is
+ * not, and that the misc bag used to be discarded -- which is four of the
+ * things asserted below.
  * ---------------------------------------------------------------------------
  */
 
@@ -105,8 +167,9 @@ type SquashFunction = (source: string) => string;
 
 /*
  * Every assertion below runs against whitespace-collapsed text so that
- * prettier re-wrapping a long `t(...)` call or a JSX prop list cannot turn a
- * real regression check into a red herring.
+ * prettier re-wrapping a long `t(...)` call or a five-clause JSX guard cannot
+ * turn a real regression check into a red herring. The guards in this file are
+ * long enough that prettier splits most of them over four lines.
  */
 const squash: SquashFunction = (source: string): string => {
   return source.replace(/\s+/g, " ");
@@ -129,7 +192,7 @@ type CountOccurrencesFunction = (source: string, needle: string) => number;
 
 /*
  * Used where "the call happens here" is only half the guarantee and "the call
- * happens nowhere else in this file" is the other half.
+ * happens nowhere else" is the other half.
  */
 const countOccurrences: CountOccurrencesFunction = (
   source: string,
@@ -138,26 +201,28 @@ const countOccurrences: CountOccurrencesFunction = (
   return source.split(needle).length - 1;
 };
 
-type BalancedBlockFunction = (data: {
+type BalancedBlockOrNullFunction = (data: {
   source: string;
   startIndex: number;
   open: string;
   close: string;
-  marker: string;
-}) => string;
+}) => string | null;
 
 /*
- * Walks delimiters from `startIndex` (which must be an `open`) to its match.
- * `marker` is carried only so the failure names what the caller was looking
- * for rather than reporting a bare index.
+ * Walks delimiters from `startIndex` (which must be an `open`) to its match,
+ * or answers null if the file runs out first.
+ *
+ * Null rather than a throw because the guard walker below probes candidate
+ * positions speculatively: a candidate that does not balance is simply not the
+ * block being looked for, and turning that into an exception would mean
+ * wrapping the probe in a try/catch that swallows real failures too.
  */
-const balancedBlockAt: BalancedBlockFunction = (data: {
+const balancedBlockOrNull: BalancedBlockOrNullFunction = (data: {
   source: string;
   startIndex: number;
   open: string;
   close: string;
-  marker: string;
-}): string => {
+}): string | null => {
   let depth: number = 0;
 
   for (
@@ -180,84 +245,173 @@ const balancedBlockAt: BalancedBlockFunction = (data: {
     }
   }
 
-  throw new Error(
-    `Unbalanced ${data.open}${data.close} after marker: ${data.marker}`,
-  );
+  return null;
 };
 
-type BlockAfterFunction = (data: {
+type BalancedBlockFunction = (data: {
   source: string;
-  marker: string;
+  startIndex: number;
   open: string;
   close: string;
+  marker: string;
 }) => string;
 
 /*
- * The balanced block that follows `marker`. Used to bound an assertion to one
- * JSX branch, so that "the backup code screen posts to the backup code route"
- * cannot be satisfied -- or defeated -- by the TOTP challenge and the TOTP
- * enrolment screens, which sit in the same component and post the same
- * `...initialValues` spread to two different endpoints.
+ * The same walk, for callers that have already established the block is there.
+ * `marker` is carried only so the failure names what was being looked for
+ * rather than reporting a bare index.
  */
-const blockAfter: BlockAfterFunction = (data: {
+const balancedBlockAt: BalancedBlockFunction = (data: {
   source: string;
-  marker: string;
+  startIndex: number;
   open: string;
   close: string;
+  marker: string;
 }): string => {
-  const markerIndex: number = data.source.indexOf(data.marker);
-
-  if (markerIndex === -1) {
-    throw new Error(`Marker not found in source: ${data.marker}`);
-  }
-
-  const blockStart: number = data.source.indexOf(data.open, markerIndex);
-
-  if (blockStart === -1) {
-    throw new Error(`No block follows marker: ${data.marker}`);
-  }
-
-  return balancedBlockAt({
+  const block: string | null = balancedBlockOrNull({
     source: data.source,
-    startIndex: blockStart,
+    startIndex: data.startIndex,
     open: data.open,
     close: data.close,
-    marker: data.marker,
   });
+
+  if (block === null) {
+    throw new Error(
+      `Unbalanced ${data.open}${data.close} after marker: ${data.marker}`,
+    );
+  }
+
+  return block;
 };
 
-/* The whole "type a recovery code" branch: the blurb, the form and the post. */
-const BACKUP_CODE_SCREEN_MARKER: string =
-  "showTwoFactorAuth && isUsingBackupCode && (";
+type GuardedBlock = {
+  /* The condition chain, e.g. `!pendingLogin && showTwoFactorAuth`. */
+  guard: string;
 
-const backupCodeScreen: string = blockAfter({
-  source: loginSource,
-  marker: BACKUP_CODE_SCREEN_MARKER,
-  open: "(",
-  close: ")",
-});
+  /* Everything the condition renders, `(` to matching `)`. */
+  block: string;
+};
 
-/* The conditional that decides whether the recovery route is offered at all. */
-const LINK_GATE_MARKER: string = "backupCodeCount > 0 && (";
+/*
+ * A JSX expression container that opens a conditional render:
+ * `{<some && chain && (`. `(` is excluded from the condition class so that a
+ * call expression (`{t("...")}`, `{foo.map(`) can never be mistaken for one,
+ * and `<` so the walk cannot wander across an element boundary.
+ */
+const GUARD_OPENER: RegExp = /^\{([^<{()]*?)&&\s*\(/;
 
-const backupCodeLinkBlock: string = blockAfter({
-  source: loginSource,
-  marker: LINK_GATE_MARKER,
-  open: "(",
-  close: ")",
-});
+/* Long enough for the five-clause guards in this file, short enough to bound
+ * the regex. The longest real one is under 100 characters. */
+const GUARD_WINDOW: number = 400;
 
-/* The one declaration, not the import of it in Login.tsx. */
-const VERIFY_BACKUP_CODE_DECLARATION_MARKER: string =
-  "export const VERIFY_BACKUP_CODE_API_URL";
+type GuardedBlockFunction = (needle: string) => GuardedBlock;
+
+const guardedBlockCache: Map<string, GuardedBlock> = new Map<
+  string,
+  GuardedBlock
+>();
+
+/*
+ * The innermost `{ ... && ( ... )}` render branch that CONTAINS `needle`,
+ * together with the condition that decides whether it renders at all.
+ *
+ * Blocks are found by something only that block contains -- a form id, a
+ * data-testid, a translation key -- and the guard is then read back out of the
+ * file. Searching for the guard text instead would make every assertion about
+ * the guard circular, and would break the whole suite at module load every
+ * time somebody added a clause. Which is precisely what happened to the
+ * previous version of this file.
+ */
+const guardedBlockFor: GuardedBlockFunction = (
+  needle: string,
+): GuardedBlock => {
+  const cached: GuardedBlock | undefined = guardedBlockCache.get(needle);
+
+  if (cached) {
+    return cached;
+  }
+
+  const needleIndex: number = loginSource.indexOf(needle);
+
+  if (needleIndex === -1) {
+    throw new Error(`Login.tsx no longer contains: ${needle}`);
+  }
+
+  for (let index: number = needleIndex; index >= 0; index--) {
+    if (loginSource[index] !== "{") {
+      continue;
+    }
+
+    const opener: RegExpExecArray | null = GUARD_OPENER.exec(
+      loginSource.slice(index, index + GUARD_WINDOW),
+    );
+
+    if (!opener) {
+      continue;
+    }
+
+    const container: string | null = balancedBlockOrNull({
+      source: loginSource,
+      startIndex: index,
+      open: "{",
+      close: "}",
+    });
+
+    /* A sibling branch that closes before the needle is not its guard. */
+    if (container === null || index + container.length <= needleIndex) {
+      continue;
+    }
+
+    const found: GuardedBlock = {
+      guard: opener[1]!.trim(),
+      block: balancedBlockAt({
+        source: loginSource,
+        startIndex: index + opener[0].length - 1,
+        open: "(",
+        close: ")",
+        marker: needle,
+      }),
+    };
+
+    guardedBlockCache.set(needle, found);
+
+    return found;
+  }
+
+  throw new Error(`No JSX render branch guards: ${needle}`);
+};
+
+/*
+ * The five screens this file has an opinion about, named by something only
+ * each one contains.
+ */
+const METHOD_PICKER: string = 't("login.twoFactor.authenticatorApp")';
+const NO_CODES_SCREEN: string = 'data-testid="no-backup-codes"';
+const RECOVERY_FORM: string = 'id="two-factor-backup-code-form"';
+const SHOW_CODES_SCREEN: string = 'data-testid="backup-codes-list"';
+const OFFER_CODES_SCREEN: string = 'dataTestId="generate-backup-codes"';
+const LOST_ACCESS_LINK: string = 't("login.twoFactor.lostAccess")';
+const REGISTER_LINK: string = 't("login.registerLink")';
+const PASSWORD_FORM: string = 'id="login-form"';
+const TOTP_FORM: string = 'id="two-factor-auth-form"';
+const ENROLMENT_FORM: string = 'id="two-factor-enrolment-form"';
+
+/*
+ * `login(` but not `LoginUtil.login(`, which is the one legitimate call inside
+ * the `login` helper itself. Used to prove that the second-factor handlers
+ * hand off to `completeTwoFactorLogin` instead of redirecting straight past
+ * the screen that shows the freshly minted codes.
+ */
+const DIRECT_LOGIN_CALL: RegExp = /(^|[^.\w])login\(/;
 
 type DeclarationAfterFunction = (source: string, marker: string) => string;
 
 /*
  * ApiPaths.ts is a flat list of `export const X: URL = ...;` statements, so a
  * declaration is bounded by the next semicolon. Bounding matters: the file
- * mentions APP_API_URL twice for two neighbouring constants, and an unbounded
- * "does not use APP_API_URL" would fail on those instead of on this one.
+ * mentions APP_API_URL for two neighbouring constants and IDENTITY_URL for a
+ * dozen, and an unbounded "does not use APP_API_URL" would fail on somebody
+ * else's line instead of on this one.
  */
 const declarationAfter: DeclarationAfterFunction = (
   source: string,
@@ -278,54 +432,98 @@ const declarationAfter: DeclarationAfterFunction = (
   return source.slice(markerIndex, endIndex + 1);
 };
 
-const verifyBackupCodeDeclaration: string = declarationAfter(
-  apiPathsSource,
-  VERIFY_BACKUP_CODE_DECLARATION_MARKER,
-);
-
 /*
- * i18next's interpolation marker. None of these four strings is passed an
- * options object, so a placeholder appearing in one is rendered literally at a
- * user who is already locked out.
+ * i18next's interpolation marker. None of these strings is passed an options
+ * object, so a placeholder appearing in one is rendered literally at a user
+ * who is already locked out.
  */
 const INTERPOLATION_PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/;
 
-type TranslationKeysFunction = () => Array<string>;
+type TranslationKeysFunction = (branch: string) => Array<string>;
 
 /*
- * Every `t("login.twoFactor.<backup code key>")` the page asks for, derived
- * from the source rather than listed here -- so a key that is renamed stops
- * being looked up under its old name and starts being checked under its new
- * one without this file being edited, and the locale loops below cannot drift
- * into checking keys nothing renders.
+ * Every `t("login.<branch>.<key>")` the page asks for, derived from the source
+ * rather than listed here -- so a key that is renamed stops being looked up
+ * under its old name and starts being checked under its new one without this
+ * file being edited, and the locale loops below cannot drift into checking
+ * keys that nothing renders.
+ *
+ * Both branches matter now. `login.twoFactor` gained the recovery copy and
+ * `login.backupCodes` is an entirely new block of sixteen strings, every one
+ * of which is shown to somebody in the middle of signing in.
  */
-const backupCodeTranslationKeys: TranslationKeysFunction =
-  (): Array<string> => {
-    const keys: Set<string> = new Set<string>();
-    const pattern: RegExp =
-      /\bt\(\s*"(login\.twoFactor\.(?:useBackupCode|backupCode\w*))"/g;
+const translationKeysUsed: TranslationKeysFunction = (
+  branch: string,
+): Array<string> => {
+  const keys: Set<string> = new Set<string>();
+  const pattern: RegExp = new RegExp(
+    `\\bt\\(\\s*"(login\\.${branch}\\.[A-Za-z0-9]+)"`,
+    "g",
+  );
 
-    let match: RegExpExecArray | null = pattern.exec(loginSource);
+  let match: RegExpExecArray | null = pattern.exec(loginSource);
 
-    while (match) {
-      keys.add(match[1]!);
-      match = pattern.exec(loginSource);
-    }
+  while (match) {
+    keys.add(match[1]!);
+    match = pattern.exec(loginSource);
+  }
 
-    return [...keys].sort();
-  };
+  return [...keys].sort();
+};
+
+type AllUsedKeysFunction = () => Array<string>;
+
+const allUsedKeys: AllUsedKeysFunction = (): Array<string> => {
+  return [
+    ...translationKeysUsed("twoFactor"),
+    ...translationKeysUsed("backupCodes"),
+  ].sort();
+};
 
 /*
- * The four the feature added. Held as a constant AS WELL AS extracted, because
- * the two catch opposite mistakes: the extractor catches a key renamed in the
- * source, and this list catches a key silently DELETED from the source -- which
- * the extractor alone would report as "nothing to check" and pass.
+ * The recovery strings under `login.twoFactor`.
+ *
+ * Held as a constant AS WELL AS extracted, because the two catch opposite
+ * mistakes: the extractor catches a key renamed in the source, and this list
+ * catches a key silently DELETED from the source -- which the extractor alone
+ * would report as "nothing to check" and pass. Deleting
+ * `noBackupCodesInstruction` is exactly how the dead end comes back.
  */
-const NEW_KEYS: Array<string> = [
+const RECOVERY_KEYS: Array<string> = [
   "login.twoFactor.backupCodeFieldDescription",
   "login.twoFactor.backupCodeFieldTitle",
   "login.twoFactor.backupCodeInstruction",
-  "login.twoFactor.useBackupCode",
+  "login.twoFactor.confirmSubtitle",
+  "login.twoFactor.lostAccess",
+  "login.twoFactor.noBackupCodes",
+  "login.twoFactor.noBackupCodesInstruction",
+  "login.twoFactor.noBackupCodesStrong",
+  "login.twoFactor.recoverySubtitle",
+];
+
+/*
+ * The whole `login.backupCodes` block, which is new. Asserted as an EXACT list
+ * rather than a subset: this block exists only to be rendered by Login.tsx, so
+ * a key in the locales that the page never asks for is dead copy and a key the
+ * page asks for that is not here is a hole in the check below.
+ */
+const SAVE_CODE_KEYS: Array<string> = [
+  "login.backupCodes.continue",
+  "login.backupCodes.download",
+  "login.backupCodes.fileHeading",
+  "login.backupCodes.fileInstruction",
+  "login.backupCodes.generate",
+  "login.backupCodes.generateFailed",
+  "login.backupCodes.none",
+  "login.backupCodes.noneStrong",
+  "login.backupCodes.savedConfirmation",
+  "login.backupCodes.setUpSubtitle",
+  "login.backupCodes.setUpTitle",
+  "login.backupCodes.showOnce",
+  "login.backupCodes.showOnceStrong",
+  "login.backupCodes.skip",
+  "login.backupCodes.subtitle",
+  "login.backupCodes.title",
 ];
 
 /*
@@ -427,7 +625,7 @@ type FlattenLocaleFunction = (data: {
  * The Accounts locales are NESTED objects, not the flat "English string ->
  * translation" maps the Dashboard uses, so parity has to be compared on dotted
  * leaf paths. Comparing top-level keys only would call a locale that had lost
- * every string under `login.twoFactor` a perfect match.
+ * every string under `login.backupCodes` a perfect match.
  */
 const flattenLocaleKeys: FlattenLocaleFunction = (data: {
   node: unknown;
@@ -463,45 +661,49 @@ const localeKeys: LocaleKeysFunction = (code: string): Array<string> => {
   return flattenLocaleKeys({ node: readLocale(code), prefix: "" });
 };
 
-describe("the backup code screen was located in Login.tsx", () => {
+describe("every screen this file asserts on was located in Login.tsx", () => {
   /*
-   * Every assertion in this file is bounded by one of the blocks pulled out
-   * above. A marker that stopped matching would throw at module load rather
-   * than pass vacuously -- but a marker that matched the WRONG thing (the TOTP
-   * challenge branch, say, which is the next JSX sibling and has an almost
-   * identical shape) would not. These pin each extraction to text only the
-   * intended block contains.
+   * The extraction above is content-addressed and lazy, so a branch that has
+   * been renamed or removed fails here with the thing it could not find rather
+   * than reporting a misleading assertion failure twenty tests later. These
+   * also pin each extraction to the RIGHT branch: the four two-factor screens
+   * are JSX siblings inside one component with near-identical shapes, and a
+   * walker that latched onto the wrong one would make several checks below
+   * pass for the wrong reason.
    */
-  test("the recovery branch, the link gate and the route declaration were found", () => {
-    expect(loginSource.indexOf(BACKUP_CODE_SCREEN_MARKER)).toBeGreaterThan(-1);
-    expect(backupCodeScreen).toContain('id="two-factor-backup-code-form"');
-    expect(backupCodeScreen).toContain("API.post");
+  test("the five recovery-related branches are each found exactly once", () => {
+    expect(guardedBlockFor(METHOD_PICKER).block).toContain(
+      't("login.twoFactor.securityKey")',
+    );
+    expect(guardedBlockFor(NO_CODES_SCREEN).block).toContain(
+      't("login.twoFactor.noBackupCodesStrong")',
+    );
+    expect(guardedBlockFor(RECOVERY_FORM).block).toContain("API.post");
+    expect(guardedBlockFor(SHOW_CODES_SCREEN).block).toContain(
+      'data-testid="backup-code-value"',
+    );
+    expect(guardedBlockFor(OFFER_CODES_SCREEN).block).toContain(
+      't("login.backupCodes.skip")',
+    );
 
-    expect(loginSource.indexOf(LINK_GATE_MARKER)).toBeGreaterThan(-1);
-    expect(backupCodeLinkBlock).toContain("<Link");
-
-    expect(verifyBackupCodeDeclaration).toContain("addRoute");
+    /* One of each, so "this block does not contain X" is a real negative. */
+    expect(countOccurrences(loginSource, NO_CODES_SCREEN)).toBe(1);
+    expect(countOccurrences(loginSource, RECOVERY_FORM)).toBe(1);
+    expect(countOccurrences(loginSource, SHOW_CODES_SCREEN)).toBe(1);
+    expect(countOccurrences(loginSource, OFFER_CODES_SCREEN)).toBe(1);
   });
 
-  test("the recovery branch is the only place the backup code route is used", () => {
-    /*
-     * Twice: the import at the top of the file, and the single call site. A
-     * third occurrence would mean some other branch also posts recovery codes,
-     * and every bounded assertion below would stop covering all of them.
-     */
-    expect(countOccurrences(loginSource, "VERIFY_BACKUP_CODE_API_URL")).toBe(2);
-    expect(backupCodeScreen).toContain("VERIFY_BACKUP_CODE_API_URL");
-  });
-
-  test("the translation-key extractor found something", () => {
+  test("the translation-key extractor found both blocks", () => {
     /*
      * Paired with the locale loops below: a regex that stopped matching would
      * make "every key is translated in every locale" pass over an empty list.
-     * Exact rather than a floor, because the way this extractor actually breaks
-     * is partially -- one call hoisted into a variable drops one key out of the
-     * list while the other three still match.
      */
-    expect(backupCodeTranslationKeys().length).toBe(4);
+    expect(translationKeysUsed("twoFactor").length).toBeGreaterThanOrEqual(
+      RECOVERY_KEYS.length,
+    );
+    expect(translationKeysUsed("backupCodes").length).toBe(
+      SAVE_CODE_KEYS.length,
+    );
   });
 
   test("all sixteen locale files are being looked at", () => {
@@ -546,11 +748,21 @@ describe("VERIFY_BACKUP_CODE_API_URL points at the identity service", () => {
      * one on APP_API_URL would produce a URL that resolves, 401s, and only
      * does so for somebody who is already locked out.
      */
-    expect(verifyBackupCodeDeclaration).toMatch(
+    expect(
+      declarationAfter(
+        apiPathsSource,
+        "export const VERIFY_BACKUP_CODE_API_URL",
+      ),
+    ).toMatch(
       /export const VERIFY_BACKUP_CODE_API_URL: URL = URL\.fromURL\(\s*IDENTITY_URL,?\s*\)\.addRoute\(new Route\("\/verify-backup-code"\)\);/,
     );
 
-    expect(verifyBackupCodeDeclaration).not.toContain("APP_API_URL");
+    expect(
+      declarationAfter(
+        apiPathsSource,
+        "export const VERIFY_BACKUP_CODE_API_URL",
+      ),
+    ).not.toContain("APP_API_URL");
   });
 
   test("the path is exactly the route Authentication.ts registers", () => {
@@ -560,40 +772,106 @@ describe("VERIFY_BACKUP_CODE_API_URL points at the identity service", () => {
      * arrives at the page as an unparseable response rather than as a message
      * anybody can act on.
      */
-    expect(verifyBackupCodeDeclaration).toContain('"/verify-backup-code"');
     expect(countOccurrences(apiPathsSource, '"/verify-backup-code"')).toBe(1);
   });
 
   test("the negative above is not vacuous - APP_API_URL is still used in this file", () => {
     /*
-     * The WebAuthn *options* call genuinely is an APP_API_URL call. If the
-     * import were dropped, "the backup code URL does not use APP_API_URL"
-     * would start passing for the wrong reason.
+     * Two of its neighbours genuinely are APP_API_URL calls. If the import
+     * were dropped, "the backup code URL does not use APP_API_URL" would start
+     * passing for the wrong reason.
      */
     expect(apiPathsSource).toContain("GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL");
-    expect(apiPathsSource).toContain("APP_API_URL");
     expect(apiPathsSource).toContain(
       'import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";',
     );
   });
 });
 
+describe("GENERATE_BACKUP_CODES_API_URL is the one route here that needs a session", () => {
+  /*
+   * The mirror image of the block above, and the reason both are worth
+   * asserting: these constants sit four lines apart and one must be built on
+   * IDENTITY_URL while the other must be built on APP_API_URL.
+   *
+   * Minting codes is authenticated by the session cookie `finalizeUserLogin`
+   * has just set, which is exactly why the offer can only be made AFTER the
+   * second factor has been proved. Moving it to IDENTITY_URL would 404; moving
+   * the OFFER to the challenge screen would hand recovery codes to whoever is
+   * holding the password, which is the thing a second factor exists to stop.
+   */
+  test("it is declared in Utils/ApiPaths.ts and built on APP_API_URL", () => {
+    const declaration: string = declarationAfter(
+      apiPathsSource,
+      "export const GENERATE_BACKUP_CODES_API_URL",
+    );
+
+    expect(declaration).toMatch(
+      /export const GENERATE_BACKUP_CODES_API_URL: URL = URL\.fromURL\(\s*APP_API_URL,?\s*\)\.addRoute\(new Route\("\/user-two-factor-backup-code\/generate"\)\);/,
+    );
+
+    expect(declaration).not.toContain("IDENTITY_URL");
+  });
+
+  test("the path is the same route the profile card already mints through", () => {
+    expect(
+      countOccurrences(
+        apiPathsSource,
+        '"/user-two-factor-backup-code/generate"',
+      ),
+    ).toBe(1);
+  });
+
+  test("Login.tsx imports it from ApiPaths and posts to it exactly once", () => {
+    /*
+     * Twice in the file: the import and the single call site. Constructing the
+     * URL inline instead would put an APP_API_URL literal in a page that
+     * otherwise talks only to the identity service -- which is how the two
+     * hosts got confused in the first place.
+     */
+    expect(loginSource).toMatch(
+      /import \{[^}]*GENERATE_BACKUP_CODES_API_URL[^}]*\} from "\.\.\/Utils\/ApiPaths";/,
+    );
+    expect(countOccurrences(loginSource, "GENERATE_BACKUP_CODES_API_URL")).toBe(
+      2,
+    );
+    expect(loginSource).toMatch(
+      /await API\.post<JSONObject>\(\{\s*url: GENERATE_BACKUP_CODES_API_URL,/,
+    );
+  });
+
+  test("the generated set is read off the key the route answers with", () => {
+    /*
+     * Common/Server/API/UserTwoFactorBackupCodeAPI.ts answers
+     * `{ codes: [...] }`. Reading any other key yields an empty array, which
+     * the page reports as "no backup codes were returned" -- a failure message
+     * for a request that succeeded and DID mint a set, leaving the user with
+     * ten live codes they have never seen.
+     */
+    expect(loginSource).toContain('response.data["codes"]');
+  });
+});
+
 describe("the recovery form posts what the server reads", () => {
   test("it posts to the backup code route and to nothing else", () => {
-    expect(backupCodeScreen).toMatch(
+    const form: string = guardedBlockFor(RECOVERY_FORM).block;
+
+    expect(form).toMatch(
       /await API\.post\(\{\s*url: VERIFY_BACKUP_CODE_API_URL,/,
     );
 
     /*
-     * And not to either sibling. Both are imported into this file and both
+     * And not to any sibling. All of them are imported into this file and all
      * accept the same `...initialValues` body, so a copy-paste that left the
      * TOTP URL behind would send a recovery code to a route that ignores it
      * and answers "Invalid two factor auth id."
      */
-    expect(backupCodeScreen).not.toContain("VERIFY_TOTP_AUTH_API_URL");
-    expect(backupCodeScreen).not.toContain("VERIFY_TOTP_ENROLMENT_API_URL");
-    expect(backupCodeScreen).not.toContain("VERIFY_WEBAUTHN_AUTH_API_URL");
-    expect(countOccurrences(backupCodeScreen, "API.post")).toBe(1);
+    expect(form).not.toContain("VERIFY_TOTP_AUTH_API_URL");
+    expect(form).not.toContain("VERIFY_TOTP_ENROLMENT_API_URL");
+    expect(form).not.toContain("VERIFY_WEBAUTHN_AUTH_API_URL");
+    expect(form).not.toContain("GENERATE_BACKUP_CODES_API_URL");
+    expect(countOccurrences(form, "API.post")).toBe(1);
+    expect(countOccurrences(loginSource, "VERIFY_BACKUP_CODE_API_URL")).toBe(2);
   });
 
   test('the field name is "backupCode" on both sides of the form', () => {
@@ -606,8 +884,10 @@ describe("the recovery form posts what the server reads", () => {
      * as "Backup code is required" while they are looking at the code they just
      * typed.
      */
-    expect(backupCodeScreen).toMatch(/field:\s*\{\s*backupCode:\s*true,?\s*\}/);
-    expect(backupCodeScreen).toContain('backupCode: data["backupCode"]');
+    const form: string = guardedBlockFor(RECOVERY_FORM).block;
+
+    expect(form).toMatch(/field:\s*\{\s*backupCode:\s*true,?\s*\}/);
+    expect(form).toContain('backupCode: data["backupCode"]');
   });
 
   test("it re-submits the email and password, because there is no session yet", () => {
@@ -618,17 +898,17 @@ describe("the recovery form posts what the server reads", () => {
      * spread turns every recovery attempt into "Email and password are
      * required." on a screen with no email or password field on it.
      */
-    expect(backupCodeScreen).toContain("...initialValues");
+    const form: string = guardedBlockFor(RECOVERY_FORM).block;
+
+    expect(form).toContain("...initialValues");
 
     /*
      * And the spread comes FIRST. Spreading after the explicit key would let a
      * stale `backupCode` left in `initialValues` overwrite the one the user
      * just typed -- the object literal takes the last writer.
      */
-    const spreadIndex: number = backupCodeScreen.indexOf("...initialValues");
-    const codeIndex: number = backupCodeScreen.indexOf(
-      'backupCode: data["backupCode"]',
-    );
+    const spreadIndex: number = form.indexOf("...initialValues");
+    const codeIndex: number = form.indexOf('backupCode: data["backupCode"]');
 
     expect(spreadIndex).toBeGreaterThan(-1);
     expect(codeIndex).toBeGreaterThan(-1);
@@ -639,105 +919,400 @@ describe("the recovery form posts what the server reads", () => {
     /*
      * `API.post` RESOLVES an HTTPErrorResponse rather than rejecting on a
      * non-2xx. Without the instanceof check, a refused code falls through to
-     * `User.fromJSON` on an error body and `login()` is called with a user
+     * `User.fromJSON` on an error body and the sign-in completes with a user
      * that has no id -- the page navigates to a dashboard the server never
      * authorised and the user lands on a 401 with no explanation.
      */
-    expect(backupCodeScreen).toMatch(
+    const form: string = guardedBlockFor(RECOVERY_FORM).block;
+
+    expect(form).toMatch(
       /if \(result instanceof HTTPErrorResponse\)\s*\{\s*throw result;\s*\}/,
     );
 
-    const guardIndex: number = backupCodeScreen.indexOf(
+    const guardIndex: number = form.indexOf(
       "result instanceof HTTPErrorResponse",
     );
-    const loginIndex: number = backupCodeScreen.indexOf(
-      "login(user, miscData)",
-    );
+    const completeIndex: number = form.indexOf("completeTwoFactorLogin(");
 
     expect(guardIndex).toBeGreaterThan(-1);
-    expect(loginIndex).toBeGreaterThan(-1);
-    expect(guardIndex).toBeLessThan(loginIndex);
+    expect(completeIndex).toBeGreaterThan(-1);
+    expect(guardIndex).toBeLessThan(completeIndex);
   });
 });
 
-describe("the 'use a backup code' link is gated on there being codes", () => {
-  test("the link is rendered only when backupCodeCount > 0", () => {
+describe("the recovery link is offered to everyone, not only to accounts that have codes", () => {
+  test("its guard does not mention backupCodeCount at all", () => {
     /*
-     * Offering the recovery route to somebody with no codes sends them to a
-     * form whose only possible answer is "Invalid backup code." -- at the one
-     * moment they are least able to absorb it. The gate is the whole control:
-     * the link has no other guard.
+     * THE BUG, PINNED. `backupCodeCount` arrives from /login and, for as long
+     * as nothing minted codes at setup time, was 0 for essentially every
+     * account -- so a link gated on it rendered for essentially nobody, and
+     * the reporter's two-factor screen offered one unusable method and no way
+     * out. It is now allowed to decide what the recovery screen SAYS and
+     * nothing else.
+     *
+     * The guard is read out of the source rather than compared to a string, so
+     * this fails on ANY reintroduction of the count into the condition, not
+     * just on the exact spelling it had before.
      */
-    expect(backupCodeLinkBlock).toContain('t("login.twoFactor.useBackupCode")');
+    const guard: string = guardedBlockFor(LOST_ACCESS_LINK).guard;
 
-    /*
-     * Exactly once in the whole page, so the assertion above is not satisfied
-     * by a gated copy while an ungated one renders somewhere else.
-     */
-    expect(
-      countOccurrences(loginSource, 't("login.twoFactor.useBackupCode")'),
-    ).toBe(1);
+    expect(guard).not.toContain("backupCodeCount");
+    expect(guard).toContain("showTwoFactorAuth");
   });
 
-  test("clicking it opens the recovery form and clears the previous error", () => {
+  test("it is on the code-entry and security-key screens too, not just the picker", () => {
+    /*
+     * The screen the issue named is the code entry one: a box asking for a
+     * code the user cannot produce. The link used to live INSIDE the method
+     * picker, so that screen carried nothing but "select a different method",
+     * which returns the user to a list of the methods they have already said
+     * they cannot use.
+     *
+     * Naming either selection in the guard is how it gets confined to one
+     * screen again, so both are excluded; `!isUsingBackupCode` is required
+     * because the link must disappear on the screen it opens.
+     */
+    const guard: string = guardedBlockFor(LOST_ACCESS_LINK).guard;
+
+    expect(guard).not.toContain("selectedTotpAuth");
+    expect(guard).not.toContain("selectedWebAuthn");
+    expect(guard).toContain("!isUsingBackupCode");
+
+    /* One link, and it is not the picker's -- so the guard above is the only
+     * thing deciding whether any user ever sees it. */
+    expect(countOccurrences(loginSource, LOST_ACCESS_LINK)).toBe(1);
+    expect(guardedBlockFor(METHOD_PICKER).block).not.toContain(
+      LOST_ACCESS_LINK,
+    );
+  });
+
+  test("clicking it opens the recovery screen and clears the previous error", () => {
     /*
      * The error string is shared by all three challenge screens. Carrying "You
      * have entered an invalid code." over from the authenticator attempt would
      * greet the user with a failure they have not had yet.
      */
-    expect(backupCodeLinkBlock).toContain("setIsUsingBackupCode(true)");
-    expect(backupCodeLinkBlock).toContain('setTwoFactorAuthError("")');
+    const block: string = guardedBlockFor(LOST_ACCESS_LINK).block;
+
+    expect(block).toContain("<Link");
+    expect(block).toContain("setIsUsingBackupCode(true)");
+    expect(block).toContain('setTwoFactorAuthError("")');
   });
 
-  test("the count starts at zero and is only ever set from the /login response", () => {
+  test("the register prompt no longer competes with it", () => {
     /*
-     * The other half of the gate. A default of anything but 0 would render the
-     * link for every account on the first paint, before the server has said
-     * whether there is anything to spend -- including accounts that have never
-     * generated a code.
+     * "Don't have an account? Register." was, until this link existed, the
+     * only other thing on the screen for somebody who had just lost their
+     * phone -- and it is nonsense there, because they demonstrably have an
+     * account. Without `!showTwoFactorAuth` the two sit one above the other.
+     */
+    expect(guardedBlockFor(REGISTER_LINK).guard).toContain(
+      "!showTwoFactorAuth",
+    );
+  });
+
+  test("the count starts UNKNOWN and is only ever set from the /login response", () => {
+    /*
+     * `null`, not `0`, and the difference is a sentence the page says out
+     * loud. Zero is a claim -- it renders "you have no backup codes, ask an
+     * administrator to reset two factor authentication" -- and the server now
+     * OMITS the count when it could not read it. Defaulting to zero would put
+     * that claim in front of a user holding ten printed codes the moment a
+     * transient database fault made them uncountable, and send them to find an
+     * administrator instead of typing one in. Unknown has to behave like
+     * "there may be codes".
      */
     expect(loginSource).toContain(
-      "const [backupCodeCount, setBackupCodeCount] = React.useState<number>(0);",
+      "const [backupCodeCount, setBackupCodeCount] = React.useState<number | null>( null, );",
+    );
+
+    /* Only a real number is believed; anything else stays unknown. */
+    expect(loginSource).toMatch(
+      /setBackupCodeCount\(\s*typeof reportedBackupCodeCount === "number"\s*\? reportedBackupCodeCount\s*: null,?\s*\)/,
     );
 
     expect(loginSource).toMatch(
-      /setBackupCodeCount\(\s*Number\([\s\S]{0,120}?\["backupCodeCount"\]/,
+      /reportedBackupCodeCount[\s\S]{0,120}?\["backupCodeCount"\]/,
     );
 
-    /* One writer, so there is no second path that can turn the link on. */
+    /*
+     * And exactly one derivation decides "we KNOW there are none", so the two
+     * recovery branches cannot drift apart from each other.
+     */
+    expect(loginSource).toContain(
+      "const isKnownToHaveNoBackupCodes: boolean = backupCodeCount === 0;",
+    );
+
+    /* One writer, so there is no second path that can move it. */
     expect(countOccurrences(loginSource, "setBackupCodeCount(")).toBe(1);
   });
 
-  test("the picker offers a way back out of the recovery form", () => {
+  test("there is a way back out of the recovery screen", () => {
     /*
      * `isUsingBackupCode` hides the method picker while it is true, so the
      * "select a different method" link has to clear it as well as the two
-     * selections. Without that, somebody who opened this form by mistake
+     * selections. Without that, somebody who opened this screen by mistake
      * clicks "go back" and watches nothing happen.
      */
     expect(loginSource).toContain("setIsUsingBackupCode(false)");
     expect(loginSource).toMatch(
-      /selectedTotpAuth \|\| selectedWebAuthn \|\| isUsingBackupCode \?/,
+      /\(selectedTotpAuth \|\| selectedWebAuthn \|\| isUsingBackupCode\) \?/,
+    );
+
+    /*
+     * The clear and the two selections happen together, in the one handler.
+     * Clearing only the selections leaves `isUsingBackupCode` true, the picker
+     * hidden, and the recovery screen still on screen.
+     */
+    expect(loginSource).toMatch(
+      /setSelectedTotpAuth\(undefined\); setSelectedWebAuthn\(undefined\); setIsUsingBackupCode\(false\);/,
     );
   });
 });
 
-describe("the four new translations", () => {
-  test("the source asks for exactly the four keys this feature added", () => {
-    expect(backupCodeTranslationKeys()).toEqual(NEW_KEYS);
+describe("a user with no backup codes is told what to do instead", () => {
+  test("the zero branch renders the copy naming the administrator reset", () => {
+    /*
+     * THE OTHER HALF OF THE FIX. Ungating the link is only an improvement if
+     * there is something behind it for the account that has no codes -- and
+     * that account is the overwhelming majority. Without this branch the link
+     * leads to a card with nothing in it: a blank dead end, rendered without
+     * an error, which is strictly worse than the dead end being replaced.
+     *
+     * The instruction string is the one that carries the actual answer (ask an
+     * administrator to reset two factor auth), so its absence is the failure
+     * that matters most and it is asserted by name.
+     */
+    const screen: GuardedBlock = guardedBlockFor(NO_CODES_SCREEN);
+
+    expect(screen.guard).toContain("isKnownToHaveNoBackupCodes");
+    expect(screen.guard).toContain("isUsingBackupCode");
+    expect(screen.block).toContain('t("login.twoFactor.noBackupCodesStrong")');
+    expect(screen.block).toContain('t("login.twoFactor.noBackupCodes")');
+    expect(screen.block).toContain(
+      't("login.twoFactor.noBackupCodesInstruction")',
+    );
   });
 
-  test.each(NEW_KEYS)("%s exists in en.json", (key: string): void => {
-    const value: unknown = lookUpKeyInLocale({
-      locale: readLocale("en"),
-      key: key,
-    });
+  test("the two recovery branches partition the count, so the screen is never blank", () => {
+    /*
+     * One derived boolean and its exact negation, under otherwise identical
+     * conditions. Anything else -- a second clause on one side, a different
+     * comparison rebuilt inline on the other -- leaves a state in which the
+     * user has clicked "Lost access to your authenticator?" and been shown an
+     * empty card. Note which side "unknown" falls on: NOT the guidance, so a
+     * count the server could not read still offers the form.
+     */
+    const zeroGuard: string = guardedBlockFor(NO_CODES_SCREEN).guard;
+    const positiveGuard: string = guardedBlockFor(RECOVERY_FORM).guard;
 
-    expect(value).toEqual(expect.any(String));
-    expect((value as string).trim().length).toBeGreaterThan(0);
+    expect(zeroGuard).toMatch(/&&\s*isKnownToHaveNoBackupCodes$/);
+    expect(positiveGuard).toMatch(/&&\s*!isKnownToHaveNoBackupCodes$/);
+
+    const withoutCount: (guard: string) => string = (guard: string): string => {
+      return guard.replace(/&&\s*!?isKnownToHaveNoBackupCodes$/, "").trim();
+    };
+
+    expect(withoutCount(zeroGuard)).toBe(withoutCount(positiveGuard));
+    expect(withoutCount(zeroGuard).length).toBeGreaterThan(0);
   });
 
-  test("every locale carries all four, so no language falls back to a raw key", () => {
+  test("the recovery screen gets its own subtitle", () => {
+    /*
+     * "Select two factor authentication method" was printed over all four
+     * two-factor screens. On the recovery screen it tells somebody who has
+     * just said they cannot use their method to go and pick one, and on the
+     * commonest account there is -- a single factor -- nothing is being
+     * selected at all. Wrong copy on the one screen where the user is least
+     * able to guess what is being asked of them.
+     */
+    const heading: string = guardedBlockFor(
+      't("login.twoFactor.recoverySubtitle")',
+    ).block;
+
+    expect(heading).toMatch(
+      /isUsingBackupCode \? t\("login\.twoFactor\.recoverySubtitle"\)/,
+    );
+    expect(heading).toContain('t("login.twoFactor.confirmSubtitle")');
+  });
+});
+
+describe("codes the server mints are shown once, before anything redirects", () => {
+  test("the enrolment handler hands the misc bag on instead of discarding it", () => {
+    /*
+     * THE LITERAL `{}` THAT USED TO BE HERE. A forced enrolment now mints a
+     * set of recovery codes server-side and returns the PLAINTEXT in the misc
+     * bag of that one response -- the server stores keyed digests, so that
+     * array is the only copy of those codes that will ever exist anywhere.
+     *
+     * Passing `{}` compiles, renders, signs the user in, and leaves ten live
+     * codes on their account that no human being has ever seen. Nothing
+     * anywhere reports it.
+     */
+    const enrolment: string = guardedBlockFor(ENROLMENT_FORM).block;
+
+    expect(enrolment).toContain(
+      "const enrolmentMiscData: JSONObject = getMiscData(result);",
+    );
+    expect(enrolment).toMatch(
+      /completeTwoFactorLogin\(\s*user,\s*enrolmentMiscData,/,
+    );
+    expect(enrolment).not.toMatch(
+      /completeTwoFactorLogin\(\s*user\s*,\s*\{\s*\}\s*\)/,
+    );
+    expect(enrolment).not.toMatch(DIRECT_LOGIN_CALL);
+  });
+
+  test("every second-factor handler goes through completeTwoFactorLogin", () => {
+    /*
+     * Four call sites: the TOTP challenge, the security key, the backup code
+     * and the enrolment. Any one of them calling `login` directly skips the
+     * show-once screen for its path -- and for the enrolment path that means
+     * navigating away from the only copy of the codes.
+     */
+    expect(countOccurrences(loginSource, "completeTwoFactorLogin(")).toBe(4);
+    expect(guardedBlockFor(TOTP_FORM).block).toContain(
+      "completeTwoFactorLogin(",
+    );
+    expect(guardedBlockFor(TOTP_FORM).block).not.toMatch(DIRECT_LOGIN_CALL);
+    expect(guardedBlockFor(RECOVERY_FORM).block).not.toMatch(DIRECT_LOGIN_CALL);
+
+    /* The security key path is an effect rather than a JSX branch. */
+    expect(loginSource).toMatch(
+      /verifyResult instanceof HTTPErrorResponse[\s\S]{0,400}?completeTwoFactorLogin\(/,
+    );
+  });
+
+  test("the password-only path still signs in directly", () => {
+    /*
+     * An account with no two factor auth at all has no recovery codes to be
+     * missing, and prompting it for some would be prompting for a credential
+     * to a lock it does not have. It is also the path every non-2FA user in
+     * the product takes, so a stray prompt here is a prompt for everybody.
+     */
+    const passwordForm: string = guardedBlockFor(PASSWORD_FORM).block;
+
+    expect(passwordForm).toContain(
+      "login(value as User, miscData as JSONObject)",
+    );
+    expect(passwordForm).not.toContain("completeTwoFactorLogin");
+  });
+
+  test("continue is disabled until the user says they have saved the codes", () => {
+    /*
+     * There is no second showing. Not after a refresh, not from the dashboard,
+     * not from a master admin, not from a database dump. The tick box is the
+     * only thing between a user and losing ten codes by reflex on the screen
+     * whose entire purpose is that they are not lost.
+     *
+     * The count assertions matter: one Button and one `disabled=` in the
+     * block, so the guard cannot be satisfied by a second, ungated button
+     * sitting beside the one being checked.
+     */
+    const screen: GuardedBlock = guardedBlockFor(SHOW_CODES_SCREEN);
+
+    expect(screen.guard).toContain("pendingLogin");
+    expect(screen.guard).toContain("codesToSave.length > 0");
+
+    expect(screen.block).toContain('dataTestId="backup-codes-continue"');
+    expect(screen.block).toContain("disabled={!hasSavedCodes}");
+    expect(countOccurrences(screen.block, "<Button")).toBe(1);
+    expect(countOccurrences(screen.block, "disabled={")).toBe(1);
+
+    /* And the box is what moves it, rather than something the page sets. */
+    expect(screen.block).toContain('data-testid="backup-codes-saved-checkbox"');
+    expect(screen.block).toContain("checked={hasSavedCodes}");
+    expect(screen.block).toContain("setHasSavedCodes(event.target.checked)");
+  });
+
+  test("the codes are listed and downloadable, and only then is the login finished", () => {
+    /*
+     * Two ways to keep them because two different people lose them: the one
+     * who reads a grid of ten and clicks on without copying any, and the one
+     * who saves a file and never opens it.
+     *
+     * `login(...)` runs from the Continue handler and nowhere else in this
+     * block -- putting it anywhere else would redirect out of the screen while
+     * the codes are still on it.
+     */
+    const screen: string = guardedBlockFor(SHOW_CODES_SCREEN).block;
+
+    expect(screen).toContain("codesToSave.map(");
+    expect(screen).toContain('data-testid="backup-code-value"');
+    expect(screen).toContain('t("login.backupCodes.download")');
+    expect(screen).toContain("downloadBackupCodes()");
+    expect(screen).toContain("login(finished.user, finished.miscData)");
+  });
+
+  test("the offer made to an account with no codes is skippable", () => {
+    /*
+     * A prompt that could wedge a completed sign-in would be a worse bug than
+     * the one being fixed: the user has already proved their password AND
+     * their second factor, and the server has already issued the session. So
+     * "Skip for now" finishes the login immediately, and the generate button
+     * reports its own failure rather than blocking.
+     */
+    const screen: GuardedBlock = guardedBlockFor(OFFER_CODES_SCREEN);
+
+    expect(screen.guard).toContain("pendingLogin");
+    expect(screen.guard).toContain("codesToSave.length === 0");
+
+    expect(screen.block).toContain('t("login.backupCodes.skip")');
+    expect(screen.block).toContain("login(finished.user, finished.miscData)");
+    expect(screen.block).toContain("generateBackupCodes()");
+    expect(screen.block).toContain("generateBackupCodesError");
+  });
+
+  test("every pre-existing branch now stands down while a pending login is on screen", () => {
+    /*
+     * The show-once screen and the offer are drawn into the same card as the
+     * login form, the method picker, the two challenge forms and the enrolment
+     * form. Six branches had to learn about `pendingLogin`; a branch that did
+     * not would render its heading and its form OVER the codes -- which is not
+     * a crash, just a user reading "Select two factor authentication method"
+     * on top of the only copy of their recovery codes.
+     */
+    for (const needle of [
+      PASSWORD_FORM,
+      METHOD_PICKER,
+      TOTP_FORM,
+      ENROLMENT_FORM,
+      NO_CODES_SCREEN,
+      RECOVERY_FORM,
+    ]) {
+      expect(guardedBlockFor(needle).guard).toContain("!pendingLogin");
+    }
+  });
+});
+
+describe("the translations Login.tsx asks for", () => {
+  test("the source still asks for every recovery string this feature added", () => {
+    /*
+     * A subset check for `login.twoFactor`, which holds pre-existing keys too,
+     * and an exact one for `login.backupCodes`, which is entirely new: a key
+     * defined there and never rendered is dead copy, and a key rendered from
+     * there and not listed here is a hole in the locale loops below.
+     */
+    expect(translationKeysUsed("twoFactor")).toEqual(
+      expect.arrayContaining(RECOVERY_KEYS),
+    );
+    expect(translationKeysUsed("backupCodes")).toEqual(SAVE_CODE_KEYS);
+  });
+
+  test.each([...RECOVERY_KEYS, ...SAVE_CODE_KEYS])(
+    "%s exists in en.json",
+    (key: string): void => {
+      const value: unknown = lookUpKeyInLocale({
+        locale: readLocale("en"),
+        key: key,
+      });
+
+      expect(value).toEqual(expect.any(String));
+      expect((value as string).trim().length).toBeGreaterThan(0);
+    },
+  );
+
+  test("every locale carries every key the page renders", () => {
     /*
      * i18next renders the dotted path itself when a key resolves nowhere and
      * falls back to English when it resolves only in en.json. Both are silent.
@@ -754,7 +1329,7 @@ describe("the four new translations", () => {
     for (const code of ALL_LOCALES) {
       const locale: Record<string, unknown> = readLocale(code);
 
-      for (const key of backupCodeTranslationKeys()) {
+      for (const key of allUsedKeys()) {
         const value: unknown = lookUpKeyInLocale({ locale: locale, key: key });
 
         if (typeof value !== "string") {
@@ -771,14 +1346,14 @@ describe("the four new translations", () => {
     expect(violations).toEqual([]);
   });
 
-  test("none of the four smuggles in an interpolation placeholder", () => {
+  test("none of them smuggles in an interpolation placeholder", () => {
     /*
-     * These four strings take no options at all -- Login.tsx calls `t(key)`
-     * with nothing after it. A `{{count}}` introduced by a translator is
-     * rendered LITERALLY by i18next rather than erroring, so the user is shown
-     * `{{count}}` in the middle of the instruction telling them how to get
-     * back into their account. `{{count}}` specifically is worse still: it is
-     * i18next's plural trigger, and would send the lookup after `_one` /
+     * Every one of these strings takes no options at all -- Login.tsx calls
+     * `t(key)` with nothing after it. A `{{count}}` introduced by a translator
+     * is rendered LITERALLY by i18next rather than erroring, so the user is
+     * shown `{{count}}` in the middle of the instruction telling them how to
+     * get back into their account. `{{count}}` specifically is worse still: it
+     * is i18next's plural trigger, and would send the lookup after `_one` /
      * `_other` siblings this locale set does not define.
      */
     const violations: Array<string> = [];
@@ -786,7 +1361,7 @@ describe("the four new translations", () => {
     for (const code of ALL_LOCALES) {
       const locale: Record<string, unknown> = readLocale(code);
 
-      for (const key of backupCodeTranslationKeys()) {
+      for (const key of allUsedKeys()) {
         const value: unknown = lookUpKeyInLocale({ locale: locale, key: key });
 
         if (
@@ -801,31 +1376,37 @@ describe("the four new translations", () => {
     expect(violations).toEqual([]);
   });
 
-  test("the four sit under login.twoFactor, beside the keys they belong with", () => {
+  test("they sit under the two branches the page reads, in every locale", () => {
     /*
-     * Not decoration: `login.twoFactor` is the block the challenge screen
-     * reads, and a key filed under `login` directly (or under a new
-     * `login.backupCode` branch in one locale only) resolves to undefined in
-     * that locale while looking perfectly correct in the file.
+     * Not decoration: `login.twoFactor` and `login.backupCodes` are the blocks
+     * these lookups walk, and a key filed one level up (or under a
+     * `login.backupCode` singular typo in one locale only) resolves to
+     * undefined in that locale while looking perfectly correct in the file.
      */
     const violations: Array<string> = [];
 
     for (const code of ALL_LOCALES) {
-      const branch: unknown = lookUpKeyInLocale({
-        locale: readLocale(code),
-        key: "login.twoFactor",
-      });
+      for (const branch of ["login.twoFactor", "login.backupCodes"]) {
+        const node: unknown = lookUpKeyInLocale({
+          locale: readLocale(code),
+          key: branch,
+        });
 
-      if (typeof branch !== "object" || branch === null) {
-        violations.push(`${code}.json: login.twoFactor is not an object`);
-        continue;
-      }
+        if (typeof node !== "object" || node === null) {
+          violations.push(`${code}.json: ${branch} is not an object`);
+          continue;
+        }
 
-      for (const key of NEW_KEYS) {
-        const leaf: string = key.split(".").pop()!;
+        for (const key of [...RECOVERY_KEYS, ...SAVE_CODE_KEYS]) {
+          if (!key.startsWith(`${branch}.`)) {
+            continue;
+          }
 
-        if (!Object.prototype.hasOwnProperty.call(branch, leaf)) {
-          violations.push(`${code}.json: login.twoFactor.${leaf} is missing`);
+          const leaf: string = key.slice(branch.length + 1);
+
+          if (!Object.prototype.hasOwnProperty.call(node, leaf)) {
+            violations.push(`${code}.json: ${branch}.${leaf} is missing`);
+          }
         }
       }
     }
@@ -903,6 +1484,8 @@ describe("Accounts locale files stay in parity with en.json", () => {
      * leaf -- every assertion above would pass over nothing.
      */
     expect(localeKeys("en").length).toBeGreaterThan(50);
-    expect(localeKeys("en")).toEqual(expect.arrayContaining(NEW_KEYS));
+    expect(localeKeys("en")).toEqual(
+      expect.arrayContaining([...RECOVERY_KEYS, ...SAVE_CODE_KEYS]),
+    );
   });
 });

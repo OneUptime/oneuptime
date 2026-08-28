@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Bitte folgen Sie den Anweisungen auf Ihrem Sicherheitsschlüsselgerät.",
       "codeFieldDescription": "Geben Sie den Code aus Ihrer Authenticator-App ein",
       "selectDifferentMethod": "Wählen Sie eine andere Zwei-Faktor-Authentifizierungsmethode",
-      "useBackupCode": "Stattdessen einen Backup-Code verwenden",
       "backupCodeInstruction": "Geben Sie einen der Backup-Codes ein, die Sie beim Einrichten der Zwei-Faktor-Authentifizierung gespeichert haben. Jeder Code funktioniert nur einmal.",
       "backupCodeFieldTitle": "Backup-Code",
-      "backupCodeFieldDescription": "Backup-Codes sehen aus wie ABCDE-12345. Groß- und Kleinschreibung sowie der Bindestrich spielen keine Rolle."
+      "backupCodeFieldDescription": "Backup-Codes sehen aus wie ABCDE-12345. Groß- und Kleinschreibung sowie der Bindestrich spielen keine Rolle.",
+      "confirmSubtitle": "Bestätigen Sie, dass Sie es sind, um die Anmeldung abzuschließen.",
+      "recoverySubtitle": "Verwenden Sie einen Backup-Code oder erfahren Sie, wie Sie ohne Backup-Code wieder Zugriff erhalten.",
+      "lostAccess": "Keinen Zugriff mehr auf Ihre Authenticator-App?",
+      "noBackupCodesStrong": "Sie haben keine Backup-Codes.",
+      "noBackupCodes": "Es gibt keinen Code, den Sie hier eingeben können, da für dieses Konto nie welche erstellt wurden.",
+      "noBackupCodesInstruction": "Bitten Sie einen Administrator dieser OneUptime-Instanz, die Zwei-Faktor-Authentifizierung für Ihr Konto zurückzusetzen. Anschließend können Sie sich mit Ihrem Passwort anmelden und eine neue Authenticator-App einrichten. Dabei werden gleichzeitig Backup-Codes für Sie erstellt.",
+      "lostAccessSecurityKey": "Keinen Zugriff mehr auf Ihren Sicherheitsschlüssel?"
     },
     "twoFactorEnrolment": {
       "title": "Zwei-Faktor-Authentifizierung einrichten",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein.",
       "submitButton": "Bestätigen und anmelden",
       "backToSignIn": "Melden Sie sich als anderer Benutzer an"
+    },
+    "backupCodes": {
+      "title": "Speichern Sie Ihre Backup-Codes",
+      "subtitle": "Verwenden Sie einen davon zur Anmeldung, falls Sie einmal den Zugriff auf Ihre Authenticator-App oder Ihren Sicherheitsschlüssel verlieren.",
+      "showOnceStrong": "Dies ist das einzige Mal, dass diese Codes angezeigt werden.",
+      "showOnce": "Speichern Sie sie an einem anderen Ort als auf dem Gerät, das Ihre Codes generiert. Jeder Code kann nur einmal verwendet werden.",
+      "download": "Als Textdatei herunterladen",
+      "savedConfirmation": "Ich habe diese Codes an einem sicheren Ort gespeichert.",
+      "continue": "Weiter zum Dashboard",
+      "fileHeading": "OneUptime Backup-Codes für die Zwei-Faktor-Authentifizierung",
+      "fileInstruction": "Jeder Code kann nur einmal verwendet werden. Bewahren Sie diese Datei an einem sicheren Ort auf, getrennt von dem Gerät, auf dem Ihre Authenticator-App läuft.",
+      "setUpTitle": "Backup-Codes einrichten",
+      "setUpSubtitle": "Noch eine letzte Sache, bevor Sie fortfahren.",
+      "noneStrong": "Sie haben keine Backup-Codes.",
+      "none": "Wenn Sie Ihre Authenticator-App oder Ihren Sicherheitsschlüssel verlieren, muss ein Administrator die Zwei-Faktor-Authentifizierung zurücksetzen, bevor Sie sich wieder anmelden können.",
+      "generate": "Backup-Codes generieren",
+      "skip": "Vorerst überspringen",
+      "generateFailed": "Es wurden keine Backup-Codes zurückgegeben. Bitte versuchen Sie es erneut unter Benutzerprofil > Zwei-Faktor-Authentifizierung."
     }
   },
   "register": {

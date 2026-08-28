@@ -7,6 +7,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ServerException from "../../Types/Exception/ServerException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../Types/ObjectID";
@@ -156,6 +157,132 @@ export class Service extends DatabaseService<Model> {
          * rollback did not happen, not why the write did not.
          */
         logger.error(cleanupError);
+      }
+
+      throw err;
+    }
+
+    return codes;
+  }
+
+  /**
+   * Mint a set for a user who has none, and return the PLAINTEXT codes -- or
+   * report that they already had some and nothing was touched.
+   *
+   * This is what the enrolment paths call. Backup codes used to come into
+   * existence only when somebody found the card on their profile page and
+   * pressed a button, which meant that in practice nobody had any: the
+   * recovery route shipped, and the account that needed it was still offered
+   * no way in. Setting a second factor up is the moment the user is thinking
+   * about exactly this, so it is the moment the codes are made.
+   *
+   * WHY NOT JUST CALL `regenerateForUser`
+   *
+   * Because it REPLACES. Adding a second authenticator app, or a security key
+   * alongside a phone, is an enrolment too -- and running a regeneration on
+   * that would silently void the ten codes the user printed when they set the
+   * first one up. The count check is the whole point of this method: it mints
+   * for an account with no recovery route and is a no-op for an account that
+   * already has one.
+   *
+   * WHY IT WRITES WITHOUT DELETING FIRST
+   *
+   * `regenerateForUser` opens by deleting, which is right for a deliberate
+   * replacement and wrong here. Two enrolments completing at the same instant
+   * could both see a zero count; if the second one deleted, the codes the
+   * first one has already put on the user's screen would stop working while
+   * they were still reading them. Writing without deleting makes that race
+   * produce two live sets instead of one live set and one dead one -- more
+   * codes than intended, none of them a lie.
+   *
+   * For the same reason the compensating delete on a failed write removes only
+   * the rows THIS call created rather than everything the user has.
+   *
+   * @returns the plaintext codes when a set was minted, or null when the user
+   *          already had codes and nothing was written.
+   */
+  @CaptureSpan()
+  public async generateForUserIfNone(data: {
+    userId: ObjectID;
+    count?: number | undefined;
+  }): Promise<Array<string> | null> {
+    /*
+     * UNUSED codes, not all rows. The question this answers is "does this
+     * account have a way back in", and a user who has spent all ten of theirs
+     * does not -- they are in the state the profile card already flags in red.
+     * Counting spent rows as codes would mean the one account that most needs
+     * a fresh set at enrolment is the one guaranteed not to get one, which is
+     * the same shape of bug as the one this whole change exists to fix.
+     *
+     * The spent rows are left where they are. They cannot sign anybody in, and
+     * deleting them would put a destructive statement on a path whose entire
+     * safety argument is that it never removes anything.
+     */
+    const existing: number = await this.countUnusedForUser({
+      userId: data.userId,
+    });
+
+    if (existing > 0) {
+      return null;
+    }
+
+    const count: number = data.count || BackupCodeSetSize;
+    const codes: Array<string> = TwoFactorBackupCode.generateCodeSet(count);
+    const writtenIds: Array<ObjectID> = [];
+
+    try {
+      for (const code of codes) {
+        const backupCode: Model = new Model();
+        backupCode.userId = data.userId;
+        backupCode.codeHash = TwoFactorBackupCode.hashCode({
+          code: code,
+          userId: data.userId,
+        });
+
+        const written: Model = await this.create({
+          data: backupCode,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        /*
+         * A row that came back without an id is a row this call can no longer
+         * point at, so it fails the whole mint rather than being skipped.
+         *
+         * Skipping it looks harmless and is not: the id is the only handle the
+         * compensation below has, so a row missing from that list is a row
+         * that survives a later failure in this loop -- a code nobody has ever
+         * seen, counted by `getStatusForUser` as part of a recovery route that
+         * does not exist. Failing here at least removes everything written up
+         * to this point.
+         */
+        if (!written.id) {
+          throw new ServerException(
+            "Backup code was written without an id and cannot be tracked.",
+          );
+        }
+
+        writtenIds.push(written.id);
+      }
+    } catch (err) {
+      /*
+       * Same bargain as `regenerateForUser`: a partial set is worse than no
+       * set, because `getStatusForUser` would then report codes to somebody
+       * who has never seen one of them. Best-effort, and by id so a set
+       * written concurrently is not collateral.
+       */
+      for (const writtenId of writtenIds) {
+        try {
+          await this.deleteOneById({
+            id: writtenId,
+            props: {
+              isRoot: true,
+            },
+          });
+        } catch (cleanupError) {
+          logger.error(cleanupError);
+        }
       }
 
       throw err;

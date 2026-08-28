@@ -57,7 +57,34 @@ export interface BackupCodeStatus {
   generatedAt: Date | null;
 }
 
-const BackupCodes: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * A set the SERVER minted while the user was setting a factor up, handed
+   * down so this card can raise its show-once modal for it.
+   *
+   * Enrolment is where codes now come from -- verifying a first authenticator
+   * app or registering a first security key mints them, because a recovery
+   * route that has to be found and pressed for is a recovery route nobody
+   * has. That response is the only copy of the plaintext, so it cannot be
+   * re-fetched and it cannot be shown later: it has to be handed straight to
+   * the one component that already knows how to make a user acknowledge it.
+   *
+   * Empty or undefined means "nothing was minted" -- which is the normal case
+   * for a SECOND factor added to an account that already has codes.
+   */
+  codesFromEnrolment?: Array<string> | undefined;
+
+  /*
+   * Called once the user has ticked "I have saved these" and closed the modal,
+   * so the page can drop the codes it is holding. Without it the same set
+   * would be re-raised by the next render that passes them back in.
+   */
+  onEnrolmentCodesAcknowledged?: (() => void) | undefined;
+}
+
+const BackupCodes: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [status, setStatus] = React.useState<BackupCodeStatus | null>(null);
   const [isStatusLoading, setIsStatusLoading] = React.useState<boolean>(true);
   const [statusError, setStatusError] = React.useState<string>("");
@@ -116,6 +143,32 @@ const BackupCodes: FunctionComponent = (): ReactElement => {
   useAsyncEffect(async () => {
     await loadStatus();
   }, []);
+
+  /*
+   * Raise the modal for a set the enrolment just minted.
+   *
+   * Keyed on the JOINED codes rather than on the array itself: a new array
+   * with the same contents arrives on every render of the parent, and
+   * depending on the identity would re-open a modal the user has just
+   * acknowledged -- with the checkbox reset, on top of whatever they moved on
+   * to. Depending on the contents means the effect fires exactly once per
+   * distinct set.
+   *
+   * The status is re-read alongside so the card behind the modal stops saying
+   * "You have no backup codes" the moment it is closed.
+   */
+  const enrolmentCodesKey: string = (props.codesFromEnrolment || []).join(",");
+
+  useAsyncEffect(async () => {
+    if (!enrolmentCodesKey) {
+      return;
+    }
+
+    setHasSavedCodes(false);
+    setGeneratedCodes(props.codesFromEnrolment || []);
+
+    await loadStatus();
+  }, [enrolmentCodesKey]);
 
   type GenerateFunction = () => Promise<void>;
 
@@ -382,6 +435,10 @@ const BackupCodes: FunctionComponent = (): ReactElement => {
           onSubmit={() => {
             setGeneratedCodes(null);
             setHasSavedCodes(false);
+
+            if (props.onEnrolmentCodesAcknowledged) {
+              props.onEnrolmentCodesAcknowledged();
+            }
           }}
         >
           <div>

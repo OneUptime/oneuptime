@@ -47,10 +47,16 @@
       "securityKeyInstructions": "Volg de instructies op uw beveiligingssleutelapparaat.",
       "codeFieldDescription": "Voer de code in van uw authenticator-app",
       "selectDifferentMethod": "Selecteer een andere tweefactorauthenticatiemethode",
-      "useBackupCode": "Gebruik in plaats daarvan een back-upcode",
       "backupCodeInstruction": "Voer een van de back-upcodes in die u hebt opgeslagen bij het instellen van tweefactorauthenticatie. Elke code werkt slechts één keer.",
       "backupCodeFieldTitle": "Back-upcode",
-      "backupCodeFieldDescription": "Back-upcodes zien eruit als ABCDE-12345. Hoofdletters, kleine letters en het streepje maken niet uit."
+      "backupCodeFieldDescription": "Back-upcodes zien eruit als ABCDE-12345. Hoofdletters, kleine letters en het streepje maken niet uit.",
+      "confirmSubtitle": "Bevestig dat u het bent om het aanmelden te voltooien.",
+      "recoverySubtitle": "Gebruik een back-upcode of lees hoe u weer toegang krijgt zonder back-upcode.",
+      "lostAccess": "Geen toegang meer tot uw authenticator-app?",
+      "noBackupCodesStrong": "U hebt geen back-upcodes.",
+      "noBackupCodes": "Er is geen code die u hier kunt invoeren, omdat er voor dit account nooit een set is aangemaakt.",
+      "noBackupCodesInstruction": "Vraag een beheerder van deze OneUptime-instantie om tweefactorauthenticatie voor uw account te resetten. Daarna kunt u zich met uw wachtwoord aanmelden en een nieuwe authenticator-app instellen, en worden er tegelijkertijd back-upcodes voor u aangemaakt.",
+      "lostAccessSecurityKey": "Geen toegang meer tot uw beveiligingssleutel?"
     },
     "twoFactorEnrolment": {
       "title": "Tweefactorauthenticatie instellen",
@@ -59,6 +65,24 @@
       "codeFieldDescription": "Voer de zescijferige code in die uw authenticator-app toont.",
       "submitButton": "Verifiëren en aanmelden",
       "backToSignIn": "Meld u aan als een andere gebruiker"
+    },
+    "backupCodes": {
+      "title": "Sla uw back-upcodes op",
+      "subtitle": "Gebruik een van deze codes om u aan te melden als u ooit de toegang tot uw authenticator-app of beveiligingssleutel verliest.",
+      "showOnceStrong": "Dit is de enige keer dat deze codes worden getoond.",
+      "showOnce": "Bewaar ze op een andere plek dan het apparaat dat uw codes genereert. Elke code werkt slechts één keer.",
+      "download": "Downloaden als tekstbestand",
+      "savedConfirmation": "Ik heb deze codes op een veilige plek opgeslagen.",
+      "continue": "Doorgaan naar Dashboard",
+      "fileHeading": "OneUptime back-upcodes voor tweefactorauthenticatie",
+      "fileInstruction": "Elke code werkt slechts één keer. Bewaar dit bestand op een veilige plek en apart van het apparaat waarop uw authenticator-app draait.",
+      "setUpTitle": "Back-upcodes instellen",
+      "setUpSubtitle": "Nog één ding voordat u verdergaat.",
+      "noneStrong": "U hebt geen back-upcodes.",
+      "none": "Als u uw authenticator-app of beveiligingssleutel verliest, moet een beheerder tweefactorauthenticatie resetten voordat u zich weer kunt aanmelden.",
+      "generate": "Back-upcodes genereren",
+      "skip": "Voorlopig overslaan",
+      "generateFailed": "Er zijn geen back-upcodes ontvangen. Probeer het opnieuw via Gebruikersprofiel > Tweefactorauthenticatie."
     }
   },
   "register": {
