@@ -418,22 +418,48 @@ export default class URL extends DatabaseProperty {
     }
 
     /*
+     * The query and the fragment come off BEFORE the authority and the route
+     * are read off the string.
+     *
+     * Splitting on "/" first meant a "/" inside a QUERY VALUE was read as a
+     * path segment whenever the URL had no path of its own:
+     * "https://example.com?next=/a/b" parsed to a route of "a/b" and went back
+     * out as "https://example.com/a/b?next=/a/b" — a path nobody wrote, on a
+     * request the workflow API components dispatch verbatim. The authority was
+     * already cut at "?"/"#" and is unchanged by this, so the host stays the
+     * one the SSRF check upstream resolved; what moved was the path.
+     */
+    const beforeQuery: string = url.split("?")[0] || "";
+
+    /*
      * The authority ends at the first "/", "?" or "#". Splitting on "/" alone
      * left the query and fragment glued to the host for URLs with no path
      * ("https://host?token=x" parsed to a host of "host?token=x"), which both
      * round-tripped wrong and handed anything that later interpolated the
      * host a way to smuggle a path.
      */
-    const authority: string = (url.split("/")[0] || "").split(/[?#]/)[0] || "";
+    const authorityAndPath: string = beforeQuery.split("#")[0] || "";
+
+    /*
+     * A fragment is not a field on this type. It rides on the end of the route
+     * — which is where it has always ended up, because the route was cut at
+     * "?" and never at "#" — so "…/docs#section" keeps round-tripping instead
+     * of losing its "#section" to this change.
+     */
+    const fragment: string = beforeQuery.substring(authorityAndPath.length);
+
+    const authority: string = authorityAndPath.split("/")[0] || "";
 
     const hostname: Hostname = new Hostname(authority);
 
     let route: Route | undefined;
 
-    if (url.split("/").length > 1) {
-      const paths: Array<string> = url.split("/");
-      paths.shift();
-      route = new Route(paths.join("/").split("?")[0]);
+    const pathSegments: Array<string> = authorityAndPath.split("/");
+    pathSegments.shift(); // drop the authority; what is left is the path
+    const path: string = pathSegments.join("/");
+
+    if (path || fragment) {
+      route = new Route(path + fragment);
     }
 
     const queryString: string = URL.queryStringOf(url);
