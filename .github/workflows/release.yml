@@ -1908,6 +1908,20 @@ jobs:
       - name: Install syft
         uses: anchore/sbom-action/download-syft@v0
 
+      # Headroom for the docker-pull fallback in generate_sboms.sh. The fast
+      # path streams blobs and needs almost no disk, but home is a 7.86GB image
+      # whose single 7.4GB layer the registry reader cannot reliably get
+      # through; falling back means docker holds a copy while syft extracts its
+      # own. A stock runner does not have room for both, and running out would
+      # strand the release exactly the way the 429 did. These are the
+      # preinstalled toolchains -- this job needs only docker, syft and python3.
+      - name: Free runner disk space for large image scans
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          sudo docker image prune --all --force || true
+          df -h /
+
       - name: Generate CycloneDX SBOMs
         run: |
           bash ./Scripts/GHA/generate_sboms.sh \

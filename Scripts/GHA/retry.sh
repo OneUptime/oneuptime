@@ -95,12 +95,14 @@ retry_with_backoff() {
 # full backoff would turn a build that should go red in a minute into one that
 # grinds for the better part of an hour before reporting the same thing.
 #
-# Matched against the failing command's stderr. Every entry is a phrase a
-# registry or its transport emits for a condition that a later attempt can
-# plausibly clear — rate limits, availability blips, and connections dropped
-# mid-read. Bare status numbers are deliberately spelled out with their reason
-# phrase ("429 Too Many Requests", not "429") because these messages quote blob
-# digests, and a hex digest containing "429" would otherwise look retryable.
+# Matched case-insensitively against the failing command's stderr. Every entry
+# is a phrase a registry or its transport emits for a condition that a later
+# attempt can plausibly clear — rate limits, availability blips, and connections
+# dropped mid-read. Case-insensitive because the same condition is spelled
+# differently by each client: syft says "TOOMANYREQUESTS", docker says
+# "toomanyrequests". Bare status numbers are deliberately spelled out with their
+# reason phrase ("429 Too Many Requests", not "429") because these messages quote
+# blob digests, and a hex digest containing "429" would otherwise look retryable.
 RETRYABLE_REGISTRY_READ_ERRORS='TOOMANYREQUESTS|too many requests|429 Too Many Requests|rate limit|500 Internal Server Error|502 Bad Gateway|503 Service Unavailable|504 Gateway Time|connection reset|connection refused|unexpected EOF|i/o timeout|TLS handshake timeout|no such host|context deadline exceeded'
 
 # Seconds to wait before each retry, space separated; the count also sets the
@@ -149,7 +151,7 @@ retry_registry_read() {
 			return 0
 		fi
 
-		if ! grep -qE "$RETRYABLE_REGISTRY_READ_ERRORS" "$stderr_file"; then
+		if ! grep -qiE "$RETRYABLE_REGISTRY_READ_ERRORS" "$stderr_file"; then
 			echo "❌ ${description} failed on attempt ${attempt}/${max_attempts} (exit ${status}). Nothing in its output looks like a transient registry error, so retrying would not help." >&2
 			rm -f "$stderr_file"
 			return "$status"

@@ -171,6 +171,53 @@ scan_image() {
 		--output "cyclonedx-json=${out}"
 }
 
+# Fallback for an image the registry reader cannot get through.
+#
+# syft streams blobs with go-containerregistry, which restarts the whole read
+# when the registry shapes it. That is survivable for a small image and not for
+# a large one: release 12.0.27 burned all four attempts on the same blob of
+# home, which is a single 7.4GB layer in a 7.86GB image, while the smaller
+# images scanned either side of it succeeded — so this is throughput shaping on
+# one enormous blob, not an account-wide limit. syft has no knob for it; `syft
+# config` exposes registry auth and TLS and nothing about retries or timeouts.
+#
+# `docker pull` uses a different puller, one that retries and resumes each layer
+# rather than restarting the read from zero, which is what a throttled
+# multi-gigabyte download needs. So once the registry path is exhausted, pull the
+# image and scan it out of the local daemon instead.
+#
+# The image is removed immediately afterwards. home is ~8GB and this loop makes
+# 24 scans, so anything left behind would fill the runner.
+scan_image_via_docker() {
+	local ref="$1"
+	local platform="$2"
+	local out="$3"
+
+	rm -f "$out"
+
+	docker pull --platform "$platform" "$ref" || return 1
+
+	# A `docker:` source cannot be told which platform to read, so the pull is
+	# the only thing that selected it. Check what actually landed rather than
+	# trusting it: a mislabelled SBOM is worse than a missing one, which is why
+	# the registry path passes --platform in the first place. Anything other
+	# than a plain os/arch platform fails here rather than being assumed.
+	local got
+	got="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$ref")"
+	if [[ "$got" != "$platform" ]]; then
+		echo "docker pull of ${ref} returned ${got}, expected ${platform}" >&2
+		docker image rm "$ref" >/dev/null 2>&1 || true
+		return 1
+	fi
+
+	local status=0
+	syft "docker:${ref}" --output "cyclonedx-json=${out}" || status=$?
+
+	docker image rm "$ref" >/dev/null 2>&1 || true
+
+	return "$status"
+}
+
 for image in "${IMAGES[@]}"; do
 	ref="${REGISTRY}/${image}:${SANITIZED_VERSION}"
 
@@ -187,8 +234,27 @@ for image in "${IMAGES[@]}"; do
 		# of every layer of every image, which is enough to trip GHCR's rate
 		# limiter. See Scripts/GHA/retry.sh — the retry is conditional, so a
 		# tag that genuinely is not there still fails on the first attempt.
-		if ! retry_registry_read "SBOM scan of ${ref} (${platform})" \
+		scanned=false
+
+		if retry_registry_read "SBOM scan of ${ref} (${platform})" \
 			scan_image "$ref" "$platform" "$out"; then
+			scanned=true
+		elif command -v docker >/dev/null 2>&1; then
+			# Last chance before this failure strands the release. A tag that
+			# genuinely is not there fails again here, quickly, and logs a
+			# second clear error rather than a misleading one.
+			echo "↪ Registry read did not get through; retrying ${ref} (${platform}) via docker pull." >&2
+			df -h / | tail -1 | awk '{print "   runner disk: " $4 " free of " $2}' >&2
+
+			if retry_registry_read "docker-pull SBOM scan of ${ref} (${platform})" \
+				scan_image_via_docker "$ref" "$platform" "$out"; then
+				scanned=true
+			fi
+		else
+			echo "↪ docker is not on PATH, so the pull fallback is unavailable." >&2
+		fi
+
+		if [[ "$scanned" != "true" ]]; then
 			echo "❌ Failed to generate SBOM for ${ref} (${platform})" >&2
 			rm -f "$out"
 			FAILED+=("${image}/${platform}")
