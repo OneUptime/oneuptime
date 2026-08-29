@@ -179,9 +179,11 @@ describe("OtelIngestBaseService.shouldCreateServiceRow (phantom-service gate)", 
   });
 
   test("THE BUG - returns false for a OneUptime agent kubeletstats batch (issue #3468)", () => {
-    // configmap-daemonset.yaml stamps service.name = "kubernetes-agent-<cluster>"
-    // (upsert) on every kubeletstats / hostmetrics batch, plus k8s.cluster.name
-    // and oneuptime.agent.version; k8sattributes adds k8s.node.name.
+    /*
+     * configmap-daemonset.yaml stamps service.name = "kubernetes-agent-<cluster>"
+     * (upsert) on every kubeletstats / hostmetrics batch, plus k8s.cluster.name
+     * and oneuptime.agent.version; k8sattributes adds k8s.node.name.
+     */
     const attrs: JSONArray = [
       stringAttr("service.name", "kubernetes-agent-wbmonclusk8"),
       stringAttr("k8s.cluster.name", "wbmonclusk8"),
@@ -199,8 +201,10 @@ describe("OtelIngestBaseService.shouldCreateServiceRow (phantom-service gate)", 
   });
 
   test("THE BUG - returns false for a workload-named kubeletstats batch (issue #3468)", () => {
-    // configmap-daemonset.yaml's transform processor overwrites service.name
-    // with the deployment name while the metric families stay k8s.* infra.
+    /*
+     * configmap-daemonset.yaml's transform processor overwrites service.name
+     * with the deployment name while the metric families stay k8s.* infra.
+     */
     const attrs: JSONArray = [
       stringAttr("service.name", "pd-jas"),
       stringAttr("k8s.cluster.name", "wbmonclusk8"),
@@ -236,8 +240,10 @@ describe("OtelIngestBaseService.shouldCreateServiceRow (phantom-service gate)", 
   });
 
   test("control cases from the reproduction remain intact", () => {
-    // OneUptime agent hostmetrics batch (system.* families) - flagged infra,
-    // agent marker present, host signal present => no Service row.
+    /*
+     * OneUptime agent hostmetrics batch (system.* families) - flagged infra,
+     * agent marker present, host signal present => no Service row.
+     */
     const hostAttrs: JSONArray = [
       stringAttr("os.type", "linux"),
       stringAttr("host.name", "web-1.internal"),
