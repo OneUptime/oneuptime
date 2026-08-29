@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Locator, Page, expect } from "@playwright/test";
 import URL from "Common/Types/API/URL";
@@ -52,17 +53,17 @@ export interface SessionReplayChunkOptions {
   identifiedUserRef?: string;
 }
 
-/* 32 lowercase hex, matching SessionId.generateId(). */
+/*
+ * 32 lowercase hex, matching what SessionId.generateId() mints in the
+ * browser - 16 bytes from a CSPRNG, not Math.random(). The recorder uses
+ * crypto.getRandomValues for the same reason a session id is not guessable,
+ * and a fixture that generated ids a different way would be testing a
+ * different shape of value.
+ */
 type HexIdFunction = () => string;
 
 export const hexId: HexIdFunction = (): string => {
-  let out: string = "";
-
-  while (out.length < 32) {
-    out += Math.floor(Math.random() * 16).toString(16);
-  }
-
-  return out;
+  return crypto.randomBytes(16).toString("hex");
 };
 
 type PostSessionReplayChunkFunction = (
