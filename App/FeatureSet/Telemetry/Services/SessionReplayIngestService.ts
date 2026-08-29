@@ -4,6 +4,7 @@ import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
@@ -873,6 +874,11 @@ export default class SessionReplayIngestService {
      */
     const payload: string = JSON.stringify(data.events);
 
+    const chunkUrl: string = UrlScrubber.scrub(envelope.url, []);
+
+    const chunkRoutes: Array<string> =
+      SessionReplayIngestService.buildChunkRoutes(envelope.routes, chunkUrl);
+
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: OneUptimeDate.toClickhouseDateTime(
@@ -931,18 +937,74 @@ export default class SessionReplayIngestService {
       errorClickCount: envelope.signals.errorClickCount,
       refreshRageCount: envelope.signals.refreshRageCount,
       routeCount: envelope.signals.routeCount,
+
+      /*
+       * RE-SCRUBBED SERVER SIDE, for the same reason the header's URLs are
+       * (see buildProvisionalHeaderRow): the recorder scrubs, but a stale
+       * bundle or a hand-crafted POST with a scraped ingestion key does not,
+       * and these columns render under the WIDER session-metadata ACL than
+       * the payload.
+       *
+       * `routes` falls back to the chunk's own URL so a recorder built
+       * before the field existed still contributes to the session's route
+       * list rather than silently contributing nothing.
+       */
+      url: chunkUrl,
+      routes: chunkRoutes,
+
       retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
     };
   }
 
   /*
+   * The distinct, scrubbed URLs this chunk covers.
+   *
+   * Order is chronological, though nothing downstream depends on it: the
+   * finalizer derives exitUrl from the scalar `url` column with argMaxIf,
+   * and sorts the route union in SQL because routes[] is a membership set
+   * that has to be byte-identical across re-finalizations.
+   *
+   * Always non-empty when the chunk has a URL at all, because a route list
+   * that omitted the page the chunk was flushed from would make a session
+   * that never navigates report no routes.
+   */
+  private static buildChunkRoutes(
+    envelopeRoutes: Array<string> | undefined,
+    chunkUrl: string,
+  ): Array<string> {
+    const seen: Set<string> = new Set<string>();
+    const routes: Array<string> = [];
+
+    for (const route of envelopeRoutes || []) {
+      const scrubbed: string = UrlScrubber.scrub(route, []);
+
+      if (!scrubbed || seen.has(scrubbed)) {
+        continue;
+      }
+
+      seen.add(scrubbed);
+      routes.push(scrubbed);
+    }
+
+    if (chunkUrl && !seen.has(chunkUrl)) {
+      routes.push(chunkUrl);
+    }
+
+    return routes;
+  }
+
+  /*
    * Provisional header, written once per session from chunk 0.
    *
-   * isFinalized is false and every aggregate is zero on purpose. The
-   * finalizer replaces this row with one authoritative version computed by a
-   * single GROUP BY over the chunk table's own key range - exact, idempotent
-   * and race-free, which per-chunk increments onto a ReplacingMergeTree
-   * could never be.
+   * isFinalized is false, and the aggregates that need every chunk to be
+   * correct (duration, chunk and event counts, payload bytes) are zero on
+   * purpose. The ones chunk 0 already knows - its own signal counters, its
+   * URLs and its route list - are seeded, because a row that under-claims
+   * for the 10-15 minutes before finalization sends people looking in the
+   * wrong place. The finalizer replaces this row wholesale with one
+   * authoritative version computed by a single GROUP BY over the chunk
+   * table's own key range - exact, idempotent and race-free, which per-chunk
+   * increments onto a ReplacingMergeTree could never be.
    */
   private static buildProvisionalHeaderRow(data: {
     projectId: ObjectID;
@@ -983,6 +1045,38 @@ export default class SessionReplayIngestService {
       [],
     );
 
+    /*
+     * End-user identity, when the application asked for it.
+     *
+     * The recorder only puts identifiedUserRef on the wire when the policy
+     * has captureUserIdentity on (see Recorder.buildMeta), so an absent ref
+     * is the normal case and both columns stay empty. The policy is checked
+     * again here anyway: the recorder's copy of the policy can be up to a
+     * config-cache TTL stale, and a hand-crafted POST is not bound by it at
+     * all, so the server must not store a label for an application that has
+     * identity capture switched off.
+     *
+     * The key is an HMAC so the column is searchable and erasable without
+     * being a directory of the customer's users; the label is the raw
+     * reference and carries its own narrower column ACL.
+     */
+    const userRef: unknown = envelope.meta?.identifiedUserRef;
+
+    const hasUsableUserRef: boolean =
+      data.policy.captureUserIdentity &&
+      SessionReplayIdentity.isUsableUserRef(userRef);
+
+    const identifiedUserKey: string = hasUsableUserRef
+      ? SessionReplayIdentity.buildUserKey({
+          projectId: data.projectId,
+          userRef: userRef as string,
+        })
+      : "";
+
+    const identifiedUserLabel: string = hasUsableUserRef
+      ? SessionReplayIdentity.buildUserLabel(userRef as string)
+      : "";
+
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: OneUptimeDate.toClickhouseDateTime(
@@ -1018,12 +1112,26 @@ export default class SessionReplayIngestService {
       viewportWidth: envelope.meta?.viewportWidth ?? 0,
       viewportHeight: envelope.meta?.viewportHeight ?? 0,
       clockSkewMs: Math.trunc(data.clockSkewMs).toString(),
-      errorCount: 0,
-      rageClickCount: 0,
-      deadClickCount: 0,
-      errorClickCount: 0,
-      refreshRageCount: 0,
-      pageCount: 0,
+      /*
+       * Seeded from chunk 0's own signals rather than zeroed.
+       *
+       * These are provisional - the finalizer replaces the whole row with a
+       * GROUP BY over every chunk, so there is no lost-update risk in
+       * writing them here - but zeroing them made the list contradict
+       * itself for the 10-15 minutes before finalization: the same row
+       * literal set hasError from envelope.signals.errorCount while
+       * errorCount stayed 0, so a session WAS returned by the "With errors"
+       * tab and its Signals cell read "Clean". "With frustration" had the
+       * inverse problem: a session captured BECAUSE of a rage click was
+       * excluded from the tab named after it, which is exactly when someone
+       * is looking - during the incident.
+       */
+      errorCount: envelope.signals.errorCount,
+      rageClickCount: envelope.signals.rageClickCount,
+      deadClickCount: envelope.signals.deadClickCount,
+      errorClickCount: envelope.signals.errorClickCount,
+      refreshRageCount: envelope.signals.refreshRageCount,
+      pageCount: envelope.signals.routeCount,
       browserName: envelope.meta?.browserName ?? "",
       browserVersion: envelope.meta?.browserVersion ?? "",
       osName: envelope.meta?.osName ?? "",
@@ -1040,20 +1148,34 @@ export default class SessionReplayIngestService {
       ),
       entryUrl: entryUrl,
       exitUrl: exitUrl,
-      routes: exitUrl ? [exitUrl] : [],
+      /*
+       * Chunk 0's real route list, not just its flush URL.
+       *
+       * The header is not rewritten until the finalizer runs, so a one-entry
+       * list here made the "Page URL visited (exact)" filter miss a page the
+       * user demonstrably reached for the whole 10-15 minute provisional
+       * window - on the same row that reported pageCount 2, which is the
+       * kind of self-contradiction the seeded signal counters above exist to
+       * remove. The finalizer still replaces this with the union across
+       * every chunk of every tab.
+       */
+      routes: SessionReplayIngestService.buildChunkRoutes(
+        envelope.routes,
+        exitUrl,
+      ),
       /*
        * Country only, derived from the forwarded address by the route.
        * The IP itself is never stored.
        */
       countryCode: data.policy.captureGeo ? data.jobData.countryCode : "",
       /*
-       * identifiedUserKey / identifiedUserLabel are left empty here. The
-       * HMAC needs the per-project salt and the label needs its own column
-       * ACL, so both belong to the identity path rather than the hot ingest
-       * path.
+       * Derived above. This runs once per session - the header is written
+       * only under `chunkIndex === 0` - so it is one SHA-256 over at most
+       * SESSION_REPLAY_MAX_USER_REF_LENGTH bytes per recording, not per
+       * chunk.
        */
-      identifiedUserKey: "",
-      identifiedUserLabel: "",
+      identifiedUserKey: identifiedUserKey,
+      identifiedUserLabel: identifiedUserLabel,
       traceIds: envelope.traceIds ?? [],
       exceptionFingerprints: [],
       fidelityNotices: envelope.fidelityNotices,

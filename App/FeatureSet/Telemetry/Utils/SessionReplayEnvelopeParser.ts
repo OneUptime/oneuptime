@@ -2,6 +2,7 @@ import {
   MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   MAX_SESSION_REPLAY_CHUNK_BYTES,
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayChunkMeta,
@@ -52,6 +53,14 @@ const MAX_URL_LENGTH: number = 2048;
 const MAX_VERSION_STRING_LENGTH: number = 32;
 const MAX_FIDELITY_NOTICES: number = 32;
 const MAX_TRACE_IDS: number = 64;
+
+/*
+ * Mirrors MAX_ROUTES_PER_CHUNK in the recorder's Chunker. Kept a little
+ * higher than the client cap so a legitimate client is never truncated by
+ * the parser - the parser's job here is to bound a hostile envelope, not to
+ * second-guess the recorder.
+ */
+const MAX_ROUTES: number = 64;
 const MAX_TRACE_ID_LENGTH: number = 64;
 const MAX_META_STRING_LENGTH: number = 128;
 
@@ -365,6 +374,23 @@ export default class SessionReplayEnvelopeParser {
         envelope.traceIds = traceIds;
       }
 
+      /*
+       * Optional and additive: a recorder built before this field existed
+       * simply sends none, and the ingest falls back to `url`. Capped and
+       * length-limited like every other array on the wire, because the
+       * envelope is attacker-controllable - a scraped ingestion key is a
+       * public credential by design.
+       */
+      const routes: Array<string> = this.readStringArray(
+        raw["routes"],
+        MAX_ROUTES,
+        MAX_URL_LENGTH,
+      );
+
+      if (routes.length > 0) {
+        envelope.routes = routes;
+      }
+
       frames.push({
         envelope: envelope,
         payload: body.subarray(payloadStart, payloadEnd),
@@ -524,9 +550,25 @@ export default class SessionReplayEnvelopeParser {
       viewportHeight: this.readNonNegativeInteger(raw["viewportHeight"]),
     };
 
+    /*
+     * Capped at SESSION_REPLAY_MAX_USER_REF_LENGTH, not at the 128-byte cap
+     * the device strings beside it use.
+     *
+     * This value has to survive a round trip that the other meta fields do
+     * not. The recorder slices the CONFIG request's user-ref header to
+     * exactly this length and the targeting handshake hashes it there, while
+     * on the chunk path this truncation is the only bound - so the two paths
+     * agree only if both cut at the same place. Truncating further HERE
+     * would silently make the stored key the HMAC of a different string than
+     * the one a dashboard lookup or an erasure request hashes: a long
+     * reference (a signed customer id, a namespaced email) would file
+     * recordings under a key nothing can ever resolve, and a
+     * right-to-erasure request naming that person would under-delete without
+     * erroring.
+     */
     const identifiedUserRef: string = this.readString(
       raw["identifiedUserRef"],
-      MAX_META_STRING_LENGTH,
+      SESSION_REPLAY_MAX_USER_REF_LENGTH,
     );
 
     if (identifiedUserRef) {

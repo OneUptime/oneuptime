@@ -16,7 +16,7 @@ export interface SessionReplayAdvancedFilters {
   osName: string;
   deviceType: string;
   countryCode: string;
-  identifiedUserKey: string;
+  identifiedUserRef: string;
   route: string;
   minDurationSeconds: string;
   triggerReason: string;
@@ -27,7 +27,7 @@ export const EMPTY_ADVANCED_FILTERS: SessionReplayAdvancedFilters = {
   osName: "",
   deviceType: "",
   countryCode: "",
-  identifiedUserKey: "",
+  identifiedUserRef: "",
   route: "",
   minDurationSeconds: "",
   triggerReason: "",
@@ -43,16 +43,22 @@ export const SESSION_REPLAY_SIGNALS: Array<string> = [
  * Filter state <-> URL query string keys. Persisted so back-navigation
  * from a replay restores the triage the viewer had built, and so a
  * filtered list is a shareable link.
+ *
+ * identifiedUserRef is deliberately ABSENT. It is the only filter whose
+ * value is a named end user of the customer's product - typically their
+ * email - and a query string reaches the operator's history and bookmarks,
+ * every shared link, and the request line in every reverse proxy and CDN
+ * access log in front of the instance. The filter still round-trips through
+ * the POST body; it just does not survive a reload, which is the right
+ * trade for the one field here that carries a third party's identity.
  */
-export const FILTER_URL_KEYS: Record<
-  keyof SessionReplayAdvancedFilters,
-  string
+export const FILTER_URL_KEYS: Partial<
+  Record<keyof SessionReplayAdvancedFilters, string>
 > = {
   browserName: "browser",
   osName: "os",
   deviceType: "device",
   countryCode: "country",
-  identifiedUserKey: "userKey",
   route: "route",
   minDurationSeconds: "minDuration",
   triggerReason: "trigger",
@@ -103,8 +109,12 @@ export function buildSessionReplayListFilters(
       filters["countryCodes"] = [advanced.countryCode.trim().toUpperCase()];
     }
 
-    if (advanced.identifiedUserKey.trim()) {
-      filters["identifiedUserKey"] = advanced.identifiedUserKey.trim();
+    if (advanced.identifiedUserRef.trim()) {
+      /*
+       * The reference, not the digest: the server hashes it with the
+       * per-project derivation the ingest used. See SessionReplayIdentity.
+       */
+      filters["identifiedUserRef"] = advanced.identifiedUserRef.trim();
     }
 
     if (advanced.route.trim()) {
@@ -136,7 +146,14 @@ export function readFiltersFromSearch(search: string): {
   for (const field of Object.keys(FILTER_URL_KEYS) as Array<
     keyof SessionReplayAdvancedFilters
   >) {
-    advanced[field] = params.get(FILTER_URL_KEYS[field]) || "";
+    const key: string | undefined = FILTER_URL_KEYS[field];
+
+    /* Fields deliberately kept out of the URL - see FILTER_URL_KEYS. */
+    if (!key) {
+      continue;
+    }
+
+    advanced[field] = params.get(key) || "";
   }
 
   const signal: string = params.get("signal") || "all";
@@ -168,12 +185,18 @@ export function buildFilteredUrl(
   for (const field of Object.keys(FILTER_URL_KEYS) as Array<
     keyof SessionReplayAdvancedFilters
   >) {
+    const key: string | undefined = FILTER_URL_KEYS[field];
+
+    if (!key) {
+      continue;
+    }
+
     const value: string = advanced[field].trim();
 
     if (value) {
-      url.searchParams.set(FILTER_URL_KEYS[field], value);
+      url.searchParams.set(key, value);
     } else {
-      url.searchParams.delete(FILTER_URL_KEYS[field]);
+      url.searchParams.delete(key);
     }
   }
 

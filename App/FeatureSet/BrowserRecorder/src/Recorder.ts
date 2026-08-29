@@ -39,7 +39,7 @@ import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
 import PerformanceRecorder, { PerformanceIssue } from "./PerformanceRecorder";
 import RollingBuffer, { BufferedEvent } from "./RollingBuffer";
-import RouteRecorder from "./RouteRecorder";
+import RouteRecorder, { RecordedRoute } from "./RouteRecorder";
 import SessionId, { SessionIdentityState } from "./SessionId";
 import Transport from "./Transport";
 
@@ -215,6 +215,13 @@ export default class Recorder {
    */
   private lastUserActivityUnixMs: number = 0;
   private lastTouchedUnixMs: number = 0;
+
+  /*
+   * Scrubbed URL this recorder started on. Set once in start() so the
+   * envelope's meta.entryUrl stays the ENTRY url even on the final chunk,
+   * which is also built from meta.
+   */
+  private entryUrl: string = "";
 
   /* Drained into the ErrorRecorder once, at the end of start(). */
   private earlyErrors: Array<EarlyErrorRecord>;
@@ -392,8 +399,15 @@ export default class Recorder {
       scrubUrl: (url: string): string => {
         return this.scrubUrl(url);
       },
-      onRouteChange: (atUnixMs: number): void => {
+      onRouteChange: (atUnixMs: number, route: RecordedRoute): void => {
         this.chunker.countSignal("routeCount");
+        /*
+         * The destination, already scrubbed by RouteRecorder. This is what
+         * turns the session header's routes[] column from "the URL of
+         * whichever chunk happened to be first" into the list of pages the
+         * user actually visited.
+         */
+        this.chunker.addRoute(route.to);
         this.frustrationDetector.notifyActivity(atUnixMs);
       },
       requestFullSnapshot: (): void => {
@@ -505,6 +519,23 @@ export default class Recorder {
     }
 
     this.started = true;
+
+    /*
+     * Captured once, here. Everything downstream that says "where did this
+     * recording begin" reads it, and the answer has to KEEP being true after
+     * the page navigates - which is why it is not re-read from
+     * location.href, and why rotateSession re-captures it for the new
+     * session rather than sharing this one.
+     */
+    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+
+    /*
+     * Seeds routes[] with the landing page. Without it a session that never
+     * navigates would report an empty route list while pageCount said 0 -
+     * technically consistent, and useless for "which pages did this person
+     * see".
+     */
+    this.chunker.addRoute(this.entryUrl);
 
     /*
      * A page load is itself activity. Without this seed a tab that loads and
@@ -1097,6 +1128,19 @@ export default class Recorder {
     this.identity = SessionId.resolveSession(nowUnixMs, this.identity.tabId);
     this.chunker = this.createChunker();
 
+    /*
+     * The ROTATED session began here, not where the page originally loaded.
+     *
+     * entryUrl is captured once in start() so the final chunk cannot
+     * overwrite the session header with the exit url - but a rollover mints
+     * a genuinely new session, and carrying the original page load's URL
+     * into it would report every rotated session as starting on a page its
+     * user left hours ago. The new chunker is re-seeded for the same reason:
+     * its routes list starts empty.
+     */
+    this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+    this.chunker.addRoute(this.entryUrl);
+
     this.lastUserActivityUnixMs = nowUnixMs;
     this.lastTouchedUnixMs = nowUnixMs;
 
@@ -1247,6 +1291,7 @@ export default class Recorder {
       payloadBytes: chunk.rawBytes,
 
       url: this.routeRecorder.getCurrentUrl(),
+      routes: chunk.routes,
       signals: chunk.signals,
       fidelityNotices: chunk.fidelityNotices,
       droppedEvents:
@@ -1282,7 +1327,16 @@ export default class Recorder {
       : "";
 
     const meta: SessionReplayChunkMeta = {
-      entryUrl: this.scrubUrl(this.windowRef.location.href),
+      /*
+       * The URL this recording STARTED on, captured once in start().
+       *
+       * This used to read location.href at build time, and meta rides both
+       * chunk 0 AND the final chunk - so on any page that navigates, the
+       * final chunk overwrote the session header's entryUrl with the EXIT
+       * url, and a session that began on "/" was filed as beginning wherever
+       * the user happened to stop.
+       */
+      entryUrl: this.entryUrl,
       browserName: Recorder.getBrowserName(userAgent),
       browserVersion: Recorder.getBrowserVersion(userAgent),
       osName: Recorder.getOsName(userAgent),

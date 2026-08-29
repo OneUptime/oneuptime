@@ -283,8 +283,22 @@ export default class CloudResource extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * Creatable, never updatable - see the identical note on
+   * RumApplication.appIdentifier. `create: []` on a required column that the
+   * Cloud Resources create form declares made manual creation impossible:
+   * the field was stripped from the form and the server then rejected the
+   * POST for the very value it had just removed.
+   */
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCloudResource,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -305,6 +319,8 @@ export default class CloudResource extends BaseModel {
     description:
       "Stable identifier for this managed-compute workload (service.name, falling back to host.name). Identity key for this resource.",
   })
+  /* Case-insensitive uniqueness; see RumApplication.appIdentifier. */
+  @UniqueColumnBy("projectId")
   @Column({
     nullable: false,
     type: ColumnType.ShortText,

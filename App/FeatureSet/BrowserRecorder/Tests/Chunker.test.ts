@@ -45,6 +45,165 @@ describe("Chunker", (): void => {
     };
   };
 
+  /*
+   * WHERE the page was while the chunk was open.
+   *
+   * routeCount already said HOW MANY navigations happened; without the URLs
+   * themselves the server could only ever see the page a chunk was FLUSHED
+   * from, so two navigations inside one 15s window collapsed to one and the
+   * session's routes[] column could never hold more than the landing page.
+   */
+  describe("routes", (): void => {
+    it("carries the routes recorded while the chunk was open", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addRoute("https://shop.example.com/");
+      chunker.add(event());
+      chunker.addRoute("https://shop.example.com/cart");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.routes).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+      ]);
+    });
+
+    it("keeps first-seen order, so the last entry is the chunk's exit page", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addRoute("https://shop.example.com/a");
+      chunker.addRoute("https://shop.example.com/b");
+      chunker.addRoute("https://shop.example.com/a");
+      chunker.addRoute("https://shop.example.com/c");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.routes).toEqual([
+        "https://shop.example.com/a",
+        "https://shop.example.com/b",
+        "https://shop.example.com/c",
+      ]);
+    });
+
+    /*
+     * Reset with the other per-chunk counters. The finalizer UNIONS routes
+     * across chunks, so carrying them forward would make every chunk after
+     * the first repeat the whole history for no gain.
+     */
+    it("resets per chunk, like the signal counters", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addRoute("https://shop.example.com/first");
+      chunker.add(event());
+      chunker.close(false);
+
+      chunker.addRoute("https://shop.example.com/second");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.routes).toEqual(["https://shop.example.com/first"]);
+      expect(chunks[1]?.routes).toEqual(["https://shop.example.com/second"]);
+    });
+
+    it("ignores an empty url rather than storing a blank route", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addRoute("");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.routes).toEqual([]);
+    });
+
+    /*
+     * A page that rewrites its path on every keystroke must not be able to
+     * grow one envelope without bound. routeCount still counts every change
+     * past the cap, so the signal is not lost - only the list is bounded.
+     */
+    it("caps the number of distinct routes it will carry", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let index: number = 0; index < 200; index++) {
+        chunker.addRoute(`https://shop.example.com/step-${index}`);
+      }
+
+      chunker.add(event());
+      chunker.close(false);
+
+      const routes: Array<string> = chunks[0]?.routes ?? [];
+
+      /* MAX_ROUTES_PER_CHUNK. Pinned, so doubling the cap fails here. */
+      expect(routes.length).toBe(32);
+      expect(routes[0]).toBe("https://shop.example.com/step-0");
+    });
+
+    /*
+     * The BYTE budget is the one that matters.
+     *
+     * routes rides the envelope JSON, and the server rejects any envelope
+     * over 8 KB outright - failing the whole request, up to eight frames,
+     * which the transport treats as permanent and never retries. A
+     * count-only cap cannot prevent that: 32 long URLs exceed 8 KB on their
+     * own, so a site with deep paths would lose its footage rather than lose
+     * a few route entries.
+     */
+    it("caps the BYTES it will carry, so long URLs cannot blow the envelope", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      const longPath: string = "a".repeat(400);
+
+      for (let index: number = 0; index < 32; index++) {
+        chunker.addRoute(`https://shop.example.com/${longPath}/${index}`);
+      }
+
+      chunker.add(event());
+      chunker.close(false);
+
+      const routes: Array<string> = chunks[0]?.routes ?? [];
+      const bytes: number = routes.reduce(
+        (total: number, route: string): number => {
+          return total + route.length;
+        },
+        0,
+      );
+
+      /* Well inside the parser's 8 KB envelope ceiling. */
+      expect(bytes).toBeLessThanOrEqual(2 * 1024);
+      expect(routes.length).toBeGreaterThan(0);
+      expect(routes.length).toBeLessThan(32);
+    });
+
+    it("does not double-count the bytes of a route it already holds", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let index: number = 0; index < 50; index++) {
+        chunker.addRoute("https://shop.example.com/same");
+      }
+
+      chunker.addRoute("https://shop.example.com/other");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.routes).toEqual([
+        "https://shop.example.com/same",
+        "https://shop.example.com/other",
+      ]);
+    });
+
+    it("is present on the empty final chunk too", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addRoute("https://shop.example.com/checkout");
+      chunker.close(true);
+
+      const finalChunk: PendingChunk | undefined = chunks[chunks.length - 1];
+
+      expect(finalChunk?.isFinal).toBe(true);
+      expect(finalChunk?.routes).toEqual(["https://shop.example.com/checkout"]);
+    });
+  });
+
   it("emits a JSON array of the events it collected", (): void => {
     const chunker: Chunker = makeChunker();
 

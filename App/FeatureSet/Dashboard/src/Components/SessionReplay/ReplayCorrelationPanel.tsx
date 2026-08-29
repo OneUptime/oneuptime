@@ -170,9 +170,19 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       <DetailRow label="Session id" value={props.sessionId} />
       <DetailRow label="Entry URL" value={d.entryUrl} />
       <DetailRow label="Exit URL" value={d.exitUrl} />
+      {/*
+       * This panel is fed by the MANIFEST, whose projection deliberately
+       * carries no identity column - the narrower identity ACL is enforced
+       * by not naming it in the SELECT, and the manifest has no per-caller
+       * check to gate it with. So an empty value here means "not available
+       * on this surface", NOT "this session is anonymous": the session list,
+       * which does gate the column, may well be showing a name for the same
+       * session. Say so rather than asserting the opposite, and rather than
+       * naming a cause (capture switched off) the panel cannot know.
+       */}
       <DetailRow
         label="End user"
-        value={d.identifiedUserLabel || "Anonymous (identity capture is off)"}
+        value={d.identifiedUserLabel || "Shown on the session list"}
       />
       <DetailRow
         label="Browser"

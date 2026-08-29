@@ -103,13 +103,27 @@ export const SESSION_REPLAY_INGEST_ENABLED: boolean =
 /*
  * Whether a newly-configured deployment offers session replay at all.
  *
- * Defaults to FALSE, and stays false on self-hosted installs, because plan
- * gating is a no-op when BILLING_ENABLED=false: `tableBillingAccessControl`
- * is only consulted when billing is on. Without this switch nothing would
- * stop a self-hosted install from running 100% sampling at 90-day retention
- * on a single ClickHouse node - and because replay is the fattest table,
- * the capacity pruner would then start dropping partitions, potentially
- * destroying the customer's logs and traces to make room for recordings.
+ * Defaults to TRUE. Session replay is on out of the box, and this switch is
+ * how an operator turns it OFF for the whole instance:
+ * SESSION_REPLAY_ENABLED_BY_DEFAULT=false makes the config endpoint answer
+ * `enabled:false, directive:"stop"` for every application, so recorders
+ * already live on customer pages stop recording rather than merely stopping
+ * uploads.
+ *
+ * The comment here used to say the opposite - "defaults to FALSE, and stays
+ * false on self-hosted installs" - and so did the self-hosted docs, which
+ * told operators to set it to `true` to ENABLE the feature. Both described
+ * the reverse of the one-line expression below, so an operator following the
+ * docs performed a no-op believing they had enabled it, and the value that
+ * actually does something (`false`) was documented nowhere.
+ *
+ * The concern behind the old comment is real and unchanged: plan gating is a
+ * no-op when BILLING_ENABLED=false, so nothing stops a self-hosted install
+ * from running 100% sampling at long retention on a single ClickHouse node -
+ * and because replay is the fattest table, the capacity pruner could start
+ * dropping partitions, destroying that customer's logs and traces to make
+ * room for recordings. SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY is the
+ * bound for that, and the self-hosted docs now say so.
  */
 export const SESSION_REPLAY_ENABLED_BY_DEFAULT: boolean =
   process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] !== "false";
@@ -189,14 +203,17 @@ export const SESSION_REPLAY_TRUSTED_GEO_HEADER: string = (
   .toLowerCase();
 
 /*
- * Pinned recorder artifact the loader stub is told to import. Changing this
- * one value is the staged-rollout and instant-rollback mechanism for the
- * browser recorder - which matters because a masking regression would
- * otherwise be live in customer browsers for the full cache TTL with no
- * remedy.
+ * SESSION_REPLAY_RECORDER_VERSION used to live here, described as "the
+ * staged-rollout and instant-rollback mechanism for the browser recorder".
+ * It was not: the config endpoint reads the published version out of the
+ * BUILD MANIFEST (BrowserRecorder/Manifest.ts), because the env var and the
+ * artifact esbuild actually names after package.json were two independent
+ * answers to one question and were never equal - a loader told to fetch
+ * v1.0.0 requested an artifact that was never published.
+ *
+ * The constant had no importers. It is removed rather than left in place so
+ * nobody ships a rollback by setting a value that does nothing.
  */
-export const SESSION_REPLAY_RECORDER_VERSION: string =
-  process.env["SESSION_REPLAY_RECORDER_VERSION"] || "1.0.0";
 
 /*
  * MQTT ingestion for IoT devices. On by default (like the gRPC OTLP

@@ -74,7 +74,10 @@ interface RawChunkRow {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+  url: string;
+  routes: Array<string>;
   sessionStartUnixMs: number;
+  chunkStartUnixMs: number;
   chunkEndUnixMs: number;
   chunkEndOffsetMs: number;
   schemaVersion: number;
@@ -95,6 +98,8 @@ function makeChunkRow(data: {
   payloadBytes?: number;
   errorCount?: number;
   routeCount?: number;
+  url?: string;
+  routes?: Array<string>;
 }): RawChunkRow {
   const chunkIndex: number = data.chunkIndex;
 
@@ -113,7 +118,15 @@ function makeChunkRow(data: {
     errorClickCount: 0,
     refreshRageCount: 0,
     routeCount: data.routeCount ?? 0,
+    /*
+     * Empty by default so the pre-existing fixtures keep exercising the
+     * "chunks written before the url/routes columns existed" path, where
+     * the finalizer must still fall back to the provisional header.
+     */
+    url: data.url ?? "",
+    routes: data.routes ?? (data.url ? [data.url] : []),
     sessionStartUnixMs: sessionStartUnixMs,
+    chunkStartUnixMs: sessionStartUnixMs + chunkIndex * CHUNK_DURATION_MS,
     chunkEndUnixMs: sessionStartUnixMs + (chunkIndex + 1) * CHUNK_DURATION_MS,
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
@@ -138,6 +151,72 @@ function makeChunkRow(data: {
  * SQL text itself is pinned by a separate test below, so the two halves
  * cannot drift apart silently.
  */
+/* ClickHouse argMinIf / argMaxIf over a non-empty url. */
+function pickUrlBy(
+  rows: Array<RawChunkRow>,
+  clock: (row: RawChunkRow) => number,
+  wantEarliest: boolean,
+): string {
+  let chosen: RawChunkRow | null = null;
+
+  for (const row of rows) {
+    if (!row.url) {
+      continue;
+    }
+
+    if (!chosen) {
+      chosen = row;
+      continue;
+    }
+
+    const isBetter: boolean = wantEarliest
+      ? clock(row) < clock(chosen)
+      : clock(row) >= clock(chosen);
+
+    if (isBetter) {
+      chosen = row;
+    }
+  }
+
+  return chosen ? chosen.url : "";
+}
+
+/*
+ * ClickHouse minIf(chunkStartTime, url != '') / maxIf(chunkEndTime, url != '').
+ * 0 when no chunk of the tab carries a url, exactly as ClickHouse returns.
+ */
+function clockOfUrlBearing(
+  rows: Array<RawChunkRow>,
+  wantEarliestStart: boolean,
+): number {
+  const times: Array<number> = rows
+    .filter((row: RawChunkRow): boolean => {
+      return Boolean(row.url);
+    })
+    .map((row: RawChunkRow): number => {
+      return wantEarliestStart ? row.chunkStartUnixMs : row.chunkEndUnixMs;
+    });
+
+  if (times.length === 0) {
+    return 0;
+  }
+
+  return wantEarliestStart ? Math.min(...times) : Math.max(...times);
+}
+
+/* ClickHouse arraySort(arrayDistinct(arrayFlatten(groupArray(routes)))). */
+function distinctRoutes(rows: Array<RawChunkRow>): Array<string> {
+  const seen: Set<string> = new Set<string>();
+
+  for (const row of rows) {
+    for (const route of row.routes) {
+      seen.add(route);
+    }
+  }
+
+  return Array.from(seen).sort();
+}
+
 function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
   const latestByIdentity: Map<string, RawChunkRow> = new Map<
     string,
@@ -232,11 +311,46 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
       routeCount: sum((row: RawChunkRow): number => {
         return row.routeCount;
       }),
+      /*
+       * argMinIf(url, chunkStartTime, url != '') and its argMax twin: the
+       * earliest and latest NON-EMPTY url of the tab, which is what makes a
+       * pre-migration chunk (url = '') fall through to the header instead of
+       * blanking the column.
+       */
+      firstUrl: pickUrlBy(
+        tabRows,
+        (row: RawChunkRow): number => {
+          return row.chunkStartUnixMs;
+        },
+        true,
+      ),
+      lastUrl: pickUrlBy(
+        tabRows,
+        (row: RawChunkRow): number => {
+          return row.chunkEndUnixMs;
+        },
+        false,
+      ),
+      /* minIf / maxIf over the url-bearing chunks, and countIf. */
+      firstUrlAtUnixMs: String(clockOfUrlBearing(tabRows, true)),
+      lastUrlAtUnixMs: String(clockOfUrlBearing(tabRows, false)),
+      urlChunkCount: tabRows.filter((row: RawChunkRow): boolean => {
+        return Boolean(row.url);
+      }).length,
+      /* arrayDistinct(arrayFlatten(groupArray(routes))) */
+      routes: distinctRoutes(tabRows),
       hasFinalChunk: tabRows.some((row: RawChunkRow): boolean => {
         return row.isFinal;
       })
         ? 1
         : 0,
+      firstChunkStartUnixMs: String(
+        Math.min(
+          ...tabRows.map((row: RawChunkRow): number => {
+            return row.chunkStartUnixMs;
+          }),
+        ),
+      ),
       sessionStartUnixMs: String(
         Math.min(
           ...tabRows.map((row: RawChunkRow): number => {
@@ -287,6 +401,12 @@ function makeProvisionalHeader(
     triggerReason: "error",
     samplePercentageAtCapture: 0,
     clockSkewMs: -107877,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    pageCount: 0,
     entryUrl: "https://shop.example.com/checkout",
     exitUrl: "https://shop.example.com/checkout/failed",
     routes: ["/checkout", "/checkout/failed"],
@@ -516,6 +636,319 @@ describe("Rum:FinalizeSessions header row", () => {
     });
   }
 
+  /*
+   * WHERE the session went.
+   *
+   * entryUrl / exitUrl / routes[] used to be copied verbatim from the
+   * provisional header, which the ingest writes once, on chunk 0. The
+   * consequences were all visible in the product:
+   *
+   *   - a single-page app reported its LANDING page as its exit URL for the
+   *     life of the session;
+   *   - routes[] could never hold more than one element, so the "Exit page
+   *     URL (exact)" filter returned nothing for a page the user
+   *     demonstrably reached, and the bloom index over routes was built on
+   *     a one-element array;
+   *   - pageCount and routes.length disagreed on the same row, which reads
+   *     as data corruption;
+   *   - a session spanning two page loads had its entryUrl OVERWRITTEN by
+   *     the second load, because a new page load mints a new tabId and
+   *     therefore a second chunkIndex === 0.
+   */
+  describe("entry, exit and route derivation", () => {
+    const HOME: string = "https://shop.example.com/";
+    const CART: string = "https://shop.example.com/cart";
+    const CHECKOUT: string = "https://shop.example.com/checkout";
+
+    test("the exit url is the last url of the last chunk, not chunk 0's", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: HOME }),
+        makeChunkRow({ chunkIndex: 1, url: CART, routeCount: 1 }),
+        makeChunkRow({
+          chunkIndex: 2,
+          url: CHECKOUT,
+          routeCount: 1,
+          isFinal: true,
+        }),
+      ];
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: HOME,
+          routes: [HOME],
+        }),
+      );
+
+      expect(row["exitUrl"]).toBe(CHECKOUT);
+      expect(row["entryUrl"]).toBe(HOME);
+    });
+
+    /*
+     * routes[] is a de-duplicated, SORTED set - not a path. groupArray's
+     * element order is unspecified under parallel aggregation, and the
+     * header is a ReplacingMergeTree row the sweep can rewrite, so two runs
+     * over identical chunks have to produce identical bytes. entryUrl and
+     * exitUrl are what answer the ordered questions.
+     */
+    test("routes hold every page visited, not just the first", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: HOME }),
+        makeChunkRow({ chunkIndex: 1, url: CART, routeCount: 1 }),
+        makeChunkRow({
+          chunkIndex: 2,
+          url: CHECKOUT,
+          routeCount: 1,
+          isFinal: true,
+        }),
+      ];
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: HOME,
+          routes: [HOME],
+        }),
+      );
+
+      expect(row["routes"]).toEqual([HOME, CART, CHECKOUT].sort());
+    });
+
+    test("routes are sorted, so re-finalizing produces an identical row", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: CHECKOUT }),
+        makeChunkRow({ chunkIndex: 1, url: HOME }),
+        makeChunkRow({ chunkIndex: 2, url: CART, isFinal: true }),
+      ];
+
+      const first: JSONObject = rowFor(rows, null);
+
+      /* Same chunks, arriving in a different order from the database. */
+      const second: JSONObject = rowFor([...rows].reverse(), null);
+
+      expect(first["routes"]).toEqual(second["routes"]);
+      expect(first["routes"]).toEqual(
+        [...(first["routes"] as Array<string>)].sort(),
+      );
+    });
+
+    /*
+     * The invariant worth keeping: pageCount is summed from routeCount and
+     * was already correct, so tying the list to the count means neither can
+     * drift without the other noticing.
+     */
+    test("routes.length and pageCount can no longer disagree", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: HOME }),
+        makeChunkRow({ chunkIndex: 1, url: CART, routeCount: 1 }),
+        makeChunkRow({
+          chunkIndex: 2,
+          url: CHECKOUT,
+          routeCount: 1,
+          isFinal: true,
+        }),
+      ];
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: HOME,
+          routes: [HOME],
+        }),
+      );
+
+      /* Entry page + one per route change. */
+      expect((row["routes"] as Array<string>).length).toBe(
+        (row["pageCount"] as number) + 1,
+      );
+    });
+
+    /*
+     * Two navigations inside one 15s flush window are invisible to the
+     * chunk's own url - which is why the envelope carries the route list
+     * and the chunk table stores it.
+     */
+    test("routes visited and left inside one chunk are still recorded", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({
+          chunkIndex: 0,
+          url: CHECKOUT,
+          routes: [HOME, CART, CHECKOUT],
+          routeCount: 2,
+          isFinal: true,
+        }),
+      ];
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: HOME,
+          routes: [HOME],
+        }),
+      );
+
+      expect(row["routes"]).toEqual([HOME, CART, CHECKOUT].sort());
+      expect(row["exitUrl"]).toBe(CHECKOUT);
+    });
+
+    /*
+     * A session spanning two page loads. The SECOND tab's chunk 0 rewrote
+     * the provisional header, so the header's entryUrl is the second load's
+     * URL - the finalizer must not trust it.
+     */
+    test("a session spanning two page loads keeps its real entry url", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", url: HOME }),
+        makeChunkRow({ chunkIndex: 1, tabId: "tab-a", url: CART }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", url: CHECKOUT }),
+        makeChunkRow({
+          chunkIndex: 1,
+          tabId: "tab-b",
+          url: CHECKOUT,
+          isFinal: true,
+        }),
+      ];
+
+      /* What the clobbering second header write left behind. */
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: CHECKOUT,
+          exitUrl: CHECKOUT,
+          routes: [CHECKOUT],
+        }),
+      );
+
+      expect(row["entryUrl"]).toBe(HOME);
+      expect(row["exitUrl"]).toBe(CHECKOUT);
+      expect(row["routes"]).toEqual([HOME, CART, CHECKOUT].sort());
+    });
+
+    /*
+     * Sessions recorded before the chunk table carried url/routes have empty
+     * columns. They must keep rendering exactly as they do today rather than
+     * losing their URLs to the new derivation.
+     */
+    test("chunks predating the url columns fall back to the header", () => {
+      const rows: Array<RawChunkRow> = [0, 1, 2].map(
+        (chunkIndex: number): RawChunkRow => {
+          return makeChunkRow({ chunkIndex: chunkIndex });
+        },
+      );
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: CHECKOUT,
+          routes: [HOME, CHECKOUT],
+        }),
+      );
+
+      expect(row["entryUrl"]).toBe(HOME);
+      expect(row["exitUrl"]).toBe(CHECKOUT);
+      expect(row["routes"]).toEqual([HOME, CHECKOUT].sort());
+    });
+
+    /*
+     * A session live across the deploy that added the url column.
+     *
+     * argMinIf skips empty urls, so the earliest url the chunk table holds
+     * is a MID-session page. Trusting it would move the session's entry URL
+     * forward, and would throw away the provisional header - written from
+     * chunk 0, before the deploy - which is the only thing that still knows
+     * where the session began. The exit URL needs no such care: url-less
+     * chunks are always chronologically earlier than url-bearing ones.
+     */
+    test("a session straddling the url migration keeps the header's entry url", () => {
+      const rows: Array<RawChunkRow> = [
+        /* Written by the old server: no url column. */
+        makeChunkRow({ chunkIndex: 0 }),
+        makeChunkRow({ chunkIndex: 1 }),
+        /* Written after the deploy. */
+        makeChunkRow({ chunkIndex: 2, url: CART }),
+        makeChunkRow({ chunkIndex: 3, url: CHECKOUT, isFinal: true }),
+      ];
+
+      const row: JSONObject = rowFor(
+        rows,
+        makeProvisionalHeader({
+          entryUrl: HOME,
+          exitUrl: HOME,
+          routes: [HOME],
+        }),
+      );
+
+      expect(row["entryUrl"]).toBe(HOME);
+      /* The exit url IS derivable, and is the newer, better answer. */
+      expect(row["exitUrl"]).toBe(CHECKOUT);
+    });
+
+    /*
+     * Two tabs of one session. sessionStartTime is written from the
+     * recorder's localStorage record and is therefore IDENTICAL across
+     * tabs, so it can order none of them - the merge has to compare the
+     * per-chunk clocks, or it silently resolves to whatever order ClickHouse
+     * grouped the tabs in, and flips between finalizations of the same
+     * session.
+     */
+    test("two concurrent tabs resolve entry and exit urls deterministically", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-a", url: HOME }),
+        makeChunkRow({ chunkIndex: 1, tabId: "tab-a", url: CART }),
+        makeChunkRow({ chunkIndex: 0, tabId: "tab-b", url: CHECKOUT }),
+        makeChunkRow({
+          chunkIndex: 1,
+          tabId: "tab-b",
+          url: CHECKOUT,
+          isFinal: true,
+        }),
+      ];
+
+      const forwards: JSONObject = rowFor(rows, null);
+      const backwards: JSONObject = rowFor([...rows].reverse(), null);
+
+      expect(forwards["entryUrl"]).toBe(backwards["entryUrl"]);
+      expect(forwards["exitUrl"]).toBe(backwards["exitUrl"]);
+      expect(forwards["routes"]).toEqual(backwards["routes"]);
+    });
+
+    test("a session with no header at all still reports its derived urls", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: HOME }),
+        makeChunkRow({ chunkIndex: 1, url: CART, isFinal: true }),
+      ];
+
+      const row: JSONObject = rowFor(rows, null);
+
+      expect(row["entryUrl"]).toBe(HOME);
+      expect(row["exitUrl"]).toBe(CART);
+      expect(row["routes"]).toEqual([HOME, CART].sort());
+    });
+
+    test("a page visited twice appears once", () => {
+      const rows: Array<RawChunkRow> = [
+        makeChunkRow({ chunkIndex: 0, url: HOME }),
+        makeChunkRow({ chunkIndex: 1, url: CART, routeCount: 1 }),
+        makeChunkRow({
+          chunkIndex: 2,
+          url: HOME,
+          routeCount: 1,
+          isFinal: true,
+        }),
+      ];
+
+      const row: JSONObject = rowFor(rows, null);
+
+      expect(row["routes"]).toEqual([HOME, CART].sort());
+      expect(row["exitUrl"]).toBe(HOME);
+    });
+  });
+
   test("writes one finalized version carrying the derived aggregates", () => {
     const rows: Array<RawChunkRow> = [0, 1, 2, 3].map(
       (chunkIndex: number): RawChunkRow => {
@@ -715,6 +1148,32 @@ describe("Rum:FinalizeSessions queries", () => {
     expect(query).toContain("sum(eventCount)");
     expect(query).toContain("max(chunkIndex)");
     expect(query).toContain("groupArrayIf(chunkIndex, hasFullSnapshot)");
+
+    /*
+     * The URL derivation, pinned because the in-test GROUP BY model above
+     * reimplements it and the two must not drift.
+     *
+     * Every clock here is a per-CHUNK time. sessionStartTime is the
+     * SESSION's start, written from the recorder's localStorage record, so
+     * it is identical across every tab and can order none of them - a merge
+     * that compared it would silently resolve to ClickHouse's grouping
+     * order and flip between finalizations of the same session.
+     */
+    expect(query).toContain("argMinIf(url, chunkStartTime, url != '')");
+    expect(query).toContain("argMaxIf(url, chunkEndTime, url != '')");
+    expect(query).toContain(
+      "minIf(toUnixTimestamp64Milli(chunkStartTime), url != '')",
+    );
+    expect(query).toContain(
+      "maxIf(toUnixTimestamp64Milli(chunkEndTime), url != '')",
+    );
+    expect(query).toContain("countIf(url != '')");
+    expect(query).toContain("min(chunkStartTime)");
+
+    /* Sorted in SQL: the route union is a set, and must be deterministic. */
+    expect(query).toContain(
+      "arraySort(arrayDistinct(arrayFlatten(groupArray(routes))))",
+    );
 
     /*
      * The payload column must never be read here: it is the fattest column
@@ -1149,6 +1608,10 @@ describe("recording-lost seal", () => {
       errorClickCount: 0,
       refreshRageCount: 0,
       pageCount: 0,
+      firstUrl: "",
+      lastUrl: "",
+      routes: [],
+      firstUrlCoversSessionStart: false,
       hasFinalChunk: false,
       sessionStartUnixMs: header.startTimeUnixMs,
       lastChunkEndUnixMs: header.startTimeUnixMs,

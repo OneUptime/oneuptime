@@ -115,6 +115,7 @@ import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
+import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayTargeting from "../Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayUsage from "../Utils/SessionReplay/SessionReplayUsage";
 import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
@@ -134,6 +135,7 @@ import {
   DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
   MAX_SESSION_REPLAY_READ_BYTES,
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
 } from "../../Types/Rum/SessionReplay";
 
 const router: ExpressRouter = Express.getRouter();
@@ -3495,6 +3497,14 @@ router.post(
 /*
  * Listing sessions. Mirrors RumSession's table-level read ACL exactly:
  * knowing WHICH sessions errored is triage.
+ *
+ * Including the PAYLOAD permission, which that ACL also carries and this
+ * guard used to omit. Watching implies listing: the payload routes authorize
+ * on ReadRumSessionReplayPayload alone, so a role granted only "Watch
+ * Session Replays" could play back any session whose id it was handed while
+ * being 401'd on the list, the manifest and the exception page's replay card
+ * - an incoherent grant rather than a safer one, and exactly what
+ * RumSession's own comment says the ACL exists to prevent.
  */
 const requireSessionReplayListAccess: Array<RequestHandler> = [
   UserMiddleware.getUserMiddleware,
@@ -3505,6 +3515,7 @@ const requireSessionReplayListAccess: Array<RequestHandler> = [
       Permission.ProjectAdmin,
       Permission.TelemetryAdmin,
       Permission.ReadRumSessionReplay,
+      Permission.ReadRumSessionReplayPayload,
     ],
   }),
 ];
@@ -3534,6 +3545,20 @@ const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.TelemetryAdmin,
   Permission.ReadRumSessionReplay,
+  /*
+   * Watching implies listing.
+   *
+   * RumSession's own table read ACL contains this permission for a reason it
+   * states outright: a role granted only the watch permission could fetch
+   * payloads (the payload routes authorize on it alone) while being 401'd on
+   * the manifest and the list - an incoherent grant rather than a safer one.
+   * Leaving it out here meant a support-engineer role built from "Watch
+   * Session Replays" + "Read RUM Application" - the natural pairing, and the
+   * one the permission's own description suggests - got a permission error
+   * on the session list and a silently missing "Watch what the user saw"
+   * card on every exception page.
+   */
+  Permission.ReadRumSessionReplayPayload,
 ];
 
 const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
@@ -4131,7 +4156,50 @@ router.post(
         ? OneUptimeDate.fromString(body["endTime"] as string)
         : OneUptimeDate.getCurrentDate();
 
+      /*
+       * The narrower identity ACL, resolved BEFORE the filters are built.
+       *
+       * It is enforced by simply not naming the column in the SELECT - there
+       * is no ModelPermission on this path to strip it after the fact - and
+       * it is decided against the application already loaded by the access
+       * check, so a caller whose identity grant is label-scoped elsewhere
+       * does not get named end users here.
+       *
+       * It gates the identity FILTER as well as the column. Without that,
+       * a caller deliberately denied the label could still ask "does
+       * jane@example.com have sessions here" and read every other field of
+       * the answer - a dictionary attack that de-anonymises the list one
+       * candidate at a time, and hands back identifiedUserKey as a stable
+       * pseudonym to join against the route filter. The permission sets are
+       * genuinely different: SESSION_REPLAY_IDENTITY_PERMISSIONS excludes
+       * TelemetryAdmin and ReadRumSessionReplay, both of which can list.
+       */
+      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
+        databaseProps: databaseProps,
+        application: application,
+      });
+
       const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
+
+      /*
+       * A reference the server cannot hash must be a 400, never a filter
+       * that quietly disappears. Dropping it would return the WHOLE
+       * unfiltered list with a 200 - the caller sees every session in the
+       * project and has no way to tell that the person they asked about was
+       * not the one being answered about.
+       */
+      if (
+        rawFilters["identifiedUserRef"] !== undefined &&
+        !SessionReplayIdentity.isUsableUserRef(rawFilters["identifiedUserRef"])
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `identifiedUserRef must be a non-empty string of at most ${SESSION_REPLAY_MAX_USER_REF_LENGTH} characters.`,
+          ),
+        );
+      }
 
       const filters: SessionReplayListFilters = {
         ...(typeof rawFilters["hasError"] === "boolean" && {
@@ -4158,9 +4226,42 @@ router.post(
         ...(readStringArrayFromBody(rawFilters, "countryCodes") && {
           countryCodes: readStringArrayFromBody(rawFilters, "countryCodes"),
         }),
-        ...(typeof rawFilters["identifiedUserKey"] === "string" && {
-          identifiedUserKey: rawFilters["identifiedUserKey"],
-        }),
+        /*
+         * The caller sends the end-user reference their own page supplied -
+         * the value the session list displays - and the server derives the
+         * digest with the same per-project HMAC the ingest used. Hashing
+         * here rather than in the browser is what keeps the derivation (and
+         * the EncryptionSecret it is keyed on) server-side, and it is the
+         * only reason this filter can match anything: the raw key is
+         * displayed nowhere in the product, so a user had no way to obtain
+         * the value the field used to demand.
+         *
+         * Gated on the identity permission, and validated above so an
+         * unusable reference is a 400 rather than a silently unfiltered
+         * list.
+         */
+        ...(includeIdentifiedUserLabel &&
+          SessionReplayIdentity.isUsableUserRef(
+            rawFilters["identifiedUserRef"],
+          ) && {
+            identifiedUserKey: SessionReplayIdentity.buildUserKey({
+              projectId: projectId,
+              userRef: rawFilters["identifiedUserRef"] as string,
+            }),
+          }),
+        /*
+         * Still accepted, for API callers that already hold a digest (an
+         * erasure workflow, a saved view). Ignored when a reference was also
+         * sent, since the reference is the one a human typed. The digest is
+         * not guessable and is already returned to every list-capable
+         * caller, so it needs no identity gate of its own.
+         */
+        ...(typeof rawFilters["identifiedUserKey"] === "string" &&
+          !SessionReplayIdentity.isUsableUserRef(
+            rawFilters["identifiedUserRef"],
+          ) && {
+            identifiedUserKey: rawFilters["identifiedUserKey"],
+          }),
         ...(typeof rawFilters["route"] === "string" && {
           route: rawFilters["route"],
         }),
@@ -4182,18 +4283,6 @@ router.post(
               sessionId: rawCursor["sessionId"],
             }
           : undefined;
-
-      /*
-       * The narrower identity ACL is enforced by simply not naming the
-       * column in the SELECT. There is no ModelPermission on this path to
-       * strip it after the fact. Decided against the application already
-       * loaded by the access check, so a caller whose identity grant is
-       * label-scoped elsewhere does not get named end users here.
-       */
-      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
 
       const result: SessionReplayListResult =
         await SessionReplayReadService.listSessions({

@@ -296,6 +296,20 @@ export interface SessionReplayChunkEnvelope {
   /* Already scrubbed client-side: origin + path, no query, no fragment. */
   url: string;
 
+  /*
+   * Distinct scrubbed URLs the page was on while this chunk was open, in
+   * chronological order. Optional so an older recorder posting to a newer
+   * server is still accepted - the server then falls back to `url` alone,
+   * which is what it did before this field existed.
+   *
+   * `url` says where the chunk was FLUSHED from; this says where the user
+   * went while it was filling. The session header's routes[] column is the
+   * union of these, and the "sessions that hit /checkout" filter reads it,
+   * so without this a navigation that both starts and ends inside one flush
+   * window is invisible.
+   */
+  routes?: Array<string>;
+
   signals: SessionReplaySignalCounts;
 
   fidelityNotices: Array<string>;

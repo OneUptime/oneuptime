@@ -1341,13 +1341,22 @@ export default class SessionReplayReadService {
       );
     }
 
-    if (filters.hasFrustration === true) {
+    if (filters.hasFrustration !== undefined) {
       /*
        * Over the argMax aliases, like every HAVING predicate here — the
        * raw columns would sum across ReplacingMergeTree versions.
+       *
+       * `!== undefined` rather than `=== true`, so `false` means "sessions
+       * with NO frustration signals" instead of being silently dropped. The
+       * route admits any boolean, and hasError / isFinalized beside it both
+       * honour false, so accepting the value and ignoring it returned the
+       * whole unfiltered list with a 200 and no indication why.
        */
+      const total: string =
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)";
+
       statement.append(
-        " AND (aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+        filters.hasFrustration ? ` AND ${total} > 0` : ` AND ${total} = 0`,
       );
     }
 

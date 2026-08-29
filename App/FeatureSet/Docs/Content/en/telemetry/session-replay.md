@@ -185,10 +185,10 @@ To satisfy a deletion request, file an erasure request through the OneUptime API
 
 Watching a recording is a separate permission from listing sessions, and neither is granted by the project-wide Viewer role. A support engineer can be given `ReadRumSessionReplay` to triage which sessions errored without being able to play anyone's screen back; `ReadRumSessionReplayPayload` is required to actually watch.
 
-Every playback is recorded in an audit trail — who watched which session, when, and for how long — visible under the **Audit** tab and on the player itself.
+Every playback is recorded in an audit trail — who watched which session, when, from what IP, and for how long — under _Real User Monitoring → your application → **Replay Access Log**_.
 
 ## Self-hosted notes
 
-- Session Replay is off at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=true` to allow projects to enable it.
+- Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
 - Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning.
 - Recordings are stored in ClickHouse. No object storage is required.
