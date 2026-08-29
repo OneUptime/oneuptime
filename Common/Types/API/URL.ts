@@ -276,21 +276,32 @@ export default class URL extends DatabaseProperty {
     }
 
     let urlString: string = `${this.protocol}${this.hostname || this.email}`;
-    if (!this.email && !urlString.startsWith("mailto:")) {
-      if (this.route && this.route.toString().startsWith("/")) {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
-        }
-        urlString += this.route.toString();
-      } else {
-        if (urlString.endsWith("/")) {
-          urlString = urlString.substring(0, urlString.length - 1);
-        }
-        urlString += "/" + this.route.toString();
-      }
 
-      urlString += this.queryStringSuffix();
+    /*
+     * mailto: has no authority to trim and no route to append, so it skips the
+     * branch below — but it CAN carry a query, and "?subject=...&body=..." is
+     * the whole point of a prefilled mail link. The suffix used to be appended
+     * inside that branch, so skipping the route silently dropped the subject
+     * and body too, and the link opened on an empty draft. It returns here
+     * with the suffix attached instead, the way the opaque branch above does.
+     */
+    if (this.email || urlString.startsWith("mailto:")) {
+      return urlString + this.queryStringSuffix();
     }
+
+    if (this.route && this.route.toString().startsWith("/")) {
+      if (urlString.endsWith("/")) {
+        urlString = urlString.substring(0, urlString.length - 1);
+      }
+      urlString += this.route.toString();
+    } else {
+      if (urlString.endsWith("/")) {
+        urlString = urlString.substring(0, urlString.length - 1);
+      }
+      urlString += "/" + this.route.toString();
+    }
+
+    urlString += this.queryStringSuffix();
 
     return urlString;
   }
