@@ -85,18 +85,76 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
 
   const nowUnixMs: number = Date.now();
 
+  const hasFullSnapshot: boolean =
+    data.hasFullSnapshot ?? data.chunkIndex === 0;
+
+  /*
+   * A Meta event, then - when the envelope claims one - a real rrweb
+   * FullSnapshot, then an incremental. The snapshot is what makes the chunk
+   * a valid seek anchor, so declaring hasFullSnapshot without shipping one
+   * would give the player an anchor that rebuilds nothing.
+   */
   const events: Array<unknown> = [
     {
       type: 4,
       data: { href: data.url, width: 1440, height: 900 },
       timestamp: nowUnixMs,
     },
-    {
-      type: 3,
-      data: { source: 2, type: 2, id: 7 },
-      timestamp: nowUnixMs + 10,
-    },
   ];
+
+  if (hasFullSnapshot) {
+    events.push({
+      type: 2,
+      data: {
+        node: {
+          type: 0,
+          id: 1,
+          childNodes: [
+            {
+              type: 2,
+              tagName: "html",
+              attributes: {},
+              id: 2,
+              childNodes: [
+                {
+                  type: 2,
+                  tagName: "head",
+                  attributes: {},
+                  id: 3,
+                  childNodes: [],
+                },
+                {
+                  type: 2,
+                  tagName: "body",
+                  attributes: {},
+                  id: 4,
+                  childNodes: [
+                    {
+                      type: 2,
+                      tagName: "div",
+                      attributes: { id: "app" },
+                      id: 5,
+                      childNodes: [
+                        { type: 3, textContent: "e2e session replay", id: 6 },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        initialOffset: { left: 0, top: 0 },
+      },
+      timestamp: nowUnixMs + 5,
+    });
+  }
+
+  events.push({
+    type: 3,
+    data: { source: 2, type: 2, id: 5 },
+    timestamp: nowUnixMs + 10,
+  });
 
   const payload: string = JSON.stringify(events);
   const payloadBytes: number = Buffer.byteLength(payload, "utf8");
@@ -112,7 +170,7 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
     chunkStartOffsetMs: data.chunkIndex * 15000,
     chunkEndOffsetMs: (data.chunkIndex + 1) * 15000,
     eventCount: events.length,
-    hasFullSnapshot: data.hasFullSnapshot ?? data.chunkIndex === 0,
+    hasFullSnapshot: hasFullSnapshot,
     isFinal: data.isFinal ?? false,
     recorderKind: "dom",
     schemaVersion: SCHEMA_VERSION,

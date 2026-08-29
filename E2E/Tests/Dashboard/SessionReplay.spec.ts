@@ -190,46 +190,39 @@ test.describe("Session Replay", () => {
     ).toBeVisible();
 
     /*
-     * Hop 5: the journey is described correctly.
+     * Hop 5: the session says where it began.
      *
-     * The finalizer derives entryUrl / exitUrl / routes from the chunk rows.
-     * Before that it was copied from the provisional header, written once on
-     * chunk 0 - so this panel said the session both began AND ended on "/",
-     * for a session that plainly ended on /checkout.
-     */
-    await page.getByRole("button", { name: "Session details" }).click();
-
-    /*
-     * EXACT. `checkout` has `home` as a prefix, so a substring match would
+     * meta.entryUrl used to be read from location.href when the envelope was
+     * built, and meta rides the FINAL chunk as well as chunk 0 - so the last
+     * chunk overwrote the header with the exit url and every session that
+     * navigated was filed as beginning wherever its user stopped. Here the
+     * final chunk carries the same entryUrl as chunk 0, and the panel has to
+     * agree.
+     *
+     * EXACT: `checkout` has `home` as a prefix, so a substring match would
      * hold even when the Entry URL row shows the checkout page - which is
      * precisely the regression this assertion exists to catch.
      */
+    await page.getByRole("button", { name: "Session details" }).click();
+
     await expect(page.getByText(home, { exact: true }).first()).toBeVisible({
       timeout: 30000,
     });
 
-    await pollUntil({
-      page,
-      what: "the finalized exit URL",
-      /*
-       * Finalization is a 5-minute cron with a 10-minute idle cutoff, so this
-       * is the one assertion that has to wait for a worker rather than for a
-       * request.
-       */
-      timeoutMs: 240000,
-      run: async (): Promise<boolean> => {
-        await page.reload();
-        await page.waitForTimeout(5000);
-        await page
-          .getByRole("button", { name: "Session details" })
-          .click()
-          .catch((): void => {
-            /* Panel may already be open after a reload. */
-          });
-
-        return page.getByText(checkout).first().isVisible();
-      },
-    });
+    /*
+     * The FINALIZED exitUrl and routes[] are deliberately not asserted here.
+     * Finalization is a 5-minute cron behind a 10-minute idle cutoff, so
+     * proving it end to end means idling this spec for a quarter of an hour -
+     * a cost the whole suite would pay, and the kind of long sleep that makes
+     * a suite flaky rather than thorough.
+     *
+     * That derivation is covered exhaustively at the unit level instead, in
+     * App/Tests/Workers/SessionReplayFinalizer.test.ts: exit url from the last
+     * chunk rather than chunk 0, every page in routes[], routes.length tied to
+     * pageCount, routes visited and left inside one chunk, two page loads, two
+     * concurrent tabs, a session straddling the url migration, and a session
+     * with no header at all.
+     */
   });
 
   /*
