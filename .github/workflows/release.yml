@@ -1871,9 +1871,10 @@ jobs:
   # Ordering matters: this runs after draft-github-release so there is a release
   # to attach to, and finalize-github-release depends on it so the release is
   # never published without its SBOMs.
-  # The needs list is not just ordering sugar. This job scans all twelve
-  # published tags, and the unsuffixed tag it scans is created only by the
-  # corresponding *-docker-image-merge job. Nine of those merges are reached
+  # The needs list is not just ordering sugar. This job scans eleven of the
+  # twelve published tags (home is deliberately skipped — see SKIPPED_IMAGES in
+  # generate_sboms.sh), and the unsuffixed tag it scans is created only by the
+  # corresponding *-docker-image-merge job. Seven of those merges are reached
   # transitively via draft-github-release; docker-agent, podman-agent,
   # kubernetes-log-tailer and kubernetes-cost-agent are leaves that nothing
   # else depends on, so they must be named explicitly. Without them a failure
@@ -1909,12 +1910,14 @@ jobs:
         uses: anchore/sbom-action/download-syft@v0
 
       # Headroom for the docker-pull fallback in generate_sboms.sh. The fast
-      # path streams blobs and needs almost no disk, but home is a 7.86GB image
-      # whose single 7.4GB layer the registry reader cannot reliably get
-      # through; falling back means docker holds a copy while syft extracts its
-      # own. A stock runner does not have room for both, and running out would
-      # strand the release exactly the way the 429 did. These are the
-      # preinstalled toolchains -- this job needs only docker, syft and python3.
+      # path streams blobs and needs almost no disk, but falling back means
+      # docker holds a copy of the image while syft extracts its own. Skipping
+      # home took the 7.86GB worst case out of this job, so what is left fits a
+      # stock runner today -- this is insurance against that stopping being
+      # true, because running out of disk here would strand the release exactly
+      # the way the 429 did, after every image and tag had shipped. These are
+      # the preinstalled toolchains; this job needs only docker, syft and
+      # python3.
       - name: Free runner disk space for large image scans
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \

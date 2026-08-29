@@ -19,7 +19,9 @@ in this image?" for anyone holding the image reference; these files are the
 artifact we attach to the GitHub release, so an enterprise buyer or a
 Dependency-Track instance can ingest them without touching a registry.
 
-Every image is scanned once per published architecture. The package sets really
+Not every published image is scanned — see SKIPPED_IMAGES below for what is
+left out and why. Everything that is scanned is scanned once per published
+architecture. The package sets really
 do differ between them — Chrome build skew in probe, disjoint Debian packages,
 and arch-specific npm binaries (@esbuild/linux-x64 vs @esbuild/linux-arm64) in
 every Node image — so an amd64-only SBOM ingested by an arm64 operator produces
@@ -93,7 +95,6 @@ IMAGES=(
 	app
 	docker-agent
 	e2e
-	home
 	kubernetes-cost-agent
 	kubernetes-log-tailer
 	nginx
@@ -101,6 +102,25 @@ IMAGES=(
 	probe
 	test
 	test-server
+)
+
+# Images release.yml builds that this script deliberately does not scan. The
+# drift check below requires every built image to appear in exactly one of the
+# two lists, so a thirteenth image still cannot silently skip SBOM coverage — it
+# has to be named here, on purpose.
+#
+# home is the marketing site and documentation hub for oneuptime.com, and it is
+# not part of a self-hosted or enterprise install: home.enabled defaults to
+# false in HelmChart/Public/oneuptime/values.yaml, and docker-compose.yml has no
+# home service at all. These SBOMs exist so operators and Dependency-Track
+# instances can ingest what they actually run, and nobody self-hosting runs this.
+#
+# It is also the image that made this job fragile. home is 7.86GB with a single
+# 7.4GB layer — a full-history clone of the blog repo, and roughly four times
+# any other image here. GHCR shapes the throughput of a blob read that size,
+# which is what stranded 12.0.27 twice.
+SKIPPED_IMAGES=(
+	home
 )
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -118,16 +138,29 @@ if [[ -f "$RELEASE_WORKFLOW" ]]; then
 		echo "   The build jobs were probably refactored (e.g. to a matrix). Update this check." >&2
 		exit 1
 	fi
-	SCRIPT_IMAGES="$(printf '%s\n' "${IMAGES[@]}" | sort -u)"
+	# Both lists together, because an image release.yml builds is accounted for
+	# whether it is scanned or deliberately skipped. The `[@]+` guards are for
+	# `set -u`, which treats expanding an empty array as an unbound variable.
+	SCRIPT_IMAGES="$(printf '%s\n' \
+		${IMAGES[@]+"${IMAGES[@]}"} \
+		${SKIPPED_IMAGES[@]+"${SKIPPED_IMAGES[@]}"} | sort -u)"
 	if [[ "$WORKFLOW_IMAGES" != "$SCRIPT_IMAGES" ]]; then
 		echo "❌ Image list drift between release.yml and generate_sboms.sh" >&2
 		echo "--- only in release.yml ---" >&2
 		comm -23 <(printf '%s\n' "$WORKFLOW_IMAGES") <(printf '%s\n' "$SCRIPT_IMAGES") >&2
-		echo "--- only in generate_sboms.sh ---" >&2
+		echo "--- only in generate_sboms.sh (neither scanned nor skipped) ---" >&2
 		comm -13 <(printf '%s\n' "$WORKFLOW_IMAGES") <(printf '%s\n' "$SCRIPT_IMAGES") >&2
 		exit 1
 	fi
-	echo "✅ Image list matches release.yml (${#IMAGES[@]} images)"
+	# Naming the skipped images in the log is the point -- a skip nobody can see
+	# is how an image quietly loses SBOM coverage. Built conditionally because
+	# `${SKIPPED_IMAGES[*]}` on an empty array is an unbound variable under
+	# `set -u` before bash 4.4, and emptying this list should not break the job.
+	SKIPPED_SUMMARY=""
+	if (( ${#SKIPPED_IMAGES[@]} > 0 )); then
+		SKIPPED_SUMMARY=": ${SKIPPED_IMAGES[*]}"
+	fi
+	echo "✅ Image list matches release.yml (${#IMAGES[@]} scanned, ${#SKIPPED_IMAGES[@]} skipped${SKIPPED_SUMMARY})"
 else
 	echo "⚠️  ${RELEASE_WORKFLOW} not found — skipping image list drift check"
 fi

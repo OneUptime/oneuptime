@@ -50,6 +50,17 @@ assert_contains() {
 	fi
 }
 
+# grep -c prints "0" and still exits 1 when nothing matches, so the obvious
+# `grep -c ... || echo 0` yields two lines. Count in one place instead.
+count_matches() {
+	local file="$1" pattern="$2"
+	if [[ ! -f "$file" ]]; then
+		echo 0
+		return
+	fi
+	grep -c "$pattern" "$file" || true
+}
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -116,7 +127,7 @@ while (( i < FAKE_SYFT_COMPONENTS )); do
 	i=$(( i + 1 ))
 done
 
-echo "$source_scheme" >> "${FAKE_SYFT_STATE_DIR}/schemes"
+echo "$source_scheme $ref" >> "${FAKE_SYFT_STATE_DIR}/schemes"
 
 cat > "$out" <<JSON
 {"bomFormat":"CycloneDX","specVersion":"1.5","version":1,"components":[${components}]}
@@ -199,8 +210,15 @@ MANIFEST_UNKNOWN_STDERR="[0002] ERROR could not determine source: errors occurre
 
 # generate_sboms.sh scans 12 images across the platforms it is given. Both are
 # passed on every run below so the assertions state real numbers.
-EXPECTED_IMAGES=12
+# generate_sboms.sh scans 11 images and deliberately skips home.
+EXPECTED_IMAGES=11
+SKIPPED_IMAGE="home"
 REGISTRY_PREFIX="ghcr.io/oneuptime"
+
+# The image the throttling scenarios below pick on. It has to be one that is
+# actually scanned, so it cannot be home any more; e2e is the largest of what
+# is left and so the most realistic stand-in.
+THROTTLED_IMAGE="e2e"
 
 # Each run is 12 scans per platform, and every scan shells out to syft and then
 # to python3, so scenarios that do not actually assert anything per-platform
@@ -225,21 +243,24 @@ output="$(run_generate "$OUT_DIR" "linux/amd64,linux/arm64")" || status=$?
 assert_eq 0 "$status" "succeeds when every scan succeeds"
 assert_eq $(( EXPECTED_IMAGES * 2 )) "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes one SBOM per image per platform"
 assert_contains "$output" "Image list matches release.yml" "still checks image list drift against release.yml"
+assert_contains "$output" "11 scanned, 1 skipped: home" "reports what it skipped rather than skipping silently"
+assert_eq 0 "$(ls "$OUT_DIR"/${SKIPPED_IMAGE}-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes no SBOM for the skipped image"
+assert_eq 0 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "/${SKIPPED_IMAGE}:")" "never invokes syft for the skipped image"
 
 # --- The regression: a transient 429 on one image must not sink the release. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=1 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=1 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 OUT_DIR="${WORK_DIR}/out-429"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 assert_eq 0 "$status" "survives the GHCR 429 that stranded 12.0.27"
 assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "still writes every SBOM after recovering"
 assert_contains "$output" "hit a transient registry error" "reports the retry"
-assert_eq 2 "$(cat "${FAKE_SYFT_STATE_DIR}"/*home*amd64* 2>/dev/null)" "retried the failing scan exactly once"
+assert_eq 2 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "retried the failing scan exactly once"
 
 # --- Recovers even when a scan needs every retry it is allowed. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=3 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=3 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 OUT_DIR="${WORK_DIR}/out-429-max"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
@@ -249,35 +270,35 @@ assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | t
 # --- 12.0.27's actual failure: the registry read never gets through, and the
 # --- docker-pull fallback is what keeps the release moving.
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 OUT_DIR="${WORK_DIR}/out-429-forever"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 assert_eq 0 "$status" "falls back to docker pull when the registry read never recovers"
 assert_eq "$EXPECTED_IMAGES" "$(ls "$OUT_DIR"/*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes every SBOM via the fallback"
-assert_eq 4 "$(cat "${FAKE_SYFT_STATE_DIR}"/*home*amd64* 2>/dev/null)" "exhausts the registry retries before falling back"
-assert_contains "$output" "retrying ${REGISTRY_PREFIX}/home:12.0.27 (linux/amd64) via docker pull" "says it is falling back"
-assert_eq 1 "$(grep -c "home" "${FAKE_SYFT_STATE_DIR}/docker-pulls" 2>/dev/null || echo 0)" "pulls only the image that needed it"
-assert_eq 1 "$(grep -c "home" "${FAKE_SYFT_STATE_DIR}/docker-removals" 2>/dev/null || echo 0)" "removes the pulled image so 24 scans cannot fill the runner"
-assert_eq 1 "$(grep -c "^docker$" "${FAKE_SYFT_STATE_DIR}/schemes" 2>/dev/null || echo 0)" "scans exactly one image from the daemon"
+assert_eq 4 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "exhausts the registry retries before falling back"
+assert_contains "$output" "retrying ${REGISTRY_PREFIX}/${THROTTLED_IMAGE}:12.0.27 (linux/amd64) via docker pull" "says it is falling back"
+assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-pulls" "$THROTTLED_IMAGE")" "pulls only the image that needed it"
+assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-removals" "$THROTTLED_IMAGE")" "removes the pulled image so 24 scans cannot fill the runner"
+assert_eq 1 "$(count_matches "${FAKE_SYFT_STATE_DIR}/schemes" "^docker ")" "scans exactly one image from the daemon"
 
 # --- When both paths are exhausted the job still fails, honestly. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 export FAKE_SYFT_DOCKER_FAILS=true
 OUT_DIR="${WORK_DIR}/out-both-fail"
 status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64,linux/arm64")" || status=$?
 export FAKE_SYFT_DOCKER_FAILS=false
 assert_eq 1 "$status" "fails when neither path can read the image"
-assert_contains "$output" "SBOM generation failed for: home/linux/amd64 home/linux/arm64" "names the images that failed"
+assert_contains "$output" "SBOM generation failed for: ${THROTTLED_IMAGE}/linux/amd64 ${THROTTLED_IMAGE}/linux/arm64" "names the images that failed"
 # The release job attaches sbom/*.cdx.json by glob, so a half-written file from
 # a failed attempt must not be sitting in the output directory.
-assert_eq 0 "$(ls "$OUT_DIR"/home-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "leaves no partial SBOM behind for the release glob"
+assert_eq 0 "$(ls "$OUT_DIR"/${THROTTLED_IMAGE}-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "leaves no partial SBOM behind for the release glob"
 
 # --- A pull that is itself throttled is retried, then gives up. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 export FAKE_DOCKER_PULL_FAILS=true
 OUT_DIR="${WORK_DIR}/out-pull-fails"
 status=0
@@ -286,11 +307,11 @@ export FAKE_DOCKER_PULL_FAILS=false
 assert_eq 1 "$status" "fails when the docker pull is throttled too"
 # docker spells it "toomanyrequests"; syft spells it "TOOMANYREQUESTS". The
 # retry has to recognise both, so this pins the case-insensitive match.
-assert_eq 4 "$(grep -c "home" "${FAKE_SYFT_STATE_DIR}/docker-pulls" 2>/dev/null || echo 0)" "retries a throttled docker pull too"
+assert_eq 4 "$(count_matches "${FAKE_SYFT_STATE_DIR}/docker-pulls" "$THROTTLED_IMAGE")" "retries a throttled docker pull too"
 
 # --- The pull must not be trusted to have landed the right architecture. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$GHCR_429_STDERR" FAKE_SYFT_COMPONENTS=3
 export FAKE_DOCKER_WRONG_PLATFORM=true
 OUT_DIR="${WORK_DIR}/out-wrong-platform"
 status=0
@@ -298,11 +319,11 @@ output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 export FAKE_DOCKER_WRONG_PLATFORM=false
 assert_eq 1 "$status" "refuses an SBOM for the wrong architecture"
 assert_contains "$output" "returned linux/riscv64, expected linux/amd64" "says which architecture it actually got"
-assert_eq 0 "$(ls "$OUT_DIR"/home-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes no mislabelled SBOM"
+assert_eq 0 "$(ls "$OUT_DIR"/${THROTTLED_IMAGE}-*.cdx.json 2>/dev/null | wc -l | tr -d ' ')" "writes no mislabelled SBOM"
 
 # --- A tag that was never pushed fails fast instead of grinding. ---
 reset_fake_syft_state
-export FAKE_SYFT_FAIL_REF="home" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$MANIFEST_UNKNOWN_STDERR" FAKE_SYFT_COMPONENTS=3
+export FAKE_SYFT_FAIL_REF="$THROTTLED_IMAGE" FAKE_SYFT_FAIL_TIMES=99 FAKE_SYFT_FAIL_STDERR="$MANIFEST_UNKNOWN_STDERR" FAKE_SYFT_COMPONENTS=3
 # A tag that does not exist cannot be pulled either, so model both failing.
 export FAKE_DOCKER_PULL_FAILS=true
 OUT_DIR="${WORK_DIR}/out-missing-tag"
@@ -310,7 +331,7 @@ status=0
 output="$(run_generate "$OUT_DIR" "linux/amd64")" || status=$?
 export FAKE_DOCKER_PULL_FAILS=false
 assert_eq 1 "$status" "fails when a tag is missing"
-assert_eq 1 "$(cat "${FAKE_SYFT_STATE_DIR}"/*home*amd64* 2>/dev/null)" "does not retry a missing tag on the registry path"
+assert_eq 1 "$(cat "${FAKE_SYFT_STATE_DIR}"/*${THROTTLED_IMAGE}*amd64* 2>/dev/null)" "does not retry a missing tag on the registry path"
 assert_contains "$output" "retrying would not help" "says why it gave up immediately"
 
 # --- An empty SBOM is still rejected, and still not left on disk. ---
