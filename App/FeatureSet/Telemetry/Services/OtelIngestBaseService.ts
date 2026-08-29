@@ -481,6 +481,49 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
+   * Phantom-service gate (issue #3468): whether a batch is allowed to back a
+   * Service row.
+   *
+   * OneUptime infrastructure agents (Kubernetes / Docker / Podman / Proxmox /
+   * Ceph / host collectors) stamp an explicit service.name on every metric
+   * batch they emit - `kubernetes-agent-<cluster>` by default, or a workload
+   * name via the collector's transform processor - so the infra signal
+   * survives the discriminator above. Honouring that stamped name synthesizes
+   * a Service row that stays "Connected" via lastSeenAt but never receives
+   * requests / latency / logs / errors.
+   *
+   * Returns false (route to the discovered Host / KubernetesCluster entity
+   * instead) only when ALL three hold:
+   *
+   *   1. the METRICS path flagged the batch as infrastructure metric families
+   *      (data.isInfraMetricBatch - k8s.* / system.* / process.*). Logs,
+   *      traces, OBI RED metrics and Docker container metrics are never
+   *      flagged, so their legitimate service attribution is untouched;
+   *   2. it carries the agent marker `oneuptime.agent.version` - application
+   *      SDKs never set this;
+   *   3. it has a host / k8s resource signal (os.type, container.runtime or
+   *      k8s.cluster.name).
+   */
+  protected static shouldCreateServiceRow(data: {
+    isInfraMetricBatch?: boolean | undefined;
+    attributes: JSONArray;
+  }): boolean {
+    if (!data.isInfraMetricBatch) {
+      return true;
+    }
+
+    const hasAgentMarker: boolean =
+      this.getStringAttribute(data.attributes, "oneuptime.agent.version") !==
+      null;
+
+    if (!hasAgentMarker) {
+      return true;
+    }
+
+    return !this.hasHostResourceSignal(data.attributes);
+  }
+
+  /*
    * One-stop resolver used by every OTel / syslog / fluent ingest
    * path. Takes the already-discovered Host / DockerHost /
    * KubernetesCluster ids for this batch and dispatches:
@@ -544,6 +587,13 @@ export default abstract class OtelIngestBaseService {
      * falls back to its heuristic resolvers otherwise.
      */
     entityRefs?: Array<ResourceEntityRef> | undefined;
+    /*
+     * Set by the METRICS ingest when this resource's metric families are
+     * infrastructure (k8s.* / system.* / process.*). Feeds the
+     * phantom-service gate in selectPrimaryEntity (issue #3468); the logs,
+     * traces and profiles paths leave it unset and are unaffected.
+     */
+    isInfraMetricBatch?: boolean | undefined;
   }): Promise<TelemetryServiceMetadata> {
     /*
      * (a) pick the single primary entity via the precedence ladder — the
@@ -660,13 +710,25 @@ export default abstract class OtelIngestBaseService {
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
     iotFleetId?: ObjectID | null;
+    isInfraMetricBatch?: boolean | undefined;
   }): Promise<TelemetryServiceMetadata> {
     const serviceName: string | null = await this.getServiceNameFromAttributes(
       data.req,
       data.attributes,
     );
 
-    if (serviceName !== null) {
+    /*
+     * Phantom-service gate (issue #3468): infra agent metric batches carry an
+     * agent-stamped service.name that would otherwise synthesize a Service row
+     * which stays "Connected" via lastSeenAt but never receives requests /
+     * latency / logs / errors. See shouldCreateServiceRow for the conditions.
+     */
+    const shouldCreateServiceRow: boolean = this.shouldCreateServiceRow({
+      isInfraMetricBatch: data.isInfraMetricBatch,
+      attributes: data.attributes,
+    });
+
+    if (serviceName !== null && shouldCreateServiceRow) {
       return await OTelIngestService.telemetryServiceFromName({
         serviceName,
         projectId: data.projectId,
@@ -3199,6 +3261,47 @@ export default abstract class OtelIngestBaseService {
         }`,
       );
     }
+  }
+
+  /*
+   * Whether a resource's metric families are infrastructure telemetry
+   * (kubeletstats k8s.*, hostmetrics system.* / process.*). The METRICS ingest
+   * uses this to flag agent infra batches so the phantom-service gate in
+   * selectPrimaryEntity routes them to their Host / KubernetesCluster entity
+   * instead of synthesising a Service row (issue #3468). Deliberately narrow:
+   * container.* / http.* / rpc.* families are NOT flagged, so Docker agent
+   * container services and OBI RED metrics keep their Service rows.
+   */
+  protected static isInfraMetricBatch(
+    scopeMetrics: JSONArray | undefined,
+  ): boolean {
+    if (!scopeMetrics || !Array.isArray(scopeMetrics)) {
+      return false;
+    }
+
+    for (const scopeMetric of scopeMetrics) {
+      const metrics: JSONArray | undefined = (scopeMetric as JSONObject)?.[
+        "metrics"
+      ] as JSONArray | undefined;
+      if (!metrics || !Array.isArray(metrics)) {
+        continue;
+      }
+
+      for (const metric of metrics) {
+        const name: string = (
+          ((metric as JSONObject)["name"] as string) || ""
+        ).toLowerCase();
+        if (
+          name.startsWith("k8s.") ||
+          name.startsWith("system.") ||
+          name.startsWith("process.")
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
