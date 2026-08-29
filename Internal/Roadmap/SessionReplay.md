@@ -164,7 +164,7 @@ Served under `/telemetry` deliberately: `App/FeatureSet/Frontend/Index.ts`'s `Da
 | `Project.isSessionReplayAllowed` | **false** | ingest gate + config endpoint | org-wide hard off, pattern of `Project.enableAuditLogs` |
 | `RumApplication.isSessionReplayEnabled` | **false** | config endpoint + ingest gate | per-app opt-in |
 | `SESSION_REPLAY_INGEST_ENABLED` | true | `App/FeatureSet/Telemetry/Config.ts`, `!== "false"` idiom | instance kill switch |
-| `SESSION_REPLAY_ENABLED_BY_DEFAULT` | **false on self-hosted** | config endpoint | see §9 — plan gating is a no-op when `BILLING_ENABLED=false` |
+| `SESSION_REPLAY_ENABLED_BY_DEFAULT` | **true** (set `=false` to turn replay off instance-wide) | config endpoint | see §9 — plan gating is a no-op when `BILLING_ENABLED=false`, so bound disk with `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` |
 | `sessionReplayMaskingMode` | **`MaskAllText`** | recorder `maskAllText` | `MaskInputsOnly` is offered and labelled *less safe* in the UI, with an audit-log entry on change |
 | `maskInputFn` / `maskTextFn` | **fixed-length placeholder** | recorder, pre-emit | rrweb's default is `'*'.repeat(value.length)` — a length oracle for passwords, PANs, OTPs. Fixed 3-char block, or short/medium/long buckets. Unit-tested in `Common/Tests`. |
 | sticky password masking | on | recorder, per-node `WeakSet` | a "show password" toggle mutates `type` to `text`; once a node was ever `type=password` or `autocomplete=current-password/new-password/one-time-code/cc-number`, it stays masked and the `type` mutation itself is suppressed |

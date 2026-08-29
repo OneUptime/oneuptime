@@ -450,6 +450,56 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
       });
     });
 
+    /*
+     * WHERE the page was while this chunk was open.
+     *
+     * The chunk table used to carry routeCount but not the routes, so the
+     * session header's entryUrl / exitUrl / routes[] could only ever be
+     * whatever chunk 0 happened to know - which for a single-page app is the
+     * landing page, forever. pageCount said "7 pages" on the same row where
+     * routes[] held one element, and the "Exit page URL (exact)" filter
+     * could not match a page the user demonstrably reached.
+     *
+     * Both are already scrubbed on the client AND re-scrubbed at ingest:
+     * these render under the wider session-metadata ACL, so an unscrubbed
+     * `/reset-password?token=...` here reaches more readers than the payload
+     * itself does.
+     */
+    const urlColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "url",
+      title: "URL",
+      description:
+        "Scrubbed URL the page was on when this chunk was flushed. The session's exit URL is the latest of these.",
+      /*
+       * Required with an empty default rather than nullable. Chunks written
+       * before this column existed read back as "", which is what the
+       * finalizer's argMinIf/argMaxIf skip over so a pre-migration session
+       * falls back to its provisional header instead of losing its URLs.
+       */
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      codec: [{ codec: "ZSTD", level: 1 }],
+      accessControl: chunkAccessControl,
+    });
+
+    const routesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "routes",
+      title: "Routes",
+      description:
+        "Distinct scrubbed URLs visited while this chunk was open, in order. The session's routes[] is the union of these.",
+      /*
+       * Required, like RumSession.routes. ClickHouse refuses
+       * Nullable(Array(String)) outright, so an array column can never be
+       * optional - it is empty or it is absent.
+       */
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      codec: [{ codec: "ZSTD", level: 1 }],
+      accessControl: chunkAccessControl,
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       title: "Retention Date",
@@ -510,6 +560,8 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
         payloadColumn,
         payloadBytesColumn,
         ...counterColumns,
+        urlColumn,
+        routesColumn,
         retentionDateColumn,
       ],
       sortKeys: ["projectId", "sessionId", "tabId", "chunkIndex"],

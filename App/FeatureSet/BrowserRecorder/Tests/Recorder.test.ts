@@ -65,6 +65,34 @@ async function flushUploads(): Promise<void> {
   });
 }
 
+/*
+ * The terminal path. stop() deliberately DISCARDS the transport queue, so
+ * hiding the page is the only way to get the last chunk on the wire.
+ */
+function sealByHidingThePage(): void {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: (): string => {
+      return "hidden";
+    },
+  });
+
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
+/* Every chunk envelope posted so far, in order. */
+function allEnvelopes(
+  calls: Array<Array<unknown>>,
+): Array<SessionReplayChunkEnvelope> {
+  return calls
+    .filter((call: Array<unknown>): boolean => {
+      return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
+    })
+    .map((call: Array<unknown>): SessionReplayChunkEnvelope => {
+      return readPost(call).envelope;
+    });
+}
+
 function readPost(call: Array<unknown>): CapturedPost {
   const init: Record<string, unknown> = call[1] as Record<string, unknown>;
   const body: Uint8Array = init["body"] as Uint8Array;
@@ -685,6 +713,113 @@ describe("Recorder", (): void => {
       expect(post.envelope.url).not.toContain("secret-value");
       expect(post.envelope.meta?.entryUrl).not.toContain("secret-value");
     });
+
+    /*
+     * meta rides chunk 0 AND the final chunk. entryUrl used to be read from
+     * location.href at BUILD time, so the final chunk of any page that
+     * navigated overwrote the session header's entryUrl with the EXIT url -
+     * a session that began on "/" was filed as beginning wherever the user
+     * happened to stop.
+     */
+    it("reports the url the recording STARTED on, not the current one", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/landing");
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      expect(instance.isUploading()).toBe(true);
+
+      await flushUploads();
+
+      window.history.pushState({}, "", "/checkout");
+
+      /* Seal the session so meta rides the final chunk too. */
+      sealByHidingThePage();
+
+      await flushUploads();
+
+      const envelopes: Array<SessionReplayChunkEnvelope> = allEnvelopes(
+        fetchMock.mock.calls as Array<Array<unknown>>,
+      );
+
+      expect(envelopes.length).toBeGreaterThan(0);
+
+      /*
+       * EVERY envelope that carries meta must say the recording began on
+       * /landing - including the final one, which is built after the
+       * navigation and used to report the exit url here.
+       */
+      for (const envelope of envelopes) {
+        if (envelope.meta) {
+          expect(envelope.meta.entryUrl).toContain("/landing");
+          expect(envelope.meta.entryUrl).not.toContain("/checkout");
+        }
+      }
+
+      /* url is the CURRENT page, and still moves. */
+      expect(envelopes[envelopes.length - 1]!.url).toContain("/checkout");
+    });
+
+    it("carries the pages the chunk covered, not just the one it flushed from", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/landing");
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      expect(instance.isUploading()).toBe(true);
+
+      await flushUploads();
+
+      window.history.pushState({}, "", "/cart");
+      window.history.pushState({}, "", "/checkout");
+
+      /*
+       * stop() DISCARDS the queue by design, so the terminal path is what
+       * gets the last chunk on the wire.
+       */
+      sealByHidingThePage();
+
+      await flushUploads();
+
+      const seen: Array<string> = allEnvelopes(
+        fetchMock.mock.calls as Array<Array<unknown>>,
+      ).flatMap((envelope: SessionReplayChunkEnvelope): Array<string> => {
+        return envelope.routes || [];
+      });
+
+      const sawPath: (path: string) => boolean = (path: string): boolean => {
+        return seen.some((route: string): boolean => {
+          return route.indexOf(path) >= 0;
+        });
+      };
+
+      expect(sawPath("/landing")).toBe(true);
+      expect(sawPath("/cart")).toBe(true);
+      expect(sawPath("/checkout")).toBe(true);
+    });
+
+    it("scrubs the route list, so a magic link never rides the envelope", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/landing");
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      expect(instance.isUploading()).toBe(true);
+
+      await flushUploads();
+
+      window.history.pushState({}, "", "/magic?token=secret-value");
+
+      sealByHidingThePage();
+
+      await flushUploads();
+
+      const seen: Array<string> = allEnvelopes(
+        fetchMock.mock.calls as Array<Array<unknown>>,
+      ).flatMap((envelope: SessionReplayChunkEnvelope): Array<string> => {
+        return envelope.routes || [];
+      });
+
+      expect(JSON.stringify(seen)).not.toContain("secret-value");
+      expect(JSON.stringify(seen)).toContain("/magic");
+    });
   });
 
   describe("terminal flush", (): void => {
@@ -976,6 +1111,67 @@ describe("Recorder", (): void => {
       expect(payloads).toContain("oneuptime.session-rotated");
       expect(payloads).toContain(firstSessionId);
       expect(payloads).toContain("idle");
+    });
+
+    /*
+     * A rollover mints a genuinely NEW session. entryUrl is captured once in
+     * start() so the final chunk cannot overwrite the session header with
+     * the exit url - but carrying the original page load's URL into the
+     * rotated session would report every rotated session as beginning on a
+     * page its user left hours ago, which is worse than the bug the capture
+     * exists to fix.
+     */
+    it("gives a rotated session its own entry url", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      window.history.replaceState({}, "", "/landing");
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+
+      /* The user has since navigated deep into the app, then gone idle. */
+      window.history.pushState({}, "", "/settings/billing");
+
+      const idleSince: number = Date.now() - SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+      writeStored({
+        sessionId: firstSessionId,
+        sessionStartUnixMs: idleSince,
+        lastActivityUnixMs: idleSince,
+      });
+
+      fetchMock.mockClear();
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+      await drainMicrotasks();
+
+      const secondSessionId: string = instance.getSessionId();
+
+      expect(secondSessionId).not.toBe(firstSessionId);
+
+      const newSessionPosts: Array<CapturedPost> = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .filter((post: CapturedPost): boolean => {
+          return post.envelope.sessionId === secondSessionId;
+        });
+
+      expect(newSessionPosts.length).toBeGreaterThan(0);
+
+      const meta: { entryUrl?: string } | undefined =
+        newSessionPosts[0]?.envelope.meta;
+
+      expect(meta?.entryUrl).toContain("/settings/billing");
+      expect(meta?.entryUrl).not.toContain("/landing");
+
+      /* And the new chunker is seeded with it, so routes[] is not empty. */
+      expect(
+        (newSessionPosts[0]?.envelope.routes || []).some(
+          (route: string): boolean => {
+            return route.indexOf("/settings/billing") >= 0;
+          },
+        ),
+      ).toBe(true);
     });
 
     it("rolls the session over at the duration cap even while in use", (): void => {

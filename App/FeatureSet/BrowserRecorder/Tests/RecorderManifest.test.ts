@@ -23,11 +23,12 @@ import {
  * The defect this file exists to prevent: the artifact was named and stamped
  * from package.json's version (11.7.3, rewritten repo-wide on every release
  * by Scripts/Install/SyncPackageVersions.js) while the config endpoint
- * advertised SESSION_REPLAY_RECORDER_VERSION, an env var defaulting to the
+ * advertised an env var, SESSION_REPLAY_RECORDER_VERSION, defaulting to the
  * literal "1.0.0". Every loader in every browser was therefore told to fetch
  * an artifact that had never been published. Two independently-defaulted
  * answers to one question cannot be kept in step by hand, so there is now
- * only one answer and it comes from the build.
+ * only one answer and it comes from the build; the env var has since been
+ * deleted so nobody ships a rollback by setting a value nothing reads.
  */
 
 declare function require(id: string): unknown;

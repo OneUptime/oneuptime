@@ -7,6 +7,12 @@ describe("SessionId", (): void => {
   beforeEach((): void => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    /*
+     * The chunk-index high-water marks are module state that a real page
+     * load would not carry over. Jest keeps the module between tests, so it
+     * is cleared explicitly here.
+     */
+    SessionId.clearAll();
   });
 
   describe("generateId", (): void => {
@@ -140,6 +146,57 @@ describe("SessionId", (): void => {
 
       /* Simulated restart: the module has no in-memory state to lose. */
       expect(SessionId.getNextChunkIndex("tabA")).toBe(2);
+    });
+
+    /*
+     * The counter lives in sessionStorage, which is the HOST PAGE's
+     * storage, not ours - and plenty of applications call
+     * sessionStorage.clear() on sign-out, under a recorder that is still
+     * running.
+     *
+     * Rewinding to 0 there is not a duplicate, it is a DELETION: the chunk
+     * table is a ReplacingMergeTree keyed on
+     * (projectId, sessionId, tabId, chunkIndex) with the ingest time as the
+     * version, so the second index 0 REPLACES the first - and index 0 is the
+     * chunk carrying the session's opening full snapshot. The recording
+     * becomes unplayable from its own start with nothing reporting a fault.
+     */
+    it("never rewinds when the host page clears sessionStorage mid-session", (): void => {
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(0);
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(1);
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(2);
+
+      /* The host page signs a user out. */
+      sessionStorage.clear();
+
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(3);
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(4);
+    });
+
+    it("survives a single storage key being deleted, not just a full clear", (): void => {
+      SessionId.getNextChunkIndex("tabA");
+      SessionId.getNextChunkIndex("tabA");
+
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.indexOf("chunkIndex") >= 0) {
+          sessionStorage.removeItem(key);
+        }
+      }
+
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(2);
+    });
+
+    /*
+     * A rollover mints a new tab id and explicitly resets the counter, so
+     * the guard must not pin the OLD tab's high-water mark onto it.
+     */
+    it("still resets to 0 when the recorder itself asks", (): void => {
+      SessionId.getNextChunkIndex("tabA");
+      SessionId.getNextChunkIndex("tabA");
+
+      SessionId.resetChunkIndex("tabA");
+
+      expect(SessionId.getNextChunkIndex("tabA")).toBe(0);
     });
   });
 

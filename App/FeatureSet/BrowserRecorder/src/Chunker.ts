@@ -27,6 +27,26 @@ const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
 const EVENT_TYPE_META: number = 4;
 
 /*
+ * Per-chunk caps on recorded URLs, by COUNT and by BYTES.
+ *
+ * The byte budget is the load-bearing one. The routes array rides the
+ * envelope JSON, and the server rejects any envelope over 8 KB outright -
+ * failing the WHOLE request, up to eight frames, which the transport
+ * classifies as a permanent rejection and never retries. A count-only cap
+ * cannot prevent that: 32 long URLs are more than 8 KB on their own, so a
+ * site with deep paths would silently lose its footage rather than lose a
+ * few route entries.
+ *
+ * 2 KB leaves the rest of the envelope (ids, versions, signals, trace ids,
+ * fidelity notices) comfortable room inside the 8 KB ceiling. A chunk covers
+ * ~15s, so a page doing more DISTINCT navigations than these caps allow is
+ * rewriting its URL programmatically rather than being navigated by a
+ * person; routeCount still counts every change past them.
+ */
+const MAX_ROUTES_PER_CHUNK: number = 32;
+const MAX_ROUTE_BYTES_PER_CHUNK: number = 2 * 1024;
+
+/*
  * Disclosed on the last chunk of a session that hit the per-session chunk
  * cap. Not (yet) a member of Common's SessionReplayFidelityNotice: adding one
  * there is a shared-type change, and a recorder must be able to tell the
@@ -152,6 +172,22 @@ export interface PendingChunk {
   signals: SessionReplaySignalCounts;
   fidelityNotices: Array<string>;
   traceIds: Array<string>;
+
+  /*
+   * Scrubbed URLs the page was on while this chunk was open, in first-seen
+   * order. routeCount already says HOW MANY route changes happened; this
+   * says WHICH pages, which is what the session header's routes[] column and
+   * the "sessions that hit /checkout" filter are built on. Without it the
+   * server can only see the URL the chunk was flushed from, so two
+   * navigations inside one flush window collapse to one.
+   *
+   * The order is meaningful only within a chunk, and nothing downstream
+   * depends on it: the session header's routes[] is a de-duplicated SET
+   * across every chunk and every tab, sorted for determinism, and the
+   * envelope's scalar `url` is what carries "where was this chunk flushed
+   * from" - which is how the finalizer resolves the exit page.
+   */
+  routes: Array<string>;
 }
 
 export type ChunkSink = (chunk: PendingChunk) => void;
@@ -194,6 +230,16 @@ export default class Chunker {
   private signals: SessionReplaySignalCounts = Chunker.emptySignals();
   private readonly fidelityNotices: Set<string> = new Set<string>();
   private traceIds: Set<string> = new Set<string>();
+
+  /*
+   * A Set for de-duplication, but iteration order is insertion order, so the
+   * emitted array is chronological - which is what makes the last element
+   * usable as the chunk's exit URL.
+   */
+  private routes: Set<string> = new Set<string>();
+
+  /* Running UTF-8 size of `routes`, for the envelope byte budget. */
+  private routeBytes: number = 0;
 
   public constructor(options: {
     sessionStartUnixMs: number;
@@ -332,6 +378,7 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
@@ -353,6 +400,7 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
@@ -402,6 +450,7 @@ export default class Chunker {
         signals: this.signals,
         fidelityNotices: Array.from(this.fidelityNotices),
         traceIds: Array.from(this.traceIds),
+        routes: Array.from(this.routes),
       });
 
       this.resetPerChunkCounters();
@@ -438,6 +487,7 @@ export default class Chunker {
       signals: this.signals,
       fidelityNotices: Array.from(this.fidelityNotices),
       traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
     });
 
     this.resetPerChunkCounters();
@@ -465,6 +515,14 @@ export default class Chunker {
      */
     this.signals = Chunker.emptySignals();
     this.traceIds = new Set<string>();
+
+    /*
+     * Reset with the rest: the finalizer UNIONS routes across chunks, so
+     * carrying them forward would only make every chunk after the first
+     * repeat the whole history for no gain.
+     */
+    this.routes = new Set<string>();
+    this.routeBytes = 0;
   }
 
   public getOpenByteSize(): number {
@@ -500,6 +558,31 @@ export default class Chunker {
 
   public addTraceId(traceId: string): void {
     this.traceIds.add(traceId);
+  }
+
+  /*
+   * Called for the entry URL at start and for the destination of every route
+   * change. Capped so a page that rewrites its path on every keystroke
+   * cannot grow one envelope without bound; the cap is per chunk, and
+   * routeCount still counts every change past it.
+   */
+  public addRoute(url: string): void {
+    if (!url || this.routes.size >= MAX_ROUTES_PER_CHUNK) {
+      return;
+    }
+
+    if (this.routes.has(url)) {
+      return;
+    }
+
+    const bytes: number = utf8ByteLength(url);
+
+    if (this.routeBytes + bytes > MAX_ROUTE_BYTES_PER_CHUNK) {
+      return;
+    }
+
+    this.routeBytes += bytes;
+    this.routes.add(url);
   }
 
   public getSignals(): SessionReplaySignalCounts {

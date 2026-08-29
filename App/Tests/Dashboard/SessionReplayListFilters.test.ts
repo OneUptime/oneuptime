@@ -34,7 +34,7 @@ describe("buildSessionReplayListFilters", () => {
       osName: "macOS",
       deviceType: "desktop",
       countryCode: "de",
-      identifiedUserKey: "abc123",
+      identifiedUserRef: "jane@example.com",
       route: "/checkout",
       minDurationSeconds: "90",
       triggerReason: "error",
@@ -46,7 +46,12 @@ describe("buildSessionReplayListFilters", () => {
       deviceTypes: ["desktop"],
       /* The stored column is upper-case ISO codes. */
       countryCodes: ["DE"],
-      identifiedUserKey: "abc123",
+      /*
+       * The REFERENCE, not a digest. The server hashes it with the
+       * per-project derivation the ingest used - the raw key is displayed
+       * nowhere in the product, so a field demanding it could never match.
+       */
+      identifiedUserRef: "jane@example.com",
       route: "/checkout",
       /* The input is seconds; the endpoint takes milliseconds. */
       minDurationMs: 90000,

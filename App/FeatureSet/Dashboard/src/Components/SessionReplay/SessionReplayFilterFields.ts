@@ -48,6 +48,14 @@ export const DEVICE_TYPE_OPTIONS: Array<DropdownOption> = [
 export const TRIGGER_REASON_OPTIONS: Array<DropdownOption> = [
   { value: "error", label: "Error" },
   { value: "frustration", label: "Frustration" },
+  /*
+   * The recorder's performance trigger (a blown LCP, long-task or
+   * slow-request budget) writes this value and the server filter matches it,
+   * but it was missing from the dropdown - so the Recording column showed
+   * "Performance" for sessions the filter could not select, and picking any
+   * other trigger silently excluded them.
+   */
+  { value: "performance", label: "Performance" },
   { value: "sampled", label: "Sampled" },
   { value: "manual", label: "Manual" },
 ];
@@ -97,15 +105,29 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
   },
   {
     /*
+     * Membership in the session's route list, not its exit page.
+     *
+     * The server predicate is has(routes, <value>), which answers "did this
+     * session ever reach /checkout" - and now that routes actually holds
+     * every page (it used to hold exactly one, the landing page), the old
+     * "Exit page URL" title would be actively wrong: a session that landed
+     * on "/" and left from "/checkout" matches "/".
+     *
      * Exact match against a stored scrubbed URL - the server deliberately
      * refuses substring scans over this column - so the label says so. A
      * "/checkout" fragment matches nothing.
      */
     field: "route",
-    title: "Exit page URL (exact)",
+    title: "Page URL visited (exact)",
     placeholder: "https://app.example.com/checkout",
     kind: SessionReplayFilterKind.Text,
     type: FieldType.Text,
+    /*
+     * chipKey is a key of SessionReplaySummary, used as the chip's React key
+     * and as the lookup into the chip data - it is an identity, not a label.
+     * The list projection carries no routes column, so this stays exitUrl;
+     * the TITLE above is what tells the reader what the filter does.
+     */
     chipKey: "exitUrl",
   },
   {
@@ -117,9 +139,18 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
     chipKey: "durationMs",
   },
   {
-    field: "identifiedUserKey",
-    title: "User key",
-    placeholder: "hashed identifier",
+    /*
+     * The end-user reference as the customer's own page supplies it - the
+     * value shown in the "User & device" column - not the digest it is
+     * stored under. The server hashes it with the same per-project
+     * derivation the ingest used, so what a person can see is what a person
+     * can type. It previously asked for the raw HMAC, which is displayed
+     * nowhere in the product and which no endpoint would compute, so every
+     * value a human could plausibly enter returned nothing.
+     */
+    field: "identifiedUserRef",
+    title: "User",
+    placeholder: "user-1234 or jane@example.com",
     kind: SessionReplayFilterKind.Text,
     type: FieldType.Text,
     chipKey: "identifiedUserLabel",

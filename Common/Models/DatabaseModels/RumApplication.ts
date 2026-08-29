@@ -286,8 +286,31 @@ export default class RumApplication extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * Creatable, never updatable.
+   *
+   * `create: []` here made the documented "create an application by hand"
+   * flow (docs/rum/applications.md) impossible: ModelForm drops any field
+   * the caller has no create permission on, so the Dashboard's required
+   * "App Identifier" input never rendered, and the POST that followed was
+   * rejected by the server with a raw `appIdentifier is required`. The
+   * column is required and has no default, so nothing could supply it.
+   *
+   * `update` stays empty on purpose. This value is the application's
+   * identity - telemetry is filed under it and the (projectId,
+   * appIdentifier) index is unique - so re-pointing it after the fact would
+   * orphan every session, trace and recording already keyed on the old one.
+   * Same shape as ServerlessFunction.functionIdentifier.
+   */
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -308,6 +331,16 @@ export default class RumApplication extends BaseModel {
     description:
       "Stable identifier for this application from the service.name OpenTelemetry resource attribute. Identity key for this RUM application.",
   })
+  /*
+   * Case-INSENSITIVE uniqueness, which the unique index on
+   * (projectId, appIdentifier) does not give: Postgres compares it byte for
+   * byte, while RumApplicationService.findOrCreateByAppIdentifier resolves
+   * an incoming service.name with QueryHelper.findWithSameText, which
+   * lowercases. Without this, someone hand-creating "Storefront-Web" beside
+   * an auto-discovered "storefront-web" passes the index and leaves two rows
+   * that the case-insensitive lookup resolves arbitrarily.
+   */
+  @UniqueColumnBy("projectId")
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
@@ -1245,7 +1278,7 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Capture Session Replay User Identity",
     description:
-      "When enabled, the raw end-user reference supplied by the host page is stored alongside the recording, so a support engineer can find the session a named customer is complaining about. When off, only a one-way per-project HMAC of it is stored. On by default. Narrower create/update ACL than the other replay settings: this is the switch that turns a pseudonymous recording into an identified one.",
+      "When enabled, the end-user reference supplied by the host page is stored alongside the recording - as a one-way per-project HMAC for lookup and erasure, plus the raw reference behind its own narrower column ACL - so a support engineer can find the session a named customer is complaining about. When off, the reference is never attached to a recording and neither column is stored. (It is still sent once on the policy request, which is how targeted capture matches a named user; it is not persisted.) The reference must be supplied at load time - identify() called later reaches the server only on the session's final chunk, which the header is not rebuilt from. On by default. Narrower create/update ACL than the other replay settings: this is the switch that turns a pseudonymous recording into an identified one.",
     defaultValue: true,
   })
   @Column({

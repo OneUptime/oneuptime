@@ -209,6 +209,8 @@ export default class SessionId {
   public static getNextChunkIndex(tabId: string): number {
     const next: number = SessionId.peekChunkIndex(tabId);
 
+    SessionId.highWaterChunkIndex.set(tabId, next + 1);
+
     SessionId.writeSessionStorage(
       SessionId.getChunkIndexKey(tabId),
       String(next + 1),
@@ -224,12 +226,52 @@ export default class SessionId {
 
     const parsed: number = raw === null ? 0 : Number.parseInt(raw, 10);
 
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    const stored: number = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+
+    /*
+     * NEVER go backwards within a live recorder.
+     *
+     * The counter lives in sessionStorage so a recorder torn down and
+     * re-created inside the same page (a framework remount, a consent
+     * re-grant) does not reuse an index it has already posted. But
+     * sessionStorage is not ours: a host page that calls
+     * sessionStorage.clear() - which plenty do on sign-out - resets the
+     * counter under a recorder that is still running, and the next chunk
+     * goes out as index 0 again.
+     *
+     * That is not a duplicate, it is a DELETION. The chunk table is a
+     * ReplacingMergeTree keyed on (projectId, sessionId, tabId, chunkIndex)
+     * with the ingest timestamp as the version, so the second index 0
+     * REPLACES the first - and index 0 is the chunk that carries the
+     * session's opening full snapshot. The recording becomes unplayable
+     * from its own start, with nothing anywhere reporting a problem.
+     *
+     * The in-memory high-water mark is the source of truth while the
+     * recorder is alive; storage is only ever allowed to move it forward.
+     */
+    const inMemory: number = SessionId.highWaterChunkIndex.get(tabId) ?? 0;
+
+    return Math.max(stored, inMemory);
   }
 
   public static resetChunkIndex(tabId: string): void {
+    SessionId.highWaterChunkIndex.delete(tabId);
     SessionId.writeSessionStorage(SessionId.getChunkIndexKey(tabId), "0");
   }
+
+  /*
+   * Highest index this process has already handed out, per tab. See
+   * peekChunkIndex for why storage alone is not enough.
+   *
+   * Keyed by tab because the chunk counter is. A session rollover REUSES the
+   * tab id, and starts clean only because resolveSession calls
+   * resetChunkIndex, which deletes the entry - do not remove that call on
+   * the strength of the key shape.
+   */
+  private static readonly highWaterChunkIndex: Map<string, number> = new Map<
+    string,
+    number
+  >();
 
   private static getChunkIndexKey(tabId: string): string {
     return `${CHUNK_INDEX_STORAGE_KEY}.${tabId}`;
@@ -276,6 +318,15 @@ export default class SessionId {
     SessionId.removeLocalStorage(SESSION_STORAGE_KEY);
     SessionId.removeLocalStorage(RELOAD_LOG_STORAGE_KEY);
     SessionId.removeSessionStorage(TAB_STORAGE_KEY);
+
+    /*
+     * The in-memory high-water marks go too. clearAll is "forget this
+     * session entirely" - a consent revocation or a stop() - and a counter
+     * that outlived it would push the NEXT session's first chunk past index
+     * 0, leaving its opening full snapshot at an index the player's seek
+     * anchors do not expect.
+     */
+    SessionId.highWaterChunkIndex.clear();
 
     try {
       const keys: Array<string> = [];

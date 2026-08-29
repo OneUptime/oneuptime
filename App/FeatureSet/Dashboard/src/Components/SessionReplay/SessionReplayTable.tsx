@@ -704,6 +704,20 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             });
 
           if (badges.length === 0) {
+            /*
+             * "Clean" is a claim, and it is only true once the finalizer has
+             * counted every chunk. Before that the header carries chunk 0's
+             * signals only, so a session that broke on its third chunk would
+             * be labelled Clean while it was still recording - the same
+             * over-claim the Duration column already avoids by showing a
+             * dash rather than a provisional number.
+             */
+            if (!row.isFinalized) {
+              return (
+                <span className="text-sm text-gray-400">Not counted yet</span>
+              );
+            }
+
             return <span className="text-sm text-gray-500">Clean</span>;
           }
 

@@ -5,6 +5,7 @@ import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Project from "../../../Models/DatabaseModels/Project";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import RumSessionErasureRequest from "../../../Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionPin from "../../../Models/DatabaseModels/RumSessionPin";
@@ -60,6 +61,86 @@ describe("RumApplication session replay configuration", () => {
   ): TableColumnMetadata => {
     return model.getTableColumnMetadata(columnName);
   };
+
+  /*
+   * The identity column has to be CREATABLE and NEVER UPDATABLE.
+   *
+   * It shipped as `create: []` on a required column with no default, which
+   * made the documented "create an application by hand" flow impossible:
+   * ModelForm drops any field the caller has no create permission on, so the
+   * Dashboard's required "App Identifier" input never rendered, and the POST
+   * that followed was rejected by the server with "appIdentifier is
+   * required". The Create button was a dead end for every user.
+   */
+  it("lets a user supply the app identifier at creation time", () => {
+    const accessControl: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("appIdentifier");
+
+    expect(accessControl).toBeDefined();
+    expect(accessControl!.create.length).toBeGreaterThan(0);
+    expect(accessControl!.create).toContain(Permission.ProjectOwner);
+    expect(accessControl!.create).toContain(Permission.CreateRumApplication);
+  });
+
+  it("never lets the app identifier be edited afterwards", () => {
+    /*
+     * Deliberately immutable. Telemetry, sessions, traces and recordings are
+     * all filed under this value and the (projectId, appIdentifier) index is
+     * unique, so re-pointing it after the fact would orphan every row that
+     * already references it. If this list is ever populated, the orphaning
+     * has to be solved first - do not "tidy it up" to match `create`.
+     */
+    const accessControl: ColumnAccessControl | null =
+      model.getColumnAccessControlFor("appIdentifier");
+
+    expect(accessControl!.update).toEqual([]);
+  });
+
+  /*
+   * The create form declares an "App Identifier" field. That field can only
+   * render if the column is creatable, and the POST can only succeed if the
+   * required column is supplied - so a required column with an empty create
+   * list is always a dead form, whatever the page source says.
+   *
+   * CloudResource.resourceIdentifier is checked alongside because it had the
+   * identical defect on the identical page shape: an auto-discovered
+   * identity column whose dashboard page also offers a Create button.
+   */
+  it.each([
+    ["RumApplication", new RumApplication() as BaseModel],
+    ["CloudResource", new CloudResource() as BaseModel],
+  ])(
+    "%s has no required column that the user is forbidden to create",
+    (_name: string, subject: BaseModel) => {
+      const uncreatable: Array<string> = [];
+
+      for (const columnName of subject.getTableColumns().columns) {
+        const metadata: TableColumnMetadata =
+          subject.getTableColumnMetadata(columnName);
+        const accessControl: ColumnAccessControl | null =
+          subject.getColumnAccessControlFor(columnName);
+
+        if (!metadata.required || metadata.defaultValue !== undefined) {
+          continue;
+        }
+
+        /* System columns nobody submits through a form. */
+        if (
+          ["_id", "createdAt", "updatedAt", "version", "slug"].includes(
+            columnName,
+          )
+        ) {
+          continue;
+        }
+
+        if (accessControl && accessControl.create.length === 0) {
+          uncreatable.push(columnName);
+        }
+      }
+
+      expect(uncreatable).toEqual([]);
+    },
+  );
 
   it("declares every session replay configuration column", () => {
     const expectedColumns: Array<string> = [

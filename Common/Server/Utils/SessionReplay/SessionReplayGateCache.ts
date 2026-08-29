@@ -105,11 +105,18 @@ export interface SessionReplayGatePolicy {
   isAppEnabled: boolean;
 
   /*
-   * Empty means REFUSED, not allow-all. This is the only anti-forgery
-   * control available: a TelemetryIngestionKey has no expiry, no scope and
-   * no origin binding, and the docs tell customers to paste it into
-   * browser JavaScript, so anyone who scrapes the key could otherwise
-   * write recordings into the victim's project.
+   * Empty means ANY ORIGIN, which is the shipped default (the column
+   * defaults to '[]') and what isOriginAllowed below actually implements -
+   * this doc used to claim the opposite ("empty means REFUSED"), in the one
+   * direction where being wrong matters, since a reader would conclude the
+   * feature was locked down out of the box.
+   *
+   * Filling it in is the only anti-forgery control available: a
+   * TelemetryIngestionKey has no expiry, no scope and no origin binding, and
+   * the docs tell customers to paste it into browser JavaScript, so anyone
+   * who scrapes the key can write recordings into the victim's project until
+   * this list names the customer's own domains. The installation-test panel
+   * flags an empty list as a warning for exactly that reason.
    */
   allowedOrigins: Array<string>;
 

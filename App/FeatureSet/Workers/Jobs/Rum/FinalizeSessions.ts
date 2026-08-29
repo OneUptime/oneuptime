@@ -155,6 +155,14 @@ export const MAX_TRACE_IDS_PER_SESSION: number = 200;
 export const MAX_EXCEPTION_FINGERPRINTS_PER_SESSION: number = 100;
 
 /*
+ * Matches MAX_ROUTES_RECORDED in the recorder's RouteRecorder, which is the
+ * per-page-load cap on route events. A session that genuinely visited more
+ * distinct pages than this is not one anybody reads a route list for, and
+ * the column feeds a bloom index that wants bounded cardinality.
+ */
+export const MAX_ROUTES_PER_SESSION: number = 500;
+
+/*
  * Padding on both ends of the correlation queries' time window. The
  * window is derived from SERVER receive times (activity-set scores /
  * header startTime) while Span.startTime and ExceptionInstance.time are
@@ -198,8 +206,22 @@ export interface TabChunkAggregate {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+  firstUrl: string;
+  lastUrl: string;
+  firstUrlAtUnixMs: number;
+  lastUrlAtUnixMs: number;
+  urlChunkCount: number;
+  routes: Array<string>;
   hasFinalChunk: boolean;
   sessionStartUnixMs: number;
+
+  /*
+   * When this TAB started. sessionStartUnixMs cannot answer that - it is the
+   * SESSION's start, written from the recorder's localStorage record, so it
+   * is identical across every tab of the session.
+   */
+  firstChunkStartUnixMs: number;
+
   lastChunkEndUnixMs: number;
   maxChunkEndOffsetMs: number;
   schemaVersion: number;
@@ -225,6 +247,23 @@ export interface SessionChunkAggregate {
   errorClickCount: number;
   refreshRageCount: number;
   pageCount: number;
+
+  /*
+   * Derived from the chunk rows, not carried forward from the provisional
+   * header. The header only ever knew chunk 0's URL, which for a single-page
+   * app is the landing page for the whole session.
+   */
+  firstUrl: string;
+  lastUrl: string;
+  routes: Array<string>;
+
+  /*
+   * Whether firstUrl is the URL the SESSION began on rather than the
+   * earliest one that happens to be stored. False for a session whose
+   * opening chunks predate the url column, where the header is authoritative.
+   */
+  firstUrlCoversSessionStart: boolean;
+
   hasFinalChunk: boolean;
   sessionStartUnixMs: number;
   lastChunkEndUnixMs: number;
@@ -262,6 +301,12 @@ export interface ProvisionalSessionHeader {
   triggerReason: string;
   samplePercentageAtCapture: number;
   clockSkewMs: number;
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  pageCount: number;
   entryUrl: string;
   exitUrl: string;
   routes: Array<string>;
@@ -400,6 +445,48 @@ export function buildTabAggregateStatement(data: {
       sum(errorClickCount) AS errorClickCount,
       sum(refreshRageCount) AS refreshRageCount,
       sum(routeCount) AS routeCount,
+      /*
+       * WHERE this tab started and ended, and every page in between.
+       *
+       * argMin/argMax over chunkStartTime pick the actual first and last
+       * chunk rather than relying on chunkIndex, which restarts at 0 for
+       * every tab and so cannot order across one.
+       *
+       * The route union is a SET, not a path: groupArray's element order is
+       * unspecified under parallel aggregation, so it is sorted to make the
+       * value DETERMINISTIC. That matters beyond tidiness - the header is a
+       * ReplacingMergeTree row that the sweep can rewrite, and two runs over
+       * identical chunks must produce identical bytes or they churn versions
+       * forever. Consumers treat it as membership ("did this session reach
+       * /checkout"); entryUrl and exitUrl are what answer the ordered
+       * questions, and they come from the argMin/argMax above.
+       */
+      argMinIf(url, chunkStartTime, url != '') AS firstUrl,
+      argMaxIf(url, chunkEndTime, url != '') AS lastUrl,
+      /*
+       * WHEN the first and last URL-bearing chunks were, which is what
+       * orders firstUrl/lastUrl across tabs - and, for firstUrl, what says
+       * whether the derivation can be trusted at all. A session live across
+       * the deploy that added these columns has early chunks with url = ''
+       * and later ones without, so argMinIf returns a MID-session page;
+       * comparing it against the tab's real start is how that case falls
+       * back to the provisional header, which still holds the landing page.
+       *
+       * countIf guards the "no chunk has a url" case, where minIf/maxIf
+       * return 0 rather than anything meaningful.
+       */
+      minIf(toUnixTimestamp64Milli(chunkStartTime), url != '') AS firstUrlAtUnixMs,
+      maxIf(toUnixTimestamp64Milli(chunkEndTime), url != '') AS lastUrlAtUnixMs,
+      countIf(url != '') AS urlChunkCount,
+      /*
+       * When this TAB started, url or no url. sessionStartTime cannot answer
+       * that: it is the SESSION's start, written from the recorder's
+       * localStorage record, so it is identical across every tab.
+       * Comparing it with firstUrlAtUnixMs is what detects a session whose
+       * opening chunks predate the url column.
+       */
+      toUnixTimestamp64Milli(min(chunkStartTime)) AS firstChunkStartUnixMs,
+      arraySort(arrayDistinct(arrayFlatten(groupArray(routes)))) AS routes,
       max(toUInt8(isFinal)) AS hasFinalChunk,
       toUnixTimestamp64Milli(min(sessionStartTime)) AS sessionStartUnixMs,
       toUnixTimestamp64Milli(max(chunkEndTime)) AS lastChunkEndUnixMs,
@@ -425,7 +512,10 @@ export function buildTabAggregateStatement(data: {
         errorClickCount,
         refreshRageCount,
         routeCount,
+        url,
+        routes,
         sessionStartTime,
+        chunkStartTime,
         chunkEndTime,
         chunkEndOffsetMs,
         schemaVersion,
@@ -478,6 +568,20 @@ export function buildProvisionalHeaderStatement(data: {
       triggerReason AS triggerReason,
       samplePercentageAtCapture AS samplePercentageAtCapture,
       clockSkewMs AS clockSkewMs,
+      /*
+       * The provisional signal counts, carried so sealLostSession can keep
+       * them. That path builds an all-zero aggregate because the session's
+       * chunks are GONE, and buildFinalizedSessionRow takes every counter
+       * from the aggregate - so without these the seal would overwrite real
+       * numbers the ingest recorded from chunk 0 with zeroes, and publish a
+       * row whose Signals column says "Clean" about a session that errored.
+       */
+      errorCount AS errorCount,
+      rageClickCount AS rageClickCount,
+      deadClickCount AS deadClickCount,
+      errorClickCount AS errorClickCount,
+      refreshRageCount AS refreshRageCount,
+      pageCount AS pageCount,
       entryUrl AS entryUrl,
       exitUrl AS exitUrl,
       routes AS routes,
@@ -637,8 +741,15 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     errorClickCount: toNumberValue(row["errorClickCount"]),
     refreshRageCount: toNumberValue(row["refreshRageCount"]),
     routeCount: toNumberValue(row["routeCount"]),
+    firstUrl: toTextValue(row["firstUrl"]),
+    lastUrl: toTextValue(row["lastUrl"]),
+    firstUrlAtUnixMs: toNumberValue(row["firstUrlAtUnixMs"]),
+    lastUrlAtUnixMs: toNumberValue(row["lastUrlAtUnixMs"]),
+    urlChunkCount: toNumberValue(row["urlChunkCount"]),
+    routes: toTextArrayValue(row["routes"]),
     hasFinalChunk: toBooleanValue(row["hasFinalChunk"]),
     sessionStartUnixMs: toNumberValue(row["sessionStartUnixMs"]),
+    firstChunkStartUnixMs: toNumberValue(row["firstChunkStartUnixMs"]),
     lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
     maxChunkEndOffsetMs: toNumberValue(row["maxChunkEndOffsetMs"]),
     schemaVersion: toNumberValue(row["schemaVersion"]),
@@ -667,6 +778,12 @@ export function parseProvisionalHeaderRow(
     triggerReason: toTextValue(row["triggerReason"]),
     samplePercentageAtCapture: toNumberValue(row["samplePercentageAtCapture"]),
     clockSkewMs: toNumberValue(row["clockSkewMs"]),
+    errorCount: toNumberValue(row["errorCount"]),
+    rageClickCount: toNumberValue(row["rageClickCount"]),
+    deadClickCount: toNumberValue(row["deadClickCount"]),
+    errorClickCount: toNumberValue(row["errorClickCount"]),
+    refreshRageCount: toNumberValue(row["refreshRageCount"]),
+    pageCount: toNumberValue(row["pageCount"]),
     entryUrl: toTextValue(row["entryUrl"]),
     exitUrl: toTextValue(row["exitUrl"]),
     routes: toTextArrayValue(row["routes"]),
@@ -727,6 +844,10 @@ export function combineTabAggregates(
     errorClickCount: 0,
     refreshRageCount: 0,
     pageCount: 0,
+    firstUrl: "",
+    lastUrl: "",
+    routes: [],
+    firstUrlCoversSessionStart: false,
     hasFinalChunk: false,
     sessionStartUnixMs: 0,
     lastChunkEndUnixMs: 0,
@@ -739,6 +860,43 @@ export function combineTabAggregates(
   };
 
   const snapshotIndexes: Set<number> = new Set<number>();
+
+  /*
+   * Route union across tabs. A Set keyed on the URL is the whole
+   * de-duplication: a user who bounces between two pages ten times
+   * contributes two routes, not twenty. Sorted on the way out - see the SQL
+   * note about determinism; the merge order of tabs is no more defined than
+   * groupArray's element order.
+   */
+  const routes: Set<string> = new Set<string>();
+
+  /*
+   * The session's first and last URLs are the first URL of the EARLIEST tab
+   * and the last URL of the LATEST tab, so both are tracked with the clock
+   * that decides them rather than with tab iteration order - the tabs array
+   * arrives in whatever order ClickHouse grouped it, and a merge that
+   * depended on that order would churn ReplacingMergeTree versions on every
+   * re-finalization of identical chunks.
+   *
+   * The clocks are per-CHUNK times (min chunkStartTime, max chunkEndTime),
+   * NOT sessionStartTime: that column is the session's own start, written
+   * from the recorder's localStorage record, so it is byte-identical for
+   * every tab and orders none of them. The tabId tie-break makes the result
+   * total even when two tabs share a millisecond.
+   */
+  let firstUrlAtUnixMs: number = 0;
+  let firstUrlTabId: string = "";
+  let lastUrlAtUnixMs: number = 0;
+  let lastUrlTabId: string = "";
+
+  /*
+   * The earliest chunk of the session, url-bearing or not. Comparing it with
+   * firstUrlAtUnixMs is what detects a session whose opening chunks predate
+   * the url column: there, the derived firstUrl is a MID-session page and
+   * the provisional header is the only thing that still knows the landing
+   * page, so buildFinalizedSessionRow must prefer it.
+   */
+  let earliestChunkStartUnixMs: number = 0;
 
   for (const tab of tabs) {
     combined.chunkCount += tab.chunkCount;
@@ -770,6 +928,47 @@ export function combineTabAggregates(
     combined.refreshRageCount += tab.refreshRageCount;
     /* routeCount is the per-chunk name for what the header calls pageCount. */
     combined.pageCount += tab.routeCount;
+
+    for (const route of tab.routes) {
+      if (route && routes.size < MAX_ROUTES_PER_SESSION) {
+        routes.add(route);
+      }
+    }
+
+    if (
+      tab.firstChunkStartUnixMs > 0 &&
+      (earliestChunkStartUnixMs === 0 ||
+        tab.firstChunkStartUnixMs < earliestChunkStartUnixMs)
+    ) {
+      earliestChunkStartUnixMs = tab.firstChunkStartUnixMs;
+    }
+
+    if (tab.firstUrl && tab.urlChunkCount > 0) {
+      const isEarlier: boolean =
+        combined.firstUrl === "" ||
+        tab.firstUrlAtUnixMs < firstUrlAtUnixMs ||
+        (tab.firstUrlAtUnixMs === firstUrlAtUnixMs &&
+          tab.tabId < firstUrlTabId);
+
+      if (isEarlier) {
+        combined.firstUrl = tab.firstUrl;
+        firstUrlAtUnixMs = tab.firstUrlAtUnixMs;
+        firstUrlTabId = tab.tabId;
+      }
+    }
+
+    if (tab.lastUrl && tab.urlChunkCount > 0) {
+      const isLater: boolean =
+        combined.lastUrl === "" ||
+        tab.lastUrlAtUnixMs > lastUrlAtUnixMs ||
+        (tab.lastUrlAtUnixMs === lastUrlAtUnixMs && tab.tabId > lastUrlTabId);
+
+      if (isLater) {
+        combined.lastUrl = tab.lastUrl;
+        lastUrlAtUnixMs = tab.lastUrlAtUnixMs;
+        lastUrlTabId = tab.tabId;
+      }
+    }
 
     combined.hasFinalChunk = combined.hasFinalChunk || tab.hasFinalChunk;
 
@@ -822,6 +1021,24 @@ export function combineTabAggregates(
       return a - b;
     },
   );
+
+  /* Sorted, so re-finalizing identical chunks produces an identical row. */
+  combined.routes = Array.from(routes).sort();
+
+  /*
+   * Only trust the derived entry URL when the session's very first chunk
+   * carried one. Otherwise the earliest URL we hold is a mid-session page -
+   * a session live across the deploy that added the column - and the
+   * provisional header, written from chunk 0, still knows where it began.
+   *
+   * exitUrl needs no equivalent test: url-less chunks are always
+   * chronologically earlier than url-bearing ones, so the LAST url is
+   * correct whenever any url exists at all.
+   */
+  combined.firstUrlCoversSessionStart =
+    combined.firstUrl !== "" &&
+    earliestChunkStartUnixMs > 0 &&
+    firstUrlAtUnixMs <= earliestChunkStartUnixMs;
 
   return combined;
 }
@@ -1000,9 +1217,35 @@ export function buildFinalizedSessionRow(data: {
     triggerReason: header ? header.triggerReason : "",
     samplePercentageAtCapture: header ? header.samplePercentageAtCapture : 0,
 
-    entryUrl: header ? header.entryUrl : "",
-    exitUrl: header ? header.exitUrl : "",
-    routes: header ? header.routes : [],
+    /*
+     * Derived from the chunk rows, falling back to the provisional header.
+     *
+     * These three used to be copied straight from the header, which is
+     * written once on chunk 0 - so a single-page app reported its landing
+     * page as its exit URL forever, routes[] could never hold more than one
+     * element (making the "Exit page URL (exact)" filter unable to match a
+     * page the user demonstrably reached), and a session spanning two page
+     * loads had its entryUrl overwritten by the LAST load's URL.
+     *
+     * The fallback is what keeps sessions recorded before the chunk table
+     * carried url/routes rendering exactly as they do today.
+     */
+    entryUrl:
+      (aggregate.firstUrlCoversSessionStart ? aggregate.firstUrl : "") ||
+      (header ? header.entryUrl : ""),
+    exitUrl: aggregate.lastUrl || (header ? header.exitUrl : ""),
+    /*
+     * Derived list first, with the header's copy appended only as a fallback
+     * for sessions whose chunks predate the url/routes columns - for
+     * everything else it is already in the derived list and de-duplicates
+     * away. Sorted for the determinism reason in the SQL comment: the two
+     * inputs are each sorted, but concatenating them is not.
+     */
+    routes: mergeCappedArray(
+      aggregate.routes,
+      header ? header.routes : [],
+      MAX_ROUTES_PER_SESSION,
+    ).sort(),
 
     browserName: header ? header.browserName : "",
     browserVersion: header ? header.browserVersion : "",
@@ -1819,12 +2062,31 @@ async function sealLostSession(data: {
     fullSnapshotChunkIndexes: [],
     eventCount: 0,
     payloadBytes: 0,
-    errorCount: 0,
-    rageClickCount: 0,
-    deadClickCount: 0,
-    errorClickCount: 0,
-    refreshRageCount: 0,
-    pageCount: 0,
+    /*
+     * Carried from the header, not zeroed.
+     *
+     * The chunks are gone - that is what "recording lost" means - but the
+     * ingest recorded what chunk 0 saw before they were, and those counts
+     * are the only remaining evidence about the session. Zeroing them here
+     * would publish a sealed row whose Signals column reads "Clean" for a
+     * session that errored, which is a worse answer than "we lost the
+     * footage of a session that errored".
+     */
+    errorCount: header.errorCount,
+    rageClickCount: header.rageClickCount,
+    deadClickCount: header.deadClickCount,
+    errorClickCount: header.errorClickCount,
+    refreshRageCount: header.refreshRageCount,
+    pageCount: header.pageCount,
+    /*
+     * Empty on purpose: this session has NO chunk rows, so there is nothing
+     * to derive from and buildFinalizedSessionRow falls back to the
+     * provisional header's own URLs.
+     */
+    firstUrl: "",
+    lastUrl: "",
+    routes: [],
+    firstUrlCoversSessionStart: false,
     hasFinalChunk: false,
     sessionStartUnixMs: header.startTimeUnixMs,
     lastChunkEndUnixMs: header.startTimeUnixMs,

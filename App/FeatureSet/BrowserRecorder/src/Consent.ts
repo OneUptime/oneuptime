@@ -55,9 +55,16 @@ export default class Consent {
   /*
    * Should the recorder run at all?
    *
-   * respectDoNotTrack is the AND of the page-supplied option and the
-   * server policy: either side may insist on honouring the signal, and
-   * only both sides agreeing can turn it off.
+   * The PAGE decides whether DNT/GPC is honoured, and the server's value is
+   * only the default it starts from - see the inline note below, which is
+   * the behaviour the code actually implements and the one the install docs
+   * describe (data-oneuptime-respect-do-not-track="false" overrides the
+   * deployment default, because the customer owns the lawful basis for
+   * their own site).
+   *
+   * This comment used to describe the opposite - an AND, "either side may
+   * insist on honouring the signal" - which is what the code did before the
+   * override was added and has not been true since.
    */
   public static isRecordingPermitted(
     pageRespectsDoNotTrack: boolean,

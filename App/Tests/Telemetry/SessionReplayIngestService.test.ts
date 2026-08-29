@@ -7,10 +7,13 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import {
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
+  SessionReplayChunkMeta,
 } from "Common/Types/Rum/SessionReplay";
+import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
 import zlib from "zlib";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -58,10 +61,11 @@ jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
 });
 
 /*
- * SESSION_REPLAY_ENABLED_BY_DEFAULT ships false, and the gate now refuses
- * outright when it is off (the config endpoint already did). Everything in
- * this file exercises an instance that DOES offer replay; the off case has
- * its own file, SessionReplayInstanceSwitch.test.ts.
+ * SESSION_REPLAY_ENABLED_BY_DEFAULT ships TRUE; setting it to false is how
+ * an operator turns replay off instance-wide, and the gate then refuses
+ * outright (the config endpoint already did). Everything in this file
+ * exercises an instance that DOES offer replay; the off case has its own
+ * file, SessionReplayInstanceSwitch.test.ts.
  */
 jest.mock("../../FeatureSet/Telemetry/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -1150,15 +1154,484 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     expect(getSubmittedRows("RumSessionV1")[0]!["countryCode"]).toBe("");
   });
 
-  test("never stores an identified user key on the ingest path", async () => {
-    await SessionReplayIngestService.processFromQueue(
-      buildJobData(buildBody([{ chunkIndex: 0 }])),
-    );
+  /*
+   * End-user identity.
+   *
+   * The recorder has always put meta.identifiedUserRef on the wire when the
+   * application had identity capture on, and the envelope parser has always
+   * accepted it - but the ingest wrote both columns as "" unconditionally,
+   * so the session list said "Anonymous" for every recording, the User key
+   * filter could never match anything, and a ByIdentifiedUserKey erasure
+   * request resolved zero sessions while the settings page said "Captures
+   * end-user identity: Yes".
+   */
+  describe("end-user identity on the session header", () => {
+    const USER_REF: string = "user-42@acme.test";
 
-    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+    function metaWithUserRef(userRef: string): SessionReplayChunkMeta {
+      return {
+        entryUrl: "https://shop.example.com/",
+        browserName: "Chrome",
+        browserVersion: "141",
+        osName: "macOS",
+        deviceType: "desktop",
+        viewportWidth: 1440,
+        viewportHeight: 900,
+        identifiedUserRef: userRef,
+      };
+    }
 
-    expect(header["identifiedUserKey"]).toBe("");
-    expect(header["identifiedUserLabel"]).toBe("");
+    test("stores an HMAC key and the raw label when capture is on", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      /* SHA-256 hex: the column has to be a fixed-width opaque token. */
+      expect(header["identifiedUserKey"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(header["identifiedUserLabel"]).toBe(USER_REF);
+
+      /* The key must not be the reference in disguise. */
+      expect(header["identifiedUserKey"]).not.toContain("acme");
+    });
+
+    /*
+     * The ACL-critical assertion. The recorder is supposed to withhold the
+     * reference entirely when capture is off, but the recorder's copy of the
+     * policy can be a config-cache TTL stale and a hand-crafted POST is not
+     * bound by it at all - so the server must refuse it too.
+     */
+    test("stores nothing when the application has capture switched off", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: false }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserKey"]).toBe("");
+      expect(header["identifiedUserLabel"]).toBe("");
+      expect(JSON.stringify(header)).not.toContain("acme.test");
+    });
+
+    test("a page that supplies no reference stays anonymous", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserKey"]).toBe("");
+      expect(header["identifiedUserLabel"]).toBe("");
+    });
+
+    /*
+     * Determinism is what makes erasure work: a request naming a person has
+     * to resolve to the same digest their sessions were filed under, months
+     * later and from a different process.
+     */
+    test("the same reference in the same project yields the same key", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const first: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              sessionId: "c".repeat(32),
+              meta: metaWithUserRef(USER_REF),
+            },
+          ]),
+        ),
+      );
+
+      const second: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      expect(second).toBe(first);
+    });
+
+    /*
+     * Scoped by project, so one customer's digest can never be used to probe
+     * another's - and so a project-wide erasure reaches every application in
+     * that project, which is exactly what ProcessSessionErasureRequests
+     * filters on.
+     */
+    test("the same reference in a different project yields a different key", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const first: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({
+          captureUserIdentity: true,
+          projectId: otherProjectId,
+        }) as never,
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(USER_REF) }]),
+          { projectId: otherProjectId.toString() },
+        ),
+      );
+
+      const second: string = getSubmittedRows("RumSessionV1")[0]![
+        "identifiedUserKey"
+      ] as string;
+
+      expect(second).not.toBe(first);
+      expect(second).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    /*
+     * The server's cap has to be the SAME cap the recorder slices to.
+     *
+     * The recorder sends userRef.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH)
+     * and the targeting handshake hashes it at that length. The envelope
+     * parser used to fold it into the 128-byte cap it shares with
+     * browserName and osName, so any reference longer than 128 characters -
+     * a namespaced customer id, a signed token, a long email - was hashed
+     * from a DIFFERENT string than the one a dashboard lookup or an erasure
+     * request would hash. Nothing errored; the recordings were simply filed
+     * under a key no one could ever resolve.
+     */
+    test("a long reference is stored whole, not folded into the device-string cap", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      /* Comfortably past the 128-byte meta cap, inside the 512 user-ref cap. */
+      const longRef: string = `acme-tenant-${"z".repeat(200)}@customers.example.com`;
+
+      expect(longRef.length).toBeGreaterThan(128);
+      expect(longRef.length).toBeLessThanOrEqual(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(longRef) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["identifiedUserLabel"]).toBe(longRef);
+      expect(header["identifiedUserKey"]).toBe(
+        SessionReplayIdentity.buildUserKey({
+          projectId: PROJECT_ID,
+          userRef: longRef,
+        }),
+      );
+    });
+
+    /*
+     * Past the shared cap both sides slice to, the server sees exactly what
+     * a recorder would have sent - the 512-character prefix - so the key is
+     * the same either way. What must NOT happen is the two sides disagreeing
+     * about where to cut.
+     */
+    test("a reference past the shared cap hashes the same prefix the recorder would send", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      const overLong: string = "z".repeat(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH + 200,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, meta: metaWithUserRef(overLong) }]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect((header["identifiedUserLabel"] as string).length).toBe(
+        SESSION_REPLAY_MAX_USER_REF_LENGTH,
+      );
+      expect(header["identifiedUserKey"]).toBe(
+        SessionReplayIdentity.buildUserKey({
+          projectId: PROJECT_ID,
+          userRef: overLong.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH),
+        }),
+      );
+    });
+  });
+
+  /*
+   * The provisional header's signal counters.
+   *
+   * They used to be hardcoded to 0 while `hasError` in the same object
+   * literal was derived from envelope.signals.errorCount - so for the 10-15
+   * minutes before the finalizer runs, the "With errors" tab returned rows
+   * whose Signals cell read "Clean", and the "With frustration" tab excluded
+   * the very session that was captured BECAUSE of a rage click. Both tabs
+   * are read during an incident, which is exactly that window.
+   */
+  describe("provisional signal counters", () => {
+    test("chunk 0's signals seed the header instead of being zeroed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 2,
+                rageClickCount: 1,
+                deadClickCount: 3,
+                errorClickCount: 1,
+                refreshRageCount: 0,
+                routeCount: 4,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["errorCount"]).toBe(2);
+      expect(header["rageClickCount"]).toBe(1);
+      expect(header["deadClickCount"]).toBe(3);
+      expect(header["errorClickCount"]).toBe(1);
+      expect(header["pageCount"]).toBe(4);
+    });
+
+    /*
+     * The invariant that made the list self-contradictory: hasError said
+     * "yes" while the counter it is derived from said zero.
+     */
+    test("hasError and errorCount can no longer disagree", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 1,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 0,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["hasError"]).toBe(true);
+      expect(header["errorCount"]).toBeGreaterThan(0);
+    });
+
+    test("a clean chunk 0 still reports zeroes", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              signals: {
+                errorCount: 0,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 0,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["hasError"]).toBe(false);
+      expect(header["errorCount"]).toBe(0);
+      expect(header["rageClickCount"]).toBe(0);
+    });
+  });
+
+  /*
+   * WHERE the user went, per chunk.
+   *
+   * The chunk table used to carry routeCount but not the routes themselves,
+   * so the session header's exitUrl / routes[] could only ever be whatever
+   * chunk 0 knew - the landing page, for the life of a single-page app. The
+   * finalizer now derives all three from these columns.
+   */
+  describe("per-chunk url and routes", () => {
+    test("every chunk records the url it was flushed from", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, url: "https://shop.example.com/" },
+            { chunkIndex: 1, url: "https://shop.example.com/cart" },
+            { chunkIndex: 2, url: "https://shop.example.com/checkout" },
+          ]),
+        ),
+      );
+
+      const chunks: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+      expect(
+        chunks.map((c: JSONObject): unknown => {
+          return c["url"];
+        }),
+      ).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+    });
+
+    test("the envelope's route list is stored, in order, with the flush url appended", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+    });
+
+    /*
+     * An older recorder posting to a newer server sends no routes at all.
+     * It must still contribute its page to the session's route list rather
+     * than contributing nothing.
+     */
+    test("a recorder that sends no route list still contributes its own url", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0, url: "https://shop.example.com/legacy" },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual(["https://shop.example.com/legacy"]);
+    });
+
+    test("a route repeated across the chunk is stored once", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/cart",
+              routes: [
+                "https://shop.example.com/cart",
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+      expect(chunk["routes"]).toEqual([
+        "https://shop.example.com/cart",
+        "https://shop.example.com/",
+      ]);
+    });
+
+    /*
+     * The columns render under the WIDER session-metadata ACL, so an
+     * unscrubbed reset token here reaches more readers than the payload
+     * does. Client-side scrubbing is not a control the server may assume.
+     */
+    test("routes are re-scrubbed server side, not trusted from the wire", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/account?session=s3cr3t-a",
+              routes: [
+                "https://shop.example.com/reset-password?token=s3cr3t-b",
+                "https://shop.example.com/users/550e8400-e29b-41d4-a716-446655440000",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+      const stored: string = JSON.stringify([chunk["url"], chunk["routes"]]);
+
+      expect(stored).not.toContain("s3cr3t");
+      expect(stored).not.toContain("token");
+      expect(stored).not.toContain("550e8400");
+      expect(chunk["url"]).toBe("https://shop.example.com/account");
+    });
   });
 
   /*
@@ -1207,10 +1680,77 @@ describe("SessionReplayIngestService.processFromQueue", () => {
       /* Route structure survives - that is the whole point of scrubbing. */
       expect(header["exitUrl"]).toBe("https://shop.example.com/reset-password");
       expect(header["entryUrl"]).toBe("https://shop.example.com/magic-link");
-      /* routes is seeded from the exit url, which is this chunk's own url. */
+      /* With no route list on the envelope, routes is the chunk's own url. */
       expect(header["routes"]).toEqual([
         "https://shop.example.com/reset-password",
       ]);
+    });
+
+    /*
+     * The provisional header carries chunk 0's REAL route list.
+     *
+     * It is not rewritten until the finalizer runs, so a one-entry list made
+     * the "Page URL visited (exact)" filter miss a page the user
+     * demonstrably reached for the whole 10-15 minute provisional window -
+     * on a row that simultaneously reported pageCount 2.
+     */
+    test("the provisional header carries chunk 0's whole route list", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/",
+                "https://shop.example.com/cart",
+              ],
+              signals: {
+                errorCount: 0,
+                rageClickCount: 0,
+                deadClickCount: 0,
+                errorClickCount: 0,
+                refreshRageCount: 0,
+                routeCount: 2,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/",
+        "https://shop.example.com/cart",
+        "https://shop.example.com/checkout",
+      ]);
+
+      /* The count and the list can no longer disagree on the same row. */
+      expect((header["routes"] as Array<string>).length).toBe(
+        (header["pageCount"] as number) + 1,
+      );
+    });
+
+    test("the provisional route list is scrubbed like the rest", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout",
+              routes: [
+                "https://shop.example.com/reset-password?token=s3cr3t-header",
+              ],
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(JSON.stringify(header["routes"])).not.toContain("s3cr3t");
+      expect(JSON.stringify(header["routes"])).not.toContain("token");
     });
 
     test("identifier-shaped path segments are redacted, not just the query", async () => {

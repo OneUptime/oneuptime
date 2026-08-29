@@ -7,6 +7,7 @@ import RumSessionReplayViewService from "../../../Server/Services/RumSessionRepl
 import RumSessionService from "../../../Server/Services/RumSessionService";
 import RumSessionChunkService from "../../../Server/Services/RumSessionChunkService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import SessionReplayIdentity from "../../../Server/Utils/SessionReplay/SessionReplayIdentity";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import RumSessionReplayView from "../../../Models/DatabaseModels/RumSessionReplayView";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -1086,6 +1087,196 @@ describe("Session replay playback API", () => {
       expect(query).toContain("timeout_overflow_mode = 'throw'");
     });
 
+    /*
+     * Watching implies listing.
+     *
+     * RumSession's table read ACL contains ReadRumSessionReplayPayload for a
+     * reason it states outright: a role granted only the watch permission
+     * could fetch payloads - the payload routes authorize on it alone - while
+     * being 401'd on the manifest and the list, which is an incoherent grant
+     * rather than a safer one. The list guard did not mirror it, so the
+     * natural support-engineer role ("Watch Session Replays" + "Read RUM
+     * Application") got a permission error on the session list and a silently
+     * missing "Watch what the user saw" card on every exception page.
+     */
+    test("a caller with only the watch permission can still list sessions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a Viewer still cannot list sessions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.Viewer],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The identity filter takes the end-user REFERENCE a person can see in
+     * the list, and the server derives the digest with the same per-project
+     * HMAC the ingest used. It used to take the digest itself - a value
+     * displayed nowhere in the product and computed by no endpoint - so
+     * every input a human could plausibly type returned nothing.
+     */
+    test("an end-user reference is hashed server side before it reaches the query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        /* Holds the narrower identity permission - see the gate test below. */
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const expectedKey: string = SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: "jane@example.com",
+      });
+
+      const bound: string = JSON.stringify(statement.query_params);
+
+      /* The raw reference must never reach the query. */
+      expect(bound).not.toContain("jane@example.com");
+      expect(bound).toContain(expectedKey);
+    });
+
+    /*
+     * The identity FILTER is gated by the same ACL as the identity COLUMN.
+     *
+     * Without this, a caller deliberately denied the label could still ask
+     * "does jane@example.com have sessions here" and read every other field
+     * of the answer - a dictionary attack that de-anonymises the list one
+     * candidate at a time, and hands back identifiedUserKey as a stable
+     * pseudonym to join against the route filter. It only became reachable
+     * once the ingest started populating the column; before that the
+     * predicate matched nothing whoever asked.
+     */
+    test("a caller without the identity permission cannot filter by end user", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        /* Can list, deliberately excluded from SESSION_REPLAY_IDENTITY_PERMISSIONS. */
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const expectedKey: string = SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: "jane@example.com",
+      });
+
+      /* Neither the reference nor its digest may reach the query. */
+      const bound: string = JSON.stringify(statement.query_params);
+
+      expect(bound).not.toContain("jane@example.com");
+      expect(bound).not.toContain(expectedKey);
+
+      /*
+       * aggIdentifiedUserKey is always a SELECT alias; what must be absent
+       * is the HAVING predicate over it.
+       */
+      expect(statement.query).not.toContain("aggIdentifiedUserKey =");
+    });
+
+    /*
+     * A filter the server cannot honour must be refused, not dropped. The
+     * silent-drop shape returns the WHOLE project's sessions with a 200 and
+     * gives the caller no way to tell that the person they asked about was
+     * not the one being answered about.
+     */
+    test("an unusable end-user reference is refused, not silently ignored", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "z".repeat(4096) },
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
     test("omits identifiedUserLabel for a caller without the narrower identity permission", async () => {
       const principal: {
         request: JSONObject;
@@ -1260,6 +1451,47 @@ describe("Session replay playback API", () => {
        * too: raw columns would sum across ReplacingMergeTree versions.
        */
       expect(statement.query).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+      );
+    });
+
+    /*
+     * `false` means "sessions with NO frustration signals" and must be
+     * honoured, not dropped. The route admits any boolean and hasError /
+     * isFinalized beside it both honour false, so accepting the value and
+     * ignoring it returned the whole unfiltered list with a 200 and no
+     * indication why. The Dashboard never sends it, so this branch has no
+     * producer and this is its only cover.
+     */
+    test("hasFrustration false selects the clean sessions rather than being dropped", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { hasFrustration: false },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(statement.query).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) = 0",
+      );
+      expect(statement.query).not.toContain(
         "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
       );
     });
