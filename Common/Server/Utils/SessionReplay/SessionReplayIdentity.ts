@@ -57,17 +57,37 @@ export default class SessionReplayIdentity {
   }
 
   /*
-   * Trimmed, but NOT lower-cased. End-user references are opaque to us -
-   * "U-1000" and "u-1000" may well be two different customers in the host
-   * application's own database - so folding case here would merge two
-   * people's recordings under one key, and an erasure for one would delete
-   * the other's. Targeting lower-cases the APPLICATION identifier for the
-   * same reason in reverse: that one is ours and is case-insensitive.
+   * The project scope lives in the KEY, not in the message.
+   *
+   * HMAC takes arbitrary key material, so deriving a per-project key from
+   * the instance secret and the project id gives real domain separation:
+   * two projects cannot produce the same digest for the same person even
+   * if one of them learns the other's project id, which prefixing the
+   * message only achieves by convention. It is also what makes the
+   * "per-project" wording on the identity columns literally true.
+   *
+   * The reference is trimmed but NOT lower-cased. End-user references are
+   * opaque to us - "U-1000" and "u-1000" may well be two different
+   * customers in the host application's own database - so folding case here
+   * would merge two people's recordings under one key, and an erasure for
+   * one would delete the other's. Targeting lower-cases the APPLICATION
+   * identifier for the same reason in reverse: that one is ours and is
+   * case-insensitive.
+   *
+   * A slow KDF (bcrypt / scrypt / argon2) is deliberately NOT used and
+   * would not help. This is a keyed pseudonym, not a stored password: it
+   * has to be DETERMINISTIC so the session filter and a right-to-erasure
+   * request months later resolve the same digest, and those algorithms are
+   * salted per invocation. What defends the digest is the key - without
+   * EncryptionSecret an attacker holding the column cannot test candidate
+   * references at all, at any work factor.
    */
   public static buildUserKey(data: SessionReplayUserKeyInput): string {
+    const projectKey: string = `${EncryptionSecret.toString()}:${data.projectId.toString()}`;
+
     return crypto
-      .createHmac("sha256", EncryptionSecret.toString())
-      .update(`${data.projectId.toString()}:${data.userRef.trim()}`)
+      .createHmac("sha256", projectKey)
+      .update(data.userRef.trim())
       .digest("hex");
   }
 
