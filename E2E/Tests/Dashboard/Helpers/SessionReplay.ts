@@ -310,13 +310,27 @@ export const readRumApplicationId: ReadRumApplicationIdFunction = async (data: {
     .addRoute("/api/rum-application/get-list")
     .toString();
 
+  /*
+   * tenantid is what ProjectAuthorization resolves the caller's project role
+   * from. Without it the CRUD API cannot tell which project this user is a
+   * member of and answers "You do not have permissions to read RUM
+   * Application" - which reads like a permission bug rather than a missing
+   * header. Every other E2E helper that calls the CRUD API sends it.
+   */
   const response: APIResponse = await data.page.request.post(listUrl, {
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      tenantid: data.projectId,
+    },
     data: {
-      query: { appIdentifier: data.appIdentifier },
+      query: {
+        projectId: data.projectId,
+        appIdentifier: data.appIdentifier,
+      },
       select: { _id: true, appIdentifier: true },
       limit: 10,
       skip: 0,
+      sort: {},
     },
   });
 
