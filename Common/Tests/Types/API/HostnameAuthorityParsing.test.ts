@@ -142,6 +142,7 @@ describe("URL.fromString keeps the authority separate from the rest", () => {
 
     expect(url.email.toString()).toBe("support@oneuptime.com");
     expect(url.getQueryParam("subject")).toBe("Hello");
+    expect(url.toString()).toBe("mailto:support@oneuptime.com?subject=Hello");
   });
 
   test("a webhook URL with basic-auth credentials still round-trips", () => {

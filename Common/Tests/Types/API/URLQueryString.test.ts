@@ -235,6 +235,9 @@ describe("URL query string — round trip is lossless", () => {
     'https://example.com/p?json={"where":"a=b"}&page=2',
     "https://example.com/p?q=a%3Db",
     "http://localhost:5000/api/test?a=1&b=x=y",
+    "https://example.com/p?next=/a/b",
+    "https://example.com/?next=/a/b",
+    "https://example.com/?redirect=https://app.example.com/home?tab=1",
     "tel:+15555550123?ref=a=b",
     "sms:+15555550123?body=x=1&y=2",
   ];
@@ -400,12 +403,36 @@ describe("URL query string — constructed rather than parsed", () => {
 });
 
 /*
- * Round-tripping is lossless for the cases above, but not universally, and the
- * two gaps below are older than this change — both predate it and neither is
- * reachable from the Jira/OData/signed-URL shapes it set out to fix, which all
- * carry a path and string keys. They are pinned so the round-trip guarantee is
- * not read as broader than it is; if either is fixed later, these tests are the
- * ones that should change.
+ * A "/" inside a query value used to be read as a path segment whenever the
+ * URL had no path of its own, because fromString split the authority off on
+ * the first "/" before the query was ever separated. The query is now cut off
+ * first, so no path is invented. URLRouteQuerySeparation.test.ts covers this
+ * in full; these two stay here because this is where the behaviour was pinned
+ * as a known limitation of the "=" fix.
+ */
+describe("URL query string — a '/' inside a value", () => {
+  test("no path is fabricated when the URL has none of its own", () => {
+    const url: URL = URL.fromString("https://example.com?next=/a/b");
+
+    expect(url.getQueryParam("next")).toBe("/a/b");
+    expect(url.route.toString()).toBe("");
+    expect(url.toString()).toBe("https://example.com/?next=/a/b");
+    expect(url.toString()).not.toBe("https://example.com/a/b?next=/a/b");
+  });
+
+  test("and a '/' in a value is harmless once the URL has a path", () => {
+    const original: string = "https://example.com/p?next=/a/b";
+
+    expect(URL.fromString(original).toString()).toBe(original);
+  });
+});
+
+/*
+ * Round-tripping is lossless for the cases above, but not universally. The gap
+ * below is older than the "=" fix, predates it, and is not reachable from the
+ * Jira/OData/signed-URL shapes it set out to fix, which all carry string keys.
+ * It is pinned so the round-trip guarantee is not read as broader than it is;
+ * if it is fixed later, this test is the one that should change.
  */
 describe("URL query string — known round-trip limitations", () => {
   test("an integer-like key is hoisted to the front on re-serialization", () => {
@@ -419,24 +446,6 @@ describe("URL query string — known round-trip limitations", () => {
 
     expect(url.params).toEqual({ b: "1", "1": "x", a: "2" });
     expect(url.toString()).toBe("https://example.com/p?1=x&b=1&a=2");
-  });
-
-  test("a '/' in a value fabricates a path when the URL has no path", () => {
-    /*
-     * fromString splits the authority off on the first "/" before the query is
-     * ever separated, so a "/" inside a query value is read as a path segment.
-     * Only bites a URL with no path of its own; "…/p?next=/a/b" is fine.
-     */
-    const url: URL = URL.fromString("https://example.com?next=/a/b");
-
-    expect(url.getQueryParam("next")).toBe("/a/b");
-    expect(url.toString()).toBe("https://example.com/a/b?next=/a/b");
-  });
-
-  test("but a '/' in a value is harmless once the URL has a path", () => {
-    const original: string = "https://example.com/p?next=/a/b";
-
-    expect(URL.fromString(original).toString()).toBe(original);
   });
 });
 
