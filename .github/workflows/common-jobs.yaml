@@ -35,6 +35,25 @@ jobs:
         run: echo "Run 'npm run test-helm-chart-all', or a single suite with 'bash ./HelmChart/Tests/run.sh <suite>' (suites live in HelmChart/Tests/suites). 'npm run test-helm-chart' still runs just the cluster-free helm-unittest suites."
 
 
+  # The shell scripts the release runs on. They only ever execute during a
+  # release, where a bug in one costs a 90-minute rerun -- or, as in 12.0.27,
+  # a release that shipped every image and then stranded itself as a draft. The
+  # suites stub out syft and zero the retry delays, so this job talks to no
+  # registry and finishes in seconds.
+  gha-scripts-test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Run Scripts/GHA tests
+        run: bash ./Scripts/GHA/Tests/run.sh
+      - name: Show how to run these locally
+        if: ${{ failure() }}
+        run: echo "Run 'npm run test-gha-scripts', or a single suite with 'bash ./Scripts/GHA/Tests/run.sh <suite>' (suites are the *_test.sh files in Scripts/GHA/Tests)."
+
+
   js-lint:
     runs-on: ubuntu-latest
     env:

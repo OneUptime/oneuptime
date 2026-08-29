@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=Scripts/GHA/retry.sh
+source "${SCRIPT_DIR}/retry.sh"
+
 usage() {
 	cat <<'EOF'
 Usage: generate_sboms.sh --version <version> [options]
@@ -141,6 +145,32 @@ mkdir -p "$OUTPUT_DIR"
 
 FAILED=()
 
+# One syft scan, in the shape retry_registry_read needs: a command it can just
+# run again.
+#
+# The `rm -f` is what makes re-running safe. A syft run that dies partway
+# through a read can leave a truncated file behind, and release.yml attaches
+# `sbom/*.cdx.json` by glob — so every attempt starts from no file at all, and
+# the component check below can only ever be reading output this attempt wrote.
+#
+# `registry:` forces syft to read the manifest over the registry API rather than
+# looking for a local daemon image. --platform is required because the tag
+# resolves to a multi-arch index; without it syft picks the runner's arch, which
+# would silently vary with the runner image. syft resolves the platform
+# correctly for an index and hard-errors on a mismatch (anchore/stereoscope#336),
+# so a wrong platform fails here rather than producing a mislabelled file.
+scan_image() {
+	local ref="$1"
+	local platform="$2"
+	local out="$3"
+
+	rm -f "$out"
+
+	syft "registry:${ref}" \
+		--platform "$platform" \
+		--output "cyclonedx-json=${out}"
+}
+
 for image in "${IMAGES[@]}"; do
 	ref="${REGISTRY}/${image}:${SANITIZED_VERSION}"
 
@@ -153,17 +183,14 @@ for image in "${IMAGES[@]}"; do
 
 		echo "📦 Scanning ${ref} (${platform})"
 
-		# `registry:` forces syft to read the manifest over the registry API
-		# rather than looking for a local daemon image. --platform is required
-		# because the tag resolves to a multi-arch index; without it syft picks
-		# the runner's arch, which would silently vary with the runner image.
-		# syft resolves the platform correctly for an index and hard-errors on a
-		# mismatch (anchore/stereoscope#336), so a wrong platform fails here
-		# rather than producing a mislabelled file.
-		if ! syft "registry:${ref}" \
-			--platform "$platform" \
-			--output "cyclonedx-json=${out}"; then
+		# Retried rather than run once: this loop makes 24 back-to-back reads
+		# of every layer of every image, which is enough to trip GHCR's rate
+		# limiter. See Scripts/GHA/retry.sh — the retry is conditional, so a
+		# tag that genuinely is not there still fails on the first attempt.
+		if ! retry_registry_read "SBOM scan of ${ref} (${platform})" \
+			scan_image "$ref" "$platform" "$out"; then
 			echo "❌ Failed to generate SBOM for ${ref} (${platform})" >&2
+			rm -f "$out"
 			FAILED+=("${image}/${platform}")
 			continue
 		fi
@@ -179,12 +206,14 @@ print(len(doc.get("components", [])))
 PY
 		)"; then
 			echo "❌ Could not parse SBOM for ${ref} (${platform})" >&2
+			rm -f "$out"
 			FAILED+=("${image}/${platform}")
 			continue
 		fi
 
 		if [[ "$component_count" -eq 0 ]]; then
 			echo "❌ SBOM for ${ref} (${platform}) contains zero components" >&2
+			rm -f "$out"
 			FAILED+=("${image}/${platform}")
 			continue
 		fi

@@ -74,6 +74,7 @@
         "auth-prod": "gcloud container clusters get-credentials gke-prod-cluster --zone us-central1-a --project oneuptime-k8s",
         "deploy-test": "gcloud container clusters get-credentials gke-test-cluster --zone us-central1-a --project oneuptime-k8s && kubectl config use-context gke_oneuptime-k8s_us-central1-a_gke-test-cluster && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml",
         "template-deploy-test": "kubectl config use-context oneuptime-test && helm template  oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml --debug",
+        "test-gha-scripts": "bash ./Scripts/GHA/Tests/run.sh",
         "test-helm-chart": "helm unittest ./HelmChart/Public/oneuptime",
         "test-helm-chart-all": "bash ./HelmChart/Tests/run.sh",
         "deploy-prod": "gcloud container clusters get-credentials gke-prod-cluster --zone us-central1-a --project oneuptime-k8s && kubectl config use-context gke_oneuptime-k8s_us-central1-a_gke-prod-cluster && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/gke.prod.values.yaml",
