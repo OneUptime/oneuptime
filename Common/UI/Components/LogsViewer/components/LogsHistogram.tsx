@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useCallback,
   useRef,
@@ -29,6 +30,12 @@ export interface LogsHistogramProps {
   buckets: Array<HistogramBucket>;
   isLoading: boolean;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Set only while the chart is showing a window the reader dragged out of
+   * it. Double-clicking the chart then puts them back on the window they
+   * started from.
+   */
+  onZoomOut?: (() => void) | undefined;
 }
 
 interface PivotedRow {
@@ -86,6 +93,12 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   const [selectionStart, setSelectionStart] = useState<string | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
   const isSelecting: React.MutableRefObject<boolean> = useRef(false);
+  /*
+   * Mirrors isSelecting for rendering. The ref stays the authority so a
+   * mouseup handled twice (chart *and* window, below) cannot commit the same
+   * drag twice; the state is only here so the drag can change what is drawn.
+   */
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const pivotedData: Array<PivotedRow> = useMemo(() => {
     return pivotBuckets(props.buckets);
@@ -110,6 +123,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       }
 
       isSelecting.current = true;
+      setIsDragging(true);
       setSelectionStart(e.activeLabel as string);
       setSelectionEnd(null);
     },
@@ -132,12 +146,14 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       !props.onTimeRangeSelect
     ) {
       isSelecting.current = false;
+      setIsDragging(false);
       setSelectionStart(null);
       setSelectionEnd(null);
       return;
     }
 
     isSelecting.current = false;
+    setIsDragging(false);
 
     const start: Date = OneUptimeDate.fromString(selectionStart);
     const end: Date = OneUptimeDate.fromString(selectionEnd);
@@ -156,6 +172,28 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
     setSelectionStart(null);
     setSelectionEnd(null);
   }, [selectionStart, selectionEnd, props.onTimeRangeSelect]);
+
+  /*
+   * Readers routinely drag past the edge of a 120px-tall chart and let go
+   * outside it, where the chart's own mouseup never fires. Without this the
+   * drag would never end: the selection band would stay painted and the
+   * tooltip would stay suppressed until the next click.
+   */
+  useEffect(() => {
+    if (!isDragging) {
+      return undefined;
+    }
+
+    const finishDragOutsideChart: () => void = (): void => {
+      handleMouseUp();
+    };
+
+    window.addEventListener("mouseup", finishDragOutsideChart);
+
+    return () => {
+      window.removeEventListener("mouseup", finishDragOutsideChart);
+    };
+  }, [isDragging, handleMouseUp]);
 
   if (props.isLoading && pivotedData.length === 0) {
     return (
@@ -178,6 +216,11 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
           {props.onTimeRangeSelect && (
             <span className="text-[10px] text-gray-300">Drag to zoom</span>
           )}
+          {props.onZoomOut && (
+            <span className="text-[10px] text-gray-300">
+              Double-click to zoom out
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {activeSeverities.map((severity: string) => {
@@ -197,11 +240,12 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
 
       {/* Chart */}
       <div
-        className="px-2 pb-1 pt-2"
+        className="select-none px-2 pb-1 pt-2"
         style={{
           height: 120,
           cursor: props.onTimeRangeSelect ? "crosshair" : "default",
         }}
+        onDoubleClick={props.onZoomOut}
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -237,9 +281,16 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
               allowDecimals={false}
               tickFormatter={formatYAxisTick}
             />
+            {/*
+             * The tooltip is pinned shut for the length of a drag: it would
+             * otherwise sit over the very bars the reader is trying to read
+             * while they pick the range. Dropping the prop hands control back
+             * to recharts once the drag ends.
+             */}
             <Tooltip
               content={<HistogramTooltip />}
               cursor={{ fill: "rgba(99,102,241,0.06)" }}
+              {...(isDragging ? { active: false } : {})}
             />
             {activeSeverities.map((severity: string, index: number) => {
               const isLast: boolean = index === activeSeverities.length - 1;

@@ -21,6 +21,9 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import useHistogramZoom, {
+  HistogramZoomState,
+} from "../Charts/Utils/useHistogramZoom";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -132,6 +135,18 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
   const showHistogram: boolean = props.showHistogram ?? true;
 
+  /*
+   * Drag-zooming the histogram is a one-way trip on its own: it swaps the
+   * window for a custom one and nothing remembers what the reader was
+   * looking at. This keeps that window so a double-click on the chart can
+   * hand it back.
+   */
+  const histogramZoom: HistogramZoomState = useHistogramZoom({
+    timeRange: props.timeRange,
+    onTimeRangeSelect: props.onHistogramTimeRangeSelect,
+    onTimeRangeChange: props.onTimeRangeChange,
+  });
+
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/* Toolbar */}
@@ -160,7 +175,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
 
         <TelemetryTimeRangePicker
           value={props.timeRange}
-          onChange={props.onTimeRangeChange}
+          onChange={histogramZoom.onTimeRangeChange || props.onTimeRangeChange}
         />
 
         {props.live && (
@@ -231,7 +246,8 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isLoading={props.histogramLoading || false}
             series={props.histogramSeries}
             title={props.histogramTitle}
-            onTimeRangeSelect={props.onHistogramTimeRangeSelect}
+            onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
+            onZoomOut={histogramZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}
             valueFormatter={props.histogramValueFormatter}
           />

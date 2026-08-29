@@ -66,6 +66,9 @@ import ProjectUtil from "../../Utils/Project";
 import TelemetryServiceUtil from "../../Utils/TelemetryService";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import useHistogramZoom, {
+  HistogramZoomState,
+} from "../Charts/Utils/useHistogramZoom";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -281,6 +284,18 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] =
     useState<boolean>(false);
+
+  /*
+   * Drag-zooming the histogram is a one-way trip on its own: it swaps the
+   * window for a custom one and nothing remembers what the reader was
+   * looking at. This keeps that window so a double-click on the chart can
+   * hand it back.
+   */
+  const histogramZoom: HistogramZoomState = useHistogramZoom({
+    timeRange: props.timeRange,
+    onTimeRangeSelect: props.onHistogramTimeRangeSelect,
+    onTimeRangeChange: props.onTimeRangeChange,
+  });
 
   useEffect(() => {
     setFilterData(props.filterData);
@@ -1074,10 +1089,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       exportLogs(displayedLogs, LogExportFormat.JSON, selectedColumns);
     },
     ...(props.liveOptions ? { liveOptions: props.liveOptions } : {}),
-    ...(props.timeRange && props.onTimeRangeChange
+    ...(props.timeRange && histogramZoom.onTimeRangeChange
       ? {
           timeRange: props.timeRange,
-          onTimeRangeChange: props.onTimeRangeChange,
+          onTimeRangeChange: histogramZoom.onTimeRangeChange,
         }
       : {}),
     showKeyboardShortcuts,
@@ -1130,7 +1145,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
-          onTimeRangeSelect={props.onHistogramTimeRangeSelect}
+          onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
+          onZoomOut={histogramZoom.onZoomOut}
         />
       )}
 
