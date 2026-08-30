@@ -43,6 +43,27 @@ flowchart LR
 
 ### Processor Types
 
+#### Grok Parser
+Pulls structured fields out of an unstructured log line and stores them as log attributes.
+
+**When to use:** Your logs arrive as plain text lines (nginx access logs, syslog, a legacy app that prints its own format) and you want to search and filter on the pieces inside them.
+
+**How it works:**
+1. Reads the **Source Field** — usually the log \`body\`, but any attribute key works
+2. Runs your **grok pattern** against it. A grok pattern is regex with names: \`%{IPV4:client_ip}\` means "match an IPv4 address and store it as \`client_ip\`"
+3. Every named capture becomes a log attribute, optionally namespaced under a **Target Prefix**
+4. A line that does not match is left untouched — grok never drops or blanks a log
+
+Add \`:int\` or \`:float\` to a capture to store it as a number, e.g. \`%{NUMBER:status:int}\`.
+
+| Log body | Pattern | Attributes added |
+|----------|---------|------------------|
+| \`10.0.1.5 - GET /health 200\` | \`%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}\` | client_ip, method, path, status |
+
+The processor form has a **pattern tester**: paste a real log line and it shows the exact attributes the processor would add, before you save it.
+
+---
+
 #### Severity Remapper
 Maps a log field to a standard OpenTelemetry severity level.
 
@@ -90,7 +111,7 @@ Tags logs with a category label based on filter conditions.
 ---
 
 ### Tips
-- **Order matters** — processors run sequentially, so a severity remapper should run before a category processor that filters by severity
+- **Order matters** — processors run sequentially, so a grok parser should run before a severity remapper that reads a field grok extracted
 - **Disable without deleting** — toggle a processor off to temporarily skip it
 - **Test incrementally** — add one processor at a time and verify in the Logs view
 `;
@@ -228,7 +249,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         helpContent={{
           title: "How Log Processors Work",
           description:
-            "Understanding Severity Remapper, Attribute Remapper, and Category Processor",
+            "Understanding Grok Parser, Severity Remapper, Attribute Remapper, and Category Processor",
           markdown: processorsDocMarkdown,
         }}
         noItemsMessage={
