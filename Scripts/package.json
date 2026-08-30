@@ -14,7 +14,7 @@
     "@types/js-yaml": "^4.0.9",
     "Common": "file:../Common",
     "ejs": "^3.1.10",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.0",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
