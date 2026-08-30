@@ -175,7 +175,11 @@ const severityWeight: Record<string, number> = {
   trace: 1,
 };
 
-function getEmptyMessageWithTimeRange(
+/*
+ * Exported so the window it reports can be unit-tested directly - rendering the
+ * whole viewer to read one sentence is not worth the setup.
+ */
+export function getEmptyMessageWithTimeRange(
   timeRange: RangeStartAndEndDateTime | undefined,
 ): string {
   if (!timeRange) {
@@ -185,13 +189,14 @@ function getEmptyMessageWithTimeRange(
   if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
     const startDate: Date = timeRange.startAndEndDate.startValue;
     const endDate: Date = timeRange.startAndEndDate.endValue;
+    /*
+     * Same shape, clock and timezone as the label on the picker button that
+     * set this window - pinning en-US here handed a US viewer AM/PM even on a
+     * 24-hour machine, and read the digits in the browser's zone rather than
+     * the one configured in User Settings.
+     */
     const fmt: (d: Date) => string = (d: Date): string => {
-      return d.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return OneUptimeDate.getDateAsLocalShortDateTimeString(d);
     };
 
     return `Time range: ${fmt(startDate)} – ${fmt(endDate)}. Try adjusting filters or expanding the time range.`;

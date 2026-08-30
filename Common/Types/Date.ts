@@ -237,6 +237,41 @@ export default class OneUptimeDate {
     return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(date, { includeMinutes: false })}:00`;
   }
 
+  /**
+   * A compact "Mar 1, 14:30" (or "Mar 1, 2:30 PM") label for one instant, used
+   * where a whole window has to fit on a button - the time range picker above
+   * the metrics, traces and logs explorers, chiefly.
+   *
+   * Both halves follow the user's machine: the wall clock is resolved in the
+   * configured timezone (falling back to the one the browser reports), and the
+   * 12- vs 24-hour choice follows the operating system's clock preference
+   * unless a caller overrides it.
+   */
+  public static getDateAsLocalShortDateTimeString(
+    date: Date | string,
+    options?: {
+      use12HourFormat?: boolean | undefined;
+      includeSeconds?: boolean | undefined;
+    },
+  ): string {
+    date = this.fromString(date);
+
+    const use12HourFormat: boolean =
+      options?.use12HourFormat ?? this.getUserPrefers12HourFormat();
+
+    let timeFormat: string = use12HourFormat ? "h:mm" : "HH:mm";
+
+    if (options?.includeSeconds) {
+      timeFormat += ":ss";
+    }
+
+    if (use12HourFormat) {
+      timeFormat += " A";
+    }
+
+    return this.inCurrentTimezone(date).format(`MMM D, ${timeFormat}`);
+  }
+
   public static getDateAsLocalMonthYearString(date: Date | string): string {
     date = this.fromString(date);
 
@@ -1465,15 +1500,75 @@ export default class OneUptimeDate {
     return this.getDateAsFormattedString(new Date(), options);
   }
 
+  /**
+   * Whether the machine this is running on writes the time of day on a 12-hour
+   * clock, read from the browser's resolved default locale - which browsers
+   * derive from the operating system's language and region, so changing those
+   * changes this. An explicit -u-hc- override on the locale is honoured too.
+   *
+   * Note what this cannot see: the standalone "24-Hour Time" switch macOS and
+   * Windows offer separately from the region. Safari and recent Firefox fold
+   * that into the locale they resolve; Chromium does not. A user who wants a
+   * clock that ignores their region would need an explicit preference stored
+   * alongside the timezone in User Settings - there is none today.
+   *
+   * Asked of Intl rather than inferred from a formatted string. The string
+   * probe below only recognises the Latin "AM"/"PM", so it misread every
+   * 12-hour locale that marks the day period some other way - ko-KR writes
+   * the equivalent of "PM" in Hangul, ar-EG in Arabic script - and served
+   * those users a 24-hour clock against their own convention.
+   */
   public static getUserPrefers12HourFormat(): boolean {
     if (typeof window === "undefined") {
       // Server-side: default to 12-hour format for user-friendly display
       return true;
     }
 
-    // Client-side: detect user's preferred time format from browser locale
-    const testDate: Date = new Date();
-    const timeString: string = testDate.toLocaleTimeString();
+    /*
+     * `hour12` is only reported when the format actually asks for an hour, so
+     * the probe has to request one.
+     */
+    try {
+      /*
+       * Typed structurally rather than as Intl.ResolvedDateTimeFormatOptions:
+       * `hourCycle` only appears on that interface from the ES2021 lib, and
+       * this file has to compile against the older one too.
+       */
+      const resolvedOptions: {
+        hour12?: boolean | undefined;
+        hourCycle?: string | undefined;
+      } = new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+      }).resolvedOptions();
+
+      if (typeof resolvedOptions.hour12 === "boolean") {
+        return resolvedOptions.hour12;
+      }
+
+      /*
+       * Older engines report the cycle but not the boolean. h11/h12 are the
+       * two 12-hour cycles; h23/h24 are the 24-hour ones.
+       */
+      if (resolvedOptions.hourCycle) {
+        return (
+          resolvedOptions.hourCycle === "h11" ||
+          resolvedOptions.hourCycle === "h12"
+        );
+      }
+    } catch {
+      /*
+       * A missing or broken Intl must not take every timestamp in the UI down
+       * with it - fall through to the string probe below.
+       */
+    }
+
+    /*
+     * Last resort: read a formatted time and look for a day-period marker.
+     * This only recognises the Latin "AM"/"PM" - which is exactly why it is the
+     * fallback and not the primary check, since locales like ko-KR and ar-EG
+     * are 12-hour but mark the day period with characters this cannot see.
+     */
+    const timeString: string = new Date().toLocaleTimeString();
     return (
       timeString.toLowerCase().includes("am") ||
       timeString.toLowerCase().includes("pm")
