@@ -70,9 +70,10 @@ MobileApp/
 ├── src/
 │   ├── api/           # Axios client, auth API calls
 │   ├── components/    # Reusable UI components (badges, skeleton, empty state)
-│   ├── hooks/         # Auth hook / context
+│   ├── hooks/         # Auth hook / context, data hooks
 │   ├── navigation/    # React Navigation (auth stack, main tabs)
-│   ├── screens/       # Screen components (auth, home, incidents, alerts, settings)
+│   ├── oncall/        # Pure on-call domain logic (shifts, duty state, overrides)
+│   ├── screens/       # Screen components (auth, home, incidents, alerts, on-call, settings)
 │   ├── storage/       # Keychain (tokens) and AsyncStorage (server URL)
 │   ├── theme/         # Colors, typography, spacing, theme context
 │   └── App.tsx        # Root component with providers
@@ -101,6 +102,57 @@ npm test
 Jest with the `jest-expo` preset. Tests live next to the code they cover
 (`src/**/*.test.ts[x]`); shared native-module mocks are in
 `src/__tests__/setup.ts`.
+
+## On-Call
+
+The On-Call tab answers the three questions a responder actually has on a
+handset, in this order:
+
+1. **Am I on call, and until when?** The status card leads with a live
+   countdown to the next handoff. It refuses to invent one: an escalation rule
+   that names you directly has no shift window, so the card says "standing
+   assignment — no scheduled handoff" rather than borrowing a boundary from an
+   unrelated schedule.
+2. **Who else is on?** _Who's On Call_ lists every schedule across every
+   project with the person on it now, who is next, and when they swap.
+   Schedules with **nobody** on call are pulled to the top — they are the only
+   rows on that screen that are a problem.
+3. **Can somebody take this?** _Cover for me_ creates a project-wide
+   `OnCallDutyPolicyUserOverride` that starts now and runs for a preset number
+   of hours. The same sheet works in reverse ("I'll take over") for picking up
+   a teammate's pages.
+
+Two supporting screens round it out: **Overrides**, which splits cover
+arrangements into in-effect / scheduled / ended and can cancel one, and
+**Pages Sent To Me**, the notification log filtered down to what was never
+acknowledged.
+
+### Where the data comes from
+
+| Screen                            | Endpoint                                                                                     |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| Duty status, standing assignments | `GET /api/on-call-duty-policy/current-on-duty-escalation-policies`                           |
+| Shifts, roster, handoff times     | `POST /api/on-call-duty-policy-schedule/get-list`                                            |
+| Overrides                         | `POST /api/on-call-duty-policy-user-override/get-list`, `POST`/`DELETE` on the same resource |
+| Teammate picker                   | `POST /api/team-member/get-list`                                                             |
+| Pages sent to me                  | `POST /api/user-notification-log/get-list`                                                   |
+
+Two things about that table are worth knowing before changing this code:
+
+- **Shift boundaries only exist on the schedule roster.** `rosterHandoffAt`,
+  `rosterStartAt`, `rosterNextStartAt` and `rosterNextHandoffAt` are the only
+  place the server says when a shift ends. The assignments endpoint knows
+  _whether_ you are on duty (and accounts for overrides); it says nothing about
+  when it stops.
+- **The notification log is scoped server-side.** `UserOnCallLog` grants read
+  through the auto-granted `CurrentUser` permission, which the server converts
+  into a `userId` row filter. The app neither sends nor can send a user id
+  there.
+
+The app identifies the signed-in user from the `userId` claim on the access
+token (`src/auth/currentUser.ts`) rather than from the login response, because
+a session restored on a cold start never produces one — and a null user id
+there does not degrade the on-call screens, it inverts them.
 
 ## Push Notifications
 
