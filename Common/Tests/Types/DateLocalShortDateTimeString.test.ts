@@ -16,6 +16,7 @@
  */
 import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
+import moment from "moment-timezone";
 import {
   afterEach,
   beforeEach,
@@ -348,13 +349,47 @@ describe("OneUptimeDate.getDateAsLocalShortDateTimeString", () => {
       OneUptimeDate.setUserTimezone(null);
 
       /*
-       * Without a configured zone the label must still be a well-formed one -
-       * this asserts the shape rather than the digits, which depend on the TZ
-       * the suite runs under.
+       * The digits depend on the zone the suite runs under, so derive the
+       * expectation the same way - anchored to moment.tz.guess() rather than
+       * to a literal. A shape-only regex would have accepted a hardcoded UTC,
+       * which is the mistake this guards.
        */
-      expect(
-        format("2024-03-01T14:30:00.000Z", { use12HourFormat: false }),
-      ).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{2}:\d{2}$/);
+      const instant: string = "2024-03-01T14:30:00.000Z";
+      const expected: string = moment(new Date(instant))
+        .tz(moment.tz.guess())
+        .format("MMM D, HH:mm");
+
+      expect(format(instant, { use12HourFormat: false })).toBe(expected);
+    });
+
+    it("does not silently render in UTC when no zone is configured", () => {
+      /*
+       * Pin the fallback against the specific wrong answer: hardcoding UTC
+       * passes every other case in this file, because they all set a zone.
+       */
+      OneUptimeDate.setUserTimezone(null);
+
+      const instant: string = "2024-03-01T14:30:00.000Z";
+      const inUtc: string = moment(new Date(instant))
+        .tz("UTC")
+        .format("MMM D, HH:mm");
+      const inGuessedZone: string = moment(new Date(instant))
+        .tz(moment.tz.guess())
+        .format("MMM D, HH:mm");
+
+      if (inGuessedZone === inUtc) {
+        /*
+         * The suite is running on a zone that agrees with UTC at this instant,
+         * so it cannot tell the two apart. Assert against a zone that never
+         * does instead.
+         */
+        OneUptimeDate.setUserTimezone(KOLKATA);
+        expect(format(instant, { use12HourFormat: false })).not.toBe(inUtc);
+        return;
+      }
+
+      expect(format(instant, { use12HourFormat: false })).toBe(inGuessedZone);
+      expect(format(instant, { use12HourFormat: false })).not.toBe(inUtc);
     });
   });
 

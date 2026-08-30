@@ -361,19 +361,27 @@ describe("applying a window from the modal", () => {
  * some future surface, so this reads the source and refuses the idiom outright.
  */
 describe("the picker never hand-rolls a date format again", () => {
-  const PICKER_SOURCE: string = fs.readFileSync(
-    path.join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "UI",
-      "Components",
-      "Date",
-      "TimeRangePickerDropdown.tsx",
-    ),
-    "utf-8",
-  );
+  /*
+   * Comments are stripped first: the banned tokens are exactly the words this
+   * file's own comments use to explain what went wrong, so a guard that reads
+   * them would fail on a prose edit that changes no behaviour.
+   */
+  const PICKER_SOURCE: string = fs
+    .readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "UI",
+        "Components",
+        "Date",
+        "TimeRangePickerDropdown.tsx",
+      ),
+      "utf-8",
+    )
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/\/\/.*$/gm, " ");
 
   test("reads no wall-clock field off the Date itself", () => {
     /*
@@ -391,10 +399,15 @@ describe("the picker never hand-rolls a date format again", () => {
   });
 
   test("pins no locale of its own", () => {
+    /*
+     * Match the date-shaped calls only. A bare "toLocaleString" ban would also
+     * catch Number.prototype.toLocaleString, which formats counts and has
+     * nothing to do with this bug.
+     */
     expect(PICKER_SOURCE).not.toContain('"en-US"');
-    expect(PICKER_SOURCE).not.toContain("toLocaleString");
-    expect(PICKER_SOURCE).not.toContain("toLocaleTimeString");
-    expect(PICKER_SOURCE).not.toContain("toLocaleDateString");
+    expect(PICKER_SOURCE).not.toMatch(
+      /toLocale(Date|Time)?String\s*\(\s*["'`[]/,
+    );
   });
 
   test("hardcodes no hour cycle", () => {

@@ -1502,11 +1502,21 @@ export default class OneUptimeDate {
 
   /**
    * Whether the machine this is running on writes the time of day on a 12-hour
-   * clock. Asked of Intl rather than inferred from a formatted string: the
-   * browser resolves its default locale against the operating system's own
-   * clock preference, so flipping macOS's "24-Hour Time" (or the equivalent on
-   * Windows/Linux) flips this, and an explicit -u-hc- override on the locale is
-   * honoured too.
+   * clock, read from the browser's resolved default locale - which browsers
+   * derive from the operating system's language and region, so changing those
+   * changes this. An explicit -u-hc- override on the locale is honoured too.
+   *
+   * Note what this cannot see: the standalone "24-Hour Time" switch macOS and
+   * Windows offer separately from the region. Safari and recent Firefox fold
+   * that into the locale they resolve; Chromium does not. A user who wants a
+   * clock that ignores their region would need an explicit preference stored
+   * alongside the timezone in User Settings - there is none today.
+   *
+   * Asked of Intl rather than inferred from a formatted string. The string
+   * probe below only recognises the Latin "AM"/"PM", so it misread every
+   * 12-hour locale that marks the day period some other way - ko-KR writes
+   * the equivalent of "PM" in Hangul, ar-EG in Arabic script - and served
+   * those users a 24-hour clock against their own convention.
    */
   public static getUserPrefers12HourFormat(): boolean {
     if (typeof window === "undefined") {

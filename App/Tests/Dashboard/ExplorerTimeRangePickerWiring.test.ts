@@ -47,6 +47,33 @@ function readSource(...relativeParts: Array<string>): string {
   );
 }
 
+/*
+ * The idioms that cannot see the user's timezone or clock preference. Every
+ * one of these was in the picker before the fix; the point of the list is that
+ * none of them comes back, here or on a surface that grows its own label.
+ *
+ * Whitespace is permissive throughout because these are matched against
+ * squash()ed source, where a prettier line break has become a single space.
+ */
+const BANNED_DATE_IDIOMS: Array<RegExp> = [
+  // Wall-clock fields read off the Date, i.e. in the browser process's zone.
+  /\.getHours\s*\(\s*\)/,
+  /\.getMinutes\s*\(\s*\)/,
+  /\.getDate\s*\(\s*\)/,
+  /\.getMonth\s*\(\s*\)/,
+  /\.getFullYear\s*\(\s*\)/,
+  /\.getSeconds\s*\(\s*\)/,
+  /*
+   * A date formatted through toLocale*String - with a pinned locale, an empty
+   * locale array, or an explicit undefined. Number#toLocaleString() on a count
+   * takes no argument and is deliberately not matched.
+   */
+  /toLocale(Date|Time)?String\s*\(\s*["'`[]/,
+  /toLocale(Date|Time)?String\s*\(\s*undefined/,
+  // An hour cycle nailed open in either direction.
+  /hour12\s*:/,
+];
+
 interface Explorer {
   name: string;
   source: string;
@@ -88,16 +115,17 @@ describe.each(EXPLORERS)(
     test("writes no range label of its own", () => {
       /*
        * The defect in one line: a component that formats a picked window by
-       * reading fields off the Date, or by pinning a locale, cannot see either
-       * the user's configured timezone or their machine's clock preference.
+       * reading fields off the Date, or by pinning a locale, or by nailing the
+       * hour cycle open, cannot see either the user's configured timezone or
+       * their machine's clock preference.
+       *
+       * These are regexes rather than substrings because squash() has already
+       * collapsed the source's newlines to single spaces - a prettier-wrapped
+       * `toLocaleString(\n  "en-US",` arrives here as `toLocaleString( "en-US",`
+       * and slips straight past an exact-substring check.
        */
-      for (const bannedIdiom of [
-        'toLocaleString("en-US"',
-        "toLocaleTimeString([]",
-        "hour12: false",
-        "hour12: true",
-      ]) {
-        expect(explorer.source).not.toContain(bannedIdiom);
+      for (const bannedIdiom of BANNED_DATE_IDIOMS) {
+        expect(explorer.source).not.toMatch(bannedIdiom);
       }
     });
   },
@@ -128,14 +156,8 @@ describe("the shared picker itself", () => {
   });
 
   test("reads no wall-clock field off the Date and pins no locale", () => {
-    for (const bannedIdiom of [
-      ".getHours()",
-      ".getMinutes()",
-      ".getDate()",
-      '"en-US"',
-      "hour12",
-    ]) {
-      expect(PICKER).not.toContain(bannedIdiom);
+    for (const bannedIdiom of BANNED_DATE_IDIOMS) {
+      expect(PICKER).not.toMatch(bannedIdiom);
     }
   });
 });

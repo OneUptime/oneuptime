@@ -14,6 +14,7 @@
  * as a fallback for an engine without a usable Intl.
  */
 import OneUptimeDate from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 type ResolvedOptionsStub = {
@@ -61,6 +62,16 @@ const stubIntl: StubIntlFunction = (
     );
 };
 
+type StubFormattedTimeFunction = (formatted: string) => void;
+
+const stubFormattedTime: StubFormattedTimeFunction = (
+  formatted: string,
+): void => {
+  jest.spyOn(Date.prototype, "toLocaleTimeString").mockImplementation(() => {
+    return formatted;
+  });
+};
+
 /*
  * Delegate to the real Intl but pin the locale, so a case can assert what a
  * machine actually configured to that locale reports rather than a hand-made
@@ -83,22 +94,21 @@ const stubIntlWithLocale: StubIntlWithLocaleFunction = (
         return new realDateTimeFormat(locale, options);
       },
     );
-};
 
-type StubFormattedTimeFunction = (formatted: string) => void;
-
-const stubFormattedTime: StubFormattedTimeFunction = (
-  formatted: string,
-): void => {
-  jest.spyOn(Date.prototype, "toLocaleTimeString").mockImplementation(() => {
-    return formatted;
-  });
+  /*
+   * Hold the legacy string probe to a bare 24-hour reading. Without this the
+   * fallback still sees the HOST's locale, so on a US runner the old am/pm
+   * substring check would answer "12-hour" by luck and the cases below would
+   * pass against the very implementation they exist to rule out.
+   */
+  stubFormattedTime("14:30:00");
 };
 
 describe("OneUptimeDate.getUserPrefers12HourFormat", () => {
   afterEach(() => {
     probeCalls.length = 0;
     jest.restoreAllMocks();
+    OneUptimeDate.setUserTimezone(null);
   });
 
   describe("reading the machine's clock setting from Intl", () => {
@@ -128,6 +138,12 @@ describe("OneUptimeDate.getUserPrefers12HourFormat", () => {
 
       OneUptimeDate.getUserPrefers12HourFormat();
 
+      /*
+       * Assert the probe ran before reading what it asked for - without this,
+       * an implementation that never called Intl would satisfy the line below
+       * on an empty array.
+       */
+      expect(probeCalls).toHaveLength(1);
       // `undefined` is what makes Intl resolve the browser's default locale.
       expect(probeCalls[0]?.locales).toBeUndefined();
     });
@@ -270,6 +286,13 @@ describe("OneUptimeDate.getUserPrefers12HourFormat", () => {
        * The user-visible consequence, end to end: the same instant is written
        * two different ways purely on the strength of this one answer.
        */
+      /*
+       * Pin the zone: without it this reads 2:30 PM on a UTC runner and 6:30 AM
+       * on a Los Angeles one, and the assertion is about the clock, not the
+       * zone.
+       */
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+
       stubIntlWithLocale("en-US");
       const on12HourMachine: string =
         OneUptimeDate.getDateAsLocalShortDateTimeString(
@@ -286,8 +309,8 @@ describe("OneUptimeDate.getUserPrefers12HourFormat", () => {
           { use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat() },
         );
 
-      expect(on12HourMachine).toMatch(/2:30 PM$/);
-      expect(on24HourMachine).toMatch(/14:30$/);
+      expect(on12HourMachine).toBe("Mar 1, 2:30 PM");
+      expect(on24HourMachine).toBe("Mar 1, 14:30");
     });
   });
 });
