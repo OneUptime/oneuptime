@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -35,6 +35,37 @@ export default function SwipeableCard({
   const translateX: Animated.Value = useRef(new Animated.Value(0)).current;
   const hasTriggeredHaptic: React.MutableRefObject<boolean> = useRef(false);
 
+  /*
+   * The responder below is built ONCE and must stay that way: handing the
+   * touch system a different set of handlers part-way through a drag abandons
+   * the gesture in progress. But that also means its closures see the props
+   * from the render that created it, and only those, for the life of the row.
+   *
+   * That is fatal here, because the actions are not stable. AlertsScreen and
+   * IncidentsScreen rebuild `rightAction` on every render out of the row plus
+   * the acknowledge state they look up in `statesMap`, and on the first render
+   * `statesMap` is still empty - the state queries have not answered yet - so
+   * the action that render produces is `undefined`. A frozen responder keeps
+   * answering with that one: the green "Acknowledge" panel is painted behind
+   * the row, because the JSX below does read today's props, but the drag is
+   * clamped to zero and the release fires nothing - a control that is visibly
+   * offered and permanently dead. Nothing arrives later to tell the responder
+   * it is stale, and it is built at exactly the moment the data it needs is
+   * guaranteed to be missing.
+   *
+   * Refreshing refs after every commit keeps the responder itself stable while
+   * its handlers read the props the row has TODAY.
+   */
+  const leftActionRef: React.MutableRefObject<SwipeAction | undefined> =
+    useRef(leftAction);
+  const rightActionRef: React.MutableRefObject<SwipeAction | undefined> =
+    useRef(rightAction);
+
+  useEffect((): void => {
+    leftActionRef.current = leftAction;
+    rightActionRef.current = rightAction;
+  }, [leftAction, rightAction]);
+
   const panResponder: PanResponderInstance = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (
@@ -49,10 +80,10 @@ export default function SwipeableCard({
       ) => {
         const maxSwipe: number = 120;
         let dx: number = gestureState.dx;
-        if (!rightAction && dx < 0) {
+        if (!rightActionRef.current && dx < 0) {
           dx = 0;
         }
-        if (!leftAction && dx > 0) {
+        if (!leftActionRef.current && dx > 0) {
           dx = 0;
         }
         dx = Math.max(-maxSwipe, Math.min(maxSwipe, dx));
@@ -69,10 +100,12 @@ export default function SwipeableCard({
         _: GestureResponderEvent,
         gestureState: PanResponderGestureState,
       ) => {
-        if (gestureState.dx > SWIPE_THRESHOLD && leftAction) {
-          leftAction.onAction();
-        } else if (gestureState.dx < -SWIPE_THRESHOLD && rightAction) {
-          rightAction.onAction();
+        const left: SwipeAction | undefined = leftActionRef.current;
+        const right: SwipeAction | undefined = rightActionRef.current;
+        if (gestureState.dx > SWIPE_THRESHOLD && left) {
+          left.onAction();
+        } else if (gestureState.dx < -SWIPE_THRESHOLD && right) {
+          right.onAction();
         }
 
         hasTriggeredHaptic.current = false;

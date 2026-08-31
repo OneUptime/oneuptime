@@ -31,6 +31,16 @@ interface StatCardProps {
   label: string;
   accentColor: string;
   iconName: keyof typeof Ionicons.glyphMap;
+
+  /*
+   * "We do not have this number", not merely "a request is in flight".
+   *
+   * The card draws "--" for it, and the two things that put a card here - a
+   * count still being fetched, and a count whose request failed - are the same
+   * thing as far as the responder is concerned: we cannot tell them what is
+   * outstanding. Both must be kept off the "0" path, because 0 on this screen
+   * is read as a verdict.
+   */
   isLoading: boolean;
   onPress: () => void;
 }
@@ -51,11 +61,22 @@ function StatCard({
     onPress();
   };
 
+  /*
+   * The label has to tell the same truth the digits do. It used to announce
+   * "0 Inoperational" off the same `count ?? 0` fallback that the body already
+   * refuses to print while the number is unknown, so a responder on VoiceOver
+   * or TalkBack was handed exactly the all-clear the sighted responder was
+   * deliberately denied.
+   */
+  const accessibilityLabel: string = isLoading
+    ? `${label}, not available yet. Tap to view.`
+    : `${count ?? 0} ${label}. Tap to view.`;
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={handlePress}
-      accessibilityLabel={`${count ?? 0} ${label}. Tap to view.`}
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       style={{
         borderRadius: 24,
@@ -159,7 +180,8 @@ function getGreeting(): string {
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { projectList, isLoadingProjects, refreshProjects } = useProject();
+  const { projectList, isLoadingProjects, projectLoadError, refreshProjects } =
+    useProject();
   const navigation: HomeNavProp = useNavigation<HomeNavProp>();
 
   const {
@@ -171,6 +193,7 @@ export default function HomeScreen(): React.JSX.Element {
     disabledMonitorCount,
     inoperationalMonitorCount,
     isLoading: anyLoading,
+    isError: countsError,
     refetch,
   } = useAllProjectCounts();
 
@@ -178,8 +201,24 @@ export default function HomeScreen(): React.JSX.Element {
     totalAssignments,
     projects: onCallProjects,
     isLoading: onCallLoading,
+    isError: onCallError,
+    isPartialFailure: onCallPartialFailure,
     refetch: refetchOnCall,
   } = useAllProjectOnCallPolicies();
+
+  /*
+   * Whether Home is allowed to print a count at all.
+   *
+   * Every count out of useAllProjectCounts falls back to 0 when its query has
+   * no data, so a request that FAILED arrives here as the same number as a
+   * genuinely quiet night. On this screen that 0 is not a datum, it is a
+   * verdict - "there is nothing to respond to" - and it is the one verdict the
+   * app must never reach by accident. isError is the hook's only way of saying
+   * otherwise, and it is deliberately coarse (any of the seven requests), so
+   * it retires the whole set of numbers rather than pretending we know which
+   * of them is real.
+   */
+  const countIsKnown: boolean = !anyLoading && !countsError;
 
   const { lightImpact } = useHaptics();
 
@@ -242,6 +281,22 @@ export default function HomeScreen(): React.JSX.Element {
   };
 
   if (!isLoadingProjects && projectList.length === 0) {
+    /*
+     * Two very different situations arrive here as the same empty list, and
+     * this copy is the only thing that can tell them apart: an account that
+     * genuinely holds no projects, and an account whose project fetch failed.
+     * useProject now reports which one via projectLoadError. Telling a
+     * responder that they "don't have access to any projects" when the request
+     * simply never landed sends them to their administrator instead of to the
+     * retry that would actually put their incidents back on screen.
+     */
+    const emptyTitle: string = projectLoadError
+      ? "Could Not Load Projects"
+      : "No Projects Found";
+    const emptyBody: string = projectLoadError
+      ? "We could not reach OneUptime to load your projects, which is not the same as you having none. Pull to refresh or retry."
+      : "You don't have access to any projects. Contact your administrator or pull to refresh.";
+
     return (
       <ScrollView
         style={{ backgroundColor: theme.colors.backgroundPrimary }}
@@ -287,7 +342,7 @@ export default function HomeScreen(): React.JSX.Element {
               letterSpacing: -0.5,
             }}
           >
-            No Projects Found
+            {emptyTitle}
           </Text>
           <Text
             style={{
@@ -299,8 +354,7 @@ export default function HomeScreen(): React.JSX.Element {
               color: theme.colors.textSecondary,
             }}
           >
-            You don&apos;t have access to any projects. Contact your
-            administrator or pull to refresh.
+            {emptyBody}
           </Text>
 
           <View style={{ marginTop: 32, width: 200 }}>
@@ -334,6 +388,50 @@ export default function HomeScreen(): React.JSX.Element {
     projectList.length === 1
       ? projectList[0]!.name
       : `${projectList.length} Projects`;
+
+  /*
+   * Which of the ways of arriving at "zero assignments" this actually is.
+   *
+   * "You are not currently on-call" is the most expensive sentence this app
+   * can print, because a responder reads it and stops watching their phone.
+   * It is only true when every project we asked answered and none of them put
+   * them on duty. useAllProjectOnCallPolicies now separates that from the two
+   * ways of failing into the same zero: nothing answered at all (isError), and
+   * some projects answered while others did not (isPartialFailure). The second
+   * one matters here as much as the first, because a partial answer summing to
+   * zero is precisely the case where the project that never replied is the one
+   * holding the page.
+   */
+  let onCallSummary: string;
+  if (onCallLoading) {
+    onCallSummary = "Loading assignments...";
+  } else if (onCallError) {
+    onCallSummary = "Could not check your on-call status. Pull to refresh.";
+  } else if (totalAssignments > 0) {
+    const assignmentWord: string =
+      totalAssignments === 1 ? "assignment" : "assignments";
+    const projectWord: string =
+      onCallProjects.length === 1 ? "project" : "projects";
+    const caveat: string = onCallPartialFailure
+      ? " (some projects did not answer)"
+      : "";
+    onCallSummary = `${totalAssignments} active ${assignmentWord} across ${onCallProjects.length} ${projectWord}${caveat}`;
+  } else if (onCallPartialFailure) {
+    onCallSummary = "Could not check every project. Pull to refresh.";
+  } else {
+    onCallSummary = "You are not currently on-call";
+  }
+
+  /*
+   * A partial answer with assignments in it still prints its number - "you are
+   * on call" is not made wrong by a project that failed to reply, and the
+   * caveat above carries the incompleteness. A partial answer that adds up to
+   * zero prints nothing, for the same reason the counts do not.
+   */
+  const onCallCountIsKnown: boolean =
+    !onCallLoading &&
+    !onCallError &&
+    !(onCallPartialFailure && totalAssignments === 0);
 
   return (
     <ScrollView
@@ -436,10 +534,12 @@ export default function HomeScreen(): React.JSX.Element {
                   letterSpacing: -1,
                 }}
               >
-                {(incidentCount ?? 0) +
-                  (alertCount ?? 0) +
-                  (incidentEpisodeCount ?? 0) +
-                  (alertEpisodeCount ?? 0)}
+                {countIsKnown
+                  ? (incidentCount ?? 0) +
+                    (alertCount ?? 0) +
+                    (incidentEpisodeCount ?? 0) +
+                    (alertEpisodeCount ?? 0)
+                  : "--"}
               </Text>
             </View>
           </View>
@@ -623,11 +723,7 @@ export default function HomeScreen(): React.JSX.Element {
                         color: theme.colors.textSecondary,
                       }}
                     >
-                      {onCallLoading
-                        ? "Loading assignments..."
-                        : totalAssignments > 0
-                          ? `${totalAssignments} active ${totalAssignments === 1 ? "assignment" : "assignments"} across ${onCallProjects.length} ${onCallProjects.length === 1 ? "project" : "projects"}`
-                          : "You are not currently on-call"}
+                      {onCallSummary}
                     </Text>
                   </View>
                 </View>
@@ -642,7 +738,7 @@ export default function HomeScreen(): React.JSX.Element {
                       letterSpacing: -1,
                     }}
                   >
-                    {onCallLoading ? "--" : totalAssignments}
+                    {onCallCountIsKnown ? totalAssignments : "--"}
                   </Text>
                   <Ionicons
                     name="chevron-forward"
@@ -675,7 +771,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Total Monitors"
                 accentColor={theme.colors.oncallActive}
                 iconName="pulse-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Monitors");
                 }}
@@ -687,7 +783,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Inoperational"
                 accentColor={theme.colors.severityCritical}
                 iconName="close-circle-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Monitors");
                 }}
@@ -701,7 +797,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Disabled"
                 accentColor={theme.colors.textTertiary}
                 iconName="pause-circle-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Monitors");
                 }}
@@ -731,7 +827,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Active Incidents"
                 accentColor={theme.colors.severityCritical}
                 iconName="warning-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Incidents");
                 }}
@@ -743,7 +839,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Inc. Episodes"
                 accentColor={theme.colors.severityInfo}
                 iconName="layers-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Incidents");
                 }}
@@ -772,7 +868,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Active Alerts"
                 accentColor={theme.colors.severityMajor}
                 iconName="alert-circle-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Alerts");
                 }}
@@ -784,7 +880,7 @@ export default function HomeScreen(): React.JSX.Element {
                 label="Alert Episodes"
                 accentColor={theme.colors.severityWarning}
                 iconName="layers-outline"
-                isLoading={anyLoading}
+                isLoading={!countIsKnown}
                 onPress={() => {
                   return navigation.navigate("Alerts");
                 }}

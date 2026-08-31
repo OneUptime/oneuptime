@@ -5,6 +5,7 @@ import {
   ScrollView,
   RefreshControl,
   Text,
+  Alert,
   SectionListRenderItemInfo,
   DefaultSectionT,
 } from "react-native";
@@ -291,6 +292,21 @@ export default function AlertsScreen(): React.JSX.Element {
           await queryClient.invalidateQueries({ queryKey: ["alerts"] });
         } catch {
           await errorFeedback();
+          /*
+           * A buzz is not a report. The swipe leaves no trace once the row
+           * springs back, so a responder who acknowledged from a pocket, or
+           * who simply did not register the haptic, cannot tell an
+           * acknowledge that reached the server from one that never left the
+           * handset - and the escalation policy goes on paging somebody who
+           * believes they have already taken it. The detail screens say so out
+           * loud for exactly this failure; the list has to as well. The haptic
+           * stays: it is the faster of the two signals for anyone who does
+           * feel it.
+           */
+          Alert.alert(
+            "Error",
+            "Failed to acknowledge this alert. It is still unacknowledged.",
+          );
         }
       },
       [statesMap, successFeedback, errorFeedback, refetch, queryClient],

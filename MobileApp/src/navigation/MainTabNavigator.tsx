@@ -100,10 +100,27 @@ export default function MainTabNavigator(): React.JSX.Element {
         },
       }}
     >
+      {/*
+       * Every tab names itself for the screen reader, because none of them can
+       * inherit a name from what is on screen.
+       *
+       * `tabBarShowLabel` above is false below 768pt - which is every phone
+       * this app ships to - so on a handset a tab is an icon and nothing else.
+       * React Navigation only invents an accessibility label from the route on
+       * iOS; on Android it leaves it undefined, and an icon-only pressable
+       * with no label is a control TalkBack can announce only as "tab,
+       * selected". Six of those in a row is a tab bar a blind responder cannot
+       * navigate, on the one app whose whole purpose is reaching Incidents
+       * fast at 3am.
+       *
+       * Stating it also makes both platforms say the same thing, rather than
+       * leaving iOS on a fallback that Android has no equivalent of.
+       */}
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
+          tabBarAccessibilityLabel: "Home",
           tabBarIcon: ({
             color,
             focused,
@@ -128,6 +145,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={MonitorsStackNavigator}
         options={{
           headerShown: false,
+          tabBarAccessibilityLabel: "Monitors",
           tabBarIcon: ({
             color,
             focused,
@@ -152,6 +170,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={IncidentsStackNavigator}
         options={{
           headerShown: false,
+          tabBarAccessibilityLabel: "Incidents",
           tabBarIcon: ({
             color,
             focused,
@@ -176,6 +195,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={AlertsStackNavigator}
         options={{
           headerShown: false,
+          tabBarAccessibilityLabel: "Alerts",
           tabBarIcon: ({
             color,
             focused,
@@ -201,6 +221,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         options={{
           headerShown: false,
           title: "On-Call",
+          tabBarAccessibilityLabel: "On-Call",
           tabBarIcon: ({
             color,
             focused,
@@ -225,6 +246,7 @@ export default function MainTabNavigator(): React.JSX.Element {
         component={SettingsStackNavigator}
         options={{
           headerShown: false,
+          tabBarAccessibilityLabel: "Settings",
           tabBarIcon: (props: { color: string; focused: boolean }) => {
             return (
               <TabIcon
