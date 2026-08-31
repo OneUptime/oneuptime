@@ -19,7 +19,7 @@ interface UseAllProjectMonitorsResult {
 }
 
 export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
-  const { projectList } = useProject();
+  const { projectList, isLoadingProjects } = useProject();
 
   const queries: UseQueryResult<ListResponse<MonitorItem>, Error>[] =
     useQueries({
@@ -36,11 +36,22 @@ export function useAllProjectMonitors(): UseAllProjectMonitorsResult {
       }),
     });
 
-  const isLoading: boolean = queries.some(
-    (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+  /*
+   * The project list is half of this hook's loading state, and the half that
+   * is easy to lose. useQueries builds one query per project, so until the
+   * list arrives there are NO queries here - and `some()` over an empty array
+   * is false. Without isLoadingProjects the Monitors tab therefore reported
+   * itself settled the instant it mounted and rendered its "no monitors"
+   * empty state over a responder whose monitors had simply not been asked for
+   * yet. Waiting on the list too is what makes that empty state mean
+   * something: it can only be reached once we know there is nothing to fan
+   * out to.
+   */
+  const isLoading: boolean =
+    isLoadingProjects ||
+    queries.some((q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
       return q.isLoading;
-    },
-  );
+    });
   const isError: boolean = queries.some(
     (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
       return q.isError;

@@ -31,6 +31,8 @@ import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import URL from "../../../../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import MicrosoftTeamsActionAuthorization from "./Authorization";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -296,6 +298,7 @@ export default class MicrosoftTeamsIncidentActions {
     value: JSONObject;
     projectId: ObjectID;
     oneUptimeUserId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
     turnContext: TurnContext;
   }): Promise<void> {
     const {
@@ -304,6 +307,7 @@ export default class MicrosoftTeamsIncidentActions {
       value,
       projectId,
       oneUptimeUserId,
+      databaseProps,
       turnContext,
     } = data;
 
@@ -315,10 +319,15 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      await IncidentService.acknowledgeIncident(
-        new ObjectID(actionValue),
-        oneUptimeUserId,
-      );
+      const incidentId: ObjectID = new ObjectID(actionValue);
+
+      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
+        incidentId: incidentId,
+        projectId: projectId,
+        props: databaseProps,
+      });
+
+      await IncidentService.acknowledgeIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident acknowledged.");
       return;
     }
@@ -331,10 +340,15 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      await IncidentService.resolveIncident(
-        new ObjectID(actionValue),
-        oneUptimeUserId,
-      );
+      const incidentId: ObjectID = new ObjectID(actionValue);
+
+      await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
+        incidentId: incidentId,
+        projectId: projectId,
+        props: databaseProps,
+      });
+
+      await IncidentService.resolveIncident(incidentId, oneUptimeUserId);
       await turnContext.sendActivity("✅ Incident resolved.");
       return;
     }
@@ -574,9 +588,7 @@ export default class MicrosoftTeamsIncidentActions {
           data: {
             currentIncidentStateId: new ObjectID(incidentStateId.toString()),
           },
-          props: {
-            isRoot: true,
-          },
+          props: databaseProps,
         });
 
         await turnContext.sendActivity(

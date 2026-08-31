@@ -30,6 +30,7 @@ import type { IncidentsStackParamList } from "../navigation/types";
 import type { IncidentState } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
@@ -53,6 +54,7 @@ export default function IncidentEpisodeDetailScreen({
   const {
     data: episode,
     isLoading,
+    isError,
     refetch: refetchEpisode,
   } = useIncidentEpisodeDetail(projectId, episodeId);
   const { data: states } = useIncidentEpisodeStates(projectId);
@@ -117,6 +119,23 @@ export default function IncidentEpisodeDetailScreen({
         await queryClient.invalidateQueries({
           queryKey: ["incident-episodes"],
         });
+        /*
+         * The episode list is not the only list this just falsified. An
+         * episode is a bundle of incidents, and changing the episode's state
+         * changes the state of every incident inside it server-side - so the
+         * moment a responder resolves an episode, every cached row on the
+         * Incidents tab that belongs to it is wrong.
+         *
+         * Invalidating only ["incident-episodes"] left the responder
+         * returning to a list where the episode reads Resolved and its member
+         * incidents still read as open. On an on-call app that is not
+         * cosmetic: an incident that looks unresolved is an incident somebody
+         * goes and works, or one that makes a responder doubt that their
+         * resolve landed. The incident detail screen already invalidates
+         * ["incidents"] after the same kind of state change; the episode
+         * screen has the same duty and had simply never been given it.
+         */
+        await queryClient.invalidateQueries({ queryKey: ["incidents"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
         await errorFeedback();
@@ -159,6 +178,45 @@ export default function IncidentEpisodeDetailScreen({
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <SkeletonCard variant="detail" />
+      </View>
+    );
+  }
+
+  /*
+   * "We asked, and this episode does not exist" and "we could not ask" are
+   * different facts, and they used to arrive at the same sentence. A responder
+   * who has just been paged and taps through over a flaky connection was told
+   * the episode was not found - so the page looked spurious, or already
+   * cleaned up by somebody else, and there was nothing on screen to press to
+   * find out otherwise. The only recovery was to back out and hope the list
+   * still held the row.
+   *
+   * A failure gets its own screen and a retry, because the honest answer is
+   * "ask again". A deleted episode falls through to the sentence below, which
+   * is the one case where "not found" is the truth and a retry button would be
+   * a lie. Nothing here has to guess which is which: `fetchIncidentEpisodeById`
+   * resolves `null` for an episode that is not there, so that miss arrives as
+   * settled data and `isError` is left meaning only "the request failed".
+   *
+   * The `!episode` guard keeps this specific to a failure that left us with
+   * nothing: react-query holds the last good payload through a failed refetch,
+   * and stale episode data on screen beats an error page for somebody who is
+   * mid-response.
+   */
+  if (isError && !episode) {
+    return (
+      <View
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+      >
+        <EmptyState
+          title="Something went wrong"
+          subtitle="This incident episode could not be loaded, which is not the same as it no longer existing. Try again."
+          icon="episodes"
+          actionLabel="Retry"
+          onAction={() => {
+            return refetchEpisode();
+          }}
+        />
       </View>
     );
   }
@@ -430,6 +488,21 @@ export default function IncidentEpisodeDetailScreen({
         </View>
       </View>
 
+      {/*
+       * These two controls are the whole point of the screen, and they were
+       * the two least legible things on it to a screen-reader user. Neither
+       * carried a role or a name, so VoiceOver and TalkBack announced them
+       * from their children - and the instant a change went in flight those
+       * children became a bare ActivityIndicator, leaving the responder
+       * swiping across two unlabelled shapes on the one screen where pressing
+       * the wrong one has consequences.
+       *
+       * The names are therefore explicit, and they carry the in-flight fact
+       * rather than dropping it. "state change in progress" is deliberately
+       * not "acknowledging" or "resolving": `changingState` is a single flag
+       * for both buttons, so it says only what is actually known - that a
+       * change is in the air - instead of guessing which one was pressed.
+       */}
       {!isResolved ? (
         <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Actions" iconName="flash-outline" />
@@ -462,6 +535,12 @@ export default function IncidentEpisodeDetailScreen({
                       );
                     }}
                     disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      changingState
+                        ? "Acknowledge incident episode, state change in progress"
+                        : "Acknowledge incident episode"
+                    }
                   >
                     {changingState ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -514,6 +593,12 @@ export default function IncidentEpisodeDetailScreen({
                       );
                     }}
                     disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      changingState
+                        ? "Resolve incident episode, state change in progress"
+                        : "Resolve incident episode"
+                    }
                   >
                     {changingState ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />

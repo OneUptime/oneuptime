@@ -9,6 +9,7 @@ import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { JsonContains, MoreThan, UpdateResult } from "typeorm";
 
 export interface SessionMetadata {
   session: Model;
@@ -52,8 +53,24 @@ export interface RevokeSessionOptions {
   reason?: string | undefined;
 }
 
+export interface ExchangeLoginCodeOptions {
+  statusPageId: ObjectID;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  deviceName?: string | undefined;
+  deviceType?: string | undefined;
+  deviceOS?: string | undefined;
+  deviceBrowser?: string | undefined;
+  additionalInfo?: JSONObject | undefined;
+}
+
+export const STATUS_PAGE_LOGIN_CODE_TTL_MINUTES: number = 5;
+
 export class Service extends DatabaseService<Model> {
   private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number = 30;
+  private static readonly LOGIN_CODE_PURPOSE_KEY: string =
+    "oneuptimeStatusPageSessionPurpose";
+  private static readonly LOGIN_CODE_PURPOSE_VALUE: string = "login-code";
   private static readonly SHORT_TEXT_LIMIT: number = 100;
 
   public constructor() {
@@ -89,6 +106,31 @@ export class Service extends DatabaseService<Model> {
     } catch (error) {
       throw error as Exception;
     }
+  }
+
+  public async createLoginCodeSession(
+    options: Omit<
+      CreateSessionOptions,
+      "refreshToken" | "refreshTokenExpiresAt"
+    >,
+  ): Promise<SessionMetadata> {
+    return await this.createSession({
+      ...options,
+      additionalInfo: {
+        ...(options.additionalInfo || {}),
+        [Service.LOGIN_CODE_PURPOSE_KEY]: Service.LOGIN_CODE_PURPOSE_VALUE,
+      } as JSONObject,
+      refreshTokenExpiresAt: OneUptimeDate.getSomeMinutesAfter(
+        STATUS_PAGE_LOGIN_CODE_TTL_MINUTES,
+      ),
+    });
+  }
+
+  public isLoginCodeSession(session: Model): boolean {
+    return (
+      session.additionalInfo?.[Service.LOGIN_CODE_PURPOSE_KEY] ===
+      Service.LOGIN_CODE_PURPOSE_VALUE
+    );
   }
 
   public async findActiveSessionByRefreshToken(
@@ -146,64 +188,11 @@ export class Service extends DatabaseService<Model> {
     const refreshTokenExpiresAt: Date =
       options.refreshTokenExpiresAt || Service.getRefreshTokenExpiry();
 
-    const updatePayload: Partial<Model> = {
-      refreshToken: HashedString.fromString(refreshToken),
-      refreshTokenExpiresAt: refreshTokenExpiresAt,
-      lastActiveAt: OneUptimeDate.getCurrentDate(),
-      isRevoked: false,
-    };
-
-    const ipAddress: string | undefined = Text.truncate(
-      options.ipAddress,
-      Service.SHORT_TEXT_LIMIT,
-    );
-
-    if (ipAddress) {
-      updatePayload.ipAddress = ipAddress;
-    }
-
-    if (options.userAgent) {
-      updatePayload.userAgent = options.userAgent;
-    }
-
-    const deviceName: string | undefined = Text.truncate(
-      options.deviceName,
-      Service.SHORT_TEXT_LIMIT,
-    );
-    if (deviceName) {
-      updatePayload.deviceName = deviceName;
-    }
-
-    const deviceType: string | undefined = Text.truncate(
-      options.deviceType,
-      Service.SHORT_TEXT_LIMIT,
-    );
-    if (deviceType) {
-      updatePayload.deviceType = deviceType;
-    }
-
-    const deviceOS: string | undefined = Text.truncate(
-      options.deviceOS,
-      Service.SHORT_TEXT_LIMIT,
-    );
-    if (deviceOS) {
-      updatePayload.deviceOS = deviceOS;
-    }
-
-    const deviceBrowser: string | undefined = Text.truncate(
-      options.deviceBrowser,
-      Service.SHORT_TEXT_LIMIT,
-    );
-    if (deviceBrowser) {
-      updatePayload.deviceBrowser = deviceBrowser;
-    }
-
-    if (options.additionalInfo || options.session.additionalInfo) {
-      updatePayload.additionalInfo = {
-        ...(options.session.additionalInfo || {}),
-        ...(options.additionalInfo || {}),
-      } as JSONObject;
-    }
+    const updatePayload: Partial<Model> = this.buildRenewalUpdatePayload({
+      options,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
 
     const updatedSession: Model | null = await this.updateOneByIdAndFetch({
       id: options.session.id!,
@@ -219,6 +208,91 @@ export class Service extends DatabaseService<Model> {
 
     return {
       session: updatedSession,
+      refreshToken,
+      refreshTokenExpiresAt,
+    };
+  }
+
+  /**
+   * Atomically consume the short-lived login code and replace it with the
+   * long-lived refresh credential that is delivered only as an HttpOnly
+   * cookie. The refresh-token column is unique and included in the UPDATE
+   * predicate, so concurrent redemption attempts cannot both succeed.
+   */
+  public async exchangeLoginCode(
+    loginCode: string,
+    options: ExchangeLoginCodeOptions,
+  ): Promise<SessionMetadata | null> {
+    if (!ObjectID.isValidUUID(loginCode)) {
+      return null;
+    }
+
+    const session: Model | null =
+      await this.findActiveSessionByRefreshToken(loginCode);
+
+    if (
+      !session?.id ||
+      !session.statusPageId ||
+      !this.isLoginCodeSession(session) ||
+      session.statusPageId.toString() !== options.statusPageId.toString()
+    ) {
+      return null;
+    }
+
+    const refreshToken: string = Service.generateRefreshToken();
+    const refreshTokenExpiresAt: Date = Service.getRefreshTokenExpiry();
+    const renewalOptions: RenewSessionOptions = {
+      session,
+      ipAddress: options.ipAddress,
+      userAgent: options.userAgent,
+      deviceName: options.deviceName,
+      deviceType: options.deviceType,
+      deviceOS: options.deviceOS,
+      deviceBrowser: options.deviceBrowser,
+      additionalInfo: options.additionalInfo,
+    };
+    const updatePayload: Partial<Model> = this.buildRenewalUpdatePayload({
+      options: renewalOptions,
+      refreshToken,
+      refreshTokenExpiresAt,
+    });
+    const refreshTokenHash: string = await HashedString.hashValue(
+      refreshToken,
+      EncryptionSecret,
+    );
+    updatePayload.refreshToken = new HashedString(refreshTokenHash, true);
+    const additionalInfo: JSONObject = {
+      ...(updatePayload.additionalInfo || {}),
+    } as JSONObject;
+    delete additionalInfo[Service.LOGIN_CODE_PURPOSE_KEY];
+    updatePayload.additionalInfo = additionalInfo;
+    const loginCodeHash: string = await HashedString.hashValue(
+      loginCode,
+      EncryptionSecret,
+    );
+
+    const updateResult: UpdateResult = await this.getRepository().update(
+      {
+        _id: session._id!,
+        statusPageId: options.statusPageId,
+        refreshToken: new HashedString(loginCodeHash, true),
+        refreshTokenExpiresAt: MoreThan(OneUptimeDate.getCurrentDate()),
+        isRevoked: false,
+        additionalInfo: JsonContains({
+          [Service.LOGIN_CODE_PURPOSE_KEY]: Service.LOGIN_CODE_PURPOSE_VALUE,
+        }),
+      } as any,
+      updatePayload as any,
+    );
+
+    if (updateResult.affected !== 1) {
+      return null;
+    }
+
+    Object.assign(session, updatePayload);
+
+    return {
+      session,
       refreshToken,
       refreshTokenExpiresAt,
     };
@@ -352,6 +426,73 @@ export class Service extends DatabaseService<Model> {
     } as JSONObject;
 
     return session;
+  }
+
+  private buildRenewalUpdatePayload(data: {
+    options: RenewSessionOptions;
+    refreshToken: string;
+    refreshTokenExpiresAt: Date;
+  }): Partial<Model> {
+    const updatePayload: Partial<Model> = {
+      refreshToken: HashedString.fromString(data.refreshToken),
+      refreshTokenExpiresAt: data.refreshTokenExpiresAt,
+      lastActiveAt: OneUptimeDate.getCurrentDate(),
+      isRevoked: false,
+    };
+
+    const ipAddress: string | undefined = Text.truncate(
+      data.options.ipAddress,
+      Service.SHORT_TEXT_LIMIT,
+    );
+
+    if (ipAddress) {
+      updatePayload.ipAddress = ipAddress;
+    }
+
+    if (data.options.userAgent) {
+      updatePayload.userAgent = data.options.userAgent;
+    }
+
+    const deviceName: string | undefined = Text.truncate(
+      data.options.deviceName,
+      Service.SHORT_TEXT_LIMIT,
+    );
+    if (deviceName) {
+      updatePayload.deviceName = deviceName;
+    }
+
+    const deviceType: string | undefined = Text.truncate(
+      data.options.deviceType,
+      Service.SHORT_TEXT_LIMIT,
+    );
+    if (deviceType) {
+      updatePayload.deviceType = deviceType;
+    }
+
+    const deviceOS: string | undefined = Text.truncate(
+      data.options.deviceOS,
+      Service.SHORT_TEXT_LIMIT,
+    );
+    if (deviceOS) {
+      updatePayload.deviceOS = deviceOS;
+    }
+
+    const deviceBrowser: string | undefined = Text.truncate(
+      data.options.deviceBrowser,
+      Service.SHORT_TEXT_LIMIT,
+    );
+    if (deviceBrowser) {
+      updatePayload.deviceBrowser = deviceBrowser;
+    }
+
+    if (data.options.additionalInfo || data.options.session.additionalInfo) {
+      updatePayload.additionalInfo = {
+        ...(data.options.session.additionalInfo || {}),
+        ...(data.options.additionalInfo || {}),
+      } as JSONObject;
+    }
+
+    return updatePayload;
   }
 
   private static generateRefreshToken(): string {

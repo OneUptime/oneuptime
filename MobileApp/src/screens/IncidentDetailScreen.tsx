@@ -27,6 +27,7 @@ import { toPlainText } from "../utils/text";
 import type { IncidentsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
+import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
@@ -48,6 +49,7 @@ export default function IncidentDetailScreen({
   const {
     data: incident,
     isLoading,
+    isError,
     refetch: refetchIncident,
   } = useIncidentDetail(projectId, incidentId);
   const { data: states } = useIncidentStates(projectId);
@@ -160,19 +162,55 @@ export default function IncidentDetailScreen({
     );
   }
 
+  /*
+   * Nothing to show, and the two reasons for that are not the same reason.
+   *
+   * This screen is where a page lands: the responder tapped a push
+   * notification about an incident that is still burning. "Incident not
+   * found." was every one of those endings - the token expired, the gateway
+   * was down, the train went into a tunnel - and it told the responder the
+   * page they were woken for does not exist, with nothing to press. Checkout
+   * was still down.
+   *
+   * So a failure that might clear says so and offers another go, and only a
+   * request that succeeded and found nothing is allowed to say the incident is
+   * gone. Telling them apart takes no cleverness now: `fetchIncidentById`
+   * resolves `null` for an incident that is not there, so a deleted incident
+   * reaches us as settled data and `isError` means only that the request
+   * failed.
+   *
+   * Note the guard is inside `!incident`: a refresh that fails while the
+   * incident is already on screen must not replace it with an error page,
+   * because a stale incident is worth vastly more here than an apology.
+   */
   if (!incident) {
+    if (isError) {
+      return (
+        <View
+          style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        >
+          <EmptyState
+            title="Something went wrong"
+            subtitle="This incident could not be loaded, which is not the same as it no longer existing. Try again."
+            icon="incidents"
+            actionLabel="Retry"
+            onAction={() => {
+              return refetchIncident();
+            }}
+          />
+        </View>
+      );
+    }
+
     return (
       <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.backgroundPrimary,
-        }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Incident not found.
-        </Text>
+        <EmptyState
+          title="Incident not found"
+          subtitle="This incident no longer exists, or it is not part of this project."
+          icon="incidents"
+        />
       </View>
     );
   }

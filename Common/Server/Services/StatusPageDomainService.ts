@@ -20,10 +20,20 @@ import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { StatusPageCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
+import ArrayUtil from "../../Utils/Array";
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
 export class Service extends DatabaseService<StatusPageDomain> {
+  /*
+   * How many status pages the provisioning sweep checks at once. Each check is
+   * one bounded request out to a customer domain, so this is about not letting
+   * the sweep's length grow with the size of the fleet, rather than about local
+   * work. Kept modest so a sweep cannot look like a burst of traffic to any
+   * shared infrastructure sitting in front of those domains.
+   */
+  public static readonly SSL_PROVISIONING_CHECK_CONCURRENCY: number = 10;
+
   public constructor() {
     super(StatusPageDomain);
   }
@@ -257,6 +267,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
       },
       select: {
         _id: true,
+        fullDomain: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -265,9 +276,27 @@ export class Service extends DatabaseService<StatusPageDomain> {
       },
     });
 
-    for (const domain of domains) {
-      await this.updateSslProvisioningStatus(domain);
-    }
+    /*
+     * Each domain costs a request out to the customer's status page, so walking
+     * the fleet one at a time makes the sweep as long as the fleet is slow.
+     * That length is the delay before an expired certificate is noticed and
+     * reordered, so it is the outage a customer sees when renewal has not
+     * already happened - it must stay well inside the sweep's own interval.
+     */
+    await ArrayUtil.forEachWithConcurrency(
+      domains,
+      Service.SSL_PROVISIONING_CHECK_CONCURRENCY,
+      async (domain: StatusPageDomain): Promise<void> => {
+        try {
+          await this.updateSslProvisioningStatus(domain);
+        } catch (err) {
+          // one unreachable domain must not end the sweep for the rest.
+          logger.error(err, {
+            fullDomain: domain.fullDomain,
+          } as LogAttributes);
+        }
+      },
+    );
   }
 
   private async isSSLProvisioned(

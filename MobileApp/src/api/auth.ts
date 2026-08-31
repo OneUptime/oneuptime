@@ -3,6 +3,7 @@ import apiClient from "./client";
 import { getServerUrl } from "../storage/serverUrl";
 import {
   storeTokens,
+  getTokens,
   clearTokens,
   type StoredTokens,
 } from "../storage/keychain";
@@ -405,10 +406,25 @@ export async function requestPasswordReset(email: string): Promise<void> {
   });
 }
 
+/**
+ * End the session: revoke it at the server, then sign out locally.
+ *
+ * The two halves are deliberately independent. The revoke is best effort - the
+ * handset doing this has very often just lost the network, which is half of why
+ * anybody reaches for Sign Out on a phone - while the local sign-out is the
+ * part the user pressing the button is actually entitled to, so nothing the
+ * server does or fails to do is allowed to stop it.
+ *
+ * getTokens is read off the static import above. It used to be pulled in with
+ * `await import("../storage/keychain")` - the only dynamic import in the app,
+ * of the module this file already imports - which throws under Jest
+ * (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG) and landed straight in the
+ * catch, so under test the revoke below was never even built and could not be
+ * covered by anything.
+ */
 export async function logout(): Promise<void> {
   try {
     const serverUrl: string = await getServerUrl();
-    const { getTokens } = await import("../storage/keychain");
     const tokens: StoredTokens | null = await getTokens();
 
     if (tokens?.refreshToken) {
@@ -419,8 +435,25 @@ export async function logout(): Promise<void> {
       );
     }
   } catch {
-    // Logout failures should not block the flow
-  } finally {
+    /*
+     * Best effort, as above: a server that could not be told is not a reason
+     * to leave the user signed in on the handset.
+     */
+  }
+
+  /*
+   * In a try of its own rather than the `finally` of the one above, because
+   * `finally` only guarantees that this RUNS - a rejection out of it still
+   * rejects out of logout(). AuthProvider.logout awaits this call before it
+   * drops the SSO tokens, the SSO denial set and the authenticated flag, so a
+   * storage failure here used to skip all of that and leave the user on the
+   * signed-in navigator with no feedback at all. clearTokens drops the
+   * in-memory access token before it touches storage, so even the failing case
+   * has stopped signing requests as the person who just left.
+   */
+  try {
     await clearTokens();
+  } catch {
+    /* There is nothing further to try; the caller finishes the sign-out. */
   }
 }

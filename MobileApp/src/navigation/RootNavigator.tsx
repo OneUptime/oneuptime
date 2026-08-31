@@ -66,6 +66,25 @@ export default function RootNavigator(): React.JSX.Element {
 
   usePushNotifications(navigationRef);
 
+  /*
+   * Passing the lock is a property of the SESSION, not of the process.
+   *
+   * `biometric.isEnabled` is a device preference: it survives a sign-out,
+   * because the person who switched it on wants the NEXT sign-in guarded too.
+   * `biometricPassed` used to survive one as well, and it is the only thing
+   * standing between an authenticated render and MainTabNavigator - so once
+   * anybody had unlocked once, every later sign-in on that handset walked
+   * straight past the lock screen, including a sign-in by a different account.
+   * The device protection the user deliberately turned on was then silently
+   * off for the rest of the process lifetime, which on a phone that is never
+   * force-quit is measured in weeks.
+   */
+  useEffect((): void => {
+    if (!isAuthenticated) {
+      setBiometricPassed(false);
+    }
+  }, [isAuthenticated]);
+
   // Hide the native splash screen once initial loading completes
   useEffect(() => {
     if (!isLoading) {

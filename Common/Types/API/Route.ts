@@ -5,16 +5,27 @@ import { JSONObject, ObjectType } from "../JSON";
 import { FindOperator } from "typeorm";
 
 export default class Route extends DatabaseProperty {
+  private static readonly SCHEME_PREFIX: RegExp = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+
+  private static validateRoute(route: string): void {
+    if (Route.SCHEME_PREFIX.test(route)) {
+      throw new BadDataException(`Invalid route: ${route}`);
+    }
+
+    const matchRouteCharacters: RegExp =
+      /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]]*$/;
+
+    if (route && !matchRouteCharacters.test(route)) {
+      throw new BadDataException(`Invalid route: ${route}`);
+    }
+  }
+
   private _route: string = "";
   public get route(): string {
     return this._route;
   }
   public set route(v: string) {
-    const matchRouteCharacters: RegExp =
-      /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]]*$/;
-    if (v && !matchRouteCharacters.test(v)) {
-      throw new BadDataException(`Invalid route: ${v}`);
-    }
+    Route.validateRoute(v);
     this._route = v;
   }
 
@@ -22,6 +33,10 @@ export default class Route extends DatabaseProperty {
     super();
     if (route && route instanceof Route) {
       route = route.toString();
+    }
+
+    if (route) {
+      Route.validateRoute(route);
     }
 
     route = route?.replace(/\/+/g, "/"); // remove multiple slashes from route and replace with single slash

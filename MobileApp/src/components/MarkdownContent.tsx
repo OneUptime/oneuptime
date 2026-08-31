@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import Markdown from "react-native-markdown-display";
 import * as Linking from "expo-linking";
 import { useTheme } from "../theme";
@@ -90,7 +90,26 @@ export default function MarkdownContent({
     <Markdown
       style={markdownStyles}
       onLinkPress={(url: string): boolean => {
-        void Linking.openURL(url);
+        /*
+         * openURL rejects whenever nothing on the handset claims the scheme -
+         * an http link on a device with no browser set, a mailto: with no mail
+         * app, a deep link into an app that is not installed. Discarding that
+         * rejection makes the tap a silent no-op: the responder taps the
+         * runbook link in a feed item, nothing happens, and they are left
+         * unsure whether they missed the link or the app is wedged. Say so
+         * instead, so they know to open it elsewhere.
+         */
+        Linking.openURL(url).catch(() => {
+          Alert.alert(
+            "Could not open link",
+            "Nothing on this device could open that link.",
+          );
+        });
+
+        /*
+         * false keeps react-native-markdown-display from opening the URL a
+         * second time with its own copy of Linking.
+         */
         return false;
       }}
     >

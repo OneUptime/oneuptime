@@ -26,6 +26,17 @@ export default function OfflineBanner(): React.JSX.Element | null {
 
   return (
     <Animated.View
+      /*
+       * The banner is an absolutely positioned strip across the very top of
+       * the screen - App.tsx renders it above the whole navigator - and it is
+       * purely informational: there is nothing on it to press. Without this it
+       * is still a touch target, so for as long as the device is offline it
+       * eats every tap that lands in that strip, the navigation header's back
+       * button included. Being offline is exactly when a responder jabs at the
+       * screen hardest, so a banner that silently deadens the top of the app
+       * reads as the app having frozen.
+       */
+      pointerEvents="none"
       style={{
         position: "absolute",
         top: 0,

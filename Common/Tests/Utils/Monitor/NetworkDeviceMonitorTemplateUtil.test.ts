@@ -9,7 +9,9 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import NetworkDeviceMonitorTemplateUtil from "../../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import NetworkDeviceMonitorTemplateUtil, {
+  MAX_PROVISIONED_MONITOR_NAME_LENGTH,
+} from "../../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import { describe, expect, it } from "@jest/globals";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -290,36 +292,202 @@ describe("NetworkDeviceMonitorTemplateUtil.buildMonitor", () => {
       networkDevice: buildDevice({ name: " ", hostname: " " }),
     });
 
-    expect(monitor.name).toBe(
-      `Network Device ${DEVICE_ID.toString()} - Monitor`,
-    );
+    expect(monitor.name).toBe(`Network Device ${DEVICE_ID.toString()}`);
     expect(monitor.name?.trim()).not.toBe("");
   });
 
-  it("caps names at ShortText without leaving half a surrogate pair", () => {
+  /*
+   * ISSUE #3486, and the reason the column became optional.
+   *
+   * An auto-import rule names every monitor it provisions after the device.
+   * While the template's default monitor name was required there was nothing
+   * an operator could type that did not become a suffix on the whole imported
+   * estate - "UN0660WANRTR01 - Unit Router" for a router already called
+   * UN0660WANRTR01. The three tests below pin the three ways a template can
+   * say "no suffix", because all three are reachable: the column is nullable,
+   * the dashboard's edit form PUTs an empty string rather than null when the
+   * box is cleared, and the API accepts whitespace.
+   */
+  it("names the monitor after the device alone when the template has no default name", () => {
     const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
-      template: buildTemplate({ monitorName: "🔥 alerting" }),
+      template: buildTemplate({ monitorName: undefined }),
+      networkDevice: buildDevice({ name: "UN0660WANRTR01" }),
+    });
+
+    expect(monitor.name).toBe("UN0660WANRTR01");
+    expect(monitor.name).not.toContain(" - ");
+  });
+
+  it("treats an empty default monitor name as no default name", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "" }),
+      networkDevice: buildDevice({ name: "UN0660WANRTR01" }),
+    });
+
+    expect(monitor.name).toBe("UN0660WANRTR01");
+  });
+
+  it("treats a whitespace-only default monitor name as no default name", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "   " }),
+      networkDevice: buildDevice({ name: "UN0660WANRTR01" }),
+    });
+
+    expect(monitor.name).toBe("UN0660WANRTR01");
+  });
+
+  it("falls back to the hostname, not to a suffix, for an unnamed device on an unnamed template", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: undefined }),
+      networkDevice: buildDevice({ name: "  ", hostname: "10.20.30.40" }),
+    });
+
+    expect(monitor.name).toBe("10.20.30.40");
+  });
+
+  /*
+   * The other half of the contract. Dropping the suffix when it IS asked for
+   * would make two templates provisioning the same device produce two
+   * identically named monitors, which is the thing the suffix is for.
+   */
+  it("keeps the suffix when the template does carry a default name", () => {
+    const device: NetworkDevice = buildDevice({ name: "UN0660WANRTR01" });
+
+    const named: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "Unit Router" }),
+      networkDevice: device,
+    });
+    const otherNamed: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "Interface Health" }),
+      networkDevice: device,
+    });
+
+    expect(named.name).toBe("UN0660WANRTR01 - Unit Router");
+    expect(otherNamed.name).toBe("UN0660WANRTR01 - Interface Health");
+    expect(named.name).not.toBe(otherNamed.name);
+  });
+
+  it("trims the stored default monitor name before composing", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "  Unit Router  " }),
+      networkDevice: buildDevice({ name: "UN0660WANRTR01" }),
+    });
+
+    expect(monitor.name).toBe("UN0660WANRTR01 - Unit Router");
+  });
+
+  /*
+   * THE CAP IS THE SLUG'S, NOT THE NAME COLUMN'S.
+   *
+   * Monitor.name is varchar(100), but Monitor is @SlugifyColumn("name",
+   * "slug") and Slug.getSlug appends a dash plus ten random digits into its
+   * own varchar(100). A 100-character name therefore produces a
+   * 111-character slug and the INSERT throws - the monitor lands in
+   * `monitorsFailed` and the device silently never gets one. 88 leaves
+   * exactly that 11-character tail.
+   */
+  it("caps a provisioned name low enough that its generated slug still fits", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "t".repeat(60) }),
       networkDevice: buildDevice({ name: "d".repeat(96) }),
+    });
+    const slugTailLength: number = "-1234567890".length;
+
+    expect(monitor.name).toHaveLength(MAX_PROVISIONED_MONITOR_NAME_LENGTH);
+    expect(monitor.name!.length + slugTailLength).toBeLessThanOrEqual(
+      ColumnLength.Slug,
+    );
+    expect(monitor.name!.length).toBeLessThanOrEqual(ColumnLength.ShortText);
+  });
+
+  it("caps an unsuffixed device name at the same ceiling", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: undefined }),
+      networkDevice: buildDevice({ name: "d".repeat(120) }),
+    });
+
+    expect(monitor.name).toBe("d".repeat(MAX_PROVISIONED_MONITOR_NAME_LENGTH));
+  });
+
+  it("caps names without leaving half a surrogate pair", () => {
+    /*
+     * 80 + " - " + 4 characters puts the cap exactly on the leading half of
+     * the astral character, the only cut that can produce an unpaired code
+     * unit.
+     */
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: "tttt🔥 alerting" }),
+      networkDevice: buildDevice({ name: "d".repeat(80) }),
     });
     const loneSurrogate: RegExp =
       /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-    expect(monitor.name!.length).toBeLessThanOrEqual(ColumnLength.ShortText);
-    expect(monitor.name!.length).toBe(99);
+    expect(monitor.name!.length).toBeLessThanOrEqual(
+      MAX_PROVISIONED_MONITOR_NAME_LENGTH,
+    );
+    expect(monitor.name).toBe(`${"d".repeat(80)} - tttt`);
     expect(loneSurrogate.test(monitor.name!)).toBe(false);
-    expect(monitor.name!.startsWith("d".repeat(96))).toBe(true);
   });
 
-  it("keeps a composed name exactly at the column limit", () => {
-    const deviceName: string = "d".repeat(80);
-    const templateName: string = "t".repeat(17);
+  it("keeps an astral character in the device identity whole", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate(),
+      networkDevice: buildDevice({ name: `${"d".repeat(87)}🔥` }),
+    });
+    const loneSurrogate: RegExp =
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+    expect(monitor.name).toBe("d".repeat(87));
+    expect(loneSurrogate.test(monitor.name!)).toBe(false);
+  });
+
+  it("keeps a composed name exactly at the cap", () => {
+    const deviceName: string = "d".repeat(70);
+    const templateName: string = "t".repeat(15);
     const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
       template: buildTemplate({ monitorName: templateName }),
       networkDevice: buildDevice({ name: deviceName }),
     });
 
     expect(monitor.name).toBe(`${deviceName} - ${templateName}`);
-    expect(monitor.name).toHaveLength(ColumnLength.ShortText);
+    expect(monitor.name).toHaveLength(MAX_PROVISIONED_MONITOR_NAME_LENGTH);
+  });
+
+  /*
+   * A cap landing inside " - " would otherwise ship a name trailing a
+   * half-written separator - "core switch -" - which reads as a truncation
+   * bug to whoever opens the monitor.
+   */
+  it("drops a separator the cap cut through", () => {
+    // One character into " - ", two characters in, and exactly at its end.
+    for (const deviceNameLength of [87, 86, 85]) {
+      const deviceName: string = "d".repeat(deviceNameLength);
+      const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+        template: buildTemplate({ monitorName: "Unit Router" }),
+        networkDevice: buildDevice({ name: deviceName }),
+      });
+
+      expect({
+        deviceNameLength: deviceNameLength,
+        name: monitor.name,
+      }).toEqual({ deviceNameLength: deviceNameLength, name: deviceName });
+      expect(monitor.name!.endsWith(" ")).toBe(false);
+      expect(monitor.name!.endsWith("-")).toBe(false);
+    }
+  });
+
+  /*
+   * The mirror of the test above: the remnant rule is a LENGTH check, not a
+   * "does it end with a dash" check, so a device whose own name ends in a
+   * dash keeps it when nothing was cut.
+   */
+  it("keeps a device's own trailing dash when nothing was truncated", () => {
+    const monitor: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template: buildTemplate({ monitorName: undefined }),
+      networkDevice: buildDevice({ name: "Router A -" }),
+    });
+
+    expect(monitor.name).toBe("Router A -");
   });
 
   it("rejects a template without an id", () => {
