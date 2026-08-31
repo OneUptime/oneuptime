@@ -1,0 +1,36 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat (concat "Your on-call shift on " scheduleName) (concat " starts in " remainingText)) }}
+
+{{> InfoBlock info=description}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Schedule:" text=scheduleName }}
+{{> DetailBoxField title="On-Call Policies:" text=policyNames }}
+{{> DetailBoxField title="Shift Starts At:" text=startsAt }}
+{{> DetailBoxField title="Shift Ends At:" text=endsAt }}
+{{> DetailBoxField title="Reminder Lead Time:" text=leadText }}
+{{#if coveringFor}}
+{{> DetailBoxField title="Covering For:" text=coveringFor }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this schedule by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=scheduleViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=scheduleViewLink}}
+
+{{> InfoBlock info="You will also be told if this shift is reassigned to someone else before it starts. Reminder lead times can be changed on the Calendar Feed page under User Settings."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

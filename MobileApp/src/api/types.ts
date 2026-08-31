@@ -453,3 +453,131 @@ export interface OnCallPageItem {
   triggeredByIncidentEpisode: { _id?: string; title?: string } | null;
   triggeredByAlertEpisode: { _id?: string; title?: string } | null;
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * On-call calendar feeds (`/api/on-call-calendar/...`)
+ *
+ * These shapes mirror the server's JSON contract verbatim: dates are ISO
+ * strings, optional keys are simply absent. Nothing here is derived from a
+ * Common model because the feed routes are custom endpoints, not CRUD.
+ * ---------------------------------------------------------------------------
+ */
+
+/**
+ * The three ways a calendar app can be pointed at one feed. `webcal` is a
+ * `webcals://` URL when the server is served over https; `googleAdd` is the
+ * Google Calendar "add by URL" deep link, which only works from a browser.
+ */
+export interface OnCallCalendarFeedUrls {
+  https: string;
+  webcal: string;
+  googleAdd: string;
+}
+
+export interface OnCallCalendarFeedSettings {
+  includeCoveringShifts?: boolean;
+  includeCoverageGaps?: boolean;
+  minimumGapMinutes?: number;
+  pastDays: number;
+  futureDays: number;
+  rotateWhenMemberLeaves?: boolean;
+}
+
+/**
+ * What the server knows about one feed - personal, per-schedule or
+ * project-wide, the payload is the same. `exists` false means nothing has been
+ * generated yet; `urls` is null in that case and whenever the server cannot
+ * decrypt the token (then `needsRegeneration` is true and the only way forward
+ * is a new link).
+ */
+export interface OnCallCalendarFeedStatus {
+  exists: boolean;
+  feedId: string | null;
+  isEnabled: boolean;
+  needsRegeneration: boolean;
+  tokenHint: string | null;
+  rotatedAt: string | null;
+  previousTokenExpiresAt: string | null;
+  lastFetchedAt: string | null;
+  lastFetchedClient: string | null;
+  fetchCount: number;
+  lastRenderTruncated: boolean;
+  settings: OnCallCalendarFeedSettings;
+  urls: OnCallCalendarFeedUrls | null;
+
+  /* Set when the server's HOST is empty or localhost - its links are unusable. */
+  hostWarning: string | null;
+
+  /* Set when the server is served over plain http - the link travels in clear. */
+  protocolWarning: string | null;
+}
+
+/**
+ * Present on a shift that exists because of an override: the signed-in user
+ * is covering for `originalUserName`. `onCallDutyPolicyId` is set when the
+ * override was scoped to one policy.
+ */
+export interface MyOnCallShiftOverride {
+  originalUserId: string;
+  originalUserName: string;
+  overrideStartsAt: string;
+  overrideEndsAt: string;
+  onCallDutyPolicyId?: string;
+}
+
+/**
+ * A shift that only exists inside one escalation policy's context - a
+ * policy-scoped override made this user the on-call person for that policy
+ * while `globalUserId` still holds the schedule everywhere else.
+ */
+export interface MyOnCallShiftPolicyVariant {
+  policyId: string;
+  policyName: string;
+  globalUserId: string;
+}
+
+export interface MyOnCallShiftPolicy {
+  policyId: string;
+  policyName: string;
+  ruleId: string;
+  ruleName: string;
+  ruleOrder: number;
+}
+
+/**
+ * One materialized shift from `GET /api/on-call-calendar/my-shifts` - the
+ * server's own expansion of the schedule, with overrides applied, so unlike
+ * `OnCallShift` it is not limited to "current and next" per schedule.
+ */
+export interface MyOnCallShift {
+  shiftKey: string;
+  contentHash: string;
+  projectId: string;
+  projectName?: string;
+  scheduleId: string;
+  scheduleName: string;
+  scheduleTimezone: string | null;
+  userId: string;
+  userName: string;
+  start: string;
+  end: string;
+  coverageSeconds: number;
+  layerId?: string;
+  layerName?: string;
+  override?: MyOnCallShiftOverride;
+  policyVariantOf?: MyOnCallShiftPolicyVariant;
+  policies: MyOnCallShiftPolicy[];
+  isPast: boolean;
+  lastModifiedAt: string;
+  shiftConfigVersion: number;
+}
+
+export interface MyOnCallShiftsResponse {
+  shifts: MyOnCallShift[];
+
+  /* True when the server hit its expansion cap and the list is incomplete. */
+  truncated: boolean;
+
+  generatedAt: string;
+}

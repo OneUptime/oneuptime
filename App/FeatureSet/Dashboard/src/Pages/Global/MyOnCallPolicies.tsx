@@ -1,6 +1,9 @@
 import ProjectElement from "../../Components/Project/Project";
 import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import RouteMap, {
+  RouteUtil,
+  UserSettingsRoutePath,
+} from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -28,6 +31,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Blue, Purple } from "Common/Types/BrandColors";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -57,6 +61,7 @@ interface PolicyItem {
 const MyOnCallPolicies: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [onCallPoliciesByProject, setOnCallPoliciesByProject] = useState<
@@ -173,6 +178,20 @@ const MyOnCallPolicies: FunctionComponent<
   ): Route => {
     return new Route(
       `/dashboard/${projectId}/on-call-duty/policies/${policyId}`,
+    );
+  };
+
+  /*
+   * The per-project calendar link page. Built the same way as the policy link
+   * because this page spans projects and RouteUtil only knows the current one.
+   */
+  const getCalendarFeedLink: (projectId: string) => Route = (
+    projectId: string,
+  ): Route => {
+    return new Route(
+      `/dashboard/${projectId}/user-settings/${
+        UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED]
+      }`,
     );
   };
 
@@ -355,11 +374,23 @@ const MyOnCallPolicies: FunctionComponent<
                               <ProjectElement project={projectData.project} />
                             </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {policyItems.length}{" "}
-                            {policyItems.length === 1
-                              ? "assignment"
-                              : "assignments"}
+                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                            <span>
+                              {policyItems.length}{" "}
+                              {policyItems.length === 1
+                                ? "assignment"
+                                : "assignments"}
+                            </span>
+                            {projectData.project.id && (
+                              <Link
+                                to={getCalendarFeedLink(
+                                  projectData.project.id.toString(),
+                                )}
+                                className="text-indigo-600 hover:underline"
+                              >
+                                {translateString("Add to calendar")}
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </div>

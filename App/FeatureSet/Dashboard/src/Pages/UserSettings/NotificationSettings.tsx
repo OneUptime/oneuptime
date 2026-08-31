@@ -324,6 +324,16 @@ const EVENT_LIBRARY: Record<
       label: "Removed from on-call policy",
       description: "You are removed from an on-call policy.",
     },
+  [NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS]: {
+    label: "Before my on-call shift starts",
+    description:
+      "Reminders ahead of a shift, at the lead times you pick on the Calendar Feed page.",
+  },
+  [NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED]: {
+    label: "My upcoming on-call shift is reassigned",
+    description:
+      "A shift you were reminded about is now covered by someone else.",
+  },
 };
 
 interface SectionDef {
@@ -759,6 +769,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
         NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+        NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
       ],
     ),
   ];

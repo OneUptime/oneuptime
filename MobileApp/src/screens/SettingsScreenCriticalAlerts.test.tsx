@@ -39,6 +39,14 @@ jest.mock("../hooks/useCriticalAlerts", () => {
   };
 });
 
+jest.mock("../hooks/useOnCallCalendarFeedAvailability", () => {
+  return {
+    useOnCallCalendarFeedAvailability: () => {
+      return { isAvailable: true, isChecking: false };
+    },
+  };
+});
+
 jest.mock("../hooks/useAuth", () => {
   return {
     useAuth: () => {

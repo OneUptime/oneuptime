@@ -859,6 +859,21 @@ import OnCallDutyPolicyScheduleLayerUserService, {
 import OnCallDutyPolicyScheduleService, {
   Service as OnCallDutyPolicyScheduleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+import UserOnCallCalendarFeedService, {
+  Service as UserOnCallCalendarFeedServiceType,
+} from "Common/Server/Services/UserOnCallCalendarFeedService";
+import OnCallDutyPolicyScheduleCalendarFeedService, {
+  Service as OnCallDutyPolicyScheduleCalendarFeedServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
+import ProjectOnCallCalendarFeedService, {
+  Service as ProjectOnCallCalendarFeedServiceType,
+} from "Common/Server/Services/ProjectOnCallCalendarFeedService";
+import UserOnCallShiftReminderService, {
+  Service as UserOnCallShiftReminderServiceType,
+} from "Common/Server/Services/UserOnCallShiftReminderService";
+import UserOnCallShiftReminderLogService, {
+  Service as UserOnCallShiftReminderLogServiceType,
+} from "Common/Server/Services/UserOnCallShiftReminderLogService";
 import ProjectCallSMSConfigService, {
   Service as ProjectCallSMSConfigServiceType,
 } from "Common/Server/Services/ProjectCallSMSConfigService";
@@ -1283,6 +1298,11 @@ import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
+import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
+import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
+import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -1470,6 +1490,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
@@ -4568,6 +4589,67 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * On-call calendar feeds. The custom router carries the public
+     * capability routes (/on-call-calendar/user|schedule|project/:token/...,
+     * no UserMiddleware -- the token in the path is the credential) and the
+     * session routes the settings pages and the mobile app use (/feed/*,
+     * /schedule-feed/*, /project-feed/*, /my-shifts). A bare router for the
+     * same reason OnCallReadinessAPI is one. The five generic CRUD routers
+     * below serve the settings columns; every token column has read [] so
+     * CRUD can never return one.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<UserOnCallCalendarFeed, UserOnCallCalendarFeedServiceType>(
+        UserOnCallCalendarFeed,
+        UserOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyScheduleCalendarFeed,
+        OnCallDutyPolicyScheduleCalendarFeedServiceType
+      >(
+        OnCallDutyPolicyScheduleCalendarFeed,
+        OnCallDutyPolicyScheduleCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ProjectOnCallCalendarFeed,
+        ProjectOnCallCalendarFeedServiceType
+      >(
+        ProjectOnCallCalendarFeed,
+        ProjectOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<UserOnCallShiftReminder, UserOnCallShiftReminderServiceType>(
+        UserOnCallShiftReminder,
+        UserOnCallShiftReminderService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserOnCallShiftReminderLog,
+        UserOnCallShiftReminderLogServiceType
+      >(
+        UserOnCallShiftReminderLog,
+        UserOnCallShiftReminderLogService,
+      ).getRouter(),
+    );
 
     /*
      * Administrative management of another member's notification methods —

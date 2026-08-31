@@ -29,6 +29,8 @@ import UserSettingsIncomingCallPhoneNumbers from "../Pages/UserSettings/Incoming
 
 import UserSettingsSetup from "../Pages/UserSettings/Setup";
 
+import UserSettingsOnCallCalendarFeed from "../Pages/UserSettings/OnCallCalendarFeed";
+
 const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -233,6 +235,22 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[
+              PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED
+            ] || ""
+          }
+          element={
+            <UserSettingsOnCallCalendarFeed
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route
               }
             />
           }

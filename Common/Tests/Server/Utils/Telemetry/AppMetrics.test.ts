@@ -139,6 +139,20 @@ const CATALOG: Array<Instrument> = [
     name: "oneuptime.telemetry.ingest.dropped.count",
     unit: "1",
   },
+  {
+    getter: "getOnCallCalendarRenderDuration",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "oncall_calendar_render_duration_ms",
+    unit: "ms",
+  },
+  {
+    getter: "getOnCallCalendarRenderEvents",
+    factory: "getHistogram",
+    kind: "histogram",
+    name: "oncall_calendar_render_events",
+    unit: "1",
+  },
 ];
 
 interface LoadedModules {
@@ -264,6 +278,21 @@ describe("AppMetrics catalog", () => {
         })
         .sort(),
     );
+  });
+
+  test("the on-call calendar feed attribute key is bounded and named", async () => {
+    /*
+     * The two feed histograms are labelled by feed kind and nothing else --
+     * never a token, user or project id. The attribute key is exported so the
+     * renderer and any dashboard agree on it.
+     */
+    const { AppMetrics } = await loadFresh();
+
+    const attribute: unknown = (
+      AppMetrics as unknown as Record<string, unknown>
+    )["ON_CALL_CALENDAR_FEED_KIND_ATTRIBUTE"];
+
+    expect(attribute).toBe("oneuptime.oncall_calendar.feed_kind");
   });
 
   test("every metric name in the catalog is unique", () => {

@@ -18,10 +18,122 @@ import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import logger from "../Utils/Logger";
+import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+
+/*
+ * The (project, overridden user, substitute) triple an override names; the
+ * hooks capture it before an update / delete so the schedules of the OLD
+ * users can be refreshed and re-versioned once the row has changed.
+ */
+interface OverrideUserPair {
+  projectId: ObjectID;
+  overrideUserId: ObjectID;
+  routeAlertsToUserId?: ObjectID | undefined;
+}
+
+/*
+ * The subset of OnCallDutyPolicyScheduleService the override hooks call.
+ * Lazily required (see refreshRostersForOverrideUser) because that service
+ * imports this one.
+ */
+interface ScheduleServiceForOverrides {
+  refreshRostersForUserInProject: (d: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }) => Promise<void>;
+  getScheduleIdsForUsersInProject: (d: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID>;
+  }) => Promise<Array<ObjectID>>;
+  propagateShiftConfigChange: (d: {
+    scheduleIds: Array<ObjectID>;
+    projectId?: ObjectID | null | undefined;
+    userIds?: Array<ObjectID> | undefined;
+    reason: OnCallShiftChangeReason;
+  }) => Promise<void>;
+}
 
 export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   public constructor() {
     super(OnCallDutyPolicyUserOverride);
+  }
+
+  private getScheduleService(): ScheduleServiceForOverrides {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("./OnCallDutyPolicyScheduleService").default;
+  }
+
+  /**
+   * An override changes who is on call on every schedule that contains the
+   * overridden user, and it changes the SUBSTITUTE's personal calendar too.
+   * Find those schedules with the same layer-user query the roster refresh
+   * uses (for every overridden user, old and new), then bump their
+   * shiftConfigVersion, drop the feed caches — the substitutes' personal
+   * caches included — and let the shift-change listeners re-plan reminders.
+   * One call per project; best-effort, never throws into the CRUD path.
+   */
+  private async propagateShiftChangeForOverrides(
+    pairs: Array<OverrideUserPair>,
+  ): Promise<void> {
+    const byProject: Map<
+      string,
+      {
+        projectId: ObjectID;
+        overrideUserIds: Array<ObjectID>;
+        allUserIds: Array<ObjectID>;
+      }
+    > = new Map();
+
+    for (const pair of pairs) {
+      if (!pair.projectId || !pair.overrideUserId) {
+        continue;
+      }
+
+      const key: string = pair.projectId.toString();
+      const entry: {
+        projectId: ObjectID;
+        overrideUserIds: Array<ObjectID>;
+        allUserIds: Array<ObjectID>;
+      } = byProject.get(key) || {
+        projectId: pair.projectId,
+        overrideUserIds: [],
+        allUserIds: [],
+      };
+
+      entry.overrideUserIds.push(pair.overrideUserId);
+      entry.allUserIds.push(pair.overrideUserId);
+
+      if (pair.routeAlertsToUserId) {
+        entry.allUserIds.push(pair.routeAlertsToUserId);
+      }
+
+      byProject.set(key, entry);
+    }
+
+    for (const entry of byProject.values()) {
+      try {
+        const scheduleService: ScheduleServiceForOverrides =
+          this.getScheduleService();
+
+        const scheduleIds: Array<ObjectID> =
+          await scheduleService.getScheduleIdsForUsersInProject({
+            projectId: entry.projectId,
+            userIds: entry.overrideUserIds,
+          });
+
+        await scheduleService.propagateShiftConfigChange({
+          scheduleIds,
+          projectId: entry.projectId,
+          userIds: entry.allUserIds,
+          reason: OnCallShiftChangeReason.OverrideChanged,
+        });
+      } catch (err) {
+        logger.error(
+          "Error propagating a user override change to the calendar feeds (best-effort).",
+        );
+        logger.error(err);
+      }
+    }
   }
 
   /**
@@ -41,13 +153,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     }
 
     try {
-      const scheduleService: {
-        refreshRostersForUserInProject: (d: {
-          projectId: ObjectID;
-          userId: ObjectID;
-        }) => Promise<void>;
-        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      } = require("./OnCallDutyPolicyScheduleService").default;
+      const scheduleService: ScheduleServiceForOverrides =
+        this.getScheduleService();
 
       await scheduleService.refreshRostersForUserInProject({
         projectId: data.projectId,
@@ -190,6 +297,16 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       overrideUserId,
     });
 
+    if (projectId && overrideUserId) {
+      await this.propagateShiftChangeForOverrides([
+        {
+          projectId,
+          overrideUserId,
+          routeAlertsToUserId: routeAlertsToUserId || undefined,
+        },
+      ]);
+    }
+
     return createdItem;
   }
 
@@ -207,10 +324,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
      * schedules by the NEW user only (audit M2). Mirrors the onBeforeDelete
      * carry-forward pattern used by the delete path.
      */
-    const previous: Array<{
-      projectId: ObjectID;
-      overrideUserId: ObjectID;
-    }> = [];
+    const previous: Array<OverrideUserPair> = [];
 
     try {
       const rows: Array<OnCallDutyPolicyUserOverride> = await this.findBy({
@@ -218,6 +332,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         select: {
           projectId: true,
           overrideUserId: true,
+          routeAlertsToUserId: true,
         },
         props: {
           isRoot: true,
@@ -231,8 +346,14 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
           row.projectId || row.project?.id;
         const overrideUserId: ObjectID | undefined | null =
           row.overrideUserId || row.overrideUser?.id;
+        const routeAlertsToUserId: ObjectID | undefined | null =
+          row.routeAlertsToUserId || row.routeAlertsToUser?.id;
         if (projectId && overrideUserId) {
-          previous.push({ projectId, overrideUserId });
+          previous.push({
+            projectId,
+            overrideUserId,
+            routeAlertsToUserId: routeAlertsToUserId || undefined,
+          });
         }
       }
     } catch (err) {
@@ -279,11 +400,11 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     };
 
     // OLD override users captured before the update.
-    const previous: Array<{ projectId: ObjectID; overrideUserId: ObjectID }> =
-      (onUpdate.carryForward as Array<{
-        projectId: ObjectID;
-        overrideUserId: ObjectID;
-      }>) || [];
+    const previous: Array<OverrideUserPair> =
+      (onUpdate.carryForward as Array<OverrideUserPair>) || [];
+
+    // Everyone the edit touched, old and new, for the feed / reminder pass.
+    const affectedPairs: Array<OverrideUserPair> = [...previous];
 
     for (const entry of previous) {
       await refreshPair(entry.projectId, entry.overrideUserId);
@@ -296,6 +417,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         select: {
           projectId: true,
           overrideUserId: true,
+          routeAlertsToUserId: true,
         },
         props: {
           isRoot: true,
@@ -306,11 +428,25 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         continue;
       }
 
-      await refreshPair(
-        item.projectId || item.project?.id,
-        item.overrideUserId || item.overrideUser?.id,
-      );
+      const newProjectId: ObjectID | undefined | null =
+        item.projectId || item.project?.id;
+      const newOverrideUserId: ObjectID | undefined | null =
+        item.overrideUserId || item.overrideUser?.id;
+      const newRouteAlertsToUserId: ObjectID | undefined | null =
+        item.routeAlertsToUserId || item.routeAlertsToUser?.id;
+
+      await refreshPair(newProjectId, newOverrideUserId);
+
+      if (newProjectId && newOverrideUserId) {
+        affectedPairs.push({
+          projectId: newProjectId,
+          overrideUserId: newOverrideUserId,
+          routeAlertsToUserId: newRouteAlertsToUserId || undefined,
+        });
+      }
     }
+
+    await this.propagateShiftChangeForOverrides(affectedPairs);
 
     return onUpdate;
   }
@@ -326,11 +462,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
      * than waiting for the next natural handoff (audit F4). The affected
      * project/user pairs were captured in onBeforeDelete (the rows are gone now).
      */
-    const affected: Array<{ projectId: ObjectID; overrideUserId: ObjectID }> =
-      (onDelete.carryForward as Array<{
-        projectId: ObjectID;
-        overrideUserId: ObjectID;
-      }>) || [];
+    const affected: Array<OverrideUserPair> =
+      (onDelete.carryForward as Array<OverrideUserPair>) || [];
 
     for (const entry of affected) {
       await this.refreshRostersForOverrideUser({
@@ -338,6 +471,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         overrideUserId: entry.overrideUserId,
       });
     }
+
+    await this.propagateShiftChangeForOverrides(affected);
 
     return onDelete;
   }
@@ -368,10 +503,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
      * onDeleteSuccess can refresh those schedules' rosters AFTER the rows are
      * gone (audit F4). Collected for global overrides too (no policy id).
      */
-    const affectedRosters: Array<{
-      projectId: ObjectID;
-      overrideUserId: ObjectID;
-    }> = [];
+    const affectedRosters: Array<OverrideUserPair> = [];
 
     for (const item of itemsToDelete) {
       const onCallDutyPolicyId: ObjectID | undefined | null =
@@ -387,7 +519,11 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         item.routeAlertsToUserId || item.routeAlertsToUser?.id;
 
       if (projectId && overrideUserId) {
-        affectedRosters.push({ projectId, overrideUserId });
+        affectedRosters.push({
+          projectId,
+          overrideUserId,
+          routeAlertsToUserId: routeAlertsToUserId || undefined,
+        });
       }
 
       if (

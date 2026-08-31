@@ -12,6 +12,16 @@ import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
 
 export type OverrideDirection = "cover-me" | "take-over";
 
+/**
+ * An explicit window instead of "from now for N hours" - what "Get cover"
+ * on a shift card asks for. The whole shift is covered; a shift already in
+ * progress is covered from now, because an override cannot start in the past.
+ */
+export interface OverrideWindow {
+  startsAt: Date;
+  endsAt: Date;
+}
+
 export interface OverrideDraft {
   direction: OverrideDirection;
   projectId: string | null;
@@ -20,6 +30,16 @@ export interface OverrideDraft {
   counterpartUserId: string | null;
 
   durationHours: number;
+
+  /* When set, wins over `durationHours`. */
+  window?: OverrideWindow | null;
+
+  /*
+   * Scope the override to one escalation policy. Only ever set for a
+   * policy-variant shift, which exists inside that policy alone; a plain
+   * "cover for me" stays project-wide on purpose.
+   */
+  onCallDutyPolicyId?: string | null;
 }
 
 export type BuildOverrideResult =
@@ -34,6 +54,47 @@ export const DURATION_PRESETS: Array<{ label: string; hours: number }> = [
   { label: "12 hours", hours: 12 },
   { label: "24 hours", hours: 24 },
 ];
+
+function resolveWindow(
+  draft: OverrideDraft,
+  now: number,
+): { ok: true; startsAt: Date; endsAt: Date } | { ok: false; reason: string } {
+  if (draft.window) {
+    const start: number = draft.window.startsAt.getTime();
+    const end: number = draft.window.endsAt.getTime();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return {
+        ok: false,
+        reason: "That shift's times could not be read. Try again from the web.",
+      };
+    }
+
+    if (end <= now) {
+      return { ok: false, reason: "That shift has already ended." };
+    }
+
+    if (end <= start) {
+      return { ok: false, reason: "That shift ends before it starts." };
+    }
+
+    return {
+      ok: true,
+      startsAt: new Date(Math.max(start, now)),
+      endsAt: new Date(end),
+    };
+  }
+
+  if (!Number.isFinite(draft.durationHours) || draft.durationHours <= 0) {
+    return { ok: false, reason: "Choose how long the override should last." };
+  }
+
+  return {
+    ok: true,
+    startsAt: new Date(now),
+    endsAt: new Date(now + draft.durationHours * 60 * 60 * 1000),
+  };
+}
 
 export function buildOverrideRequest(
   draft: OverrideDraft,
@@ -70,12 +131,13 @@ export function buildOverrideRequest(
     };
   }
 
-  if (!Number.isFinite(draft.durationHours) || draft.durationHours <= 0) {
-    return { ok: false, reason: "Choose how long the override should last." };
-  }
+  const window:
+    | { ok: true; startsAt: Date; endsAt: Date }
+    | { ok: false; reason: string } = resolveWindow(draft, now);
 
-  const startsAt: Date = new Date(now);
-  const endsAt: Date = new Date(now + draft.durationHours * 60 * 60 * 1000);
+  if (!window.ok) {
+    return { ok: false, reason: window.reason };
+  }
 
   const overrideUserId: string =
     draft.direction === "cover-me" ? currentUserId : draft.counterpartUserId;
@@ -83,27 +145,43 @@ export function buildOverrideRequest(
   const routeAlertsToUserId: string =
     draft.direction === "cover-me" ? draft.counterpartUserId : currentUserId;
 
-  return {
-    ok: true,
-    input: {
-      projectId: draft.projectId,
-      overrideUserId,
-      routeAlertsToUserId,
-      startsAt,
-      endsAt,
-    },
+  const input: CreateOverrideInput = {
+    projectId: draft.projectId,
+    overrideUserId,
+    routeAlertsToUserId,
+    startsAt: window.startsAt,
+    endsAt: window.endsAt,
   };
+
+  if (draft.onCallDutyPolicyId) {
+    input.onCallDutyPolicyId = draft.onCallDutyPolicyId;
+  }
+
+  return { ok: true, input };
 }
 
 /**
  * The one-line preview shown above the submit button, so the responder reads
  * back what they are about to do before they do it.
+ *
+ * With a `windowLabel` (a prefilled shift) the sentence names the window
+ * instead of a duration: "for the next 4 hours" would be a lie about a shift
+ * that starts on Thursday.
  */
 export function describeOverride(
   direction: OverrideDirection,
   counterpartName: string,
   durationHours: number,
+  windowLabel?: string | null,
 ): string {
+  if (windowLabel) {
+    if (direction === "cover-me") {
+      return `Your on-call pages go to ${counterpartName} ${windowLabel}.`;
+    }
+
+    return `${counterpartName}'s on-call pages come to you ${windowLabel}.`;
+  }
+
   const durationLabel: string =
     durationHours === 1 ? "1 hour" : `${durationHours} hours`;
 

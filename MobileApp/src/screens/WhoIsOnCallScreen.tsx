@@ -5,17 +5,78 @@ import {
   ScrollView,
   RefreshControl,
   TextInput,
+  Share,
+  Alert,
 } from "react-native";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallSchedules } from "../hooks/useOnCallSchedules";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
 import { useNow } from "../hooks/useNow";
+import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
+import {
+  fetchScheduleCalendarFeed,
+  getHttpStatus,
+  isRouteMissingError,
+} from "../api/onCallCalendar";
+import { getServerUrl } from "../storage/serverUrl";
+import { getFriendlyErrorMessage } from "../utils/error";
+import { buildFeedLinks, type FeedLinks } from "../oncall/calendarFeedLinks";
 import RosterScheduleCard from "../components/RosterScheduleCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
 import SectionHeader from "../components/SectionHeader";
-import type { ProjectOnCallScheduleItem } from "../api/types";
+import type {
+  OnCallCalendarFeedStatus,
+  ProjectOnCallScheduleItem,
+} from "../api/types";
+
+/**
+ * The text handed to the share sheet for a schedule's team calendar link.
+ * Says whose calendar it is and that the link is a credential, because the
+ * place this gets pasted is a chat channel.
+ */
+export function buildTeamCalendarShareMessage(
+  entry: ProjectOnCallScheduleItem,
+  links: FeedLinks,
+): string {
+  return [
+    `${entry.item.name} on-call calendar (${entry.projectName}):`,
+    links.https,
+    "",
+    "Subscribe from Google Calendar, Outlook or Apple Calendar. Anyone with this link can see the whole schedule - keep it inside the team.",
+  ].join("\n");
+}
+
+/**
+ * Which link to hand out for a SHARED feed. The server's own link is the
+ * canonical one - a colleague may not be on the same VPN as this phone - so
+ * it wins unless the server has no usable public address (HOST empty or
+ * localhost), in which case the address this app reaches it on is the only
+ * one that stands a chance.
+ */
+export function chooseTeamCalendarLinks(
+  serverUrl: string,
+  status: OnCallCalendarFeedStatus,
+): FeedLinks | null {
+  const links: FeedLinks | null = buildFeedLinks(serverUrl, status);
+
+  if (!links) {
+    return null;
+  }
+
+  if (status.hostWarning) {
+    return links;
+  }
+
+  return {
+    ...links,
+    https: links.serverHttps,
+    webcal: status.urls?.webcal ?? links.webcal,
+    googleAdd: status.urls?.googleAdd ?? links.googleAdd,
+    differsFromServer: false,
+  };
+}
 
 export function matchesRosterSearch(
   entry: ProjectOnCallScheduleItem,
@@ -55,8 +116,90 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
   const now: number = useNow();
   const currentUserId: string | null = useCurrentUserId();
   const { schedules, isLoading, isError, refetch } = useOnCallSchedules();
+  const calendarFeed: ReturnType<typeof useOnCallCalendarFeedAvailability> =
+    useOnCallCalendarFeedAvailability();
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [sharingScheduleId, setSharingScheduleId] = useState<string | null>(
+    null,
+  );
+
+  /*
+   * "Share team calendar link": fetch the schedule's shared feed and hand it
+   * to the share sheet. Publishing lives on the web (it needs edit rights and
+   * a settings form); from a phone the useful half is getting an existing
+   * link to a colleague, and saying plainly when there is none.
+   */
+  const shareTeamCalendar: (
+    entry: ProjectOnCallScheduleItem,
+  ) => Promise<void> = async (
+    entry: ProjectOnCallScheduleItem,
+  ): Promise<void> => {
+    lightImpact();
+    setSharingScheduleId(entry.item._id);
+
+    try {
+      const [status, serverUrl]: [OnCallCalendarFeedStatus, string] =
+        await Promise.all([
+          fetchScheduleCalendarFeed(entry.projectId, entry.item._id),
+          getServerUrl(),
+        ]);
+
+      if (!status.exists || !status.urls) {
+        Alert.alert(
+          "No shared link yet",
+          `${entry.item.name} has no shared calendar link. Ask an editor to publish one from the schedule's page on the web.`,
+        );
+        return;
+      }
+
+      if (!status.isEnabled) {
+        Alert.alert(
+          "Shared link is switched off",
+          `The shared calendar link for ${entry.item.name} is disabled, so it would show an empty calendar. Ask an editor to enable it on the web.`,
+        );
+        return;
+      }
+
+      const links: FeedLinks | null = chooseTeamCalendarLinks(
+        serverUrl,
+        status,
+      );
+
+      if (!links) {
+        Alert.alert(
+          "No shared link yet",
+          "The server did not return a usable link for this schedule.",
+        );
+        return;
+      }
+
+      await Share.share({
+        title: `${entry.item.name} on-call calendar`,
+        message: buildTeamCalendarShareMessage(entry, links),
+      });
+    } catch (err: unknown) {
+      if (isRouteMissingError(err)) {
+        Alert.alert(
+          "Not available on this server",
+          "This OneUptime server does not offer calendar feeds yet.",
+        );
+        return;
+      }
+
+      if (getHttpStatus(err) === 403) {
+        Alert.alert(
+          "No access",
+          `You cannot read the shared calendar link for ${entry.item.name}.`,
+        );
+        return;
+      }
+
+      Alert.alert("Could not fetch the link", getFriendlyErrorMessage(err));
+    } finally {
+      setSharingScheduleId(null);
+    }
+  };
 
   const { uncovered, covered } = useMemo((): {
     uncovered: ProjectOnCallScheduleItem[];
@@ -195,6 +338,10 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
                   entry={entry}
                   currentUserId={currentUserId}
                   now={now}
+                  onShareCalendar={
+                    calendarFeed.isAvailable ? shareTeamCalendar : undefined
+                  }
+                  isSharingCalendar={sharingScheduleId === entry.item._id}
                 />
               );
             })}
@@ -213,6 +360,10 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
                   entry={entry}
                   currentUserId={currentUserId}
                   now={now}
+                  onShareCalendar={
+                    calendarFeed.isAvailable ? shareTeamCalendar : undefined
+                  }
+                  isSharingCalendar={sharingScheduleId === entry.item._id}
                 />
               );
             })}

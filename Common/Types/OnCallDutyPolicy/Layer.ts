@@ -23,6 +23,15 @@ export interface LayerProps {
    * time exactly as before — fully backward compatible.
    */
   timezone?: string | undefined;
+  /*
+   * Identity of the layer these props were built from. Optional and purely
+   * informational: the engine never reads them, it only stamps them onto every
+   * event it emits for this layer (see PriorityCalendarEvents) so consumers
+   * that render or group by layer — the on-call calendar feed — can tell which
+   * layer a merged segment came from without re-deriving it from priority.
+   */
+  layerId?: string;
+  layerName?: string;
 }
 
 export interface EventProps extends LayerProps {
@@ -36,8 +45,61 @@ export interface MultiLayerProps {
   calendarEndDate: Date;
 }
 
+/*
+ * Key stamped on every event getEvents emits, holding the epoch milliseconds
+ * of the TRUE (un-clamped) start of the rotation period the event belongs to.
+ *
+ * Two consecutive rotation periods held by the SAME user (a single-user layer,
+ * or any rotation where one person holds two turns in a row) are otherwise
+ * indistinguishable once expanded: the engine's 1 s seam makes them contiguous
+ * and every other property matches, so a consumer that groups contiguous
+ * same-user segments folds them into one block whose start and end depend on
+ * how far the expansion window reached — an unstable identity for anything
+ * that must be the same object across two different windows (the calendar
+ * feed's UID/DTSTART). The period start is window-independent, so grouping on
+ * it keeps one shift per rotation turn.
+ *
+ * Read it through ScheduleShiftUtil.getEventRotationPeriodStart, which
+ * tolerates events that never carried it (hand-built fixtures, JSON round
+ * trips) rather than reaching into the index signature here.
+ */
+export const ROTATION_PERIOD_START_KEY: string = "rotationPeriodStartsAt";
+
 export interface PriorityCalendarEvents extends CalendarEvent {
   priority: number;
+  /*
+   * Copied from LayerProps.layerId / layerName when the caller supplied them.
+   * Absent (not undefined) otherwise, so callers that never set them see
+   * exactly the events they always did.
+   */
+  layerId?: string;
+  layerName?: string;
+}
+
+export interface LayerExpansionOptions {
+  getNumberOfEvents?: number;
+  /*
+   * Upper bound on the number of rotation periods the engine will step
+   * through for ONE layer, both while locating the rotation position at the
+   * window start (the per-period simulation restricted layers need) and while
+   * expanding periods inside the window. Defaults to the engine's own caps
+   * (5,000,000 / 1,000,000), so omitting it changes nothing. When the bound is
+   * hit the expansion stops and the result is flagged `truncated`: a
+   * pre-window hit contributes NO events for that layer (its rotation
+   * position is unknown, and emitting the wrong person is worse than emitting
+   * nobody), an in-window hit keeps the events produced so far.
+   */
+  maxSimulationIterations?: number;
+}
+
+export interface LayerEventsResult {
+  events: Array<CalendarEvent>;
+  /*
+   * True when any expansion stopped at maxSimulationIterations (or the
+   * engine's own ceiling) before reaching the end of the window, i.e. the
+   * events may be incomplete.
+   */
+  truncated: boolean;
 }
 
 export default class LayerUtil {
@@ -52,16 +114,24 @@ export default class LayerUtil {
 
   public getEvents(
     data: EventProps,
-    options?:
-      | {
-          getNumberOfEvents?: number;
-        }
-      | undefined,
+    options?: LayerExpansionOptions | undefined,
   ): Array<CalendarEvent> {
+    return this.getEventsWithMeta(data, options).events;
+  }
+
+  /*
+   * Same expansion as getEvents, plus a `truncated` flag telling the caller
+   * whether an iteration cap cut the expansion short. getEvents discards the
+   * flag so its existing callers are untouched.
+   */
+  public getEventsWithMeta(
+    data: EventProps,
+    options?: LayerExpansionOptions | undefined,
+  ): LayerEventsResult {
     let events: Array<CalendarEvent> = [];
 
     if (!this.isDataValid(data)) {
-      return [];
+      return { events: [], truncated: false };
     }
 
     data = this.sanitizeData(data);
@@ -85,8 +155,15 @@ export default class LayerUtil {
     let handOffTime: Date = data.handOffTime;
 
     if (!handOffTime) {
-      return [];
+      return { events: [], truncated: false };
     }
+
+    const maxSimulationIterations: number | undefined =
+      options?.maxSimulationIterations !== undefined &&
+      Number.isFinite(options.maxSimulationIterations) &&
+      options.maxSimulationIterations > 0
+        ? Math.floor(options.maxSimulationIterations)
+        : undefined;
 
     // Looop vars
     let currentUserIndex: number = 0;
@@ -99,6 +176,7 @@ export default class LayerUtil {
     const currentUserResolution: {
       currentUserIndex: number;
       currentPeriodStart: Date;
+      truncated: boolean;
     } = this.getCurrentUserIndexBasedOnHandoffTime({
       rotation,
       handOffTime,
@@ -107,7 +185,18 @@ export default class LayerUtil {
       users: data.users,
       currentEventStartTime,
       restrictionTimes: data.restrictionTimes,
+      maxSimulationIterations,
     });
+
+    /*
+     * The pre-window simulation gave up before reaching the window start, so
+     * the rotation position is unknown. Emit nothing for this layer rather
+     * than shifts attributed to the wrong person, and tell the caller.
+     */
+    if (currentUserResolution.truncated) {
+      return { events: [], truncated: true };
+    }
+
     currentUserIndex = currentUserResolution.currentUserIndex;
 
     /*
@@ -146,10 +235,11 @@ export default class LayerUtil {
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
+          firstPeriodTrueStart,
         ),
       ];
 
-      return events;
+      return { events, truncated: false };
     }
 
     /*
@@ -175,10 +265,12 @@ export default class LayerUtil {
       rotation.intervalType,
     );
     const maxLoopCount: number = Math.min(
+      maxSimulationIterations ?? 1000000,
       1000000,
       Math.max(100, Math.ceil(windowUnits / periodUnitsForBound) + 10),
     );
     let loopCount: number = 0;
+    let truncated: boolean = false;
 
     /*
      * The first loop iteration expands the rotation period that CONTAINS the
@@ -191,6 +283,7 @@ export default class LayerUtil {
     while (!hasReachedTheEndOfTheCalendar) {
       loopCount++;
       if (loopCount > maxLoopCount) {
+        truncated = true;
         break;
       }
       currentEventEndTime = handOffTime;
@@ -242,12 +335,18 @@ export default class LayerUtil {
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
+          /*
+           * The first iteration expands the period that CONTAINS the window
+           * start, whose currentEventStartTime may be clamped to it; stamp the
+           * period's TRUE start so the identity does not move with the window.
+           */
+          isFirstPeriod ? firstPeriodTrueStart : currentEventStartTime,
         ),
       );
 
       if (options?.getNumberOfEvents !== undefined) {
         if (events.length >= options.getNumberOfEvents) {
-          return events;
+          return { events, truncated: false };
         }
       }
 
@@ -328,7 +427,7 @@ export default class LayerUtil {
       }
     }
 
-    return events;
+    return { events, truncated };
   }
 
   private sanitizeData(data: EventProps): EventProps {
@@ -524,7 +623,12 @@ export default class LayerUtil {
     users: Array<UserModel>;
     currentEventStartTime: Date;
     restrictionTimes: RestrictionTimes;
-  }): { currentUserIndex: number; currentPeriodStart: Date } {
+    maxSimulationIterations?: number | undefined;
+  }): {
+    currentUserIndex: number;
+    currentPeriodStart: Date;
+    truncated: boolean;
+  } {
     /*
      * Returns both the on-call user index for the rotation period that CONTAINS
      * currentEventStartTime AND the true (un-clamped) start of that period.
@@ -546,6 +650,7 @@ export default class LayerUtil {
       return {
         currentUserIndex,
         currentPeriodStart: data.currentEventStartTime,
+        truncated: false,
       };
     }
 
@@ -558,6 +663,7 @@ export default class LayerUtil {
       return {
         currentUserIndex,
         currentPeriodStart: data.startDateTimeOfLayer,
+        truncated: false,
       };
     }
 
@@ -599,6 +705,7 @@ export default class LayerUtil {
         currentUserIndex:
           (((currentUserIndex + periodsElapsed) % length) + length) % length,
         currentPeriodStart: data.currentEventStartTime,
+        truncated: false,
       };
     }
 
@@ -639,15 +746,23 @@ export default class LayerUtil {
       data.rotation.intervalType,
     );
     const maxIterations: number = Math.min(
+      data.maxSimulationIterations ?? 5000000,
       5000000,
       Math.max(10000, Math.ceil(simUnitsBetween / simPeriodUnits) + 10),
     );
     let iterations: number = 0;
+    let truncated: boolean = false;
 
-    while (
-      OneUptimeDate.isBefore(simulatedTime, data.currentEventStartTime) &&
-      iterations < maxIterations
-    ) {
+    while (OneUptimeDate.isBefore(simulatedTime, data.currentEventStartTime)) {
+      /*
+       * Cap hit before the target was reached: the rotation position for the
+       * window is unknown. Report it instead of silently returning the index
+       * at the cap (audit F9 explains why that is the wrong on-call person).
+       */
+      if (iterations >= maxIterations) {
+        truncated = true;
+        break;
+      }
       iterations++;
 
       const eventEnd: Date = simulatedHandOff;
@@ -685,7 +800,7 @@ export default class LayerUtil {
      * next period start each covered iteration and breaks once a period would
      * extend past the target, so it holds the current period's real start.
      */
-    return { currentUserIndex, currentPeriodStart: simulatedTime };
+    return { currentUserIndex, currentPeriodStart: simulatedTime, truncated };
   }
 
   /*
@@ -1432,6 +1547,8 @@ export default class LayerUtil {
     trimmedStartAndEndTimes: Array<StartAndEndTime>,
     users: Array<UserModel>,
     currentUserIndex: number,
+    // True (un-clamped) start of the rotation period these segments came from.
+    rotationPeriodStartsAt: Date,
   ): Array<CalendarEvent> {
     const events: Array<CalendarEvent> = [];
 
@@ -1446,6 +1563,10 @@ export default class LayerUtil {
         end: trimmedStartAndEndTime.endTime,
       };
 
+      // See ROTATION_PERIOD_START_KEY.
+      (event as unknown as Record<string, unknown>)[ROTATION_PERIOD_START_KEY] =
+        rotationPeriodStartsAt.getTime();
+
       events.push(event);
     }
 
@@ -1454,14 +1575,29 @@ export default class LayerUtil {
 
   public getMultiLayerEvents(
     data: MultiLayerProps,
-    options?:
-      | {
-          getNumberOfEvents?: number;
-        }
-      | undefined,
+    options?: LayerExpansionOptions | undefined,
   ): Array<CalendarEvent> {
+    return this.getMultiLayerEventsWithMeta(data, options).events;
+  }
+
+  /*
+   * Same priority merge as getMultiLayerEvents, plus a `truncated` flag that
+   * is true when ANY layer's expansion hit an iteration cap (see
+   * LayerExpansionOptions.maxSimulationIterations). getMultiLayerEvents
+   * discards the flag so its existing callers are untouched.
+   */
+  public getMultiLayerEventsWithMeta(
+    data: MultiLayerProps,
+    options?: LayerExpansionOptions | undefined,
+  ): LayerEventsResult {
     const events: Array<PriorityCalendarEvents> = [];
     let layerPriority: number = 1;
+    let truncated: boolean = false;
+
+    const layerOptions: LayerExpansionOptions | undefined =
+      options?.maxSimulationIterations !== undefined
+        ? { maxSimulationIterations: options.maxSimulationIterations }
+        : undefined;
 
     for (const layer of data.layers) {
       /*
@@ -1473,24 +1609,40 @@ export default class LayerUtil {
        * is never generated, corrupting the merged "next" roster. The cap is
        * applied only once, after the merge, below.
        */
-      const layerEvents: Array<CalendarEvent> = this.getEvents({
-        users: layer.users,
-        startDateTimeOfLayer: layer.startDateTimeOfLayer,
-        restrictionTimes: layer.restrictionTimes,
-        handOffTime: layer.handOffTime,
-        rotation: layer.rotation,
-        timezone: layer.timezone,
-        calendarStartDate: data.calendarStartDate,
-        calendarEndDate: data.calendarEndDate,
-      });
+      const layerResult: LayerEventsResult = this.getEventsWithMeta(
+        {
+          users: layer.users,
+          startDateTimeOfLayer: layer.startDateTimeOfLayer,
+          restrictionTimes: layer.restrictionTimes,
+          handOffTime: layer.handOffTime,
+          rotation: layer.rotation,
+          timezone: layer.timezone,
+          calendarStartDate: data.calendarStartDate,
+          calendarEndDate: data.calendarEndDate,
+        },
+        layerOptions,
+      );
 
-      // add priority to each event
+      truncated = truncated || layerResult.truncated;
 
-      for (const layerEvent of layerEvents) {
+      /*
+       * Add priority (and, when the caller identified the layer, its id and
+       * name) to each event. The keys are only added when present so callers
+       * that never set them get exactly the event shape they always did.
+       */
+      for (const layerEvent of layerResult.events) {
         const priorityEvent: PriorityCalendarEvents = {
           ...layerEvent,
           priority: layerPriority,
         };
+
+        if (layer.layerId !== undefined) {
+          priorityEvent.layerId = layer.layerId;
+        }
+
+        if (layer.layerName !== undefined) {
+          priorityEvent.layerName = layer.layerName;
+        }
 
         events.push(priorityEvent);
       }
@@ -1506,11 +1658,14 @@ export default class LayerUtil {
 
     if (options?.getNumberOfEvents !== undefined) {
       if (nonOverlappingEvents.length > options.getNumberOfEvents) {
-        return nonOverlappingEvents.slice(0, options.getNumberOfEvents);
+        return {
+          events: nonOverlappingEvents.slice(0, options.getNumberOfEvents),
+          truncated,
+        };
       }
     }
 
-    return nonOverlappingEvents;
+    return { events: nonOverlappingEvents, truncated };
   }
 
   public removeOverlappingEvents(

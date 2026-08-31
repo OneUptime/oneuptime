@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { formatShiftTime, formatTimeUntil } from "../utils/duration";
@@ -9,6 +9,14 @@ interface RosterScheduleCardProps {
   entry: ProjectOnCallScheduleItem;
   currentUserId: string | null;
   now: number;
+
+  /*
+   * When given, the card offers "Share team calendar link" - the shared feed
+   * an editor published for this schedule, handed to a colleague through the
+   * share sheet. Absent on servers that predate calendar feeds.
+   */
+  onShareCalendar?: (entry: ProjectOnCallScheduleItem) => void;
+  isSharingCalendar?: boolean;
 }
 
 export function displayNameForUser(user: OnCallUserRef | null): string {
@@ -30,6 +38,8 @@ export default function RosterScheduleCard({
   entry,
   currentUserId,
   now,
+  onShareCalendar,
+  isSharingCalendar = false,
 }: RosterScheduleCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const schedule: ProjectOnCallScheduleItem["item"] = entry.item;
@@ -115,6 +125,44 @@ export default function RosterScheduleCard({
               YOU
             </Text>
           </View>
+        ) : null}
+
+        {onShareCalendar ? (
+          <Pressable
+            testID={`roster-share-${schedule._id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Share team calendar link for ${schedule.name}`}
+            disabled={isSharingCalendar}
+            onPress={() => {
+              onShareCalendar(entry);
+            }}
+            hitSlop={8}
+            style={({ pressed }: { pressed: boolean }) => {
+              return {
+                width: 30,
+                height: 30,
+                borderRadius: 10,
+                marginLeft: 8,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: theme.colors.iconBackground,
+                opacity: pressed || isSharingCalendar ? 0.6 : 1,
+              };
+            }}
+          >
+            {isSharingCalendar ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.actionPrimary}
+              />
+            ) : (
+              <Ionicons
+                name="share-outline"
+                size={15}
+                color={theme.colors.actionPrimary}
+              />
+            )}
+          </Pressable>
         ) : null}
       </View>
 

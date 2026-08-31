@@ -275,6 +275,18 @@ import "./Jobs/Rum/ProcessSessionErasureRequests";
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
 /*
+ * On-call shift reminders ("your shift starts in 1 hour") and the ledger
+ * retention behind them. Load-bearing imports, same as every job above: a
+ * reminder cron nobody imports is a reminder that never sends. The change
+ * pass (catch-up / reassigned notices fired from the on-call configuration
+ * hooks) is registered by the Common listener module, imported here AND in
+ * App/Index.ts so the API role — where the hooks actually run — has it too.
+ */
+import "./Jobs/OnCallDutySchedule/SendShiftReminders";
+import "./Jobs/OnCallDutySchedule/DeleteOldShiftReminderLogs";
+import "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
+
+/*
  * DeleteMonitorLogOlderThan24Hours cron job removed — TTL via retentionDate column
  * now handles automatic MonitorLog retention in ClickHouse. Retention days are read
  * from GlobalConfig.monitorLogRetentionInDays at ingestion time in MonitorLogUtil.

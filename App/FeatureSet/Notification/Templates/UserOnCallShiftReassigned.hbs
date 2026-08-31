@@ -1,0 +1,33 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat (concat "Your on-call shift on " scheduleName) " has been reassigned") }}
+
+{{> InfoBlock info=description}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Schedule:" text=scheduleName }}
+{{> DetailBoxField title="Shift Was Starting At:" text=startsAt }}
+{{#if coveredBy}}
+{{> DetailBoxField title="Now Covered By:" text=coveredBy }}
+{{/if}}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this schedule by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=scheduleViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=scheduleViewLink}}
+
+{{> InfoBlock info="You were told about this shift by a reminder you configured. If you take it over again you will get a fresh reminder."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

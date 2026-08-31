@@ -12,6 +12,7 @@ import {
   type CriticalAlertsState,
 } from "../hooks/useCriticalAlerts";
 import { useHaptics } from "../hooks/useHaptics";
+import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { getServerUrl } from "../storage/serverUrl";
 import Logo from "../components/Logo";
 import type { SettingsStackParamList } from "../navigation/types";
@@ -32,6 +33,7 @@ interface SettingsRowProps {
   destructive?: boolean;
   isLast?: boolean;
   iconName?: keyof typeof Ionicons.glyphMap;
+  testID?: string;
 }
 
 function SettingsRow({
@@ -43,6 +45,7 @@ function SettingsRow({
   destructive,
   isLast,
   iconName,
+  testID,
 }: SettingsRowProps): React.JSX.Element {
   const { theme } = useTheme();
 
@@ -139,6 +142,9 @@ function SettingsRow({
   if (onPress) {
     return (
       <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={label}
         onPress={onPress}
         style={({ pressed }: { pressed: boolean }) => {
           return { opacity: pressed ? 0.7 : 1 };
@@ -149,7 +155,7 @@ function SettingsRow({
     );
   }
 
-  return content;
+  return <View testID={testID}>{content}</View>;
 }
 
 export default function SettingsScreen(): React.JSX.Element {
@@ -159,6 +165,8 @@ export default function SettingsScreen(): React.JSX.Element {
     useNavigation<SettingsNavigationProp>();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const criticalAlerts: CriticalAlertsState = useCriticalAlerts();
+  const calendarFeed: ReturnType<typeof useOnCallCalendarFeedAvailability> =
+    useOnCallCalendarFeedAvailability();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
 
@@ -595,6 +603,56 @@ export default function SettingsScreen(): React.JSX.Element {
           </View>
         </View>
       </View>
+
+      {/* On-Call */}
+      {calendarFeed.isAvailable ? (
+        <View testID="settings-section-oncall" style={{ marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
+              marginLeft: 4,
+              color: theme.colors.textTertiary,
+              letterSpacing: 0.8,
+            }}
+          >
+            On-Call
+          </Text>
+          <View
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <SettingsRow
+              testID="settings-row-calendar-feed"
+              label="Calendar feed"
+              iconName="calendar-outline"
+              onPress={() => {
+                navigation.navigate("OnCallCalendarFeed");
+              }}
+              isLast
+            />
+          </View>
+          <Text
+            style={{
+              fontSize: 12,
+              marginTop: 6,
+              marginLeft: 4,
+              lineHeight: 16,
+              color: theme.colors.textTertiary,
+            }}
+          >
+            Subscribe to your on-call shifts from Google, Outlook or Apple
+            Calendar
+          </Text>
+        </View>
+      ) : null}
 
       {/* Projects */}
       <View style={{ marginBottom: 24 }}>

@@ -115,6 +115,68 @@ server {
 
     }
 
+    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # client (Google, Outlook, Apple) polls
+    #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    # with no other authentication, so a log line for one of these requests is
+    # a bearer token written to disk in plain text, with the client's address
+    # next to it. This location exists only so those lines are not written. It
+    # proxies exactly like the surrounding block would have; a regex location
+    # wins over the prefix locations, so the request lands here rather than in
+    # `location /` or `location /api`, and it is deliberately NOT given the
+    # raised timeouts /api carries. Rate limiting and the token check happen in
+    # the app, which never logs the token either. Any proxy, WAF or CDN in
+    # front of this one still logs the URI -- in its access log AND in its
+    # error log -- unless told not to.
+    #
+    # Three directives, because nginx has three ways to write that URL down:
+    #   * access_log off -- the per-request line. It names no file, so it
+    #     cannot conflict with the buffered global log the way a second
+    #     file-naming directive would.
+    #   * error_log /dev/null crit -- nginx writes the full request line at
+    #     [error]/[warn] whenever the upstream misbehaves ("connect() failed",
+    #     "upstream timed out", "upstream prematurely closed"), which is what
+    #     every polling calendar client hits during a rolling deploy or an app
+    #     restart, and nginx.conf keeps the error log at `notice`. This
+    #     location is plain proxying with no auth or rewrite logic of ours and
+    #     the app logs its own failures, so nothing diagnosable is lost by
+    #     dropping these lines; a leaked token cannot be un-leaked.
+    #   * proxy_max_temp_file_size 0 -- a response bigger than the proxy
+    #     buffers (4 x 512k + 256k) would otherwise be spooled to a temp file,
+    #     which nginx announces at [warn] with the request line attached, and
+    #     which puts the roster on disk as a side effect. A project-wide feed
+    #     near the 5000-event cap is that big (text/calendar is deliberately
+    #     kept out of gzip_types). 0 keeps what fits in memory and streams the
+    #     rest straight to the client.
+    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+        access_log off;
+        error_log /dev/null crit;
+        proxy_max_temp_file_size 0;
+
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Keep the upstream connection pooled, as every other proxying
+        # location in this file does.
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Same billing-mode split as `location /` in this server block: the
+        # hosted product sends plain-HTTP traffic on this port to https.
+        if ($billing_enabled = true) {
+            return 301 https://$host$request_uri;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass ${BACKEND_APP_TARGET};
+        }
+    }
+
     location /status-page {
 
         resolver ${NGINX_RESOLVER} valid=30s;
@@ -303,6 +365,60 @@ server {
         proxy_pass ${BACKEND_APP_TARGET};
 
 
+    }
+
+    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # client (Google, Outlook, Apple) polls
+    #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    # with no other authentication, so a log line for one of these requests is
+    # a bearer token written to disk in plain text, with the client's address
+    # next to it. This location exists only so those lines are not written. It
+    # proxies exactly like the surrounding block would have; a regex location
+    # wins over the prefix locations, so the request lands here rather than in
+    # `location /` or `location /api`, and it is deliberately NOT given the
+    # raised timeouts /api carries. Rate limiting and the token check happen in
+    # the app, which never logs the token either. Any proxy, WAF or CDN in
+    # front of this one still logs the URI -- in its access log AND in its
+    # error log -- unless told not to.
+    #
+    # Three directives, because nginx has three ways to write that URL down:
+    #   * access_log off -- the per-request line. It names no file, so it
+    #     cannot conflict with the buffered global log the way a second
+    #     file-naming directive would.
+    #   * error_log /dev/null crit -- nginx writes the full request line at
+    #     [error]/[warn] whenever the upstream misbehaves ("connect() failed",
+    #     "upstream timed out", "upstream prematurely closed"), which is what
+    #     every polling calendar client hits during a rolling deploy or an app
+    #     restart, and nginx.conf keeps the error log at `notice`. This
+    #     location is plain proxying with no auth or rewrite logic of ours and
+    #     the app logs its own failures, so nothing diagnosable is lost by
+    #     dropping these lines; a leaked token cannot be un-leaked.
+    #   * proxy_max_temp_file_size 0 -- a response bigger than the proxy
+    #     buffers (4 x 512k + 256k) would otherwise be spooled to a temp file,
+    #     which nginx announces at [warn] with the request line attached, and
+    #     which puts the roster on disk as a side effect. A project-wide feed
+    #     near the 5000-event cap is that big (text/calendar is deliberately
+    #     kept out of gzip_types). 0 keeps what fits in memory and streams the
+    #     rest straight to the client.
+    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+        access_log off;
+        error_log /dev/null crit;
+        proxy_max_temp_file_size 0;
+
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Keep the upstream connection pooled, as every other proxying
+        # location in this file does.
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-api/ {
@@ -1215,6 +1331,60 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
+    }
+
+    # On-call calendar feeds. The URL IS the credential: a subscribed calendar
+    # client (Google, Outlook, Apple) polls
+    #   /api/on-call-calendar/{user,schedule,project}/<43-char token>/...
+    # with no other authentication, so a log line for one of these requests is
+    # a bearer token written to disk in plain text, with the client's address
+    # next to it. This location exists only so those lines are not written. It
+    # proxies exactly like the surrounding block would have; a regex location
+    # wins over the prefix locations, so the request lands here rather than in
+    # `location /` or `location /api`, and it is deliberately NOT given the
+    # raised timeouts /api carries. Rate limiting and the token check happen in
+    # the app, which never logs the token either. Any proxy, WAF or CDN in
+    # front of this one still logs the URI -- in its access log AND in its
+    # error log -- unless told not to.
+    #
+    # Three directives, because nginx has three ways to write that URL down:
+    #   * access_log off -- the per-request line. It names no file, so it
+    #     cannot conflict with the buffered global log the way a second
+    #     file-naming directive would.
+    #   * error_log /dev/null crit -- nginx writes the full request line at
+    #     [error]/[warn] whenever the upstream misbehaves ("connect() failed",
+    #     "upstream timed out", "upstream prematurely closed"), which is what
+    #     every polling calendar client hits during a rolling deploy or an app
+    #     restart, and nginx.conf keeps the error log at `notice`. This
+    #     location is plain proxying with no auth or rewrite logic of ours and
+    #     the app logs its own failures, so nothing diagnosable is lost by
+    #     dropping these lines; a leaked token cannot be un-leaked.
+    #   * proxy_max_temp_file_size 0 -- a response bigger than the proxy
+    #     buffers (4 x 512k + 256k) would otherwise be spooled to a temp file,
+    #     which nginx announces at [warn] with the request line attached, and
+    #     which puts the roster on disk as a side effect. A project-wide feed
+    #     near the 5000-event cap is that big (text/calendar is deliberately
+    #     kept out of gzip_types). 0 keeps what fits in memory and streams the
+    #     rest straight to the client.
+    location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+        access_log off;
+        error_log /dev/null crit;
+        proxy_max_temp_file_size 0;
+
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Keep the upstream connection pooled, as every other proxying
+        # location in this file does.
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /api {

@@ -7,8 +7,11 @@ import {
   beforeEach,
   jest as jestGlobal,
 } from "@jest/globals";
-import CreateOnCallOverrideScreen from "./CreateOnCallOverrideScreen";
+import CreateOnCallOverrideScreen, {
+  readPrefilledWindow,
+} from "./CreateOnCallOverrideScreen";
 import type { CreateOverrideInput } from "../hooks/useOnCallOverrides";
+import type { CreateOnCallOverrideParams } from "../navigation/types";
 import type { ProjectItem, ProjectUserItem } from "../api/types";
 
 /*
@@ -45,11 +48,17 @@ const mockGoBack: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
 const mockProjects: { current: ProjectItem[] } = { current: PROJECTS };
 const mockUsers: { current: ProjectUserItem[] } = { current: USERS };
 const mockUserId: { current: string | null } = { current: ME };
+const mockRouteParams: { current: CreateOnCallOverrideParams | undefined } = {
+  current: undefined,
+};
 
 jest.mock("@react-navigation/native", () => {
   return {
     useNavigation: () => {
       return { goBack: mockGoBack, navigate: jest.fn() };
+    },
+    useRoute: () => {
+      return { params: mockRouteParams.current };
     },
   };
 });
@@ -137,6 +146,7 @@ describe("CreateOnCallOverrideScreen direction", () => {
     mockProjects.current = PROJECTS;
     mockUsers.current = USERS;
     mockUserId.current = ME;
+    mockRouteParams.current = undefined;
   });
 
   test("'cover for me' routes MY pages to the teammate", async (): Promise<void> => {
@@ -188,6 +198,7 @@ describe("CreateOnCallOverrideScreen window", () => {
     mockProjects.current = PROJECTS;
     mockUsers.current = USERS;
     mockUserId.current = ME;
+    mockRouteParams.current = undefined;
   });
 
   test("defaults to four hours starting now", async (): Promise<void> => {
@@ -224,6 +235,7 @@ describe("CreateOnCallOverrideScreen project scope", () => {
     mockProjects.current = PROJECTS;
     mockUsers.current = USERS;
     mockUserId.current = ME;
+    mockRouteParams.current = undefined;
   });
 
   test("defaults to the first project", async (): Promise<void> => {
@@ -279,6 +291,7 @@ describe("CreateOnCallOverrideScreen refusals", () => {
     mockProjects.current = PROJECTS;
     mockUsers.current = USERS;
     mockUserId.current = ME;
+    mockRouteParams.current = undefined;
   });
 
   test("submitting with no teammate explains rather than failing silently", async (): Promise<void> => {
@@ -324,5 +337,206 @@ describe("CreateOnCallOverrideScreen refusals", () => {
     await fireEvent.press(screen.getByTestId("submit-override"));
 
     expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Opened from "Get cover" on a shift card: the window is the shift's, the
+ * project is fixed, and the only question left is who takes it.
+ * ---------------------------------------------------------------------------
+ */
+
+const HOUR: number = 60 * 60 * 1000;
+
+function prefill(
+  overrides: Partial<CreateOnCallOverrideParams> = {},
+): CreateOnCallOverrideParams {
+  return {
+    projectId: "project-2",
+    scheduleId: "schedule-1",
+    scheduleName: "Primary",
+    startsAt: new Date(Date.now() + 2 * HOUR).toISOString(),
+    endsAt: new Date(Date.now() + 10 * HOUR).toISOString(),
+    ...overrides,
+  };
+}
+
+describe("readPrefilledWindow", () => {
+  test("parses the ISO window", () => {
+    const params: CreateOnCallOverrideParams = prefill();
+
+    expect(readPrefilledWindow(params)).toEqual({
+      startsAt: new Date(params.startsAt),
+      endsAt: new Date(params.endsAt),
+    });
+  });
+
+  test("reads missing or unparseable params as no prefill", () => {
+    expect(readPrefilledWindow(undefined)).toBeNull();
+    expect(readPrefilledWindow(prefill({ startsAt: "garbage" }))).toBeNull();
+    expect(readPrefilledWindow(prefill({ endsAt: "" }))).toBeNull();
+  });
+});
+
+describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
+  beforeEach(() => {
+    mockCreateOverride.mockClear();
+    mockGoBack.mockClear();
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = prefill();
+  });
+
+  test("shows the shift instead of the direction switch and duration presets", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("prefilled-shift")).toBeTruthy();
+    expect(screen.getByText("Primary")).toBeTruthy();
+    expect(screen.queryByText("I'll take over")).toBeNull();
+    expect(screen.queryByTestId("duration-4")).toBeNull();
+  });
+
+  test("fixes the project to the shift's project and hides the picker", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("project-option-project-1")).toBeNull();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().projectId).toBe("project-2");
+  });
+
+  test("sends the shift's window, routing MY pages to the teammate", async (): Promise<void> => {
+    const params: CreateOnCallOverrideParams = prefill();
+    mockRouteParams.current = params;
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    const input: CreateOverrideInput = lastCreateInput();
+
+    expect(input.startsAt.toISOString()).toBe(params.startsAt);
+    expect(input.endsAt.toISOString()).toBe(params.endsAt);
+    expect(input.overrideUserId).toBe(ME);
+    expect(input.routeAlertsToUserId).toBe(TEAMMATE);
+    expect("onCallDutyPolicyId" in input).toBe(false);
+  });
+
+  test("a shift already in progress is covered from now", async (): Promise<void> => {
+    const before: number = Date.now();
+
+    mockRouteParams.current = prefill({
+      startsAt: new Date(before - 3 * HOUR).toISOString(),
+      endsAt: new Date(before + 5 * HOUR).toISOString(),
+    });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    const input: CreateOverrideInput = lastCreateInput();
+
+    expect(input.startsAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(input.endsAt.toISOString()).toBe(mockRouteParams.current.endsAt);
+  });
+
+  test("a policy-variant shift scopes the override to that policy", async (): Promise<void> => {
+    mockRouteParams.current = prefill({ policyId: "policy-1" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().onCallDutyPolicyId).toBe("policy-1");
+  });
+
+  test("the summary names the shift, not a duration", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+
+    expect(
+      screen.getByText(
+        /Your on-call pages go to Priya Rao for your shift on Primary/,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/for the next 4 hours/)).toBeNull();
+  });
+
+  test("refuses a shift that has already ended, without sending anything", async (): Promise<void> => {
+    mockRouteParams.current = prefill({
+      startsAt: new Date(Date.now() - 10 * HOUR).toISOString(),
+      endsAt: new Date(Date.now() - 2 * HOUR).toISOString(),
+    });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+    expect(screen.getByText("That shift has already ended.")).toBeTruthy();
+  });
+
+  test("a prefill with no project shows the picker instead of choosing silently", async (): Promise<void> => {
+    /*
+     * The picker is hidden for a prefill because the prefill settles the
+     * project. When it does not - a shift that arrived without one - the
+     * screen used to substitute the first project in the list with the picker
+     * still hidden, and the override was created somewhere the shift is not.
+     * Showing the picker turns that into a visible choice.
+     */
+    mockRouteParams.current = prefill({ projectId: "" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
+    expect(screen.getByTestId("project-option-project-2")).toBeTruthy();
+  });
+
+  test("a prefill naming a project this user is not in shows the picker", async (): Promise<void> => {
+    mockRouteParams.current = prefill({ projectId: "project-not-mine" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
+
+    /* And the substituted project is the one it says it is. */
+    await fireEvent.press(screen.getByTestId("project-option-project-2"));
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().projectId).toBe("project-2");
+  });
+
+  test("unreadable params degrade to the ordinary sheet", async (): Promise<void> => {
+    mockRouteParams.current = prefill({ startsAt: "garbage" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("prefilled-shift")).toBeNull();
+    expect(screen.getByTestId("duration-4")).toBeTruthy();
+  });
+
+  test("with no params the sheet behaves exactly as before", async (): Promise<void> => {
+    mockRouteParams.current = undefined;
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.queryByTestId("prefilled-shift")).toBeNull();
+    expect(screen.getByText("I'll take over")).toBeTruthy();
+    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
+
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().projectId).toBe("project-1");
   });
 });

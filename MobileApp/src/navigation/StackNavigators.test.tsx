@@ -159,6 +159,10 @@ jest.mock("../screens/MyOnCallPagesScreen", () => {
   return mockScreenStub("screen-my-on-call-pages");
 });
 
+jest.mock("../screens/OnCallCalendarFeedScreen", () => {
+  return mockScreenStub("screen-on-call-calendar-feed");
+});
+
 jest.mock("../screens/SettingsScreen", () => {
   return mockScreenStub("screen-settings-list");
 });
@@ -318,6 +322,17 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     title: "Pages Sent To Me",
     keepsIosLargeTitle: true,
   },
+
+  /*
+   * Reachable from the overview's "More" section and, on its own stack, from
+   * Settings - the same screen registered twice so each tab pushes within
+   * itself rather than jumping the user to the other tab.
+   */
+  OnCallCalendarFeed: {
+    testID: "screen-on-call-calendar-feed",
+    title: "Calendar Feed",
+    keepsIosLargeTitle: true,
+  },
 };
 
 const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
@@ -345,6 +360,17 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
       ],
     },
     title: "SSO Login",
+    keepsIosLargeTitle: true,
+  },
+
+  /*
+   * The same screen the On-Call stack registers. Settings offers it too so
+   * that "Calendar feed" tapped from Settings pushes onto the Settings stack
+   * instead of throwing the user into the On-Call tab.
+   */
+  OnCallCalendarFeed: {
+    testID: "screen-on-call-calendar-feed",
+    title: "Calendar Feed",
     keepsIosLargeTitle: true,
   },
 };

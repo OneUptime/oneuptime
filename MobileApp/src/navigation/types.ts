@@ -59,7 +59,29 @@ export type SettingsStackParamList = {
     projectName: string;
     providers: Array<SelectableSsoProvider>;
   };
+
+  /*
+   * The same screen the on-call tab opens from its "More" list. Registered on
+   * both stacks so the Settings row is a plain push rather than a cross-tab
+   * jump that lands the user somewhere they did not tap.
+   */
+  OnCallCalendarFeed: undefined;
 };
+
+/**
+ * What "Get cover" on a shift card hands to the override sheet: the project
+ * and schedule the shift is on, its window as ISO strings (navigation params
+ * are serialized, so no Dates), and - for a shift that only exists inside one
+ * escalation policy - that policy, so the cover is scoped the same way.
+ */
+export interface CreateOnCallOverrideParams {
+  projectId: string;
+  scheduleId: string;
+  scheduleName?: string;
+  startsAt: string;
+  endsAt: string;
+  policyId?: string;
+}
 
 /*
  * The on-call stack starts on an OVERVIEW, not on the policy list. The list
@@ -72,8 +94,14 @@ export type OnCallStackParamList = {
   OnCallList: undefined;
   WhoIsOnCall: undefined;
   OnCallOverrides: undefined;
-  CreateOnCallOverride: undefined;
+
+  /*
+   * Undefined when opened from "Cover for me" (start now, pick a duration);
+   * prefilled when opened from a shift's "Get cover" (that shift's window).
+   */
+  CreateOnCallOverride: CreateOnCallOverrideParams | undefined;
   MyOnCallPages: undefined;
+  OnCallCalendarFeed: undefined;
 };
 
 export type IncidentsStackParamList = {

@@ -26,6 +26,32 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
+import { createHash } from "crypto";
+
+/*
+ * How long a calendar client may reuse a feed body before asking again. The
+ * body cache behind the feed routes has the same TTL, so a client that honours
+ * this sees a new body no later than one it would have been served anyway.
+ */
+export const CALENDAR_RESPONSE_MAX_AGE_SECONDS: number = 300;
+
+export const CALENDAR_RESPONSE_CONTENT_TYPE: string =
+  "text/calendar; charset=utf-8";
+
+export const CALENDAR_RESPONSE_FILE_NAME: string = "oneuptime-on-call.ics";
+
+/*
+ * The response headers a calendar feed carries, as a shape the API and its
+ * tests can share. `etag` may be passed bare or already quoted; the helper
+ * emits the quoted strong form either way. `lastModified` is the newest
+ * change to anything the feed was built from, and is what a client's
+ * If-Modified-Since is compared against.
+ */
+export interface CalendarResponseData {
+  body: string;
+  etag: string;
+  lastModified: Date;
+}
 
 /*
  * Raster image types, which is to say the types that cannot carry script and
@@ -483,6 +509,114 @@ export default class Response {
     oneUptimeResponse.logBody = { javascript: javascript as string };
     oneUptimeResponse.writeHead(200, { "Content-Type": "text/javascript" });
     oneUptimeResponse.end(javascript);
+  }
+
+  /*
+   * A strong ETag for a calendar body: the first 32 hex characters of the
+   * SHA-256 of the exact bytes sent, quoted. Strong rather than weak because
+   * the body is byte-deterministic for a given input (the iCalendar serializer
+   * orders properties and folds lines the same way every time), so two bodies
+   * with the same tag are byte-identical and a client may treat them so.
+   * Computed from the body rather than from an update timestamp so a cached
+   * body and a freshly rendered identical one carry the same tag.
+   */
+  public static getCalendarETag(body: string): string {
+    return `"${createHash("sha256").update(body, "utf8").digest("hex").slice(0, 32)}"`;
+  }
+
+  /*
+   * Send an iCalendar feed body with the headers calendar clients expect.
+   *
+   * Deliberately its own method rather than sendCustomResponse: that one
+   * starts from setNoCacheHeaders, which stamps `Pragma: no-cache` and cannot
+   * take it back, and a feed that says both "max-age=300" and "no-cache" is
+   * re-fetched on every open by clients that honour Pragma. Nor
+   * sendTextResponse, which sets no Content-Type at all and would let Express
+   * fall back to text/html.
+   *
+   * Conditional requests are left to Express: `res.send` answers 304 by itself
+   * when `req.fresh` is true (If-None-Match against the ETag set here, weak
+   * `W/` prefixes included, or If-Modified-Since against Last-Modified), and it
+   * strips the body for HEAD. Nothing here inspects the method.
+   *
+   * private, not public: the body is one person's (or one team's) on-call
+   * roster behind a bearer token in the URL, and a shared cache that stored it
+   * would hand it to the next requester of that URL regardless of who they
+   * are. Expires duplicates max-age for the clients that only read Expires.
+   */
+  @CaptureSpan()
+  public static sendCalendarResponse(
+    _req: ExpressRequest,
+    res: ExpressResponse,
+    data: CalendarResponseData,
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    const etag: string = Response.normalizeStrongETag(data.etag);
+
+    const expiresAt: Date = new Date(
+      Date.now() + CALENDAR_RESPONSE_MAX_AGE_SECONDS * 1000,
+    );
+
+    oneUptimeResponse.set("Content-Type", CALENDAR_RESPONSE_CONTENT_TYPE);
+    oneUptimeResponse.set(
+      "Content-Disposition",
+      `inline; filename="${CALENDAR_RESPONSE_FILE_NAME}"`,
+    );
+    oneUptimeResponse.set(
+      "Cache-Control",
+      `private, max-age=${CALENDAR_RESPONSE_MAX_AGE_SECONDS}`,
+    );
+    oneUptimeResponse.set("Expires", expiresAt.toUTCString());
+    oneUptimeResponse.set("ETag", etag);
+    oneUptimeResponse.set("Last-Modified", data.lastModified.toUTCString());
+    oneUptimeResponse.set("X-Content-Type-Options", "nosniff");
+    oneUptimeResponse.set("X-Robots-Tag", "noindex");
+
+    /*
+     * A middleware upstream of the route may already have stamped the
+     * no-cache trio (setNoCacheHeaders). Cache-Control and Expires were just
+     * overwritten; Pragma has no "do cache" value, so the only correct thing
+     * is for it not to be there.
+     */
+    oneUptimeResponse.removeHeader("Pragma");
+
+    /*
+     * Never the body: it is a roster behind a bearer token, and the audit log
+     * is not where it belongs. Enough to know what went out and how big.
+     */
+    oneUptimeResponse.logBody = {
+      contentType: CALENDAR_RESPONSE_CONTENT_TYPE,
+      bytes: Buffer.byteLength(data.body, "utf8"),
+    };
+
+    oneUptimeResponse.status(200).send(data.body);
+  }
+
+  /*
+   * Accept `abc`, `"abc"` or `W/"abc"` and return the strong, quoted form.
+   * The tag is content-derived (see getCalendarETag), so weakening it would
+   * only lose the byte-identical guarantee the client is entitled to.
+   */
+  private static normalizeStrongETag(etag: string): string {
+    let value: string = etag.trim();
+
+    if (value.startsWith("W/")) {
+      value = value.slice(2).trim();
+    }
+
+    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+      value = value.slice(1, -1);
+    }
+
+    /*
+     * RFC 7232: an entity-tag is quoted and may not itself contain a double
+     * quote. Strip anything that would break the header rather than emit an
+     * unparseable one.
+     */
+    value = value.replace(/["\r\n]/g, "");
+
+    return `"${value}"`;
   }
 
   public static setNoCacheHeaders(res: ExpressResponse): void {

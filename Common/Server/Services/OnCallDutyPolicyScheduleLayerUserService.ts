@@ -12,10 +12,121 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Adding, removing or re-ordering a layer user rewrites the rotation of the
+   * whole schedule (the engine derives every position from the current user
+   * list), so the schedule's shiftConfigVersion is bumped, its feed caches
+   * dropped, and the listeners told — naming the user the row belongs to so
+   * their personal feed and reminders are refreshed even when they are no
+   * longer a member. Runs after the roster refresh; never throws.
+   */
+  private async propagateLayerUserChange(
+    scheduleId: ObjectID | null | undefined,
+    projectId: ObjectID | null | undefined,
+    userId: ObjectID | null | undefined,
+  ): Promise<void> {
+    if (!scheduleId) {
+      return;
+    }
+
+    await OnCallDutyPolicyScheduleService.propagateShiftConfigChange({
+      scheduleIds: [scheduleId],
+      projectId: projectId || null,
+      userIds: userId ? [userId] : [],
+      reason: OnCallShiftChangeReason.LayerUserChanged,
+    });
+  }
+
+  /**
+   * Re-resolve and persist the schedule's roster after a layer-user change.
+   * Best-effort: the row is already committed when the success hooks run, so
+   * a throwing refresh (a concurrently-deleted schedule, a transient
+   * persistence or notification failure) must not abort the hook before
+   * propagateLayerUserChange bumps the shiftConfigVersion and purges the
+   * feed caches — otherwise the caches would keep serving the pre-edit
+   * roster for up to their TTL and the reminder change pass would be
+   * skipped. Mirrors
+   * OnCallDutyPolicyEscalationRuleScheduleService.refreshScheduleRoster.
+   */
+  private async refreshScheduleRosterBestEffort(
+    scheduleId: ObjectID,
+  ): Promise<void> {
+    try {
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        scheduleId,
+      );
+    } catch (err) {
+      logger.error(
+        "Error refreshing the schedule roster after a layer-user change (best-effort).",
+      );
+      logger.error(err);
+    }
+  }
+
+  /**
+   * Renumber the users of a layer 1..n by their current order. Used by the
+   * team-member cleanup, which deletes layer-user rows as root (the per-row
+   * re-sequencing in onDeleteSuccess only runs for non-root deletes) and
+   * must restore the contiguous 1-based order the create-default (count + 1)
+   * and delete paths rely on. Idempotent.
+   */
+  @CaptureSpan()
+  public async resequenceOrderInLayer(
+    onCallDutyPolicyScheduleLayerId: ObjectID,
+  ): Promise<void> {
+    const rows: Array<Model> = await this.findBy({
+      query: {
+        onCallDutyPolicyScheduleLayerId: onCallDutyPolicyScheduleLayerId,
+      },
+      select: {
+        _id: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let expectedOrder: number = 1;
+
+    for (const row of rows) {
+      if (row.order !== expectedOrder && row._id) {
+        /*
+         * ignoreHooks: renumbering is bookkeeping, not a roster change — the
+         * caller (the team-member cleanup) refreshes and propagates once per
+         * schedule itself. With hooks on, every renumbered row would run a
+         * full onUpdateSuccess (semaphore-locked roster refresh + version
+         * bump + cache purge + listener pass), i.e. N-1 redundant refreshes
+         * per layer, and any hook throw would abort the remaining renumbering.
+         */
+        await this.updateOneBy({
+          query: {
+            _id: row._id,
+          },
+          data: {
+            order: expectedOrder,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
+      expectedOrder++;
+    }
   }
 
   @CaptureSpan()
@@ -82,8 +193,14 @@ export class Service extends DatabaseService<Model> {
         );
 
         if (resource.onCallDutyPolicyScheduleId) {
-          await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          await this.refreshScheduleRosterBestEffort(
             resource.onCallDutyPolicyScheduleId,
+          );
+
+          await this.propagateLayerUserChange(
+            resource.onCallDutyPolicyScheduleId,
+            resource.projectId,
+            resource.userId,
           );
         }
       }
@@ -117,6 +234,8 @@ export class Service extends DatabaseService<Model> {
           order: true,
           onCallDutyPolicyScheduleLayerId: true,
           onCallDutyPolicyScheduleId: true,
+          projectId: true,
+          userId: true,
         },
       });
     }
@@ -135,6 +254,8 @@ export class Service extends DatabaseService<Model> {
       id: createdItem.id!,
       select: {
         onCallDutyPolicyScheduleId: true,
+        projectId: true,
+        userId: true,
       },
       props: {
         isRoot: true,
@@ -145,8 +266,14 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
-    await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+    await this.refreshScheduleRosterBestEffort(
       resource.onCallDutyPolicyScheduleId,
+    );
+
+    await this.propagateLayerUserChange(
+      resource.onCallDutyPolicyScheduleId,
+      resource.projectId,
+      resource.userId,
     );
 
     return createdItem;
@@ -161,6 +288,8 @@ export class Service extends DatabaseService<Model> {
         id: item,
         select: {
           onCallDutyPolicyScheduleId: true,
+          projectId: true,
+          userId: true,
         },
         props: {
           isRoot: true,
@@ -171,8 +300,14 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+      await this.refreshScheduleRosterBestEffort(
         resource.onCallDutyPolicyScheduleId,
+      );
+
+      await this.propagateLayerUserChange(
+        resource.onCallDutyPolicyScheduleId,
+        resource.projectId,
+        resource.userId,
       );
     }
 

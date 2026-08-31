@@ -1304,7 +1304,7 @@ async function getClickhouseSchema(): Promise<JSONObject> {
  * headers or TLS material. Knowing the effective tuning is most of what we need
  * to reason about pool exhaustion, timeouts and disabled subsystems.
  */
-const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
+export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "NODE_ENV",
   "HOST",
   "IS_ENTERPRISE_EDITION",
@@ -1324,6 +1324,16 @@ const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "DISABLE_QUEUE_WORKERS",
   "DISABLE_AUTOMATIC_INCIDENT_CREATION",
   "DISABLE_AUTOMATIC_ALERT_CREATION",
+  /*
+   * On-call calendar feeds: the kill switch answers "503 on every feed" and
+   * the rate-limit tuning answers "429 for a whole office" — the two feed
+   * troubleshooting scenarios the docs point operators at. All non-secret:
+   * a boolean and three small integers (requests per window).
+   */
+  "DISABLE_ON_CALL_CALENDAR_FEED",
+  "ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS",
+  "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+  "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
   "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
   "DATABASE_HOST",
   "DATABASE_PORT",
@@ -1359,11 +1369,25 @@ const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
 const SECRET_KEY_PATTERN: RegExp =
   /PASSWORD|SECRET|TOKEN|PRIVATE|CREDENTIAL|APIKEY|_KEY|HEADERS|CERT|_CA$|_SSL|AUTH/i;
 
-function getRedactedConfig(): JSONObject {
+/*
+ * Allow-listed keys that trip SECRET_KEY_PATTERN on a substring but are not
+ * credentials. ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW contains
+ * "TOKEN" only because the limit is counted PER feed token — the value itself
+ * is a small integer (requests per window), never a token. Add a key here
+ * only when its VALUE is provably non-secret.
+ */
+export const SECRET_KEY_PATTERN_EXCEPTIONS: Set<string> = new Set<string>([
+  "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+]);
+
+export function getRedactedConfig(): JSONObject {
   const config: JSONObject = {};
 
   for (const key of SUPPORT_CONFIG_ALLOW_LIST) {
-    if (SECRET_KEY_PATTERN.test(key)) {
+    if (
+      !SECRET_KEY_PATTERN_EXCEPTIONS.has(key) &&
+      SECRET_KEY_PATTERN.test(key)
+    ) {
       // Allow-list entry looks sensitive — skip rather than risk a leak.
       continue;
     }

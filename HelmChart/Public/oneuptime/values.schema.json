@@ -1763,6 +1763,33 @@
             "type": "integer",
             "minimum": 0
         },
+        "onCallCalendarFeed": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
+                "rateLimit": {
+                    "type": "object",
+                    "properties": {
+                        "windowSeconds": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "perTokenPerWindow": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "perIpPerWindow": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {

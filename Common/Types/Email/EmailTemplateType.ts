@@ -87,6 +87,8 @@ enum EmailTemplateType {
   UserCurrentlyOnOnCallRoster = "UserCurrentlyOnOnCallRoster.hbs",
   UserNextOnOnCallRoster = "UserNextOnOnCallRoster.hbs",
   UserNoLongerActiveOnOnCallRoster = "UserNoLongerActiveOnOnCallRoster.hbs",
+  UserOnCallShiftReminder = "UserOnCallShiftReminder.hbs",
+  UserOnCallShiftReassigned = "UserOnCallShiftReassigned.hbs",
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",

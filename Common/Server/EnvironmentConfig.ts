@@ -101,6 +101,35 @@ const parsePositiveNumberFromEnv: (
   return parsedValue;
 };
 
+/*
+ * Like parsePositiveNumberFromEnv, but for settings that count things
+ * (requests, seconds): "1.5" or "0" are misconfigurations and fall back to the
+ * default rather than being rounded into something the operator did not ask
+ * for.
+ */
+const parsePositiveIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+) => number = (envKey: string, fallback: number): number => {
+  const rawValue: string | undefined = process.env[envKey];
+
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return fallback;
+  }
+
+  const parsedValue: number = Number(rawValue.trim());
+
+  if (
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue) ||
+    parsedValue <= 0
+  ) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
 export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
 export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
@@ -276,6 +305,75 @@ export const PostgresSlowQueryLogThresholdMs: number = parseInt(
 export const EncryptionSecret: ObjectID = new ObjectID(
   process.env["ENCRYPTION_SECRET"] || "secret",
 );
+
+/*
+ * The ENCRYPTION_SECRET values that ship in this repository, and are therefore
+ * as public as the source tree itself.
+ *
+ * "secret" is the fallback above. "please-change-this-to-random-value" is what
+ * `config.example.env` sets, and the documented Docker Compose install is
+ * `cp config.example.env config.env` (README) with
+ * `ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}` passed straight through by
+ * docker-compose.base.yml -- so it is the key an install that follows the docs
+ * actually runs with unless the operator edits it. Home/Scripts/Install.sh
+ * randomizes the placeholders, but nothing in the documented compose path
+ * calls it, and Scripts/Install/MergeEnvTemplate.js carries the placeholder
+ * forward on upgrade. The Helm chart is unaffected: it generates a random
+ * secret when `encryptionSecret` is left empty.
+ */
+export const InsecureEncryptionSecretValues: Array<string> = [
+  "secret",
+  "please-change-this-to-random-value",
+];
+
+/*
+ * The prefix every placeholder in config.example.env starts with. Flagging it
+ * catches a partially edited placeholder ("please-change-this-to-random-value-2")
+ * as well as the exact strings above.
+ */
+export const InsecureEncryptionSecretPrefix: string = "please-change-this";
+
+/*
+ * True when the install is encrypting columns with a value the repository
+ * ships rather than one the operator chose.
+ *
+ * Every `@TableColumn({ encrypted: true })` value -- OAuth tokens, SMTP
+ * passwords, the on-call calendar feed tokens -- is AES-encrypted with
+ * ENCRYPTION_SECRET, so leaving it unset or at one of the shipped placeholders
+ * means anyone who can read a database dump can read every one of those
+ * columns with a key that is public on GitHub. Nothing refuses to start over
+ * it (that would take down an existing install on upgrade), but the boot log
+ * says so loudly; see EncryptionSecretWarning and StartServer.init.
+ *
+ * The comparison is case-sensitive on purpose: the encryption key is, and the
+ * warning is about the exact values an attacker would try first. Any other
+ * weak key is the operator's own choice.
+ */
+export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
+  const rawValue: string | undefined = process.env["ENCRYPTION_SECRET"];
+
+  if (rawValue === undefined) {
+    return true;
+  }
+
+  const value: string = rawValue.trim();
+
+  return (
+    value === "" ||
+    InsecureEncryptionSecretValues.includes(value) ||
+    value.startsWith(InsecureEncryptionSecretPrefix)
+  );
+})();
+
+/*
+ * The boot warning itself, or null when the secret is fine. EnvironmentConfig
+ * cannot log it directly -- Logger imports LogLevel from this module, so
+ * importing Logger here would be circular -- which is why the message is
+ * exported and the process entrypoint emits it.
+ */
+export const EncryptionSecretWarning: string | null = IsEncryptionSecretInsecure
+  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
+  : null;
 
 export const OpenSourceDeploymentWebhookUrl: string =
   process.env["OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL"] || "";
@@ -724,6 +822,46 @@ export const DisableTelemetry: boolean =
  */
 export const DisableUpdateCheck: boolean =
   process.env["DISABLE_UPDATE_CHECK"] === "true";
+
+/*
+ * On-call calendar feeds: the public, token-in-URL .ics endpoints that Google
+ * Calendar / Outlook / Apple Calendar poll for on-call shifts
+ * (/api/on-call-calendar/{user,schedule,project}/<token>/...).
+ *
+ * Kill switch. When true every feed route answers 503 with Retry-After: 3600
+ * so calendar clients back off for an hour and keep the copy they already
+ * have, instead of dropping the calendar the way a 404 would make them.
+ * Nothing about the feeds is deleted; flip it back and they resume.
+ */
+export const DisableOnCallCalendarFeed: boolean =
+  process.env["DISABLE_ON_CALL_CALENDAR_FEED"] === "true";
+
+/*
+ * Fixed-window rate limits for those same feed routes. Two counters, either of
+ * which can reject: per token + client address, and per client address alone
+ * (the ceiling that survives a caller rotating tokens). The defaults are sized
+ * for calendar clients, which poll on the order of once an hour -- Apple is the
+ * most eager at every five minutes -- with a lot of headroom for a team's
+ * clients behind one office address. The limiter fails OPEN when Redis is
+ * unreachable: it is load control, not the only thing guarding the token.
+ */
+export const OnCallCalendarFeedRateLimitWindowSeconds: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS",
+    60,
+  );
+
+export const OnCallCalendarFeedRateLimitPerTokenPerWindow: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW",
+    60,
+  );
+
+export const OnCallCalendarFeedRateLimitPerIpPerWindow: number =
+  parsePositiveIntegerFromEnv(
+    "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
+    3000,
+  );
 
 export const EnableProfiling: boolean =
   process.env["ENABLE_PROFILING"] === "true";

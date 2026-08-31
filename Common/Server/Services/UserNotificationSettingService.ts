@@ -68,7 +68,13 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
-    whatsAppMessage: WhatsAppMessagePayload;
+    /*
+     * Optional: WhatsApp only delivers Meta-approved template payloads, so a
+     * caller whose event type has no registered template leaves this out and
+     * the channel is skipped (the body of this method already guards for it)
+     * instead of failing at the notification service.
+     */
+    whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
@@ -846,6 +852,38 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
     );
+
+    await this.addShiftReminderNotificationSettings(userId, projectId);
+  }
+
+  /*
+   * The two shift-reminder events ("before my shift starts", "my upcoming
+   * shift is reassigned"). Email AND push on by default: a reminder that
+   * only lands in a mailbox is easy to miss at 05:45, and both are the
+   * user's own lead times, not a page. Idempotent — the
+   * AddShiftReminderNotificationSettingsForUsers data migration calls this
+   * for every existing member, and sendUserNotification sends nothing
+   * without a row, so this is what makes the reminder worker's output
+   * non-zero for users who joined before the events existed.
+   */
+  @CaptureSpan()
+  public async addShiftReminderNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+      { alertByPush: true },
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+      { alertByPush: true },
+    );
   }
 
   private async addAlertNotificationSettings(
@@ -940,6 +978,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     userId: ObjectID,
     projectId: ObjectID,
     eventType: NotificationSettingEventType,
+    options?: { alertByPush?: boolean | undefined },
   ): Promise<void> {
     const existingNotification: PositiveNumber = await this.countBy({
       query: {
@@ -958,6 +997,10 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       item.projectId = projectId;
       item.eventType = eventType;
       item.alertByEmail = true;
+
+      if (options?.alertByPush) {
+        item.alertByPush = true;
+      }
 
       await this.create({
         data: item,

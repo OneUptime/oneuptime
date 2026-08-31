@@ -131,6 +131,15 @@ x-common-runtime-variables: &common-runtime-variables
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
   LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
 
+  # On-call calendar feeds (token-in-URL .ics subscriptions). Defaulted so a
+  # config.env upgraded in place, which will not have these keys, neither warns
+  # nor hands the container an empty kill switch. Blank rate-limit values mean
+  # "use the built-in default".
+  DISABLE_ON_CALL_CALENDAR_FEED: ${DISABLE_ON_CALL_CALENDAR_FEED:-false}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS:-}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW:-}
+  ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW:-}
+
   # How many appending proxies of your own sit in front of the app. Decides
   # which X-Forwarded-For entry counts as the client for IP allowlists and rate
   # limits. Defaulted because an existing config.env upgraded in place will not
