@@ -33,10 +33,22 @@ export function getReadableMonitorTemplateColumn(
     return null;
   }
 
+  /*
+   * `selectedProperty` is what makes this cell render the template's name.
+   * The table derives its cell key from the first key of `field` alone, so
+   * without it the key is the relation itself and both the cell and the CSV
+   * exporter receive the MonitorTemplate object — the table stringifies it to
+   * "[object Object]" and the exporter falls through to raw JSON. Naming the
+   * property extends the key to "monitorTemplate.templateName", which both
+   * resolve to the string. A `getElement` would only fix the cell: the
+   * exporter never calls it, and it looks for display keys "name"/"title"/
+   * "value", none of which is MonitorTemplate's `templateName`.
+   */
   return {
     field: { monitorTemplate: { templateName: true } },
     title: "Monitor Template",
     type: FieldType.Entity,
+    selectedProperty: "templateName",
   };
 }
 

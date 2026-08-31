@@ -15,6 +15,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import {
+  buildSyncResultSummary,
+  SyncResultSummary,
+} from "./MonitorTemplateSyncResultUtil";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -97,6 +101,7 @@ const MonitorTemplatesView: FunctionComponent<
     null,
   );
   const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+  const [syncResultTitle, setSyncResultTitle] = useState<string>("Done");
 
   const [showCriteriaSyncModal, setShowCriteriaSyncModal] =
     useState<boolean>(false);
@@ -204,9 +209,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced criteria onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "criteria",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowCriteriaSyncModal(false);
       setIsSyncingCriteria(false);
       fetchLinkedMonitorCount();
@@ -242,9 +252,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced monitoring interval onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "monitoring interval",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowIntervalSyncModal(false);
       setIsSyncingInterval(false);
       fetchLinkedMonitorCount();
@@ -280,9 +295,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced labels onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "labels",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowLabelsSyncModal(false);
       setIsSyncingLabels(false);
       fetchLinkedMonitorCount();
@@ -318,6 +338,7 @@ const MonitorTemplatesView: FunctionComponent<
       const monitorName: string = singleSyncMonitor.name || "monitor";
       setSingleSyncMonitor(null);
       setIsSyncingSingle(false);
+      setSyncResultTitle("Done");
       setSyncResultMessage(`Synced "${monitorName}" from this template.`);
       setTableRefreshToggle(Math.random().toString());
     } catch (e) {
@@ -425,6 +446,7 @@ const MonitorTemplatesView: FunctionComponent<
 
     setShowLinkModal(false);
     setEligibleMonitors([]);
+    setSyncResultTitle("Done");
     setSyncResultMessage(
       `Linked ${monitorIds.length} monitor${monitorIds.length === 1 ? "" : "s"} to this template.`,
     );
@@ -457,6 +479,7 @@ const MonitorTemplatesView: FunctionComponent<
       const monitorName: string = unlinkTarget.name || "monitor";
       setUnlinkTarget(null);
       setIsUnlinking(false);
+      setSyncResultTitle("Done");
       setSyncResultMessage(`Unlinked "${monitorName}" from this template.`);
       fetchLinkedMonitorCount();
       setTableRefreshToggle(Math.random().toString());
@@ -1120,7 +1143,7 @@ const MonitorTemplatesView: FunctionComponent<
 
       {syncResultMessage && (
         <ConfirmModal
-          title="Done"
+          title={syncResultTitle}
           description={syncResultMessage}
           submitButtonText="OK"
           submitButtonType={ButtonStyleType.PRIMARY}

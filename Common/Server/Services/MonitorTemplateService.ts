@@ -6,6 +6,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Includes from "../../Types/BaseDatabase/Includes";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
@@ -321,16 +322,68 @@ export class Service extends DatabaseService<Model> {
       return { totalLinkedMonitors, syncedMonitors };
     }
 
-    const syncedMonitors: number = await MonitorService.updateBy({
-      query: {
-        monitorTemplateId: template.id!,
-        projectId: template.projectId,
-      },
-      data: updateData as any,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: data.props,
-    });
+    /*
+     * A single updateBy is capped at its `limit`, so a template with more
+     * linked monitors than LIMIT_MAX used to leave the remainder on the old
+     * config and still return success. Offset paging cannot fix that here:
+     * updateBy takes no sort, and rewriting a row moves its tuple, so a
+     * second page at a higher skip can step over rows the first page moved.
+     * Page the ids under a stable sort instead, then update by id batch.
+     */
+    const linkedMonitorIds: Array<ObjectID> = [];
+
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const monitors: Array<Monitor> = await MonitorService.findBy({
+        query: {
+          monitorTemplateId: template.id!,
+          projectId: template.projectId,
+        },
+        select: { _id: true },
+        sort: { createdAt: SortOrder.Ascending },
+        limit: LIMIT_MAX,
+        skip: skip,
+        props: { isRoot: true },
+      });
+
+      for (const monitor of monitors) {
+        linkedMonitorIds.push(monitor.id!);
+      }
+
+      if (monitors.length < LIMIT_MAX) {
+        break;
+      }
+    }
+
+    let syncedMonitors: number = 0;
+
+    for (
+      let batchStart: number = 0;
+      batchStart < linkedMonitorIds.length;
+      batchStart += LIMIT_MAX
+    ) {
+      const batch: Array<ObjectID> = linkedMonitorIds.slice(
+        batchStart,
+        batchStart + LIMIT_MAX,
+      );
+
+      /*
+       * Still scoped by template and project, so a stale id from the paging
+       * read above cannot widen the write beyond this template's fleet.
+       * props stays the caller's — updateBy narrows each batch to what they
+       * may actually update.
+       */
+      syncedMonitors += await MonitorService.updateBy({
+        query: {
+          _id: new Includes(batch),
+          monitorTemplateId: template.id!,
+          projectId: template.projectId,
+        },
+        data: updateData as any,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: data.props,
+      });
+    }
 
     return {
       totalLinkedMonitors,
