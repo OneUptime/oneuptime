@@ -69,9 +69,34 @@ import nodePath from "path";
 /* Matches `new APIException(...)` with either a template or a plain string. */
 const CLIENT_API_EXCEPTION_PATTERN: RegExp =
   /new\s+APIException\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
-/* Matches every `responseText.slice(0, N)` echo in the client. */
-const RESPONSE_SLICE_PATTERN: RegExp =
-  /responseText\.slice\(\s*0\s*,\s*(\d+)\s*\)/g;
+/* The same, for a source that throws plain Errors too — i.e. the poller. */
+const THROWN_MESSAGE_PATTERN: RegExp =
+  /new\s+(?:APIException|Error)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
+/*
+ * Matches every truncation the client applies, whether the bound is written
+ * inline (`responseText.slice(0, 500)`) or named (`text.slice(0,
+ * BODY_ECHO_LIMIT)`). Pinning only the inline form is what let four further
+ * echo sites appear without a single assertion here noticing them.
+ */
+const BODY_ECHO_PATTERN: RegExp = /\.slice\(\s*0\s*,\s*(\w+)\s*\)/g;
+/*
+ * The same echo as it appears interpolated inside an error template, with
+ * the bound left unpinned for the same reason: inline and named spellings
+ * mean the same width, and the worst-case builder must not care which.
+ */
+const BODY_ECHO_INTERPOLATION: RegExp =
+  /\$\{responseText\.slice\(\s*0\s*,\s*\w+\s*\)\}/;
+/* Matches a quoted key in an object literal, e.g. the query parameter names. */
+const QUOTED_KEY_PATTERN: RegExp = /"([^"]+)"\s*:/g;
+/* Matches a `return "..."` / `return `...`` operator hint. */
+const RETURNED_LITERAL_PATTERN: RegExp =
+  /return\s+(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
+/* Matches the client's request-timeout constant. */
+const REQUEST_TIMEOUT_PATTERN: RegExp =
+  /REQUEST_TIMEOUT_IN_SECONDS:\s*number\s*=\s*(\d+)/;
+/* Matches the body of the client's "unknown query parameter" 400 detector. */
+const UNKNOWN_FIELD_PATTERN_SOURCE: RegExp =
+  /UNKNOWN_FIELD_PATTERN:\s*RegExp\s*=\s*\/(.+?)\/i;/;
 /* Matches the truncation marker constant in ConnectorErrorMessage.ts. */
 const TRUNCATION_MARKER_PATTERN: RegExp =
   /TRUNCATION_MARKER:\s*string\s*=\s*"((?:[^"\\]|\\.)*)"/;
@@ -82,6 +107,8 @@ const MAX_MESSAGE_LENGTH_PATTERN: RegExp =
 const GUIDANCE_QUOTED_MESSAGE_PATTERN: RegExp = /`(Google[^`]*)`/g;
 /* Matches the ` (HTTP ...)` tail the docs render in place of the status. */
 const HTTP_TAIL_PATTERN: RegExp = /\s*\(HTTP[^)]*\)\s*$/;
+/* Matches a trailing ellipsis standing in for the rest of a message. */
+const ELLIPSIS_TAIL_PATTERN: RegExp = /\s*(?:\.{3}|…)\s*$/;
 /* Matches `catch (someVariable)` so catch paths can be counted. */
 const CATCH_CLAUSE_PATTERN: RegExp = /\bcatch\s*\(\s*(\w+)\s*\)/g;
 /* Matches the service account JSON's default token endpoint. */
@@ -255,11 +282,48 @@ function extractBalancedBlocks(source: string, marker: string): Array<string> {
   return blocks;
 }
 
-function extractLineStartingWith(text: string, startsWith: string): string {
-  const start: number = indexOfOrThrow(text, startsWith);
-  const end: number = text.indexOf("\n", start);
+/*
+ * A bullet plus everything indented beneath it, up to the next unindented
+ * line. The in-product Last Error taxonomy outgrew a single line when the
+ * status-less buckets were spelled out, so reading one line off it would now
+ * read only the lead.
+ */
+function extractBulletBlock(text: string, startsWith: string): string {
+  const rest: string = text.slice(indexOfOrThrow(text, startsWith));
+  const end: number = rest.search(/\n(?=\S)/);
 
-  return end === -1 ? text.slice(start) : text.slice(start, end);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/*
+ * A slice bound written inline is its own value; a named one is resolved out
+ * of the client's `const NAME: number = N` declaration. An unresolvable name
+ * throws rather than becoming NaN and satisfying a "they are all equal"
+ * check by accident.
+ */
+const INLINE_BOUND_PATTERN: RegExp = /^\d+$/;
+
+function resolveNumericToken(token: string, source: string): number {
+  if (INLINE_BOUND_PATTERN.test(token)) {
+    return Number(token);
+  }
+
+  return Number(
+    requireGroup(
+      new RegExp(`\\b${token}\\s*:\\s*number\\s*=\\s*(\\d+)`),
+      source,
+      `the numeric constant ${token}`,
+    ),
+  );
+}
+
+/*
+ * Undo the two elisions the prose is allowed to make when it quotes a
+ * message it does not want to print in full: the ` (HTTP ...)` status tail,
+ * and a trailing ellipsis standing in for the rest of the message.
+ */
+function normalizeQuotedSpan(span: string): string {
+  return span.replace(HTTP_TAIL_PATTERN, "").replace(ELLIPSIS_TAIL_PATTERN, "");
 }
 
 /*
@@ -306,12 +370,26 @@ const clientHttpErrorTemplates: Array<string> = clientThrownMessages.filter(
   },
 );
 
-/* The subset that does not — these fall into the guidance's third bucket. */
+/* The subset that does not. Which bucket each of these belongs to is decided below. */
 const clientNonHttpMessages: Array<string> = clientThrownMessages.filter(
   (message: string): boolean => {
     return !message.includes(HTTP_STATUS_INTERPOLATION);
   },
 );
+
+/*
+ * The poller throws too, and the guidance quotes one of its messages by
+ * name. Read it the same way, so renaming it there also breaks the prose.
+ */
+const pollerThrownMessages: Array<string> = matchAllGroups(
+  THROWN_MESSAGE_PATTERN,
+  pollerSource,
+).map((groups: Array<string>): string => {
+  return groups[1] || groups[2] || "";
+});
+
+const connectorThrownMessages: Array<string> =
+  clientThrownMessages.concat(pollerThrownMessages);
 
 /*
  * The static text in front of ` (HTTP <status>)`, paired with the template
@@ -337,14 +415,27 @@ const httpErrorPrefixes: Array<string> = clientHttpErrorPrefixByTemplate.map(
   },
 );
 
+/*
+ * Every cap the client truncates with, named constants resolved. The
+ * guidance quotes exactly ONE number, so what has to hold is that there is
+ * only one number to quote.
+ */
 const responseSliceLimits: Array<number> = matchAllGroups(
-  RESPONSE_SLICE_PATTERN,
+  BODY_ECHO_PATTERN,
   clientSource,
 ).map((groups: Array<string>): number => {
-  return Number(groups[1]);
+  return resolveNumericToken(groups[1] as string, clientSource);
 });
 
 const responseSliceLimit: number = responseSliceLimits[0] as number;
+
+const requestTimeoutInSeconds: number = Number(
+  requireGroup(
+    REQUEST_TIMEOUT_PATTERN,
+    clientSource,
+    "REQUEST_TIMEOUT_IN_SECONDS",
+  ),
+);
 
 const truncationMarker: string = requireGroup(
   TRUNCATION_MARKER_PATTERN,
@@ -395,6 +486,32 @@ const pollAllDueConnectionsBody: string = sliceBetween(
 const pollConnectionBody: string = pollerSource.slice(
   indexOfOrThrow(pollerSource, "public static async pollConnection("),
 );
+
+/*
+ * describeHttpFailure appends an operator hint behind the echoed body, so
+ * the widest HTTP error is no longer just prefix + slice. Only the hints'
+ * literal text is measured here: two of them interpolate values out of
+ * Google's ErrorInfo metadata, which carries no documented bound. That
+ * residual is exactly why nothing downstream relies on the message fitting —
+ * ConnectorErrorMessage clamps it and the column is unbounded text.
+ */
+const operatorHintBody: string = sliceBetween(
+  clientSource,
+  "private static hintForReason(",
+  "private static findErrorObject(",
+);
+
+const longestOperatorHintLength: number = Math.max(
+  0,
+  ...matchAllGroups(RETURNED_LITERAL_PATTERN, operatorHintBody).map(
+    (groups: Array<string>): number => {
+      return (groups[1] || groups[2] || "").length;
+    },
+  ),
+);
+
+/* What describeHttpFailure puts between the echoed body and the hint. */
+const HINT_SEPARATOR: string = " — ";
 
 /*
  * Which prefix belongs to which step is read off the method that throws
@@ -449,7 +566,7 @@ const pageGuidance: string = readTemplateLiteral(
   "const documentationMarkdown: string = `",
 );
 
-const pageLastErrorGuidance: string = extractLineStartingWith(
+const pageLastErrorGuidance: string = extractBulletBlock(
   pageGuidance,
   "- **Last Error** ",
 );
@@ -515,7 +632,135 @@ const FORBIDDEN_CLAIMS: Array<ForbiddenClaim> = [
     pattern: /the poll ran and Chronicle rejected it/i,
     wording: "a populated Last Error means Chronicle rejected the poll",
   },
+  {
+    /*
+     * "Anything else — read the message rather than assume a side ...
+     * Otherwise the alerts arrived and the failure was on OneUptime's
+     * side." That arm keyed on the HTTP status, so every status-less
+     * message fell into it — including the in-band rejection, which is
+     * Chronicle's own and carries no status anywhere in it. See the
+     * taxonomy below for what replaced it.
+     */
+    pattern: /rather than assume a side/i,
+    wording:
+      "an 'anything else' arm that absorbs the status-less Google failures",
+  },
 ];
+
+/*
+ * ---------------------------------------------------------------------------
+ * The failure taxonomy, and the decision the old tripwire deferred
+ * ---------------------------------------------------------------------------
+ *
+ * This block replaces `expect(clientNonHttpMessages.length).toBe(2)`. That
+ * assertion was a placeholder: it recorded that exactly two messages carried
+ * no HTTP status, and said a third would mean "someone has to decide which
+ * bucket it belongs to". The client throws ten of them now, so the decision
+ * is made here.
+ *
+ * The old split keyed on the STATUS — token exchange failed, alerts fetch
+ * failed, anything else is OneUptime's. That is what made a status-less
+ * message ambiguous, and it is wrong at the root: Chronicle validates a
+ * query in band and answers HTTP 200 with the rejection in the body, so the
+ * most purely Google-side failure the connector has carries no status at
+ * all. The discriminator is the STEP the prefix names, not whether a status
+ * follows it.
+ *
+ * The buckets below therefore key on the prefix, and each one is a different
+ * thing for the operator to do:
+ *
+ *   1. token exchange failed (HTTP ...) — the credential was rejected at the
+ *      OAuth endpoint out of the customer's own service-account JSON, before
+ *      Chronicle. Fix the key.
+ *   2. token exchange returned ... — that endpoint answered with something
+ *      unusable. Still before Chronicle, but the key is not the suspect;
+ *      something is answering in its place.
+ *   3. alerts fetch failed (HTTP ...) — Chronicle rejected the request.
+ *      Read the status.
+ *   4. alerts fetch returned ... — Chronicle answered 200 and the body was
+ *      not a readable stream. Google's answer, with no status to read.
+ *   5. alerts query was rejected on an HTTP 200 — Chronicle ran the request
+ *      and rejected the query itself. The case that proves "no status"
+ *      cannot mean "not Google's".
+ *   6. timed out — nothing answered. No side is attributable from the
+ *      message, which is an answer rather than a default into a bucket.
+ *
+ * Everything matching none of the six is OneUptime's, and that arm is now
+ * defined by matching none of them rather than by lacking a status. It
+ * deliberately still owns the poller's own "connection is missing" message,
+ * which begins with "Google" and is nevertheless ours.
+ *
+ * The buckets are asserted to PARTITION what the client throws: every
+ * message matches exactly one, and every bucket claims at least one. A
+ * seventh shape therefore still breaks this file — but it breaks it with the
+ * question already answered for the six that exist.
+ */
+
+interface MessageBucket {
+  /* How the bucket is named when an assertion about it fails. */
+  name: string;
+  /* Matches the client message templates that belong to it, as written. */
+  matches: RegExp;
+  /*
+   * Where the message is evidence about. "google" holds even with no HTTP
+   * status; "unknown" means the message is evidence about neither side.
+   */
+  side: "google" | "unknown";
+  /* The span both texts must quote as inline code for this bucket. */
+  quoted: string;
+  /* What each text must say about it, checked over that bucket's segment. */
+  explains: RegExp;
+}
+
+const MESSAGE_BUCKETS: Array<MessageBucket> = [
+  {
+    name: "the OAuth endpoint rejecting the credential",
+    matches: /^Google token exchange failed \(HTTP /,
+    side: "google",
+    quoted: "Google token exchange failed (HTTP ...)",
+    explains: /before Chronicle/i,
+  },
+  {
+    name: "the OAuth endpoint answering with something unusable",
+    matches: /^Google token exchange returned /,
+    side: "google",
+    quoted: "Google token exchange returned ...",
+    explains: /before Chronicle/i,
+  },
+  {
+    name: "Chronicle rejecting the alerts request",
+    matches: /^Google SecOps alerts fetch failed \(HTTP /,
+    side: "google",
+    quoted: "Google SecOps alerts fetch failed (HTTP ...)",
+    explains: /Chronicle[^.]*reject/i,
+  },
+  {
+    name: "Chronicle answering 200 with an unreadable body",
+    matches: /^Google SecOps alerts fetch returned /,
+    side: "google",
+    quoted: "Google SecOps alerts fetch returned ...",
+    explains: /Chronicle answered .?200/i,
+  },
+  {
+    name: "Chronicle rejecting the query in band on a 200",
+    matches:
+      /^Google SecOps alerts query was rejected by Chronicle on an HTTP 200/,
+    side: "google",
+    quoted:
+      "Google SecOps alerts query was rejected by Chronicle on an HTTP 200",
+    explains: /no HTTP status/i,
+  },
+  {
+    name: "neither endpoint answering at all",
+    matches: /^Google SecOps \$\{stepLabel\} timed out /,
+    side: "unknown",
+    quoted: `timed out after ${requestTimeoutInSeconds} seconds with no response`,
+    explains: /assigns no side/i,
+  },
+];
+
+/* How both texts introduce the arm that is genuinely OneUptime's. */
+const ONEUPTIME_ARM_MARKER: string = "A message matching none of the above";
 
 // ---------------------------------------------------------------------------
 
@@ -593,7 +838,7 @@ describe("Every error prefix the guidance names is really produced", () => {
      * checked to really continue with " (HTTP " at that point, so the
      * stripping cannot hide a mismatch.
      */
-    test(`${guidance.name} quotes only prefixes the client actually throws`, () => {
+    test(`${guidance.name} quotes only messages the connector actually throws`, () => {
       const quoted: Array<string> = matchAllGroups(
         GUIDANCE_QUOTED_MESSAGE_PATTERN,
         guidance.lastError,
@@ -604,7 +849,7 @@ describe("Every error prefix the guidance names is really produced", () => {
       expect(quoted.length).toBeGreaterThan(0);
 
       for (const span of quoted) {
-        const prefix: string = span.replace(HTTP_TAIL_PATTERN, "");
+        const prefix: string = normalizeQuotedSpan(span);
         const match: { prefix: string; template: string } | undefined =
           clientHttpErrorPrefixByTemplate.find(
             (entry: { prefix: string; template: string }): boolean => {
@@ -613,14 +858,14 @@ describe("Every error prefix the guidance names is really produced", () => {
           );
 
         /*
-         * A quoted span is legitimate if the client throws it EITHER as an
-         * HTTP-status template or as one of its status-less messages. The
-         * guidance names both kinds: the status-less ones are the Google-side
-         * failures that carry no status (an unparseable 2xx body, a 200 with
-         * no access_token) and would otherwise be silently filed under the
-         * OneUptime-side bucket.
+         * A quoted span is legitimate if it is the static prefix of an
+         * HTTP-status template, or the start of any other message the
+         * connector throws. Both the client's status-less messages and the
+         * poller's own are accepted: the guidance names one of each, and
+         * they are exactly the ones the status-keyed taxonomy used to file
+         * under OneUptime by default.
          */
-        const isStatusLessMessage: boolean = clientNonHttpMessages.some(
+        const isThrownMessage: boolean = connectorThrownMessages.some(
           (message: string): boolean => {
             return message.startsWith(prefix);
           },
@@ -628,10 +873,10 @@ describe("Every error prefix the guidance names is really produced", () => {
 
         expect({
           quoted: span,
-          isThrownByTheClient: Boolean(match) || isStatusLessMessage,
+          isThrownByTheConnector: Boolean(match) || isThrownMessage,
         }).toEqual({
           quoted: span,
-          isThrownByTheClient: true,
+          isThrownByTheConnector: true,
         });
 
         if (span !== prefix && match) {
@@ -656,7 +901,7 @@ describe("Every error prefix the guidance names is really produced", () => {
       const quotedPrefixes: Set<string> = new Set(
         matchAllGroups(GUIDANCE_QUOTED_MESSAGE_PATTERN, guidance.lastError).map(
           (groups: Array<string>): string => {
-            return (groups[1] as string).replace(HTTP_TAIL_PATTERN, "");
+            return normalizeQuotedSpan(groups[1] as string);
           },
         ),
       );
@@ -704,14 +949,83 @@ describe("Every error prefix the guidance names is really produced", () => {
     });
 
     /*
-     * And the third bucket has to be present at all — it is the one the
-     * old prose erased, and the one that sends an operator to the wrong
-     * support queue when it is missing.
+     * The lead's own claim, and the reason the taxonomy can key on the
+     * prefix at all: only two of the client's messages carry a status, so
+     * "no status" is not a discriminator worth reading anything into.
      */
-    test(`${guidance.name} names the OneUptime-side third bucket`, () => {
-      expect(guidance.lastError).toMatch(/anything else/i);
-      expect(guidance.lastError).toMatch(/OneUptime's side/i);
-      expect(guidance.lastError).toMatch(/telemetry store/i);
+    test(`${guidance.name} says how many prefixes carry a status, correctly`, () => {
+      expect(clientHttpErrorTemplates.length).toBe(2);
+      expect(new Set(httpErrorPrefixes).size).toBe(2);
+      expect(guidance.lastError).toMatch(
+        /only two prefixes carry an HTTP status/i,
+      );
+    });
+
+    test(`${guidance.name} walks every bucket, in the order a poll reaches them`, () => {
+      let previousIndex: number = -1;
+
+      for (const bucket of MESSAGE_BUCKETS) {
+        const index: number = guidance.lastError.indexOf(bucket.quoted);
+
+        expect({
+          bucket: bucket.name,
+          quoted: bucket.quoted,
+          named: index > -1,
+        }).toEqual({ bucket: bucket.name, quoted: bucket.quoted, named: true });
+
+        // Quoted as inline code, so an operator can match it character for character.
+        expect(guidance.lastError).toContain(`\`${bucket.quoted}\``);
+
+        expect(index).toBeGreaterThan(previousIndex);
+        previousIndex = index;
+      }
+    });
+
+    test(`${guidance.name} says what each bucket means`, () => {
+      const armIndex: number = guidance.lastError.indexOf(ONEUPTIME_ARM_MARKER);
+
+      expect(armIndex).toBeGreaterThan(-1);
+
+      MESSAGE_BUCKETS.forEach(
+        (bucket: MessageBucket, position: number): void => {
+          const next: MessageBucket | undefined = MESSAGE_BUCKETS[position + 1];
+          const start: number = guidance.lastError.indexOf(bucket.quoted);
+          const end: number = next
+            ? guidance.lastError.indexOf(next.quoted)
+            : armIndex;
+
+          expect({
+            bucket: bucket.name,
+            explained: bucket.explains.test(
+              guidance.lastError.slice(start, end),
+            ),
+          }).toEqual({ bucket: bucket.name, explained: true });
+        },
+      );
+    });
+
+    /*
+     * The arm that really is ours has to be present — it is the one the old
+     * prose erased — but it must now be reached by ruling the six Google
+     * buckets out, not by noticing that a message carries no status.
+     */
+    test(`${guidance.name} defines the OneUptime-side arm by exclusion, not by a missing status`, () => {
+      const armIndex: number = guidance.lastError.indexOf(ONEUPTIME_ARM_MARKER);
+
+      expect(armIndex).toBeGreaterThan(-1);
+
+      for (const bucket of MESSAGE_BUCKETS) {
+        expect({
+          bucket: bucket.name,
+          namedBeforeTheOneUptimeArm:
+            guidance.lastError.indexOf(bucket.quoted) < armIndex,
+        }).toEqual({ bucket: bucket.name, namedBeforeTheOneUptimeArm: true });
+      }
+
+      const arm: string = guidance.lastError.slice(armIndex);
+
+      expect(arm).toMatch(/OneUptime/i);
+      expect(arm).toMatch(/telemetry store/i);
     });
   }
 
@@ -805,26 +1119,153 @@ describe("Every error prefix the guidance names is really produced", () => {
   });
 
   /*
-   * Tripwire on the messages that carry no HTTP status. Today both are
-   * Google-side conditions that the guidance's "anything else" bucket
-   * nevertheless absorbs, which is the known rough edge in the taxonomy;
-   * a THIRD one appearing means someone has to decide which bucket it
-   * belongs to instead of letting it default into the OneUptime-side one.
+   * The partition. Every message the client throws belongs to exactly one
+   * bucket, so a new shape cannot quietly inherit whatever the taxonomy
+   * happens to say last.
    */
-  test("the client's status-less throws are the known set", () => {
-    expect(clientNonHttpMessages.length).toBe(2);
+  test("every message the client throws lands in exactly one bucket", () => {
+    expect(clientThrownMessages.length).toBeGreaterThan(0);
+
+    for (const message of clientThrownMessages) {
+      const claimed: Array<string> = MESSAGE_BUCKETS.filter(
+        (bucket: MessageBucket): boolean => {
+          return bucket.matches.test(message);
+        },
+      ).map((bucket: MessageBucket): string => {
+        return bucket.name;
+      });
+
+      expect({ message: message, buckets: claimed }).toEqual({
+        message: message,
+        buckets: [claimed[0]],
+      });
+    }
+  });
+
+  test("no bucket is dead weight", () => {
+    for (const bucket of MESSAGE_BUCKETS) {
+      const owned: number = clientThrownMessages.filter(
+        (message: string): boolean => {
+          return bucket.matches.test(message);
+        },
+      ).length;
+
+      expect({ bucket: bucket.name, hasMessages: owned > 0 }).toEqual({
+        bucket: bucket.name,
+        hasMessages: true,
+      });
+    }
+  });
+
+  /*
+   * The decision itself, which is what the old `.toBe(2)` tripwire was
+   * holding open. The COUNT of status-less messages is free now; what is
+   * pinned is that not one of them falls through to the OneUptime arm.
+   */
+  test("no status-less message defaults into the OneUptime-side arm", () => {
+    expect(clientNonHttpMessages.length).toBeGreaterThan(0);
 
     for (const message of clientNonHttpMessages) {
+      const bucket: MessageBucket | undefined = MESSAGE_BUCKETS.find(
+        (candidate: MessageBucket): boolean => {
+          return candidate.matches.test(message);
+        },
+      );
+
+      /*
+       * MessageBucket has no OneUptime side to declare — that arm is
+       * reached by matching no bucket at all — so a message the taxonomy
+       * has nothing to say about shows up here as the one value the union
+       * cannot hold.
+       */
+      expect({
+        message: message,
+        startsWithGoogle: message.startsWith("Google"),
+        side: bucket ? bucket.side : "OneUptime by default",
+      }).toEqual({
+        message: message,
+        startsWithGoogle: true,
+        side: expect.stringMatching(/^(?:google|unknown)$/),
+      });
+
       expect(message).not.toContain(HTTP_STATUS_INTERPOLATION);
-      expect(message.startsWith("Google")).toBe(true);
     }
   });
 });
 
+/*
+ * The failure the customer actually hit, and the one claim in its
+ * troubleshooting entry an operator will act on: that the 400 is proof the
+ * credential worked. Google authenticates before it transcodes the query
+ * string, so a request that reaches parameter binding has already been
+ * authenticated — the same request without credentials never gets past 401.
+ * Both halves are pinned here: the client really has stopped sending the
+ * parameter, and the client's own hint for this 400 really does say it is
+ * not a credential problem.
+ */
+describe("the pageSize 400 is documented as a OneUptime bug, not a bad key", () => {
+  const PAGE_SIZE_ERROR_TEXT: string =
+    'Unknown name "pageSize": Cannot bind query parameter';
+
+  test("the alerts request no longer binds pageSize", () => {
+    const [parameterBlock]: Array<string> = extractBalancedBlocks(
+      fetchDetectionAlertsBody,
+      "new URLSearchParams(",
+    );
+
+    expect(parameterBlock).toBeTruthy();
+
+    const boundNames: Array<string> = matchAllGroups(
+      QUOTED_KEY_PATTERN,
+      parameterBlock as string,
+    ).map((groups: Array<string>): string => {
+      return groups[1] as string;
+    });
+
+    expect(boundNames.length).toBeGreaterThan(0);
+    expect(boundNames).not.toContain("pageSize");
+
+    // ...and nothing sets it back onto the query afterwards either.
+    expect(fetchDetectionAlertsBody).not.toContain('params.set("pageSize"');
+  });
+
+  test("the client recognizes this 400 and blames itself for it", () => {
+    const unknownFieldPattern: RegExp = new RegExp(
+      requireGroup(
+        UNKNOWN_FIELD_PATTERN_SOURCE,
+        clientSource,
+        "UNKNOWN_FIELD_PATTERN",
+      ),
+      "i",
+    );
+
+    expect(unknownFieldPattern.test(PAGE_SIZE_ERROR_TEXT)).toBe(true);
+    expect(clientSource).toContain(
+      "This is a OneUptime bug, not a credential or permission problem.",
+    );
+  });
+
+  for (const guidance of guidanceTexts) {
+    test(`${guidance.name} quotes the error and says not to regenerate the key`, () => {
+      expect(guidance.whole).toContain(PAGE_SIZE_ERROR_TEXT);
+      expect(guidance.whole).toMatch(/regenerate/i);
+
+      // The reason, not just the instruction: auth runs before transcoding.
+      expect(guidance.whole).toMatch(/authenticat/i);
+    });
+  }
+});
+
 describe("The truncation story the guidance tells is the one the code runs", () => {
-  test("the client slices response bodies at one shared limit", () => {
-    // Both echo sites — token exchange and alerts fetch — and one N.
-    expect(responseSliceLimits.length).toBe(2);
+  test("the client caps every body it echoes at one shared limit", () => {
+    /*
+     * Not the two HTTP templates any more: the status-less diagnostics echo
+     * the body they could not read, and describeHttpFailure echoes the
+     * error it summarizes. Both texts quote ONE figure, so what has to hold
+     * is that there is only one figure to quote — whichever site produced
+     * the message, and whether the bound is written inline or named.
+     */
+    expect(responseSliceLimits.length).toBeGreaterThan(2);
     expect(new Set(responseSliceLimits).size).toBe(1);
     expect(responseSliceLimit).toBeGreaterThan(0);
   });
@@ -850,23 +1291,35 @@ describe("The truncation story the guidance tells is the one the code runs", () 
   test("the overall clamp leaves room for the slice, so the hedge is honest", () => {
     expect(maxConnectorErrorMessageLength).toBeGreaterThan(responseSliceLimit);
 
+    // The hint really is appended behind the echoed body, not in place of it.
+    expect(clientSource).toContain(`return \`${HINT_SEPARATOR}\${hint}\`;`);
+    expect(longestOperatorHintLength).toBeGreaterThan(0);
+
     /*
      * Worst case for a client HTTP error: the longest prefix, a three
-     * digit status, and a full body slice. It still fits under the clamp,
-     * which is why the guidance says the marker appears only "if it is
-     * still too long" — the messages that do get marked come from
+     * digit status, a full body slice, and the longest operator hint
+     * describeHttpFailure can append behind it. It still fits under the
+     * clamp, which is why the guidance says the marker appears only "if it
+     * is still too long" — the messages that do get marked come from
      * elsewhere, e.g. a ClickHouse error echoing back the whole query.
      */
     for (const entry of clientHttpErrorPrefixByTemplate) {
+      /*
+       * The echo interpolation is matched, not rebuilt. Its bound may be
+       * written inline or as a named constant and both mean the same
+       * width, so reconstructing one spelling made this test depend on
+       * which the client happened to use — unifying the two HTTP templates
+       * onto the named constant every other echo site already used left
+       * the interpolation unexpanded, and only the `${` tripwire noticed.
+       */
       const worstCase: string = entry.template
         .replace(HTTP_STATUS_INTERPOLATION, "999")
-        .replace(
-          `\${responseText.slice(0, ${responseSliceLimit})}`,
-          "x".repeat(responseSliceLimit),
-        );
+        .replace(BODY_ECHO_INTERPOLATION, "x".repeat(responseSliceLimit));
 
       expect(worstCase).not.toContain("${");
-      expect(worstCase.length).toBeLessThan(maxConnectorErrorMessageLength);
+      expect(
+        worstCase.length + HINT_SEPARATOR.length + longestOperatorHintLength,
+      ).toBeLessThan(maxConnectorErrorMessageLength);
     }
   });
 });
