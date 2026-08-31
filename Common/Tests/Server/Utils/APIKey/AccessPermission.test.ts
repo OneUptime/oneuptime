@@ -62,7 +62,7 @@ const permissionValues: (
 };
 
 describe("APIKeyAccessPermission.getDefaultApiGlobalPermission", () => {
-  it("grants Public, User and CurrentUser for the project", async () => {
+  it("grants Public, User, CurrentUser and AuthenticatedRequest for the project", async () => {
     const perm: UserGlobalAccessPermission =
       await APIKeyAccessPermission.getDefaultApiGlobalPermission(projectId);
 
@@ -76,6 +76,7 @@ describe("APIKeyAccessPermission.getDefaultApiGlobalPermission", () => {
       Permission.Public,
       Permission.User,
       Permission.CurrentUser,
+      Permission.AuthenticatedRequest,
     ]);
   });
 
