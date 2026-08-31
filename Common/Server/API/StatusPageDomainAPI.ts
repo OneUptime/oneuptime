@@ -239,5 +239,79 @@ export default class StatusPageDomainAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Reissue SSL API. Backs the "Reissue SSL Certificate" button in the
+     * dashboard, for a customer who wants a fresh certificate now rather than
+     * whenever the renewal cron next gets to this domain.
+     *
+     * The throttle that keeps this from becoming a way to spend the shared
+     * Let's Encrypt allowance lives in the service, alongside the write that
+     * claims it - a check here would be a check the automated callers do not
+     * share, and one an extra caller could forget.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/reissue-ssl/:id`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!StatusPageCNameRecord) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                `Custom Domains not enabled for this
+                                OneUptime installation. Please contact
+                                your server admin to enable this
+                                feature.`,
+              ),
+            );
+          }
+
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const id: ObjectID = new ObjectID(req.params["id"] as string);
+
+          /*
+           * Scoped by the caller's own props, so a domain in someone else's
+           * project is indistinguishable from one that does not exist.
+           */
+          const domainCount: PositiveNumber =
+            await StatusPageDomainService.countBy({
+              query: {
+                _id: id.toString(),
+              },
+              props: databaseProps,
+            });
+
+          if (domainCount.toNumber() === 0) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "The domain does not exist or user does not have access to it.",
+              ),
+            );
+          }
+
+          logger.debug(
+            "Reissuing SSL",
+            getLogAttributesFromRequest(req as any),
+          );
+
+          await StatusPageDomainService.reissueCert(id);
+
+          logger.debug(
+            "SSL reissued for domain id - " + id.toString(),
+            getLogAttributesFromRequest(req as any),
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
   }
 }
