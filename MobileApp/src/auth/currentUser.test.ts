@@ -1,5 +1,9 @@
 import { describe, expect, test, beforeEach } from "@jest/globals";
-import { getUserIdFromToken, loadCurrentUserId } from "./currentUser";
+import {
+  getCurrentUserIdSync,
+  getUserIdFromToken,
+  loadCurrentUserId,
+} from "./currentUser";
 import { getCachedAccessToken, getTokens } from "../storage/keychain";
 
 jest.mock("../storage/keychain", () => {
@@ -77,6 +81,31 @@ describe("getUserIdFromToken", () => {
     expect(getUserIdFromToken("")).toBeNull();
     expect(getUserIdFromToken("abc.def")).toBeNull();
     expect(getUserIdFromToken("abc.def.ghi")).toBeNull();
+  });
+});
+
+describe("getCurrentUserIdSync", () => {
+  beforeEach(() => {
+    cachedSpy().mockReset();
+    storedSpy().mockReset();
+    cachedSpy().mockReturnValue(null);
+  });
+
+  test("reads the id out of the in-memory token with no await", () => {
+    /*
+     * Used to seed a cache key on the FIRST render. A key that spent one
+     * render without the user id would be a key every user shares - which is
+     * the whole thing the id is there to prevent.
+     */
+    cachedSpy().mockReturnValue(tokenFor({ userId: "user-cached" }));
+
+    expect(getCurrentUserIdSync()).toBe("user-cached");
+    expect(storedSpy()).not.toHaveBeenCalled();
+  });
+
+  test("is null when the keychain has not been read yet", () => {
+    expect(getCurrentUserIdSync()).toBeNull();
+    expect(storedSpy()).not.toHaveBeenCalled();
   });
 });
 

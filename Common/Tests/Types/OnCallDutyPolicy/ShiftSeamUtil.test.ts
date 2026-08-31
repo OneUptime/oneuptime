@@ -296,12 +296,39 @@ describe("ShiftSeamUtil.normalizeSeams", () => {
     ]);
     assertTouchingChain(zero);
 
+    /*
+     * The inclusive upper bound itself: exactly SEAM_TOLERANCE_MILLISECONDS
+     * apart. The seconds are :30 / :31 on purpose — a :59 end or a :01 start
+     * would snap to the minute first and reach the glue loop as a 0 ms delta,
+     * which is what a previous version of this test measured (it named a 0 ms
+     * case "exactlyTolerance"), leaving `delta <= SEAM_TOLERANCE_MILLISECONDS`
+     * free to be an off-by-one.
+     */
     const exactlyTolerance: Array<TimeSegment> = ShiftSeamUtil.normalizeSeams([
-      seg("2026-03-02T09:00:00Z", "2026-03-02T10:00:00.000Z"),
-      { start: at("2026-03-02T10:00:00Z"), end: at("2026-03-02T11:00:00Z") },
+      seg("2026-03-02T09:00:00Z", "2026-03-02T10:00:30.000Z"),
+      seg("2026-03-02T10:00:31.000Z", "2026-03-02T11:00:00Z"),
     ]);
+    expect(
+      exactlyTolerance[1]!.start.getTime() -
+        at("2026-03-02T10:00:30.000Z").getTime(),
+    ).toBe(SEAM_TOLERANCE_MILLISECONDS);
     assertTouchingChain(exactlyTolerance);
+    expect(exactlyTolerance[0]!.end.toISOString()).toBe(
+      "2026-03-02T10:00:31.000Z",
+    );
     expect(SEAM_TOLERANCE_MILLISECONDS).toBe(1000);
+
+    // One millisecond past the bound is a gap and must be left alone.
+    const oneOverTolerance: Array<TimeSegment> = ShiftSeamUtil.normalizeSeams([
+      seg("2026-03-02T09:00:00Z", "2026-03-02T10:00:30.000Z"),
+      seg("2026-03-02T10:00:31.001Z", "2026-03-02T11:00:00Z"),
+    ]);
+    expect(oneOverTolerance[0]!.end.toISOString()).toBe(
+      "2026-03-02T10:00:30.000Z",
+    );
+    expect(oneOverTolerance[1]!.start.toISOString()).toBe(
+      "2026-03-02T10:00:31.001Z",
+    );
 
     const halfSecond: Array<TimeSegment> = ShiftSeamUtil.normalizeSeams([
       seg("2026-03-02T09:00:00Z", "2026-03-02T10:00:00.000Z"),

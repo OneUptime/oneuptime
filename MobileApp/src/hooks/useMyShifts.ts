@@ -1,8 +1,13 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { useProject } from "./useProject";
+import { useCurrentUserId } from "./useCurrentUserId";
 import { projectListKey } from "./authorizedProjects";
 import { fetchMyShifts, isRouteMissingError } from "../api/onCallCalendar";
-import type { MyOnCallShift, MyOnCallShiftsResponse } from "../api/types";
+import type {
+  MyOnCallShift,
+  MyOnCallShiftsResponse,
+  ProjectItem,
+} from "../api/types";
 
 export interface UseMyShiftsOptions {
   /* How far ahead to ask for. Defaults to a fortnight. */
@@ -37,6 +42,20 @@ const WINDOW_STEP_MILLISECONDS: number = 5 * 60 * 1000;
 const MILLISECONDS_PER_DAY: number = 24 * 60 * 60 * 1000;
 const ONE_MINUTE_MILLISECONDS: number = 60 * 1000;
 
+/*
+ * How long a superseded shift list is kept around.
+ *
+ * The query key carries the window start, which moves every five minutes
+ * while the on-call tab is open, so each five minutes of use mints a new
+ * cache entry and orphans the previous one. Under the app-wide 24 hour
+ * `gcTime` those orphans would pile up for the rest of the day - a few
+ * hundred fortnights of shift JSON nobody can reach again. Ten minutes is
+ * long enough to survive a tab switch or a step back through the navigator
+ * (which is the only reason to keep a superseded window at all) and short
+ * enough that the pile never forms.
+ */
+const MY_SHIFTS_GC_TIME_MILLISECONDS: number = 10 * 60 * 1000;
+
 export function computeMyShiftsWindow(
   now: number,
   daysAhead: number,
@@ -48,6 +67,30 @@ export function computeMyShiftsWindow(
     from: new Date(from),
     to: new Date(from + daysAhead * MILLISECONDS_PER_DAY),
   };
+}
+
+/**
+ * The cache key for one window of one user's shifts.
+ *
+ * The user id is in there because the cache outlives a sign-out: it is a
+ * module-level `QueryClient` shared by every screen, so without the id the
+ * next person to sign in on the same handset would read the previous one's
+ * shifts out of the cache while their own request is still in flight.
+ */
+export function myShiftsQueryKey(input: {
+  userId: string | null;
+  projectList: ProjectItem[];
+  windowFrom: Date;
+  daysAhead: number;
+}): Array<string | number> {
+  return [
+    "oncall",
+    "my-shifts",
+    input.userId ?? "anonymous",
+    projectListKey(input.projectList),
+    input.windowFrom.toISOString(),
+    input.daysAhead,
+  ];
 }
 
 /**
@@ -65,6 +108,7 @@ export function useMyShifts(
   options: UseMyShiftsOptions = {},
 ): UseMyShiftsResult {
   const { projectList } = useProject();
+  const currentUserId: string | null = useCurrentUserId();
   const daysAhead: number = options.daysAhead ?? DEFAULT_DAYS_AHEAD;
   const window: { from: Date; to: Date } = computeMyShiftsWindow(
     options.now ?? Date.now(),
@@ -72,15 +116,15 @@ export function useMyShifts(
   );
 
   const query: UseQueryResult<MyOnCallShiftsResponse, Error> = useQuery({
-    queryKey: [
-      "oncall",
-      "my-shifts",
-      projectListKey(projectList),
-      window.from.toISOString(),
+    queryKey: myShiftsQueryKey({
+      userId: currentUserId,
+      projectList,
+      windowFrom: window.from,
       daysAhead,
-    ],
+    }),
     enabled: projectList.length > 0,
     staleTime: ONE_MINUTE_MILLISECONDS,
+    gcTime: MY_SHIFTS_GC_TIME_MILLISECONDS,
     retry: (failureCount: number, error: Error): boolean => {
       if (isRouteMissingError(error)) {
         return false;

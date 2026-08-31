@@ -75,12 +75,25 @@ export interface CalendarHeaderOptions extends CalendarNameOptions {
   notes?: Array<string> | undefined;
 }
 
+/*
+ * The policy-variant shifts of a feed, bucketed by schedule id and sorted
+ * inside each bucket. See buildVariantIndex.
+ */
+export type PolicyVariantIndex = Map<string, Array<MaterializedShift>>;
+
 export interface ShiftEventContext {
   kind: OnCallCalendarFeedKind;
   // Dashboard base URL including the /dashboard segment, no trailing slash needed.
   dashboardUrl: string;
   // The subscriber's own zone (personal feed); used for the "your zone" line.
   viewerTimezone?: string | undefined;
+  /*
+   * Pre-built policy-variant index for the mirror lines (see
+   * buildVariantIndex). `null` means "built, and the feed has no variants";
+   * `undefined` means "not built" and falls back to scanning whatever shift
+   * list the caller passes to buildDescription / shiftToEvent.
+   */
+  variantIndex?: PolicyVariantIndex | null | undefined;
 }
 
 export interface CoverageEnvelopeInput {
@@ -141,6 +154,16 @@ export interface WindowShrinkResult {
 
 export interface FeedRenderInput extends ShiftEventContext {
   shifts: Array<MaterializedShift>;
+  /*
+   * Every shift of the candidate schedules, BEFORE any per-user filtering.
+   * Only the shifts in `shifts` become VEVENTs; these are the extra context
+   * an event's DESCRIPTION may need to explain itself. The personal feed
+   * keeps only the subscriber's own shifts, so without this a policy-scoped
+   * override that hands one of the schedule's policies to somebody else would
+   * be invisible on the rostered user's own event — it would claim to page
+   * them through a policy that pages the substitute. Defaults to `shifts`.
+   */
+  contextShifts?: Array<MaterializedShift> | undefined;
   scheduleName?: string | undefined;
   projectName?: string | undefined;
   filterScheduleName?: string | undefined;
@@ -463,7 +486,11 @@ export default class OnCallCalendarFeedUtil {
     const distinctPolicies: Array<MaterializedShiftPolicy> =
       OnCallCalendarFeedUtil.getDistinctPolicies(shift.policies);
 
-    if (shift.policies.length === 0) {
+    // A variant pages through ONE policy, not the schedule's whole attachment set.
+    const pagingPolicies: Array<MaterializedShiftPolicy> =
+      OnCallCalendarFeedUtil.getPagingPolicies(shift);
+
+    if (pagingPolicies.length === 0) {
       lines.push(OnCallCalendarFeedUtil.NO_POLICY_LINE);
     } else {
       const label: string =
@@ -471,7 +498,7 @@ export default class OnCallCalendarFeedUtil {
           ? "Pages you via"
           : "Pages via";
       lines.push(
-        `${label}: ${OnCallCalendarFeedUtil.describePolicies(shift.policies)}`,
+        `${label}: ${OnCallCalendarFeedUtil.describePolicies(pagingPolicies)}`,
       );
     }
 
@@ -501,15 +528,29 @@ export default class OnCallCalendarFeedUtil {
           ? `For ${shift.policyVariantOf.policyName} you are paged instead of ${insteadOf} because of a policy-specific override.`
           : `For ${shift.policyVariantOf.policyName}, ${userName} is paged instead of ${insteadOf} because of a policy-specific override.`,
       );
-    } else if (allShifts) {
-      lines.push(
-        ...OnCallCalendarFeedUtil.buildVariantMirrorLines(
-          shift,
-          allShifts,
-          kind,
-          scheduleZone,
-        ),
-      );
+    } else {
+      /*
+       * A pre-built index (every render builds one) beats re-scanning the
+       * whole shift array for every shift, which is quadratic at feed sizes
+       * near MAX_EVENTS.
+       */
+      const variantIndex: PolicyVariantIndex | null =
+        context.variantIndex !== undefined
+          ? context.variantIndex
+          : allShifts
+            ? OnCallCalendarFeedUtil.buildVariantIndex(allShifts)
+            : null;
+
+      if (variantIndex) {
+        lines.push(
+          ...OnCallCalendarFeedUtil.buildVariantMirrorLines(
+            shift,
+            variantIndex,
+            kind,
+            scheduleZone,
+          ),
+        );
+      }
     }
 
     if (shift.isPast) {
@@ -562,16 +603,30 @@ export default class OnCallCalendarFeedUtil {
     };
   }
 
-  // One VEVENT per shift, in deterministic (start, schedule, key) order.
+  /*
+   * One VEVENT per shift, in deterministic (start, schedule, key) order.
+   *
+   * `contextShifts` are shifts that do NOT become events but may explain the
+   * ones that do (the personal feed's pre-filter list); it defaults to the
+   * rendered shifts.
+   */
   public static shiftsToEvents(
     shifts: Array<MaterializedShift>,
     context: ShiftEventContext,
+    contextShifts?: Array<MaterializedShift> | undefined,
   ): Array<ICalendarEvent> {
     const sorted: Array<MaterializedShift> =
       MaterializedShiftUtil.sortByStart(shifts);
 
+    const eventContext: ShiftEventContext = {
+      ...context,
+      variantIndex: OnCallCalendarFeedUtil.buildVariantIndex(
+        contextShifts ?? sorted,
+      ),
+    };
+
     return sorted.map((shift: MaterializedShift) => {
-      return OnCallCalendarFeedUtil.shiftToEvent(shift, context, sorted);
+      return OnCallCalendarFeedUtil.shiftToEvent(shift, eventContext);
     });
   }
 
@@ -896,7 +951,11 @@ export default class OnCallCalendarFeedUtil {
     };
 
     const events: Array<ICalendarEvent> = [
-      ...OnCallCalendarFeedUtil.shiftsToEvents(input.shifts, context),
+      ...OnCallCalendarFeedUtil.shiftsToEvents(
+        input.shifts,
+        context,
+        input.contextShifts,
+      ),
       ...(input.gapEvents ?? []),
     ].sort((a: ICalendarEvent, b: ICalendarEvent) => {
       const byStart: number = a.start.getTime() - b.start.getTime();
@@ -1133,23 +1192,52 @@ export default class OnCallCalendarFeedUtil {
     return lines;
   }
 
-  // Mirror lines on a global shift for every policy variant that replaces it.
+  /*
+   * Mirror lines on a base shift for every policy variant that takes part of
+   * it over.
+   *
+   * Matching is (same schedule) + (time overlap) + (different person). The
+   * variant's own `policyVariantOf.globalUserId` is deliberately NOT required
+   * to equal this shift's user: the materializer records only the FIRST
+   * overlapping base user, so a variant spanning a handover would otherwise
+   * inform the first person and leave the second — whose shift the variant
+   * also takes over — reading "Pages you via <policy>" for a window in which
+   * somebody else is paged for it.
+   *
+   * The quoted window is clipped to the overlap so the sentence names exactly
+   * the part of THIS shift that is taken over.
+   */
   private static buildVariantMirrorLines(
     shift: MaterializedShift,
-    allShifts: Array<MaterializedShift>,
+    variantIndex: PolicyVariantIndex,
     kind: OnCallCalendarFeedKind,
     scheduleZone: string,
   ): Array<string> {
+    const candidates: Array<MaterializedShift> | undefined = variantIndex.get(
+      shift.scheduleId,
+    );
+
+    if (!candidates || candidates.length === 0) {
+      return [];
+    }
+
     const lines: Array<string> = [];
 
-    for (const other of allShifts) {
-      if (
-        !other.policyVariantOf ||
-        other.scheduleId !== shift.scheduleId ||
-        other.policyVariantOf.globalUserId !== shift.userId ||
-        other.start.getTime() >= shift.end.getTime() ||
-        other.end.getTime() <= shift.start.getTime()
-      ) {
+    for (const other of candidates) {
+      if (!other.policyVariantOf || other.userId === shift.userId) {
+        continue;
+      }
+
+      const overlapStart: number = Math.max(
+        other.start.getTime(),
+        shift.start.getTime(),
+      );
+      const overlapEnd: number = Math.min(
+        other.end.getTime(),
+        shift.end.getTime(),
+      );
+
+      if (overlapStart >= overlapEnd) {
         continue;
       }
 
@@ -1158,13 +1246,96 @@ export default class OnCallCalendarFeedUtil {
           other.userName,
           kind,
         )} is paged instead from ${OnCallCalendarFeedUtil.formatInZone(
-          other.start,
+          new Date(overlapStart),
           scheduleZone,
-        )} to ${OnCallCalendarFeedUtil.formatInZone(other.end, scheduleZone)}.`,
+        )} to ${OnCallCalendarFeedUtil.formatInZone(
+          new Date(overlapEnd),
+          scheduleZone,
+        )}.`,
       );
     }
 
     return lines;
+  }
+
+  /*
+   * Bucket the policy-variant shifts of a feed by schedule id, sorted inside
+   * each bucket so the DESCRIPTION lines are deterministic (the body cache and
+   * the ETag depend on it). Returns null when there is not a single variant —
+   * the overwhelmingly common case — so the mirror-line pass is skipped
+   * outright instead of scanning every shift for every shift.
+   */
+  public static buildVariantIndex(
+    shifts: Array<MaterializedShift>,
+  ): PolicyVariantIndex | null {
+    let index: PolicyVariantIndex | null = null;
+
+    for (const shift of shifts) {
+      if (!shift.policyVariantOf) {
+        continue;
+      }
+
+      if (!index) {
+        index = new Map<string, Array<MaterializedShift>>();
+      }
+
+      const bucket: Array<MaterializedShift> | undefined = index.get(
+        shift.scheduleId,
+      );
+
+      if (bucket) {
+        bucket.push(shift);
+      } else {
+        index.set(shift.scheduleId, [shift]);
+      }
+    }
+
+    if (!index) {
+      return null;
+    }
+
+    for (const bucket of index.values()) {
+      bucket.sort((a: MaterializedShift, b: MaterializedShift) => {
+        return (
+          a.start.getTime() - b.start.getTime() ||
+          a.end.getTime() - b.end.getTime() ||
+          OnCallCalendarFeedUtil.compareStrings(
+            a.policyVariantOf!.policyId,
+            b.policyVariantOf!.policyId,
+          ) ||
+          OnCallCalendarFeedUtil.compareStrings(a.userId, b.userId)
+        );
+      });
+    }
+
+    return index;
+  }
+
+  /*
+   * The policies this shift actually pages through. A policy-variant shift
+   * exists for exactly one policy — the schedule's other policies still page
+   * the rostered user — but the materializer stamps every shift of a schedule
+   * with its full attachment set, so listing them all on a variant would
+   * contradict the sentence directly below it. Falls back to the full list if
+   * the variant's policy is somehow not among them, so a shift never claims to
+   * page nobody.
+   */
+  public static getPagingPolicies(
+    shift: MaterializedShift,
+  ): Array<MaterializedShiftPolicy> {
+    if (!shift.policyVariantOf) {
+      return shift.policies;
+    }
+
+    const variantPolicyId: string = shift.policyVariantOf.policyId;
+
+    const scoped: Array<MaterializedShiftPolicy> = shift.policies.filter(
+      (policy: MaterializedShiftPolicy) => {
+        return policy.policyId === variantPolicyId;
+      },
+    );
+
+    return scoped.length > 0 ? scoped : shift.policies;
   }
 
   private static formatInZones(

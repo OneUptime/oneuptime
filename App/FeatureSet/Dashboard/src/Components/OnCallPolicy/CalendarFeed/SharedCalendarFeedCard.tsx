@@ -1,4 +1,7 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import CalendarFeedPlanGate, {
+  isCalendarFeedAccessibleOnCurrentPlan,
+} from "./CalendarFeedPlanGate";
 import { FeedStatus } from "./CalendarFeedTypes";
 import {
   COVERAGE_GAPS_DESCRIPTION,
@@ -8,10 +11,13 @@ import {
   PROJECT_FEED_ROTATE_PATH,
   REGENERATE_WARNING_COPY,
   SHARED_LINK_OWNERSHIP_COPY,
+  SHARED_PREVIOUS_LINK_COPY,
   getScheduleFeedCurrentPath,
   getScheduleFeedPublishPath,
   getScheduleFeedRotatePath,
+  translateInterpolated,
 } from "./CalendarFeedUtil";
+import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
 import FeedStatusLine from "./FeedStatusLine";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
@@ -240,6 +246,16 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Below the Growth plan the server renders the shared feed empty
+   * (decision 1.3) and refuses the settings write with a 402, so publishing
+   * here would hand the team a link that can never show a shift. The gate
+   * takes the Publish button's place and says why.
+   */
+  const isOnPlan: boolean = isCalendarFeedAccessibleOnCurrentPlan();
+
+  const planGate: ReactElement = <CalendarFeedPlanGate idPrefix={idPrefix} />;
+
+  /*
    * `undefined` means the schedule has not loaded yet - no warning, rather
    * than a warning that flashes and vanishes. `null` or "" is a legacy
    * schedule without a timezone, which is the case worth flagging.
@@ -312,15 +328,25 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!status) {
-    body = (
+    /*
+     * On a below-plan project the status read itself is refused with a 402
+     * (the model is Growth-gated for read too), so the failure IS the plan.
+     * Show the gate and its billing link rather than relaying the server's
+     * sentence with nothing to act on.
+     */
+    body = isOnPlan ? (
       <ErrorMessage
         message={error || "Could not load the shared calendar link."}
       />
+    ) : (
+      planGate
     );
   } else if (!status.exists) {
     let publishControl: ReactElement;
 
-    if (createGate.isAllowed) {
+    if (!isOnPlan) {
+      publishControl = planGate;
+    } else if (createGate.isAllowed) {
       publishControl = (
         <Button
           title={
@@ -378,6 +404,15 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
               : "No project-wide link has been published yet. Once published, anyone with the link sees every shift on every schedule in this project.",
           )}
         </div>
+        {/*
+         * The server sends these even with no feed, and they say the link will
+         * be unreachable or unencrypted - worth knowing before publishing one.
+         */}
+        <FeedDeploymentWarnings
+          hostWarning={status.hostWarning}
+          protocolWarning={status.protocolWarning}
+          idPrefix={idPrefix}
+        />
         {publishControl}
       </div>
     );
@@ -385,6 +420,8 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     body = (
       <div className="space-y-4" data-testid={`${idPrefix}-active`}>
         {error && <ErrorMessage message={error} />}
+
+        {planGate}
 
         {status.needsRegeneration && (
           <Alert
@@ -428,11 +465,11 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-500"
             data-testid={`${idPrefix}-previous-link`}
           >
-            {translateString("The previous link keeps working until")}{" "}
-            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              OneUptimeDate.fromString(status.previousTokenExpiresAt),
-            )}
-            .
+            {translateInterpolated(translateString, SHARED_PREVIOUS_LINK_COPY, {
+              date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                OneUptimeDate.fromString(status.previousTokenExpiresAt),
+              ),
+            })}
           </div>
         )}
 
@@ -476,7 +513,7 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
         {body}
       </Card>
 
-      {status && status.exists && status.feedId && (
+      {status && status.exists && status.feedId && isOnPlan && (
         <CardModelDetail<SharedFeedModel>
           name="Shared Calendar Feed > Settings"
           cardProps={{

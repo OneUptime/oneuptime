@@ -2,6 +2,7 @@ import {
   DisableOnCallCalendarFeed,
   Host,
   HttpProtocol,
+  ProvisionSsl,
   TrustedProxyHops,
 } from "../EnvironmentConfig";
 import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
@@ -9,6 +10,7 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallCalendarFeedRateLimit from "../Middleware/OnCallCalendarFeedRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import OnCallDutyPolicyScheduleCalendarFeedService from "../Services/OnCallDutyPolicyScheduleCalendarFeedService";
+import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import ProjectOnCallCalendarFeedService from "../Services/ProjectOnCallCalendarFeedService";
 import UserOnCallCalendarFeedService from "../Services/UserOnCallCalendarFeedService";
 import Express, {
@@ -35,6 +37,7 @@ import OnCallCalendarFeedUrls, {
 } from "../Utils/OnCall/OnCallCalendarFeedUrls";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
+import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallCalendarFeed from "../../Models/DatabaseModels/UserOnCallCalendarFeed";
@@ -51,6 +54,8 @@ import ObjectID from "../../Types/ObjectID";
 import {
   DEFAULT_FUTURE_DAYS,
   DEFAULT_PAST_DAYS,
+  MAX_FUTURE_DAYS,
+  MAX_PAST_DAYS,
 } from "../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import MaterializedShiftUtil from "../../Types/OnCallDutyPolicy/MaterializedShift";
 import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
@@ -101,6 +106,21 @@ export const SCHEDULE_FEED_ROUTE: string =
   "/on-call-calendar/schedule/:token/schedule.ics";
 export const PROJECT_FEED_ROUTE: string =
   "/on-call-calendar/project/:token/project.ics";
+
+/*
+ * Anything else under a token-bearing prefix: a link pasted without the
+ * trailing `shifts.ics`, a typo in the filename, a client or a scanner
+ * sending POST/PUT/DELETE to a feed URL. Without these the request falls
+ * through to the application's own catch-alls, which answer
+ * `Page not found - ${req.url}` -- the plaintext token, at ERROR level, in
+ * stdout, in the master-admin support bundle's recent-log buffer and in the
+ * OTel log exporter. The token is the credential; it must never be logged.
+ */
+export const PERSONAL_FEED_FALLBACK_ROUTE: string = "/on-call-calendar/user/*";
+export const SCHEDULE_FEED_FALLBACK_ROUTE: string =
+  "/on-call-calendar/schedule/*";
+export const PROJECT_FEED_FALLBACK_ROUTE: string =
+  "/on-call-calendar/project/*";
 
 export const FEED_CURRENT_ROUTE: string = "/on-call-calendar/feed/current";
 export const FEED_ROTATE_ROUTE: string = "/on-call-calendar/feed/rotate";
@@ -221,6 +241,13 @@ class UnsupportedMediaTypeException extends Exception {
   }
 }
 
+/* 405, same reasoning as the 415 above. */
+class MethodNotAllowedException extends Exception {
+  public constructor(message: string) {
+    super(405 as ExceptionCode, message);
+  }
+}
+
 // -- Public-route middleware ----------------------------------------------
 
 /*
@@ -303,6 +330,18 @@ export function resolveTrustedForwardedProto(
  * "s" is corrected once instead of served in the clear forever. The target
  * is built from HOST, never from the request's own Host header (an open
  * redirect otherwise). Nginx only does this itself when billing is on.
+ *
+ * It only fires when OUR nginx terminates TLS (PROVISION_SSL=true). Every
+ * proxying location in Nginx/default.conf.template sets
+ * `X-Forwarded-Proto $scheme`, REPLACING whatever an outer proxy sent, so on
+ * an install that terminates TLS on an external reverse proxy
+ * (PROVISION_SSL=false with HTTP_PROTOCOL=https -- the topology
+ * config.example.env documents) nginx always reports `http` even though the
+ * client spoke https. Redirecting there would 301 to the very URL the client
+ * just asked for: an endless loop, ERR_TOO_MANY_REDIRECTS in a browser and a
+ * dead subscription in every calendar client. Serving the feed is the right
+ * answer; the settings page still shows `protocolWarning` when the install
+ * really is plain http.
  */
 export function schemeGuardMiddleware(
   req: ExpressRequest,
@@ -310,6 +349,10 @@ export function schemeGuardMiddleware(
   next: NextFunction,
 ): void {
   if (HttpProtocol !== Protocol.HTTPS) {
+    return next();
+  }
+
+  if (!ProvisionSsl) {
     return next();
   }
 
@@ -355,6 +398,43 @@ function sendUnavailable(
       "The calendar feed cannot be rendered right now. Please try again later.",
     ),
   );
+}
+
+/*
+ * The answer to every near miss on a token-bearing path. It says nothing
+ * about the URL it was asked for: the message is a constant, so neither the
+ * response body nor the error log line sendErrorResponse writes can carry
+ * the token. OPTIONS is answered the way OPTIONS should be; any other wrong
+ * method gets 405 + Allow (a client can fix that); a wrong or missing
+ * filename gets the same generic 404 an unknown token gets.
+ */
+export const FEED_ALLOWED_METHODS: string = "GET, HEAD, OPTIONS";
+
+export function feedFallbackHandler(
+  req: ExpressRequest,
+  res: ExpressResponse,
+): void {
+  const method: string = (req.method || "GET").toUpperCase();
+
+  if (method === "OPTIONS") {
+    res.set("Allow", FEED_ALLOWED_METHODS);
+
+    return Response.sendEmptySuccessResponse(req, res);
+  }
+
+  if (method !== "GET" && method !== "HEAD") {
+    res.set("Allow", FEED_ALLOWED_METHODS);
+
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new MethodNotAllowedException(
+        "Calendar feeds are read with GET on the full feed URL.",
+      ),
+    );
+  }
+
+  return sendNotFound(req, res);
 }
 
 /*
@@ -549,6 +629,17 @@ export function assertJsonRequest(req: ExpressRequest): void {
 /*
  * Parse ?from / ?to for /my-shifts. Defaults now -> +30 d; the span is
  * capped at 120 d by moving `to` in, never by refusing the request.
+ *
+ * The window is then clamped into the same range the feeds themselves can
+ * address -- [now - MAX_PAST_DAYS, now + MAX_FUTURE_DAYS]. Without that,
+ * `?from=2500-01-01` was accepted: every distinct day-aligned window is a
+ * fresh schedule-cache entry AND a fresh LayerUtil expansion that walks one
+ * rotation period at a time from the layer's start to the window, which for a
+ * far-future start means the full 200,000-iteration cap per restricted layer
+ * -- seconds of synchronous CPU per request, holding one of the four
+ * per-process render slots the public feeds share. Clamping keeps a session
+ * request no more expensive than a feed poll and keeps it on the same cache
+ * keys.
  */
 export function readMyShiftsWindow(
   req: ExpressRequest,
@@ -585,10 +676,39 @@ export function readMyShiftsWindow(
     throw new BadDataException("to must be after from.");
   }
 
-  const latest: Date = OneUptimeDate.addRemoveDays(from, MY_SHIFTS_MAX_DAYS);
+  /*
+   * The addressable range. It is 240 days wide, so it always leaves room for
+   * a non-empty window whatever the caller asked for.
+   */
+  const earliestFrom: Date = OneUptimeDate.addRemoveDays(now, -MAX_PAST_DAYS);
+  const latestTo: Date = OneUptimeDate.addRemoveDays(now, MAX_FUTURE_DAYS);
+  const latestFrom: Date = OneUptimeDate.addRemoveDays(latestTo, -1);
 
-  if (to.getTime() > latest.getTime()) {
-    to = latest;
+  if (from.getTime() < earliestFrom.getTime()) {
+    from = earliestFrom;
+  }
+
+  if (from.getTime() > latestFrom.getTime()) {
+    from = latestFrom;
+  }
+
+  /*
+   * `to` was validated against the RAW `from`; once `from` has moved, a `to`
+   * that now lies at or before it is answered with the default span rather
+   * than an empty window.
+   */
+  if (to.getTime() <= from.getTime()) {
+    to = OneUptimeDate.addRemoveDays(from, MY_SHIFTS_DEFAULT_DAYS);
+  }
+
+  const spanCap: Date = OneUptimeDate.addRemoveDays(from, MY_SHIFTS_MAX_DAYS);
+
+  if (to.getTime() > spanCap.getTime()) {
+    to = spanCap;
+  }
+
+  if (to.getTime() > latestTo.getTime()) {
+    to = latestTo;
   }
 
   return { from, to };
@@ -646,6 +766,14 @@ export function buildAbsentFeedStatus(
  * token that fails to decrypt or does not hash to tokenHash means the
  * ENCRYPTION_SECRET changed under the row: the URL cannot be shown and the
  * UI offers "Regenerate link".
+ *
+ * The hash the decrypted token is checked against is `verifiedTokenHash` --
+ * the one readTokenForStatus read alongside the token -- falling back to the
+ * row's own `tokenHash`. The status rows the routes read do NOT carry
+ * tokenHash (STATUS_SELECT cannot select it: the column's read access list is
+ * empty, so the non-root schedule/project reads would be refused), and
+ * requiring it here is what made every /current and /publish answer
+ * `needsRegeneration: true, urls: null` for a perfectly good feed.
  */
 export function buildFeedStatus(data: {
   kind: OnCallCalendarFeedKind;
@@ -653,8 +781,12 @@ export function buildFeedStatus(data: {
   plaintextToken?: string | undefined;
   decryptedToken?: string | undefined;
   decryptFailed?: boolean | undefined;
+  verifiedTokenHash?: string | undefined;
 }): FeedStatus {
   const feed: FeedRowLike = data.feed;
+
+  const expectedTokenHash: string | undefined =
+    feed.tokenHash || data.verifiedTokenHash;
 
   let token: string | null = null;
   let needsRegeneration: boolean = false;
@@ -669,10 +801,10 @@ export function buildFeedStatus(data: {
   } else if (
     data.decryptedToken &&
     CalendarFeedToken.isValidShape(data.decryptedToken) &&
-    feed.tokenHash &&
+    expectedTokenHash &&
     CalendarFeedToken.isHashEqual(
       CalendarFeedToken.hash(data.decryptedToken),
-      feed.tokenHash,
+      expectedTokenHash,
     )
   ) {
     token = data.decryptedToken;
@@ -731,7 +863,12 @@ export function buildFeedStatus(data: {
 async function readTokenForStatus(data: {
   kind: OnCallCalendarFeedKind;
   id: ObjectID;
-}): Promise<{ decryptedToken?: string | undefined; decryptFailed: boolean }> {
+}): Promise<{
+  decryptedToken?: string | undefined;
+  /* The tokenHash this read verified the token against. */
+  verifiedTokenHash?: string | undefined;
+  decryptFailed: boolean;
+}> {
   try {
     let row: FeedRowLike | null = null;
 
@@ -770,7 +907,11 @@ async function readTokenForStatus(data: {
       return { decryptFailed: true };
     }
 
-    return { decryptedToken: row.token, decryptFailed: false };
+    return {
+      decryptedToken: row.token,
+      verifiedTokenHash: row.tokenHash,
+      decryptFailed: false,
+    };
   } catch (err) {
     logger.warn(
       `OnCallCalendarAPI: could not decrypt the ${data.kind} calendar feed token for feed ${data.id.toString()}; the link needs regenerating.`,
@@ -803,6 +944,7 @@ async function buildStatusForRow(data: {
 
   const decrypted: {
     decryptedToken?: string | undefined;
+    verifiedTokenHash?: string | undefined;
     decryptFailed: boolean;
   } = await readTokenForStatus({ kind: data.kind, id: data.feed.id });
 
@@ -810,6 +952,7 @@ async function buildStatusForRow(data: {
     kind: data.kind,
     feed: data.feed as FeedRowLike,
     decryptedToken: decrypted.decryptedToken,
+    verifiedTokenHash: decrypted.verifiedTokenHash,
     decryptFailed: decrypted.decryptFailed,
   });
 }
@@ -1130,13 +1273,16 @@ async function serveFeed(data: {
   /*
    * Only a real, current, enabled feed is worth bookkeeping. An empty
    * calendar served for a rotated-out link or a disabled feed is not a
-   * fetch the settings page should count.
+   * fetch the settings page should count -- the two conditions above say so
+   * exactly. Everything else that went out as a 200 IS a fetch, including the
+   * empty calendars the renderer produces for "you are not on a schedule yet"
+   * or "this project is below plan": those are precisely the users staring at
+   * an empty calendar and asking "is my calendar app even reaching the
+   * server?", which lastFetchedAt/lastFetchedClient exist to answer. Only an
+   * Unavailable outcome is skipped, and that one already returned above
+   * without sending a body.
    */
-  if (
-    !data.lookup.viaPreviousToken &&
-    data.lookup.feed.isEnabled !== false &&
-    outcome.status === FeedRenderStatus.Rendered
-  ) {
+  if (!data.lookup.viaPreviousToken && data.lookup.feed.isEnabled !== false) {
     recordFetch({
       kind: data.kind,
       feed: data.lookup.feed,
@@ -1317,6 +1463,15 @@ router.get(
     }
   },
 );
+
+/*
+ * Registered AFTER the three exact GET routes, so those still win, and
+ * before the session routes, whose paths (`feed/`, `schedule-feed/`,
+ * `project-feed/`, `my-shifts`) share no prefix with these.
+ */
+router.all(PERSONAL_FEED_FALLBACK_ROUTE, feedFallbackHandler);
+router.all(SCHEDULE_FEED_FALLBACK_ROUTE, feedFallbackHandler);
+router.all(PROJECT_FEED_FALLBACK_ROUTE, feedFallbackHandler);
 
 // -- Session routes: personal feed -----------------------------------------
 
@@ -1631,6 +1786,28 @@ router.post(
           props,
         });
       } else {
+        /*
+         * The create alone is not enough of a gate. Its permission check
+         * (CreatePermission) looks at table and column permissions and at
+         * ownership; @CanAccessIfCanReadOn -- the label scoping that decides
+         * WHICH schedules an editor may touch -- is only applied to query
+         * operations (read/update/delete), and the service's own check runs
+         * as root. So a label-restricted editor who knows a schedule's id
+         * could publish a feed for a schedule outside their labels. Reading
+         * the schedule with the caller's props first applies exactly the
+         * scoping /current and /rotate already get.
+         */
+        const schedule: OnCallDutyPolicySchedule | null =
+          await OnCallDutyPolicyScheduleService.findOneBy({
+            query: { _id: scheduleId, projectId },
+            select: { _id: true },
+            props,
+          });
+
+        if (!schedule) {
+          throw new NotFoundException("On-call schedule not found.");
+        }
+
         const model: OnCallDutyPolicyScheduleCalendarFeed =
           new OnCallDutyPolicyScheduleCalendarFeed();
         model.projectId = projectId;
@@ -1964,7 +2141,20 @@ router.get(
       const now: Date = OneUptimeDate.getCurrentDate();
       const window: { from: Date; to: Date } = readMyShiftsWindow(req, now);
 
-      if (!OnCallCalendarFeedCache.tryAcquireRenderSlot()) {
+      /*
+       * Session renders leave slots free for the public feeds. /my-shifts is
+       * called by a logged-in client that can retry and that falls back to
+       * its roster list; a calendar client that gets a 503 shows a stale or
+       * empty calendar to somebody who may be on call. With the default
+       * concurrency of 4 this route may hold at most 2 slots at once.
+       */
+      if (
+        !OnCallCalendarFeedCache.tryAcquireRenderSlot({
+          leaveFreeSlots: Math.floor(
+            OnCallCalendarFeedCache.getRenderConcurrency() / 2,
+          ),
+        })
+      ) {
         return sendUnavailable(req, res, 60);
       }
 

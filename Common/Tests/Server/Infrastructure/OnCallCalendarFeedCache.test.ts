@@ -47,6 +47,9 @@ import OnCallCalendarFeedCache, {
   DEFAULT_RENDER_CONCURRENCY,
   LAST_GOOD_TTL_SECONDS,
   MAX_CACHED_BODY_BYTES,
+  MAX_CACHED_LAST_GOOD_BYTES,
+  MAX_CACHED_SEGMENT_BYTES,
+  MEMORY_MAX_BYTES,
   ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE,
   OnCallCalendarFeedCacheScope,
 } from "../../../Server/Infrastructure/OnCallCalendarFeedCache";
@@ -402,6 +405,225 @@ describe("OnCallCalendarFeedCache", () => {
         });
 
       expect(cached.at).toBe("2026-09-01T00:00:00.000Z");
+    });
+  });
+
+  // -- Batched schedule segments -----------------------------------------
+
+  /*
+   * A feed render reads EVERY schedule it depends on. Reading them one at a
+   * time meant one resolver call per schedule -- seven queries each, the same
+   * user and project rows re-read every time -- so the batch exists to make
+   * one call for every schedule that missed.
+   */
+  describe("getOrRenderScheduleSegmentsBatch", () => {
+    function segmentsFor(ids: Array<string>): Map<string, { id: string }> {
+      const out: Map<string, { id: string }> = new Map();
+
+      for (const id of ids) {
+        out.set(id, { id });
+      }
+
+      return out;
+    }
+
+    it("renders every miss in ONE call and caches each under its own key", async () => {
+      const renderMissing: MockedFn = jest.fn(
+        async (missing: Array<{ scheduleId: string; key: string }>) => {
+          return segmentsFor(
+            missing.map((entry: { scheduleId: string }) => {
+              return entry.scheduleId;
+            }),
+          );
+        },
+      );
+
+      const first: Map<string, { id: string }> =
+        (await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+          entries: [
+            { scheduleId: SCHEDULE_X, key: "v1" },
+            { scheduleId: SCHEDULE_Y, key: "v1" },
+          ],
+          ttlSeconds: 3600,
+          renderMissing: renderMissing as never,
+        })) as Map<string, { id: string }>;
+
+      expect(renderMissing).toHaveBeenCalledTimes(1);
+      expect(
+        (renderMissing.mock.calls[0]?.[0] as Array<{ scheduleId: string }>).map(
+          (entry: { scheduleId: string }) => {
+            return entry.scheduleId;
+          },
+        ),
+      ).toEqual([SCHEDULE_X, SCHEDULE_Y]);
+      expect(first.get(SCHEDULE_X)).toEqual({ id: SCHEDULE_X });
+      expect(first.get(SCHEDULE_Y)).toEqual({ id: SCHEDULE_Y });
+      expect(redis.keysWithPrefix("seg:")).toHaveLength(2);
+
+      /* Both are hits now, so renderMissing is not called again at all. */
+      const second: Map<string, { id: string }> =
+        (await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+          entries: [
+            { scheduleId: SCHEDULE_X, key: "v1" },
+            { scheduleId: SCHEDULE_Y, key: "v1" },
+          ],
+          ttlSeconds: 3600,
+          renderMissing: renderMissing as never,
+        })) as Map<string, { id: string }>;
+
+      expect(renderMissing).toHaveBeenCalledTimes(1);
+      expect(second.get(SCHEDULE_Y)).toEqual({ id: SCHEDULE_Y });
+    });
+
+    it("asks only for the schedules that missed", async () => {
+      const renderMissing: MockedFn = jest.fn(
+        async (missing: Array<{ scheduleId: string; key: string }>) => {
+          return segmentsFor(
+            missing.map((entry: { scheduleId: string }) => {
+              return entry.scheduleId;
+            }),
+          );
+        },
+      );
+
+      await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+        entries: [{ scheduleId: SCHEDULE_X, key: "v1" }],
+        ttlSeconds: 3600,
+        renderMissing: renderMissing as never,
+      });
+
+      await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+        entries: [
+          { scheduleId: SCHEDULE_X, key: "v1" },
+          { scheduleId: SCHEDULE_Y, key: "v1" },
+        ],
+        ttlSeconds: 3600,
+        renderMissing: renderMissing as never,
+      });
+
+      expect(
+        (renderMissing.mock.calls[1]?.[0] as Array<{ scheduleId: string }>).map(
+          (entry: { scheduleId: string }) => {
+            return entry.scheduleId;
+          },
+        ),
+      ).toEqual([SCHEDULE_Y]);
+    });
+
+    it("a repeated schedule id is one read and one render", async () => {
+      const renderMissing: MockedFn = jest.fn(
+        async (missing: Array<{ scheduleId: string }>) => {
+          return segmentsFor(
+            missing.map((entry: { scheduleId: string }) => {
+              return entry.scheduleId;
+            }),
+          );
+        },
+      );
+
+      await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+        entries: [
+          { scheduleId: SCHEDULE_X, key: "v1" },
+          { scheduleId: SCHEDULE_X, key: "v1" },
+        ],
+        ttlSeconds: 3600,
+        renderMissing: renderMissing as never,
+      });
+
+      expect(renderMissing.mock.calls[0]?.[0] as Array<unknown>).toHaveLength(
+        1,
+      );
+    });
+
+    it("joins a render another caller already has in flight", async () => {
+      let release: (value: unknown) => void = () => {};
+      let calls: number = 0;
+
+      const slow: MockedFn = jest.fn(
+        async (missing: Array<{ scheduleId: string }>) => {
+          calls++;
+
+          await new Promise<unknown>((resolve: (value: unknown) => void) => {
+            release = resolve;
+          });
+
+          return segmentsFor(
+            missing.map((entry: { scheduleId: string }) => {
+              return entry.scheduleId;
+            }),
+          );
+        },
+      );
+
+      const read: () => Promise<unknown> = () => {
+        return OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+          entries: [{ scheduleId: SCHEDULE_X, key: "v1" }],
+          ttlSeconds: 3600,
+          renderMissing: slow as never,
+        });
+      };
+
+      const a: Promise<unknown> = read();
+      const b: Promise<unknown> = read();
+
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+
+      release(undefined);
+
+      expect(
+        ((await a) as Map<string, { id: string }>).get(SCHEDULE_X),
+      ).toEqual({ id: SCHEDULE_X });
+      expect(
+        ((await b) as Map<string, { id: string }>).get(SCHEDULE_X),
+      ).toEqual({ id: SCHEDULE_X });
+      expect(calls).toBe(1);
+    });
+
+    it("propagates a failure to every caller and caches nothing", async () => {
+      const failing: MockedFn = jest.fn(async () => {
+        throw new Error("resolver exploded");
+      });
+
+      await expect(
+        OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+          entries: [
+            { scheduleId: SCHEDULE_X, key: "v1" },
+            { scheduleId: SCHEDULE_Y, key: "v1" },
+          ],
+          ttlSeconds: 3600,
+          renderMissing: failing as never,
+        }),
+      ).rejects.toThrow("resolver exploded");
+
+      expect(redis.keysWithPrefix("seg:")).toHaveLength(0);
+    });
+
+    /*
+     * A schedule's segments carry every user's shifts over the window. An
+     * hourly rotation over the widest window is megabytes, and the compose
+     * Redis has no maxmemory: the value is returned to the caller, it is just
+     * not stored.
+     */
+    it("returns but does not store a segment over the size cap", async () => {
+      const huge: MockedFn = jest.fn(async () => {
+        return new Map<string, { blob: string }>([
+          [SCHEDULE_X, { blob: "x".repeat(MAX_CACHED_SEGMENT_BYTES + 1) }],
+        ]);
+      });
+
+      const result: Map<string, { blob: string }> =
+        (await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch({
+          entries: [{ scheduleId: SCHEDULE_X, key: "v1" }],
+          ttlSeconds: 3600,
+          renderMissing: huge as never,
+        })) as Map<string, { blob: string }>;
+
+      expect(result.get(SCHEDULE_X)?.blob).toHaveLength(
+        MAX_CACHED_SEGMENT_BYTES + 1,
+      );
+      expect(redis.keysWithPrefix("seg:")).toHaveLength(0);
     });
   });
 
@@ -858,14 +1080,46 @@ describe("OnCallCalendarFeedCache", () => {
       );
     });
 
-    it("refuses a body over the size cap", async () => {
+    it("refuses a body over its own, larger size cap", async () => {
       expect(
         await OnCallCalendarFeedCache.setLastGood("k", {
           ...body("huge"),
-          body: "x".repeat(MAX_CACHED_BODY_BYTES + 1),
+          body: "x".repeat(MAX_CACHED_LAST_GOOD_BYTES + 1),
         }),
       ).toBe(false);
       expect(await OnCallCalendarFeedCache.getLastGood("k")).toBeNull();
+    });
+
+    /*
+     * Regression: the last-good tier used to share the body cache's 2 MiB
+     * cap. A VEVENT is roughly 0.9 KB, so that cap is crossed at about 2,200
+     * events -- less than half of MAX_EVENTS -- and the feeds that cross it
+     * are the expensive ones, the ones most likely to trip the render cap and
+     * need a stale body. Refusing to keep one meant those feeds answered 503
+     * instead, which is exactly what this tier exists to prevent.
+     */
+    it("keeps a body that the body cache is too small for", async () => {
+      const big: string = "x".repeat(MAX_CACHED_BODY_BYTES + 1);
+
+      expect(MAX_CACHED_LAST_GOOD_BYTES).toBeGreaterThan(MAX_CACHED_BODY_BYTES);
+
+      expect(
+        await OnCallCalendarFeedCache.setBody({
+          key: "k",
+          scope: { projectId: PROJECT_A },
+          value: { ...body("big"), body: big },
+          ttlSeconds: 300,
+        }),
+      ).toBe(false);
+
+      expect(
+        await OnCallCalendarFeedCache.setLastGood("k", {
+          ...body("big"),
+          body: big,
+        }),
+      ).toBe(true);
+
+      expect((await OnCallCalendarFeedCache.getLastGood("k"))?.body).toBe(big);
     });
 
     it("never puts the caller's key into the Redis key", async () => {
@@ -1032,6 +1286,72 @@ describe("OnCallCalendarFeedCache", () => {
       });
     }
 
+    /*
+     * Regression: the in-process tiers were bounded by entry count only (500).
+     * What they hold during an outage is whole calendar bodies and whole
+     * schedule expansions -- megabytes each -- so 500 entries was hundreds of
+     * megabytes of retained strings on the API tier. Nothing reads a fallback
+     * tier once Redis is healthy again, so expired entries were never swept
+     * either: they stayed resident until 500 newer writes pushed them out.
+     */
+    it("bounds the in-process fallback by bytes, not just by entry count", async () => {
+      isConnectedMock.mockReturnValue(false);
+
+      const chunk: string = "x".repeat(4 * 1024 * 1024);
+
+      for (let i: number = 0; i < 12; i++) {
+        await OnCallCalendarFeedCache.setLastGood(`big-${i}`, {
+          ...body("x"),
+          body: chunk,
+        });
+      }
+
+      expect(OnCallCalendarFeedCache.getInProcessBytes()).toBeLessThanOrEqual(
+        MEMORY_MAX_BYTES,
+      );
+
+      /* The newest write survived; the oldest were evicted to make room. */
+      expect(
+        (await OnCallCalendarFeedCache.getLastGood("big-11"))?.body.length,
+      ).toBe(chunk.length);
+      expect(await OnCallCalendarFeedCache.getLastGood("big-0")).toBeNull();
+    });
+
+    it("drops an entry whose TTL has passed instead of holding it for 500 writes", async () => {
+      isConnectedMock.mockReturnValue(false);
+
+      await OnCallCalendarFeedCache.setBody({
+        key: "short",
+        scope,
+        value: body("short"),
+        ttlSeconds: 1,
+      });
+
+      expect(OnCallCalendarFeedCache.getInProcessBytes()).toBeGreaterThan(0);
+
+      const realNow: () => number = Date.now;
+
+      try {
+        Date.now = (): number => {
+          return realNow() + 5000;
+        };
+
+        /* Any write is enough to make the store reclaim what has expired. */
+        await OnCallCalendarFeedCache.setBody({
+          key: "next",
+          scope,
+          value: body("next"),
+          ttlSeconds: 300,
+        });
+
+        expect(
+          await OnCallCalendarFeedCache.getBody({ key: "short", scope }),
+        ).toBeNull();
+      } finally {
+        Date.now = realNow;
+      }
+    });
+
     it("a render that throws still propagates while Redis is down", async () => {
       isConnectedMock.mockReturnValue(false);
 
@@ -1171,6 +1491,56 @@ describe("OnCallCalendarFeedCache", () => {
 
       expect(OnCallCalendarFeedCache.tryAcquireRenderSlot()).toBe(false);
       expect(redis.setCalls).toBe(0);
+    });
+
+    /*
+     * Regression: /my-shifts (a session route whose caller can retry and
+     * whose mobile client falls back to its roster list) used to be able to
+     * take every slot, leaving the public feed routes -- whose callers are
+     * calendar clients that answer a 503 by showing a stale or empty calendar
+     * -- with none.
+     */
+    it("leaveFreeSlots keeps a caller out of the last slots", () => {
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 2 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 2 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 2 }),
+      ).toBe(false);
+
+      /* The reserved slots are still there for a caller that reserves none. */
+      expect(OnCallCalendarFeedCache.tryAcquireRenderSlot()).toBe(true);
+      expect(OnCallCalendarFeedCache.tryAcquireRenderSlot()).toBe(true);
+      expect(OnCallCalendarFeedCache.tryAcquireRenderSlot()).toBe(false);
+    });
+
+    it("leaveFreeSlots can never reserve every slot", () => {
+      OnCallCalendarFeedCache.configure({ renderConcurrency: 1 });
+
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 9 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 9 }),
+      ).toBe(false);
+    });
+
+    it("ignores a negative or fractional reserve", () => {
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: -3 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 1.9 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 1.9 }),
+      ).toBe(true);
+      expect(
+        OnCallCalendarFeedCache.tryAcquireRenderSlot({ leaveFreeSlots: 1.9 }),
+      ).toBe(false);
     });
 
     it("clearInProcessState releases every slot and restores the default cap", () => {

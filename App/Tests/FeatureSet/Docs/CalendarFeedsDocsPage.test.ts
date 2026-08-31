@@ -161,6 +161,7 @@ const onCallGroup: NavGroup = DocsNav.find((item: NavGroup): boolean => {
  */
 const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "On-call · <Schedule>",
+  "` · <Policy>`",
   "<Name> · On-call · <Schedule>",
   "(covering for <Name>)",
   "No coverage · <Schedule>",
@@ -180,6 +181,7 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "Cache-Control: private",
   "X-Robots-Tag: noindex",
   "ENCRYPTION_SECRET",
+  "please-change-this-to-random-value",
   "TRUSTED_PROXY_HOPS",
   "HTTP_PROTOCOL",
   "DISABLE_ON_CALL_CALENDAR_FEED",
@@ -193,8 +195,11 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "worker.enabled: true",
   "location ~ ^/api/on-call-calendar/(user|schedule|project)/",
   "access_log off;",
+  "error_log /dev/null crit;",
+  "proxy_max_temp_file_size 0;",
   "Nginx/default.conf.template",
   "oncall_calendar_render_duration_ms",
+  "WhatsApp",
   "configuration.md#on-call-calendar-feeds",
   "configuration.md#trusted-proxies",
   "/docs/self-hosted/private-network-access",
@@ -539,14 +544,215 @@ describe("Calendar Feeds docs page", () => {
       }
     });
 
-    it("quotes the Nginx access-log exemption that the shipped template contains", () => {
+    it("quotes the Nginx logging exemption that the shipped template contains", () => {
       const template: string = readRepoFile("Nginx/default.conf.template");
       const location: string =
         "location ~ ^/api/on-call-calendar/(user|schedule|project)/";
 
       expect(template).toContain(location);
-      expect(template).toContain("access_log off;");
       expect(english).toContain(location);
+
+      /*
+       * Three directives keep the token out of Nginx's files, and the page
+       * shows all three: the access log line, the error-log lines Nginx writes
+       * when an upstream fetch fails (which quote the same request line), and
+       * the temp-file spill of a large feed, which Nginx announces at warn
+       * level with the URL attached.
+       */
+      for (const directive of [
+        "access_log off;",
+        "error_log /dev/null crit;",
+        "proxy_max_temp_file_size 0;",
+      ]) {
+        expect({ directive, inTemplate: template.includes(directive) }).toEqual(
+          {
+            directive,
+            inTemplate: true,
+          },
+        );
+        expect({ directive, inDocs: english.includes(directive) }).toEqual({
+          directive,
+          inDocs: true,
+        });
+      }
+    });
+
+    it("names every ENCRYPTION_SECRET placeholder the server warns about", () => {
+      /*
+       * The boot warning fires for the repository's own placeholders -- the
+       * "secret" fallback and the value config.example.env ships, which is
+       * what the documented Docker Compose install actually runs with. The
+       * page tells operators the server warns; it has to name the same values,
+       * or a reader whose config.env holds the compose placeholder concludes
+       * the warning is not about them.
+       */
+      const environmentConfig: string = readRepoFile(
+        "Common/Server/EnvironmentConfig.ts",
+      );
+
+      const list: RegExpMatchArray | null = environmentConfig.match(
+        /InsecureEncryptionSecretValues:\s*Array<string>\s*=\s*\[([^\]]*)\]/,
+      );
+
+      expect(list).not.toBeNull();
+
+      const placeholders: Array<string> = Array.from(
+        (list![1] || "").matchAll(/"([^"]+)"/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] || "";
+      });
+
+      expect(placeholders.length).toBeGreaterThan(1);
+      expect(placeholders).toContain(
+        readRepoFile("config.example.env")
+          .match(/^ENCRYPTION_SECRET=(.*)$/m)?.[1]
+          ?.trim(),
+      );
+
+      for (const placeholder of placeholders) {
+        expect({
+          placeholder,
+          inDocs: english.includes(`\`${placeholder}\``),
+        }).toEqual({ placeholder, inDocs: true });
+      }
+    });
+
+    it("credits the refresh hint to the one client that honours it", () => {
+      /*
+       * REFRESH-INTERVAL / X-PUBLISHED-TTL are a suggestion, and classic
+       * Outlook with Update Limit on is the only client that reads it. Apple
+       * Calendar refreshes on the interval the user picks per calendar, which
+       * the table above the paragraph already says; claiming Apple takes the
+       * hint would tell a macOS reader their weekly setting is overridden.
+       */
+      const paragraph: string =
+        english.split("\n").find((line: string): boolean => {
+          return (
+            line.includes("`REFRESH-INTERVAL`") &&
+            line.includes("`X-PUBLISHED-TTL`")
+          );
+        }) || "";
+
+      expect(paragraph).not.toBe("");
+      expect(paragraph).toContain("only classic Outlook takes the hint");
+      expect(paragraph).toContain("**Update Limit**");
+      expect(paragraph).not.toMatch(/Apple Calendar (and|take|takes)/);
+    });
+
+    it("documents the policy suffix the personal feed actually appends", () => {
+      /*
+       * buildSummary appends " · <policy>" to a personal-feed title whenever
+       * the shift carries exactly one distinct policy -- the ordinary
+       * configuration -- so the page cannot describe the title as
+       * `On-call · <Schedule>` alone.
+       */
+      const util: string = readRepoFile(
+        "Common/Types/OnCallDutyPolicy/OnCallCalendarFeedUtil.ts",
+      );
+
+      expect(util).toMatch(
+        /kind === OnCallCalendarFeedKind\.Personal &&\s*distinctPolicies\.length === 1/,
+      );
+      expect(english).toContain(
+        "(with ` · <Policy>` appended when the schedule is attached to exactly one escalation policy)",
+      );
+    });
+
+    it("explains what WhatsApp can and cannot carry for the two events", () => {
+      /*
+       * buildWhatsAppMessage rides Meta's already-approved on-call template
+       * for the reminder and returns undefined for the reassignment notice,
+       * which makes UserNotificationSettingService skip the channel. The page
+       * otherwise says a reminder goes out "through the delivery methods you
+       * chose", so a reader who ticked WhatsApp for the reassignment event
+       * would wait for a message that is never sent. The approved template
+       * also carries no start time and WhatsApp ships it in English only.
+       */
+      const runner: string = readRepoFile(
+        "Common/Server/Utils/OnCall/OnCallShiftReminderRunner.ts",
+      );
+
+      // The reminder rides the approved template; anything else gets undefined.
+      expect(runner).toMatch(
+        /buildWhatsAppMessage[\s\S]*?message\.eventType !==\s*NotificationSettingEventType\.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS[\s\S]*?return undefined;/,
+      );
+      expect(runner).toMatch(
+        /buildWhatsAppMessage[\s\S]*?templateKey:\s*WhatsAppTemplateIds\.OnCallUserIsNextNotification/,
+      );
+
+      const templates: string = readRepoFile(
+        "Common/Types/WhatsApp/WhatsAppTemplates.ts",
+      );
+
+      const body: string =
+        templates.match(
+          /\[WhatsAppTemplateIds\.OnCallUserIsNextNotification\]:\s*`([^`]*)`/,
+        )?.[1] || "";
+
+      expect(body).not.toBe("");
+
+      /*
+       * Meta approves the copy, not just the variables, so the template's
+       * placeholders are the whole of what a reminder can say. They name the
+       * schedule and the policy and nothing else -- there is no slot the
+       * start time could go in -- so the docs must not promise one.
+       */
+      const placeholders: Array<string> = Array.from(
+        body.matchAll(/\{\{([a-z_]+)\}\}/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] || "";
+      });
+
+      expect(placeholders.sort()).toEqual([
+        "on_call_policy_name",
+        "schedule_link",
+        "schedule_name",
+      ]);
+
+      const paragraph: string =
+        english.split("\n").find((line: string): boolean => {
+          return line.startsWith("- On WhatsApp");
+        }) || "";
+
+      expect(paragraph).not.toBe("");
+      expect(paragraph).toContain("does not carry the start time");
+      expect(paragraph).toContain("only ships in English");
+      expect(paragraph).toContain(
+        "Reassignment notices have no approved WhatsApp template",
+      );
+    });
+
+    it("documents the overrides the member-leave cleanup deletes", () => {
+      /*
+       * The cleanup deletes the leaver's not-yet-ended overrides on BOTH
+       * sides -- the person being covered and the substitute -- which changes
+       * who gets paged and which shifts mobile's /my-shifts still lists. The
+       * page describes the cleanup, so it has to name that step too.
+       */
+      const service: string = readRepoFile(
+        "Common/Server/Services/TeamMemberService.ts",
+      );
+
+      for (const column of ["overrideUserId", "routeAlertsToUserId"]) {
+        expect({
+          column,
+          deleted: new RegExp(
+            "OnCallDutyPolicyUserOverrideService\\.deleteBy\\([\\s\\S]*?" +
+              column +
+              ": userId,[\\s\\S]*?endsAt: QueryHelper\\.greaterThan\\(now\\)",
+          ).test(service),
+        }).toEqual({ column, deleted: true });
+      }
+
+      const sentence: string =
+        english.split("\n").find((line: string): boolean => {
+          return line.includes("leaves their last team in a project");
+        }) || "";
+
+      expect(sentence).not.toBe("");
+      expect(sentence).toContain(
+        "deletes the project's active and future overrides that name them (as the overridden person or as the substitute)",
+      );
     });
 
     it("states the window bounds from CalendarFeedWindow", () => {

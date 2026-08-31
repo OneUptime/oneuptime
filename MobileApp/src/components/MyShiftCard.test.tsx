@@ -165,4 +165,23 @@ describe("MyShiftCard", () => {
 
     expect(screen.queryByTestId("get-cover-schedule-1:100")).toBeNull();
   });
+
+  test("still shows a project-less shift, but without the cover action", async (): Promise<void> => {
+    /*
+     * Only a server that dropped a required field sends one. The shift is
+     * worth showing - the user IS on call - but the override sheet would fill
+     * the project in from it, find nothing, and silently write the override
+     * into the first project in the list.
+     */
+    await render(
+      <MyShiftCard
+        shift={shift({ projectId: "" })}
+        now={NOW}
+        onRequestCover={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Primary")).toBeTruthy();
+    expect(screen.queryByTestId("get-cover-schedule-1:100")).toBeNull();
+  });
 });

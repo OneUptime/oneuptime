@@ -1,10 +1,14 @@
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import OneUptimeDate from "../../../Types/Date";
 import EventInterval from "../../../Types/Events/EventInterval";
-import LayerUtil, { LayerProps } from "../../../Types/OnCallDutyPolicy/Layer";
+import LayerUtil, {
+  LayerProps,
+  ROTATION_PERIOD_START_KEY,
+} from "../../../Types/OnCallDutyPolicy/Layer";
 import ScheduleShiftUtil, {
   OnCallShift,
 } from "../../../Types/OnCallDutyPolicy/ScheduleShiftUtil";
+import ShiftSeamUtil from "../../../Types/OnCallDutyPolicy/ShiftSeamUtil";
 import UserOverrideUtil, {
   OVERRIDE_META_KEY,
   OverrideEventMeta,
@@ -436,8 +440,80 @@ describe("ScheduleShiftUtil.groupEventsIntoShifts with a custom groupKey", () =>
     );
     expect(ScheduleShiftUtil.defaultGroupKey(sample)).toBe("user-x");
     expect(ScheduleShiftUtil.groupKeyByUserOverrideAndLayer(sample)).toBe(
-      "user-x||",
+      "user-x|||",
     );
+  });
+
+  test("the feed key carries the rotation period the engine stamped, except on override segments", () => {
+    const period: number = at("2026-03-02T00:00:00Z").getTime();
+
+    const plain: CalendarEvent = event(
+      "user-x",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+      { [ROTATION_PERIOD_START_KEY]: period },
+    );
+
+    expect(ScheduleShiftUtil.getEventRotationPeriodStart(plain)).toBe(period);
+    expect(ScheduleShiftUtil.groupKeyByUserOverrideAndLayer(plain)).toBe(
+      `user-x|||${period}`,
+    );
+
+    // The override window is the identity; it may legitimately span turns.
+    const covering: CalendarEvent = event(
+      "user-x",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+      {
+        [ROTATION_PERIOD_START_KEY]: period,
+        [OVERRIDE_META_KEY]: overrideMeta,
+      },
+    );
+
+    expect(ScheduleShiftUtil.groupKeyByUserOverrideAndLayer(covering)).toBe(
+      `user-x|B@${overrideMeta.overrideStartsAt.getTime()}-${overrideMeta.overrideEndsAt.getTime()}||`,
+    );
+  });
+
+  test("getEventRotationPeriodStart accepts Dates and ISO strings, ignores anything else", () => {
+    const period: Date = at("2026-03-02T00:00:00Z");
+
+    const asDate: CalendarEvent = event(
+      "u",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+      { [ROTATION_PERIOD_START_KEY]: period },
+    );
+    const asString: CalendarEvent = event(
+      "u",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+      { [ROTATION_PERIOD_START_KEY]: period.toISOString() },
+    );
+    const nonsense: CalendarEvent = event(
+      "u",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+      { [ROTATION_PERIOD_START_KEY]: { not: "a date" } },
+    );
+    const missing: CalendarEvent = event(
+      "u",
+      at("2026-03-02T09:00:00Z"),
+      at("2026-03-02T10:00:00Z"),
+    );
+
+    expect(ScheduleShiftUtil.getEventRotationPeriodStart(asDate)).toBe(
+      period.getTime(),
+    );
+    expect(ScheduleShiftUtil.getEventRotationPeriodStart(asString)).toBe(
+      period.getTime(),
+    );
+    expect(
+      ScheduleShiftUtil.getEventRotationPeriodStart(nonsense),
+    ).toBeUndefined();
+    expect(
+      ScheduleShiftUtil.getEventRotationPeriodStart(missing),
+    ).toBeUndefined();
   });
 
   test("getEventLayerId / getEventLayerName ignore non-string values", () => {
@@ -449,5 +525,154 @@ describe("ScheduleShiftUtil.groupEventsIntoShifts with a custom groupKey", () =>
     );
     expect(ScheduleShiftUtil.getEventLayerId(sample)).toBeUndefined();
     expect(ScheduleShiftUtil.getEventLayerName(sample)).toBeUndefined();
+  });
+});
+
+/*
+ * Regression: the feed's shift identity must not depend on where the feed
+ * window happens to start. Before the rotation period entered the group key,
+ * a run of consecutive turns held by the same user folded into ONE block that
+ * began at the first period overlapping the window and ended at the last one,
+ * so a subscriber's event silently changed its start (and therefore its UID)
+ * and grew its end every time the rolling window crossed a rotation boundary.
+ */
+describe("ScheduleShiftUtil: consecutive turns of the same user stay separate shifts", () => {
+  const LAYER_START: Date = at("2026-03-02T00:00:00Z");
+
+  function weeklyLayer(users: Array<string>): LayerProps {
+    return {
+      users: users.map((id: string) => {
+        return user(id);
+      }),
+      startDateTimeOfLayer: LAYER_START,
+      restrictionTimes: noRestriction(),
+      handOffTime: LAYER_START,
+      rotation: rotation(EventInterval.Week, 1),
+      timezone: UTC,
+      layerId: "layer-1",
+      layerName: "Primary",
+    };
+  }
+
+  function feedShifts(
+    users: Array<string>,
+    windowStart: Date,
+    windowEnd: Date,
+  ): Array<OnCallShift> {
+    const events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+      layers: [weeklyLayer(users)],
+      calendarStartDate: windowStart,
+      calendarEndDate: windowEnd,
+    });
+
+    // Exactly what OnCallShiftMaterializer.toShifts does.
+    return ShiftSeamUtil.normalizeSeams(
+      ScheduleShiftUtil.groupEventsIntoShifts(events, {
+        mergeAcrossGaps: false,
+        groupKey: ScheduleShiftUtil.groupKeyByUserOverrideAndLayer,
+      }),
+    );
+  }
+
+  function starts(shifts: Array<OnCallShift>): Array<string> {
+    return shifts.map((shift: OnCallShift) => {
+      return shift.start.toISOString();
+    });
+  }
+
+  test("a single-user weekly layer yields one shift per week, not one block", () => {
+    const shifts: Array<OnCallShift> = feedShifts(
+      ["A"],
+      LAYER_START,
+      at("2026-03-30T00:00:00Z"),
+    );
+
+    expect(shifts.length).toBe(4);
+    for (const shift of shifts) {
+      expect(shift.userId).toBe("A");
+      // A week each, give or take the engine's 1 s seam.
+      expect(
+        shift.end.getTime() - shift.start.getTime(),
+      ).toBeGreaterThanOrEqual(7 * 24 * 3600 * 1000 - 5000);
+      expect(shift.end.getTime() - shift.start.getTime()).toBeLessThanOrEqual(
+        7 * 24 * 3600 * 1000,
+      );
+    }
+  });
+
+  test("the same rotation period keeps the same start in two different windows", () => {
+    const early: Array<OnCallShift> = feedShifts(
+      ["A"],
+      LAYER_START,
+      at("2026-04-06T00:00:00Z"),
+    );
+    const later: Array<OnCallShift> = feedShifts(
+      ["A"],
+      at("2026-03-11T00:00:00Z"),
+      at("2026-04-13T00:00:00Z"),
+    );
+
+    // Every week both windows contain is the very same shift in both.
+    const shared: Array<string> = starts(early).filter((start: string) => {
+      return starts(later).includes(start);
+    });
+
+    expect(shared.length).toBeGreaterThan(1);
+    expect(starts(early)).toContain("2026-03-16T00:00:00.000Z");
+    expect(starts(later)).toContain("2026-03-16T00:00:00.000Z");
+  });
+
+  test("[A, A, B] keeps A's two turns apart while B stays one shift", () => {
+    const shifts: Array<OnCallShift> = feedShifts(
+      ["A", "A", "B"],
+      LAYER_START,
+      at("2026-03-23T00:00:00Z"),
+    );
+
+    expect(
+      shifts.map((shift: OnCallShift) => {
+        return shift.userId;
+      }),
+    ).toEqual(["A", "A", "B"]);
+    expect(starts(shifts)).toEqual([
+      "2026-03-02T00:00:00.000Z",
+      "2026-03-09T00:00:00.000Z",
+      "2026-03-16T00:00:00.000Z",
+    ]);
+  });
+
+  test("an override that spans a rotation boundary is still ONE shift", () => {
+    const events: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: new LayerUtil().getMultiLayerEvents({
+          layers: [weeklyLayer(["A"])],
+          calendarStartDate: LAYER_START,
+          calendarEndDate: at("2026-03-23T00:00:00Z"),
+        }),
+        overrides: [
+          {
+            overrideUserId: "A",
+            routeAlertsToUserId: "B",
+            // Wednesday to Wednesday, straight through the Monday handover.
+            startsAt: at("2026-03-04T00:00:00Z"),
+            endsAt: at("2026-03-11T00:00:00Z"),
+          },
+        ],
+      });
+
+    const shifts: Array<OnCallShift> = ShiftSeamUtil.normalizeSeams(
+      ScheduleShiftUtil.groupEventsIntoShifts(events, {
+        mergeAcrossGaps: false,
+        groupKey: ScheduleShiftUtil.groupKeyByUserOverrideAndLayer,
+      }),
+    );
+
+    const covering: Array<OnCallShift> = shifts.filter((shift: OnCallShift) => {
+      return shift.userId === "B";
+    });
+
+    expect(covering).toHaveLength(1);
+    expect(covering[0]!.start.toISOString()).toBe("2026-03-04T00:00:00.000Z");
+    expect(covering[0]!.end.toISOString()).toBe("2026-03-11T00:00:00.000Z");
   });
 });

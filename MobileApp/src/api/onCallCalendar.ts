@@ -491,6 +491,17 @@ export function isRouteMissingError(err: unknown): boolean {
 }
 
 /**
+ * True when the project this request named enforces SSO and the handset has
+ * not completed it (`ExceptionCode.SsoAuthorizationException`, HTTP 406). The
+ * API client has already recorded the refusal against the project by the time
+ * this is asked; the caller's job is to say so instead of showing the request
+ * as a generic failure with a Retry button that cannot help.
+ */
+export function isSsoRequiredError(err: unknown): boolean {
+  return getHttpStatus(err) === 406;
+}
+
+/**
  * True when the server declined to render right now (kill switch, or the
  * per-process render cap with nothing cached). The caller is expected to fall
  * back to what it already has rather than retry in a loop.

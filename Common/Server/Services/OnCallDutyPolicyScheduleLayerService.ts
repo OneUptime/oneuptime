@@ -18,6 +18,7 @@ import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -44,6 +45,31 @@ export class Service extends DatabaseService<Model> {
       projectId: projectId || null,
       reason: OnCallShiftChangeReason.LayerChanged,
     });
+  }
+
+  /**
+   * Re-resolve and persist the schedule's roster after a layer change.
+   * Best-effort: the row is already committed when the success hooks run, so
+   * a throwing refresh (a concurrently-deleted schedule, a transient
+   * persistence or notification failure) must not abort the hook before
+   * propagateLayerChange bumps the shiftConfigVersion and purges the feed
+   * caches — otherwise the caches would keep serving the pre-edit roster for
+   * up to their TTL and the reminder change pass would be skipped. Mirrors
+   * OnCallDutyPolicyEscalationRuleScheduleService.refreshScheduleRoster.
+   */
+  private async refreshScheduleRosterBestEffort(
+    scheduleId: ObjectID,
+  ): Promise<void> {
+    try {
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        scheduleId,
+      );
+    } catch (err) {
+      logger.error(
+        "Error refreshing the schedule roster after a layer change (best-effort).",
+      );
+      logger.error(err);
+    }
   }
 
   /*
@@ -187,7 +213,7 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
-    await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+    await this.refreshScheduleRosterBestEffort(
       resource.onCallDutyPolicyScheduleId,
     );
 
@@ -232,7 +258,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+      await this.refreshScheduleRosterBestEffort(
         resource.onCallDutyPolicyScheduleId,
       );
 
@@ -307,7 +333,7 @@ export class Service extends DatabaseService<Model> {
           false,
         );
 
-        await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        await this.refreshScheduleRosterBestEffort(
           resource.onCallDutyPolicyScheduleId,
         );
 

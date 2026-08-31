@@ -45,6 +45,26 @@ export interface MultiLayerProps {
   calendarEndDate: Date;
 }
 
+/*
+ * Key stamped on every event getEvents emits, holding the epoch milliseconds
+ * of the TRUE (un-clamped) start of the rotation period the event belongs to.
+ *
+ * Two consecutive rotation periods held by the SAME user (a single-user layer,
+ * or any rotation where one person holds two turns in a row) are otherwise
+ * indistinguishable once expanded: the engine's 1 s seam makes them contiguous
+ * and every other property matches, so a consumer that groups contiguous
+ * same-user segments folds them into one block whose start and end depend on
+ * how far the expansion window reached — an unstable identity for anything
+ * that must be the same object across two different windows (the calendar
+ * feed's UID/DTSTART). The period start is window-independent, so grouping on
+ * it keeps one shift per rotation turn.
+ *
+ * Read it through ScheduleShiftUtil.getEventRotationPeriodStart, which
+ * tolerates events that never carried it (hand-built fixtures, JSON round
+ * trips) rather than reaching into the index signature here.
+ */
+export const ROTATION_PERIOD_START_KEY: string = "rotationPeriodStartsAt";
+
 export interface PriorityCalendarEvents extends CalendarEvent {
   priority: number;
   /*
@@ -215,6 +235,7 @@ export default class LayerUtil {
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
+          firstPeriodTrueStart,
         ),
       ];
 
@@ -314,6 +335,12 @@ export default class LayerUtil {
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
+          /*
+           * The first iteration expands the period that CONTAINS the window
+           * start, whose currentEventStartTime may be clamped to it; stamp the
+           * period's TRUE start so the identity does not move with the window.
+           */
+          isFirstPeriod ? firstPeriodTrueStart : currentEventStartTime,
         ),
       );
 
@@ -1520,6 +1547,8 @@ export default class LayerUtil {
     trimmedStartAndEndTimes: Array<StartAndEndTime>,
     users: Array<UserModel>,
     currentUserIndex: number,
+    // True (un-clamped) start of the rotation period these segments came from.
+    rotationPeriodStartsAt: Date,
   ): Array<CalendarEvent> {
     const events: Array<CalendarEvent> = [];
 
@@ -1533,6 +1562,10 @@ export default class LayerUtil {
         start: trimmedStartAndEndTime.startTime,
         end: trimmedStartAndEndTime.endTime,
       };
+
+      // See ROTATION_PERIOD_START_KEY.
+      (event as unknown as Record<string, unknown>)[ROTATION_PERIOD_START_KEY] =
+        rotationPeriodStartsAt.getTime();
 
       events.push(event);
     }

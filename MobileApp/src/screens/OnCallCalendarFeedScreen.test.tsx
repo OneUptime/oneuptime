@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -48,10 +49,67 @@ const mockFeed: { current: UseOnCallCalendarFeedResult } = {
   current: {} as UseOnCallCalendarFeedResult,
 };
 const mockFeedCalls: { projectIds: Array<string | null> } = { projectIds: [] };
+const mockFeedByProject: {
+  current: ((projectId: string | null) => UseOnCallCalendarFeedResult) | null;
+} = { current: null };
 const mockServerUrl: { current: string } = {
   current: "https://oneuptime.example.com",
 };
 const mockShare: jest.Mock = jest.fn();
+
+/*
+ * The project the screen opens on is chosen asynchronously (the SSO filter
+ * reads stored tokens), so the tests can hold that choice open and look at
+ * what the screen shows while it is undecided.
+ */
+interface DeferredProjects {
+  promise: Promise<ProjectItem[]>;
+  resolve: (projects: ProjectItem[]) => void;
+}
+
+const mockAuthorized: {
+  current: ProjectItem[] | null;
+  deferred: DeferredProjects | null;
+  calls: number;
+} = { current: null, deferred: null, calls: 0 };
+
+function deferAuthorizedProjects(): DeferredProjects {
+  let resolve: (projects: ProjectItem[]) => void = (): void => {
+    return undefined;
+  };
+
+  const promise: Promise<ProjectItem[]> = new Promise(
+    (resolvePromise: (projects: ProjectItem[]) => void) => {
+      resolve = resolvePromise;
+    },
+  );
+
+  const deferred: DeferredProjects = { promise, resolve };
+  mockAuthorized.deferred = deferred;
+
+  return deferred;
+}
+
+jest.mock("../hooks/authorizedProjects", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../hooks/authorizedProjects",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    getAuthorizedProjects: (
+      projects: ProjectItem[],
+    ): Promise<ProjectItem[]> => {
+      mockAuthorized.calls += 1;
+
+      if (mockAuthorized.deferred) {
+        return mockAuthorized.deferred.promise;
+      }
+
+      return Promise.resolve(mockAuthorized.current ?? projects);
+    },
+  };
+});
 
 jest.mock("../hooks/useProject", () => {
   return {
@@ -69,6 +127,11 @@ jest.mock("../hooks/useOnCallCalendarFeed", () => {
   return {
     useOnCallCalendarFeed: (projectId: string | null) => {
       mockFeedCalls.projectIds.push(projectId);
+
+      if (mockFeedByProject.current) {
+        return mockFeedByProject.current(projectId);
+      }
+
       return mockFeed.current;
     },
   };
@@ -151,6 +214,7 @@ function feedState(
     isError: false,
     error: null,
     isUnsupported: false,
+    isSsoRequired: false,
     refetch: jest.fn(async (): Promise<void> => {
       return undefined;
     }) as unknown as () => Promise<void>,
@@ -186,7 +250,11 @@ async function waitForLinks(): Promise<void> {
 describe("OnCallCalendarFeedScreen", () => {
   beforeEach(() => {
     mockProjects.current = PROJECTS;
+    mockAuthorized.current = null;
+    mockAuthorized.deferred = null;
+    mockAuthorized.calls = 0;
     mockFeed.current = feedState();
+    mockFeedByProject.current = null;
     mockFeedCalls.projectIds = [];
     mockServerUrl.current = "https://oneuptime.example.com";
     mockShare.mockReset();
@@ -209,6 +277,91 @@ describe("OnCallCalendarFeedScreen", () => {
     await waitFor(() => {
       expect(mockFeedCalls.projectIds).toContain("project-1");
     });
+  });
+
+  test("opens on the first project the app is allowed to query", async (): Promise<void> => {
+    /*
+     * A project that enforces SSO answers 406 until this handset has
+     * completed that login - and asking anyway records a denial against it.
+     * The fan-out hooks all run through the same filter; so does this screen.
+     */
+    mockAuthorized.current = [PROJECTS[1]!];
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    await waitFor(() => {
+      expect(mockFeedCalls.projectIds).toContain("project-2");
+    });
+
+    expect(mockFeedCalls.projectIds).not.toContain("project-1");
+  });
+
+  test("falls back to the first project when none of them are authorized", async (): Promise<void> => {
+    /* Better to ask and explain the refusal than to show nothing at all. */
+    mockAuthorized.current = [];
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    await waitFor(() => {
+      expect(mockFeedCalls.projectIds).toContain("project-1");
+    });
+  });
+
+  test("shows a skeleton, not an error, while the project is being chosen", async (): Promise<void> => {
+    /*
+     * The regression this pins: with no project chosen yet the hook reports
+     * "not loading" (it has nothing to load), and the screen fell through to
+     * "Could not load your calendar link. An unknown error occurred." before
+     * it had asked the server anything.
+     */
+    const deferred: DeferredProjects = deferAuthorizedProjects();
+
+    /*
+     * Exactly what the hook reports with no project to ask about: it is not
+     * pending (it never started), it has no status and it has no error.
+     */
+    mockFeedByProject.current = (
+      projectId: string | null,
+    ): UseOnCallCalendarFeedResult => {
+      return projectId
+        ? feedState()
+        : feedState({ status: null, isLoading: false });
+    };
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    expect(screen.getByTestId("feed-loading")).toBeTruthy();
+    expect(screen.queryByTestId("feed-error")).toBeNull();
+    expect(screen.queryByText(/An unknown error occurred/)).toBeNull();
+    expect(mockFeedCalls.projectIds).not.toContain("project-1");
+
+    await act(async (): Promise<void> => {
+      deferred.resolve(PROJECTS);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-active")).toBeTruthy();
+    });
+  });
+
+  test("an SSO-locked project is explained, not reported as a failed request", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: null,
+      isError: true,
+      isSsoRequired: true,
+      error: { isAxiosError: true, response: { status: 406 } },
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-sso-required")).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId("feed-error")).toBeNull();
+    expect(screen.getByText(/Acme requires an SSO sign-in/)).toBeTruthy();
+    expect(screen.getByText(/Settings → Projects/)).toBeTruthy();
+    expect(screen.getByTestId("retry-feed")).toBeTruthy();
   });
 
   test("switching project asks for that project's feed", async (): Promise<void> => {

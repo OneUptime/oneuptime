@@ -10,12 +10,16 @@ import {
   MAX_GAP_EVENTS,
 } from "../../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import LayerUtil, { LayerProps } from "../../../Types/OnCallDutyPolicy/Layer";
-import { MaterializedShift } from "../../../Types/OnCallDutyPolicy/MaterializedShift";
+import {
+  MaterializedShift,
+  MaterializedShiftPolicy,
+} from "../../../Types/OnCallDutyPolicy/MaterializedShift";
 import OnCallCalendarFeedUtil, {
   CoverageEnvelopeResult,
   CoverageGapEventsResult,
   FeedRenderResult,
   OnCallCalendarFeedKind,
+  PolicyVariantIndex,
   WindowShrinkResult,
 } from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
 import ScheduleShiftUtil, {
@@ -1104,7 +1108,7 @@ describe("OnCallCalendarFeedUtil: policy variants", () => {
     );
   });
 
-  test("mirror lines only come from variants that overlap the same schedule and user", () => {
+  test("mirror lines only come from variants of the same schedule that overlap and swap the person", () => {
     const unrelated: MaterializedShift = {
       ...variant,
       scheduleId: "sched-2",
@@ -1115,21 +1119,263 @@ describe("OnCallCalendarFeedUtil: policy variants", () => {
       start: at("2026-09-01T15:00:00Z"),
       end: at("2026-09-01T18:00:00Z"),
     };
-    const otherGlobalUser: MaterializedShift = {
+    // A variant that pages the SAME person changes nothing for this event.
+    const samePerson: MaterializedShift = {
       ...variant,
-      policyVariantOf: {
-        ...variant.policyVariantOf!,
-        globalUserId: "someone-else",
-      },
+      userId: global.userId,
+      userName: global.userName,
     };
 
     const description: string = OnCallCalendarFeedUtil.buildDescription(
       global,
       { kind: Kind.Schedule, dashboardUrl: DASHBOARD_URL },
-      [global, unrelated, nonOverlapping, otherGlobalUser],
+      [global, unrelated, nonOverlapping, samePerson],
     );
 
     expect(description).not.toContain("is paged instead from");
+  });
+
+  /*
+   * The materializer records a single globalUserId on a variant — the FIRST
+   * overlapping base user. A variant that runs across a handover takes over
+   * part of the NEXT person's shift too, and that person has to be told: the
+   * mirror line matches on overlap, not on that one recorded id.
+   */
+  test("a variant spanning a handover informs both base shifts, each about its own overlap", () => {
+    const bob: MaterializedShift = shift({
+      start: at("2026-09-01T10:00:00Z"),
+      end: at("2026-09-01T11:00:00Z"),
+      userId: "user-b",
+      userName: "Bob Berg",
+    });
+
+    const alice: MaterializedShift = shift({
+      start: at("2026-09-01T11:00:00Z"),
+      end: at("2026-09-01T15:00:00Z"),
+    });
+
+    // Carol covers 10:00-12:00 UTC for Payments Policy only; recorded against Bob.
+    const carol: MaterializedShift = shift({
+      start: at("2026-09-01T10:00:00Z"),
+      end: at("2026-09-01T12:00:00Z"),
+      userId: "user-c",
+      userName: "Carol Chen",
+      policyVariantOf: {
+        policyId: "pol-1",
+        policyName: "Payments Policy",
+        globalUserId: "user-b",
+      },
+    });
+
+    const all: Array<MaterializedShift> = [bob, alice, carol];
+    const context: { kind: OnCallCalendarFeedKind; dashboardUrl: string } = {
+      kind: Kind.Schedule,
+      dashboardUrl: DASHBOARD_URL,
+    };
+
+    // Bob: the whole of his shift is taken over.
+    expect(
+      OnCallCalendarFeedUtil.buildDescription(bob, context, all),
+    ).toContain(
+      "For Payments Policy, Carol Chen is paged instead from Sep 01 2026, 12:00 CEST to Sep 01 2026, 13:00 CEST.",
+    );
+
+    // Alice: only her first hour, and she is told exactly that.
+    expect(
+      OnCallCalendarFeedUtil.buildDescription(alice, context, all),
+    ).toContain(
+      "For Payments Policy, Carol Chen is paged instead from Sep 01 2026, 13:00 CEST to Sep 01 2026, 14:00 CEST.",
+    );
+  });
+
+  /*
+   * The personal feed renders only the subscriber's own shifts, so the variant
+   * that replaces them for one policy is not among them. contextShifts carries
+   * it in without turning it into an event of its own.
+   */
+  test("the personal feed carries the mirror line through contextShifts", () => {
+    const twoPolicies: Array<MaterializedShiftPolicy> = [
+      { ...DEFAULT_POLICY },
+      {
+        policyId: "pol-2",
+        policyName: "Checkout Policy",
+        ruleId: "rule-2",
+        ruleName: "Primary",
+        ruleOrder: 1,
+      },
+    ];
+
+    const rostered: MaterializedShift = shift({
+      start,
+      end,
+      policies: twoPolicies,
+    });
+
+    const substitute: MaterializedShift = shift({
+      start,
+      end,
+      userId: "user-b",
+      userName: "Bob Berg",
+      policies: twoPolicies,
+      policyVariantOf: {
+        policyId: "pol-1",
+        policyName: "Payments Policy",
+        globalUserId: "user-a",
+      },
+    });
+
+    const withContext: string = OnCallCalendarFeedUtil.render({
+      ...personalContext(),
+      shifts: [rostered],
+      contextShifts: [rostered, substitute],
+    }).body;
+
+    // Only the subscriber's own shift becomes an event...
+    const blocks: Array<Array<string>> = eventBlocks(withContext);
+    expect(blocks).toHaveLength(1);
+
+    // ...but it says who is really paged for pol-1 during it.
+    const description: string = blockProperty(blocks[0]!, "DESCRIPTION")!;
+    expect(description).toContain(
+      "For Payments Policy\\, Bob Berg is paged instead from Sep 01 2026\\, 09:00 CEST to Sep 01 2026\\, 17:00 CEST.",
+    );
+    expect(description).toContain(
+      "Pages you via: Checkout Policy › Primary (step 1)\\; Payments Policy › Primary (step 1)",
+    );
+
+    // Without the context there is nothing to mirror.
+    expect(
+      blockProperty(eventBlocks(renderPersonal([rostered]))[0]!, "DESCRIPTION"),
+    ).not.toContain("is paged instead from");
+  });
+
+  test("a variant lists only the policy it pages through", () => {
+    const twoPolicies: Array<MaterializedShiftPolicy> = [
+      { ...DEFAULT_POLICY },
+      {
+        policyId: "pol-2",
+        policyName: "Checkout Policy",
+        ruleId: "rule-2",
+        ruleName: "Primary",
+        ruleOrder: 1,
+      },
+    ];
+
+    const multiPolicyVariant: MaterializedShift = shift({
+      ...variant,
+      start,
+      end,
+      policies: twoPolicies,
+    });
+
+    const description: string = OnCallCalendarFeedUtil.buildDescription(
+      multiPolicyVariant,
+      personalContext(),
+    );
+
+    expect(description).toContain(
+      "Pages you via: Payments Policy › Primary (step 1)",
+    );
+    expect(description).not.toContain("Checkout Policy");
+    expect(description).toContain(
+      "For Payments Policy you are paged instead of Alice Andersson because of a policy-specific override.",
+    );
+
+    // The base shift on the same schedule still lists both.
+    expect(
+      OnCallCalendarFeedUtil.buildDescription(
+        shift({ start, end, policies: twoPolicies }),
+        personalContext(),
+      ),
+    ).toContain(
+      "Pages you via: Checkout Policy › Primary (step 1); Payments Policy › Primary (step 1)",
+    );
+  });
+
+  test("buildVariantIndex is null without variants and buckets by schedule otherwise", () => {
+    expect(OnCallCalendarFeedUtil.buildVariantIndex([global])).toBeNull();
+    expect(OnCallCalendarFeedUtil.buildVariantIndex([])).toBeNull();
+
+    const otherSchedule: MaterializedShift = {
+      ...variant,
+      scheduleId: "sched-2",
+      shiftKey: "sched-2:x",
+    };
+
+    const index: PolicyVariantIndex | null =
+      OnCallCalendarFeedUtil.buildVariantIndex([
+        global,
+        otherSchedule,
+        variant,
+      ]);
+
+    expect(index).not.toBeNull();
+    expect(index!.size).toBe(2);
+    expect(index!.get("sched-1")).toEqual([variant]);
+    expect(index!.get("sched-2")).toEqual([otherSchedule]);
+  });
+
+  /*
+   * The mirror pass used to rescan the whole shift array for every shift,
+   * which is quadratic at feed sizes near MAX_EVENTS. One index per render.
+   */
+  test("the variant index is built once per render, not once per shift", () => {
+    const many: Array<MaterializedShift> = [];
+    for (let index: number = 0; index < 25; index++) {
+      const shiftStart: Date = new Date(start.getTime() + index * 3600000);
+      many.push(
+        shift({
+          start: shiftStart,
+          end: new Date(shiftStart.getTime() + 3600000),
+        }),
+      );
+    }
+
+    const spy: jest.SpyInstance = jest.spyOn(
+      OnCallCalendarFeedUtil,
+      "buildVariantIndex",
+    );
+
+    try {
+      const body: string = renderSchedule(many, "Payments");
+      expect(eventBlocks(body)).toHaveLength(25);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("mirror lines are ordered deterministically whatever order the context arrives in", () => {
+    const later: MaterializedShift = shift({
+      start: at("2026-09-01T09:00:00Z"),
+      end: at("2026-09-01T12:00:00Z"),
+      userId: "user-c",
+      userName: "Carol Chen",
+      policyVariantOf: {
+        policyId: "pol-2",
+        policyName: "Checkout Policy",
+        globalUserId: "user-a",
+      },
+    });
+
+    const context: { kind: OnCallCalendarFeedKind; dashboardUrl: string } = {
+      kind: Kind.Schedule,
+      dashboardUrl: DASHBOARD_URL,
+    };
+
+    expect(
+      OnCallCalendarFeedUtil.buildDescription(global, context, [
+        variant,
+        later,
+        global,
+      ]),
+    ).toBe(
+      OnCallCalendarFeedUtil.buildDescription(global, context, [
+        later,
+        global,
+        variant,
+      ]),
+    );
   });
 });
 

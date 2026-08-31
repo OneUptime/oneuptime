@@ -801,6 +801,36 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
     expect(refresh).not.toHaveBeenCalled();
     expect(propagate).not.toHaveBeenCalled();
   });
+
+  /*
+   * Same contract as the layer-user hooks: the layer row is committed before
+   * the success hook runs, so a throwing roster refresh must not swallow the
+   * version bump and the cache purge.
+   */
+  test("a throwing roster refresh still propagates the layer change", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleLayerService, "findOneById")
+      .mockResolvedValue({
+        onCallDutyPolicyScheduleId: SCHEDULE_1,
+        projectId: PROJECT_ID,
+      } as never);
+    const refresh: any = spyRosterRefresh();
+    refresh.mockRejectedValue(new Error("Schedule not found"));
+    const propagate: any = spyPropagate();
+
+    await (OnCallDutyPolicyScheduleLayerService as any).onCreateSuccess(
+      {},
+      { id: LAYER_1 },
+    );
+
+    expect(refresh).toHaveBeenCalledWith(SCHEDULE_1);
+    expect(lastCallArg(propagate)).toEqual({
+      scheduleIds: [SCHEDULE_1],
+      projectId: PROJECT_ID,
+      reason: OnCallShiftChangeReason.LayerChanged,
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
 });
 
 describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
@@ -915,7 +945,91 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
     expect(update.mock.calls[0]![0].data).toEqual({ order: 2 });
     expect(update.mock.calls[1]![0].query._id.toString()).toBe("r3");
     expect(update.mock.calls[1]![0].data).toEqual({ order: 3 });
-    expect(update.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    /*
+     * ignoreHooks: renumbering is bookkeeping, not a roster change. With the
+     * hooks on, every renumbered row would run a full onUpdateSuccess
+     * (semaphore-locked roster refresh + version bump + cache purge +
+     * listener pass) — N-1 redundant refreshes per layer — and a throw from
+     * one of them would abort the rest of the renumbering. The caller
+     * refreshes and propagates once per schedule itself.
+     */
+    expect(update.mock.calls[0]![0].props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
+    expect(update.mock.calls[1]![0].props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
+  });
+
+  /*
+   * The row is already committed when the success hooks run, so a throwing
+   * roster refresh must not stop the version bump and the cache purge:
+   * otherwise the feed caches keep serving the pre-edit roster for up to
+   * their TTL (an hour for schedule segments) and the reminder change pass
+   * for that edit never runs.
+   */
+  test("a throwing roster refresh still propagates: onCreateSuccess", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findOneById")
+      .mockResolvedValue({
+        onCallDutyPolicyScheduleId: SCHEDULE_1,
+        projectId: PROJECT_ID,
+        userId: USER_A,
+      } as never);
+    const refresh: any = spyRosterRefresh();
+    refresh.mockRejectedValue(new Error("Schedule not found"));
+    const propagate: any = spyPropagate();
+
+    await expect(
+      (OnCallDutyPolicyScheduleLayerUserService as any).onCreateSuccess(
+        {},
+        { id: ROW_ID },
+      ),
+    ).resolves.toBeDefined();
+
+    expect(refresh).toHaveBeenCalledWith(SCHEDULE_1);
+    expect(lastCallArg(propagate)).toEqual({
+      scheduleIds: [SCHEDULE_1],
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+      reason: OnCallShiftChangeReason.LayerUserChanged,
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("a throwing roster refresh still propagates: onDeleteSuccess", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(OnCallDutyPolicyScheduleLayerUserService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    const refresh: any = spyRosterRefresh();
+    refresh.mockRejectedValue(new Error("redis down"));
+    const propagate: any = spyPropagate();
+
+    await (OnCallDutyPolicyScheduleLayerUserService as any).onDeleteSuccess(
+      {
+        deleteBy: { query: { _id: ROW_ID }, props: {} },
+        carryForward: {
+          order: 1,
+          onCallDutyPolicyScheduleLayerId: LAYER_1,
+          onCallDutyPolicyScheduleId: SCHEDULE_1,
+          projectId: PROJECT_ID,
+          userId: USER_A,
+        },
+      },
+      [ROW_ID],
+    );
+
+    expect(lastCallArg(propagate)).toEqual({
+      scheduleIds: [SCHEDULE_1],
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+      reason: OnCallShiftChangeReason.LayerUserChanged,
+    });
   });
 });
 

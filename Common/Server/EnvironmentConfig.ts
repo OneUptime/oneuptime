@@ -307,23 +307,61 @@ export const EncryptionSecret: ObjectID = new ObjectID(
 );
 
 /*
- * True when the install is encrypting columns with the shipped placeholder.
+ * The ENCRYPTION_SECRET values that ship in this repository, and are therefore
+ * as public as the source tree itself.
+ *
+ * "secret" is the fallback above. "please-change-this-to-random-value" is what
+ * `config.example.env` sets, and the documented Docker Compose install is
+ * `cp config.example.env config.env` (README) with
+ * `ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}` passed straight through by
+ * docker-compose.base.yml -- so it is the key an install that follows the docs
+ * actually runs with unless the operator edits it. Home/Scripts/Install.sh
+ * randomizes the placeholders, but nothing in the documented compose path
+ * calls it, and Scripts/Install/MergeEnvTemplate.js carries the placeholder
+ * forward on upgrade. The Helm chart is unaffected: it generates a random
+ * secret when `encryptionSecret` is left empty.
+ */
+export const InsecureEncryptionSecretValues: Array<string> = [
+  "secret",
+  "please-change-this-to-random-value",
+];
+
+/*
+ * The prefix every placeholder in config.example.env starts with. Flagging it
+ * catches a partially edited placeholder ("please-change-this-to-random-value-2")
+ * as well as the exact strings above.
+ */
+export const InsecureEncryptionSecretPrefix: string = "please-change-this";
+
+/*
+ * True when the install is encrypting columns with a value the repository
+ * ships rather than one the operator chose.
  *
  * Every `@TableColumn({ encrypted: true })` value -- OAuth tokens, SMTP
  * passwords, the on-call calendar feed tokens -- is AES-encrypted with
- * ENCRYPTION_SECRET, so leaving it unset or at the literal "secret" means
- * anyone who can read a database dump can read every one of those columns
- * with a key that is public on GitHub. Nothing refuses to start over it
- * (that would take down an existing install on upgrade), but the boot log
+ * ENCRYPTION_SECRET, so leaving it unset or at one of the shipped placeholders
+ * means anyone who can read a database dump can read every one of those
+ * columns with a key that is public on GitHub. Nothing refuses to start over
+ * it (that would take down an existing install on upgrade), but the boot log
  * says so loudly; see EncryptionSecretWarning and StartServer.init.
+ *
+ * The comparison is case-sensitive on purpose: the encryption key is, and the
+ * warning is about the exact values an attacker would try first. Any other
+ * weak key is the operator's own choice.
  */
 export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
   const rawValue: string | undefined = process.env["ENCRYPTION_SECRET"];
 
+  if (rawValue === undefined) {
+    return true;
+  }
+
+  const value: string = rawValue.trim();
+
   return (
-    rawValue === undefined ||
-    rawValue.trim() === "" ||
-    rawValue.trim() === "secret"
+    value === "" ||
+    InsecureEncryptionSecretValues.includes(value) ||
+    value.startsWith(InsecureEncryptionSecretPrefix)
   );
 })();
 
@@ -334,7 +372,7 @@ export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
  * exported and the process entrypoint emits it.
  */
 export const EncryptionSecretWarning: string | null = IsEncryptionSecretInsecure
-  ? 'ENCRYPTION_SECRET is unset or still the default value "secret". Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
+  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
   : null;
 
 export const OpenSourceDeploymentWebhookUrl: string =

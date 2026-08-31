@@ -1,12 +1,18 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import CalendarFeedPlanGate, {
+  isCalendarFeedAccessibleOnCurrentPlan,
+} from "./CalendarFeedPlanGate";
 import { FeedStatus } from "./CalendarFeedTypes";
 import {
   DISABLED_FEED_COPY,
   PERSONAL_FEED_CURRENT_PATH,
   PERSONAL_FEED_ROTATE_PATH,
+  PERSONAL_PREVIOUS_LINK_COPY,
   PLANNING_NOT_AUDIT_COPY,
   REGENERATE_WARNING_COPY,
+  translateInterpolated,
 } from "./CalendarFeedUtil";
+import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
 import FeedStatusLine from "./FeedStatusLine";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import PageMap from "../../../Utils/PageMap";
@@ -200,7 +206,17 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     status && status.exists && status.urls && !status.needsRegeneration,
   );
 
-  const generateButton: ReactElement = (
+  /*
+   * Below the Growth plan the server renders every feed empty (decision 1.3)
+   * and refuses the settings write with a 402, so offering "Generate calendar
+   * link" would hand the reader a link that can never show a shift. The gate
+   * takes the button's place and says why.
+   */
+  const isOnPlan: boolean = isCalendarFeedAccessibleOnCurrentPlan();
+
+  const planGate: ReactElement = <CalendarFeedPlanGate idPrefix={idPrefix} />;
+
+  const generateControl: ReactElement = isOnPlan ? (
     <Button
       title={
         translateString("Generate calendar link") || "Generate calendar link"
@@ -215,6 +231,8 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         });
       }}
     />
+  ) : (
+    planGate
   );
 
   /* ---------- schedule variant ---------- */
@@ -242,6 +260,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           scheduleId={props.scheduleId}
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          lastRenderTruncated={status.lastRenderTruncated}
           showRefreshAlert={false}
           idPrefix={idPrefix}
         />
@@ -272,7 +291,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
               "You do not have a calendar link yet. Generate one to subscribe to your shifts.",
             )}
           </div>
-          {generateButton}
+          {generateControl}
         </div>
       );
     }
@@ -366,13 +385,24 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
             "Generate a private link, then subscribe to it from your calendar app. The link shows every shift you hold on this project's schedules, including shifts you cover for someone else.",
           )}
         </div>
-        {generateButton}
+        {/*
+         * The server sends these even with no feed, and they say the link will
+         * be unreachable or unencrypted - worth knowing before minting one.
+         */}
+        <FeedDeploymentWarnings
+          hostWarning={status.hostWarning}
+          protocolWarning={status.protocolWarning}
+          idPrefix={idPrefix}
+        />
+        {generateControl}
       </div>
     );
   } else {
     body = (
       <div className="space-y-4" data-testid={`${idPrefix}-active`}>
         {error && <ErrorMessage message={error} />}
+
+        {planGate}
 
         {status.needsRegeneration && (
           <Alert
@@ -411,11 +441,15 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-500"
             data-testid={`${idPrefix}-previous-link`}
           >
-            {translateString("Your previous link keeps working until")}{" "}
-            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              OneUptimeDate.fromString(status.previousTokenExpiresAt),
+            {translateInterpolated(
+              translateString,
+              PERSONAL_PREVIOUS_LINK_COPY,
+              {
+                date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  OneUptimeDate.fromString(status.previousTokenExpiresAt),
+                ),
+              },
             )}
-            .
           </div>
         )}
 
@@ -442,7 +476,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         {body}
       </Card>
 
-      {status && status.exists && status.feedId && (
+      {status && status.exists && status.feedId && isOnPlan && (
         <CardModelDetail<UserOnCallCalendarFeed>
           name="Calendar Feed > Settings"
           cardProps={{

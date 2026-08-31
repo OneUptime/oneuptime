@@ -20,6 +20,7 @@ import OnCallShiftChangeListeners, {
 import OnCallShiftMaterializer from "../../../../Server/Utils/OnCall/OnCallShiftMaterializer";
 import UserOnCallShiftReminderLogService from "../../../../Server/Services/UserOnCallShiftReminderLogService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
+import UserService from "../../../../Server/Services/UserService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import { UserOnCallShiftReminderLogKind } from "../../../../Models/DatabaseModels/UserOnCallShiftReminderLog";
 import OneUptimeDate from "../../../../Types/Date";
@@ -27,6 +28,8 @@ import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import { MaterializedShift } from "../../../../Types/OnCallDutyPolicy/MaterializedShift";
+import { WhatsAppMessagePayload } from "../../../../Types/WhatsApp/WhatsAppMessage";
+import { WhatsAppTemplateIds } from "../../../../Types/WhatsApp/WhatsAppTemplates";
 import Timezone from "../../../../Types/Timezone";
 import {
   DEFAULT_POLICY,
@@ -620,7 +623,7 @@ describe("OnCallShiftReminderRunner", () => {
       expect(message.vars["remainingText"]).toBe("40 minutes");
     });
 
-    test("buildCatchUpMessage: 'now starts in', covering-for and the reminder template", () => {
+    test("buildCatchUpMessage: 'Heads up', covering-for and the reminder template", () => {
       const message: ShiftReminderMessage =
         OnCallShiftReminderRunner.buildCatchUpMessage({
           shift: bobCoveringForAlice(),
@@ -630,12 +633,12 @@ describe("OnCallShiftReminderRunner", () => {
         });
 
       expect(message.text).toContain(
-        `Your on-call shift on Payments for Payments Policy now starts in 28 minutes (${NEW_YORK_START_TEXT}) (you are covering for Alice Andersson).`,
+        `Heads up: your on-call shift on Payments for Payments Policy starts in 28 minutes (${NEW_YORK_START_TEXT}) (you are covering for Alice Andersson).`,
       );
       expect(message.subject).toBe(
-        "Your on-call shift on Payments now starts in 28 minutes",
+        "Heads up: your on-call shift on Payments starts in 28 minutes",
       );
-      expect(message.pushBody).toContain("now starts in 28 minutes");
+      expect(message.pushBody).toContain("starts in 28 minutes");
       expect(message.templateType).toBe(
         EmailTemplateType.UserOnCallShiftReminder,
       );
@@ -643,6 +646,29 @@ describe("OnCallShiftReminderRunner", () => {
         NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
       );
       expect(message.vars["leadText"]).toBe("28 minutes");
+    });
+
+    test("buildCatchUpMessage never claims the shift changed: a catch-up also goes to shifts that did not move", () => {
+      /*
+       * A catch-up reaches anyone holding a shift inside a lead with no
+       * reminder row — including someone who configured the lead after its
+       * instant had passed. "now starts in ..." would tell them a colleague's
+       * unrelated layer edit had moved their shift.
+       */
+      const message: ShiftReminderMessage =
+        OnCallShiftReminderRunner.buildCatchUpMessage({
+          shift: aliceShift(),
+          now: minutes(SHIFT_START, -1320),
+          timezone: "Europe/Berlin",
+          dashboardUrl: HARNESS_DASHBOARD_URL,
+        });
+
+      expect(message.text).toContain(
+        `Heads up: your on-call shift on Payments for Payments Policy starts in 22 hours (${BERLIN_START_TEXT}).`,
+      );
+      expect(message.text).not.toContain("now starts in");
+      expect(message.subject).not.toContain("now starts in");
+      expect(message.pushBody).not.toContain("now starts in");
     });
 
     test("buildReassignedMessage: names the replacement, or says the shift is no longer yours", () => {
@@ -697,6 +723,110 @@ describe("OnCallShiftReminderRunner", () => {
    * The sweep
    * ---------------------------------------------------------------------
    */
+
+  /*
+   * WhatsApp is template-only: the notification service rejects a body-only
+   * payload before it reaches Meta (a failed log row and nothing delivered),
+   * so a reminder rides the approved "you are next on-call" template and a
+   * reassignment — which no approved template describes — sends no WhatsApp
+   * payload at all, leaving the channel skipped rather than failed.
+   */
+  describe("WhatsApp payloads", () => {
+    test("a reminder uses the approved on-call template, with the schedule and policy filled in", () => {
+      const payload: WhatsAppMessagePayload | undefined =
+        OnCallShiftReminderRunner.buildWhatsAppMessage(
+          OnCallShiftReminderRunner.buildReminderMessage({
+            shift: aliceShift(),
+            lead: 60,
+            now: NOW,
+            timezone: "Europe/Berlin",
+            dashboardUrl: HARNESS_DASHBOARD_URL,
+          }),
+        );
+
+      expect(payload).toBeDefined();
+      expect(payload!.templateKey).toBe(
+        WhatsAppTemplateIds.OnCallUserIsNextNotification,
+      );
+      expect(payload!.templateLanguageCode).toBe("en");
+      expect(payload!.body).toContain("You are next on-call");
+      expect(payload!.body).toContain("Payments Policy");
+      expect(payload!.body).toContain("Payments");
+      expect(payload!.templateVariables?.["schedule_link"]).toContain(
+        HARNESS_DASHBOARD_URL,
+      );
+    });
+
+    test("a catch-up uses the same template", () => {
+      const payload: WhatsAppMessagePayload | undefined =
+        OnCallShiftReminderRunner.buildWhatsAppMessage(
+          OnCallShiftReminderRunner.buildCatchUpMessage({
+            shift: bobCoveringForAlice(),
+            now: minutes(SHIFT_START, -10),
+            timezone: "America/New_York",
+            dashboardUrl: HARNESS_DASHBOARD_URL,
+          }),
+        );
+
+      expect(payload!.templateKey).toBe(
+        WhatsAppTemplateIds.OnCallUserIsNextNotification,
+      );
+    });
+
+    test("a reassigned notice sends NO WhatsApp payload, so the channel is skipped and never fails", () => {
+      const payload: WhatsAppMessagePayload | undefined =
+        OnCallShiftReminderRunner.buildWhatsAppMessage(
+          OnCallShiftReminderRunner.buildReassignedMessage({
+            scheduleName: "Payments",
+            projectId: PROJECT.toString(),
+            scheduleId: SCHEDULE,
+            shiftStartsAt: SHIFT_START,
+            coveredBy: "Bob Brown",
+            timezone: "Europe/Berlin",
+            dashboardUrl: HARNESS_DASHBOARD_URL,
+          }),
+        );
+
+      expect(payload).toBeUndefined();
+    });
+
+    test("no reminder ever leaves with a body-only payload (which the notification service rejects)", async () => {
+      harness.reminders = [reminder(USER_A, 60)];
+      harness.shifts = [aliceShift()];
+
+      await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+      expect(harness.sent).toHaveLength(1);
+      expect(harness.sent[0]!.whatsAppTemplateKey).toBe(
+        WhatsAppTemplateIds.OnCallUserIsNextNotification,
+      );
+    });
+
+    test("the reassigned notice reaches the delivery path with no WhatsApp payload", async () => {
+      seedLedgerRow(harness, {
+        projectId: PROJECT,
+        userId: USER_A,
+        scheduleId: SCHEDULE,
+        shiftStartsAt: SHIFT_START,
+        minutesBeforeShift: 60,
+        kind: UserOnCallShiftReminderLogKind.Reminder,
+        claimedAt: minutes(SHIFT_START, -60),
+        sentAt: minutes(SHIFT_START, -60),
+      });
+      harness.shifts = [bobCoveringForAlice()];
+
+      await OnCallShiftReminderRunner.runChangePass(changeEvent({}), {
+        now: minutes(SHIFT_START, -40),
+      });
+
+      expect(harness.sent).toHaveLength(1);
+      expect(harness.sent[0]!.eventType).toBe(
+        NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+      );
+      expect(harness.sent[0]!.whatsAppTemplateKey).toBeUndefined();
+      expect(harness.sent[0]!.whatsAppBody).toBeUndefined();
+    });
+  });
 
   describe("runSweep", () => {
     test("sends one reminder for a due (shift, lead): claim, send, stamp — in the recipient's timezone", async () => {
@@ -837,10 +967,17 @@ describe("OnCallShiftReminderRunner", () => {
       expect(harness.materializeCalls[0]!.now?.toISOString()).toBe(
         NOW.toISOString(),
       );
-      expect(harness.candidateCalls).toHaveLength(2);
+      /*
+       * ONE batched candidate lookup for the whole project, not one per
+       * reminded user (which was 2-3 queries per user, every five minutes).
+       */
+      expect(harness.candidateCalls).toHaveLength(1);
       expect(harness.candidateCalls[0]!.projectIds).toEqual([
         PROJECT.toString(),
       ]);
+      expect(harness.candidateCalls[0]!.userIds.sort()).toEqual(
+        [USER_A.toString(), USER_B.toString()].sort(),
+      );
     });
 
     test("with no reminders configured it touches nothing and still advances the watermark", async () => {
@@ -1271,6 +1408,113 @@ describe("OnCallShiftReminderRunner", () => {
       });
     });
 
+    /*
+     * The one duplicate the UNIQUE index cannot catch: a hook-triggered
+     * change pass (in the api process) and this sweep (in the worker)
+     * deciding about the same shift at the same moment. `reminder|lead` and
+     * `catch-up|lead` are different keys, so both inserts succeed — the
+     * post-claim re-read is what keeps exactly one message going out.
+     */
+    describe("a concurrent pass claiming the same shift", () => {
+      function claimedByAnotherPassAt(claimedAt: Date): void {
+        harness.beforeLedgerInsert = (): void => {
+          harness.beforeLedgerInsert = null;
+          seedLedgerRow(harness, {
+            projectId: PROJECT,
+            userId: USER_A,
+            scheduleId: SCHEDULE,
+            shiftStartsAt: SHIFT_START,
+            minutesBeforeShift: 1440,
+            kind: UserOnCallShiftReminderLogKind.CatchUp,
+            claimedAt,
+            sentAt: claimedAt,
+          });
+        };
+      }
+
+      test("an OLDER claim of a different kind wins: the sweep releases its claim and says nothing", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+        claimedByAnotherPassAt(minutes(NOW, -1));
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(stats.sent).toBe(0);
+        expect(stats.claimCollisions).toBe(1);
+        expect(harness.sent).toHaveLength(0);
+        expect(outcomes(harness)).toContain(
+          ShiftReminderOutcome.ClaimCollision,
+        );
+
+        // Only the other pass's row survives; this pass released its own.
+        expect(harness.ledger).toHaveLength(1);
+        expect(harness.ledger[0]!.kind).toBe(
+          UserOnCallShiftReminderLogKind.CatchUp,
+        );
+      });
+
+      test("a NEWER claim does not silence this pass, so exactly one of the two sides backs off", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+        claimedByAnotherPassAt(minutes(NOW, 1));
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(stats.sent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(harness.ledger).toHaveLength(2);
+      });
+
+      test("rows this pass wrote itself never look like a competitor (several leads due in one tick)", async () => {
+        // Leads 15 and 18 with a start 14 minutes out: both are due now.
+        harness.reminders = [reminder(USER_A, 15), reminder(USER_A, 18)];
+        harness.shifts = [
+          aliceShift({ start: minutes(NOW, 14), end: minutes(NOW, 600) }),
+        ];
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(stats.sent).toBe(2);
+        expect(stats.claimCollisions).toBe(0);
+        expect(harness.sent).toHaveLength(2);
+      });
+
+      test("a ledger re-read that fails never blocks the reminder", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+
+        const findBySpy: any = UserOnCallShiftReminderLogService.findBy;
+        const fakeFindBy: any = findBySpy.getMockImplementation();
+        let calls: number = 0;
+
+        findBySpy.mockImplementation(((args: unknown) => {
+          calls++;
+          // The first read is the pass snapshot; the second is the guard.
+          return calls === 2
+            ? Promise.reject(new Error("connection reset"))
+            : fakeFindBy(args);
+        }) as never);
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(stats.sent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(
+          harness.warnings.some((line: string) => {
+            return line.includes("could not re-read the ledger");
+          }),
+        ).toBe(true);
+      });
+    });
+
     describe("ledger dedup on the minute", () => {
       test("a start moved by seconds (a re-cut seam) maps onto the existing reminder row", async () => {
         harness.reminders = [reminder(USER_A, 60)];
@@ -1502,7 +1746,7 @@ describe("OnCallShiftReminderRunner", () => {
     });
 
     describe("robustness", () => {
-      test("one project's failure is isolated: the other project is processed and the watermark still advances", async () => {
+      test("one project's failure is isolated: the other project is still processed, and the watermark is HELD so the failed window is retried", async () => {
         harness.reminders = [
           reminder(USER_A, 60, PROJECT),
           reminder(USER_B, 60, PROJECT_2),
@@ -1525,6 +1769,10 @@ describe("OnCallShiftReminderRunner", () => {
           }),
         ];
         harness.materializeErrorForSchedules.add(SCHEDULE);
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
 
         const stats: ShiftReminderSweepStats =
           await OnCallShiftReminderRunner.runSweep({ now: NOW });
@@ -1533,10 +1781,86 @@ describe("OnCallShiftReminderRunner", () => {
         expect(stats.errors).toBe(1);
         expect(stats.sent).toBe(1);
         expect(harness.sent[0]!.projectId).toBe(PROJECT_2.toString());
+
+        /*
+         * The window must NOT close over the project that threw: its due
+         * reminders would be lost for good (the next tick starts where this
+         * one ended and isDue never looks back). So the watermark stays at
+         * this tick's lookbackFrom.
+         */
+        expect(stats.watermarkWrittenAt.toISOString()).toBe(
+          minutes(NOW, -5).toISOString(),
+        );
+        expect(watermarkOf(harness)).toBe(minutes(NOW, -5).toISOString());
+        expect(
+          harness.warnings.some((line: string) => {
+            return line.includes("holding the watermark");
+          }),
+        ).toBe(true);
+      });
+
+      test("the next tick re-covers the held window and delivers the reminder the failed project dropped — exactly once", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
+
+        /*
+         * 15:00: the materializer blows up. The lead instant (15:00) is in
+         * this window and would otherwise never be looked at again.
+         */
+        harness.materializeErrorForSchedules.add(SCHEDULE);
+
+        const failed: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(failed.errors).toBe(1);
+        expect(failed.sent).toBe(0);
+        expect(watermarkOf(harness)).toBe(minutes(NOW, -5).toISOString());
+
+        // 15:05, healthy again: the same window is swept, and it delivers.
+        harness.materializeErrorForSchedules.clear();
+
+        const recovered: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: minutes(NOW, 5) });
+
+        expect(recovered.sent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(watermarkOf(harness)).toBe(minutes(NOW, 5).toISOString());
+
+        /*
+         * And re-covering the very same window again (another failure, or a
+         * Redis restart) is a no-op: the ledger row makes it "already sent".
+         */
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
+
+        const third: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: minutes(NOW, 5) });
+
+        expect(third.sent).toBe(0);
+        expect(third.skippedAlreadySent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(harness.ledger).toHaveLength(1);
+      });
+
+      test("a clean sweep advances the watermark to now", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(stats.errors).toBe(0);
+        expect(stats.watermarkWrittenAt.toISOString()).toBe(NOW.toISOString());
         expect(watermarkOf(harness)).toBe(NOW.toISOString());
       });
 
-      test("one user's failure is isolated inside a project", async () => {
+      test("one user's failure is isolated inside a project, and holds the watermark", async () => {
         harness.reminders = [reminder(USER_A, 60), reminder(USER_B, 60)];
         harness.shifts = [
           aliceShift(),
@@ -1546,8 +1870,41 @@ describe("OnCallShiftReminderRunner", () => {
             userName: "Bob Brown",
           }),
         ];
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
 
-        // The stamp for Alice's row blows up (a database hiccup after the send).
+        // Claiming Alice's row blows up (a database hiccup mid-tick).
+        const createSpy: any = UserOnCallShiftReminderLogService.create;
+        const fakeCreate: any = createSpy.getMockImplementation();
+
+        createSpy.mockImplementation(((args: {
+          data: { userId: ObjectID };
+        }) => {
+          if (args.data.userId.toString() === USER_A.toString()) {
+            return Promise.reject(new Error("connection reset"));
+          }
+
+          return fakeCreate(args);
+        }) as never);
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        // Bob is still reminded; Alice's failure is one counted error.
+        expect(stats.errors).toBe(1);
+        expect(stats.sent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(harness.sent[0]!.userId).toBe(USER_B.toString());
+        expect(watermarkOf(harness)).toBe(minutes(NOW, -5).toISOString());
+      });
+
+      test("a failed stamp AFTER a successful send is logged, not thrown: the rest of the user's tick still runs", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        // Two shifts, both due for the same lead in this tick.
+        harness.shifts = [aliceShift(), aliceShift({ scheduleId: SCHEDULE_2 })];
+
         jest
           .spyOn(UserOnCallShiftReminderLogService, "updateOneById")
           .mockImplementation(((args: { id: ObjectID }) => {
@@ -1557,7 +1914,7 @@ describe("OnCallShiftReminderRunner", () => {
               },
             );
 
-            if (row && row.userId.toString() === USER_A.toString()) {
+            if (row && row.onCallDutyPolicyScheduleId.toString() === SCHEDULE) {
               return Promise.reject(new Error("connection reset"));
             }
 
@@ -1571,10 +1928,47 @@ describe("OnCallShiftReminderRunner", () => {
         const stats: ShiftReminderSweepStats =
           await OnCallShiftReminderRunner.runSweep({ now: NOW });
 
-        expect(stats.errors).toBe(1);
-        expect(stats.sent).toBe(1);
+        // Both went out; neither the second shift nor the tick was aborted.
         expect(harness.sent).toHaveLength(2);
+        expect(stats.sent).toBe(2);
+        expect(stats.errors).toBe(0);
+        expect(stats.sendFailures).toBe(0);
         expect(watermarkOf(harness)).toBe(NOW.toISOString());
+
+        expect(
+          harness.errors.some((entry: unknown) => {
+            return String(entry).includes("could not be stamped as sent");
+          }),
+        ).toBe(true);
+      });
+
+      test("an unstamped claim from a failed stamp is not re-sent while it is still fresh", async () => {
+        harness.reminders = [reminder(USER_A, 60)];
+        harness.shifts = [aliceShift()];
+
+        jest
+          .spyOn(UserOnCallShiftReminderLogService, "updateOneById")
+          .mockImplementation((() => {
+            return Promise.reject(new Error("connection reset"));
+          }) as never);
+
+        await OnCallShiftReminderRunner.runSweep({ now: NOW });
+
+        expect(harness.sent).toHaveLength(1);
+        expect(harness.ledger).toHaveLength(1);
+        expect(harness.ledger[0]!.sentAt).toBeNull();
+
+        // Re-cover the same window a minute later: in-flight, not re-sent.
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(NOW, -5).toISOString(),
+        );
+
+        const second: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({ now: minutes(NOW, 1) });
+
+        expect(second.skippedInFlight).toBe(1);
+        expect(harness.sent).toHaveLength(1);
       });
 
       test("when the reminder table cannot be read the sweep throws and the watermark is NOT advanced", async () => {
@@ -1781,7 +2175,7 @@ describe("OnCallShiftReminderRunner", () => {
           NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
         );
         expect(call.smsText).toContain(
-          `now starts in 10 minutes (${NEW_YORK_START_TEXT}) (you are covering for Alice Andersson).`,
+          `Heads up: your on-call shift on Payments for Payments Policy starts in 10 minutes (${NEW_YORK_START_TEXT}) (you are covering for Alice Andersson).`,
         );
 
         const rows: Array<FakeLedgerRow> = ledgerRowsOfKind(
@@ -1966,6 +2360,67 @@ describe("OnCallShiftReminderRunner", () => {
           });
 
         expect(later.sent).toBe(1);
+        expect(harness.sent).toHaveLength(2);
+        expect(harness.sent[1]!.vars["leadText"]).toBe("15 minutes");
+      });
+
+      test("a catch-up sent INSIDE a smaller lead's window suppresses that lead's near-identical reminder", async () => {
+        harness.reminders = [reminder(USER_B, 60), reminder(USER_B, 15)];
+        harness.shifts = [bobCoveringForAlice()];
+
+        /*
+         * Override at T-17. The catch-up is keyed with the largest matching
+         * lead (60) and says "starts in 17 minutes" — it IS the 15-minute
+         * reminder, four minutes early.
+         */
+        await OnCallShiftReminderRunner.runChangePass(
+          changeEvent({ userIds: [USER_B] }),
+          { now: minutes(SHIFT_START, -17) },
+        );
+
+        expect(harness.sent).toHaveLength(1);
+        expect(harness.sent[0]!.smsText).toContain("starts in 17 minutes");
+
+        // Sweep at T-14: lead 15 is due, and must NOT repeat it.
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(SHIFT_START, -19).toISOString(),
+        );
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({
+            now: minutes(SHIFT_START, -14),
+          });
+
+        expect(stats.sent).toBe(0);
+        expect(stats.skippedAlreadySent).toBe(1);
+        expect(harness.sent).toHaveLength(1);
+        expect(outcomes(harness)).toContain(
+          ShiftReminderOutcome.SkippedAlreadySent,
+        );
+      });
+
+      test("a catch-up sent well before a smaller lead's window does not suppress it", async () => {
+        harness.reminders = [reminder(USER_B, 60), reminder(USER_B, 15)];
+        harness.shifts = [bobCoveringForAlice()];
+
+        // T-40 is far outside the 15-minute lead (+ 5 minutes of tolerance).
+        await OnCallShiftReminderRunner.runChangePass(
+          changeEvent({ userIds: [USER_B] }),
+          { now: minutes(SHIFT_START, -40) },
+        );
+
+        harness.cache.set(
+          "OnCallShiftReminders:watermark",
+          minutes(SHIFT_START, -19).toISOString(),
+        );
+
+        const stats: ShiftReminderSweepStats =
+          await OnCallShiftReminderRunner.runSweep({
+            now: minutes(SHIFT_START, -14),
+          });
+
+        expect(stats.sent).toBe(1);
         expect(harness.sent).toHaveLength(2);
         expect(harness.sent[1]!.vars["leadText"]).toBe("15 minutes");
       });
@@ -2165,7 +2620,9 @@ describe("OnCallShiftReminderRunner", () => {
         expect(second.catchUpsSent).toBe(1);
         expect(second.reassignedSent).toBe(0);
         expect(harness.sent[1]!.userId).toBe(USER_A.toString());
-        expect(harness.sent[1]!.smsText).toContain("now starts in 30 minutes");
+        expect(harness.sent[1]!.smsText).toContain(
+          "Heads up: your on-call shift on Payments for Payments Policy starts in 30 minutes",
+        );
         expect(
           ledgerRowsOfKind(harness, UserOnCallShiftReminderLogKind.Reassigned),
         ).toHaveLength(0);
@@ -2190,6 +2647,112 @@ describe("OnCallShiftReminderRunner", () => {
 
         expect(harness.sent[0]!.vars["startsAt"]).toBe(BERLIN_START_TEXT);
         expect(harness.sent[0]!.onCallPolicyId).toBe(DEFAULT_POLICY.policyId);
+        // Everyone was in the materialization: no extra user lookup.
+        expect(harness.userLookupCalls).toHaveLength(0);
+      });
+
+      test("a user REMOVED from the layer still gets the notice in their own timezone, not the schedule's", async () => {
+        /*
+         * The layer-user row is already gone when the change pass runs (the
+         * removal hook fires after the delete, and the member-left cleanup
+         * deletes the rows first), so the materializer — which only looks up
+         * segment holders, override parties and current members — never
+         * returns Alice at all.
+         */
+        harness.schedules.set(
+          SCHEDULE,
+          scheduleInfo({
+            scheduleId: SCHEDULE,
+            scheduleName: "Payments",
+            projectId: PROJECT.toString(),
+            scheduleTimezone: "America/New_York",
+            attachedPolicies: [{ ...DEFAULT_POLICY }],
+          }),
+        );
+        harness.users = harness.users.filter((user: { userId: string }) => {
+          return user.userId !== USER_A.toString();
+        });
+        harness.directory = [
+          {
+            userId: USER_A.toString(),
+            userName: "Alice Andersson",
+            email: "alice@example.com",
+            timezone: "Europe/Berlin",
+          },
+        ];
+
+        aliceWasReminded(minutes(SHIFT_START, -60));
+        harness.shifts = [bobCoveringForAlice()];
+
+        const stats: ShiftReminderChangePassStats =
+          await OnCallShiftReminderRunner.runChangePass(
+            changeEvent({
+              userIds: [USER_A],
+              reason: OnCallShiftChangeReason.LayerUserChanged,
+            }),
+            { now: minutes(SHIFT_START, -40) },
+          );
+
+        expect(stats.reassignedSent).toBe(1);
+        expect(harness.userLookupCalls).toHaveLength(1);
+        expect(harness.sent[0]!.userId).toBe(USER_A.toString());
+        expect(harness.sent[0]!.vars["startsAt"]).toBe(BERLIN_START_TEXT);
+        expect(harness.sent[0]!.vars["timezone"]).toBe("Europe/Berlin");
+        expect(harness.sent[0]!.smsText).not.toContain("America/New_York");
+      });
+
+      test("a recipient the directory cannot resolve either still gets the notice, in the schedule's timezone", async () => {
+        harness.schedules.set(
+          SCHEDULE,
+          scheduleInfo({
+            scheduleId: SCHEDULE,
+            scheduleName: "Payments",
+            projectId: PROJECT.toString(),
+            scheduleTimezone: "America/New_York",
+            attachedPolicies: [{ ...DEFAULT_POLICY }],
+          }),
+        );
+        harness.users = harness.users.filter((user: { userId: string }) => {
+          return user.userId !== USER_A.toString();
+        });
+        harness.directory = [];
+
+        aliceWasReminded(minutes(SHIFT_START, -60));
+        harness.shifts = [bobCoveringForAlice()];
+
+        const stats: ShiftReminderChangePassStats =
+          await OnCallShiftReminderRunner.runChangePass(changeEvent({}), {
+            now: minutes(SHIFT_START, -40),
+          });
+
+        expect(stats.reassignedSent).toBe(1);
+        expect(harness.sent[0]!.vars["startsAt"]).toBe(NEW_YORK_START_TEXT);
+      });
+
+      test("a failed directory lookup never blocks the notice", async () => {
+        harness.users = harness.users.filter((user: { userId: string }) => {
+          return user.userId !== USER_A.toString();
+        });
+
+        jest.spyOn(UserService, "findBy").mockImplementation((() => {
+          return Promise.reject(new Error("database unavailable"));
+        }) as never);
+
+        aliceWasReminded(minutes(SHIFT_START, -60));
+        harness.shifts = [bobCoveringForAlice()];
+
+        const stats: ShiftReminderChangePassStats =
+          await OnCallShiftReminderRunner.runChangePass(changeEvent({}), {
+            now: minutes(SHIFT_START, -40),
+          });
+
+        expect(stats.reassignedSent).toBe(1);
+        expect(stats.errors).toBe(0);
+        expect(
+          harness.warnings.some((line: string) => {
+            return line.includes("notice recipient");
+          }),
+        ).toBe(true);
       });
 
       test("a failed notice send releases the claim so the next pass retries", async () => {
@@ -2515,6 +3078,10 @@ describe("OnCallShiftReminderRunner constants", () => {
       "function",
     );
     expect(typeof OnCallShiftMaterializer.getCandidateScheduleIdsForUser).toBe(
+      "function",
+    );
+    // And the batched lookup the sweep uses (one call per project, not per user).
+    expect(typeof OnCallShiftMaterializer.getCandidateScheduleIdsForUsers).toBe(
       "function",
     );
   });

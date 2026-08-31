@@ -343,6 +343,11 @@ export default class OnCallShiftMaterializer {
    * user the caller substitutes for through an override overlapping the
    * window. Optionally narrowed to one schedule. Root reads: the caller has
    * already decided the user may see these.
+   *
+   * One user, 2-3 queries. Anything that needs this for a GROUP of users
+   * (the reminder sweep and its change pass walk every reminded user of a
+   * project on every tick) must call getCandidateScheduleIdsForUsers, which
+   * answers the whole group in the same 2-3 queries.
    */
   @CaptureSpan()
   public static async getCandidateScheduleIdsForUser(data: {
@@ -353,6 +358,58 @@ export default class OnCallShiftMaterializer {
     windowEnd: Date;
     includeCoveringShifts: boolean;
   }): Promise<Array<ObjectID>> {
+    const byUser: Map<
+      string,
+      Array<ObjectID>
+    > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+      userIds: [data.userId],
+      projectIds: data.projectIds,
+      scheduleId: data.scheduleId,
+      windowStart: data.windowStart,
+      windowEnd: data.windowEnd,
+      includeCoveringShifts: data.includeCoveringShifts,
+    });
+
+    return byUser.get(data.userId.toString()) || [];
+  }
+
+  /**
+   * The batched form of getCandidateScheduleIdsForUser: the candidate
+   * schedules of MANY users in the same two or three queries it takes for
+   * one, keyed by user id (every requested user gets an entry, empty when
+   * they are on nothing). Semantics per user are identical — own layer-user
+   * rows, plus the schedules of the people that user substitutes for through
+   * an override overlapping the window, narrowed to `scheduleId` when given.
+   *
+   * The covering overrides are matched back to the SUBSTITUTE that each one
+   * routes to, so one user's coverage never leaks into another's list.
+   */
+  @CaptureSpan()
+  public static async getCandidateScheduleIdsForUsers(data: {
+    userIds: Array<ObjectID>;
+    projectIds?: Array<ObjectID> | undefined;
+    scheduleId?: ObjectID | undefined;
+    windowStart: Date;
+    windowEnd: Date;
+    includeCoveringShifts: boolean;
+  }): Promise<Map<string, Array<ObjectID>>> {
+    const userIds: Array<ObjectID> = OnCallShiftMaterializer.dedupeIds(
+      data.userIds,
+    );
+
+    const candidatesByUser: Map<string, Array<ObjectID>> = new Map<
+      string,
+      Array<ObjectID>
+    >();
+
+    for (const userId of userIds) {
+      candidatesByUser.set(userId.toString(), []);
+    }
+
+    if (userIds.length === 0) {
+      return candidatesByUser;
+    }
+
     const projectFilter: Array<ObjectID> | undefined =
       data.projectIds && data.projectIds.length > 0
         ? OnCallShiftMaterializer.dedupeIds(data.projectIds)
@@ -362,15 +419,16 @@ export default class OnCallShiftMaterializer {
       await OnCallDutyPolicyScheduleLayerUserService.findBy({
         query: projectFilter
           ? {
-              userId: data.userId,
+              userId: QueryHelper.any(userIds),
               projectId: QueryHelper.any(projectFilter),
             }
           : {
-              userId: data.userId,
+              userId: QueryHelper.any(userIds),
             },
         select: {
           onCallDutyPolicyScheduleId: true,
           projectId: true,
+          userId: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -379,32 +437,37 @@ export default class OnCallShiftMaterializer {
         },
       });
 
-    const candidates: Array<ObjectID> = ownRows
-      .map((row: OnCallDutyPolicyScheduleLayerUser) => {
-        return row.onCallDutyPolicyScheduleId;
-      })
-      .filter((id: ObjectID | undefined): id is ObjectID => {
-        return Boolean(id);
-      });
+    for (const row of ownRows) {
+      const userKey: string = row.userId?.toString() || "";
+      const candidates: Array<ObjectID> | undefined =
+        candidatesByUser.get(userKey);
+
+      if (!candidates || !row.onCallDutyPolicyScheduleId) {
+        continue;
+      }
+
+      candidates.push(row.onCallDutyPolicyScheduleId);
+    }
 
     if (data.includeCoveringShifts) {
       const coveringOverrides: Array<OnCallDutyPolicyUserOverride> =
         await OnCallDutyPolicyUserOverrideService.findBy({
           query: projectFilter
             ? {
-                routeAlertsToUserId: data.userId,
+                routeAlertsToUserId: QueryHelper.any(userIds),
                 projectId: QueryHelper.any(projectFilter),
                 startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
                 endsAt: QueryHelper.greaterThanEqualTo(data.windowStart),
               }
             : {
-                routeAlertsToUserId: data.userId,
+                routeAlertsToUserId: QueryHelper.any(userIds),
                 startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
                 endsAt: QueryHelper.greaterThanEqualTo(data.windowStart),
               },
           select: {
             projectId: true,
             overrideUserId: true,
+            routeAlertsToUserId: true,
             startsAt: true,
             endsAt: true,
           },
@@ -415,16 +478,25 @@ export default class OnCallShiftMaterializer {
           },
         });
 
-      // (project, overridden user) pairs the caller substitutes for.
-      const pairs: Set<string> = new Set<string>();
+      // substitute -> the (project, overridden user) pairs THEY cover.
+      const pairsByUser: Map<string, Set<string>> = new Map<
+        string,
+        Set<string>
+      >();
       const overriddenUserIds: Array<ObjectID> = [];
       const overrideProjectIds: Array<ObjectID> = [];
 
       for (const override of coveringOverrides) {
         const overriddenUserId: ObjectID | undefined = override.overrideUserId;
         const projectId: ObjectID | undefined = override.projectId;
+        const substituteKey: string =
+          override.routeAlertsToUserId?.toString() || "";
 
-        if (!overriddenUserId || !projectId) {
+        if (
+          !overriddenUserId ||
+          !projectId ||
+          !candidatesByUser.has(substituteKey)
+        ) {
           continue;
         }
 
@@ -437,12 +509,19 @@ export default class OnCallShiftMaterializer {
           continue;
         }
 
+        let pairs: Set<string> | undefined = pairsByUser.get(substituteKey);
+
+        if (!pairs) {
+          pairs = new Set<string>();
+          pairsByUser.set(substituteKey, pairs);
+        }
+
         pairs.add(`${projectId.toString()}:${overriddenUserId.toString()}`);
         overriddenUserIds.push(overriddenUserId);
         overrideProjectIds.push(projectId);
       }
 
-      if (pairs.size > 0) {
+      if (pairsByUser.size > 0) {
         const coveredRows: Array<OnCallDutyPolicyScheduleLayerUser> =
           await OnCallDutyPolicyScheduleLayerUserService.findBy({
             query: {
@@ -469,24 +548,38 @@ export default class OnCallShiftMaterializer {
           const key: string = `${row.projectId?.toString() || ""}:${
             row.userId?.toString() || ""
           }`;
-          if (pairs.has(key) && row.onCallDutyPolicyScheduleId) {
-            candidates.push(row.onCallDutyPolicyScheduleId);
+
+          if (!row.onCallDutyPolicyScheduleId) {
+            continue;
+          }
+
+          for (const [substituteKey, pairs] of pairsByUser) {
+            if (pairs.has(key)) {
+              candidatesByUser
+                .get(substituteKey)
+                ?.push(row.onCallDutyPolicyScheduleId);
+            }
           }
         }
       }
     }
 
-    let deduped: Array<ObjectID> =
-      OnCallShiftMaterializer.dedupeIds(candidates);
+    const wanted: string | undefined = data.scheduleId?.toString();
 
-    if (data.scheduleId) {
-      const wanted: string = data.scheduleId.toString();
-      deduped = deduped.filter((id: ObjectID) => {
-        return id.toString() === wanted;
-      });
+    for (const [userKey, candidates] of candidatesByUser) {
+      let deduped: Array<ObjectID> =
+        OnCallShiftMaterializer.dedupeIds(candidates);
+
+      if (wanted) {
+        deduped = deduped.filter((id: ObjectID) => {
+          return id.toString() === wanted;
+        });
+      }
+
+      candidatesByUser.set(userKey, deduped);
     }
 
-    return deduped;
+    return candidatesByUser;
   }
 
   // -- Pure materialization ---------------------------------------------

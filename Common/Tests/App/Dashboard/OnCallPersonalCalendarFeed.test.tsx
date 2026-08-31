@@ -144,6 +144,7 @@ jest.mock("react-i18next", () => {
 });
 
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -424,6 +425,56 @@ describe("FeedStatusLine", () => {
 
     expect(screen.getByTestId("shared-status-line")).toBeInTheDocument();
   });
+
+  /*
+   * Every segment is one whole translated sentence with {{placeholders}}
+   * filled in by the component, not a translated word glued to a value. If a
+   * placeholder ever reached the DOM it would mean the sentence was looked up
+   * but never interpolated - a visible break in all 16 locales.
+   */
+  test("no interpolation placeholder ever reaches the rendered line", () => {
+    render(
+      <FeedStatusLine
+        status={status({
+          lastFetchedAt: "2026-08-31T10:00:00.000Z",
+          lastFetchedClient: "Google Calendar",
+          fetchCount: 143,
+          rotatedAt: "2026-08-01T10:00:00.000Z",
+        })}
+        now={NOW}
+        showRotatedAgo={true}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
+
+    expect(line.textContent).not.toContain("{{");
+    expect(line.textContent).not.toContain("}}");
+    // Every value still lands in the sentence it belongs to.
+    expect(line).toHaveTextContent("by Google Calendar");
+    expect(line).toHaveTextContent("~143 fetches");
+    expect(line).toHaveTextContent("link ending in …k3Qx");
+    expect(line).toHaveTextContent("Last rotated 30 days ago");
+  });
+
+  test("the client is left out of the sentence rather than trailing an empty 'by'", () => {
+    render(
+      <FeedStatusLine
+        status={status({
+          lastFetchedAt: "2026-08-31T10:00:00.000Z",
+          lastFetchedClient: null,
+          fetchCount: 4,
+        })}
+        now={NOW}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("calendar-feed-status-line");
+
+    expect(line).toHaveTextContent("Last fetched");
+    expect(line.textContent).not.toContain(" by ");
+    expect(line.textContent).not.toContain("{{");
+  });
 });
 
 describe("PersonalCalendarFeedCard (full variant)", () => {
@@ -465,6 +516,46 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
     expect(
       screen.queryByTestId("card-model-detail-stub"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The server sends hostWarning / protocolWarning even when no feed exists.
+   * Saying "this link will be unreachable" only AFTER the reader has minted
+   * one and pasted it into Google Calendar wastes the one moment the warning
+   * is actionable.
+   */
+  test("the empty state shows the deployment warnings the server attached to it", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        ...EMPTY_STATUS_JSON,
+        hostWarning: "HOST is not set, so the link points at localhost.",
+        protocolWarning: "HTTP_PROTOCOL is http, so the link is not encrypted.",
+      }),
+    );
+
+    render(
+      <PersonalCalendarFeedCard
+        variant={PersonalCalendarFeedVariant.Full}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("personal-calendar-feed-empty"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("personal-calendar-feed-host-warning"),
+    ).toHaveTextContent("HOST is not set");
+    expect(
+      screen.getByTestId("personal-calendar-feed-protocol-warning"),
+    ).toHaveTextContent("HTTP_PROTOCOL is http");
+    // Still offered - the warning informs the click, it does not block it.
+    expect(
+      screen.getByTestId("personal-calendar-feed-generate"),
+    ).toBeInTheDocument();
   });
 
   test("Generate posts to /feed/rotate with an empty JSON body and renders the returned link", async () => {
@@ -568,7 +659,14 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
-  test("a rotated-out previous link is announced with its expiry", async () => {
+  /*
+   * What the server does with the rotated-out token inside its grace window is
+   * answer with an EMPTY calendar (spec 2.1), not with the old shifts. The
+   * line has to say that: "keeps working until <date>" would tell somebody who
+   * rotated because a colleague left that the leaver still sees the roster for
+   * a month.
+   */
+  test("a rotated-out previous link is announced as empty until its expiry, not as still working", async () => {
     getMock.mockResolvedValue(
       ok(
         activeStatusJson({
@@ -584,11 +682,24 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
       />,
     );
 
+    let line: HTMLElement | null = null;
+
     await waitFor(() => {
-      expect(
-        screen.getByTestId("personal-calendar-feed-previous-link"),
-      ).toHaveTextContent("Your previous link keeps working until");
+      line = screen.getByTestId("personal-calendar-feed-previous-link");
+      expect(line).toHaveTextContent(
+        "Your previous link returns an empty calendar until",
+      );
     });
+
+    expect(line!).toHaveTextContent("then stops working");
+    expect(line!).not.toHaveTextContent("keeps working");
+    // The {{date}} placeholder is filled, not printed.
+    expect(line!.textContent).not.toContain("{{");
+    expect(line!.textContent).toContain(
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        OneUptimeDate.fromString("2026-09-30T10:00:00.000Z"),
+      ),
+    );
   });
 
   test("Regenerate asks for confirmation, then posts to /feed/rotate", async () => {
@@ -611,9 +722,17 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Regenerate link" }));
 
     const modal: HTMLElement = await screen.findByTestId("modal");
-    expect(
-      within(modal).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent("The old link keeps working for 30 days");
+    /*
+     * The modal must not promise the old link keeps serving shifts: the server
+     * answers it with an empty calendar for the 30-day grace, then 404s.
+     */
+    const description: HTMLElement = within(modal).getByTestId(
+      "confirm-modal-description",
+    );
+    expect(description).toHaveTextContent(
+      "For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working",
+    );
+    expect(description).not.toHaveTextContent("keeps working for 30 days");
     // Nothing is posted until the reader confirms.
     expect(postMock).not.toHaveBeenCalled();
 
@@ -899,6 +1018,36 @@ describe("PersonalCalendarFeedCard (schedule variant)", () => {
     expect(
       screen.queryByTestId("card-model-detail-stub"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A truncated render is a property of the feed, not of the page it is shown
+   * on: the same link is short on the schedule page and on the settings page.
+   * The narrow variant used to drop the flag, so a reader who only ever opens
+   * the schedule page never learned their calendar was incomplete.
+   */
+  test("the narrow variant carries the truncation warning, like the full one", async () => {
+    getMock.mockResolvedValue(
+      ok(activeStatusJson({ lastRenderTruncated: true })),
+    );
+
+    render(
+      <PersonalCalendarFeedCard
+        variant={PersonalCalendarFeedVariant.Schedule}
+        scheduleId={SCHEDULE_ID}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-personal-calendar-feed-links"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("schedule-personal-calendar-feed-truncated-warning"),
+    ).toHaveTextContent("shortened because it would have exceeded the event");
   });
 
   test("offers Generate when no link exists and posts to /feed/rotate", async () => {

@@ -12,6 +12,10 @@ import {
 import {
   CALENDAR_FEED_DOCS_PATH,
   GOOGLE_CALENDAR_ADD_URL_PREFIX,
+  LEAD_TIME_DAYS_COPY,
+  LEAD_TIME_HOURS_COPY,
+  LEAD_TIME_MINUTES_COPY,
+  LEAD_TIME_WEEKS_COPY,
   LeadTimeValidation,
   MY_SHIFTS_PATH,
   NOTHING_FETCHED_HINT_AFTER_HOURS,
@@ -37,8 +41,10 @@ import {
   getScheduleFeedRotatePath,
   getUpcomingShiftsWindow,
   groupShiftsByDay,
+  interpolate,
   isCoveringShift,
   shouldShowNothingFetchedHint,
+  translateInterpolated,
   validateCustomLeadMinutes,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
 import {
@@ -340,6 +346,51 @@ describe("reminder presets and lead times", () => {
     expect(formatLeadTime(45)).toBe("45 minutes");
   });
 
+  /*
+   * A custom lead time used to be the one label on the reminders card left in
+   * English: the four presets went through the translator and "90 minutes" did
+   * not. The unit sentences are whole keys with a {{count}} placeholder, so a
+   * language that puts the unit first can say so.
+   */
+  test("formatLeadTime translates the unit sentence, preset and non-preset alike", () => {
+    const dictionary: Record<string, string> = {
+      [LEAD_TIME_WEEKS_COPY]: "{{count}} Wochen",
+      [LEAD_TIME_DAYS_COPY]: "{{count}} Tage",
+      [LEAD_TIME_HOURS_COPY]: "{{count}} Stunden",
+      [LEAD_TIME_MINUTES_COPY]: "{{count}} Minuten",
+      "15 min": "15 Min.",
+    };
+
+    const translate: (value: string | undefined) => string | undefined = (
+      value: string | undefined,
+    ): string | undefined => {
+      return dictionary[value || ""] || value;
+    };
+
+    expect(formatLeadTime(90, translate)).toBe("90 Minuten");
+    expect(formatLeadTime(180, translate)).toBe("3 Stunden");
+    expect(formatLeadTime(2880, translate)).toBe("2 Tage");
+    expect(formatLeadTime(20160, translate)).toBe("2 Wochen");
+    expect(formatLeadTime(15, translate)).toBe("15 Min.");
+    // A locale with no entry for the sentence still renders English, not a key.
+    expect(
+      formatLeadTime(90, (): undefined => {
+        return undefined;
+      }),
+    ).toBe("90 minutes");
+  });
+
+  test("the unit sentences all carry the {{count}} placeholder the validator checks", () => {
+    for (const copy of [
+      LEAD_TIME_WEEKS_COPY,
+      LEAD_TIME_DAYS_COPY,
+      LEAD_TIME_HOURS_COPY,
+      LEAD_TIME_MINUTES_COPY,
+    ]) {
+      expect(copy).toContain("{{count}}");
+    }
+  });
+
   test("validateCustomLeadMinutes accepts whole minutes inside the bounds", () => {
     const ok: LeadTimeValidation = validateCustomLeadMinutes(" 90 ");
     expect(ok).toEqual({ minutes: 90, error: null });
@@ -524,8 +575,24 @@ describe("parseFeedUrls", () => {
     const parsed: FeedUrls | null = parseFeedUrls({ https: HTTPS_URL });
 
     expect(parsed).not.toBeNull();
-    expect(parsed!.webcal).toBe(HTTPS_URL.replace("https:", "webcal:"));
+    /*
+     * webcalS, not webcal: an https feed subscribed over plain webcal:// would
+     * make Apple Calendar fetch the token in the clear from an https-only host
+     * (the server builds webcals:// for https - spec 2.2).
+     */
+    expect(parsed!.webcal).toBe(HTTPS_URL.replace("https:", "webcals:"));
+    expect(parsed!.webcal.startsWith("webcals://")).toBe(true);
     expect(parsed!.googleAdd).toBe(buildGoogleAddUrl(HTTPS_URL));
+  });
+
+  test("repairs a plain-http link to webcal:// rather than webcals://", () => {
+    const httpUrl: string = HTTPS_URL.replace("https:", "http:");
+    const parsed: FeedUrls | null = parseFeedUrls({ https: httpUrl });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.webcal).toBe(httpUrl.replace("http:", "webcal:"));
+    expect(parsed!.webcal.startsWith("webcal://")).toBe(true);
+    expect(parsed!.googleAdd).toBe(buildGoogleAddUrl(httpUrl));
   });
 });
 
@@ -692,5 +759,97 @@ describe("parseMyShifts", () => {
     });
     expect(parseMyShifts(null).shifts).toEqual([]);
     expect(parseMyShifts({ shifts: "nope" }).shifts).toEqual([]);
+  });
+});
+
+/*
+ * Sentence assembly. The dashboard used to build the status line by gluing
+ * translated fragments together in English word order ("Last fetched" + when +
+ * "by" + client), which no translator can reorder. Everything user-visible now
+ * goes through one whole-sentence key with {{placeholders}} filled here.
+ */
+describe("interpolate", () => {
+  test("fills every named placeholder, repeated ones included", () => {
+    expect(
+      interpolate("Last fetched {{when}} by {{client}}", {
+        when: "2 hours ago",
+        client: "Google Calendar",
+      }),
+    ).toBe("Last fetched 2 hours ago by Google Calendar");
+
+    expect(interpolate("{{a}}-{{a}}", { a: "x" })).toBe("x-x");
+  });
+
+  test("accepts numbers and tolerates whitespace inside the braces", () => {
+    expect(interpolate("~{{count}} fetches", { count: 143 })).toBe(
+      "~143 fetches",
+    );
+    expect(interpolate("{{ count }} days", { count: 2 })).toBe("2 days");
+    expect(interpolate("{{count}} days", { count: 0 })).toBe("0 days");
+  });
+
+  test("leaves an unknown placeholder visible rather than blanking the sentence", () => {
+    expect(interpolate("Last rotated {{count}} days ago", {})).toBe(
+      "Last rotated {{count}} days ago",
+    );
+  });
+
+  test("a value that itself looks like a placeholder is not re-expanded", () => {
+    expect(interpolate("{{name}}", { name: "{{name}}" })).toBe("{{name}}");
+  });
+
+  test("a sentence with no placeholders is returned untouched", () => {
+    expect(interpolate("Not fetched yet", { count: 1 })).toBe(
+      "Not fetched yet",
+    );
+  });
+});
+
+describe("translateInterpolated", () => {
+  const GERMAN: Record<string, string> = {
+    "Last fetched {{when}} by {{client}}": "{{client}} hat {{when}} abgerufen",
+  };
+
+  const translate: (value: string | undefined) => string | undefined = (
+    value: string | undefined,
+  ): string | undefined => {
+    return GERMAN[value || ""] || value;
+  };
+
+  test("a translation may reorder the placeholders - the whole point of the change", () => {
+    expect(
+      translateInterpolated(translate, "Last fetched {{when}} by {{client}}", {
+        when: "vor 2 Stunden",
+        client: "Google Calendar",
+      }),
+    ).toBe("Google Calendar hat vor 2 Stunden abgerufen");
+  });
+
+  test("falls back to the English sentence when the locale has no entry", () => {
+    expect(
+      translateInterpolated(translate, "Last fetched {{when}}", {
+        when: "2 hours ago",
+      }),
+    ).toBe("Last fetched 2 hours ago");
+  });
+
+  test("an empty translation is treated as missing, never rendered as a blank line", () => {
+    expect(
+      translateInterpolated(
+        (): string => {
+          return "";
+        },
+        "Covering for {{name}}",
+        { name: "Bob" },
+      ),
+    ).toBe("Covering for Bob");
+  });
+
+  test("works with no translator at all, which is what keeps the helper pure", () => {
+    expect(
+      translateInterpolated(undefined, "Only on policy {{name}}", {
+        name: "Checkout",
+      }),
+    ).toBe("Only on policy Checkout");
   });
 });

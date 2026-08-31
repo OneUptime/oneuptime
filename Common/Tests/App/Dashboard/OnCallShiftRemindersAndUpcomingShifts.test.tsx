@@ -592,6 +592,32 @@ describe("UpcomingShiftsCard", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * A schedule that hits the simulation cap emits NOTHING for the capped layer
+   * (Layer.ts would otherwise attribute shifts to the wrong person), so
+   * {shifts: [], truncated: true} is a real answer from /my-shifts - and the
+   * only honest reading of it is "we could not compute this", never "you have
+   * no shifts".
+   */
+  test("an empty BUT truncated answer keeps the warning and does not claim there are no shifts", async () => {
+    getMock.mockResolvedValue(ok(myShiftsJson([], true)));
+
+    render(<UpcomingShiftsCard now={NOW} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("upcoming-shifts-truncated")).toHaveTextContent(
+        "too complex to compute fully",
+      );
+    });
+
+    expect(screen.getByTestId("upcoming-shifts-empty")).toHaveTextContent(
+      "No shifts could be listed for the next 30 days.",
+    );
+    expect(screen.getByTestId("upcoming-shifts-empty")).not.toHaveTextContent(
+      "You have no shifts",
+    );
+  });
+
   test("a truncated answer is flagged above the list", async () => {
     getMock.mockResolvedValue(
       ok(myShiftsJson([shift({ shiftKey: "only" })], true)),

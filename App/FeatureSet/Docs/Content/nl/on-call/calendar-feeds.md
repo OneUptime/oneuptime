@@ -6,7 +6,7 @@ Agendafeeds zetten je piketdiensten in de agenda waar je toch al naar kijkt. One
 
 ## Wat je krijgt
 
-- Eén afspraak per dienst, met de titel `On-call · <Schedule>` in je persoonlijke feed en `<Name> · On-call · <Schedule>` in een gedeelde feed. De omschrijving vermeldt wie piket heeft, het rooster en zijn tijdzone, de laag, de dienst in de tijdzone van het rooster, in UTC en in de jouwe, via welke escalatiebeleidsregels je via dit rooster wordt opgeroepen, en een link naar het rooster in het dashboard.
+- Eén afspraak per dienst, met de titel `On-call · <Schedule>` (met ` · <Policy>` erachter wanneer het rooster aan precies één escalatiebeleid is gekoppeld) in je persoonlijke feed en `<Name> · On-call · <Schedule>` in een gedeelde feed. De omschrijving vermeldt wie piket heeft, het rooster en zijn tijdzone, de laag, de dienst in de tijdzone van het rooster, in UTC en in de jouwe, via welke escalatiebeleidsregels je via dit rooster wordt opgeroepen, en een link naar het rooster in het dashboard.
 - Overrides worden gerespecteerd. Als iemand voor je invalt, gaat de afspraak naar die persoon (`(covering for <Name>)` wordt toegevoegd) en blijft het dezelfde afspraak in je agenda-app, zodat hij ter plekke wordt bijgewerkt in plaats van gedupliceerd. Een gedeeltelijke override splitst de dienst in aansluitende afspraken.
 - Standaard twee dagen geschiedenis en 90 dagen vooruit. Je kunt dit verruimen tot 60 dagen terug en 180 dagen vooruit; een feed die meer dan 5.000 afspraken zou bevatten wordt ingekort en meldt dat in de agendabeschrijving.
 - Afspraken zijn gemarkeerd als vrij (`TRANSP:TRANSPARENT`), dus een geabonneerde feed blokkeert nooit je beschikbaarheid, en niets is als privé gemarkeerd, zodat een gedeelde teamagenda de titels toont aan iedereen die hem kan zien.
@@ -124,7 +124,7 @@ Noch de Google Agenda-app, noch Samsung Agenda kan zich op een URL abonneren. Vo
 | Fastmail                          | Ongeveer elk uur                                                | Servers van Fastmail  | Uitgeschakeld na vijf mislukte ophaalpogingen                                                    |
 | Proton Calendar                   | 4–16 uur                                                        | Servers van Proton    | Weigert grote feeds                                                                              |
 
-OneUptime zelf levert verse gegevens: een wijziging aan een laag, een rotatie, een override of een beleidskoppeling maakt de feed meteen ongeldig, en antwoorden worden hooguit vijf minuten gecachet. De wachttijd die je ziet is die van de agenda-app, niet van de server. OneUptime stelt via `REFRESH-INTERVAL` en `X-PUBLISHED-TTL` een uurlijkse vernieuwing voor; alleen klassiek Outlook en Apple Agenda nemen die hint over.
+OneUptime zelf levert verse gegevens: een wijziging aan een laag, een rotatie, een override of een beleidskoppeling maakt de feed meteen ongeldig, en antwoorden worden hooguit vijf minuten gecachet. De wachttijd die je ziet is die van de agenda-app, niet van de server. OneUptime stelt via `REFRESH-INTERVAL` en `X-PUBLISHED-TTL` een uurlijkse vernieuwing voor; alleen klassiek Outlook neemt die hint over, en alleen met **Bijwerklimiet** aan — Apple Agenda, Thunderbird en de rest vernieuwen met het interval dat je per agenda instelt.
 
 ## https, webcal en webcals
 
@@ -143,6 +143,7 @@ Onder **Gebruikersinstellingen** > **Agendafeed** laat de kaart **Herinner me vo
 - Een dienst die door een late override binnen een van je voorlooptijden valt — iemand geeft je 20 minuten voor het begin een dienst — krijgt meteen één inhaalherinnering.
 - Als een dienst waarvoor je herinnerd bent aan iemand anders wordt gegeven, krijg je **Mijn komende piketdienst is opnieuw toegewezen**, een apart gebeurtenistype dat afzonderlijk kan worden gedempt.
 - Herinneringen worden nooit verzonden nadat een dienst is begonnen, en nooit voor roosters die aan geen enkel escalatiebeleid zijn gekoppeld, omdat die niemand kunnen oproepen.
+- Op WhatsApp komt een herinnering binnen via het vooraf goedgekeurde wachtdienstsjabloon van Meta: het noemt het rooster en het escalatiebeleid en linkt naar het rooster, maar bevat de starttijd niet, en WhatsApp levert het alleen in het Engels. Voor meldingen over een herverdeling bestaat geen goedgekeurd WhatsApp-sjabloon, dus die bereiken je via je andere kanalen.
 
 ## Gedeelde links voor een rooster of een project
 
@@ -160,7 +161,7 @@ Instellingen op beide:
 
 Zet de roosterlink in een gedeelde teamagenda — Google, Outlook of Confluence — en één abonnement bedient het hele team. Roteer hem als iemand die hem had vertrekt, of schakel de automatische rotatie hierboven in.
 
-Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime die persoon ook uit de roosterlagen en escalatieregels van dat project, schakelt zijn persoonlijke feed voor het project uit en verwijdert zijn herinneringen daar.
+Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime die persoon ook uit de roosterlagen en escalatieregels van dat project, verwijdert de lopende en toekomstige overrides van dat project waarin die persoon staat (als vervangen persoon of als vervanger), schakelt zijn persoonlijke feed voor het project uit en verwijdert zijn herinneringen daar.
 
 ## Afspraken in detail
 
@@ -179,18 +180,20 @@ De feed toont de rotatie **zoals hij nu is geconfigureerd**, ook voor voorbije d
 - Het token in de link is de enige inloggegevens. Iedereen die de link heeft ziet de diensten — namen, roosters, beleid — totdat hij opnieuw wordt gegenereerd. Plak links niet in chatkanalen of tickets; als een team een agenda nodig heeft, deel dan de rooster- of projectlink in plaats van je persoonlijke.
 - Links zijn per project. Een gelekte persoonlijke link legt de diensten van één project bloot, niet van elk project waar je bij hoort.
 - **Opnieuw genereren** zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder aanwijzing. Lege agenda's laten geabonneerde apps hun kopie wissen; een 404 laat ze die houden, en daarom leveren uitschakelen en opnieuw genereren lege agenda's.
-- Tokens worden gehasht opgeslagen; de kopie die op de instellingenpagina wordt getoond is versleuteld met `ENCRYPTION_SECRET`. Geef die variabele op een zelfgehoste installatie een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog letterlijk `secret` is. Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** omdat de opgeslagen kopie niet meer leesbaar is; de feed blijft werken totdat je dat doet.
+- Tokens worden gehasht opgeslagen; de kopie die op de instellingenpagina wordt getoond is versleuteld met `ENCRYPTION_SECRET`. Geef die variabele op een zelfgehoste installatie een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog een van de tijdelijke waarden uit deze repository is (`secret`, of de `please-change-this-to-random-value` die `config.example.env` zet). Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** omdat de opgeslagen kopie niet meer leesbaar is; de feed blijft werken totdat je dat doet.
 - Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en per link en per clientadres in snelheid beperkt.
-- De eigen Nginx van OneUptime schrijft feedverzoeken niet naar zijn toegangslog:
+- De eigen Nginx van OneUptime houdt feedverzoeken uit zijn logbestanden:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  zodat een token nooit naast een clientadres in een logbestand belandt; de applicatie logt het evenmin. **Elke proxy, WAF of CDN die je vóór OneUptime plaatst logt nog steeds de volledige URI** tenzij je hem anders configureert — controleer dat voordat je feeds uitrolt.
+  zodat een token nooit naast een clientadres in een logbestand belandt; de applicatie logt het evenmin. `access_log off` haalt de regel per verzoek weg, `error_log` haalt de regels weg die Nginx schrijft als een aanroep naar de applicatie mislukt — zonder die regel wordt het token vastgelegd van elke client die tijdens een herstart de feed ophaalt — en `proxy_max_temp_file_size 0` houdt een grote feed uit een tijdelijk bestand. **Elke proxy, WAF of CDN die je vóór OneUptime plaatst logt nog steeds de volledige URI, zowel in zijn toegangslog als in zijn foutlog** tenzij je hem anders configureert — controleer dat voordat je feeds uitrolt.
 
 ## Zelfgehoste configuratie
 

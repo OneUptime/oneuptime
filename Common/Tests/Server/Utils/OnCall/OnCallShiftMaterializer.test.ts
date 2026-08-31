@@ -3,6 +3,7 @@ import OnCallShiftMaterializer, {
   MaterializedScheduleInfo,
   MaterializedUserInfo,
 } from "../../../../Server/Utils/OnCall/OnCallShiftMaterializer";
+import OnCallDutyPolicyScheduleLayerUserService from "../../../../Server/Services/OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyUserOverrideService from "../../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserService from "../../../../Server/Services/UserService";
@@ -1318,6 +1319,92 @@ describe("OnCallShiftMaterializer", () => {
           includeCoveringShifts: false,
         });
       expect(ids(forAOwnOnly)).toEqual([SCHEDULE]);
+    });
+
+    /*
+     * The batched form the reminder sweep uses: the same answer for a whole
+     * group of users in the same 2-3 queries it takes for one, which is what
+     * keeps a five-minute tick from issuing 2-3 queries PER reminded user.
+     */
+    test("getCandidateScheduleIdsForUsers: one batched lookup answers every user, with coverage kept per user", async () => {
+      const db: FakeDb = twoScheduleDb();
+      db.overrides.push(
+        makeOverride({
+          id: "ov-cover",
+          projectId: PROJECT,
+          overrideUserId: "F",
+          routeAlertsToUserId: "A",
+          startsAt: at("2026-03-03T00:00:00Z"),
+          endsAt: at("2026-03-04T00:00:00Z"),
+        }),
+      );
+      installFakeDb(db);
+
+      const byUser: Map<
+        string,
+        Array<ObjectID>
+      > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+        userIds: [oid("A"), oid("B"), oid("nobody")],
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+        includeCoveringShifts: true,
+      });
+
+      // A is on schedule 1 and covers F, who is on schedule 2.
+      expect(ids(byUser.get("A") || []).sort()).toEqual([SCHEDULE, SCHEDULE_2]);
+      // B is on schedule 1 only: A's coverage never leaks into B's list.
+      expect(ids(byUser.get("B") || [])).toEqual([SCHEDULE]);
+      // Every requested user gets an entry, even with nothing to show.
+      expect(byUser.has("nobody")).toBe(true);
+      expect(byUser.get("nobody")).toEqual([]);
+
+      // Two layer-user queries and ONE override query for all three users.
+      expect(OnCallDutyPolicyUserOverrideService.findBy).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(
+        OnCallDutyPolicyScheduleLayerUserService.findBy,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    test("getCandidateScheduleIdsForUsers: no users means no queries at all", async () => {
+      installFakeDb(twoScheduleDb());
+
+      const byUser: Map<
+        string,
+        Array<ObjectID>
+      > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+        userIds: [],
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+        includeCoveringShifts: true,
+      });
+
+      expect(byUser.size).toBe(0);
+      expect(
+        OnCallDutyPolicyScheduleLayerUserService.findBy,
+      ).toHaveBeenCalledTimes(0);
+      expect(OnCallDutyPolicyUserOverrideService.findBy).toHaveBeenCalledTimes(
+        0,
+      );
+    });
+
+    test("getCandidateScheduleIdsForUsers honours the scheduleId narrowing for every user", async () => {
+      installFakeDb(twoScheduleDb());
+
+      const byUser: Map<
+        string,
+        Array<ObjectID>
+      > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+        userIds: [oid("A"), oid("F")],
+        scheduleId: oid(SCHEDULE_2),
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+        includeCoveringShifts: false,
+      });
+
+      expect(ids(byUser.get("A") || [])).toEqual([]);
+      expect(ids(byUser.get("F") || [])).toEqual([SCHEDULE_2]);
     });
 
     test("an empty project yields an empty result", async () => {

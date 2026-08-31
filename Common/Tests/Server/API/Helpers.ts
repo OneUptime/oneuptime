@@ -59,6 +59,13 @@ type MockRouter = {
   post: jest.Mock;
   put: jest.Mock;
   delete: jest.Mock;
+
+  /*
+   * Express's catch-every-method registration. Recorded with the method
+   * "ALL"; a test that replays the routes onto a real app should map it to
+   * `app.all`.
+   */
+  all: jest.Mock;
   routes: Route[];
   match: (method: string, uri: string) => Route;
 };
@@ -68,6 +75,7 @@ export const mockRouter: MockRouter = {
   post: jest.fn().mockImplementation(mockRouterForMethod("post")),
   put: jest.fn().mockImplementation(mockRouterForMethod("put")),
   delete: jest.fn().mockImplementation(mockRouterForMethod("delete")),
+  all: jest.fn().mockImplementation(mockRouterForMethod("all")),
   routes: [] as any as Route[],
   match: (method: string, uri: string) => {
     const route: Route | undefined = mockRouter.routes.find((route: Route) => {

@@ -193,9 +193,22 @@ export function describePolicyVariant(shift: MyOnCallShift): string | null {
  * already covering for somebody else: an override on top of an override is
  * not something the server resolves as a chain, so offering it would create a
  * record that changes nothing and looks like it did.
+ *
+ * And not for a shift that arrived without a project. An override is created
+ * IN a project, and the sheet fills that in from the shift; handed an empty
+ * one it would quietly fall back to the first project in the list - with the
+ * project picker hidden, because a prefilled sheet does not show it - and
+ * write the override somewhere the shift is not. The server cannot catch
+ * that: the request carries a project and two user ids, all of them valid.
+ * A shift like this can only come from a server that omitted a required
+ * field, and the honest answer is to show the shift without the action.
  */
 export function canRequestCover(shift: MyOnCallShift, now: number): boolean {
   if (hasShiftEnded(shift, now)) {
+    return false;
+  }
+
+  if (!shift.projectId) {
     return false;
   }
 

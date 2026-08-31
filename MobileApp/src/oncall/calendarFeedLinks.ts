@@ -24,6 +24,15 @@ const TRAILING_SLASHES_PATTERN: RegExp = /\/+$/;
 
 const HTTPS_SCHEME_PATTERN: RegExp = /^https:\/\//i;
 
+/*
+ * The route prefix every feed URL contains. It is the seam between "how this
+ * handset reaches the server" and "where the feed lives on it": everything in
+ * front of it belongs to the deployment (a reverse proxy that mounts
+ * OneUptime under a sub-path), and the app's own stored URL is the authority
+ * on that half - it is the address every other request already goes to.
+ */
+const FEED_ROUTE_MARKER: string = "/api/on-call-calendar/";
+
 export interface ParsedFeedUrl {
   scheme: string;
   host: string;
@@ -119,10 +128,32 @@ export function buildFeedLinks(
 
   /*
    * The app's stored URL may carry a base path (a server mounted under
-   * /oneuptime); the server's link already includes any such prefix, so only
-   * the origin is taken from the app side.
+   * /oneuptime behind a proxy). That prefix is part of how THIS handset
+   * reaches the API - every other request the app makes is
+   * `${serverUrl}/api/...` - so the rebuilt link keeps it and takes only the
+   * feed route itself from the server's link. Taking just the origin would
+   * drop the prefix and produce a link that 404s, which is exactly the
+   * split-DNS install this rebuild exists for; taking the server's whole path
+   * would double the prefix on an install whose HOST already carries one.
+   *
+   * A server link that does not contain the route marker at all is a shape
+   * this code does not understand, so it keeps the old behaviour: the app's
+   * origin plus whatever path the server built.
    */
-  const https: string = `${appOrigin}${parsedServerLink.pathAndQuery}`.replace(
+  const appBasePath: string = parsedAppServer.pathAndQuery.replace(
+    TRAILING_SLASHES_PATTERN,
+    "",
+  );
+
+  const markerIndex: number =
+    parsedServerLink.pathAndQuery.indexOf(FEED_ROUTE_MARKER);
+
+  const rebuiltPath: string =
+    markerIndex >= 0
+      ? `${appBasePath}${parsedServerLink.pathAndQuery.slice(markerIndex)}`
+      : parsedServerLink.pathAndQuery;
+
+  const https: string = `${appOrigin}${rebuiltPath}`.replace(
     TRAILING_SLASHES_PATTERN,
     "",
   );

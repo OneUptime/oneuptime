@@ -2,6 +2,7 @@ import { FeedStatus } from "./CalendarFeedTypes";
 import {
   getRotatedDaysAgo,
   shouldShowNothingFetchedHint,
+  translateInterpolated,
 } from "./CalendarFeedUtil";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -34,21 +35,37 @@ const FeedStatusLine: FunctionComponent<ComponentProps> = (
   const idPrefix: string = props.idPrefix || "calendar-feed";
   const status: FeedStatus = props.status;
 
+  /*
+   * Every segment below is ONE translated sentence with {{placeholders}},
+   * never a translated word glued to a value: "Last fetched" + when + "by" +
+   * client would force English word order on all 16 locales and give a
+   * translator no way to reorder it.
+   */
   const parts: Array<string> = [];
 
   if (status.lastFetchedAt) {
     const fetched: Date = OneUptimeDate.fromString(status.lastFetchedAt);
-    let sentence: string = `${translateString("Last fetched")} ${OneUptimeDate.fromNow(fetched)}`;
+    const when: string = OneUptimeDate.fromNow(fetched);
 
-    if (status.lastFetchedClient) {
-      sentence += ` ${translateString("by")} ${status.lastFetchedClient}`;
-    }
-
-    parts.push(sentence);
+    parts.push(
+      status.lastFetchedClient
+        ? translateInterpolated(
+            translateString,
+            "Last fetched {{when}} by {{client}}",
+            { when: when, client: status.lastFetchedClient },
+          )
+        : translateInterpolated(translateString, "Last fetched {{when}}", {
+            when: when,
+          }),
+    );
 
     if (status.fetchCount > 0) {
       parts.push(
-        `~${status.fetchCount} ${translateString(status.fetchCount === 1 ? "fetch" : "fetches")}`,
+        translateInterpolated(
+          translateString,
+          status.fetchCount === 1 ? "~{{count}} fetch" : "~{{count}} fetches",
+          { count: status.fetchCount },
+        ),
       );
     }
   } else {
@@ -56,7 +73,11 @@ const FeedStatusLine: FunctionComponent<ComponentProps> = (
   }
 
   if (status.tokenHint) {
-    parts.push(`${translateString("link ending in")} …${status.tokenHint}`);
+    parts.push(
+      translateInterpolated(translateString, "link ending in …{{hint}}", {
+        hint: status.tokenHint,
+      }),
+    );
   }
 
   const rotatedDaysAgo: number | null = props.showRotatedAgo
@@ -67,7 +88,13 @@ const FeedStatusLine: FunctionComponent<ComponentProps> = (
     parts.push(
       rotatedDaysAgo === 0
         ? translateString("Last rotated today") || "Last rotated today"
-        : `${translateString("Last rotated")} ${rotatedDaysAgo} ${translateString(rotatedDaysAgo === 1 ? "day ago" : "days ago")}`,
+        : translateInterpolated(
+            translateString,
+            rotatedDaysAgo === 1
+              ? "Last rotated {{count}} day ago"
+              : "Last rotated {{count}} days ago",
+            { count: rotatedDaysAgo },
+          ),
     );
   }
 

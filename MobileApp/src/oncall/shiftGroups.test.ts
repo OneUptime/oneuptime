@@ -297,6 +297,20 @@ describe("canRequestCover", () => {
       ),
     ).toBe(false);
   });
+
+  test("no for a shift that arrived without a project", () => {
+    /*
+     * Only a server that dropped a required field produces this, and the
+     * normaliser deliberately keeps such a shift so the user still sees they
+     * are on call. The ACTION is what has to go: the override sheet fills the
+     * project in from the shift, hides its project picker because it was
+     * prefilled, and would silently fall back to the first project in the
+     * list - creating a real override, in the wrong project, with nothing on
+     * screen saying so. The server cannot catch it either: the request it
+     * receives names a project the user is genuinely in.
+     */
+    expect(canRequestCover(shift({ projectId: "" }), NOW)).toBe(false);
+  });
 });
 
 describe("buildCoverParams", () => {

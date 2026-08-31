@@ -7,6 +7,7 @@ import {
   getUpcomingShiftsWindow,
   groupShiftsByDay,
   isCoveringShift,
+  translateInterpolated,
 } from "./CalendarFeedUtil";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -113,7 +114,11 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {isCoveringShift(shift) && shift.override && (
               <Pill
-                text={`${translateString("Covering for")} ${shift.override.originalUserName}`}
+                text={translateInterpolated(
+                  translateString,
+                  "Covering for {{name}}",
+                  { name: shift.override.originalUserName },
+                )}
                 color={Blue500}
                 size={PillSize.Small}
                 isMinimal={true}
@@ -121,7 +126,11 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
             )}
             {shift.policyVariantOf && (
               <Pill
-                text={`${translateString("Only on policy")} ${shift.policyVariantOf.policyName}`}
+                text={translateInterpolated(
+                  translateString,
+                  "Only on policy {{name}}",
+                  { name: shift.policyVariantOf.policyName },
+                )}
                 color={Purple500}
                 size={PillSize.Small}
                 isMinimal={true}
@@ -142,6 +151,25 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The resolver reports `truncated` independently of how many shifts came
+   * back: a schedule that hit the simulation cap emits NOTHING for the capped
+   * layer rather than shifts attributed to the wrong person, so an empty list
+   * can still be an incomplete answer. The notice therefore renders above the
+   * empty state as well - "you have no shifts" on its own would be a lie.
+   */
+  const truncatedNotice: ReactElement | null =
+    response && response.truncated ? (
+      <div
+        className="text-sm text-amber-700"
+        data-testid="upcoming-shifts-truncated"
+      >
+        {translateString(
+          "One of your schedules is too complex to compute fully; some shifts may be missing.",
+        )}
+      </div>
+    ) : null;
+
   let body: ReactElement;
 
   if (isLoading) {
@@ -159,13 +187,18 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
     );
   } else if (!response || response.shifts.length === 0) {
     body = (
-      <div
-        className="text-sm text-gray-500"
-        data-testid="upcoming-shifts-empty"
-      >
-        {translateString(
-          "You have no shifts on any schedule in the next 30 days.",
-        )}
+      <div className="space-y-2">
+        {truncatedNotice}
+        <div
+          className="text-sm text-gray-500"
+          data-testid="upcoming-shifts-empty"
+        >
+          {translateString(
+            response && response.truncated
+              ? "No shifts could be listed for the next 30 days."
+              : "You have no shifts on any schedule in the next 30 days.",
+          )}
+        </div>
       </div>
     );
   } else {
@@ -173,16 +206,7 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
 
     body = (
       <div className="space-y-4">
-        {response.truncated && (
-          <div
-            className="text-sm text-amber-700"
-            data-testid="upcoming-shifts-truncated"
-          >
-            {translateString(
-              "One of your schedules is too complex to compute fully; some shifts may be missing.",
-            )}
-          </div>
-        )}
+        {truncatedNotice}
         {groups.map((group: ShiftDayGroup): ReactElement => {
           return (
             <div key={group.dayKey} data-testid="upcoming-shift-day">

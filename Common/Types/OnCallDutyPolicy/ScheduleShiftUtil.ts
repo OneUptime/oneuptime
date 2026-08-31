@@ -1,5 +1,6 @@
 import CalendarEvent from "../Calendar/CalendarEvent";
 import OneUptimeDate from "../Date";
+import { ROTATION_PERIOD_START_KEY } from "./Layer";
 import UserOverrideUtil, { OverrideEventMeta } from "./UserOverrideUtil";
 
 /*
@@ -255,12 +256,22 @@ export default class ScheduleShiftUtil {
   }
 
   /*
-   * Grouping that keeps a shift inside ONE layer and ONE override window: the
-   * user id, plus the override identity (original user + window) when the
-   * segment was produced by an override, plus the layer id when known. This
+   * Grouping that keeps a shift inside ONE layer, ONE override window and ONE
+   * rotation period: the user id, plus the override identity (original user +
+   * window) when the segment was produced by an override, plus the layer id
+   * when known, plus the rotation period the engine stamped on the event. This
    * is the key the on-call calendar feed groups with, so an override split
    * yields A / B / A as three events and a layer handover is visible as a
    * boundary instead of being folded into a single shift.
+   *
+   * The rotation period matters because two consecutive turns held by the SAME
+   * user (a single-user layer, or [A, A, B]) are contiguous across the engine's
+   * 1 s seam and would otherwise fold into one block whose start and end are
+   * decided by how far the expansion window reached — the block would slide
+   * forward every time the feed window did, changing the event's UID and
+   * DTSTART for every subscriber. Override segments deliberately ignore the
+   * period: an override that spans a rotation boundary is ONE stretch of cover
+   * and stays one event.
    */
   public static groupKeyByUserOverrideAndLayer(event: CalendarEvent): string {
     const override: OverrideEventMeta | null =
@@ -270,7 +281,14 @@ export default class ScheduleShiftUtil {
       ? `${override.originalUserId}@${override.overrideStartsAt.getTime()}-${override.overrideEndsAt.getTime()}`
       : "";
 
-    return `${event.title}|${overridePart}|${ScheduleShiftUtil.getEventLayerId(event) ?? ""}`;
+    const periodStart: number | undefined = override
+      ? undefined
+      : ScheduleShiftUtil.getEventRotationPeriodStart(event);
+
+    const periodPart: string =
+      periodStart === undefined ? "" : periodStart.toString();
+
+    return `${event.title}|${overridePart}|${ScheduleShiftUtil.getEventLayerId(event) ?? ""}|${periodPart}`;
   }
 
   /*
@@ -290,6 +308,37 @@ export default class ScheduleShiftUtil {
       "layerName"
     ];
     return typeof value === "string" ? value : undefined;
+  }
+
+  /*
+   * Epoch milliseconds of the rotation period an engine event belongs to (see
+   * ROTATION_PERIOD_START_KEY in Layer.ts). Undefined for hand-built events and
+   * for anything that did not come out of LayerUtil — those simply group as
+   * they always did. Dates and ISO strings are accepted so a JSON round trip
+   * does not silently drop the period.
+   */
+  public static getEventRotationPeriodStart(
+    event: CalendarEvent,
+  ): number | undefined {
+    const value: unknown = (event as unknown as Record<string, unknown>)[
+      ROTATION_PERIOD_START_KEY
+    ];
+
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : undefined;
+    }
+
+    if (value instanceof Date) {
+      const time: number = value.getTime();
+      return Number.isNaN(time) ? undefined : time;
+    }
+
+    if (typeof value === "string") {
+      const parsed: number = Date.parse(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+
+    return undefined;
   }
 
   /*

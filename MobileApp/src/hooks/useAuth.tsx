@@ -34,6 +34,7 @@ import {
   type CompleteSsoLoginOutcome,
 } from "../sso/session";
 import { clearAllSsoDenials } from "../sso/ssoDenials";
+import { clearQueryCache } from "../queryClient";
 
 /**
  * A password step that succeeded and is waiting on a second factor.
@@ -222,6 +223,12 @@ export function AuthProvider({
     setOnAuthFailure((): void => {
       setIsAuthenticated(false);
       setUser(null);
+      /*
+       * The session is over, so whatever it cached is somebody else's data
+       * from here on. Same reasoning as `logout` below - this is the other
+       * way a session ends, and it is the one nobody taps.
+       */
+      clearQueryCache();
     });
   }, []);
 
@@ -428,6 +435,14 @@ export function AuthProvider({
      * whoever signs in next on the same handset.
      */
     clearAllSsoDenials();
+    /*
+     * The query cache is a module-level singleton with a 24 hour `gcTime`, so
+     * without this the next person to sign in on this handset is shown the
+     * previous user's cached answers while their own requests are still in
+     * flight - including the secret URL of that user's personal calendar
+     * feed, which is a live credential they could copy.
+     */
+    clearQueryCache();
     setIsAuthenticated(false);
     setUser(null);
     setPendingTwoFactor(null);

@@ -8,9 +8,11 @@ import {
 import {
   fetchPersonalCalendarFeed,
   isRouteMissingError,
+  isSsoRequiredError,
   rotatePersonalCalendarFeed,
   setPersonalCalendarFeedEnabled,
 } from "../api/onCallCalendar";
+import { useCurrentUserId } from "./useCurrentUserId";
 import type { OnCallCalendarFeedStatus } from "../api/types";
 
 export interface UseOnCallCalendarFeedResult {
@@ -26,6 +28,13 @@ export interface UseOnCallCalendarFeedResult {
    */
   isUnsupported: boolean;
 
+  /*
+   * The server answered 406: this project enforces SSO and this handset has
+   * not completed it. Distinct from `isError` because the fix is a sign-in
+   * somewhere else in the app, not a retry.
+   */
+  isSsoRequired: boolean;
+
   refetch: () => Promise<void>;
 
   /* Generate a first link, or replace the current one. Returns the new status. */
@@ -36,8 +45,27 @@ export interface UseOnCallCalendarFeedResult {
   isUpdating: boolean;
 }
 
-export function calendarFeedQueryKey(projectId: string | null): Array<string> {
-  return ["oncall", "calendar-feed", projectId ?? "none"];
+/**
+ * The cache key for one user's feed status in one project.
+ *
+ * The user id is part of it because this entry holds a SECRET: the status
+ * carries the feed's capability URLs, and the `QueryClient` is a module-level
+ * singleton whose entries outlive a sign-out. Without the id, the next person
+ * to sign in on the same handset would be shown the previous user's private
+ * link - and could copy it - until their own request came back. The cache is
+ * also emptied on sign-out (see `clearQueryCache`); this key is the second
+ * lock on the same door.
+ */
+export function calendarFeedQueryKey(
+  projectId: string | null,
+  userId: string | null,
+): Array<string> {
+  return [
+    "oncall",
+    "calendar-feed",
+    userId ?? "anonymous",
+    projectId ?? "none",
+  ];
 }
 
 /**
@@ -53,13 +81,22 @@ export function useOnCallCalendarFeed(
   projectId: string | null,
 ): UseOnCallCalendarFeedResult {
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
-  const queryKey: Array<string> = calendarFeedQueryKey(projectId);
+  const currentUserId: string | null = useCurrentUserId();
+  const queryKey: Array<string> = calendarFeedQueryKey(
+    projectId,
+    currentUserId,
+  );
 
   const query: UseQueryResult<OnCallCalendarFeedStatus, Error> = useQuery({
     queryKey,
     enabled: Boolean(projectId),
     retry: (failureCount: number, error: Error): boolean => {
-      if (isRouteMissingError(error)) {
+      /*
+       * Neither answer changes on a second ask: 404 is "this server has no
+       * such route", 406 is "this project wants an SSO login you have not
+       * done". Retrying only delays the screen that explains the fix.
+       */
+      if (isRouteMissingError(error) || isSsoRequiredError(error)) {
         return false;
       }
 
@@ -113,6 +150,7 @@ export function useOnCallCalendarFeed(
     isError: query.isError,
     error: query.error,
     isUnsupported: query.isError && isRouteMissingError(query.error),
+    isSsoRequired: query.isError && isSsoRequiredError(query.error),
     refetch: async (): Promise<void> => {
       await query.refetch();
     },

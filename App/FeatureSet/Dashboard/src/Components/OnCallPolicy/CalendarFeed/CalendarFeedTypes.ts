@@ -148,7 +148,15 @@ export const parseFeedUrls: ParseFeedUrlsFunction = (
 
   return {
     https: https,
-    webcal: readString(json["webcal"]) || https.replace(/^https?:/, "webcal:"),
+    /*
+     * The repaired scheme must match what the server would have built:
+     * webcals:// for https, webcal:// for http (OnCallCalendarFeedUrls,
+     * spec 2.2). Deriving webcal:// from an https link would make Apple
+     * Calendar subscribe over cleartext to an https-only host.
+     */
+    webcal:
+      readString(json["webcal"]) ||
+      https.replace(/^https:/, "webcals:").replace(/^http:/, "webcal:"),
     googleAdd:
       readString(json["googleAdd"]) ||
       `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(https)}`,

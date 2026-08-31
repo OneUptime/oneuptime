@@ -6,7 +6,7 @@ Les flux de calendrier placent vos astreintes dans le calendrier que vous consul
 
 ## Ce que vous obtenez
 
-- Un événement par astreinte, intitulé `On-call · <Schedule>` dans votre flux personnel et `<Name> · On-call · <Schedule>` dans un flux partagé. La description indique qui est d'astreinte, le planning et son fuseau horaire, la couche, l'astreinte dans le fuseau du planning, en UTC et dans le vôtre, les politiques d'escalade qui vous appellent via ce planning, et un lien vers le planning dans le tableau de bord.
+- Un événement par astreinte, intitulé `On-call · <Schedule>` (avec ` · <Policy>` ajouté lorsque le planning est rattaché à exactement une politique d'escalade) dans votre flux personnel et `<Name> · On-call · <Schedule>` dans un flux partagé. La description indique qui est d'astreinte, le planning et son fuseau horaire, la couche, l'astreinte dans le fuseau du planning, en UTC et dans le vôtre, les politiques d'escalade qui vous appellent via ce planning, et un lien vers le planning dans le tableau de bord.
 - Les remplacements sont respectés. Quand quelqu'un vous remplace, l'événement passe à cette personne (`(covering for <Name>)` est ajouté) et reste le même événement dans votre application, il est donc mis à jour sur place au lieu d'être dupliqué. Un remplacement partiel scinde l'astreinte en événements contigus.
 - Deux jours d'historique et 90 jours à venir par défaut. Vous pouvez élargir jusqu'à 60 jours en arrière et 180 jours en avant ; un flux qui dépasserait 5 000 événements est raccourci et le signale dans la description du calendrier.
 - Les événements sont marqués libres (`TRANSP:TRANSPARENT`), un flux abonné ne bloque donc jamais votre disponibilité, et rien n'est marqué privé, si bien qu'un calendrier d'équipe partagé montre les titres à tous ceux qui peuvent le voir.
@@ -124,7 +124,7 @@ Ni l'application Google Agenda ni Samsung Calendar ne peuvent s'abonner à une U
 | Fastmail                           | Environ toutes les heures                                                            | Serveurs de Fastmail  | Désactivé après cinq récupérations échouées                                                               |
 | Proton Calendar                    | 4–16 heures                                                                          | Serveurs de Proton    | Refuse les flux volumineux                                                                                |
 
-OneUptime lui-même sert des données fraîches : une modification d'une couche, d'une rotation, d'un remplacement ou d'un rattachement de politique invalide le flux immédiatement, et les réponses sont mises en cache au plus cinq minutes. L'attente que vous constatez est celle de l'application de calendrier, pas du serveur. OneUptime suggère une actualisation horaire via `REFRESH-INTERVAL` et `X-PUBLISHED-TTL` ; seuls Outlook classique et Calendrier Apple en tiennent compte.
+OneUptime lui-même sert des données fraîches : une modification d'une couche, d'une rotation, d'un remplacement ou d'un rattachement de politique invalide le flux immédiatement, et les réponses sont mises en cache au plus cinq minutes. L'attente que vous constatez est celle de l'application de calendrier, pas du serveur. OneUptime suggère une actualisation horaire via `REFRESH-INTERVAL` et `X-PUBLISHED-TTL` ; seul Outlook classique en tient compte, et uniquement avec **Limite de mise à jour** activée — Calendrier Apple, Thunderbird et les autres s'actualisent à l'intervalle que vous définissez par calendrier.
 
 ## https, webcal et webcals
 
@@ -143,6 +143,7 @@ Sous **Paramètres utilisateur** > **Flux de calendrier**, la carte **Me rappele
 - Une astreinte qui tombe dans l'un de vos délais à cause d'un remplacement tardif — quelqu'un vous confie une astreinte 20 minutes avant son début — reçoit immédiatement un rappel de rattrapage unique.
 - Si une astreinte pour laquelle vous avez été rappelé est confiée à quelqu'un d'autre, vous recevez **Mon astreinte à venir est réaffectée**, un type d'événement distinct que l'on peut couper séparément.
 - Les rappels ne sont jamais envoyés après le début d'une astreinte, ni pour des plannings rattachés à aucune politique d'escalade, car ceux-ci ne peuvent appeler personne.
+- Sur WhatsApp, un rappel arrive via le modèle d'astreinte préapprouvé de Meta : il nomme le planning et la politique d'escalade et pointe vers le planning, mais ne porte pas l'heure de début, et WhatsApp ne le diffuse qu'en anglais. Les avis de réattribution n'ont pas de modèle WhatsApp approuvé et vous parviennent donc par vos autres canaux.
 
 ## Liens partagés pour un planning ou un projet
 
@@ -160,7 +161,7 @@ Paramètres sur les deux :
 
 Placez le lien de planning dans un calendrier d'équipe partagé — Google, Outlook ou Confluence — et un seul abonnement sert toute l'équipe. Renouvelez-le quand quelqu'un qui l'avait s'en va, ou activez le renouvellement automatique ci-dessus.
 
-Quand une personne quitte sa dernière équipe d'un projet, OneUptime la retire aussi des couches de planning et des règles d'escalade de ce projet, désactive son flux personnel pour le projet et supprime ses rappels.
+Quand une personne quitte sa dernière équipe d'un projet, OneUptime la retire aussi des couches de planning et des règles d'escalade de ce projet, supprime les remplacements en cours et à venir du projet qui la mentionnent (comme personne remplacée ou comme remplaçante), désactive son flux personnel pour le projet et supprime ses rappels.
 
 ## Les événements en détail
 
@@ -179,18 +180,20 @@ Le flux montre la rotation **telle qu'elle est configurée maintenant**, y compr
 - Le jeton du lien est le seul identifiant. Quiconque possède le lien voit les astreintes — noms, plannings, politiques — jusqu'à sa régénération. Ne collez pas de liens dans des salons de discussion ou des tickets ; quand une équipe a besoin d'un calendrier, partagez le lien de planning ou de projet plutôt que votre lien personnel.
 - Les liens sont par projet. Un lien personnel divulgué expose les astreintes d'un projet, pas celles de tous les projets auxquels vous appartenez.
 - **Régénérer** place l'ancien jeton dans une période de grâce de 30 jours (calendrier vide, puis 404). **Désactiver** sert un calendrier vide. Un lien inconnu ou expiré renvoie un simple 404 sans indice. Les calendriers vides font vider leur copie aux applications abonnées ; un 404 la leur fait garder, c'est pourquoi désactiver et régénérer servent des calendriers vides.
-- Les jetons sont stockés hachés ; la copie affichée sur la page des paramètres est chiffrée avec `ENCRYPTION_SECRET`. Donnez à cette variable un vrai secret sur une installation auto-hébergée — le serveur avertit au démarrage quand elle est absente ou vaut encore littéralement `secret`. Si vous la changez ensuite, la page propose **Régénérer le lien** car la copie stockée ne peut plus être lue ; le flux continue de fonctionner jusqu'à ce que vous le fassiez.
+- Les jetons sont stockés hachés ; la copie affichée sur la page des paramètres est chiffrée avec `ENCRYPTION_SECRET`. Donnez à cette variable un vrai secret sur une installation auto-hébergée — le serveur avertit au démarrage quand elle est absente ou vaut encore l'un des espaces réservés livrés dans ce dépôt (`secret`, ou le `please-change-this-to-random-value` que définit `config.example.env`). Si vous la changez ensuite, la page propose **Régénérer le lien** car la copie stockée ne peut plus être lue ; le flux continue de fonctionner jusqu'à ce que vous le fassiez.
 - Les réponses des flux sont marquées `Cache-Control: private`, exclues des moteurs de recherche (`X-Robots-Tag: noindex`) et limitées en débit par lien et par adresse cliente.
-- Le Nginx de OneUptime n'écrit pas les requêtes de flux dans son journal d'accès :
+- Le Nginx de OneUptime tient les requêtes de flux à l'écart de ses journaux :
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  ainsi un jeton n'atterrit jamais dans un fichier journal à côté d'une adresse cliente ; l'application ne le journalise pas non plus. **Tout proxy, WAF ou CDN que vous placez devant OneUptime journalise toujours l'URI complète** sauf configuration contraire — vérifiez cela avant de déployer les flux.
+  ainsi un jeton n'atterrit jamais dans un fichier journal à côté d'une adresse cliente ; l'application ne le journalise pas non plus. `access_log off` supprime la ligne par requête, `error_log` supprime les lignes que Nginx écrit lorsqu'un appel à l'application échoue — sans elle, chaque client qui interroge le flux pendant un redémarrage voit son jeton consigné — et `proxy_max_temp_file_size 0` évite qu'un flux volumineux passe par un fichier temporaire. **Tout proxy, WAF ou CDN que vous placez devant OneUptime journalise toujours l'URI complète, dans son journal d'accès comme dans son journal d'erreurs**, sauf configuration contraire — vérifiez cela avant de déployer les flux.
 
 ## Configuration auto-hébergée
 

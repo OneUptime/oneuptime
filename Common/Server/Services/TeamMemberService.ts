@@ -44,6 +44,7 @@ import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
+import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
@@ -60,6 +61,7 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 export interface OnCallLeaveCleanupResult {
   removedLayerUserCount: number;
   removedEscalationRuleUserCount: number;
+  removedUserOverrideCount: number;
   refreshedScheduleIds: Array<string>;
   personalFeedDisabled: boolean;
   removedReminderCount: number;
@@ -627,6 +629,23 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      */
     const onCallCleanupDone: Set<string> = new Set<string>();
 
+    /*
+     * Whether ANY of the deleted rows for a (user, project) was an ACCEPTED
+     * membership. Revoking a pending invitation also brings the accepted
+     * count to zero, but someone who never accepted never had feed access —
+     * rotating every opted-in shared feed for that would clear each
+     * teammate's subscribed calendar for nothing (see
+     * cleanupOnCallAssignmentsIfUserLeftProject).
+     */
+    const acceptedMembershipKeys: Set<string> = new Set<string>();
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
+      if (item.hasAcceptedInvitation && item.userId && item.projectId) {
+        acceptedMembershipKeys.add(
+          `${item.userId.toString()}:${item.projectId.toString()}`,
+        );
+      }
+    }
+
     for (const item of onDelete.carryForward as Array<TeamMember>) {
       await this.refreshTokens(item.userId!, item.projectId!);
       await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
@@ -644,6 +663,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         await this.cleanupOnCallAssignmentsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
+          hadAcceptedMembership: acceptedMembershipKeys.has(cleanupKey),
         });
       }
 
@@ -662,11 +682,19 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
    * removeDefaultNotificationSettingsForUser applies. A user who merely left
    * one of several teams keeps every on-call assignment. Best-effort: never
    * throws into the delete path.
+   *
+   * hadAcceptedMembership (default true): whether the membership rows that
+   * were just deleted included an ACCEPTED one. Revoking a never-accepted
+   * invitation passes false — the row cleanup still runs, but the opted-in
+   * shared feeds are NOT rotated: the invitee never had the links or any
+   * access, and rotation would silently clear every teammate's subscribed
+   * calendar.
    */
   @CaptureSpan()
   public async cleanupOnCallAssignmentsIfUserLeftProject(data: {
     projectId: ObjectID;
     userId: ObjectID;
+    hadAcceptedMembership?: boolean | undefined;
   }): Promise<OnCallLeaveCleanupResult | null> {
     try {
       const remaining: PositiveNumber = await this.countBy({
@@ -684,7 +712,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         return null;
       }
 
-      return await this.cleanupOnCallAssignmentsForUserLeavingProject(data);
+      return await this.cleanupOnCallAssignmentsForUserLeavingProject({
+        projectId: data.projectId,
+        userId: data.userId,
+        rotateSharedFeeds: data.hadAcceptedMembership !== false,
+      });
     } catch (err) {
       logger.error(
         err as Error,
@@ -708,15 +740,24 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
    *   2. delete the user's OnCallDutyPolicyEscalationRuleUser rows through
    *      the service, so its hooks close the time logs, write the policy feed
    *      items and notify as a manual removal would,
-   *   3. re-resolve the roster of every affected schedule (this pages the
+   *   3. delete the project's not-yet-ended OnCallDutyPolicyUserOverride rows
+   *      that name the user on EITHER side (as the overridden user or as the
+   *      substitute), through the service — an override "route my alerts to
+   *      Bob" would keep paging a departed Bob, and "route Alice's alerts to
+   *      me" would keep the departed user's covering shifts in the feeds and
+   *      in /my-shifts; the service's hooks write the policy feed items,
+   *      refresh the overridden colleagues' rosters and propagate,
+   *   4. re-resolve the roster of every affected schedule (this pages the
    *      person who is now on call — intended: who gets paged changed),
-   *   4. bump those schedules' shiftConfigVersion, purge the feed caches and
+   *   5. bump those schedules' shiftConfigVersion, purge the feed caches and
    *      notify the shift-change listeners (reminders re-plan),
-   *   5. disable — not delete — the user's personal calendar feed for the
+   *   6. disable — not delete — the user's personal calendar feed for the
    *      project, so their subscribed calendar clears itself,
-   *   6. delete the user's shift reminders in the project,
-   *   7. rotate every enabled schedule / project feed that opted into
-   *      rotateWhenMemberLeaves, and purge the project's feed bodies.
+   *   7. delete the user's shift reminders in the project,
+   *   8. rotate every enabled schedule / project feed that opted into
+   *      rotateWhenMemberLeaves, and purge the project's feed bodies —
+   *      skipped when rotateSharedFeeds is false (a revoked never-accepted
+   *      invitation: the invitee never had the links).
    *
    * Each step is isolated: a failure is logged and the next step still runs.
    * Unconditional — callers decide whether the user really left (see
@@ -726,6 +767,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   public async cleanupOnCallAssignmentsForUserLeavingProject(data: {
     projectId: ObjectID;
     userId: ObjectID;
+    rotateSharedFeeds?: boolean | undefined;
   }): Promise<OnCallLeaveCleanupResult> {
     const { projectId, userId } = data;
 
@@ -737,6 +779,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     const result: OnCallLeaveCleanupResult = {
       removedLayerUserCount: 0,
       removedEscalationRuleUserCount: 0,
+      removedUserOverrideCount: 0,
       refreshedScheduleIds: [],
       personalFeedDisabled: false,
       removedReminderCount: 0,
@@ -853,7 +896,54 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       logger.error(err as Error, logAttributes);
     }
 
-    // 3. Rosters of the affected schedules.
+    /*
+     * 3. Not-yet-ended user overrides that name the user on either side.
+     *    Deleted THROUGH the service so its hooks write the policy feed
+     *    items, refresh the overridden colleagues' rosters and propagate
+     *    (version bump, cache purge, reminder re-plan). Ended overrides are
+     *    history and stay. overrideUserId and routeAlertsToUserId can never
+     *    be the same user (enforced on create), so the two deletes are
+     *    disjoint.
+     */
+    try {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      result.removedUserOverrideCount +=
+        await OnCallDutyPolicyUserOverrideService.deleteBy({
+          query: {
+            projectId,
+            overrideUserId: userId,
+            endsAt: QueryHelper.greaterThan(now),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      result.removedUserOverrideCount +=
+        await OnCallDutyPolicyUserOverrideService.deleteBy({
+          query: {
+            projectId,
+            routeAlertsToUserId: userId,
+            endsAt: QueryHelper.greaterThan(now),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+    } catch (err) {
+      logger.error(
+        "Error removing user overrides for a user who left the project (best-effort).",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
+    // 4. Rosters of the affected schedules.
     for (const scheduleId of affectedScheduleIds) {
       try {
         await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
@@ -869,7 +959,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
-    // 4. Version bump, cache purge, listeners (never throws).
+    // 5. Version bump, cache purge, listeners (never throws).
     await OnCallDutyPolicyScheduleService.propagateShiftConfigChange({
       scheduleIds: affectedScheduleIds,
       projectId,
@@ -877,7 +967,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       reason: OnCallShiftChangeReason.MemberLeftProject,
     });
 
-    // 5. Personal calendar feed: disabled, not deleted.
+    // 6. Personal calendar feed: disabled, not deleted.
     try {
       const feeds: PositiveNumber = await UserOnCallCalendarFeedService.countBy(
         {
@@ -920,7 +1010,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       logger.error(err as Error, logAttributes);
     }
 
-    // 6. Shift reminders.
+    // 7. Shift reminders.
     try {
       result.removedReminderCount =
         await UserOnCallShiftReminderService.deleteBy({
@@ -942,53 +1032,60 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       logger.error(err as Error, logAttributes);
     }
 
-    // 7. Shared feeds that opted into rotation on member leave.
-    try {
-      const rotatedScheduleFeedIds: Array<ObjectID> =
-        await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave(
-          { projectId },
-        );
-
-      result.rotatedScheduleFeedIds = rotatedScheduleFeedIds.map(
-        (id: ObjectID) => {
-          return id.toString();
-        },
-      );
-    } catch (err) {
-      logger.error(
-        "Error rotating schedule calendar feeds after a member left the project (best-effort).",
-        logAttributes,
-      );
-      logger.error(err as Error, logAttributes);
-    }
-
-    try {
-      const rotatedProjectFeedIds: Array<ObjectID> =
-        await ProjectOnCallCalendarFeedService.rotateFeedsForMemberLeave({
-          projectId,
-        });
-
-      result.rotatedProjectFeedIds = rotatedProjectFeedIds.map(
-        (id: ObjectID) => {
-          return id.toString();
-        },
-      );
-    } catch (err) {
-      logger.error(
-        "Error rotating the project calendar feed after a member left the project (best-effort).",
-        logAttributes,
-      );
-      logger.error(err as Error, logAttributes);
-    }
-
-    if (
-      result.rotatedScheduleFeedIds.length > 0 ||
-      result.rotatedProjectFeedIds.length > 0
-    ) {
+    /*
+     * 8. Shared feeds that opted into rotation on member leave. Skipped when
+     *    the caller says no ACCEPTED membership went away (a revoked pending
+     *    invitation): the invitee never had the links, and rotating would
+     *    clear every subscribed teammate's calendar for nothing.
+     */
+    if (data.rotateSharedFeeds !== false) {
       try {
-        await OnCallCalendarFeedCache.purgeForProject(projectId.toString());
+        const rotatedScheduleFeedIds: Array<ObjectID> =
+          await OnCallDutyPolicyScheduleCalendarFeedService.rotateFeedsForMemberLeave(
+            { projectId },
+          );
+
+        result.rotatedScheduleFeedIds = rotatedScheduleFeedIds.map(
+          (id: ObjectID) => {
+            return id.toString();
+          },
+        );
       } catch (err) {
+        logger.error(
+          "Error rotating schedule calendar feeds after a member left the project (best-effort).",
+          logAttributes,
+        );
         logger.error(err as Error, logAttributes);
+      }
+
+      try {
+        const rotatedProjectFeedIds: Array<ObjectID> =
+          await ProjectOnCallCalendarFeedService.rotateFeedsForMemberLeave({
+            projectId,
+          });
+
+        result.rotatedProjectFeedIds = rotatedProjectFeedIds.map(
+          (id: ObjectID) => {
+            return id.toString();
+          },
+        );
+      } catch (err) {
+        logger.error(
+          "Error rotating the project calendar feed after a member left the project (best-effort).",
+          logAttributes,
+        );
+        logger.error(err as Error, logAttributes);
+      }
+
+      if (
+        result.rotatedScheduleFeedIds.length > 0 ||
+        result.rotatedProjectFeedIds.length > 0
+      ) {
+        try {
+          await OnCallCalendarFeedCache.purgeForProject(projectId.toString());
+        } catch (err) {
+          logger.error(err as Error, logAttributes);
+        }
       }
     }
 

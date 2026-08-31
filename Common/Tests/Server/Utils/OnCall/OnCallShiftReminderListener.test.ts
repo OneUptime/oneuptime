@@ -33,12 +33,17 @@ import {
  *      published the event can neither fail nor be delayed by it;
  *   4. BOTH App/Index.ts and App/FeatureSet/Workers/Index.ts import the
  *      module, because the hooks run in whichever process serves the CRUD
- *      request (the api role for a dashboard edit).
+ *      request (the api role for a dashboard edit);
+ *   5. bursts are coalesced: one pass per project at a time, everything that
+ *      arrives while it runs merged into ONE follow-up, so bulk edits cannot
+ *      pile N synchronous schedule expansions onto the api event loop.
  */
 
 // Imported last so the registration side effect is what the tests observe.
 import registerOnCallShiftReminderListener, {
+  mergeOnCallShiftChangeEvents,
   onCallShiftReminderListener,
+  resetOnCallShiftReminderCoalescing,
 } from "../../../../Server/Utils/OnCall/OnCallShiftReminderListener";
 
 const COMMON_DIR: string = path.resolve(__dirname, "../../../..");
@@ -72,6 +77,30 @@ function event(): OnCallShiftChangeEvent {
   });
 }
 
+function eventFor(data: {
+  projectId: string | null;
+  scheduleId: string;
+  userId: string;
+  reason?: OnCallShiftChangeReason | undefined;
+  occurredAt?: Date | undefined;
+}): OnCallShiftChangeEvent {
+  return OnCallShiftChangeListeners.buildEvent({
+    projectId: data.projectId ? new ObjectID(data.projectId) : null,
+    scheduleIds: [new ObjectID(data.scheduleId)],
+    userIds: [new ObjectID(data.userId)],
+    reason: data.reason ?? OnCallShiftChangeReason.LayerUserChanged,
+    occurredAt: data.occurredAt,
+  });
+}
+
+function idsOf(ids: Array<ObjectID>): Array<string> {
+  return ids
+    .map((id: ObjectID) => {
+      return id.toString();
+    })
+    .sort();
+}
+
 function emptyStats(): ShiftReminderChangePassStats {
   return {
     now: new Date(),
@@ -89,12 +118,14 @@ function emptyStats(): ShiftReminderChangePassStats {
 
 describe("OnCallShiftReminderListener", () => {
   beforeEach(() => {
+    resetOnCallShiftReminderCoalescing();
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
   });
 
   afterEach(() => {
+    resetOnCallShiftReminderCoalescing();
     jest.restoreAllMocks();
   });
 
@@ -169,6 +200,261 @@ describe("OnCallShiftReminderListener", () => {
       });
 
     await expect(onCallShiftReminderListener(event())).resolves.toBeUndefined();
+  });
+
+  /*
+   * Coalescing. The hooks run on the api tier, and every pass re-materializes
+   * the affected schedules synchronously, so a burst of edits (ten users
+   * added to a layer is ten create hooks) must not become ten passes.
+   */
+  describe("coalescing bursts", () => {
+    interface GatedRun {
+      events: Array<OnCallShiftChangeEvent>;
+      release: () => void;
+    }
+
+    /** runChangePass that blocks on the FIRST call until released. */
+    function gateFirstPass(): GatedRun {
+      const events: Array<OnCallShiftChangeEvent> = [];
+      let release: () => void = (): void => {
+        return undefined;
+      };
+
+      const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      jest
+        .spyOn(OnCallShiftReminderRunner, "runChangePass")
+        .mockImplementation((async (
+          published: OnCallShiftChangeEvent,
+        ): Promise<ShiftReminderChangePassStats> => {
+          events.push(published);
+
+          if (events.length === 1) {
+            await gate;
+          }
+
+          return emptyStats();
+        }) as never);
+
+      return { events, release };
+    }
+
+    test("a burst for one project costs two passes, and the follow-up carries the union of what queued", async () => {
+      const run: GatedRun = gateFirstPass();
+
+      const first: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-a",
+        }),
+      );
+      const second: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-b",
+        }),
+      );
+      const third: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-2",
+          userId: "user-c",
+          reason: OnCallShiftChangeReason.LayerChanged,
+        }),
+      );
+
+      run.release();
+
+      await Promise.all([first, second, third]);
+
+      expect(run.events).toHaveLength(2);
+      expect(idsOf(run.events[0]!.userIds)).toEqual(["user-a"]);
+
+      // The merged follow-up: both queued events, nothing lost.
+      expect(idsOf(run.events[1]!.userIds)).toEqual(["user-b", "user-c"]);
+      expect(idsOf(run.events[1]!.scheduleIds)).toEqual([
+        "schedule-1",
+        "schedule-2",
+      ]);
+      expect(run.events[1]!.reason).toBe(OnCallShiftChangeReason.LayerChanged);
+    });
+
+    test("every caller's promise settles only after the pass covering its event has run", async () => {
+      const run: GatedRun = gateFirstPass();
+
+      let secondSettled: boolean = false;
+
+      const first: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-a",
+        }),
+      );
+      const second: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-b",
+        }),
+      ).then((): void => {
+        secondSettled = true;
+      });
+
+      expect(secondSettled).toBe(false);
+      expect(run.events).toHaveLength(1);
+
+      run.release();
+      await Promise.all([first, second]);
+
+      expect(secondSettled).toBe(true);
+      expect(run.events).toHaveLength(2);
+    });
+
+    test("different projects are never queued behind each other", async () => {
+      const run: GatedRun = gateFirstPass();
+
+      const first: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-a",
+        }),
+      );
+      const other: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-2",
+          scheduleId: "schedule-9",
+          userId: "user-z",
+        }),
+      );
+
+      // The second project ran while the first was still blocked.
+      await other;
+      expect(run.events).toHaveLength(2);
+      expect(run.events[1]!.projectId?.toString()).toBe("project-2");
+
+      run.release();
+      await first;
+    });
+
+    test("an event that names no project is never coalesced (the pass resolves it from the schedules)", async () => {
+      const run: GatedRun = gateFirstPass();
+
+      const first: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: null,
+          scheduleId: "schedule-1",
+          userId: "user-a",
+        }),
+      );
+      const second: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: null,
+          scheduleId: "schedule-2",
+          userId: "user-b",
+        }),
+      );
+
+      await second;
+      expect(run.events).toHaveLength(2);
+
+      run.release();
+      await first;
+    });
+
+    test("a queued follow-up still runs when the pass before it throws", async () => {
+      const events: Array<OnCallShiftChangeEvent> = [];
+      let release: () => void = (): void => {
+        return undefined;
+      };
+      const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      jest
+        .spyOn(OnCallShiftReminderRunner, "runChangePass")
+        .mockImplementation((async (
+          published: OnCallShiftChangeEvent,
+        ): Promise<ShiftReminderChangePassStats> => {
+          events.push(published);
+
+          if (events.length === 1) {
+            await gate;
+            throw new Error("boom");
+          }
+
+          return emptyStats();
+        }) as never);
+
+      const first: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-a",
+        }),
+      );
+      const second: Promise<void> = onCallShiftReminderListener(
+        eventFor({
+          projectId: "project-1",
+          scheduleId: "schedule-1",
+          userId: "user-b",
+        }),
+      );
+
+      release();
+
+      await expect(first).resolves.toBeUndefined();
+      await expect(second).resolves.toBeUndefined();
+      expect(events).toHaveLength(2);
+      expect(idsOf(events[1]!.userIds)).toEqual(["user-b"]);
+    });
+
+    test("a later burst after the queue drained starts a fresh pass", async () => {
+      jest
+        .spyOn(OnCallShiftReminderRunner, "runChangePass")
+        .mockResolvedValue(emptyStats());
+
+      await onCallShiftReminderListener(event());
+      await onCallShiftReminderListener(event());
+
+      expect(
+        (OnCallShiftReminderRunner.runChangePass as any).mock.calls,
+      ).toHaveLength(2);
+    });
+
+    test("mergeOnCallShiftChangeEvents unions the ids and keeps the newest occurredAt", () => {
+      const older: OnCallShiftChangeEvent = eventFor({
+        projectId: "project-1",
+        scheduleId: "schedule-1",
+        userId: "user-a",
+        reason: OnCallShiftChangeReason.LayerUserChanged,
+        occurredAt: new Date("2026-09-03T15:00:00Z"),
+      });
+      const newer: OnCallShiftChangeEvent = eventFor({
+        projectId: "project-1",
+        scheduleId: "schedule-2",
+        userId: "user-a",
+        reason: OnCallShiftChangeReason.OverrideChanged,
+        occurredAt: new Date("2026-09-03T15:00:05Z"),
+      });
+
+      const merged: OnCallShiftChangeEvent = mergeOnCallShiftChangeEvents(
+        older,
+        newer,
+      );
+
+      expect(merged.projectId?.toString()).toBe("project-1");
+      expect(idsOf(merged.scheduleIds)).toEqual(["schedule-1", "schedule-2"]);
+      // Deduplicated, not repeated.
+      expect(idsOf(merged.userIds)).toEqual(["user-a"]);
+      expect(merged.reason).toBe(OnCallShiftChangeReason.OverrideChanged);
+      expect(merged.occurredAt.toISOString()).toBe("2026-09-03T15:00:05.000Z");
+    });
   });
 
   describe("wiring", () => {

@@ -6,6 +6,7 @@ import {
   getHttpStatus,
   isRouteMissingError,
   isServiceUnavailableError,
+  isSsoRequiredError,
   ON_CALL_CALENDAR_API_PATH,
   rotatePersonalCalendarFeed,
   setPersonalCalendarFeedEnabled,
@@ -530,6 +531,19 @@ describe("error classification", () => {
     expect(isRouteMissingError(axiosError(null))).toBe(false);
     expect(isRouteMissingError(new Error("boom"))).toBe(false);
     expect(isRouteMissingError(undefined)).toBe(false);
+  });
+
+  test("a 406 is the SSO gate, and nothing else is", () => {
+    /*
+     * ExceptionCode.SsoAuthorizationException. The screen says "authenticate
+     * with SSO" for this one and "try again" for everything else, so the two
+     * must not be conflated.
+     */
+    expect(isSsoRequiredError(axiosError(406))).toBe(true);
+    expect(isSsoRequiredError(axiosError(403))).toBe(false);
+    expect(isSsoRequiredError(axiosError(404))).toBe(false);
+    expect(isSsoRequiredError(axiosError(null))).toBe(false);
+    expect(isSsoRequiredError(new Error("boom"))).toBe(false);
   });
 
   test("a 503 is the render cap or the kill switch", () => {

@@ -6,7 +6,7 @@ Kalenderfeeder legger vaktene dine inn i kalenderen du allerede ser i. OneUptime
 
 ## Hva du får
 
-- Én hendelse per vakt, med tittelen `On-call · <Schedule>` i din personlige feed og `<Name> · On-call · <Schedule>` i en delt feed. Beskrivelsen oppgir hvem som har vakt, tidsplanen og dens tidssone, laget, vakten i tidsplanens sone, i UTC og i din sone, hvilke eskaleringsregler som varsler deg gjennom denne tidsplanen, og en lenke til tidsplanen i dashbordet.
+- Én hendelse per vakt, med tittelen `On-call · <Schedule>` (med ` · <Policy>` lagt til når tidsplanen er knyttet til nøyaktig én eskaleringsregel) i din personlige feed og `<Name> · On-call · <Schedule>` i en delt feed. Beskrivelsen oppgir hvem som har vakt, tidsplanen og dens tidssone, laget, vakten i tidsplanens sone, i UTC og i din sone, hvilke eskaleringsregler som varsler deg gjennom denne tidsplanen, og en lenke til tidsplanen i dashbordet.
 - Overstyringer respekteres. Når noen dekker for deg, flyttes hendelsen til den personen (`(covering for <Name>)` legges til) og forblir den samme hendelsen i kalenderappen din, så den oppdateres på stedet i stedet for å dupliseres. En delvis overstyring deler vakten i hendelser som grenser til hverandre.
 - To dagers historikk og 90 dager fremover som standard. Du kan utvide til 60 dager bakover og 180 dager fremover; en feed som ville overstige 5 000 hendelser, forkortes og sier det i kalenderbeskrivelsen.
 - Hendelser merkes som ledige (`TRANSP:TRANSPARENT`), så en abonnert feed blokkerer aldri tilgjengeligheten din, og ingenting merkes som privat, så en delt teamkalender viser titlene til alle som kan se den.
@@ -124,7 +124,7 @@ Verken Google Kalender-appen eller Samsung Kalender kan abonnere på en URL. Leg
 | Fastmail                          | Omtrent hver time                                            | Fastmails servere  | Deaktiveres etter fem mislykkede hentinger                                                               |
 | Proton Calendar                   | 4–16 timer                                                   | Protons servere    | Avviser store feeder                                                                                     |
 
-OneUptime selv leverer ferske data: en endring i et lag, en rotasjon, en overstyring eller en policytilknytning ugyldiggjør feeden umiddelbart, og svar bufres i høyst fem minutter. Ventetiden du ser, er kalenderappens, ikke serverens. OneUptime foreslår oppdatering hver time gjennom `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; bare klassisk Outlook og Apple Kalender tar hintet.
+OneUptime selv leverer ferske data: en endring i et lag, en rotasjon, en overstyring eller en policytilknytning ugyldiggjør feeden umiddelbart, og svar bufres i høyst fem minutter. Ventetiden du ser, er kalenderappens, ikke serverens. OneUptime foreslår oppdatering hver time gjennom `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; bare klassisk Outlook tar hintet, og bare med **Oppdateringsgrense** slått på — Apple Kalender, Thunderbird og de andre oppdaterer med intervallet du selv velger per kalender.
 
 ## https, webcal og webcals
 
@@ -143,6 +143,7 @@ På **Brukerinnstillinger** > **Kalenderfeed** lar kortet **Minn meg på før va
 - En vakt som havner innenfor ett av forvarslene dine på grunn av en sen overstyring — noen gir deg en vakt 20 minutter før den starter — får én innhentingspåminnelse med en gang.
 - Hvis en vakt du ble påminnet om, gis til noen andre, får du **Den kommende vakten min er omfordelt**, en egen hendelsestype så den kan dempes for seg.
 - Påminnelser sendes aldri etter at en vakt har startet, og aldri for tidsplaner som ikke er knyttet til noen eskaleringspolicy, fordi de ikke kan varsle noen.
+- På WhatsApp kommer en påminnelse via Metas forhåndsgodkjente vaktmal, som nevner tidsplanen og eskaleringspolicyen og lenker til tidsplanen, men ikke inneholder starttidspunktet, og som WhatsApp bare leverer på engelsk. Varsler om omfordeling har ingen godkjent WhatsApp-mal, så de når deg via de andre kanalene dine.
 
 ## Delte lenker for en tidsplan eller et prosjekt
 
@@ -160,7 +161,7 @@ Innstillinger på begge:
 
 Legg tidsplanlenken i en delt teamkalender — Google, Outlook eller Confluence — så tjener ett abonnement hele teamet. Roter den når noen som hadde den slutter, eller slå på den automatiske rotasjonen over.
 
-Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også personen fra prosjektets tidsplanlag og eskaleringsregler, deaktiverer personens personlige feed for prosjektet og sletter personens påminnelser der.
+Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også personen fra prosjektets tidsplanlag og eskaleringsregler, sletter prosjektets pågående og framtidige overstyringer som nevner personen (enten som den som blir dekket, eller som avløser), deaktiverer personens personlige feed for prosjektet og sletter personens påminnelser der.
 
 ## Hendelser i detalj
 
@@ -179,18 +180,20 @@ Feeden viser rotasjonen **slik den er konfigurert nå**, også for tidligere dag
 - Tokenet i lenken er den eneste legitimasjonen. Alle som har lenken, ser vaktene — navn, tidsplaner, regler — til den genereres på nytt. Ikke lim inn lenker i chatterom eller saker; når et team trenger en kalender, del tidsplan- eller prosjektlenken i stedet for din personlige.
 - Lenker er per prosjekt. En lekket personlig lenke avslører ett prosjekts vakter, ikke alle prosjektene du tilhører.
 - **Generer på nytt** flytter det gamle tokenet inn i en 30 dagers karensperiode (tom kalender, deretter 404). **Deaktiver** leverer en tom kalender. En ukjent eller utløpt lenke returnerer en ren 404 uten hint. Tomme kalendere får abonnerende apper til å tømme kopien sin; en 404 får dem til å beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
-- Tokener lagres hashet; kopien som vises på innstillingssiden, er kryptert med `ENCRYPTION_SECRET`. Sett den variabelen til en ekte hemmelighet på en selvdriftet installasjon — serveren advarer ved oppstart når den er usatt eller fortsatt er den bokstavelige `secret`. Endrer du den senere, tilbyr siden **Generer lenke på nytt** fordi den lagrede kopien ikke lenger kan leses; feeden fortsetter å fungere til du gjør det.
+- Tokener lagres hashet; kopien som vises på innstillingssiden, er kryptert med `ENCRYPTION_SECRET`. Sett den variabelen til en ekte hemmelighet på en selvdriftet installasjon — serveren advarer ved oppstart når den er usatt eller fortsatt er en av plassholderne dette repoet leverer (`secret`, eller den `please-change-this-to-random-value` som `config.example.env` setter). Endrer du den senere, tilbyr siden **Generer lenke på nytt** fordi den lagrede kopien ikke lenger kan leses; feeden fortsetter å fungere til du gjør det.
 - Feedsvar merkes med `Cache-Control: private`, utelukkes fra søkemotorer (`X-Robots-Tag: noindex`) og hastighetsbegrenses per lenke og per klientadresse.
-- OneUptimes egen Nginx skriver ikke feedforespørsler til tilgangsloggen:
+- OneUptimes egen Nginx holder feedforespørsler utenfor loggene sine:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  så et token havner aldri i en loggfil ved siden av en klientadresse; applikasjonen logger det heller aldri. **Enhver proxy, WAF eller CDN du kjører foran OneUptime, logger fortsatt hele URI-en** med mindre du konfigurerer den til å la være — sjekk det før du ruller ut feeder.
+  så et token havner aldri i en loggfil ved siden av en klientadresse; applikasjonen logger det heller aldri. `access_log off` fjerner linjen per forespørsel, `error_log` fjerner linjene Nginx skriver når et kall til appen feiler — uten den blir tokenet skrevet ned for hver klient som henter feeden under en omstart — og `proxy_max_temp_file_size 0` holder en stor feed utenfor en midlertidig fil. **Enhver proxy, WAF eller CDN du kjører foran OneUptime, logger fortsatt hele URI-en, både i tilgangsloggen og i feilloggen** med mindre du konfigurerer den til å la være — sjekk det før du ruller ut feeder.
 
 ## Konfigurasjon for selvdrift
 

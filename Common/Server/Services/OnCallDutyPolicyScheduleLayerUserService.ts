@@ -13,6 +13,7 @@ import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -42,6 +43,32 @@ export class Service extends DatabaseService<Model> {
       userIds: userId ? [userId] : [],
       reason: OnCallShiftChangeReason.LayerUserChanged,
     });
+  }
+
+  /**
+   * Re-resolve and persist the schedule's roster after a layer-user change.
+   * Best-effort: the row is already committed when the success hooks run, so
+   * a throwing refresh (a concurrently-deleted schedule, a transient
+   * persistence or notification failure) must not abort the hook before
+   * propagateLayerUserChange bumps the shiftConfigVersion and purges the
+   * feed caches — otherwise the caches would keep serving the pre-edit
+   * roster for up to their TTL and the reminder change pass would be
+   * skipped. Mirrors
+   * OnCallDutyPolicyEscalationRuleScheduleService.refreshScheduleRoster.
+   */
+  private async refreshScheduleRosterBestEffort(
+    scheduleId: ObjectID,
+  ): Promise<void> {
+    try {
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        scheduleId,
+      );
+    } catch (err) {
+      logger.error(
+        "Error refreshing the schedule roster after a layer-user change (best-effort).",
+      );
+      logger.error(err);
+    }
   }
 
   /**
@@ -77,6 +104,14 @@ export class Service extends DatabaseService<Model> {
 
     for (const row of rows) {
       if (row.order !== expectedOrder && row._id) {
+        /*
+         * ignoreHooks: renumbering is bookkeeping, not a roster change — the
+         * caller (the team-member cleanup) refreshes and propagates once per
+         * schedule itself. With hooks on, every renumbered row would run a
+         * full onUpdateSuccess (semaphore-locked roster refresh + version
+         * bump + cache purge + listener pass), i.e. N-1 redundant refreshes
+         * per layer, and any hook throw would abort the remaining renumbering.
+         */
         await this.updateOneBy({
           query: {
             _id: row._id,
@@ -86,6 +121,7 @@ export class Service extends DatabaseService<Model> {
           },
           props: {
             isRoot: true,
+            ignoreHooks: true,
           },
         });
       }
@@ -157,7 +193,7 @@ export class Service extends DatabaseService<Model> {
         );
 
         if (resource.onCallDutyPolicyScheduleId) {
-          await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          await this.refreshScheduleRosterBestEffort(
             resource.onCallDutyPolicyScheduleId,
           );
 
@@ -230,7 +266,7 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
-    await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+    await this.refreshScheduleRosterBestEffort(
       resource.onCallDutyPolicyScheduleId,
     );
 
@@ -264,7 +300,7 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+      await this.refreshScheduleRosterBestEffort(
         resource.onCallDutyPolicyScheduleId,
       );
 

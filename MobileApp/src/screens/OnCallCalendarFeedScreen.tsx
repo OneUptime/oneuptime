@@ -16,6 +16,7 @@ import { useHaptics } from "../hooks/useHaptics";
 import { useProject } from "../hooks/useProject";
 import { useNow } from "../hooks/useNow";
 import { useOnCallCalendarFeed } from "../hooks/useOnCallCalendarFeed";
+import { getAuthorizedProjects } from "../hooks/authorizedProjects";
 import { getServerUrl } from "../storage/serverUrl";
 import { copyToClipboard } from "../utils/clipboard";
 import { getFriendlyErrorMessage } from "../utils/error";
@@ -63,10 +64,43 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
   const [serverUrl, setServerUrl] = useState<string>("");
   const [notice, setNotice] = useState<FeedNotice>(null);
 
-  useEffect((): void => {
-    if (!projectId && projectList.length > 0) {
-      setProjectId(projectList[0]!._id);
+  /*
+   * Which project to open on.
+   *
+   * Not simply the first one: a project that enforces SSO answers 406 until
+   * the handset has completed that login, and picking it by default would
+   * greet the user with a failure they did not ask for (and record a fresh
+   * SSO denial against the project on the way). `getAuthorizedProjects` is
+   * the same filter every other per-project query in the app runs through.
+   * If none of them are authorized the first project is still used - the
+   * screen then explains the SSO refusal, which beats showing nothing.
+   */
+  useEffect((): (() => void) => {
+    let cancelled: boolean = false;
+
+    if (projectId || projectList.length === 0) {
+      return (): void => {
+        cancelled = true;
+      };
     }
+
+    const fallbackProjectId: string = projectList[0]!._id;
+
+    getAuthorizedProjects(projectList)
+      .then((authorized: ProjectItem[]) => {
+        if (!cancelled) {
+          setProjectId(authorized[0]?._id ?? fallbackProjectId);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProjectId(fallbackProjectId);
+        }
+      });
+
+    return (): void => {
+      cancelled = true;
+    };
   }, [projectId, projectList]);
 
   useEffect((): void => {
@@ -309,9 +343,16 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       );
     }
 
-    if (feed.isLoading) {
+    /*
+     * `!projectId` is a loading state, not an error one: the project to ask
+     * about is chosen in an effect, so the first commit of this screen always
+     * has none. Without this the render below fell through to "Could not load
+     * your calendar link - an unknown error occurred" for one frame, on a
+     * screen that had not asked the server anything yet.
+     */
+    if (!projectId || feed.isLoading) {
       return (
-        <View>
+        <View testID="feed-loading">
           <SkeletonCard lines={3} />
           <SkeletonCard lines={2} />
         </View>
@@ -324,6 +365,27 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
           This OneUptime server does not offer calendar feeds yet. Ask whoever
           runs it to upgrade, then come back here.
         </InfoCard>
+      );
+    }
+
+    if (feed.isSsoRequired) {
+      return (
+        <View testID="feed-sso-required">
+          <InfoCard tone="warning">
+            {`${
+              selectedProject ? selectedProject.name : "This project"
+            } requires an SSO sign-in before the server will answer for it. Authenticate under Settings → Projects, then come back.`}
+          </InfoCard>
+          <GradientButton
+            testID="retry-feed"
+            label="Try again"
+            variant="secondary"
+            onPress={() => {
+              feed.refetch();
+            }}
+            style={{ marginTop: 12 }}
+          />
+        </View>
       );
     }
 

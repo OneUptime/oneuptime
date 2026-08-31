@@ -3,6 +3,7 @@ import { IsBillingEnabled, getAllEnvVars } from "../../EnvironmentConfig";
 import OnCallCalendarFeedCache, {
   CachedCalendarBody,
   OnCallCalendarFeedCacheScope,
+  ScheduleSegmentsCacheEntry,
 } from "../../Infrastructure/OnCallCalendarFeedCache";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import ProjectService from "../../Services/ProjectService";
@@ -407,6 +408,14 @@ export default class OnCallCalendarFeedRenderer {
       now,
     });
 
+    const lastGoodKey: string =
+      OnCallCalendarFeedRenderer.buildLastGoodCacheKey({
+        request,
+        pastDays,
+        futureDays,
+        schedules: context.schedules,
+      });
+
     const scope: OnCallCalendarFeedCacheScope = {
       projectId: request.projectId.toString(),
       userId:
@@ -432,7 +441,7 @@ export default class OnCallCalendarFeedRenderer {
     if (!OnCallCalendarFeedCache.tryAcquireRenderSlot()) {
       return await OnCallCalendarFeedRenderer.fallBackToLastGood({
         kind: request.kind,
-        bodyKey,
+        lastGoodKey,
         why: "render cap reached",
       });
     }
@@ -440,16 +449,13 @@ export default class OnCallCalendarFeedRenderer {
     const startedAt: number = Date.now();
 
     try {
-      const segments: Array<CachedScheduleSegments> = await Promise.all(
-        context.schedules.map((schedule: ScheduleInfo) => {
-          return OnCallCalendarFeedRenderer.loadScheduleSegments({
-            schedule,
-            windowStart: window.feedStart,
-            windowEnd: window.feedEnd,
-            now,
-          });
-        }),
-      );
+      const segments: Array<CachedScheduleSegments> =
+        await OnCallCalendarFeedRenderer.loadScheduleSegmentsBatch({
+          schedules: context.schedules,
+          windowStart: window.feedStart,
+          windowEnd: window.feedEnd,
+          now,
+        });
 
       const iterationTruncated: Array<CachedScheduleSegments> = segments.filter(
         (segment: CachedScheduleSegments) => {
@@ -464,7 +470,7 @@ export default class OnCallCalendarFeedRenderer {
        */
       if (iterationTruncated.length > 0) {
         const lastGood: CachedCalendarBody | null =
-          await OnCallCalendarFeedCache.getLastGood(bodyKey);
+          await OnCallCalendarFeedCache.getLastGood(lastGoodKey);
 
         if (lastGood) {
           logger.warn(
@@ -481,8 +487,18 @@ export default class OnCallCalendarFeedRenderer {
         }
       }
 
-      let shifts: Array<MaterializedShift> =
+      /*
+       * The schedules' full resolution, before the personal feed narrows it to
+       * the subscriber. A policy-scoped override materializes as a variant
+       * shift belonging to the SUBSTITUTE, so filtering it away would leave
+       * the rostered user's own event claiming to page them through a policy
+       * that pages somebody else. The unfiltered list is handed to the mapper
+       * as context (it never becomes VEVENTs) so that event can say so.
+       */
+      const allScheduleShifts: Array<MaterializedShift> =
         OnCallCalendarFeedRenderer.collectShifts(segments, now);
+
+      let shifts: Array<MaterializedShift> = allScheduleShifts;
 
       if (request.kind === OnCallCalendarFeedKind.Personal) {
         shifts = OnCallShiftMaterializer.filterShiftsForUser(
@@ -554,6 +570,7 @@ export default class OnCallCalendarFeedRenderer {
       const rendered: FeedRenderResult = OnCallCalendarFeedUtil.render({
         kind: request.kind,
         shifts: shrink.shifts,
+        contextShifts: allScheduleShifts,
         dashboardUrl,
         viewerTimezone: context.viewerTimezone,
         calendarTimezone: context.calendarTimezone,
@@ -582,7 +599,7 @@ export default class OnCallCalendarFeedRenderer {
        * complete render would then be shadowed by it on the next failure.
        */
       if (iterationTruncated.length === 0) {
-        await OnCallCalendarFeedCache.setLastGood(bodyKey, value);
+        await OnCallCalendarFeedCache.setLastGood(lastGoodKey, value);
       }
 
       OnCallCalendarFeedRenderer.recordMetrics({
@@ -613,7 +630,7 @@ export default class OnCallCalendarFeedRenderer {
 
       return await OnCallCalendarFeedRenderer.fallBackToLastGood({
         kind: request.kind,
-        bodyKey,
+        lastGoodKey,
         why: "render failed",
       });
     } finally {
@@ -667,16 +684,13 @@ export default class OnCallCalendarFeedRenderer {
     const schedules: Array<ScheduleInfo> =
       await OnCallCalendarFeedRenderer.loadSchedules(candidateIds);
 
-    const segments: Array<CachedScheduleSegments> = await Promise.all(
-      schedules.map((schedule: ScheduleInfo) => {
-        return OnCallCalendarFeedRenderer.loadScheduleSegments({
-          schedule,
-          windowStart,
-          windowEnd,
-          now,
-        });
-      }),
-    );
+    const segments: Array<CachedScheduleSegments> =
+      await OnCallCalendarFeedRenderer.loadScheduleSegmentsBatch({
+        schedules,
+        windowStart,
+        windowEnd,
+        now,
+      });
 
     const own: Array<MaterializedShift> =
       OnCallShiftMaterializer.filterShiftsForUser(
@@ -718,90 +732,201 @@ export default class OnCallCalendarFeedRenderer {
     windowEnd: Date;
     now: Date;
   }): Promise<CachedScheduleSegments> {
-    const key: string = `${
-      data.schedule.shiftConfigVersion
-    }:${data.windowStart.toISOString()}:${data.windowEnd.toISOString()}`;
+    const loaded: Array<CachedScheduleSegments> =
+      await OnCallCalendarFeedRenderer.loadScheduleSegmentsBatch({
+        schedules: [data.schedule],
+        windowStart: data.windowStart,
+        windowEnd: data.windowEnd,
+        now: data.now,
+      });
 
-    return await OnCallCalendarFeedCache.getOrRenderScheduleSegments<CachedScheduleSegments>(
-      {
-        scheduleId: data.schedule.id.toString(),
-        key,
-        ttlSeconds: SCHEDULE_CACHE_TTL_SECONDS,
-        render: async (): Promise<CachedScheduleSegments> => {
-          return await OnCallCalendarFeedRenderer.renderScheduleSegments(data);
-        },
-      },
-    );
+    const segments: CachedScheduleSegments | undefined = loaded[0];
+
+    if (!segments) {
+      throw new Error(
+        `OnCallCalendarFeedRenderer: no segments were produced for schedule ${data.schedule.id.toString()}.`,
+      );
+    }
+
+    return segments;
   }
 
-  private static async renderScheduleSegments(data: {
-    schedule: ScheduleInfo;
+  /*
+   * Every schedule of one feed, over one window, in ONE pass: the cache
+   * separates hits from misses and the misses are materialized together.
+   * Reading them one by one made each schedule its own resolver call --
+   * seven queries per schedule and the same user and project rows read again
+   * for every one of them -- fanned out concurrently, which for a project
+   * feed over fifty schedules was hundreds of statements in flight against a
+   * fifty-connection pool. The order of `schedules` is preserved.
+   */
+  @CaptureSpan()
+  public static async loadScheduleSegmentsBatch(data: {
+    schedules: Array<ScheduleInfo>;
     windowStart: Date;
     windowEnd: Date;
     now: Date;
-  }): Promise<CachedScheduleSegments> {
+  }): Promise<Array<CachedScheduleSegments>> {
+    if (data.schedules.length === 0) {
+      return [];
+    }
+
+    const byId: Map<string, ScheduleInfo> = new Map();
+
+    for (const schedule of data.schedules) {
+      byId.set(schedule.id.toString(), schedule);
+    }
+
+    const entries: Array<ScheduleSegmentsCacheEntry> = data.schedules.map(
+      (schedule: ScheduleInfo): ScheduleSegmentsCacheEntry => {
+        return {
+          scheduleId: schedule.id.toString(),
+          key: `${
+            schedule.shiftConfigVersion
+          }:${data.windowStart.toISOString()}:${data.windowEnd.toISOString()}`,
+        };
+      },
+    );
+
+    const rendered: Map<string, CachedScheduleSegments> =
+      await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch<CachedScheduleSegments>(
+        {
+          entries,
+          ttlSeconds: SCHEDULE_CACHE_TTL_SECONDS,
+          renderMissing: async (
+            missing: Array<ScheduleSegmentsCacheEntry>,
+          ): Promise<Map<string, CachedScheduleSegments>> => {
+            const schedules: Array<ScheduleInfo> = [];
+
+            for (const entry of missing) {
+              const schedule: ScheduleInfo | undefined = byId.get(
+                entry.scheduleId,
+              );
+
+              if (schedule) {
+                schedules.push(schedule);
+              }
+            }
+
+            return await OnCallCalendarFeedRenderer.renderScheduleSegments({
+              schedules,
+              windowStart: data.windowStart,
+              windowEnd: data.windowEnd,
+              now: data.now,
+            });
+          },
+        },
+      );
+
+    const ordered: Array<CachedScheduleSegments> = [];
+
+    for (const schedule of data.schedules) {
+      const segments: CachedScheduleSegments | undefined = rendered.get(
+        schedule.id.toString(),
+      );
+
+      if (segments) {
+        ordered.push(segments);
+      }
+    }
+
+    return ordered;
+  }
+
+  /*
+   * ONE resolver call for every schedule that missed the cache, split back
+   * into one cache entry per schedule.
+   */
+  private static async renderScheduleSegments(data: {
+    schedules: Array<ScheduleInfo>;
+    windowStart: Date;
+    windowEnd: Date;
+    now: Date;
+  }): Promise<Map<string, CachedScheduleSegments>> {
+    const out: Map<string, CachedScheduleSegments> = new Map();
+
+    if (data.schedules.length === 0) {
+      return out;
+    }
+
     const result: MaterializeResult =
-      await OnCallShiftMaterializer.materializeForSchedule({
-        scheduleId: data.schedule.id,
+      await OnCallShiftMaterializer.materializeForSchedules({
+        scheduleIds: data.schedules.map((schedule: ScheduleInfo) => {
+          return schedule.id;
+        }),
         windowStart: data.windowStart,
         windowEnd: data.windowEnd,
         now: data.now,
         maxSimulationIterations: FEED_SIMULATION_ITERATION_CAP,
       });
 
-    const info: MaterializedScheduleInfo | undefined = result.schedules.find(
-      (schedule: MaterializedScheduleInfo) => {
-        return schedule.scheduleId === data.schedule.id.toString();
-      },
-    );
+    const shiftsBySchedule: Map<string, Array<MaterializedShift>> = new Map();
 
-    let envelope: CoverageEnvelopeResult = { segments: [], truncated: false };
+    for (const shift of result.shifts) {
+      const list: Array<MaterializedShift> =
+        shiftsBySchedule.get(shift.scheduleId) || [];
 
-    if (info) {
-      envelope = OnCallCalendarFeedUtil.computeCoverageEnvelope({
-        layers: info.layerProps,
-        windowStart: data.windowStart,
-        windowEnd: data.windowEnd,
-        maxSimulationIterations: FEED_SIMULATION_ITERATION_CAP,
+      list.push(shift);
+      shiftsBySchedule.set(shift.scheduleId, list);
+    }
+
+    for (const schedule of data.schedules) {
+      const scheduleId: string = schedule.id.toString();
+
+      const info: MaterializedScheduleInfo | undefined = result.schedules.find(
+        (candidate: MaterializedScheduleInfo) => {
+          return candidate.scheduleId === scheduleId;
+        },
+      );
+
+      let envelope: CoverageEnvelopeResult = { segments: [], truncated: false };
+
+      if (info) {
+        envelope = OnCallCalendarFeedUtil.computeCoverageEnvelope({
+          layers: info.layerProps,
+          windowStart: data.windowStart,
+          windowEnd: data.windowEnd,
+          maxSimulationIterations: FEED_SIMULATION_ITERATION_CAP,
+        });
+      }
+
+      out.set(scheduleId, {
+        scheduleId,
+        scheduleName: info?.scheduleName || schedule.name,
+        scheduleTimezone: info?.scheduleTimezone ?? schedule.timezone ?? null,
+        projectId: info?.projectId || schedule.projectId.toString(),
+        projectName: info?.projectName ?? null,
+        shiftConfigVersion:
+          info?.shiftConfigVersion ?? schedule.shiftConfigVersion,
+        lastModifiedAt: (info?.lastModifiedAt || data.now).toISOString(),
+        truncated: info ? info.truncated : result.truncated,
+        shifts: MaterializedShiftUtil.toJSONArray(
+          shiftsBySchedule.get(scheduleId) || [],
+        ),
+        envelope: envelope.segments.map((segment: TimeSegment) => {
+          return {
+            start: segment.start.toISOString(),
+            end: segment.end.toISOString(),
+          };
+        }),
+        envelopeTruncated: envelope.truncated,
       });
     }
 
-    return {
-      scheduleId: data.schedule.id.toString(),
-      scheduleName: info?.scheduleName || data.schedule.name,
-      scheduleTimezone:
-        info?.scheduleTimezone ?? data.schedule.timezone ?? null,
-      projectId: info?.projectId || data.schedule.projectId.toString(),
-      projectName: info?.projectName ?? null,
-      shiftConfigVersion:
-        info?.shiftConfigVersion ?? data.schedule.shiftConfigVersion,
-      lastModifiedAt: (info?.lastModifiedAt || data.now).toISOString(),
-      truncated: result.truncated,
-      shifts: MaterializedShiftUtil.toJSONArray(result.shifts),
-      envelope: envelope.segments.map((segment: TimeSegment) => {
-        return {
-          start: segment.start.toISOString(),
-          end: segment.end.toISOString(),
-        };
-      }),
-      envelopeTruncated: envelope.truncated,
-    };
+    return out;
   }
 
   // -- Cache key ---------------------------------------------------------
 
   /*
-   * `${kind}:${tokenHash}:${filters}:${digest(scheduleIds+versions)}:${day}`.
-   * The candidate set and every shiftConfigVersion are read from Postgres on
-   * each request, so any configuration edit changes the key immediately --
-   * no counters to lose. The day bucket rolls the window at UTC midnight.
+   * `${kind}:${tokenHash}:${filters}:${window}` -- everything that identifies
+   * the FEED, with nothing in it that changes when the roster does. Shared by
+   * the body key and the last-good key.
    */
-  public static buildBodyCacheKey(data: {
+  private static buildFeedIdentityKey(data: {
     request: FeedRenderRequest;
     pastDays: number;
     futureDays: number;
-    schedules: Array<ScheduleInfo>;
-    now: Date;
   }): string {
     const request: FeedRenderRequest = data.request;
 
@@ -817,6 +942,34 @@ export default class OnCallCalendarFeedRenderer {
       }`;
     }
 
+    return [
+      request.kind,
+      request.tokenHash,
+      filters,
+      `w=${data.pastDays}/${data.futureDays}`,
+    ].join(":");
+  }
+
+  private static digestOf(value: string): string {
+    return createHash("sha256")
+      .update(value, "utf8")
+      .digest("hex")
+      .slice(0, 24);
+  }
+
+  /*
+   * `${identity}:${digest(scheduleIds+versions)}:${day}`.
+   * The candidate set and every shiftConfigVersion are read from Postgres on
+   * each request, so any configuration edit changes the key immediately --
+   * no counters to lose. The day bucket rolls the window at UTC midnight.
+   */
+  public static buildBodyCacheKey(data: {
+    request: FeedRenderRequest;
+    pastDays: number;
+    futureDays: number;
+    schedules: Array<ScheduleInfo>;
+    now: Date;
+  }): string {
     const versions: string = data.schedules
       .map((schedule: ScheduleInfo) => {
         return `${schedule.id.toString()}@${schedule.shiftConfigVersion}`;
@@ -824,18 +977,50 @@ export default class OnCallCalendarFeedRenderer {
       .sort()
       .join(",");
 
-    const digest: string = createHash("sha256")
-      .update(versions, "utf8")
-      .digest("hex")
-      .slice(0, 24);
+    return [
+      OnCallCalendarFeedRenderer.buildFeedIdentityKey(data),
+      OnCallCalendarFeedRenderer.digestOf(versions),
+      CalendarFeedWindow.getUtcDayBucket(data.now),
+    ].join(":");
+  }
+
+  /*
+   * The key of the stale-while-error tier: `${identity}:${digest(scheduleIds)}`
+   * -- deliberately NOT the body key.
+   *
+   * The body key carries every schedule's shiftConfigVersion and the UTC day
+   * bucket, both of which change constantly: every layer/override/attachment
+   * edit bumps a version, and every feed's day bucket rolls at midnight UTC.
+   * Keying the last-good body on those meant the fallback existed only until
+   * the next edit or the next midnight -- and those are exactly the moments
+   * it is needed, because they are also when every subscriber's body cache
+   * misses at once and the four render slots are scarcest. The result was a
+   * 503 (which some clients answer by dropping the subscription) with a
+   * perfectly good body sitting one key away.
+   *
+   * The SORTED SCHEDULE-ID SET stays in the key. That is the authorisation
+   * property: a body rendered when the user was on schedules {A, B} can never
+   * be served after they are removed from B, because the key is different.
+   * The token hash is in it too, so a rotated token never reaches an old body.
+   * What is dropped is only "the roster changed" and "the day rolled", which
+   * is precisely what "stale" means.
+   */
+  public static buildLastGoodCacheKey(data: {
+    request: FeedRenderRequest;
+    pastDays: number;
+    futureDays: number;
+    schedules: Array<ScheduleInfo>;
+  }): string {
+    const ids: string = data.schedules
+      .map((schedule: ScheduleInfo) => {
+        return schedule.id.toString();
+      })
+      .sort()
+      .join(",");
 
     return [
-      request.kind,
-      request.tokenHash,
-      filters,
-      `w=${data.pastDays}/${data.futureDays}`,
-      digest,
-      CalendarFeedWindow.getUtcDayBucket(data.now),
+      OnCallCalendarFeedRenderer.buildFeedIdentityKey(data),
+      OnCallCalendarFeedRenderer.digestOf(ids),
     ].join(":");
   }
 
@@ -908,7 +1093,21 @@ export default class OnCallCalendarFeedRenderer {
           request.scheduleFilterId,
         ]);
 
-      filterScheduleName = filtered[0]?.name;
+      const candidate: ScheduleInfo | undefined = filtered[0];
+
+      /*
+       * loadSchedules is a root read by id, and the id came from the query
+       * string. The name goes into X-WR-CALNAME/X-WR-CALDESC of a 200 body,
+       * so naming a schedule that belongs to another project would turn any
+       * personal feed link into an id-to-name oracle across tenants. Only a
+       * schedule in the token's own project is ever named.
+       */
+      if (
+        candidate &&
+        candidate.projectId.toString() === request.projectId.toString()
+      ) {
+        filterScheduleName = candidate.name;
+      }
     }
 
     if (candidateIds.length === 0) {
@@ -1226,11 +1425,11 @@ export default class OnCallCalendarFeedRenderer {
 
   private static async fallBackToLastGood(data: {
     kind: OnCallCalendarFeedKind;
-    bodyKey: string;
+    lastGoodKey: string;
     why: string;
   }): Promise<FeedRenderOutcome> {
     const lastGood: CachedCalendarBody | null =
-      await OnCallCalendarFeedCache.getLastGood(data.bodyKey);
+      await OnCallCalendarFeedCache.getLastGood(data.lastGoodKey);
 
     if (lastGood) {
       logger.warn(

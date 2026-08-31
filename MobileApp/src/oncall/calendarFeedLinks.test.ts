@@ -203,10 +203,14 @@ describe("buildFeedLinks", () => {
     );
   });
 
-  test("ignores a base path on the app's stored server URL", () => {
+  test("keeps the base path of the app's stored server URL", () => {
     /*
-     * The server's link already includes any mount prefix; taking the app's
-     * path too would double it.
+     * A proxy that mounts OneUptime under /oneuptime. HOST is a bare hostname
+     * on a stock install, so the server's own link carries no prefix - and
+     * dropping the app's would produce https://other.example.com/api/... ,
+     * which 404s on the only address this handset can reach. The app's stored
+     * URL is what every other request is built on (`${serverUrl}/api/status`),
+     * so it is the authority here too.
      */
     const links: FeedLinks | null = buildFeedLinks(
       "https://other.example.com/oneuptime",
@@ -214,7 +218,107 @@ describe("buildFeedLinks", () => {
     );
 
     expect(links!.https).toBe(
-      "https://other.example.com/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+      "https://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+    );
+    expect(links!.webcal).toBe(
+      "webcals://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+    );
+  });
+
+  test("a trailing slash on the stored server URL does not double up", () => {
+    const links: FeedLinks | null = buildFeedLinks(
+      "https://other.example.com/oneuptime/",
+      status(),
+    );
+
+    expect(links!.https).toBe(
+      "https://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics",
+    );
+  });
+
+  test("does not double a prefix the server's own link already carries", () => {
+    /*
+     * The symmetric install: HOST itself is "example.com/oneuptime", so the
+     * server builds the prefix into its link. Everything from the route
+     * marker on is taken from the server, everything in front of it from the
+     * app - so the prefix appears exactly once.
+     */
+    const links: FeedLinks | null = buildFeedLinks(
+      "https://other.example.com/oneuptime",
+      status({
+        urls: {
+          https:
+            "https://oneuptime.example.com/oneuptime/api/on-call-calendar/user/t/shifts.ics",
+          webcal: "",
+          googleAdd: "",
+        },
+      }),
+    );
+
+    expect(links!.https).toBe(
+      "https://other.example.com/oneuptime/api/on-call-calendar/user/t/shifts.ics",
+    );
+  });
+
+  test("drops the server's prefix when this handset reaches the API at the root", () => {
+    /*
+     * The app is signed in through https://other.example.com with no base
+     * path, which means /api is mounted at the root on that address. The
+     * server's own prefix belongs to a different address, not to this one.
+     */
+    const links: FeedLinks | null = buildFeedLinks(
+      "https://other.example.com",
+      status({
+        urls: {
+          https:
+            "https://oneuptime.example.com/oneuptime/api/on-call-calendar/user/t/shifts.ics",
+          webcal: "",
+          googleAdd: "",
+        },
+      }),
+    );
+
+    expect(links!.https).toBe(
+      "https://other.example.com/api/on-call-calendar/user/t/shifts.ics",
+    );
+  });
+
+  test("keeps the query string behind a base path", () => {
+    const links: FeedLinks | null = buildFeedLinks(
+      "https://other.example.com/oneuptime",
+      status({
+        urls: {
+          https: `${SERVER_HTTPS}?schedule=abc`,
+          webcal: "",
+          googleAdd: "",
+        },
+      }),
+    );
+
+    expect(links!.https).toBe(
+      "https://other.example.com/oneuptime/api/on-call-calendar/user/abcDEF123_-xyz/shifts.ics?schedule=abc",
+    );
+  });
+
+  test("falls back to the origin when the server's link has no feed route in it", () => {
+    /*
+     * An unrecognised shape (a server that moved the route, a proxy that
+     * rewrote it). Nothing can be said about which half is the mount prefix,
+     * so the path is taken from the server as-is.
+     */
+    const links: FeedLinks | null = buildFeedLinks(
+      "https://other.example.com/oneuptime",
+      status({
+        urls: {
+          https: "https://oneuptime.example.com/calendars/user/t/shifts.ics",
+          webcal: "",
+          googleAdd: "",
+        },
+      }),
+    );
+
+    expect(links!.https).toBe(
+      "https://other.example.com/calendars/user/t/shifts.ics",
     );
   });
 

@@ -6,7 +6,7 @@ Kalenderflöden lägger in dina jourpass i den kalender du redan tittar i. OneUp
 
 ## Vad du får
 
-- En händelse per pass, med titeln `On-call · <Schedule>` i ditt personliga flöde och `<Name> · On-call · <Schedule>` i ett delat flöde. Beskrivningen anger vem som har jour, schemat och dess tidszon, lagret, passet i schemats zon, i UTC och i din zon, vilka eskaleringspolicyer som söker dig via detta schema, och en länk till schemat i instrumentpanelen.
+- En händelse per pass, med titeln `On-call · <Schedule>` (med ` · <Policy>` tillagt när schemat är kopplat till exakt en eskaleringspolicy) i ditt personliga flöde och `<Name> · On-call · <Schedule>` i ett delat flöde. Beskrivningen anger vem som har jour, schemat och dess tidszon, lagret, passet i schemats zon, i UTC och i din zon, vilka eskaleringspolicyer som söker dig via detta schema, och en länk till schemat i instrumentpanelen.
 - Åsidosättningar respekteras. När någon täcker för dig flyttas händelsen till den personen (`(covering for <Name>)` läggs till) och förblir samma händelse i din kalenderapp, så den uppdateras på plats i stället för att dubbleras. En delvis åsidosättning delar passet i angränsande händelser.
 - Två dagars historik och 90 dagar framåt som standard. Du kan utöka till 60 dagar bakåt och 180 dagar framåt; ett flöde som skulle överstiga 5 000 händelser förkortas och säger det i sin kalenderbeskrivning.
 - Händelser markeras som lediga (`TRANSP:TRANSPARENT`), så ett prenumererat flöde blockerar aldrig din tillgänglighet, och inget markeras som privat, så en delad teamkalender visar titlarna för alla som kan se den.
@@ -124,7 +124,7 @@ Varken Google Kalender-appen eller Samsung Kalender kan prenumerera på en URL. 
 | Fastmail                          | Cirka varje timme                                                 | Fastmails servrar  | Inaktiveras efter fem misslyckade hämtningar                                                                  |
 | Proton Calendar                   | 4–16 timmar                                                       | Protons servrar    | Avvisar stora flöden                                                                                          |
 
-OneUptime självt levererar färska data: en ändring av ett lager, en rotation, en åsidosättning eller en policykoppling ogiltigförklarar flödet omedelbart, och svar cachas i högst fem minuter. Väntetiden du ser är kalenderappens, inte serverns. OneUptime föreslår uppdatering varje timme via `REFRESH-INTERVAL` och `X-PUBLISHED-TTL`; bara klassiska Outlook och Apple Kalender tar tipset.
+OneUptime självt levererar färska data: en ändring av ett lager, en rotation, en åsidosättning eller en policykoppling ogiltigförklarar flödet omedelbart, och svar cachas i högst fem minuter. Väntetiden du ser är kalenderappens, inte serverns. OneUptime föreslår uppdatering varje timme via `REFRESH-INTERVAL` och `X-PUBLISHED-TTL`; bara klassiska Outlook tar tipset, och bara med **Uppdateringsgräns** påslagen — Apple Kalender, Thunderbird och de övriga uppdaterar med det intervall du själv väljer per kalender.
 
 ## https, webcal och webcals
 
@@ -143,6 +143,7 @@ På **Användarinställningar** > **Kalenderflöde** låter kortet **Påminn mig
 - Ett pass som hamnar inom en av dina framförhållningar på grund av en sen åsidosättning — någon lämnar över ett pass 20 minuter innan det börjar — får en enda ikapp-påminnelse direkt.
 - Om ett pass du fått påminnelse om lämnas över till någon annan får du **Mitt kommande jourpass har omfördelats**, en separat händelsetyp så att den kan tystas för sig.
 - Påminnelser skickas aldrig efter att ett pass har börjat, och aldrig för scheman som inte är kopplade till någon eskaleringspolicy, eftersom de inte kan söka någon.
+- På WhatsApp kommer en påminnelse via Metas förhandsgodkända jourmall, som nämner schemat och eskaleringspolicyn och länkar till schemat men inte innehåller starttiden, och som WhatsApp bara levererar på engelska. Meddelanden om omfördelning har ingen godkänd WhatsApp-mall och når dig därför via dina andra kanaler.
 
 ## Delade länkar för ett schema eller ett projekt
 
@@ -160,7 +161,7 @@ Inställningar på båda:
 
 Lägg schemalänken i en delad teamkalender — Google, Outlook eller Confluence — så tjänar en prenumeration hela teamet. Rotera den när någon som hade den slutar, eller slå på den automatiska rotationen ovan.
 
-När en person lämnar sitt sista team i ett projekt tar OneUptime också bort personen från projektets schemalager och eskaleringsregler, inaktiverar personens personliga flöde för projektet och tar bort personens påminnelser där.
+När en person lämnar sitt sista team i ett projekt tar OneUptime också bort personen från projektets schemalager och eskaleringsregler, tar bort projektets pågående och framtida åsidosättningar som nämner personen (antingen som den som täcks eller som ersättare), inaktiverar personens personliga flöde för projektet och tar bort personens påminnelser där.
 
 ## Händelser i detalj
 
@@ -179,18 +180,20 @@ Flödet visar rotationen **som den är konfigurerad nu**, även för gångna dag
 - Token i länken är den enda inloggningsuppgiften. Alla som har länken ser passen — namn, scheman, policyer — tills den genereras om. Klistra inte in länkar i chattrum eller ärenden; när ett team behöver en kalender, dela schema- eller projektlänken i stället för din personliga.
 - Länkar är per projekt. En läckt personlig länk avslöjar ett projekts pass, inte alla projekt du tillhör.
 - **Generera om** flyttar den gamla token till en 30 dagars respitperiod (tom kalender, sedan 404). **Inaktivera** levererar en tom kalender. En okänd eller utgången länk returnerar en ren 404 utan ledtråd. Tomma kalendrar får prenumererande appar att rensa sin kopia; en 404 får dem att behålla den, vilket är varför inaktivering och omgenerering levererar tomma kalendrar.
-- Token lagras hashade; kopian som visas på inställningssidan är krypterad med `ENCRYPTION_SECRET`. Sätt den variabeln till en riktig hemlighet på en självhostad installation — servern varnar vid start när den är osatt eller fortfarande är det bokstavliga `secret`. Om du ändrar den senare erbjuder sidan **Generera om länk** eftersom den lagrade kopian inte längre kan läsas; flödet fortsätter fungera tills du gör det.
+- Token lagras hashade; kopian som visas på inställningssidan är krypterad med `ENCRYPTION_SECRET`. Sätt den variabeln till en riktig hemlighet på en självhostad installation — servern varnar vid start när den är osatt eller fortfarande är en av platshållarna som det här repot levererar (`secret`, eller den `please-change-this-to-random-value` som `config.example.env` sätter). Om du ändrar den senare erbjuder sidan **Generera om länk** eftersom den lagrade kopian inte längre kan läsas; flödet fortsätter fungera tills du gör det.
 - Flödessvar markeras med `Cache-Control: private`, utesluts från sökmotorer (`X-Robots-Tag: noindex`) och hastighetsbegränsas per länk och per klientadress.
-- OneUptimes egen Nginx skriver inte flödesförfrågningar till sin åtkomstlogg:
+- OneUptimes egen Nginx håller flödesförfrågningar borta från sina loggar:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  så en token hamnar aldrig i en loggfil bredvid en klientadress; applikationen loggar den inte heller. **Alla proxyer, WAF:er eller CDN:er du kör framför OneUptime loggar fortfarande hela URI:n** om du inte konfigurerar dem att låta bli — kontrollera det innan du rullar ut flöden.
+  så en token hamnar aldrig i en loggfil bredvid en klientadress; applikationen loggar den inte heller. `access_log off` tar bort raden per förfrågan, `error_log` tar bort raderna Nginx skriver när ett anrop till applikationen misslyckas — utan den skrivs token ner för varje klient som hämtar flödet under en omstart — och `proxy_max_temp_file_size 0` håller ett stort flöde borta från en temporär fil. **Alla proxyer, WAF:er eller CDN:er du kör framför OneUptime loggar fortfarande hela URI:n, både i sin åtkomstlogg och i sin fellogg** om du inte konfigurerar dem att låta bli — kontrollera det innan du rullar ut flöden.
 
 ## Konfiguration för självhostning
 

@@ -282,7 +282,7 @@ const ShiftRemindersCard: FunctionComponent<ComponentProps> = (
               const minutes: number = Number(reminder.minutesBeforeShift);
               return renderChip({
                 minutes: minutes,
-                label: formatLeadTime(minutes),
+                label: formatLeadTime(minutes, translateString),
                 isOn: true,
               });
             },

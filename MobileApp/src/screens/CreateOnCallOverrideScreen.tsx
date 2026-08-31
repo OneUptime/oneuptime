@@ -107,7 +107,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
    */
   const [direction, setDirection] = useState<OverrideDirection>("cover-me");
   const [projectId, setProjectId] = useState<string | null>(
-    prefill?.projectId ?? null,
+    prefill?.projectId || null,
   );
   const [counterpart, setCounterpart] = useState<ProjectUserItem | null>(null);
   const [durationHours, setDurationHours] = useState<number>(4);
@@ -119,6 +119,20 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       setProjectId(projectList[0]!._id);
     }
   }, [projectId, projectList]);
+
+  /*
+   * A prefill normally settles the project, which is why the picker below is
+   * hidden for one. "Normally" is doing work there: a prefill can arrive
+   * naming a project this user is not in, or none at all, and the effect
+   * above then silently substitutes the first project in the list. Showing
+   * the picker in that case turns a silent substitution into a visible
+   * choice.
+   */
+  const isPrefilledProjectKnown: boolean = projectList.some(
+    (project: ProjectItem) => {
+      return project._id === prefill?.projectId;
+    },
+  );
 
   const projectUsers: ReturnType<typeof useProjectUsers> =
     useProjectUsers(projectId);
@@ -277,7 +291,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           />
         )}
 
-        {projectList.length > 1 && !prefill ? (
+        {projectList.length > 1 && (!prefill || !isPrefilledProjectKnown) ? (
           <View style={{ marginTop: 24 }}>
             <SectionHeader title="Project" iconName="folder-open-outline" />
             <View style={{ gap: 8 }}>

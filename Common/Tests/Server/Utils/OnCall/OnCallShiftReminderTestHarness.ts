@@ -8,6 +8,7 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import UserOnCallShiftReminderLogService from "../../../../Server/Services/UserOnCallShiftReminderLogService";
 import UserOnCallShiftReminderService from "../../../../Server/Services/UserOnCallShiftReminderService";
+import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
 import Telemetry from "../../../../Server/Utils/Telemetry";
 import OnCallShiftMaterializer, {
@@ -75,6 +76,9 @@ export interface SentNotification {
   smsText: string;
   pushTitle: string;
   pushBody: string;
+  // undefined when the runner sent no WhatsApp payload at all.
+  whatsAppTemplateKey: string | undefined;
+  whatsAppBody: string | undefined;
   onCallScheduleId: string | undefined;
   onCallPolicyId: string | undefined;
   onCallPolicyEscalationRuleId: string | undefined;
@@ -105,7 +109,15 @@ export interface ReminderHarness {
   cache: Map<string, string>;
   sent: Array<SentNotification>;
   materializeCalls: Array<MaterializeCall>;
-  candidateCalls: Array<{ userId: string; projectIds: Array<string> }>;
+  candidateCalls: Array<{ userIds: Array<string>; projectIds: Array<string> }>;
+  /*
+   * Users UserService can resolve that materialization does NOT return —
+   * somebody just removed from the layer, or from the project. The change
+   * pass looks them up so their notice is formatted in their own timezone.
+   */
+  directory: Array<MaterializedUserInfo>;
+  // One entry per UserService.findBy the runner made, with the ids it asked for.
+  userLookupCalls: Array<Array<string>>;
   metrics: Array<MetricRecord>;
   // Return an Error to make the NEXT send throw; null to deliver.
   failSend: (call: SentNotification) => Error | null;
@@ -188,6 +200,8 @@ export function emptyHarness(): ReminderHarness {
     sent: [],
     materializeCalls: [],
     candidateCalls: [],
+    directory: [],
+    userLookupCalls: [],
     metrics: [],
     failSend: (): Error | null => {
       return null;
@@ -512,49 +526,68 @@ function fakeMaterialize(
   };
 }
 
-function fakeCandidates(
+function candidatesOf(
+  harness: ReminderHarness,
+  userKey: string,
+): Array<ObjectID> {
+  const explicit: Array<string> | undefined =
+    harness.candidateSchedules.get(userKey);
+
+  if (explicit) {
+    return explicit.map((id: string) => {
+      return new ObjectID(id);
+    });
+  }
+
+  const derived: Set<string> = new Set<string>();
+
+  for (const shift of harness.shifts) {
+    if (shift.userId === userKey) {
+      derived.add(shift.scheduleId);
+    }
+  }
+
+  return Array.from(derived).map((id: string) => {
+    return new ObjectID(id);
+  });
+}
+
+/*
+ * The batched lookup the runner uses: ONE call per project, every reminded
+ * user in it. `candidateCalls` records what it was asked for so the tests can
+ * pin that the sweep never goes back to a per-user query.
+ */
+function fakeCandidatesForUsers(
   harness: ReminderHarness,
 ): (args: {
-  userId: ObjectID;
+  userIds: Array<ObjectID>;
   projectIds?: Array<ObjectID> | undefined;
-}) => Promise<Array<ObjectID>> {
+}) => Promise<Map<string, Array<ObjectID>>> {
   return (args: {
-    userId: ObjectID;
+    userIds: Array<ObjectID>;
     projectIds?: Array<ObjectID> | undefined;
-  }): Promise<Array<ObjectID>> => {
-    const userKey: string = args.userId.toString();
+  }): Promise<Map<string, Array<ObjectID>>> => {
+    const userKeys: Array<string> = args.userIds.map((id: ObjectID) => {
+      return id.toString();
+    });
 
     harness.candidateCalls.push({
-      userId: userKey,
+      userIds: userKeys,
       projectIds: (args.projectIds || []).map((id: ObjectID) => {
         return id.toString();
       }),
     });
 
-    const explicit: Array<string> | undefined =
-      harness.candidateSchedules.get(userKey);
+    const result: Map<string, Array<ObjectID>> = new Map<
+      string,
+      Array<ObjectID>
+    >();
 
-    if (explicit) {
-      return Promise.resolve(
-        explicit.map((id: string) => {
-          return new ObjectID(id);
-        }),
-      );
+    for (const userKey of userKeys) {
+      result.set(userKey, candidatesOf(harness, userKey));
     }
 
-    const derived: Set<string> = new Set<string>();
-
-    for (const shift of harness.shifts) {
-      if (shift.userId === userKey) {
-        derived.add(shift.scheduleId);
-      }
-    }
-
-    return Promise.resolve(
-      Array.from(derived).map((id: string) => {
-        return new ObjectID(id);
-      }),
-    );
+    return Promise.resolve(result);
   };
 }
 
@@ -587,6 +620,9 @@ function fakeSend(
       {}) as Record<string, unknown>;
     const push: Record<string, unknown> = (args["pushNotificationMessage"] ||
       {}) as Record<string, unknown>;
+    const whatsApp: Record<string, unknown> | undefined = args[
+      "whatsAppMessage"
+    ] as Record<string, unknown> | undefined;
 
     const call: SentNotification = {
       userId: toKey(args["userId"]),
@@ -598,6 +634,10 @@ function fakeSend(
       smsText: toKey(smsMessage["message"]),
       pushTitle: toKey(push["title"]),
       pushBody: toKey(push["body"]),
+      whatsAppTemplateKey: whatsApp
+        ? toKey(whatsApp["templateKey"])
+        : undefined,
+      whatsAppBody: whatsApp ? toKey(whatsApp["body"]) : undefined,
       onCallScheduleId: args["onCallScheduleId"]
         ? toKey(args["onCallScheduleId"])
         : undefined,
@@ -688,8 +728,44 @@ export function installReminderHarness(harness: ReminderHarness): void {
     .spyOn(OnCallShiftMaterializer, "materializeForSchedules")
     .mockImplementation(fakeMaterialize(harness) as never);
   jest
+    .spyOn(OnCallShiftMaterializer, "getCandidateScheduleIdsForUsers")
+    .mockImplementation(fakeCandidatesForUsers(harness) as never);
+  jest
     .spyOn(OnCallShiftMaterializer, "getCandidateScheduleIdsForUser")
-    .mockImplementation(fakeCandidates(harness) as never);
+    .mockImplementation(((args: { userId: ObjectID }) => {
+      return Promise.resolve(candidatesOf(harness, args.userId.toString()));
+    }) as never);
+
+  // The user directory, for recipients materialization does not return.
+  jest.spyOn(UserService, "findBy").mockImplementation(((args: {
+    query?: Record<string, unknown>;
+  }) => {
+    const rows: Array<Record<string, unknown>> = harness.directory.map(
+      (user: MaterializedUserInfo) => {
+        return {
+          _id: new ObjectID(user.userId),
+          id: new ObjectID(user.userId),
+          name: user.userName,
+          email: user.email,
+          timezone: user.timezone,
+        };
+      },
+    );
+
+    const matched: Array<Record<string, unknown>> = rows.filter(
+      (row: Record<string, unknown>) => {
+        return matchesQuery(args.query, row);
+      },
+    );
+
+    harness.userLookupCalls.push(
+      matched.map((row: Record<string, unknown>) => {
+        return toKey(row["_id"]);
+      }),
+    );
+
+    return Promise.resolve(matched);
+  }) as never);
 
   // Notification settings + delivery.
   jest

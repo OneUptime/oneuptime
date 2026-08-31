@@ -1,6 +1,7 @@
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
 import UserOnCallShiftReminderService from "../../Services/UserOnCallShiftReminderService";
+import UserService from "../../Services/UserService";
 import UserOnCallShiftReminderLogService, {
   Service as UserOnCallShiftReminderLogServiceClass,
 } from "../../Services/UserOnCallShiftReminderLogService";
@@ -11,6 +12,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import logger from "../Logger";
 import PushNotificationUtil from "../PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "../WhatsAppTemplateUtil";
 import Telemetry, { TelemetryCounter } from "../Telemetry";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OnCallShiftMaterializer, {
@@ -20,6 +22,7 @@ import OnCallShiftMaterializer, {
 } from "./OnCallShiftMaterializer";
 import { OnCallShiftChangeEvent } from "./OnCallShiftChangeListeners";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import User from "../../../Models/DatabaseModels/User";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserOnCallShiftReminder from "../../../Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog, {
@@ -41,6 +44,7 @@ import OnCallCalendarFeedUtil from "../../../Types/OnCallDutyPolicy/OnCallCalend
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import Timezone from "../../../Types/Timezone";
+import { WhatsAppTemplateIds } from "../../../Types/WhatsApp/WhatsAppTemplates";
 import URL from "../../../Types/API/URL";
 import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
 
@@ -157,6 +161,12 @@ export interface ShiftReminderSweepStats {
   now: Date;
   lookbackFrom: Date;
   watermarkFound: boolean;
+  /*
+   * The instant the watermark was stamped with: `now` for a clean pass,
+   * `lookbackFrom` when a project failed, so the next tick re-covers this
+   * window instead of stepping over it.
+   */
+  watermarkWrittenAt: Date;
   projects: number;
   usersWithReminders: number;
   shiftsConsidered: number;
@@ -233,6 +243,13 @@ interface LedgerRow {
 interface Ledger {
   byKey: Map<string, LedgerRow>;
   rows: Array<LedgerRow>;
+  /*
+   * Every ledger row this pass has seen: the snapshot it loaded plus every
+   * row it claimed itself. A row for the same shift that is NOT in here was
+   * written by another pass while this one was running (see
+   * yieldToConcurrentSibling).
+   */
+  knownIds: Set<string>;
 }
 
 interface ClaimResult {
@@ -300,6 +317,16 @@ export default class OnCallShiftReminderRunner {
    * for one user's or one project's bad data; throws only when the reminder
    * table itself cannot be read, in which case the watermark is NOT advanced
    * and the next tick covers the same window.
+   *
+   * A project or user that threw (a DB timeout inside the materializer, a
+   * transient Redis error) is isolated the same way, but its window would
+   * otherwise be lost for good: the next tick starts where this one ended
+   * and `isDue` never looks back at a lead instant again. So whenever
+   * anything failed the watermark is stamped with `lookbackFrom` instead of
+   * `now` and the next tick re-covers the identical window. The re-run is a
+   * no-op for everything that did send — the UNIQUE ledger turns it into
+   * "already sent" — and the 30-minute lookback cap bounds a project that
+   * keeps failing.
    */
   @CaptureSpan()
   public static async runSweep(options?: {
@@ -317,6 +344,7 @@ export default class OnCallShiftReminderRunner {
       now,
       lookbackFrom,
       watermarkFound: watermark !== null,
+      watermarkWrittenAt: now,
       projects: 0,
       usersWithReminders: 0,
       shiftsConsidered: 0,
@@ -382,7 +410,22 @@ export default class OnCallShiftReminderRunner {
       }
     }
 
-    await OnCallShiftReminderRunner.writeWatermark(now);
+    /*
+     * Hold the window open when anything failed. Re-covering it costs
+     * nothing: every reminder that DID go out has a stamped ledger row and
+     * comes back as "already sent", and an isolated failure always happens
+     * before its send (a failed stamp is caught inside deliver, precisely so
+     * that "sent" and "swept" cannot disagree here).
+     */
+    stats.watermarkWrittenAt = stats.errors > 0 ? lookbackFrom : now;
+
+    if (stats.errors > 0) {
+      logger.warn(
+        `${SHIFT_REMINDER_JOB_NAME}: ${stats.errors} failure(s) this tick; holding the watermark at ${lookbackFrom.toISOString()} so the next tick re-covers this window.`,
+      );
+    }
+
+    await OnCallShiftReminderRunner.writeWatermark(stats.watermarkWrittenAt);
 
     logger.debug(
       `${SHIFT_REMINDER_JOB_NAME}: sweep complete — ${stats.sent} sent, ${stats.skippedLate} skipped (late), ${stats.claimRetries} claim retries, ${stats.claimCollisions} claim collisions, ${stats.sendFailures} send failures, ${stats.errors} errors.`,
@@ -576,16 +619,24 @@ export default class OnCallShiftReminderRunner {
       }
 
       if (plan) {
-        for (const userPlan of plan.users.values()) {
-          scheduleIds.push(
-            ...(await OnCallShiftMaterializer.getCandidateScheduleIdsForUser({
-              userId: userPlan.userId,
-              projectIds: [projectId],
-              windowStart: now,
-              windowEnd,
-              includeCoveringShifts: true,
-            })),
-          );
+        // One batched lookup for every reminded user of this project.
+        const candidatesByUser: Map<
+          string,
+          Array<ObjectID>
+        > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+          userIds: Array.from(plan.users.values()).map(
+            (userPlan: UserReminderPlan) => {
+              return userPlan.userId;
+            },
+          ),
+          projectIds: [projectId],
+          windowStart: now,
+          windowEnd,
+          includeCoveringShifts: true,
+        });
+
+        for (const candidates of candidatesByUser.values()) {
+          scheduleIds.push(...candidates);
         }
       }
 
@@ -620,6 +671,12 @@ export default class OnCallShiftReminderRunner {
         dashboardUrl: await OnCallShiftReminderRunner.getDashboardUrl(),
         users: OnCallShiftReminderRunner.toUserMap(result.users),
       };
+
+      await OnCallShiftReminderRunner.backfillRecipients({
+        userIds,
+        ledger,
+        context,
+      });
 
       stats.users = userIds.length;
 
@@ -932,7 +989,19 @@ export default class OnCallShiftReminderRunner {
     };
   }
 
-  /** The catch-up message: same shape, worded for a late assignment. */
+  /**
+   * The catch-up message: the same shape as a reminder, prefixed so it reads
+   * as the late notice it is.
+   *
+   * It deliberately does NOT say the shift "now" starts in X. A catch-up
+   * goes to anyone holding a shift inside one of their leads with no
+   * reminder row, and that includes shifts that did not move at all — the
+   * user configured the lead after its instant had passed, or the worker was
+   * down for it — so the message would claim a change that never happened
+   * the next time a colleague edits an unrelated layer on the schedule. What
+   * IS always true is that they have not been told yet; when the shift did
+   * change hands the covering clause says so.
+   */
   public static buildCatchUpMessage(data: {
     shift: MaterializedShift;
     now: Date;
@@ -963,7 +1032,7 @@ export default class OnCallShiftReminderRunner {
       ? ` (you are covering for ${coveringFor})`
       : "";
 
-    const sentence: string = `Your on-call shift on ${shift.scheduleName} for ${policyNames} now starts in ${remainingText} (${whenText})${coveringClause}.`;
+    const sentence: string = `Heads up: your on-call shift on ${shift.scheduleName} for ${policyNames} starts in ${remainingText} (${whenText})${coveringClause}.`;
 
     const scheduleViewLink: string = OnCallCalendarFeedUtil.getScheduleUrl(
       data.dashboardUrl,
@@ -985,10 +1054,10 @@ export default class OnCallShiftReminderRunner {
     };
 
     return {
-      subject: `Your on-call shift on ${shift.scheduleName} now starts in ${remainingText}`,
+      subject: `Heads up: your on-call shift on ${shift.scheduleName} starts in ${remainingText}`,
       text: `This is a message from OneUptime. ${sentence} To change these reminders go to User Settings in the OneUptime Dashboard.`,
       pushTitle: "On-call shift reminder",
-      pushBody: `Your on-call shift on ${shift.scheduleName} now starts in ${remainingText} (${whenText})${coveringClause}.`,
+      pushBody: `Your on-call shift on ${shift.scheduleName} starts in ${remainingText} (${whenText})${coveringClause}.`,
       vars,
       templateType: EmailTemplateType.UserOnCallShiftReminder,
       eventType:
@@ -1067,19 +1136,32 @@ export default class OnCallShiftReminderRunner {
       plan.maxLead + SHIFT_REMINDER_WINDOW_PADDING_MINUTES,
     );
 
-    // Candidate schedules of every reminded user, materialized ONCE per tick.
+    const userIds: Array<ObjectID> = Array.from(plan.users.values()).map(
+      (userPlan: UserReminderPlan) => {
+        return userPlan.userId;
+      },
+    );
+
+    /*
+     * Candidate schedules of every reminded user in ONE batched lookup —
+     * two or three queries for the whole project rather than per user —
+     * and then a single materialization per tick.
+     */
+    const candidatesByUser: Map<
+      string,
+      Array<ObjectID>
+    > = await OnCallShiftMaterializer.getCandidateScheduleIdsForUsers({
+      userIds,
+      projectIds: [plan.projectId],
+      windowStart: now,
+      windowEnd,
+      includeCoveringShifts: true,
+    });
+
     const scheduleIds: Array<ObjectID> = [];
 
-    for (const userPlan of plan.users.values()) {
-      scheduleIds.push(
-        ...(await OnCallShiftMaterializer.getCandidateScheduleIdsForUser({
-          userId: userPlan.userId,
-          projectIds: [plan.projectId],
-          windowStart: now,
-          windowEnd,
-          includeCoveringShifts: true,
-        })),
-      );
+    for (const candidates of candidatesByUser.values()) {
+      scheduleIds.push(...candidates);
     }
 
     const distinctScheduleIds: Array<ObjectID> =
@@ -1105,12 +1187,6 @@ export default class OnCallShiftReminderRunner {
         );
       }
     }
-
-    const userIds: Array<ObjectID> = Array.from(plan.users.values()).map(
-      (userPlan: UserReminderPlan) => {
-        return userPlan.userId;
-      },
-    );
 
     const ledger: Ledger = OnCallShiftReminderRunner.buildLedger(
       await OnCallShiftReminderRunner.loadLedgerRows({
@@ -1217,18 +1293,34 @@ export default class OnCallShiftReminderRunner {
     const { shift, lead, userPlan, ledger, context, stats } = data;
 
     /*
-     * A catch-up already sent for this exact lead (the change pass keys its
-     * catch-up with the largest matching lead) covers this reminder.
+     * Does a catch-up already cover this lead? The change pass keys its
+     * catch-up with the LARGEST matching lead, so an exact-key check alone
+     * would let a smaller lead fire a near-identical message minutes later
+     * (an override at T-17 with leads [60, 15]: "now starts in 17 minutes"
+     * from the catch-up, then "starts in 15 minutes" from the sweep). A
+     * catch-up claimed at or after this lead's instant — minus the same
+     * tolerance the "starts in" text uses — already WAS this lead's
+     * reminder; an older one (a catch-up at T-30 against a 15-minute lead)
+     * was not, and the configured reminder still goes out.
      */
-    const catchUpKey: string = OnCallShiftReminderRunner.ledgerKey({
-      userId: userPlan.userId,
-      scheduleId: shift.scheduleId,
-      shiftStartsAt: shift.start,
-      minutesBeforeShift: lead,
-      kind: UserOnCallShiftReminderLogKind.CatchUp,
+    const shiftStartsAt: Date =
+      UserOnCallShiftReminderLogServiceClass.truncateToMinute(shift.start);
+    const coveredFrom: number =
+      shiftStartsAt.getTime() -
+      (lead + SHIFT_REMINDER_LEAD_TEXT_TOLERANCE_MINUTES) *
+        MILLISECONDS_PER_MINUTE;
+
+    const coveredByCatchUp: boolean = ledger.rows.some((row: LedgerRow) => {
+      return (
+        row.kind === UserOnCallShiftReminderLogKind.CatchUp &&
+        row.userId === userPlan.userId.toString() &&
+        row.scheduleId === shift.scheduleId &&
+        row.shiftStartsAt.getTime() === shiftStartsAt.getTime() &&
+        row.claimedAt.getTime() >= coveredFrom
+      );
     });
 
-    if (ledger.byKey.has(catchUpKey)) {
+    if (coveredByCatchUp) {
       stats.skippedAlreadySent++;
       OnCallShiftReminderRunner.recordMetric(
         ShiftReminderOutcome.SkippedAlreadySent,
@@ -1275,6 +1367,26 @@ export default class OnCallShiftReminderRunner {
     }
 
     if (!claim.claimId) {
+      return;
+    }
+
+    // Another pass claimed the same shift from its own snapshot: it wins.
+    const conflicted: boolean =
+      await OnCallShiftReminderRunner.yieldToConcurrentSibling({
+        projectId: context.projectId,
+        userId: userPlan.userId,
+        scheduleId: shift.scheduleId,
+        shiftStartsAt,
+        claimId: claim.claimId,
+        claimedAt: context.now,
+        ledger,
+      });
+
+    if (conflicted) {
+      stats.claimCollisions++;
+      OnCallShiftReminderRunner.recordMetric(
+        ShiftReminderOutcome.ClaimCollision,
+      );
       return;
     }
 
@@ -1403,6 +1515,29 @@ export default class OnCallShiftReminderRunner {
       }
 
       if (!claim.claimId || claim.outcome === "already-sent") {
+        continue;
+      }
+
+      // A sweep tick claimed the same shift meanwhile: the older claim wins.
+      const conflicted: boolean =
+        await OnCallShiftReminderRunner.yieldToConcurrentSibling({
+          projectId: context.projectId,
+          userId: userPlan.userId,
+          scheduleId: shift.scheduleId,
+          shiftStartsAt:
+            UserOnCallShiftReminderLogServiceClass.truncateToMinute(
+              shift.start,
+            ),
+          claimId: claim.claimId,
+          claimedAt: now,
+          ledger,
+        });
+
+      if (conflicted) {
+        stats.claimCollisions++;
+        OnCallShiftReminderRunner.recordMetric(
+          ShiftReminderOutcome.ClaimCollision,
+        );
         continue;
       }
 
@@ -1693,6 +1828,7 @@ export default class OnCallShiftReminderRunner {
 
       data.ledger.byKey.set(key, ledgerRow);
       data.ledger.rows.push(ledgerRow);
+      data.ledger.knownIds.add(created.id.toString());
 
       return { claimId: created.id, outcome: "claimed" };
     } catch (err) {
@@ -1774,6 +1910,109 @@ export default class OnCallShiftReminderRunner {
   }
 
   /**
+   * The one duplicate the UNIQUE index cannot catch: the sweep and a
+   * hook-triggered change pass deciding about the SAME (user, schedule,
+   * shift start) at the same moment, in two processes. Both decide from a
+   * snapshot taken before either claimed anything, and `reminder|lead` and
+   * `catch-up|lead` are different keys, so both inserts succeed and both
+   * messages go out seconds apart.
+   *
+   * So after claiming, re-read this shift's rows: a reminder/catch-up row
+   * this pass did not write (not in the snapshot, not claimed by it) means
+   * somebody else is notifying about the same shift. The OLDER claim wins —
+   * ties broken by id, so the two sides always agree on the winner — and
+   * the loser releases its claim and says nothing. Returns true when THIS
+   * pass is the loser.
+   *
+   * A failed re-read never blocks a reminder: it logs and sends.
+   */
+  private static async yieldToConcurrentSibling(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    scheduleId: string;
+    shiftStartsAt: Date;
+    claimId: ObjectID;
+    claimedAt: Date;
+    ledger: Ledger;
+  }): Promise<boolean> {
+    const mine: string = data.claimId.toString();
+
+    let rows: Array<LedgerRow> = [];
+
+    try {
+      rows = await OnCallShiftReminderRunner.loadLedgerRows({
+        projectId: data.projectId,
+        userIds: [data.userId],
+        scheduleIds: [new ObjectID(data.scheduleId)],
+        from: data.shiftStartsAt,
+      });
+    } catch (err) {
+      logger.warn(
+        `${SHIFT_REMINDER_JOB_NAME}: could not re-read the ledger after claiming ${mine}; sending anyway: ${err}`,
+      );
+      return false;
+    }
+
+    const winner: LedgerRow | undefined = rows.find((row: LedgerRow) => {
+      const id: string = row.id.toString();
+
+      if (
+        id === mine ||
+        data.ledger.knownIds.has(id) ||
+        row.shiftStartsAt.getTime() !== data.shiftStartsAt.getTime() ||
+        (row.kind !== UserOnCallShiftReminderLogKind.Reminder &&
+          row.kind !== UserOnCallShiftReminderLogKind.CatchUp)
+      ) {
+        return false;
+      }
+
+      return (
+        row.claimedAt.getTime() < data.claimedAt.getTime() ||
+        (row.claimedAt.getTime() === data.claimedAt.getTime() && id < mine)
+      );
+    });
+
+    if (!winner) {
+      return false;
+    }
+
+    logger.debug(
+      `${SHIFT_REMINDER_JOB_NAME}: another pass is already notifying user ${data.userId.toString()} about the shift on schedule ${data.scheduleId} starting ${data.shiftStartsAt.toISOString()}; releasing claim ${mine}.`,
+    );
+
+    await OnCallShiftReminderRunner.releaseClaim(data.claimId, data.ledger);
+
+    return true;
+  }
+
+  /** Delete a claim this pass made and forget it, best-effort. */
+  private static async releaseClaim(
+    claimId: ObjectID,
+    ledger: Ledger,
+  ): Promise<void> {
+    try {
+      await OnCallShiftReminderRunner.deleteLedgerRow(claimId);
+    } catch (err) {
+      logger.error(
+        `${SHIFT_REMINDER_JOB_NAME}: could not release claim ${claimId.toString()}; it becomes re-claimable after ${SHIFT_REMINDER_RECLAIM_AFTER_MINUTES} minutes.`,
+      );
+      logger.error(err);
+    }
+
+    const id: string = claimId.toString();
+
+    ledger.rows = ledger.rows.filter((row: LedgerRow) => {
+      return row.id.toString() !== id;
+    });
+
+    for (const [key, row] of ledger.byKey) {
+      if (row.id.toString() === id) {
+        ledger.byKey.delete(key);
+      }
+    }
+  }
+
+  /**
    * Send through the user's notification settings, then stamp the claim.
    * A thrown send deletes the claim so the next tick retries; returns
    * whether the row was stamped.
@@ -1833,10 +2072,8 @@ export default class OnCallShiftReminderRunner {
           requireInteraction: false,
         });
 
-      // No WhatsApp template is registered for these events; a plain body.
-      const whatsAppMessage: WhatsAppMessagePayload = {
-        body: message.text,
-      };
+      const whatsAppMessage: WhatsAppMessagePayload | undefined =
+        OnCallShiftReminderRunner.buildWhatsAppMessage(message);
 
       const firstPolicy: MaterializedShiftPolicy | undefined = data.policies[0];
 
@@ -1875,12 +2112,72 @@ export default class OnCallShiftReminderRunner {
       return false;
     }
 
-    await OnCallShiftReminderRunner.stampSent(
-      data.claimId,
-      OneUptimeDate.getCurrentDate(),
-    );
+    /*
+     * The message is out. A failed stamp (a database blip between the send
+     * and the UPDATE) must not throw: it would abort the rest of this
+     * user's tick — every other shift and lead they are due — over a
+     * notification that WAS delivered. Log it instead; the claim row stays
+     * unstamped and may be re-claimed later, which is the safe direction.
+     */
+    try {
+      await OnCallShiftReminderRunner.stampSent(
+        data.claimId,
+        OneUptimeDate.getCurrentDate(),
+      );
+    } catch (err) {
+      logger.error(
+        `${SHIFT_REMINDER_JOB_NAME}: "${message.eventType}" was delivered to user ${data.userId.toString()}, but claim ${data.claimId.toString()} could not be stamped as sent; it may be re-sent after ${SHIFT_REMINDER_RECLAIM_AFTER_MINUTES} minutes.`,
+      );
+      logger.error(err);
+    }
 
     return true;
+  }
+
+  /**
+   * WhatsApp delivers Meta-approved TEMPLATE messages only: a body-only
+   * payload is rejected by the notification service before it ever reaches
+   * Meta, which leaves a failed WhatsAppLog row and delivers nothing. No
+   * template exists for the two new event types, and registering one is a
+   * Meta approval rather than a code change — so:
+   *
+   *   - a shift reminder (and its catch-up) reuses the approved
+   *     "you are next on-call for <policy> on <schedule>" template, whose
+   *     wording fits it exactly;
+   *   - a reassignment, which no approved template describes, sends no
+   *     WhatsApp payload at all, so the notification service skips the
+   *     channel cleanly instead of failing it.
+   *
+   * Email, SMS, call and push always carry the full text either way.
+   */
+  public static buildWhatsAppMessage(
+    message: ShiftReminderMessage,
+  ): WhatsAppMessagePayload | undefined {
+    if (
+      message.eventType !==
+      NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS
+    ) {
+      return undefined;
+    }
+
+    const scheduleLink: string = message.vars["scheduleViewLink"] || "";
+
+    try {
+      return createWhatsAppMessageFromTemplate({
+        templateKey: WhatsAppTemplateIds.OnCallUserIsNextNotification,
+        actionLink: scheduleLink || undefined,
+        templateVariables: {
+          on_call_policy_name: message.vars["policyNames"] || "",
+          schedule_name: message.vars["scheduleName"] || "",
+          schedule_link: scheduleLink,
+        },
+      });
+    } catch (err) {
+      logger.warn(
+        `${SHIFT_REMINDER_JOB_NAME}: could not build the WhatsApp template message for "${message.eventType}"; the channel is skipped: ${err}`,
+      );
+      return undefined;
+    }
   }
 
   /**
@@ -2015,6 +2312,7 @@ export default class OnCallShiftReminderRunner {
 
   private static buildLedger(rows: Array<LedgerRow>): Ledger {
     const byKey: Map<string, LedgerRow> = new Map<string, LedgerRow>();
+    const knownIds: Set<string> = new Set<string>();
 
     for (const row of rows) {
       byKey.set(
@@ -2027,9 +2325,10 @@ export default class OnCallShiftReminderRunner {
         }),
         row,
       );
+      knownIds.add(row.id.toString());
     }
 
-    return { byKey, rows: [...rows] };
+    return { byKey, rows: [...rows], knownIds };
   }
 
   // -- Plans ----------------------------------------------------------------
@@ -2141,6 +2440,89 @@ export default class OnCallShiftReminderRunner {
         `${SHIFT_REMINDER_JOB_NAME}: could not resolve the dashboard URL; links in reminders will be relative: ${err}`,
       );
       return "/dashboard";
+    }
+  }
+
+  /**
+   * The materializer only looks up users it can see in the resolution: the
+   * segment holders, the parties of an override, and the schedule's CURRENT
+   * layer members. A user who was just removed from the layer — or from the
+   * project — is none of those, yet they are exactly who a "reassigned"
+   * notice goes to. Without them the notice falls back to the SCHEDULE's
+   * timezone, so a Berlin engineer would read a New York wall clock. One
+   * root lookup fills in the recipients that are missing AND actually have a
+   * ledger row (nobody else can receive a notice), so the common pass adds
+   * no query at all.
+   */
+  private static async backfillRecipients(data: {
+    userIds: Array<ObjectID>;
+    ledger: Ledger;
+    context: SendContext;
+  }): Promise<void> {
+    const missing: Array<ObjectID> = data.userIds.filter((userId: ObjectID) => {
+      const key: string = userId.toString();
+
+      if (data.context.users.has(key)) {
+        return false;
+      }
+
+      return data.ledger.rows.some((row: LedgerRow) => {
+        return row.userId === key;
+      });
+    });
+
+    if (missing.length === 0) {
+      return;
+    }
+
+    try {
+      const rows: Array<User> = await UserService.findBy({
+        query: {
+          _id: QueryHelper.any(missing),
+        },
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          timezone: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const row of rows) {
+        const userId: string | undefined = row.id?.toString();
+
+        if (!userId) {
+          continue;
+        }
+
+        const name: string = row.name?.toString().trim() || "";
+        const email: string = row.email?.toString().trim() || "";
+        const timezone: string = row.timezone?.toString() || "";
+
+        const info: MaterializedUserInfo = {
+          userId,
+          userName: name || email || OnCallCalendarFeedUtil.FALLBACK_USER_NAME,
+        };
+
+        if (email) {
+          info.email = email;
+        }
+
+        if (timezone) {
+          info.timezone = timezone;
+        }
+
+        data.context.users.set(userId, info);
+      }
+    } catch (err) {
+      logger.warn(
+        `${SHIFT_REMINDER_LISTENER_NAME}: could not load ${missing.length} notice recipient(s); their messages fall back to the schedule's timezone: ${err}`,
+      );
     }
   }
 

@@ -6,7 +6,7 @@ Kalenderfeeds lægger dine vagter ind i den kalender, du allerede kigger i. OneU
 
 ## Hvad du får
 
-- Én begivenhed pr. vagt med titlen `On-call · <Schedule>` i dit personlige feed og `<Name> · On-call · <Schedule>` i et delt feed. Beskrivelsen angiver, hvem der har vagt, vagtplanen og dens tidszone, laget, vagten i vagtplanens zone, i UTC og i din zone, hvilke eskaleringspolitikker der kalder dig via denne vagtplan, og et link til vagtplanen i dashboardet.
+- Én begivenhed pr. vagt med titlen `On-call · <Schedule>` (med ` · <Policy>` tilføjet, når vagtplanen er knyttet til præcis én eskaleringspolitik) i dit personlige feed og `<Name> · On-call · <Schedule>` i et delt feed. Beskrivelsen angiver, hvem der har vagt, vagtplanen og dens tidszone, laget, vagten i vagtplanens zone, i UTC og i din zone, hvilke eskaleringspolitikker der kalder dig via denne vagtplan, og et link til vagtplanen i dashboardet.
 - Overrides respekteres. Når nogen dækker for dig, flyttes begivenheden til den person (`(covering for <Name>)` tilføjes) og forbliver den samme begivenhed i din kalender-app, så den opdateres på stedet i stedet for at blive duplikeret. Et delvist override deler vagten op i sammenhængende begivenheder.
 - To dages historik og 90 dage frem som standard. Du kan udvide til 60 dage tilbage og 180 dage frem; et feed, der ville overstige 5.000 begivenheder, forkortes og fortæller det i kalenderbeskrivelsen.
 - Begivenheder er markeret som ledige (`TRANSP:TRANSPARENT`), så et abonneret feed blokerer aldrig din tilgængelighed, og intet er markeret privat, så en delt teamkalender viser titlerne til alle, der kan se den.
@@ -124,7 +124,7 @@ Hverken Google Kalender-appen eller Samsung Kalender kan abonnere på en URL. Ti
 | Fastmail                           | Cirka hver time                                            | Fastmails servere  | Deaktiveret efter fem mislykkede hentninger                                                |
 | Proton Calendar                    | 4–16 timer                                                 | Protons servere    | Afviser store feeds                                                                        |
 
-OneUptime selv leverer friske data: en ændring af et lag, en rotation, et override eller en politiktilknytning ugyldiggør feedet med det samme, og svar caches i højst fem minutter. Ventetiden, du ser, er kalender-appens, ikke serverens. OneUptime foreslår timevis opdatering via `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; kun klassisk Outlook og Apple Kalender følger hintet.
+OneUptime selv leverer friske data: en ændring af et lag, en rotation, et override eller en politiktilknytning ugyldiggør feedet med det samme, og svar caches i højst fem minutter. Ventetiden, du ser, er kalender-appens, ikke serverens. OneUptime foreslår timevis opdatering via `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; kun klassisk Outlook følger hintet, og kun med **Opdateringsgrænse** slået til — Apple Kalender, Thunderbird og de øvrige opdaterer med det interval, du selv vælger pr. kalender.
 
 ## https, webcal og webcals
 
@@ -143,6 +143,7 @@ Under **Brugerindstillinger** > **Kalenderfeed** lader kortet **Påmind mig før
 - En vagt, der havner inden for et af dine varsler på grund af et sent override — nogen giver dig en vagt 20 minutter før den begynder — får med det samme én indhentningspåmindelse.
 - Hvis en vagt, du er blevet påmindet om, gives til en anden, får du **Min kommende vagt er omfordelt**, en separat begivenhedstype, der kan slås fra for sig.
 - Påmindelser sendes aldrig, efter en vagt er begyndt, og aldrig for vagtplaner, der ikke er knyttet til nogen eskaleringspolitik, fordi de ikke kan kalde nogen.
+- På WhatsApp kommer en påmindelse via Metas forhåndsgodkendte vagtskabelon, som nævner vagtplanen og eskaleringspolitikken og linker til vagtplanen, men ikke indeholder starttidspunktet, og som WhatsApp kun leverer på engelsk. Beskeder om omfordeling har ingen godkendt WhatsApp-skabelon, så de når dig via dine øvrige kanaler i stedet.
 
 ## Delte links til en vagtplan eller et projekt
 
@@ -160,7 +161,7 @@ Indstillinger på begge:
 
 Læg vagtplan-linket i en delt teamkalender — Google, Outlook eller Confluence — så betjener ét abonnement hele teamet. Rotér det, når nogen, der havde det, rejser, eller slå den automatiske rotation ovenfor til.
 
-Når en person forlader sit sidste team i et projekt, fjerner OneUptime også personen fra projektets vagtplan-lag og eskaleringsregler, deaktiverer personens personlige feed for projektet og sletter personens påmindelser der.
+Når en person forlader sit sidste team i et projekt, fjerner OneUptime også personen fra projektets vagtplan-lag og eskaleringsregler, sletter projektets aktive og fremtidige overrides, der nævner personen (enten som den, der bliver dækket, eller som afløser), deaktiverer personens personlige feed for projektet og sletter personens påmindelser der.
 
 ## Begivenheder i detaljer
 
@@ -179,18 +180,20 @@ Feedet viser rotationen, **som den er konfigureret nu**, også for forgangne dag
 - Tokenet i linket er den eneste legitimation. Enhver, der har linket, ser vagterne — navne, vagtplaner, politikker — indtil det genereres igen. Indsæt ikke links i chatrum eller sager; når et team har brug for en kalender, så del vagtplan- eller projekt-linket frem for dit personlige.
 - Links er pr. projekt. Et lækket personligt link afslører ét projekts vagter, ikke alle de projekter, du tilhører.
 - **Generér igen** flytter det gamle token til en 30-dages henstandsperiode (tom kalender, derefter 404). **Deaktivér** leverer en tom kalender. Et ukendt eller udløbet link svarer med en ren 404 uden hint. Tomme kalendere får abonnerede apps til at rydde deres kopi; en 404 får dem til at beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
-- Tokens gemmes hashede; kopien, der vises på indstillingssiden, er krypteret med `ENCRYPTION_SECRET`. Sæt den variabel til en rigtig hemmelighed på en selvhostet installation — serveren advarer ved opstart, når den ikke er sat eller stadig er bogstaveligt `secret`. Ændrer du den senere, tilbyder siden **Generér link igen**, fordi den gemte kopi ikke længere kan læses; feedet virker videre, indtil du gør det.
+- Tokens gemmes hashede; kopien, der vises på indstillingssiden, er krypteret med `ENCRYPTION_SECRET`. Sæt den variabel til en rigtig hemmelighed på en selvhostet installation — serveren advarer ved opstart, når den ikke er sat eller stadig er en af de pladsholdere, dette repository leverer (`secret` eller den `please-change-this-to-random-value`, som `config.example.env` sætter). Ændrer du den senere, tilbyder siden **Generér link igen**, fordi den gemte kopi ikke længere kan læses; feedet virker videre, indtil du gør det.
 - Feed-svar er markeret `Cache-Control: private`, udelukket fra søgemaskiner (`X-Robots-Tag: noindex`) og hastighedsbegrænset pr. link og pr. klientadresse.
-- OneUptimes egen Nginx skriver ikke feed-forespørgsler i sin adgangslog:
+- OneUptimes egen Nginx holder feed-forespørgsler ude af sine logfiler:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  så et token havner aldrig i en logfil ved siden af en klientadresse; applikationen logger det heller aldrig. **Enhver proxy, WAF eller CDN, du sætter foran OneUptime, logger stadig den fulde URI**, medmindre du konfigurerer den til at lade være — tjek det, før du ruller feeds ud.
+  så et token havner aldrig i en logfil ved siden af en klientadresse; applikationen logger det heller aldrig. `access_log off` fjerner linjen pr. forespørgsel, `error_log` fjerner de linjer, Nginx skriver, når et kald til appen mislykkes — uden den bliver tokenet skrevet ned for hver klient, der henter feedet under en genstart — og `proxy_max_temp_file_size 0` holder et stort feed ude af en midlertidig fil. **Enhver proxy, WAF eller CDN, du sætter foran OneUptime, logger stadig den fulde URI, både i sin adgangslog og i sin fejllog**, medmindre du konfigurerer den til at lade være — tjek det, før du ruller feeds ud.
 
 ## Selvhostet konfiguration
 

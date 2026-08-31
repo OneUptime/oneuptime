@@ -6,7 +6,7 @@ Calendar Feeds put your on-call shifts into the calendar you already look at. On
 
 ## What you get
 
-- One event per shift, titled `On-call · <Schedule>` in your personal feed and `<Name> · On-call · <Schedule>` in a shared feed. The description lists who is on call, the schedule and its time zone, the layer, the shift in the schedule's zone, in UTC and in your zone, which escalation policies page you through this schedule, and a link to the schedule in the dashboard.
+- One event per shift, titled `On-call · <Schedule>` (with ` · <Policy>` appended when the schedule is attached to exactly one escalation policy) in your personal feed and `<Name> · On-call · <Schedule>` in a shared feed. The description lists who is on call, the schedule and its time zone, the layer, the shift in the schedule's zone, in UTC and in your zone, which escalation policies page you through this schedule, and a link to the schedule in the dashboard.
 - Overrides are honoured. When someone covers for you, the event moves to them (`(covering for <Name>)` is appended) and stays the same event in your calendar app, so it updates in place instead of duplicating. A partial override splits the shift into touching events.
 - Two days of history and 90 days ahead by default. You can widen this to 60 days back and 180 days ahead; a feed that would exceed 5,000 events is shortened and says so in its calendar description.
 - Events are marked free (`TRANSP:TRANSPARENT`), so a subscribed feed never blocks your availability, and nothing is marked private, so a shared team calendar shows titles to everyone who can see it.
@@ -124,7 +124,7 @@ Neither the Google Calendar app nor Samsung Calendar can subscribe to a URL. Add
 | Fastmail                          | About hourly                                        | Fastmail's servers  | Disabled after five failed fetches                                                        |
 | Proton Calendar                   | 4–16 hours                                          | Proton's servers    | Rejects large feeds                                                                       |
 
-OneUptime itself serves fresh data: an edit to a layer, a rotation, an override or a policy attachment invalidates the feed at once, and responses are cached for at most five minutes. The wait you see is the calendar app's, not the server's. OneUptime suggests hourly refresh through `REFRESH-INTERVAL` and `X-PUBLISHED-TTL`; only classic Outlook and Apple Calendar take the hint.
+OneUptime itself serves fresh data: an edit to a layer, a rotation, an override or a policy attachment invalidates the feed at once, and responses are cached for at most five minutes. The wait you see is the calendar app's, not the server's. OneUptime suggests hourly refresh through `REFRESH-INTERVAL` and `X-PUBLISHED-TTL`; only classic Outlook takes the hint, and only with **Update Limit** on — Apple Calendar, Thunderbird and the rest refresh at the interval you set per calendar.
 
 ## https, webcal and webcals
 
@@ -143,6 +143,7 @@ On **User Settings** > **Calendar Feed**, the card **Remind me before shifts** l
 - A shift that lands inside one of your lead times because of a late override — someone hands you a shift 20 minutes before it starts — gets a single catch-up reminder straight away.
 - If a shift you were reminded about is handed to someone else, you get **My upcoming on-call shift is reassigned**, a separate event type so it can be silenced on its own.
 - Reminders are never sent after a shift has started, and never for schedules that are not attached to any escalation policy, because those cannot page anyone.
+- On WhatsApp a reminder arrives on Meta's pre-approved on-call template, which names the schedule and the escalation policy and links to the schedule but does not carry the start time, and which WhatsApp only ships in English. Reassignment notices have no approved WhatsApp template, so they reach you on your other channels instead.
 
 ## Shared links for a schedule or a project
 
@@ -160,7 +161,7 @@ Settings on both:
 
 Put the schedule link into a shared team calendar — Google, Outlook or Confluence — and one subscription serves the whole team. Rotate it when someone who had it leaves, or turn on the automatic rotation above.
 
-When a person leaves their last team in a project, OneUptime also removes them from that project's schedule layers and escalation rules, disables their personal feed for the project and deletes their reminders there.
+When a person leaves their last team in a project, OneUptime also removes them from that project's schedule layers and escalation rules, deletes the project's active and future overrides that name them (as the overridden person or as the substitute), disables their personal feed for the project and deletes their reminders there.
 
 ## Events in detail
 
@@ -179,18 +180,20 @@ The feed shows the rotation **as it is configured now**, including for past days
 - The token in the link is the only credential. Anyone who has the link sees the shifts — names, schedules, policies — until it is regenerated. Do not paste links into chat rooms or tickets; when a team needs a calendar, share the schedule or project link rather than your personal one.
 - Links are per project. A leaked personal link exposes one project's shifts, not every project you belong to.
 - **Regenerate** moves the old token into a 30-day grace period (empty calendar, then 404). **Disable** serves an empty calendar. An unknown or expired link returns a plain 404 with no hint. Empty calendars make subscribed apps clear their copy; a 404 makes them keep it, which is why disabling and regenerating serve empty calendars.
-- Tokens are stored hashed; the copy shown on the settings page is encrypted with `ENCRYPTION_SECRET`. Set that variable to a real secret on a self-hosted install — the server warns at start-up when it is unset or still the literal `secret`. If you change it later, the page offers **Regenerate link** because the stored copy can no longer be read; the feed keeps working until you do.
+- Tokens are stored hashed; the copy shown on the settings page is encrypted with `ENCRYPTION_SECRET`. Set that variable to a real secret on a self-hosted install — the server warns at start-up when it is unset or still one of the placeholders this repository ships (`secret`, or the `please-change-this-to-random-value` that `config.example.env` sets). If you change it later, the page offers **Regenerate link** because the stored copy can no longer be read; the feed keeps working until you do.
 - Feed responses are marked `Cache-Control: private`, are excluded from search engines (`X-Robots-Tag: noindex`) and are rate limited per link and per client address.
-- OneUptime's own Nginx does not write feed requests to its access log:
+- OneUptime's own Nginx keeps feed requests out of its logs:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  so a token never lands in a log file next to a client address; the application never logs it either. **Any proxy, WAF or CDN you run in front of OneUptime still logs the full URI** unless you configure it not to — check that before rolling feeds out.
+  so a token never lands in a log file next to a client address; the application never logs it either. `access_log off` drops the per-request line, `error_log` drops the lines Nginx writes when an upstream fetch fails — without it every client polling during a restart has its token recorded — and `proxy_max_temp_file_size 0` keeps a large feed out of a temporary file. **Any proxy, WAF or CDN you run in front of OneUptime still logs the full URI, in its access log and in its error log,** unless you configure it not to — check that before rolling feeds out.
 
 ## Self-hosted configuration
 

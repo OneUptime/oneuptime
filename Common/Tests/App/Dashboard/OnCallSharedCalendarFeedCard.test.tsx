@@ -355,6 +355,39 @@ describe("SharedCalendarFeedCard - publishing", () => {
     );
   });
 
+  /*
+   * buildAbsentFeedStatus sends hostWarning / protocolWarning even with no
+   * feed. A team link that will be unreachable from Google's servers is worth
+   * saying before an editor publishes it and tells everyone to subscribe.
+   */
+  test("the unpublished state shows the deployment warnings the server attached to it", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        ...UNPUBLISHED_JSON,
+        hostWarning: "HOST is not set, so the link points at localhost.",
+        protocolWarning: "HTTP_PROTOCOL is http, so the link is not encrypted.",
+      }),
+    );
+
+    renderScheduleCard("Europe/Stockholm");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-empty"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-host-warning"),
+    ).toHaveTextContent("HOST is not set");
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-protocol-warning"),
+    ).toHaveTextContent("HTTP_PROTOCOL is http");
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-publish"),
+    ).toBeInTheDocument();
+  });
+
   test("an editor gets a working Publish button that posts to /publish", async () => {
     getMock.mockResolvedValue(ok(UNPUBLISHED_JSON));
     postMock.mockResolvedValue(ok(publishedJson()));
@@ -598,11 +631,19 @@ describe("SharedCalendarFeedCard - a published link", () => {
       getScheduleFeedRotatePath(SCHEDULE_ID.toString()),
     );
 
+    /*
+     * The rotated-out shared link answers with an EMPTY calendar for its grace
+     * window (spec 2.1). An editor who rotated because somebody left must not
+     * be told the old link keeps serving the roster for another month.
+     */
     await waitFor(() => {
       expect(
         screen.getByTestId("schedule-shared-calendar-feed-previous-link"),
-      ).toHaveTextContent("The previous link keeps working until");
+      ).toHaveTextContent("The previous link returns an empty calendar until");
     });
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-previous-link"),
+    ).not.toHaveTextContent("keeps working");
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-status-line"),
     ).toHaveTextContent("…r0t8");

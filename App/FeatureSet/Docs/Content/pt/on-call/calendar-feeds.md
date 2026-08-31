@@ -6,7 +6,7 @@ Os feeds de calendário colocam seus turnos de plantão no calendário que você
 
 ## O que você recebe
 
-- Um evento por turno, intitulado `On-call · <Schedule>` no seu feed pessoal e `<Name> · On-call · <Schedule>` em um feed compartilhado. A descrição indica quem está de plantão, a escala e seu fuso horário, a camada, o turno no fuso da escala, em UTC e no seu, quais políticas de escalonamento acionam você por essa escala e um link para a escala no painel.
+- Um evento por turno, intitulado `On-call · <Schedule>` (com ` · <Policy>` acrescentado quando a escala está vinculada a exatamente uma política de escalonamento) no seu feed pessoal e `<Name> · On-call · <Schedule>` em um feed compartilhado. A descrição indica quem está de plantão, a escala e seu fuso horário, a camada, o turno no fuso da escala, em UTC e no seu, quais políticas de escalonamento acionam você por essa escala e um link para a escala no painel.
 - As substituições são respeitadas. Quando alguém cobre você, o evento passa para essa pessoa (`(covering for <Name>)` é acrescentado) e continua sendo o mesmo evento no seu aplicativo, atualizando no lugar em vez de duplicar. Uma substituição parcial divide o turno em eventos contíguos.
 - Dois dias de histórico e 90 dias à frente por padrão. Você pode ampliar para 60 dias atrás e 180 dias à frente; um feed que ultrapassaria 5.000 eventos é encurtado e informa isso na descrição do calendário.
 - Os eventos são marcados como livres (`TRANSP:TRANSPARENT`), então um feed assinado nunca bloqueia sua disponibilidade, e nada é marcado como privado, de modo que um calendário de equipe compartilhado mostra os títulos a todos que podem vê-lo.
@@ -124,7 +124,7 @@ Nem o aplicativo Google Agenda nem o Samsung Calendar conseguem assinar uma URL.
 | Fastmail                          | Cerca de hora em hora                                                  | Servidores do Fastmail  | Desativado após cinco leituras com falha                                              |
 | Proton Calendar                   | 4–16 horas                                                             | Servidores do Proton    | Rejeita feeds grandes                                                                 |
 
-O próprio OneUptime serve dados atuais: uma edição em uma camada, rotação, substituição ou vínculo de política invalida o feed na hora, e as respostas ficam em cache por no máximo cinco minutos. A espera que você vê é do aplicativo de calendário, não do servidor. O OneUptime sugere atualização de hora em hora via `REFRESH-INTERVAL` e `X-PUBLISHED-TTL`; só o Outlook clássico e o Calendário da Apple seguem a dica.
+O próprio OneUptime serve dados atuais: uma edição em uma camada, rotação, substituição ou vínculo de política invalida o feed na hora, e as respostas ficam em cache por no máximo cinco minutos. A espera que você vê é do aplicativo de calendário, não do servidor. O OneUptime sugere atualização de hora em hora via `REFRESH-INTERVAL` e `X-PUBLISHED-TTL`; só o Outlook clássico segue a dica, e apenas com o **Limite de atualização** ligado — Calendário da Apple, Thunderbird e os demais atualizam no intervalo que você define em cada calendário.
 
 ## https, webcal e webcals
 
@@ -143,6 +143,7 @@ Em **Configurações do usuário** > **Feed de calendário**, o cartão **Lembra
 - Um turno que cai dentro de uma das suas antecedências por causa de uma substituição tardia — alguém lhe passa um turno 20 minutos antes de começar — recebe imediatamente um único lembrete de recuperação.
 - Se um turno sobre o qual você foi lembrado é passado a outra pessoa, você recebe **Meu próximo turno de plantão foi reatribuído**, um tipo de evento separado que pode ser silenciado à parte.
 - Lembretes nunca são enviados depois que um turno começou, nem para escalas que não estão vinculadas a nenhuma política de escalonamento, porque essas não acionam ninguém.
+- No WhatsApp, um lembrete chega pelo modelo de plantão pré-aprovado da Meta, que cita a escala e a política de escalonamento e liga para a escala, mas não traz o horário de início, e que o WhatsApp entrega apenas em inglês. Avisos de reatribuição não têm modelo aprovado no WhatsApp, então chegam pelos seus outros canais.
 
 ## Links compartilhados para uma escala ou um projeto
 
@@ -160,7 +161,7 @@ Configurações em ambos:
 
 Coloque o link de escala em um calendário de equipe compartilhado — Google, Outlook ou Confluence — e uma única assinatura atende toda a equipe. Rotacione-o quando alguém que o tinha sair, ou ative a rotação automática acima.
 
-Quando uma pessoa sai da última equipe em um projeto, o OneUptime também a remove das camadas de escala e das regras de escalonamento daquele projeto, desativa seu feed pessoal do projeto e exclui seus lembretes ali.
+Quando uma pessoa sai da última equipe em um projeto, o OneUptime também a remove das camadas de escala e das regras de escalonamento daquele projeto, exclui as substituições em andamento e futuras do projeto que a mencionam (como pessoa substituída ou como substituta), desativa seu feed pessoal do projeto e exclui seus lembretes ali.
 
 ## Os eventos em detalhe
 
@@ -179,18 +180,20 @@ O feed mostra a rotação **como está configurada agora**, inclusive para dias 
 - O token no link é a única credencial. Quem tem o link vê os turnos — nomes, escalas, políticas — até que seja regenerado. Não cole links em salas de chat ou tickets; quando uma equipe precisar de um calendário, compartilhe o link de escala ou de projeto em vez do pessoal.
 - Os links são por projeto. Um link pessoal vazado expõe os turnos de um projeto, não de todos os projetos aos quais você pertence.
 - **Regenerar** move o token antigo para um período de carência de 30 dias (calendário vazio, depois 404). **Desativar** serve um calendário vazio. Um link desconhecido ou expirado responde com um simples 404 sem pistas. Calendários vazios fazem os aplicativos assinados limparem sua cópia; um 404 os faz mantê-la, e é por isso que desativar e regenerar servem calendários vazios.
-- Os tokens são armazenados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo real em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é literalmente `secret`. Se você a alterar depois, a página oferece **Regenerar link** porque a cópia armazenada não pode mais ser lida; o feed continua funcionando até você fazer isso.
+- Os tokens são armazenados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo real em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é um dos espaços reservados que este repositório traz (`secret`, ou o `please-change-this-to-random-value` que o `config.example.env` define). Se você a alterar depois, a página oferece **Regenerar link** porque a cópia armazenada não pode mais ser lida; o feed continua funcionando até você fazer isso.
 - As respostas dos feeds são marcadas `Cache-Control: private`, excluídas dos mecanismos de busca (`X-Robots-Tag: noindex`) e limitadas por link e por endereço do cliente.
-- O Nginx do próprio OneUptime não grava requisições de feed em seu log de acesso:
+- O Nginx do próprio OneUptime mantém as requisições de feed fora de seus logs:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  assim um token nunca acaba em um arquivo de log ao lado de um endereço de cliente; a aplicação também nunca o registra. **Qualquer proxy, WAF ou CDN que você coloque na frente do OneUptime ainda registra a URI completa** a menos que seja configurado para não fazê-lo — verifique isso antes de disponibilizar os feeds.
+  assim um token nunca acaba em um arquivo de log ao lado de um endereço de cliente; a aplicação também nunca o registra. `access_log off` remove a linha por requisição, `error_log` remove as linhas que o Nginx grava quando uma chamada à aplicação falha — sem ela, todo cliente que busca o feed durante uma reinicialização tem seu token registrado — e `proxy_max_temp_file_size 0` mantém um feed grande fora de um arquivo temporário. **Qualquer proxy, WAF ou CDN que você coloque na frente do OneUptime ainda registra a URI completa, tanto no log de acesso quanto no de erros** a menos que seja configurado para não fazê-lo — verifique isso antes de disponibilizar os feeds.
 
 ## Configuração auto-hospedada
 

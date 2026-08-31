@@ -381,6 +381,110 @@ test("the calendar feed location switches access logging off in every server blo
   }
 });
 
+test("the calendar feed location keeps the token out of the error log too", () => {
+  /*
+   * `access_log off` is only half of it. nginx writes the full request line --
+   * token included -- plus the client address to the ERROR log whenever the
+   * upstream misbehaves: `connect() failed`, `upstream timed out` and
+   * `upstream prematurely closed` are all [error], and nginx.conf sets
+   * `error_log ... notice`, which includes them. Those are precisely the
+   * conditions every polling calendar client meets during a rolling deploy or
+   * an app restart, so without a location-level override the tokens end up on
+   * disk anyway, defeating the block. `crit` keeps the file named (so a
+   * genuine catastrophe is still reportable) while dropping every level that
+   * carries a request line; /dev/null keeps even that off disk.
+   */
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "error_log"),
+      ["error_log /dev/null crit;"],
+      "the calendar feed location must lower its own error log; the inherited one records the token URL on every upstream failure",
+    );
+  }
+});
+
+test("the calendar feed location never spools a response to a temp file", () => {
+  /*
+   * A response larger than the proxy buffers (proxy_buffers 4 512k plus
+   * proxy_buffer_size 256k) is written to a temporary file, and nginx logs
+   * "an upstream response is buffered to a temporary file" at [warn] -- with
+   * the request line, so again with the token. A project-wide feed near the
+   * 5000-event cap is that large, and text/calendar is deliberately kept out
+   * of gzip_types. `proxy_max_temp_file_size 0` turns temp-file buffering off:
+   * nginx keeps what fits in memory and streams the rest.
+   */
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "proxy_max_temp_file_size"),
+      ["proxy_max_temp_file_size 0;"],
+      "without proxy_max_temp_file_size 0 a large feed logs its own URL at [warn]",
+    );
+  }
+});
+
+test("no other location silences or redirects its error log", () => {
+  /*
+   * The error log is how an operator diagnoses this ingress. Exactly one
+   * location may opt out of it, for the same reason exactly one may opt out of
+   * the access log: its URL is a credential. Anywhere else this is a
+   * regression, and nginx.conf must keep the global error log as it is.
+   */
+  assert.ok(
+    !/^\s*error_log\s+\/dev\/null/m.test(nginxConf),
+    "the global error log must stay a real file",
+  );
+
+  const overridesInTemplate = (
+    stripComments(template).match(/^\s*error_log\s/gm) || []
+  ).length;
+
+  let overridesInCalendarFeedLocations = 0;
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const errorLogs = getDirectives(location.body, "error_log");
+
+      if (isCalendarFeedLocation(location)) {
+        overridesInCalendarFeedLocations += errorLogs.length;
+        continue;
+      }
+
+      assert.deepEqual(
+        errorLogs,
+        [],
+        `location ${location.spec} overrides the error log; only the calendar feed location may`,
+      );
+    }
+
+    /*
+     * getDirectives descends into nested blocks, so the only error_log a
+     * server block may contain is the feed location's own. Anything else --
+     * including one at server level, which would apply to every URI on the
+     * listener -- shows up here.
+     */
+    assert.deepEqual(
+      getDirectives(serverBlock.body, "error_log"),
+      ["error_log /dev/null crit;"],
+      "a server block may override the error log only inside the calendar feed location",
+    );
+  }
+
+  assert.equal(
+    overridesInTemplate,
+    overridesInCalendarFeedLocations,
+    "every error_log in the template must sit inside a calendar feed location",
+  );
+  assert.equal(
+    overridesInCalendarFeedLocations,
+    serverBlocks.length,
+    "one error_log override per server block, no more and no fewer",
+  );
+});
+
 test("the calendar feed regex covers the three feed kinds and nothing else", () => {
   const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
 

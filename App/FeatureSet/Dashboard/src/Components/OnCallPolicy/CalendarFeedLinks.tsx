@@ -5,6 +5,7 @@ import {
   REFRESH_CADENCE_COPY,
   applyScheduleFilter,
 } from "./CalendarFeed/CalendarFeedUtil";
+import FeedDeploymentWarnings from "./CalendarFeed/FeedDeploymentWarnings";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -128,21 +129,11 @@ const CalendarFeedLinks: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {props.hostWarning && (
-        <Alert
-          type={AlertType.WARNING}
-          title={props.hostWarning}
-          dataTestId={`${idPrefix}-host-warning`}
-        />
-      )}
-
-      {props.protocolWarning && (
-        <Alert
-          type={AlertType.WARNING}
-          title={props.protocolWarning}
-          dataTestId={`${idPrefix}-protocol-warning`}
-        />
-      )}
+      <FeedDeploymentWarnings
+        hostWarning={props.hostWarning}
+        protocolWarning={props.protocolWarning}
+        idPrefix={idPrefix}
+      />
 
       {props.lastRenderTruncated && (
         <Alert

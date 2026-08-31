@@ -87,14 +87,93 @@ export const SHARED_LINK_OWNERSHIP_COPY: string =
 export const PLANNING_NOT_AUDIT_COPY: string =
   "This calendar is for planning. For hours on call and fairness, use the On-Call Time Log report.";
 
+/*
+ * What regeneration actually does, stated the way the server behaves: a fetch
+ * on the rotated-out token inside its 30-day grace is answered with an EMPTY
+ * calendar (spec 2.1), not with the old shifts. Saying the old link "keeps
+ * working" would tell a reader who rotated because a colleague left that the
+ * leaver still sees the roster for a month - the opposite of the truth - and
+ * would contradict the sentence before it.
+ */
 export const REGENERATE_WARNING_COPY: string =
-  "Every app subscribed to the current link stops updating and shows an empty calendar. The old link keeps working for 30 days so you have time to update your subscriptions.";
+  "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.";
+
+/** Placeholder is the date the grace ends. */
+export const PERSONAL_PREVIOUS_LINK_COPY: string =
+  "Your previous link returns an empty calendar until {{date}}, then stops working.";
+
+export const SHARED_PREVIOUS_LINK_COPY: string =
+  "The previous link returns an empty calendar until {{date}}, then stops working.";
 
 export const DISABLED_FEED_COPY: string =
   "This link is disabled. Anyone subscribed sees an empty calendar until it is enabled again.";
 
 export const COVERAGE_GAPS_DESCRIPTION: string =
   "Adds an event for every stretch where the schedule intends coverage but nobody is on call. Off-hours outside every layer's active time are never counted as a gap.";
+
+/*
+ * i18n interpolation.
+ *
+ * `translateString` looks the whole English sentence up as a flat key, which
+ * is what lets a translator reorder the words - but it takes no values, and
+ * i18next leaves `{{name}}` untouched when none are passed (skipOnVariables).
+ * So the placeholders are filled here, after the lookup, from whichever
+ * sentence came back. Building a sentence by concatenating translated
+ * fragments (`t("Last fetched") + when + t("by") + client`) instead would fix
+ * English word order into every language.
+ *
+ * A placeholder with no value is left as-is rather than blanked, so a broken
+ * translation shows `{{when}}` (visible, reportable) instead of a sentence
+ * with a hole in it.
+ */
+const PLACEHOLDER_PATTERN: RegExp = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+
+export type InterpolationValues = Record<string, string | number>;
+
+type InterpolateFunction = (
+  template: string,
+  values: InterpolationValues,
+) => string;
+
+export const interpolate: InterpolateFunction = (
+  template: string,
+  values: InterpolationValues,
+): string => {
+  return template.replace(
+    PLACEHOLDER_PATTERN,
+    (match: string, name: string): string => {
+      const value: string | number | undefined = values[name];
+
+      if (value === undefined) {
+        return match;
+      }
+
+      return String(value);
+    },
+  );
+};
+
+export type TranslateFunction = (
+  value: string | undefined,
+) => string | undefined;
+
+type TranslateAndInterpolateFunction = (
+  translate: TranslateFunction | undefined,
+  template: string,
+  values: InterpolationValues,
+) => string;
+
+/** Look the sentence up, then fill its placeholders. */
+export const translateInterpolated: TranslateAndInterpolateFunction = (
+  translate: TranslateFunction | undefined,
+  template: string,
+  values: InterpolationValues,
+): string => {
+  const translated: string =
+    (translate ? translate(template) : undefined) || template;
+
+  return interpolate(translated, values);
+};
 
 type BuildGoogleAddUrlFunction = (httpsUrl: string) => string;
 
@@ -217,15 +296,38 @@ export const REMINDER_PRESETS: Array<ReminderPreset> = [
   { minutes: 15, label: "15 min" },
 ];
 
-type FormatLeadTimeFunction = (minutes: number) => string;
+/*
+ * Unit sentences for a lead time that is not one of the presets. Whole
+ * sentences with a {{count}} placeholder rather than a number glued to a
+ * translated unit word, so a language that puts the unit first (or inflects
+ * it) can say so - and so the locale validator can check the placeholder.
+ *
+ * Only the plural forms exist because a count of one is unreachable here:
+ * 1 week, 1 day and 1 hour are all presets, and one minute is below the
+ * 15-minute floor the service enforces.
+ */
+export const LEAD_TIME_WEEKS_COPY: string = "{{count}} weeks";
+export const LEAD_TIME_DAYS_COPY: string = "{{count}} days";
+export const LEAD_TIME_HOURS_COPY: string = "{{count}} hours";
+export const LEAD_TIME_MINUTES_COPY: string = "{{count}} minutes";
+
+type FormatLeadTimeFunction = (
+  minutes: number,
+  translate?: TranslateFunction | undefined,
+) => string;
 
 /*
  * Human form of a lead time: exact multiples collapse to the larger unit,
  * anything else stays in minutes so that "90 minutes" is not rendered as
  * "1 hour".
+ *
+ * `translate` is optional so the function stays pure and testable in English;
+ * the chip passes the page's translator so a custom reminder is not the one
+ * label on the card left in English.
  */
 export const formatLeadTime: FormatLeadTimeFunction = (
   minutes: number,
+  translate?: TranslateFunction | undefined,
 ): string => {
   const preset: ReminderPreset | undefined = REMINDER_PRESETS.find(
     (candidate: ReminderPreset): boolean => {
@@ -234,22 +336,30 @@ export const formatLeadTime: FormatLeadTimeFunction = (
   );
 
   if (preset) {
-    return preset.label;
+    return (translate ? translate(preset.label) : undefined) || preset.label;
   }
 
   if (minutes % (7 * 24 * 60) === 0) {
-    return `${minutes / (7 * 24 * 60)} weeks`;
+    return translateInterpolated(translate, LEAD_TIME_WEEKS_COPY, {
+      count: minutes / (7 * 24 * 60),
+    });
   }
 
   if (minutes % (24 * 60) === 0) {
-    return `${minutes / (24 * 60)} days`;
+    return translateInterpolated(translate, LEAD_TIME_DAYS_COPY, {
+      count: minutes / (24 * 60),
+    });
   }
 
   if (minutes % 60 === 0) {
-    return `${minutes / 60} hours`;
+    return translateInterpolated(translate, LEAD_TIME_HOURS_COPY, {
+      count: minutes / 60,
+    });
   }
 
-  return `${minutes} minutes`;
+  return translateInterpolated(translate, LEAD_TIME_MINUTES_COPY, {
+    count: minutes,
+  });
 };
 
 export interface LeadTimeValidation {

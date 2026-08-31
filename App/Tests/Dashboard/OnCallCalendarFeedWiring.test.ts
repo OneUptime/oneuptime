@@ -482,6 +482,12 @@ describe("Locales", () => {
         "CalendarFeed",
         "UpcomingShiftsCard.tsx",
       ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "CalendarFeedPlanGate.tsx",
+      ),
       readSource("Pages", "OnCallDuty", "CalendarFeeds.tsx"),
     ];
 
@@ -498,5 +504,131 @@ describe("Locales", () => {
     }
 
     expect(found).toBeGreaterThan(30);
+  });
+
+  /*
+   * Sentences with values in them go through translateInterpolated: ONE
+   * whole-sentence key with {{placeholders}} that a translator can reorder,
+   * never a translated fragment glued to a value. Those keys skip the
+   * translateString scan above, so they get their own.
+   */
+  test("every interpolated sentence is a key in en.json, placeholders and all", () => {
+    const sources: Array<string> = [
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "FeedStatusLine.tsx",
+      ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "UpcomingShiftsCard.tsx",
+      ),
+    ];
+
+    /*
+     * The key argument is sometimes a singular/plural ternary, so the call is
+     * matched up to its values object and every literal inside is collected.
+     */
+    const callPattern: RegExp =
+      /translateInterpolated\(\s*translateString,\s*(.*?),\s*\{/g;
+    const literalPattern: RegExp = /"((?:[^"\\]|\\.)*)"/g;
+    const keys: Array<string> = [];
+
+    for (const source of sources) {
+      for (const call of source.matchAll(callPattern)) {
+        for (const literal of (call[1] as string).matchAll(literalPattern)) {
+          keys.push((literal[1] as string).replace(/\\"/g, '"'));
+        }
+      }
+    }
+
+    /*
+     * Both status-line variants, both fetch counts, the hint, both rotation
+     * ages and the two shift pills.
+     */
+    expect(keys.length).toBeGreaterThanOrEqual(9);
+
+    for (const key of keys) {
+      expect(en[key]).toBe(key);
+      expect(key).toMatch(/\{\{[a-zA-Z]+\}\}/);
+    }
+  });
+
+  /*
+   * The sentences the components reference through a shared constant rather
+   * than a literal: rotation copy, the previous-link lines and the lead-time
+   * units. A renamed constant would silently stop matching the locale files.
+   */
+  test("the shared copy constants are keys in every locale", () => {
+    const constantKeys: Array<string> = [
+      "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.",
+      "Your previous link returns an empty calendar until {{date}}, then stops working.",
+      "The previous link returns an empty calendar until {{date}}, then stops working.",
+      "{{count}} weeks",
+      "{{count}} days",
+      "{{count}} hours",
+      "{{count}} minutes",
+    ];
+
+    const util: string = readSource(
+      "Components",
+      "OnCallPolicy",
+      "CalendarFeed",
+      "CalendarFeedUtil.ts",
+    );
+
+    for (const key of constantKeys) {
+      expect(util).toContain(`"${key}"`);
+      expect(en[key]).toBe(key);
+
+      for (const locale of LOCALES) {
+        const json: Record<string, unknown> = readLocale(locale);
+        expect(typeof json[key]).toBe("string");
+        expect((json[key] as string).trim().length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  /*
+   * The rotated-out link serves an EMPTY calendar for its grace window
+   * (spec 2.1). "Keeps working" in any locale is a promise the server does not
+   * keep, and the rotate flow is the one people run when somebody leaves.
+   */
+  test("no locale promises the old link keeps working after a rotation", () => {
+    const forbidden: Record<string, string> = {
+      en: "keeps working",
+      de: "funktioniert weiterhin",
+      fr: "continue de fonctionner",
+      es: "sigue funcionando",
+      it: "continua a funzionare",
+      pt: "continua a funcionar",
+      nl: "blijft werken",
+      da: "virker fortsat",
+      no: "fortsetter å virke",
+      sv: "fortsätter att fungera",
+      ru: "продолжает работать",
+      "zh-CN": "可继续使用至",
+      "zh-TW": "可繼續使用至",
+    };
+
+    for (const [locale, phrase] of Object.entries(forbidden)) {
+      const json: Record<string, unknown> = readLocale(locale);
+
+      // The three sentences that describe the rotated-out link, by their key.
+      const previousLinkKeys: Array<string> = Object.keys(json).filter(
+        (key: string): boolean => {
+          return key.includes("previous link") || key.includes("old link");
+        },
+      );
+
+      expect(previousLinkKeys.length).toBe(3);
+
+      for (const key of previousLinkKeys) {
+        expect(String(json[key])).not.toContain(phrase);
+      }
+    }
   });
 });

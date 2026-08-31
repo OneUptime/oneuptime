@@ -35,6 +35,7 @@ type EnvOverrides = {
   host: string;
   trustedProxyHops: number;
   billingEnabled: boolean;
+  provisionSsl: boolean;
 };
 
 type EnvMockGlobal = typeof globalThis & {
@@ -62,6 +63,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     host: "oneuptime.example.com",
     trustedProxyHops: 0,
     billingEnabled: false,
+    provisionSsl: true,
   };
 
   Object.defineProperty(mocked, "DisableOnCallCalendarFeed", {
@@ -93,6 +95,14 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     enumerable: true,
     get: (): number => {
       return mockGlobal.__oneuptimeOnCallCalendarApiEnv.trustedProxyHops;
+    },
+  });
+
+  Object.defineProperty(mocked, "ProvisionSsl", {
+    configurable: true,
+    enumerable: true,
+    get: (): boolean => {
+      return mockGlobal.__oneuptimeOnCallCalendarApiEnv.provisionSsl;
     },
   });
 
@@ -218,6 +228,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 
 import {
   BOOKKEEPING_INTERVAL_MS,
+  FEED_ALLOWED_METHODS,
   FEED_CURRENT_ROUTE,
   FEED_ROTATE_ROUTE,
   FeedStatus,
@@ -225,14 +236,17 @@ import {
   MY_SHIFTS_DEFAULT_DAYS,
   MY_SHIFTS_MAX_DAYS,
   MY_SHIFTS_ROUTE,
+  PERSONAL_FEED_FALLBACK_ROUTE,
   PERSONAL_FEED_ROUTE,
   PROJECT_FEED_CURRENT_ROUTE,
+  PROJECT_FEED_FALLBACK_ROUTE,
   PROJECT_FEED_PUBLISH_ROUTE,
   PROJECT_FEED_ROTATE_ROUTE,
   PROJECT_FEED_ROUTE,
   ROTATE_LOCK_NAMESPACE,
   ROTATE_LOCK_TIMEOUT_MS,
   SCHEDULE_FEED_CURRENT_ROUTE,
+  SCHEDULE_FEED_FALLBACK_ROUTE,
   SCHEDULE_FEED_PUBLISH_ROUTE,
   SCHEDULE_FEED_ROTATE_ROUTE,
   SCHEDULE_FEED_ROUTE,
@@ -248,6 +262,7 @@ import {
 } from "../../../Server/API/OnCallCalendarAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import OnCallCalendarFeedCache from "../../../Server/Infrastructure/OnCallCalendarFeedCache";
+import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import OnCallCalendarFeedRateLimit, {
   OnCallCalendarFeedRateLimitOutcome,
@@ -269,6 +284,7 @@ import OnCallCalendarFeedRenderer, {
   FEED_DISABLED_REASON,
   FeedRenderOutcome,
   FeedRenderStatus,
+  NO_SCHEDULES_REASON,
   PLAN_REASON,
   RENDER_CAP_RETRY_AFTER_SECONDS,
   TOKEN_ROTATED_REASON,
@@ -290,6 +306,8 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   DEFAULT_FUTURE_DAYS,
   DEFAULT_PAST_DAYS,
+  MAX_FUTURE_DAYS,
+  MAX_PAST_DAYS,
 } from "../../../Types/OnCallDutyPolicy/CalendarFeedWindow";
 import { MaterializedShift } from "../../../Types/OnCallDutyPolicy/MaterializedShift";
 import OnCallCalendarFeedUtil, {
@@ -415,6 +433,7 @@ function resetEnv(): void {
     host: "oneuptime.example.com",
     trustedProxyHops: 0,
     billingEnabled: false,
+    provisionSsl: true,
   };
 }
 
@@ -526,10 +545,44 @@ function projectRow(overrides?: Partial<FeedRowFixture>): FeedRowFixture {
 }
 
 /*
+ * TypeORM returns ONLY the selected columns; everything else on the entity
+ * stays undefined. The fake has to do the same, or a route that reads a
+ * column it never selected passes here and fails in production -- which is
+ * exactly what happened with tokenHash: no status read can select it (its
+ * read access list is empty, so the non-root schedule/project reads would be
+ * refused), and the status builder demanded it.
+ *
+ * `_id` in a select maps to the fixture's `id`, the way the model's `_id`
+ * maps to its id column.
+ */
+function project(
+  row: FeedRowFixture,
+  select: Record<string, unknown> | undefined,
+): FeedRowFixture {
+  if (!select) {
+    return row;
+  }
+
+  const projected: Record<string, unknown> = {};
+
+  for (const [column, wanted] of Object.entries(select)) {
+    if (!wanted) {
+      continue;
+    }
+
+    const key: string = column === "_id" ? "id" : column;
+
+    projected[key] = (row as unknown as Record<string, unknown>)[key];
+  }
+
+  return projected as unknown as FeedRowFixture;
+}
+
+/*
  * A findOneBy implementation over a fixed set of rows, answering the three
  * query shapes the routes use: { tokenHash }, { previousTokenHash } (public
  * lookups) and { projectId, userId | onCallDutyPolicyScheduleId } (session
- * lookups).
+ * lookups). The row it hands back carries only the selected columns.
  */
 function lookupFrom(
   rows: Array<FeedRowFixture>,
@@ -537,64 +590,73 @@ function lookupFrom(
   return async (args: CapturedFindOneBy): Promise<FeedRowFixture | null> => {
     const query: Record<string, unknown> = args.query;
 
-    for (const row of rows) {
-      if (typeof query["tokenHash"] === "string") {
-        if (row.tokenHash === query["tokenHash"]) {
-          return row;
-        }
+    const found: FeedRowFixture | null = matchRow(rows, query);
 
-        continue;
-      }
+    return found ? project(found, args.select) : null;
+  };
+}
 
-      if (typeof query["previousTokenHash"] === "string") {
-        if (
-          row.previousTokenHash &&
-          row.previousTokenHash === query["previousTokenHash"]
-        ) {
-          return row;
-        }
-
-        continue;
-      }
-
-      if (
-        query["projectId"] &&
-        String(query["projectId"]) !== row.projectId.toString()
-      ) {
-        continue;
-      }
-
-      if (query["_id"] && String(query["_id"]) !== row.id.toString()) {
-        continue;
-      }
-
-      if (query["userId"]) {
-        if (row.userId && String(query["userId"]) === row.userId.toString()) {
-          return row;
-        }
-
-        continue;
-      }
-
-      if (query["onCallDutyPolicyScheduleId"]) {
-        if (
-          row.onCallDutyPolicyScheduleId &&
-          String(query["onCallDutyPolicyScheduleId"]) ===
-            row.onCallDutyPolicyScheduleId.toString()
-        ) {
-          return row;
-        }
-
-        continue;
-      }
-
-      if (query["projectId"] || query["_id"]) {
+function matchRow(
+  rows: Array<FeedRowFixture>,
+  query: Record<string, unknown>,
+): FeedRowFixture | null {
+  for (const row of rows) {
+    if (typeof query["tokenHash"] === "string") {
+      if (row.tokenHash === query["tokenHash"]) {
         return row;
       }
+
+      continue;
     }
 
-    return null;
-  };
+    if (typeof query["previousTokenHash"] === "string") {
+      if (
+        row.previousTokenHash &&
+        row.previousTokenHash === query["previousTokenHash"]
+      ) {
+        return row;
+      }
+
+      continue;
+    }
+
+    if (
+      query["projectId"] &&
+      String(query["projectId"]) !== row.projectId.toString()
+    ) {
+      continue;
+    }
+
+    if (query["_id"] && String(query["_id"]) !== row.id.toString()) {
+      continue;
+    }
+
+    if (query["userId"]) {
+      if (row.userId && String(query["userId"]) === row.userId.toString()) {
+        return row;
+      }
+
+      continue;
+    }
+
+    if (query["onCallDutyPolicyScheduleId"]) {
+      if (
+        row.onCallDutyPolicyScheduleId &&
+        String(query["onCallDutyPolicyScheduleId"]) ===
+          row.onCallDutyPolicyScheduleId.toString()
+      ) {
+        return row;
+      }
+
+      continue;
+    }
+
+    if (query["projectId"] || query["_id"]) {
+      return row;
+    }
+  }
+
+  return null;
 }
 
 function renderedOutcome(
@@ -706,6 +768,7 @@ let purgeForProject: jest.SpyInstance;
 let tryAcquireRenderSlot: jest.SpyInstance;
 let releaseRenderSlot: jest.SpyInstance;
 
+let scheduleModelFindOneBy: jest.SpyInstance;
 let semaphoreLock: jest.SpyInstance;
 let semaphoreRelease: jest.SpyInstance;
 
@@ -798,6 +861,8 @@ beforeAll(async () => {
       app.get(fullPath, ...chain);
     } else if (route.method === "POST") {
       app.post(fullPath, ...chain);
+    } else if (route.method === "ALL") {
+      app.all(fullPath, ...chain);
     }
   }
 
@@ -914,6 +979,15 @@ beforeEach(() => {
     ProjectOnCallCalendarFeedService,
     "rotateTokenById",
   );
+
+  /*
+   * The schedule itself, read with the CALLER's props before a shared feed is
+   * published: that read is what applies the label scoping. The default here
+   * is "the caller may see it".
+   */
+  scheduleModelFindOneBy = jest
+    .spyOn(OnCallDutyPolicyScheduleService, "findOneBy")
+    .mockResolvedValue({ id: ObjectID.generate() } as never);
 
   purgeForUser = jest
     .spyOn(OnCallCalendarFeedCache, "purgeForUser")
@@ -1057,8 +1131,34 @@ describe("OnCallCalendarAPI: route registration", () => {
         `POST ${PROJECT_FEED_PUBLISH_ROUTE}`,
         `POST ${PROJECT_FEED_ROTATE_ROUTE}`,
         `GET ${MY_SHIFTS_ROUTE}`,
+        `ALL ${PERSONAL_FEED_FALLBACK_ROUTE}`,
+        `ALL ${SCHEDULE_FEED_FALLBACK_ROUTE}`,
+        `ALL ${PROJECT_FEED_FALLBACK_ROUTE}`,
       ].sort(),
     );
+  });
+
+  /*
+   * The fallbacks must come AFTER the three exact GET routes (Express matches
+   * in registration order) and they must cover every method.
+   */
+  test("registers the token-path fallbacks after the routes they back up", () => {
+    const order: Array<string> = registeredRoutes().map(
+      (route: RegisteredRoute): string => {
+        return `${route.method} ${route.uri}`;
+      },
+    );
+
+    for (const [exact, fallback] of [
+      [PERSONAL_FEED_ROUTE, PERSONAL_FEED_FALLBACK_ROUTE],
+      [SCHEDULE_FEED_ROUTE, SCHEDULE_FEED_FALLBACK_ROUTE],
+      [PROJECT_FEED_ROUTE, PROJECT_FEED_FALLBACK_ROUTE],
+    ]) {
+      expect(order.indexOf(`GET ${exact}`)).toBeGreaterThanOrEqual(0);
+      expect(order.indexOf(`ALL ${fallback}`)).toBeGreaterThan(
+        order.indexOf(`GET ${exact}`),
+      );
+    }
   });
 
   test("App/FeatureSet/BaseAPI/Index.ts mounts the router and the generic CRUD of the five models", () => {
@@ -1429,6 +1529,83 @@ describe("readMyShiftsWindow", () => {
     expect(MY_SHIFTS_MAX_DAYS).toBe(120);
   });
 
+  /*
+   * Regression: `from` was unbounded. A far-future `from` is a fresh
+   * schedule-cache entry AND a fresh LayerUtil expansion that walks one
+   * rotation period at a time from the layer's start to the window -- the
+   * full 200,000-iteration cap per restricted layer, seconds of synchronous
+   * CPU, while holding one of the four render slots the public feeds share.
+   * The window is now clamped into the range the feeds themselves address.
+   */
+  test("a far-future from is pulled back inside the feed window", () => {
+    const window: { from: Date; to: Date } = readMyShiftsWindow(
+      requestWithQuery({ from: "2500-01-01T00:00:00.000Z" }),
+      NOW,
+    );
+
+    const latest: Date = OneUptimeDate.addRemoveDays(NOW, MAX_FUTURE_DAYS);
+
+    expect(window.from.getTime()).toBeLessThanOrEqual(latest.getTime());
+    expect(window.to.getTime()).toBeLessThanOrEqual(latest.getTime());
+    expect(window.to.getTime()).toBeGreaterThan(window.from.getTime());
+  });
+
+  test("a far-past from is pulled forward to the earliest the feeds render", () => {
+    const window: { from: Date; to: Date } = readMyShiftsWindow(
+      requestWithQuery({
+        from: "1970-01-01T00:00:00.000Z",
+        to: "1970-03-01T00:00:00.000Z",
+      }),
+      NOW,
+    );
+
+    expect(window.from.toISOString()).toBe(
+      OneUptimeDate.addRemoveDays(NOW, -MAX_PAST_DAYS).toISOString(),
+    );
+    expect(window.to.getTime()).toBeGreaterThan(window.from.getTime());
+    expect(window.to.getTime()).toBeLessThanOrEqual(
+      OneUptimeDate.addRemoveDays(NOW, MAX_FUTURE_DAYS).getTime(),
+    );
+  });
+
+  test("a window inside the range is left exactly as asked", () => {
+    const from: Date = OneUptimeDate.addRemoveDays(NOW, -1);
+    const to: Date = OneUptimeDate.addRemoveDays(NOW, 20);
+
+    const window: { from: Date; to: Date } = readMyShiftsWindow(
+      requestWithQuery({ from: from.toISOString(), to: to.toISOString() }),
+      NOW,
+    );
+
+    expect(window.from.toISOString()).toBe(from.toISOString());
+    expect(window.to.toISOString()).toBe(to.toISOString());
+  });
+
+  test("every window it returns is one the feeds could render", () => {
+    const earliest: Date = OneUptimeDate.addRemoveDays(NOW, -MAX_PAST_DAYS);
+    const latest: Date = OneUptimeDate.addRemoveDays(NOW, MAX_FUTURE_DAYS);
+
+    for (const from of [
+      "1900-01-01T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+      "2026-09-01T12:00:00.000Z",
+      "2027-06-01T00:00:00.000Z",
+      "2500-01-01T00:00:00.000Z",
+    ]) {
+      const window: { from: Date; to: Date } = readMyShiftsWindow(
+        requestWithQuery({ from }),
+        NOW,
+      );
+
+      expect(window.from.getTime()).toBeGreaterThanOrEqual(earliest.getTime());
+      expect(window.to.getTime()).toBeLessThanOrEqual(latest.getTime());
+      expect(window.to.getTime()).toBeGreaterThan(window.from.getTime());
+      expect(window.to.getTime() - window.from.getTime()).toBeLessThanOrEqual(
+        MY_SHIFTS_MAX_DAYS * 24 * 60 * 60 * 1000,
+      );
+    }
+  });
+
   test("to <= from is a BadDataException", () => {
     expect(() => {
       return readMyShiftsWindow(
@@ -1607,6 +1784,52 @@ describe("buildFeedStatus", () => {
     expect(status.urls?.https).toContain(
       `/api/on-call-calendar/schedule/${token}/schedule.ics`,
     );
+  });
+
+  /*
+   * The status rows the routes read never carry tokenHash: no status read can
+   * select it. The hash to verify against comes from the decrypting root read
+   * instead, as `verifiedTokenHash`.
+   */
+  test("a status row without tokenHash verifies against the hash the decrypting read returned", () => {
+    const status: FeedStatus = buildFeedStatus({
+      kind: OnCallCalendarFeedKind.Schedule,
+      feed: {
+        _id: ObjectID.generate().toString(),
+        isEnabled: true,
+        tokenHint: "abcd",
+        pastDays: DEFAULT_PAST_DAYS,
+        futureDays: DEFAULT_FUTURE_DAYS,
+      },
+      decryptedToken: token,
+      verifiedTokenHash: CalendarFeedToken.hash(token),
+    });
+
+    expect(status.needsRegeneration).toBe(false);
+    expect(status.urls?.https).toContain(token);
+  });
+
+  test("a verified hash that the decrypted token does not match is still needsRegeneration", () => {
+    const status: FeedStatus = buildFeedStatus({
+      kind: OnCallCalendarFeedKind.Schedule,
+      feed: { _id: ObjectID.generate().toString(), isEnabled: true },
+      decryptedToken: token,
+      verifiedTokenHash: CalendarFeedToken.hash(CalendarFeedToken.mint()),
+    });
+
+    expect(status.needsRegeneration).toBe(true);
+    expect(status.urls).toBeNull();
+  });
+
+  test("no hash from anywhere is needsRegeneration, never a URL on trust alone", () => {
+    const status: FeedStatus = buildFeedStatus({
+      kind: OnCallCalendarFeedKind.Schedule,
+      feed: { _id: ObjectID.generate().toString(), isEnabled: true },
+      decryptedToken: token,
+    });
+
+    expect(status.needsRegeneration).toBe(true);
+    expect(status.urls).toBeNull();
   });
 
   test("a decrypted token that does NOT hash to tokenHash means the secret changed: needsRegeneration, no urls", () => {
@@ -1961,7 +2184,41 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
     expect(result.body.replace(/\r\n /g, "")).toContain(
       PLAN_REASON.slice(0, 40),
     );
-    expect(personalUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Regression: bookkeeping used to run only for a Rendered outcome, so an
+   * enabled, current feed whose calendar is EMPTY -- the user is not on a
+   * schedule yet, or the project is below plan -- was polled all day and the
+   * settings page still said "Nothing has fetched this link yet. Is this
+   * server reachable from where your calendar app runs?". That is exactly the
+   * question a user staring at an empty calendar is asking, and the answer
+   * was wrong.
+   */
+  test("an empty calendar served for an enabled, current feed still counts as a fetch", async () => {
+    renderSpy.mockResolvedValue(
+      OnCallCalendarFeedRenderer.buildEmptyOutcome({
+        kind: OnCallCalendarFeedKind.Personal,
+        reason: NO_SCHEDULES_REASON,
+        now: NOW,
+      }),
+    );
+
+    const result: HttpResult = await request(
+      feedPath(OnCallCalendarFeedKind.Personal, token),
+      { headers: { "User-Agent": "Mozilla/5.0 (compatible; Google-Calendar" } },
+    );
+
+    expect(result.status).toBe(200);
+    expect(personalUpdateOneById).toHaveBeenCalledTimes(1);
+
+    const update: CapturedUpdate = personalUpdateOneById.mock
+      .calls[0]?.[0] as CapturedUpdate;
+
+    expect(update.data["fetchCount"]).toBe(1);
+    expect(update.data["lastFetchedClient"]).toBe("Google Calendar");
+    expect(update.data["lastRenderTruncated"]).toBe(false);
+    expect(update.props?.isRoot).toBe(true);
   });
 
   test("an Unavailable outcome (render cap, nothing cached) is 503 + Retry-After 60 and not a calendar", async () => {
@@ -2118,6 +2375,33 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       );
 
       expect(header(result, "location")).not.toContain("evil.example.net");
+    });
+
+    /*
+     * Regression: the guard used to fire on the trusted X-Forwarded-Proto
+     * alone. Every proxying location in the shipped Nginx config sets
+     * `X-Forwarded-Proto $scheme`, REPLACING whatever an outer proxy sent, so
+     * on an install that terminates TLS on an external reverse proxy
+     * (PROVISION_SSL=false with HTTP_PROTOCOL=https, which config.example.env
+     * documents) Nginx always reported `http`. The 301 went to the very URL
+     * the client had just asked for: an endless redirect loop, and all three
+     * feed routes unusable while the dashboard handed out those same URLs.
+     */
+    test("an install whose TLS is terminated outside Nginx serves the feed instead of looping", async () => {
+      setEnv({
+        httpProtocol: Protocol.HTTPS,
+        trustedProxyHops: 1,
+        provisionSsl: false,
+      });
+
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, token),
+        { headers: { "X-Forwarded-Proto": "http" } },
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.body).toContain("BEGIN:VCALENDAR");
+      expect(header(result, "location")).toBeUndefined();
     });
 
     test("with no trusted proxy hops the header is not trusted and the feed is served", async () => {
@@ -2403,6 +2687,146 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       expect(line).not.toContain(CalendarFeedToken.hash(token));
       expect(line).not.toContain(CalendarFeedToken.hash(previousToken));
     }
+  });
+});
+
+// -- Near misses on a token path ---------------------------------------------
+
+/*
+ * Regression: only the three exact GET routes existed, so a link pasted
+ * without the trailing `shifts.ics`, a typo in the filename, or any
+ * POST/PUT/DELETE to a feed URL fell through to the application's own
+ * catch-alls, which answer `Page not found - ${req.url}` -- the plaintext
+ * capability token, at ERROR level, in stdout, in the master-admin support
+ * bundle's recent-log buffer and in the OTel log exporter. Redaction cannot
+ * save it: the message has no credential keyword, no key=value shape and no
+ * scheme, so the hint regex never fires. These fallbacks answer first, and
+ * their message is a constant.
+ */
+describe("near misses on a token-bearing path never echo or log the token", () => {
+  let token: string;
+
+  beforeEach(() => {
+    token = CalendarFeedToken.mint();
+
+    personalFindOneBy.mockImplementation(
+      lookupFrom([
+        personalRow({
+          projectId,
+          userId,
+          tokenHash: CalendarFeedToken.hash(token),
+        }),
+      ]) as never,
+    );
+  });
+
+  function nearMisses(): Array<{ path: string; method: string }> {
+    const kinds: Array<string> = ["user", "schedule", "project"];
+    const out: Array<{ path: string; method: string }> = [];
+
+    for (const kind of kinds) {
+      /* The link pasted without its filename. */
+      out.push({
+        path: `${API_PREFIX}/on-call-calendar/${kind}/${token}`,
+        method: "GET",
+      });
+      /* A typo in the filename. */
+      out.push({
+        path: `${API_PREFIX}/on-call-calendar/${kind}/${token}/shifts.ical`,
+        method: "GET",
+      });
+      /* A trailing slash. */
+      out.push({
+        path: `${API_PREFIX}/on-call-calendar/${kind}/${token}/`,
+        method: "GET",
+      });
+      /* A client or a scanner using the wrong method on the real URL. */
+      for (const method of ["POST", "PUT", "DELETE"]) {
+        out.push({
+          path: `${API_PREFIX}/on-call-calendar/${kind}/${token}/shifts.ics`,
+          method,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  test("a GET that misses the exact route is a generic 404 that does not name the URL", async () => {
+    const result: HttpResult = await request(
+      `${API_PREFIX}/on-call-calendar/user/${token}`,
+    );
+
+    expect(result.status).toBe(404);
+    expect(json(result)).toEqual({ message: "Not found." });
+    expect(result.body).not.toContain(token);
+    expect(personalFindOneBy).not.toHaveBeenCalled();
+    expect(renderSpy).not.toHaveBeenCalled();
+  });
+
+  test("a wrong method on the real URL is 405 with Allow: GET, HEAD", async () => {
+    const result: HttpResult = await postJson(
+      `${API_PREFIX}/on-call-calendar/user/${token}/shifts.ics`,
+    );
+
+    expect(result.status).toBe(405);
+    expect(header(result, "allow")).toBe(FEED_ALLOWED_METHODS);
+    expect(result.body).not.toContain(token);
+    expect(renderSpy).not.toHaveBeenCalled();
+  });
+
+  test("OPTIONS is answered as OPTIONS should be, not as a 405", async () => {
+    const result: HttpResult = await request(
+      `${API_PREFIX}/on-call-calendar/user/${token}/shifts.ics`,
+      { method: "OPTIONS" },
+    );
+
+    expect(result.status).toBe(200);
+    expect(header(result, "allow")).toBe(FEED_ALLOWED_METHODS);
+    expect(result.body).not.toContain(token);
+  });
+
+  test("no near miss on any of the three kinds puts the token in the body or a log line", async () => {
+    for (const { path, method } of nearMisses()) {
+      const result: HttpResult = await request(path, { method });
+
+      expect([404, 405]).toContain(result.status);
+      expect(result.body).not.toContain(token);
+    }
+
+    await flushBackgroundWork();
+
+    const lines: Array<string> = everyLogArgument();
+
+    for (const line of lines) {
+      expect(line).not.toContain(token);
+      expect(line).not.toContain(CalendarFeedToken.hash(token));
+    }
+  });
+
+  test("the exact route still wins over the fallback", async () => {
+    renderSpy.mockResolvedValue(
+      renderedOutcome(OnCallCalendarFeedKind.Personal),
+    );
+
+    const result: HttpResult = await request(
+      feedPath(OnCallCalendarFeedKind.Personal, token),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body).toContain("BEGIN:VCALENDAR");
+  });
+
+  test("the fallbacks do not shadow the session routes", async () => {
+    const result: HttpResult = await request(
+      `${API_PREFIX}${SCHEDULE_FEED_CURRENT_ROUTE.replace(
+        ":scheduleId",
+        ObjectID.generate().toString(),
+      )}`,
+    );
+
+    expect(result.status).toBe(200);
+    expect(json(result)["exists"]).toBe(false);
   });
 });
 
@@ -2758,6 +3182,70 @@ describe("GET /on-call-calendar/feed/current", () => {
     expect(decryptingRead.select["token"]).toBe(true);
     expect(decryptingRead.select["tokenHash"]).toBe(true);
     expect(decryptingRead.props.isRoot).toBe(true);
+  });
+
+  /*
+   * Regression: the status builder verified the decrypted token against the
+   * STATUS ROW's tokenHash, and no status read can select that column -- its
+   * read access list is empty, so the non-root schedule and project reads
+   * would be refused outright. The row therefore never carried it and every
+   * /current and /publish answered `needsRegeneration: true, urls: null` for
+   * a perfectly good feed: the settings page told every user on every page
+   * load to regenerate a link that worked, and regenerating it blanked the
+   * calendar they had already subscribed. The hash to verify against comes
+   * from the decrypting root read, which selects it.
+   */
+  test("the status read does not select tokenHash, and the link is shown anyway", async () => {
+    const token: string = CalendarFeedToken.mint();
+    const row: FeedRowFixture = personalRow({
+      projectId,
+      userId,
+      tokenHash: CalendarFeedToken.hash(token),
+    });
+
+    personalFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    personalFindOneById.mockResolvedValue({
+      id: row.id,
+      token,
+      tokenHash: row.tokenHash,
+    } as never);
+
+    const status: Record<string, unknown> = json(
+      await request(`${API_PREFIX}${FEED_CURRENT_ROUTE}`),
+    );
+
+    const statusRead: CapturedFindOneBy = personalFindOneBy.mock
+      .calls[0]?.[0] as CapturedFindOneBy;
+
+    expect(statusRead.select?.["tokenHash"]).toBeUndefined();
+    expect(statusRead.select?.["token"]).toBeUndefined();
+    expect(status["needsRegeneration"]).toBe(false);
+    expect(status["urls"]).not.toBeNull();
+  });
+
+  test("a decrypted token that does not match the hash the root read returned is needsRegeneration", async () => {
+    const token: string = CalendarFeedToken.mint();
+    const row: FeedRowFixture = personalRow({
+      projectId,
+      userId,
+      tokenHash: CalendarFeedToken.hash(token),
+    });
+
+    personalFindOneBy.mockImplementation(lookupFrom([row]) as never);
+
+    /* Decrypts to something, but not to what tokenHash says. */
+    personalFindOneById.mockResolvedValue({
+      id: row.id,
+      token: CalendarFeedToken.mint(),
+      tokenHash: row.tokenHash,
+    } as never);
+
+    const status: Record<string, unknown> = json(
+      await request(`${API_PREFIX}${FEED_CURRENT_ROUTE}`),
+    );
+
+    expect(status["needsRegeneration"]).toBe(true);
+    expect(status["urls"]).toBeNull();
   });
 
   test("webcal is webcal:// on an http instance", async () => {
@@ -3333,6 +3821,70 @@ describe("schedule-feed session routes", () => {
     );
   });
 
+  /*
+   * Regression: publish relied on the CREATE for its permission gate, and
+   * @CanAccessIfCanReadOn -- the label scoping that decides WHICH schedules an
+   * editor may touch -- is only applied to query operations. A label-
+   * restricted editor who knew a schedule's id could therefore mint an
+   * enabled feed row for a schedule outside their labels (they could not read
+   * the link afterwards, but the row was there for the next editor to find
+   * "already published"). The route now reads the schedule with the caller's
+   * props first.
+   */
+  test("POST /publish reads the schedule with the CALLER's props before creating", async () => {
+    scheduleFindOneBy.mockResolvedValue(null as never);
+
+    await postJson(publishPath());
+
+    expect(scheduleModelFindOneBy).toHaveBeenCalledTimes(1);
+
+    const read: CapturedFindOneBy = scheduleModelFindOneBy.mock
+      .calls[0]?.[0] as CapturedFindOneBy;
+
+    expect(String(read.query["_id"])).toBe(scheduleId.toString());
+    expect(String(read.query["projectId"])).toBe(projectId.toString());
+    expect(read.props?.isRoot).toBeUndefined();
+    expect(read.props).toBe(await propsSpy.mock.results[0]?.value);
+
+    /* The schedule read happens BEFORE the feed is created. */
+    expect(scheduleModelFindOneBy.mock.invocationCallOrder[0]).toBeLessThan(
+      scheduleCreate.mock.invocationCallOrder[0] as number,
+    );
+  });
+
+  test("POST /publish for a schedule the caller cannot read is 404 and creates nothing", async () => {
+    scheduleFindOneBy.mockResolvedValue(null as never);
+    scheduleModelFindOneBy.mockResolvedValue(null as never);
+
+    const result: HttpResult = await postJson(publishPath());
+
+    expect(result.status).toBe(404);
+    expect(scheduleCreate).not.toHaveBeenCalled();
+    expect(purgeForSchedule).not.toHaveBeenCalled();
+    expect(json(result)).toEqual({ message: "On-call schedule not found." });
+  });
+
+  test("POST /publish on an EXISTING feed needs no second schedule read (the feed read is already scoped)", async () => {
+    const token: string = CalendarFeedToken.mint();
+    const row: FeedRowFixture = scheduleRow({
+      projectId,
+      onCallDutyPolicyScheduleId: scheduleId,
+      tokenHash: CalendarFeedToken.hash(token),
+    });
+
+    scheduleFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    scheduleFindOneById.mockResolvedValue({
+      id: row.id,
+      token,
+      tokenHash: row.tokenHash,
+    } as never);
+
+    const result: HttpResult = await postJson(publishPath());
+
+    expect(result.status).toBe(200);
+    expect(scheduleModelFindOneBy).not.toHaveBeenCalled();
+  });
+
   test("POST /publish by a caller without Edit permission is refused by the service, nothing is purged", async () => {
     scheduleCreate.mockRejectedValue(
       new NotAuthorizedException(
@@ -3835,6 +4387,25 @@ describe("GET /on-call-calendar/my-shifts", () => {
 
     expect(tryAcquireRenderSlot).toHaveBeenCalledTimes(1);
     expect(releaseRenderSlot).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Regression: this route shared the per-process render slots with the three
+   * public feed routes and could take every one of them. Its caller is a
+   * logged-in client that can retry (and, on mobile, falls back to its roster
+   * list); a calendar client that gets a 503 shows a stale or empty calendar
+   * to somebody who may be on call. Half the slots are kept for the feeds.
+   */
+  test("it leaves half the render slots for the public feeds", async () => {
+    await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    const options: { leaveFreeSlots?: number } = tryAcquireRenderSlot.mock
+      .calls[0]?.[0] as { leaveFreeSlots?: number };
+
+    expect(options.leaveFreeSlots).toBe(
+      Math.floor(OnCallCalendarFeedCache.getRenderConcurrency() / 2),
+    );
+    expect(options.leaveFreeSlots).toBeGreaterThan(0);
   });
 
   test("the render slot is released when the materialization throws", async () => {

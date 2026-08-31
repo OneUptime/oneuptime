@@ -6,7 +6,7 @@ Kalender-Feeds bringen Ihre Bereitschaftsschichten in den Kalender, den Sie ohne
 
 ## Was Sie bekommen
 
-- Ein Termin pro Schicht mit dem Titel `On-call · <Schedule>` im persönlichen Feed und `<Name> · On-call · <Schedule>` in einem geteilten Feed. Die Beschreibung nennt, wer Bereitschaft hat, den Zeitplan und seine Zeitzone, die Ebene, die Schicht in der Zeitzone des Zeitplans, in UTC und in Ihrer Zeitzone, über welche Eskalationsrichtlinien Sie über diesen Zeitplan alarmiert werden, sowie einen Link zum Zeitplan im Dashboard.
+- Ein Termin pro Schicht mit dem Titel `On-call · <Schedule>` (mit angehängtem ` · <Policy>`, wenn der Zeitplan genau einer Eskalationsrichtlinie zugeordnet ist) im persönlichen Feed und `<Name> · On-call · <Schedule>` in einem geteilten Feed. Die Beschreibung nennt, wer Bereitschaft hat, den Zeitplan und seine Zeitzone, die Ebene, die Schicht in der Zeitzone des Zeitplans, in UTC und in Ihrer Zeitzone, über welche Eskalationsrichtlinien Sie über diesen Zeitplan alarmiert werden, sowie einen Link zum Zeitplan im Dashboard.
 - Vertretungen werden berücksichtigt. Wenn jemand für Sie einspringt, wandert der Termin zu dieser Person (`(covering for <Name>)` wird angehängt) und bleibt in Ihrer Kalender-App derselbe Termin, sodass er an Ort und Stelle aktualisiert statt dupliziert wird. Eine teilweise Vertretung teilt die Schicht in aneinander anschließende Termine.
 - Standardmäßig zwei Tage Rückschau und 90 Tage Vorschau. Sie können das auf 60 Tage zurück und 180 Tage voraus ausweiten; ein Feed, der 5.000 Termine überschreiten würde, wird gekürzt und weist in seiner Kalenderbeschreibung darauf hin.
 - Termine sind als frei markiert (`TRANSP:TRANSPARENT`), ein abonnierter Feed blockiert also nie Ihre Verfügbarkeit, und nichts ist als privat markiert, sodass ein geteilter Teamkalender allen Berechtigten die Titel zeigt.
@@ -124,7 +124,7 @@ Weder die Google-Kalender-App noch Samsung Kalender können eine URL abonnieren.
 | Fastmail                          | Etwa stündlich                                                    | Fastmails Servern  | Nach fünf fehlgeschlagenen Abrufen deaktiviert                                                          |
 | Proton Calendar                   | 4–16 Stunden                                                      | Protons Servern    | Lehnt große Feeds ab                                                                                    |
 
-OneUptime selbst liefert frische Daten: Eine Änderung an einer Ebene, einer Rotation, einer Vertretung oder einer Richtlinienzuordnung macht den Feed sofort ungültig, und Antworten werden höchstens fünf Minuten zwischengespeichert. Die Wartezeit, die Sie sehen, ist die der Kalender-App, nicht die des Servers. OneUptime schlägt über `REFRESH-INTERVAL` und `X-PUBLISHED-TTL` eine stündliche Aktualisierung vor; nur das klassische Outlook und Apple Kalender beachten den Hinweis.
+OneUptime selbst liefert frische Daten: Eine Änderung an einer Ebene, einer Rotation, einer Vertretung oder einer Richtlinienzuordnung macht den Feed sofort ungültig, und Antworten werden höchstens fünf Minuten zwischengespeichert. Die Wartezeit, die Sie sehen, ist die der Kalender-App, nicht die des Servers. OneUptime schlägt über `REFRESH-INTERVAL` und `X-PUBLISHED-TTL` eine stündliche Aktualisierung vor; nur das klassische Outlook beachtet den Hinweis, und auch nur mit aktiviertem **Aktualisierungslimit** — Apple Kalender, Thunderbird und die übrigen aktualisieren in dem Intervall, das Sie pro Kalender einstellen.
 
 ## https, webcal und webcals
 
@@ -143,6 +143,7 @@ Unter **Benutzereinstellungen** > **Kalender-Feed** lässt Sie die Karte **Vor S
 - Eine Schicht, die durch eine späte Vertretung in eine Ihrer Vorlaufzeiten fällt — jemand übergibt Ihnen eine Schicht 20 Minuten vor Beginn —, erhält sofort eine einzelne Nachhol-Erinnerung.
 - Wird eine Schicht, an die Sie erinnert wurden, an jemand anderen übergeben, erhalten Sie **Meine bevorstehende Bereitschaftsschicht wurde neu zugewiesen**, ein eigener Ereignistyp, der sich separat stummschalten lässt.
 - Erinnerungen werden nie nach Schichtbeginn gesendet und nie für Zeitpläne, die keiner Eskalationsrichtlinie zugeordnet sind, weil diese niemanden alarmieren können.
+- Auf WhatsApp kommt eine Erinnerung über Metas vorab genehmigte Bereitschaftsvorlage an: Sie nennt den Zeitplan und die Eskalationsrichtlinie und verlinkt den Zeitplan, enthält aber die Startzeit nicht, und WhatsApp liefert sie nur auf Englisch aus. Für Meldungen über eine Neuzuweisung gibt es keine genehmigte WhatsApp-Vorlage, sie erreichen Sie deshalb über Ihre anderen Kanäle.
 
 ## Geteilte Links für einen Zeitplan oder ein Projekt
 
@@ -160,7 +161,7 @@ Einstellungen bei beiden:
 
 Legen Sie den Zeitplan-Link in einen geteilten Teamkalender — Google, Outlook oder Confluence —, dann bedient ein Abonnement das ganze Team. Rotieren Sie ihn, wenn jemand geht, der ihn hatte, oder schalten Sie die automatische Rotation oben ein.
 
-Wenn eine Person ihr letztes Team in einem Projekt verlässt, entfernt OneUptime sie außerdem aus den Zeitplanebenen und Eskalationsregeln dieses Projekts, deaktiviert ihren persönlichen Feed für das Projekt und löscht dort ihre Erinnerungen.
+Wenn eine Person ihr letztes Team in einem Projekt verlässt, entfernt OneUptime sie außerdem aus den Zeitplanebenen und Eskalationsregeln dieses Projekts, löscht die laufenden und künftigen Vertretungen des Projekts, in denen sie genannt wird (als vertretene Person oder als Vertretung), deaktiviert ihren persönlichen Feed für das Projekt und löscht dort ihre Erinnerungen.
 
 ## Termine im Detail
 
@@ -179,18 +180,20 @@ Der Feed zeigt die Rotation, **wie sie jetzt konfiguriert ist**, auch für verga
 - Das Token im Link ist das einzige Zugangsmerkmal. Wer den Link hat, sieht die Schichten — Namen, Zeitpläne, Richtlinien —, bis er neu erzeugt wird. Fügen Sie Links nicht in Chaträume oder Tickets ein; braucht ein Team einen Kalender, teilen Sie den Zeitplan- oder Projekt-Link statt Ihres persönlichen.
 - Links gelten pro Projekt. Ein geleakter persönlicher Link legt die Schichten eines Projekts offen, nicht die aller Projekte, denen Sie angehören.
 - **Neu erzeugen** verschiebt das alte Token in eine 30-tägige Schonfrist (leerer Kalender, danach 404). **Deaktivieren** liefert einen leeren Kalender. Ein unbekannter oder abgelaufener Link antwortet mit einem schlichten 404 ohne Hinweis. Leere Kalender bringen abonnierte Apps dazu, ihre Kopie zu leeren; ein 404 lässt sie die Kopie behalten — deshalb liefern Deaktivieren und Neuerzeugen leere Kalender.
-- Tokens werden gehasht gespeichert; die auf der Einstellungsseite angezeigte Kopie ist mit `ENCRYPTION_SECRET` verschlüsselt. Setzen Sie diese Variable bei einer selbst gehosteten Installation auf ein echtes Geheimnis — der Server warnt beim Start, wenn sie nicht gesetzt ist oder noch wörtlich `secret` lautet. Ändern Sie sie später, bietet die Seite **Link neu erzeugen** an, weil die gespeicherte Kopie nicht mehr gelesen werden kann; der Feed funktioniert weiter, bis Sie das tun.
+- Tokens werden gehasht gespeichert; die auf der Einstellungsseite angezeigte Kopie ist mit `ENCRYPTION_SECRET` verschlüsselt. Setzen Sie diese Variable bei einer selbst gehosteten Installation auf ein echtes Geheimnis — der Server warnt beim Start, wenn sie nicht gesetzt ist oder noch einer der Platzhalter aus diesem Repository ist (`secret` oder das `please-change-this-to-random-value`, das `config.example.env` setzt). Ändern Sie sie später, bietet die Seite **Link neu erzeugen** an, weil die gespeicherte Kopie nicht mehr gelesen werden kann; der Feed funktioniert weiter, bis Sie das tun.
 - Feed-Antworten sind mit `Cache-Control: private` markiert, von Suchmaschinen ausgeschlossen (`X-Robots-Tag: noindex`) und pro Link sowie pro Client-Adresse ratenbegrenzt.
-- Der eigene Nginx von OneUptime schreibt Feed-Anfragen nicht in sein Zugriffsprotokoll:
+- Der eigene Nginx von OneUptime hält Feed-Anfragen aus seinen Protokollen heraus:
 
   ```
   location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
       access_log off;
+      error_log /dev/null crit;
+      proxy_max_temp_file_size 0;
       ...
   }
   ```
 
-  Ein Token landet also nie neben einer Client-Adresse in einer Protokolldatei; die Anwendung protokolliert es ebenfalls nie. **Jeder Proxy, jede WAF und jedes CDN, das Sie vor OneUptime betreiben, protokolliert die vollständige URI weiterhin**, sofern Sie es nicht anders konfigurieren — prüfen Sie das, bevor Sie Feeds ausrollen.
+  Ein Token landet also nie neben einer Client-Adresse in einer Protokolldatei; die Anwendung protokolliert es ebenfalls nie. `access_log off` entfernt die Zeile pro Anfrage, `error_log` entfernt die Zeilen, die Nginx bei einem fehlgeschlagenen Aufruf der Anwendung schreibt — ohne sie wird das Token jedes Clients aufgezeichnet, der während eines Neustarts abruft — und `proxy_max_temp_file_size 0` hält einen großen Feed aus einer temporären Datei heraus. **Jeder Proxy, jede WAF und jedes CDN, das Sie vor OneUptime betreiben, protokolliert die vollständige URI weiterhin, im Zugriffs- wie im Fehlerprotokoll**, sofern Sie es nicht anders konfigurieren — prüfen Sie das, bevor Sie Feeds ausrollen.
 
 ## Konfiguration bei Selbst-Hosting
 

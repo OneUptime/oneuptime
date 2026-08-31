@@ -323,7 +323,7 @@ describe("UserOnCallShiftReminder.hbs", () => {
     expect(html).toContain("Alice Andersson");
   });
 
-  test("renders the catch-up variant (same template, 'now starts in' wording)", () => {
+  test("renders the catch-up variant (same template, 'Heads up' wording)", () => {
     const catchUp: ShiftReminderMessage =
       OnCallShiftReminderRunner.buildCatchUpMessage({
         shift: aliceShift(),
@@ -339,7 +339,12 @@ describe("UserOnCallShiftReminder.hbs", () => {
     const html: string = render(catchUp.templateType, catchUp.vars);
 
     expect(html).toContain("starts in 28 minutes");
-    expect(html).toContain("now starts in 28 minutes");
+    /*
+     * A catch-up also goes to a shift that did not move (a lead configured
+     * after its instant passed), so it never claims the shift changed.
+     */
+    expect(html).toContain("Heads up: your on-call shift on Payments");
+    expect(html).not.toContain("now starts in");
   });
 
   test("leaves no unresolved mustache and tells the recipient where to change the reminder", () => {

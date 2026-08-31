@@ -68,7 +68,13 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
-    whatsAppMessage: WhatsAppMessagePayload;
+    /*
+     * Optional: WhatsApp only delivers Meta-approved template payloads, so a
+     * caller whose event type has no registered template leaves this out and
+     * the channel is skipped (the body of this method already guards for it)
+     * instead of failing at the notification service.
+     */
+    whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;

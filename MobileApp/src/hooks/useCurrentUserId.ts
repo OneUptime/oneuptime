@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
-import { loadCurrentUserId } from "../auth/currentUser";
+import { getCurrentUserIdSync, loadCurrentUserId } from "../auth/currentUser";
 
 /**
  * The signed-in user's id, available on a cold start.
@@ -13,7 +13,19 @@ import { loadCurrentUserId } from "../auth/currentUser";
  */
 export function useCurrentUserId(): string | null {
   const { user, isAuthenticated } = useAuth();
-  const [tokenUserId, setTokenUserId] = useState<string | null>(null);
+
+  /*
+   * Seeded from the token already in memory so the id is there on the FIRST
+   * render whenever the keychain has been read (which it has, on every launch
+   * past the startup check). Callers that key a cache on this value would
+   * otherwise spend one render on a null-keyed entry that nobody wants and
+   * every user shares. The async read below still runs, and still wins.
+   */
+  const [tokenUserId, setTokenUserId] = useState<string | null>(
+    (): string | null => {
+      return getCurrentUserIdSync();
+    },
+  );
 
   useEffect((): (() => void) => {
     let cancelled: boolean = false;

@@ -63,9 +63,34 @@ export const DEFAULT_RENDER_CONCURRENCY: number = RENDER_CONCURRENCY;
 /*
  * Bodies above this are not cached. The compose Redis has no maxmemory and
  * also backs BullMQ; a handful of multi-megabyte feeds is not what it is
- * sized for, and a body this large is already at the MAX_EVENTS ceiling.
+ * sized for. Note that this is NOT the same ceiling as MAX_EVENTS: a VEVENT
+ * is roughly 0.9 KB, so 2 MiB is crossed at about 2,200 events while
+ * MAX_EVENTS allows 5,000. An hourly rotation over a long window is over this
+ * cap and still well inside the event cap; such a feed is re-rendered on
+ * every poll.
  */
 export const MAX_CACHED_BODY_BYTES: number = 2 * 1024 * 1024;
+
+/*
+ * Last-good bodies get their own, larger ceiling. The body cache exists to
+ * save work and can afford to skip the heaviest feeds; the last-good tier is
+ * the only thing between a failed or capped render and a 503, and refusing it
+ * for exactly the feeds most expensive to render -- the ones most likely to
+ * trip the render cap -- removed the stale-while-error tier where it matters
+ * most. It is written at most once per successful render and read only when
+ * something has already gone wrong.
+ */
+export const MAX_CACHED_LAST_GOOD_BYTES: number = 8 * 1024 * 1024;
+
+/*
+ * A schedule's cached segments carry every user's shifts over the window; an
+ * hourly rotation over the widest window is several megabytes. Cached, they
+ * save the expansion for every subscriber of that schedule, so the ceiling is
+ * generous -- but it is a ceiling: an entry above it is returned to the
+ * caller and simply not stored, rather than pushed into a Redis with no
+ * maxmemory that also backs BullMQ.
+ */
+export const MAX_CACHED_SEGMENT_BYTES: number = 8 * 1024 * 1024;
 
 /* How long a last-good body is kept, in seconds. */
 export const LAST_GOOD_TTL_SECONDS: number = 24 * 60 * 60;
@@ -86,6 +111,18 @@ const MEMORY_MAX_ENTRIES: number = 500;
 const MEMORY_GENERATION_MAX_ENTRIES: number = 5000;
 
 /*
+ * The in-process fallback tiers are bounded by BYTES as well as by entries.
+ * They are only written while Redis is failing, but what they hold then are
+ * whole calendar bodies and whole schedule expansions -- megabytes each -- so
+ * an entry count alone bounds nothing: 500 multi-megabyte strings is most of
+ * a container's heap. Entries also outlive their TTL (nothing reads a
+ * fallback tier once Redis is healthy again, so nothing triggers the
+ * expire-on-read), which is why the store sweeps expired entries when it
+ * needs room.
+ */
+export const MEMORY_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
  * What a feed body depends on, for invalidation. projectId is always known
  * (every feed is per project). userId is set for a personal feed.
  * scheduleIds are the candidate schedules the body was rendered from --
@@ -96,6 +133,13 @@ export interface OnCallCalendarFeedCacheScope {
   projectId: string;
   userId?: string | undefined;
   scheduleIds?: Array<string> | undefined;
+}
+
+/* One schedule's slot in a batched segment read. */
+export interface ScheduleSegmentsCacheEntry {
+  scheduleId: string;
+  /* Everything the value depends on except the schedule's generation. */
+  key: string;
 }
 
 /* A rendered feed as the response helper wants it. */
@@ -112,16 +156,132 @@ interface SerializedCalendarBody {
   lastModified: string;
 }
 
+interface MemoryEntry {
+  value: string;
+  bytes: number;
+  expiresAt: number;
+}
+
+/*
+ * The in-process fallback store: InMemoryTTLCache's coarse-LRU behaviour plus
+ * a byte budget and a sweep. Not a change to InMemoryTTLCache itself -- every
+ * other user of that class caches small values and does not need the
+ * accounting (SessionReplayGateCacheStore keeps its own bounded store for the
+ * same reason).
+ */
+class MemoryStringStore {
+  private store: Map<string, MemoryEntry> = new Map();
+  private bytes: number = 0;
+
+  public constructor(
+    private maxEntries: number,
+    private maxBytes: number,
+  ) {}
+
+  public set(key: string, value: string, ttlMs: number): void {
+    this.delete(key);
+
+    const bytes: number = Buffer.byteLength(value, "utf8");
+
+    /* A single value over the whole budget is not worth evicting for. */
+    if (bytes > this.maxBytes) {
+      return;
+    }
+
+    /*
+     * Sweep on every write. Nothing reads these tiers while Redis is healthy,
+     * so expire-on-read never fires for them: without this, an entry written
+     * during an outage stays resident long past its TTL, until 500 newer
+     * writes push it out. A write only happens while Redis is failing and the
+     * store holds at most a few hundred entries, so the scan is free.
+     */
+    this.sweepExpired();
+
+    /* Map iteration is insertion order, so the first key is the oldest. */
+    while (
+      this.store.size > 0 &&
+      (this.store.size + 1 > this.maxEntries ||
+        this.bytes + bytes > this.maxBytes)
+    ) {
+      const oldest: string | undefined = this.store.keys().next().value;
+
+      if (oldest === undefined) {
+        break;
+      }
+
+      this.delete(oldest);
+    }
+
+    this.store.set(key, { value, bytes, expiresAt: Date.now() + ttlMs });
+    this.bytes += bytes;
+  }
+
+  public get(key: string): string | undefined {
+    const entry: MemoryEntry | undefined = this.store.get(key);
+
+    if (!entry) {
+      return undefined;
+    }
+
+    if (Date.now() > entry.expiresAt) {
+      this.delete(key);
+      return undefined;
+    }
+
+    return entry.value;
+  }
+
+  public delete(key: string): void {
+    const entry: MemoryEntry | undefined = this.store.get(key);
+
+    if (!entry) {
+      return;
+    }
+
+    this.bytes -= entry.bytes;
+    this.store.delete(key);
+  }
+
+  public clear(): void {
+    this.store.clear();
+    this.bytes = 0;
+  }
+
+  public size(): number {
+    return this.store.size;
+  }
+
+  public byteSize(): number {
+    return this.bytes;
+  }
+
+  private sweepExpired(): void {
+    const now: number = Date.now();
+
+    for (const [key, entry] of this.store) {
+      if (now > entry.expiresAt) {
+        this.delete(key);
+      }
+    }
+  }
+}
+
 export default class OnCallCalendarFeedCache {
   private static renderConcurrency: number = DEFAULT_RENDER_CONCURRENCY;
   private static activeRenderSlots: number = 0;
 
-  private static memorySegments: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(MEMORY_MAX_ENTRIES);
-  private static memoryBodies: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(MEMORY_MAX_ENTRIES);
-  private static memoryLastGood: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(MEMORY_MAX_ENTRIES);
+  private static memorySegments: MemoryStringStore = new MemoryStringStore(
+    MEMORY_MAX_ENTRIES,
+    MEMORY_MAX_BYTES,
+  );
+  private static memoryBodies: MemoryStringStore = new MemoryStringStore(
+    MEMORY_MAX_ENTRIES,
+    MEMORY_MAX_BYTES,
+  );
+  private static memoryLastGood: MemoryStringStore = new MemoryStringStore(
+    MEMORY_MAX_ENTRIES,
+    MEMORY_MAX_BYTES,
+  );
   private static memoryGenerations: InMemoryTTLCache<string> =
     new InMemoryTTLCache<string>(MEMORY_GENERATION_MAX_ENTRIES);
 
@@ -170,11 +330,26 @@ export default class OnCallCalendarFeedCache {
    * block; a leaked slot is one fewer render this process can do until it
    * restarts.
    */
-  public static tryAcquireRenderSlot(): boolean {
-    if (
-      OnCallCalendarFeedCache.activeRenderSlots >=
-      OnCallCalendarFeedCache.renderConcurrency
-    ) {
+  public static tryAcquireRenderSlot(
+    options?: { leaveFreeSlots?: number | undefined } | undefined,
+  ): boolean {
+    /*
+     * `leaveFreeSlots` keeps a caller out of the last few slots. Session
+     * routes (/my-shifts) pass it so they can never take every slot away from
+     * the public feed routes, whose callers are calendar clients that answer
+     * a 503 with a stale or empty calendar. Clamped so it can never make the
+     * budget zero.
+     */
+    const requestedReserve: number = options?.leaveFreeSlots ?? 0;
+
+    const reserve: number = Math.min(
+      Math.max(0, Math.floor(requestedReserve)),
+      OnCallCalendarFeedCache.renderConcurrency - 1,
+    );
+
+    const budget: number = OnCallCalendarFeedCache.renderConcurrency - reserve;
+
+    if (OnCallCalendarFeedCache.activeRenderSlots >= budget) {
       return false;
     }
 
@@ -191,6 +366,15 @@ export default class OnCallCalendarFeedCache {
 
   public static getActiveRenderSlots(): number {
     return OnCallCalendarFeedCache.activeRenderSlots;
+  }
+
+  /* Bytes held by the three in-process fallback tiers. Tests and diagnostics. */
+  public static getInProcessBytes(): number {
+    return (
+      OnCallCalendarFeedCache.memorySegments.byteSize() +
+      OnCallCalendarFeedCache.memoryBodies.byteSize() +
+      OnCallCalendarFeedCache.memoryLastGood.byteSize()
+    );
   }
 
   // -- Schedule-level segment cache --------------------------------------
@@ -214,55 +398,258 @@ export default class OnCallCalendarFeedCache {
     ttlSeconds: number;
     render: () => Promise<T>;
   }): Promise<T> {
-    const generation: string = await OnCallCalendarFeedCache.getGeneration(
-      OnCallCalendarFeedCache.scheduleGenerationKey(data.scheduleId),
+    const rendered: Map<string, T> =
+      await OnCallCalendarFeedCache.getOrRenderScheduleSegmentsBatch<T>({
+        entries: [{ scheduleId: data.scheduleId, key: data.key }],
+        ttlSeconds: data.ttlSeconds,
+        renderMissing: async (
+          missing: Array<ScheduleSegmentsCacheEntry>,
+        ): Promise<Map<string, T>> => {
+          const out: Map<string, T> = new Map();
+
+          if (missing.length > 0) {
+            out.set(data.scheduleId, await data.render());
+          }
+
+          return out;
+        },
+      });
+
+    const value: T | undefined = rendered.get(data.scheduleId);
+
+    if (value === undefined) {
+      throw new Error(
+        "OnCallCalendarFeedCache: the schedule segment render produced no value.",
+      );
+    }
+
+    return value;
+  }
+
+  /*
+   * The same thing for MANY schedules at once, which is how a feed render
+   * actually reads: a project feed wants every schedule in the project, a
+   * personal feed every schedule its subscriber is on.
+   *
+   * Reading them one at a time meant one materialization per schedule, and
+   * each of those is a schedule query, three IN queries, an override query
+   * and a users/project lookup -- roughly seven round trips PER SCHEDULE,
+   * with the same user and project rows re-read every time, all fanned out
+   * concurrently against a fifty-connection pool. `renderMissing` is called
+   * ONCE with every schedule that missed, so the batched resolver behind it
+   * does that work in a handful of IN queries for the whole feed.
+   *
+   * Hits, in-flight renders (a schedule another feed is already expanding)
+   * and misses are separated first; only the misses reach `renderMissing`,
+   * which MUST return an entry for every id it is given. Each result is
+   * stored under its own key, so a schedule expanded for one feed is a hit
+   * for the next.
+   */
+  public static async getOrRenderScheduleSegmentsBatch<T>(data: {
+    entries: Array<ScheduleSegmentsCacheEntry>;
+    ttlSeconds: number;
+    renderMissing: (
+      missing: Array<ScheduleSegmentsCacheEntry>,
+    ) => Promise<Map<string, T>>;
+  }): Promise<Map<string, T>> {
+    const result: Map<string, T> = new Map();
+
+    /* One entry per schedule; a repeated id is one read and one render. */
+    const entries: Array<ScheduleSegmentsCacheEntry> = [];
+    const seen: Set<string> = new Set();
+
+    for (const entry of data.entries) {
+      if (seen.has(entry.scheduleId)) {
+        continue;
+      }
+
+      seen.add(entry.scheduleId);
+      entries.push(entry);
+    }
+
+    if (entries.length === 0) {
+      return result;
+    }
+
+    const effectiveKeys: Map<string, string> = new Map();
+
+    await Promise.all(
+      entries.map(async (entry: ScheduleSegmentsCacheEntry): Promise<void> => {
+        const generation: string = await OnCallCalendarFeedCache.getGeneration(
+          OnCallCalendarFeedCache.scheduleGenerationKey(entry.scheduleId),
+        );
+
+        effectiveKeys.set(
+          entry.scheduleId,
+          `seg:${OnCallCalendarFeedCache.digest(
+            `${entry.scheduleId}|${generation}|${entry.key}`,
+          )}`,
+        );
+      }),
     );
 
-    const effectiveKey: string = `seg:${OnCallCalendarFeedCache.digest(
-      `${data.scheduleId}|${generation}|${data.key}`,
-    )}`;
+    const reads: Array<{
+      entry: ScheduleSegmentsCacheEntry;
+      parsed: T | undefined;
+    }> = await Promise.all(
+      entries.map(
+        async (
+          entry: ScheduleSegmentsCacheEntry,
+        ): Promise<{
+          entry: ScheduleSegmentsCacheEntry;
+          parsed: T | undefined;
+        }> => {
+          const cached: string | null =
+            await OnCallCalendarFeedCache.readString(
+              effectiveKeys.get(entry.scheduleId) as string,
+              OnCallCalendarFeedCache.memorySegments,
+            );
 
-    const cached: string | null = await OnCallCalendarFeedCache.readString(
-      effectiveKey,
-      OnCallCalendarFeedCache.memorySegments,
+          return {
+            entry,
+            parsed:
+              cached === null
+                ? undefined
+                : OnCallCalendarFeedCache.parseJson<T>(cached),
+          };
+        },
+      ),
     );
 
-    if (cached !== null) {
-      const parsed: T | undefined =
-        OnCallCalendarFeedCache.parseJson<T>(cached);
+    const missing: Array<ScheduleSegmentsCacheEntry> = [];
+    const joining: Array<ScheduleSegmentsCacheEntry> = [];
 
-      if (parsed !== undefined) {
-        return parsed;
+    /*
+     * From here to the in-flight registration below there is NO await: a
+     * concurrent caller must not be able to look at the in-flight map between
+     * this check and the registration, or two requests that missed the same
+     * key in the same instant would both render it.
+     */
+    for (const read of reads) {
+      if (read.parsed !== undefined) {
+        result.set(read.entry.scheduleId, read.parsed);
+        continue;
+      }
+
+      if (
+        OnCallCalendarFeedCache.inFlightRenders.has(
+          effectiveKeys.get(read.entry.scheduleId) as string,
+        )
+      ) {
+        joining.push(read.entry);
+        continue;
+      }
+
+      missing.push(read.entry);
+    }
+
+    const registered: Array<string> = [];
+
+    let renderPromise: Promise<Map<string, T>> | null = null;
+
+    if (missing.length > 0) {
+      renderPromise = (async (): Promise<Map<string, T>> => {
+        const rendered: Map<string, T> = await data.renderMissing(missing);
+
+        await Promise.all(
+          missing.map(
+            async (entry: ScheduleSegmentsCacheEntry): Promise<void> => {
+              const value: T | undefined = rendered.get(entry.scheduleId);
+
+              if (value === undefined) {
+                return;
+              }
+
+              const serialized: string = JSON.stringify(value);
+
+              if (
+                !OnCallCalendarFeedCache.isWithinLimit(
+                  serialized,
+                  MAX_CACHED_SEGMENT_BYTES,
+                  "schedule segment",
+                )
+              ) {
+                return;
+              }
+
+              await OnCallCalendarFeedCache.writeString(
+                effectiveKeys.get(entry.scheduleId) as string,
+                serialized,
+                data.ttlSeconds,
+                OnCallCalendarFeedCache.memorySegments,
+              );
+            },
+          ),
+        );
+
+        return rendered;
+      })();
+
+      for (const entry of missing) {
+        const effectiveKey: string = effectiveKeys.get(
+          entry.scheduleId,
+        ) as string;
+
+        const view: Promise<T | undefined> = renderPromise.then(
+          (rendered: Map<string, T>): T | undefined => {
+            return rendered.get(entry.scheduleId);
+          },
+        );
+
+        /*
+         * A view nobody joins must not become an unhandled rejection when the
+         * batch fails; the failure still reaches everyone who awaits it.
+         */
+        view.catch((): void => {});
+
+        OnCallCalendarFeedCache.inFlightRenders.set(effectiveKey, view);
+        registered.push(effectiveKey);
       }
     }
 
-    const inFlight: Promise<unknown> | undefined =
-      OnCallCalendarFeedCache.inFlightRenders.get(effectiveKey);
-
-    if (inFlight) {
-      return (await inFlight) as T;
-    }
-
-    const renderPromise: Promise<T> = (async (): Promise<T> => {
-      const rendered: T = await data.render();
-
-      await OnCallCalendarFeedCache.writeString(
-        effectiveKey,
-        JSON.stringify(rendered),
-        data.ttlSeconds,
-        OnCallCalendarFeedCache.memorySegments,
-      );
-
-      return rendered;
-    })();
-
-    OnCallCalendarFeedCache.inFlightRenders.set(effectiveKey, renderPromise);
-
     try {
-      return await renderPromise;
+      await Promise.all([
+        ...joining.map(
+          async (entry: ScheduleSegmentsCacheEntry): Promise<void> => {
+            const inFlight: Promise<unknown> | undefined =
+              OnCallCalendarFeedCache.inFlightRenders.get(
+                effectiveKeys.get(entry.scheduleId) as string,
+              );
+
+            if (!inFlight) {
+              return;
+            }
+
+            const value: T | undefined = (await inFlight) as T | undefined;
+
+            if (value !== undefined) {
+              result.set(entry.scheduleId, value);
+            }
+          },
+        ),
+        (async (): Promise<void> => {
+          if (!renderPromise) {
+            return;
+          }
+
+          const rendered: Map<string, T> = await renderPromise;
+
+          for (const entry of missing) {
+            const value: T | undefined = rendered.get(entry.scheduleId);
+
+            if (value !== undefined) {
+              result.set(entry.scheduleId, value);
+            }
+          }
+        })(),
+      ]);
     } finally {
-      OnCallCalendarFeedCache.inFlightRenders.delete(effectiveKey);
+      for (const effectiveKey of registered) {
+        OnCallCalendarFeedCache.inFlightRenders.delete(effectiveKey);
+      }
     }
+
+    return result;
   }
 
   // -- Body cache --------------------------------------------------------
@@ -295,7 +682,13 @@ export default class OnCallCalendarFeedCache {
     value: CachedCalendarBody;
     ttlSeconds: number;
   }): Promise<boolean> {
-    if (!OnCallCalendarFeedCache.isCacheableBody(data.value.body)) {
+    if (
+      !OnCallCalendarFeedCache.isWithinLimit(
+        data.value.body,
+        MAX_CACHED_BODY_BYTES,
+        "body",
+      )
+    ) {
       return false;
     }
 
@@ -331,7 +724,13 @@ export default class OnCallCalendarFeedCache {
     key: string,
     value: CachedCalendarBody,
   ): Promise<boolean> {
-    if (!OnCallCalendarFeedCache.isCacheableBody(value.body)) {
+    if (
+      !OnCallCalendarFeedCache.isWithinLimit(
+        value.body,
+        MAX_CACHED_LAST_GOOD_BYTES,
+        "last-good body",
+      )
+    ) {
       return false;
     }
 
@@ -518,7 +917,7 @@ export default class OnCallCalendarFeedCache {
 
   private static async readString(
     key: string,
-    memory: InMemoryTTLCache<string>,
+    memory: MemoryStringStore,
   ): Promise<string | null> {
     try {
       return await GlobalCache.getString(
@@ -536,7 +935,7 @@ export default class OnCallCalendarFeedCache {
     key: string,
     value: string,
     ttlSeconds: number,
-    memory: InMemoryTTLCache<string>,
+    memory: MemoryStringStore,
   ): Promise<void> {
     const ttl: number = Math.max(1, Math.floor(ttlSeconds));
 
@@ -555,8 +954,27 @@ export default class OnCallCalendarFeedCache {
 
   // -- Serialisation -----------------------------------------------------
 
-  private static isCacheableBody(body: string): boolean {
-    return Buffer.byteLength(body, "utf8") <= MAX_CACHED_BODY_BYTES;
+  /*
+   * Refusals are logged: a feed that is silently never cached looks exactly
+   * like a feed that is cached and busy, and the only symptom is a render on
+   * every poll.
+   */
+  private static isWithinLimit(
+    value: string,
+    maxBytes: number,
+    what: string,
+  ): boolean {
+    const bytes: number = Buffer.byteLength(value, "utf8");
+
+    if (bytes <= maxBytes) {
+      return true;
+    }
+
+    logger.debug(
+      `OnCallCalendarFeedCache: not caching a ${what} of ${bytes} bytes (limit ${maxBytes}).`,
+    );
+
+    return false;
   }
 
   private static serializeBody(value: CachedCalendarBody): string {

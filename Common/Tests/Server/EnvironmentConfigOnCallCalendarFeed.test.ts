@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The environment knobs the on-call calendar feeds read at boot, plus the
@@ -15,7 +17,30 @@ interface EnvironmentConfigShape {
   OnCallCalendarFeedRateLimitPerTokenPerWindow: number;
   OnCallCalendarFeedRateLimitPerIpPerWindow: number;
   IsEncryptionSecretInsecure: boolean;
+  InsecureEncryptionSecretValues: Array<string>;
   EncryptionSecretWarning: string | null;
+}
+
+/* <repo>/Common/Tests/Server -> <repo> */
+const REPO_ROOT: string = path.resolve(__dirname, "../../..");
+
+/*
+ * The value config.example.env ships for a variable. README's Docker Compose
+ * install is `cp config.example.env config.env`, and docker-compose.base.yml
+ * passes ENCRYPTION_SECRET through with no default, so whatever this file
+ * ships is what a stock self-hosted install actually encrypts with.
+ */
+function readExampleEnvValue(name: string): string {
+  const example: string = fs.readFileSync(
+    path.join(REPO_ROOT, "config.example.env"),
+    "utf8",
+  );
+
+  const match: RegExpMatchArray | null = example.match(
+    new RegExp(`^${name}=(.*)$`, "m"),
+  );
+
+  return (match?.[1] || "").trim();
 }
 
 const MANAGED_KEYS: Array<string> = [
@@ -172,13 +197,76 @@ describe("ENCRYPTION_SECRET boot warning", () => {
     expect(config.EncryptionSecretWarning).toEqual(expect.any(String));
   });
 
-  it("warns when the secret is the shipped placeholder", async () => {
+  it('warns when the secret is the code fallback "secret"', async () => {
     const config: EnvironmentConfigShape = await load({
       ENCRYPTION_SECRET: "secret",
     });
 
     expect(config.IsEncryptionSecretInsecure).toBe(true);
     expect(config.EncryptionSecretWarning).not.toBeNull();
+  });
+
+  it("warns for the placeholder config.example.env ships", async () => {
+    /*
+     * The stock Docker Compose install never sees the string "secret": it
+     * copies config.example.env, which sets the placeholder below. Before this
+     * case the warning stayed silent on the single most common insecure
+     * configuration there is.
+     */
+    const config: EnvironmentConfigShape = await load({
+      ENCRYPTION_SECRET: "please-change-this-to-random-value",
+    });
+
+    expect(config.IsEncryptionSecretInsecure).toBe(true);
+    expect(config.EncryptionSecretWarning).not.toBeNull();
+  });
+
+  it("warns for whatever config.example.env actually ships today", async () => {
+    /*
+     * Drift guard: change the placeholder in config.example.env and this fails
+     * until the insecure-value list learns about the new one.
+     */
+    const shipped: string = readExampleEnvValue("ENCRYPTION_SECRET");
+
+    expect(shipped.length).toBeGreaterThan(0);
+
+    const config: EnvironmentConfigShape = await load({
+      ENCRYPTION_SECRET: shipped,
+    });
+
+    expect({ shipped, insecure: config.IsEncryptionSecretInsecure }).toEqual({
+      shipped,
+      insecure: true,
+    });
+  });
+
+  it("warns for a half-edited placeholder", async () => {
+    /*
+     * An operator who appended to the placeholder rather than replacing it is
+     * still running a key that starts with a public string.
+     */
+    for (const value of [
+      "please-change-this-to-random-value-2",
+      "please-change-this",
+    ]) {
+      const config: EnvironmentConfigShape = await load({
+        ENCRYPTION_SECRET: value,
+      });
+
+      expect({ value, insecure: config.IsEncryptionSecretInsecure }).toEqual({
+        value,
+        insecure: true,
+      });
+    }
+  });
+
+  it("lists both shipped placeholders, so callers can name them", async () => {
+    const config: EnvironmentConfigShape = await load({});
+
+    expect(config.InsecureEncryptionSecretValues).toEqual([
+      "secret",
+      "please-change-this-to-random-value",
+    ]);
   });
 
   it("warns when the secret is blank or whitespace", async () => {
@@ -191,12 +279,17 @@ describe("ENCRYPTION_SECRET boot warning", () => {
     }
   });
 
-  it("warns when the placeholder is padded with whitespace", async () => {
-    const config: EnvironmentConfigShape = await load({
-      ENCRYPTION_SECRET: " secret ",
-    });
+  it("warns when a placeholder is padded with whitespace", async () => {
+    for (const value of [" secret ", " please-change-this-to-random-value "]) {
+      const config: EnvironmentConfigShape = await load({
+        ENCRYPTION_SECRET: value,
+      });
 
-    expect(config.IsEncryptionSecretInsecure).toBe(true);
+      expect({ value, insecure: config.IsEncryptionSecretInsecure }).toEqual({
+        value,
+        insecure: true,
+      });
+    }
   });
 
   it("is silent for a real secret", async () => {
@@ -211,14 +304,19 @@ describe("ENCRYPTION_SECRET boot warning", () => {
   it("is case-sensitive about the placeholder, since the encryption key is", async () => {
     /*
      * "Secret" is a different (still terrible) key; the warning is about the
-     * one value the repository ships, which is what an attacker would try.
-     * Anything else is the operator's own choice.
+     * exact values the repository ships, which are what an attacker would try
+     * first. Anything else is the operator's own choice.
      */
-    const config: EnvironmentConfigShape = await load({
-      ENCRYPTION_SECRET: "Secret",
-    });
+    for (const value of ["Secret", "Please-Change-This-To-Random-Value"]) {
+      const config: EnvironmentConfigShape = await load({
+        ENCRYPTION_SECRET: value,
+      });
 
-    expect(config.IsEncryptionSecretInsecure).toBe(false);
+      expect({ value, insecure: config.IsEncryptionSecretInsecure }).toEqual({
+        value,
+        insecure: false,
+      });
+    }
   });
 
   it("says what is at stake and what to do, without echoing any secret", async () => {
@@ -232,8 +330,15 @@ describe("ENCRYPTION_SECRET boot warning", () => {
     expect(warning).toMatch(/encrypted/i);
     expect(warning).toMatch(/calendar feed/i);
     expect(warning).toMatch(/config\.env|Helm/);
-    /* It names the placeholder in quotes as a fact, never an operator's own value. */
+    /*
+     * It names both shipped placeholders in quotes as a fact, never an
+     * operator's own value. An operator who reads "secret" alone and sees the
+     * compose placeholder in their config.env would wrongly conclude the
+     * warning is not about them.
+     */
     expect(warning).toContain('"secret"');
+    expect(warning).toContain('"please-change-this-to-random-value"');
+    expect(warning).toContain("config.example.env");
     expect(warning).not.toContain("b2f0c1e9");
   });
 

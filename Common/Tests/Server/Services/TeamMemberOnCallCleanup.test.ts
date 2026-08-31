@@ -4,6 +4,7 @@ import TeamMemberService, {
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyScheduleLayerUserService from "../../../Server/Services/OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
+import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserOnCallCalendarFeedService from "../../../Server/Services/UserOnCallCalendarFeedService";
 import UserOnCallShiftReminderService from "../../../Server/Services/UserOnCallShiftReminderService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "../../../Server/Services/OnCallDutyPolicyScheduleCalendarFeedService";
@@ -57,6 +58,7 @@ interface Spies {
   resequence: any;
   ruleUsersCountBy: any;
   ruleUsersDeleteBy: any;
+  overridesDeleteBy: any;
   refreshRoster: any;
   propagate: any;
   feedCountBy: any;
@@ -77,6 +79,7 @@ function stubWorld(options?: {
   remainingMemberships?: number;
   layerUserRows?: Array<Record<string, unknown>>;
   ruleUserCount?: number;
+  userOverrideCountPerSide?: number;
   feedCount?: number;
   rotatedScheduleFeeds?: Array<ObjectID>;
   rotatedProjectFeeds?: Array<ObjectID>;
@@ -124,6 +127,9 @@ function stubWorld(options?: {
     ruleUsersDeleteBy: jest
       .spyOn(OnCallDutyPolicyEscalationRuleUserService, "deleteBy")
       .mockResolvedValue((options?.ruleUserCount ?? 1) as never),
+    overridesDeleteBy: jest
+      .spyOn(OnCallDutyPolicyUserOverrideService, "deleteBy")
+      .mockResolvedValue((options?.userOverrideCountPerSide ?? 1) as never),
     refreshRoster: jest
       .spyOn(
         OnCallDutyPolicyScheduleService,
@@ -229,6 +235,8 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       expect(result).toEqual({
         removedLayerUserCount: 3,
         removedEscalationRuleUserCount: 1,
+        // one delete per side of the override (overridden user, substitute).
+        removedUserOverrideCount: 2,
         refreshedScheduleIds: ["schedule-1", "schedule-2"],
         personalFeedDisabled: true,
         removedReminderCount: 2,
@@ -300,6 +308,70 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       expect(spies.purgeForProject).toHaveBeenCalledWith("project-1");
     });
 
+    test("deletes the project's still-running overrides on BOTH sides through the service, and leaves ended ones alone", async () => {
+      const spies: Spies = stubWorld();
+      const before: Date = new Date();
+
+      await TeamMemberService.cleanupOnCallAssignmentsForUserLeavingProject({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+
+      /*
+       * An override "route Alice's alerts to Bob" keeps paging Bob and keeps
+       * Bob's covering shifts in the feeds and in /my-shifts; "route Bob's
+       * alerts to Carol" is Bob's own, and Bob is gone. Both sides go, and
+       * only through the service — its hooks refresh the overridden
+       * colleague's roster and propagate.
+       */
+      expect(spies.overridesDeleteBy).toHaveBeenCalledTimes(2);
+
+      const overrideSide: any = spies.overridesDeleteBy.mock.calls[0]![0];
+      const substituteSide: any = spies.overridesDeleteBy.mock.calls[1]![0];
+
+      expect(overrideSide.query.projectId).toBe(PROJECT_ID);
+      expect(overrideSide.query.overrideUserId).toBe(USER_ID);
+      expect(overrideSide.query.routeAlertsToUserId).toBeUndefined();
+      expect(overrideSide.props).toEqual({ isRoot: true });
+
+      expect(substituteSide.query.projectId).toBe(PROJECT_ID);
+      expect(substituteSide.query.routeAlertsToUserId).toBe(USER_ID);
+      expect(substituteSide.query.overrideUserId).toBeUndefined();
+      expect(substituteSide.props).toEqual({ isRoot: true });
+
+      // Ended overrides are history: both deletes are scoped to endsAt > now.
+      for (const call of [overrideSide, substituteSide]) {
+        const endsAt: any = call.query.endsAt;
+        expect(endsAt).toBeDefined();
+        expect(String(endsAt.getSql('"endsAt"'))).toContain('"endsAt" > :');
+
+        const boundValues: Array<unknown> = Object.values(
+          endsAt.objectLiteralParameters as Record<string, unknown>,
+        );
+        expect(boundValues).toHaveLength(1);
+        const bound: Date = boundValues[0] as Date;
+        expect(bound instanceof Date).toBe(true);
+        expect(bound.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
+        expect(bound.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+      }
+    });
+
+    test("the overrides go before the rosters are refreshed and the change propagated", async () => {
+      const spies: Spies = stubWorld();
+
+      await TeamMemberService.cleanupOnCallAssignmentsForUserLeavingProject({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+
+      expect(spies.overridesDeleteBy.mock.invocationCallOrder[0]!).toBeLessThan(
+        spies.refreshRoster.mock.invocationCallOrder[0]!,
+      );
+      expect(spies.overridesDeleteBy.mock.invocationCallOrder[0]!).toBeLessThan(
+        spies.propagate.mock.invocationCallOrder[0]!,
+      );
+    });
+
     test("the order is: rows removed, rosters refreshed, then propagated, then feeds", async () => {
       const spies: Spies = stubWorld();
 
@@ -364,6 +436,7 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       const spies: Spies = stubWorld({
         layerUserRows: [],
         ruleUserCount: 0,
+        userOverrideCountPerSide: 0,
         feedCount: 0,
       });
 
@@ -393,6 +466,7 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       expect(result).toEqual({
         removedLayerUserCount: 0,
         removedEscalationRuleUserCount: 0,
+        removedUserOverrideCount: 0,
         refreshedScheduleIds: [],
         personalFeedDisabled: false,
         removedReminderCount: 2,
@@ -462,6 +536,23 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       expect(result.removedLayerUserCount).toBe(3);
     });
 
+    test("a failing override delete is logged and the rest of the cleanup still runs", async () => {
+      const spies: Spies = stubWorld();
+      spies.overridesDeleteBy.mockRejectedValue(new Error("db down"));
+
+      const result: OnCallLeaveCleanupResult =
+        await TeamMemberService.cleanupOnCallAssignmentsForUserLeavingProject({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+        });
+
+      expect(result.removedUserOverrideCount).toBe(0);
+      expect(result.removedLayerUserCount).toBe(3);
+      expect(result.refreshedScheduleIds).toEqual(["schedule-1", "schedule-2"]);
+      expect(result.personalFeedDisabled).toBe(true);
+      expect(logger.error).toHaveBeenCalled();
+    });
+
     test("the membership count failing makes the guard a no-op rather than an exception", async () => {
       const spies: Spies = stubWorld();
       spies.countMembers.mockRejectedValue(new Error("db down"));
@@ -474,6 +565,49 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       ).resolves.toBeNull();
 
       expect(spies.layerUsersDeleteBy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a revoked invitation that was never accepted", () => {
+    /*
+     * Revoking a pending invite also brings the accepted-membership count to
+     * zero, so the guard fires. The row cleanup is harmless (there is nothing
+     * to remove), but rotating every opted-in shared feed would silently clear
+     * each subscribed teammate's calendar for someone who never had the link.
+     */
+    test("cleans up rows but rotates NO shared feed", async () => {
+      const spies: Spies = stubWorld();
+
+      const result: OnCallLeaveCleanupResult | null =
+        await TeamMemberService.cleanupOnCallAssignmentsIfUserLeftProject({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+          hadAcceptedMembership: false,
+        });
+
+      expect(result).not.toBeNull();
+      expect(spies.layerUsersDeleteBy).toHaveBeenCalledTimes(1);
+      expect(spies.remindersDeleteBy).toHaveBeenCalledTimes(1);
+      expect(spies.feedUpdateOneBy).toHaveBeenCalledTimes(1);
+
+      expect(spies.rotateScheduleFeeds).not.toHaveBeenCalled();
+      expect(spies.rotateProjectFeeds).not.toHaveBeenCalled();
+      expect(spies.purgeForProject).not.toHaveBeenCalled();
+      expect(result!.rotatedScheduleFeedIds).toEqual([]);
+      expect(result!.rotatedProjectFeedIds).toEqual([]);
+    });
+
+    test("an accepted membership (the default) still rotates", async () => {
+      const spies: Spies = stubWorld();
+
+      await TeamMemberService.cleanupOnCallAssignmentsIfUserLeftProject({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        hadAcceptedMembership: true,
+      });
+
+      expect(spies.rotateScheduleFeeds).toHaveBeenCalledTimes(1);
+      expect(spies.rotateProjectFeeds).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -534,6 +668,61 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
       expect(cleanup.mock.invocationCallOrder[0]!).toBeLessThan(
         removeSettings.mock.invocationCallOrder[0]!,
       );
+    });
+
+    test("hadAcceptedMembership is true only when one of the deleted rows was accepted", async () => {
+      jest
+        .spyOn(TeamMemberService, "refreshTokens")
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(
+          TeamMemberService,
+          "updateSubscriptionSeatsByUniqueTeamMembersInProject",
+        )
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(
+          UserNotificationSettingService,
+          "removeDefaultNotificationSettingsForUser",
+        )
+        .mockResolvedValue(undefined);
+      const cleanup: any = jest
+        .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
+        .mockResolvedValue(null);
+
+      await (TeamMemberService as any).onDeleteSuccess({
+        deleteBy: { query: {}, props: { isRoot: true } },
+        carryForward: [
+          // user-1: left two teams, one of them a real (accepted) membership.
+          {
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+            teamId: new ObjectID("t1"),
+            hasAcceptedInvitation: false,
+          },
+          {
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+            teamId: new ObjectID("t2"),
+            hasAcceptedInvitation: true,
+          },
+          // user-2: a revoked invitation, never accepted.
+          {
+            userId: new ObjectID("user-2"),
+            projectId: PROJECT_ID,
+            teamId: new ObjectID("t1"),
+            hasAcceptedInvitation: false,
+          },
+        ],
+      });
+
+      expect(cleanup).toHaveBeenCalledTimes(2);
+      expect(cleanup.mock.calls[0]![0]).toMatchObject({
+        userId: USER_ID,
+        hadAcceptedMembership: true,
+      });
+      expect(cleanup.mock.calls[1]![0].userId.toString()).toBe("user-2");
+      expect(cleanup.mock.calls[1]![0].hadAcceptedMembership).toBe(false);
     });
 
     test("the guard runs the real countBy rule when invoked through onDeleteSuccess", async () => {

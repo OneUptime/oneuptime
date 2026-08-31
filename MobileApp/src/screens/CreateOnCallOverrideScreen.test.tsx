@@ -485,6 +485,37 @@ describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
     expect(screen.getByText("That shift has already ended.")).toBeTruthy();
   });
 
+  test("a prefill with no project shows the picker instead of choosing silently", async (): Promise<void> => {
+    /*
+     * The picker is hidden for a prefill because the prefill settles the
+     * project. When it does not - a shift that arrived without one - the
+     * screen used to substitute the first project in the list with the picker
+     * still hidden, and the override was created somewhere the shift is not.
+     * Showing the picker turns that into a visible choice.
+     */
+    mockRouteParams.current = prefill({ projectId: "" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
+    expect(screen.getByTestId("project-option-project-2")).toBeTruthy();
+  });
+
+  test("a prefill naming a project this user is not in shows the picker", async (): Promise<void> => {
+    mockRouteParams.current = prefill({ projectId: "project-not-mine" });
+
+    await render(<CreateOnCallOverrideScreen />);
+
+    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
+
+    /* And the substituted project is the one it says it is. */
+    await fireEvent.press(screen.getByTestId("project-option-project-2"));
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+
+    expect(lastCreateInput().projectId).toBe("project-2");
+  });
+
   test("unreadable params degrade to the ordinary sheet", async (): Promise<void> => {
     mockRouteParams.current = prefill({ startsAt: "garbage" });
 

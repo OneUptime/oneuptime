@@ -3,20 +3,13 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, useTheme } from "./theme";
 import { AuthProvider } from "./hooks/useAuth";
 import { ProjectProvider } from "./hooks/useProject";
 import RootNavigator from "./navigation/RootNavigator";
 import OfflineBanner from "./components/OfflineBanner";
-
-const queryClient: QueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
-    },
-  },
-});
+import { queryClient } from "./queryClient";
 
 function AppContent(): React.JSX.Element {
   const { theme } = useTheme();

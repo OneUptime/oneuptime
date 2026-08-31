@@ -45,6 +45,18 @@ export function getUserIdFromToken(
 }
 
 /**
+ * The signed-in user's id from the in-memory token only, with no await.
+ *
+ * Null does NOT mean "signed out" - it means the keychain has not been read
+ * in this process yet. Use it where a value one render earlier is worth
+ * having (a cache key that must not be shared between users) and where null
+ * is handled anyway; `loadCurrentUserId` is the answer everywhere else.
+ */
+export function getCurrentUserIdSync(): string | null {
+  return getUserIdFromToken(getCachedAccessToken());
+}
+
+/**
  * The signed-in user's id, reading the in-memory token first and falling back
  * to storage.
  *
@@ -53,7 +65,7 @@ export function getUserIdFromToken(
  * render after launch nothing has.
  */
 export async function loadCurrentUserId(): Promise<string | null> {
-  const cached: string | null = getUserIdFromToken(getCachedAccessToken());
+  const cached: string | null = getCurrentUserIdSync();
 
   if (cached) {
     return cached;

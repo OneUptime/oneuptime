@@ -215,6 +215,28 @@ function materialization(data: {
   };
 }
 
+/*
+ * The batched materialization of several schedules at once: exactly what
+ * OnCallShiftMaterializer.materializeForSchedules returns for a list of ids.
+ */
+function batchedMaterialization(
+  parts: Array<MaterializeResult>,
+): MaterializeResult {
+  return {
+    shifts: parts.flatMap((part: MaterializeResult) => {
+      return part.shifts;
+    }),
+    truncated: parts.some((part: MaterializeResult) => {
+      return part.truncated;
+    }),
+    schedules: parts.flatMap((part: MaterializeResult) => {
+      return part.schedules;
+    }),
+    users: [],
+    generatedAt: NOW,
+  };
+}
+
 function shiftOn(
   schedule: ScheduleFixture,
   userId: string,
@@ -307,7 +329,7 @@ function summaries(body: string): Array<string> {
 
 // -- Spies ------------------------------------------------------------------
 
-let materializeForSchedule: jest.SpyInstance;
+let materializeForSchedules: jest.SpyInstance;
 let candidateIds: jest.SpyInstance;
 let scheduleFindBy: jest.SpyInstance;
 let userFindOneById: jest.SpyInstance;
@@ -348,9 +370,9 @@ beforeEach(() => {
   projectId = ObjectID.generate();
   me = ObjectID.generate();
 
-  materializeForSchedule = jest.spyOn(
+  materializeForSchedules = jest.spyOn(
     OnCallShiftMaterializer,
-    "materializeForSchedule",
+    "materializeForSchedules",
   );
   candidateIds = jest
     .spyOn(OnCallShiftMaterializer, "getCandidateScheduleIdsForUser")
@@ -754,7 +776,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     schedule = scheduleFixture({ projectId });
     installSchedules([schedule]);
     candidateIds.mockResolvedValue([schedule.id]);
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -791,7 +813,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(outcome.status).toBe(FeedRenderStatus.Empty);
     expect(outcome.reason).toBe(USER_MISSING_REASON);
     expect(candidateIds).not.toHaveBeenCalled();
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
   });
 
   test("a project below plan gets an empty calendar that says so, in the viewer's zone", async () => {
@@ -818,7 +840,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
 
     expect(outcome.status).toBe(FeedRenderStatus.Empty);
     expect(outcome.reason).toBe(NO_SCHEDULES_REASON);
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
   });
 
   test("a ?schedule= filter the user is not on gets the filtered reason and names the schedule", async () => {
@@ -853,6 +875,33 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(candidates.windowEnd.toISOString()).toBe(FEED_END.toISOString());
   });
 
+  /*
+   * Regression: the filter schedule was loaded by id as ROOT, with no
+   * projectId predicate, and its name was copied into the empty calendar's
+   * X-WR-CALNAME / X-WR-CALDESC before anything checked which project it
+   * belongs to. `?schedule=<any uuid>` on a personal feed link therefore
+   * turned that link into a schedule-id-to-name oracle across every tenant on
+   * the instance, over a public, unauthenticated route.
+   */
+  test("a ?schedule= filter pointing at ANOTHER project's schedule never names it", async () => {
+    const foreign: ScheduleFixture = scheduleFixture({
+      projectId: ObjectID.generate(),
+      name: "ProjectB Secret Rota",
+    });
+
+    installSchedules([foreign]);
+    candidateIds.mockResolvedValue([]);
+
+    const outcome: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      personalRequest({ projectId, userId: me, scheduleFilterId: foreign.id }),
+    );
+
+    expect(outcome.status).toBe(FeedRenderStatus.Empty);
+    expect(outcome.reason).toBe(FILTERED_SCHEDULE_REASON);
+    expect(unfold(outcome.body)).not.toContain("ProjectB Secret Rota");
+    expect(property(outcome.body, "X-WR-CALNAME")).toBe("OneUptime On-Call");
+  });
+
   test("a candidate schedule from ANOTHER project never renders under this project's token", async () => {
     const foreign: ScheduleFixture = scheduleFixture({
       projectId: ObjectID.generate(),
@@ -866,7 +915,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
 
     expect(outcome.status).toBe(FeedRenderStatus.Empty);
     expect(outcome.reason).toBe(NO_SCHEDULES_REASON);
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
   });
 
   test("renders ONLY the viewer's shifts, in the viewer's zone, over the day-aligned window, caching body and last-good", async () => {
@@ -896,20 +945,24 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(outcome.lastModified.toISOString()).toBe("2026-08-01T10:00:00.000Z");
 
     const materializeArgs: {
-      scheduleId: ObjectID;
+      scheduleIds: Array<ObjectID>;
       windowStart: Date;
       windowEnd: Date;
       now: Date;
       maxSimulationIterations: number;
-    } = materializeForSchedule.mock.calls[0]?.[0] as {
-      scheduleId: ObjectID;
+    } = materializeForSchedules.mock.calls[0]?.[0] as {
+      scheduleIds: Array<ObjectID>;
       windowStart: Date;
       windowEnd: Date;
       now: Date;
       maxSimulationIterations: number;
     };
 
-    expect(materializeArgs.scheduleId.toString()).toBe(schedule.id.toString());
+    expect(
+      materializeArgs.scheduleIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([schedule.id.toString()]);
     expect(materializeArgs.windowStart.toISOString()).toBe(
       FEED_START.toISOString(),
     );
@@ -943,7 +996,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(second.etag).toBe(first.etag);
     expect(second.lastModified.getTime()).toBe(first.lastModified.getTime());
     expect(second.eventCount).toBe(2);
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
     expect(recordDuration).toHaveBeenCalledTimes(1);
   });
 
@@ -962,7 +1015,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
       await OnCallCalendarFeedRenderer.render(request);
 
     expect(after.cacheHit).toBe(false);
-    expect(materializeForSchedule).toHaveBeenCalledTimes(2);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(2);
   });
 
   test("two feeds on the same schedule share ONE schedule-level expansion", async () => {
@@ -975,7 +1028,7 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
       personalRequest({ projectId, userId: other, tokenHash: "d".repeat(64) }),
     );
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
     expect(setBody).toHaveBeenCalledTimes(2);
   });
 
@@ -997,6 +1050,53 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
     expect(dashboardUrl).toHaveBeenCalled();
     expect(unfold(outcome.body)).toContain(DASHBOARD_URL);
   });
+
+  /*
+   * A policy-scoped override materializes as a variant shift owned by the
+   * SUBSTITUTE, so the per-user filter drops it out of the rostered user's
+   * feed. It still has to reach the mapper as context, or the rostered user's
+   * own event would keep claiming to page them through a policy that now
+   * pages somebody else.
+   */
+  test("a policy variant that pages somebody else shows up on the rostered user's own event", async () => {
+    const mine: MaterializedShift = shiftOn(
+      schedule,
+      me.toString(),
+      "2026-09-02T07:00:00Z",
+      "2026-09-02T15:00:00Z",
+    );
+
+    const substitute: MaterializedShift = {
+      ...shiftOn(
+        schedule,
+        "user-b",
+        "2026-09-02T07:00:00Z",
+        "2026-09-02T15:00:00Z",
+      ),
+      userName: "Bob Berg",
+      policyVariantOf: {
+        policyId: "pol-1",
+        policyName: "Payments Policy",
+        globalUserId: me.toString(),
+      },
+    };
+
+    materializeForSchedules.mockResolvedValue(
+      materialization({ schedule, shifts: [mine, substitute] }),
+    );
+
+    const outcome: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      personalRequest({ projectId, userId: me }),
+    );
+
+    // The substitute's variant never becomes an event in MY calendar...
+    expect(eventBlocks(outcome.body)).toHaveLength(1);
+    expect(summaries(outcome.body)[0]).not.toContain("Bob Berg");
+    // ...but my own event says who is really paged for that policy.
+    expect(unfold(outcome.body)).toContain(
+      "For Payments Policy\\, Bob Berg is paged instead from",
+    );
+  });
 });
 
 // -- Stale-while-error ------------------------------------------------------------
@@ -1010,7 +1110,7 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
     installSchedules([schedule]);
     candidateIds.mockResolvedValue([schedule.id]);
     request = personalRequest({ projectId, userId: me });
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1053,7 +1153,7 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
     expect(outcome.status).toBe(FeedRenderStatus.Unavailable);
     expect(outcome.retryAfterSeconds).toBe(RENDER_CAP_RETRY_AFTER_SECONDS);
     expect(RENDER_CAP_RETRY_AFTER_SECONDS).toBe(60);
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
     expect(OnCallCalendarFeedCache.getActiveRenderSlots()).toBe(0);
   });
 
@@ -1073,11 +1173,83 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
     expect(outcome.cacheHit).toBe(false);
     expect(outcome.body).toBe(good.body);
     expect(outcome.etag).toBe(good.etag);
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Regression: the last-good tier was keyed by the BODY key, which carries
+   * every schedule's shiftConfigVersion and the UTC day bucket. Every
+   * configuration edit bumps a version and every feed's day bucket rolls at
+   * midnight UTC, so the stale body became unreachable at exactly the two
+   * moments it is most needed -- the moments when every subscriber's body
+   * cache misses at once and the four render slots are scarcest -- and the
+   * render cap answered 503 instead. The key now carries the feed's identity
+   * and its SORTED SCHEDULE-ID SET (so a body rendered for a roster the
+   * subscriber has since left can still never be served) and nothing else.
+   */
+  test("a configuration edit does not throw away the last-good body", async () => {
+    const good: FeedRenderOutcome = await renderOnceAndExpireBodyCache();
+
+    /* Every roster-affecting hook bumps this. */
+    schedule.shiftConfigVersion = schedule.shiftConfigVersion + 1;
+    installSchedules([schedule]);
+
+    jest
+      .spyOn(OnCallCalendarFeedCache, "tryAcquireRenderSlot")
+      .mockReturnValue(false);
+
+    const outcome: FeedRenderOutcome =
+      await OnCallCalendarFeedRenderer.render(request);
+
+    expect(outcome.status).toBe(FeedRenderStatus.Rendered);
+    expect(outcome.stale).toBe(true);
+    expect(outcome.body).toBe(good.body);
+  });
+
+  test("the UTC day rolling does not throw away the last-good body", async () => {
+    const good: FeedRenderOutcome = await renderOnceAndExpireBodyCache();
+
+    jest
+      .spyOn(OnCallCalendarFeedCache, "tryAcquireRenderSlot")
+      .mockReturnValue(false);
+
+    const tomorrow: FeedRenderRequest = {
+      ...(request as FeedRenderRequest),
+      now: at("2026-09-02T00:03:00Z"),
+    } as FeedRenderRequest;
+
+    const outcome: FeedRenderOutcome =
+      await OnCallCalendarFeedRenderer.render(tomorrow);
+
+    expect(outcome.status).toBe(FeedRenderStatus.Rendered);
+    expect(outcome.stale).toBe(true);
+    expect(outcome.body).toBe(good.body);
+  });
+
+  test("a body rendered for a roster the user has since left is never served stale", async () => {
+    const other: ScheduleFixture = scheduleFixture({
+      projectId,
+      name: "Search",
+    });
+
+    await renderOnceAndExpireBodyCache();
+
+    /* The user is now on a DIFFERENT schedule: a new candidate set. */
+    installSchedules([other]);
+    candidateIds.mockResolvedValue([other.id]);
+
+    jest
+      .spyOn(OnCallCalendarFeedCache, "tryAcquireRenderSlot")
+      .mockReturnValue(false);
+
+    const outcome: FeedRenderOutcome =
+      await OnCallCalendarFeedRenderer.render(request);
+
+    expect(outcome.status).toBe(FeedRenderStatus.Unavailable);
   });
 
   test("a render that throws with nothing cached: Unavailable, logged, slot released", async () => {
-    materializeForSchedule.mockRejectedValue(new Error("layer exploded"));
+    materializeForSchedules.mockRejectedValue(new Error("layer exploded"));
 
     const outcome: FeedRenderOutcome =
       await OnCallCalendarFeedRenderer.render(request);
@@ -1092,7 +1264,7 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
   test("a render that throws with a last-good body serves it stale and keeps the last-good intact", async () => {
     const good: FeedRenderOutcome = await renderOnceAndExpireBodyCache();
 
-    materializeForSchedule.mockRejectedValue(new Error("layer exploded"));
+    materializeForSchedules.mockRejectedValue(new Error("layer exploded"));
 
     const outcome: FeedRenderOutcome =
       await OnCallCalendarFeedRenderer.render(request);
@@ -1113,7 +1285,7 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
   test("an iteration-capped expansion with a last-good body serves the complete older body, not the partial one", async () => {
     const good: FeedRenderOutcome = await renderOnceAndExpireBodyCache();
 
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({ schedule, shifts: [], truncated: true }),
     );
 
@@ -1127,7 +1299,7 @@ describe("OnCallCalendarFeedRenderer.render (stale-while-error)", () => {
   });
 
   test("an iteration-capped expansion with nothing cached goes out partial, with a note, and is NOT stored as last-good", async () => {
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1196,7 +1368,7 @@ describe("OnCallCalendarFeedRenderer.render (MAX_EVENTS shrink)", () => {
       }
     }
 
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({ schedule, shifts }),
     );
 
@@ -1223,7 +1395,7 @@ describe("OnCallCalendarFeedRenderer.render (schedule feed)", () => {
   beforeEach(() => {
     schedule = scheduleFixture({ projectId, name: "Payments" });
     installSchedules([schedule]);
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1254,7 +1426,7 @@ describe("OnCallCalendarFeedRenderer.render (schedule feed)", () => {
 
     expect(outcome.status).toBe(FeedRenderStatus.Empty);
     expect(outcome.reason).toBe(SCHEDULE_MISSING_REASON);
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
   });
 
   test("a schedule in another project is treated as missing (the token is a project capability)", async () => {
@@ -1376,7 +1548,7 @@ describe("OnCallCalendarFeedRenderer.render (schedule feed)", () => {
   });
 
   test("without an envelope (no layers) there is nothing a layer intended to cover, so no gap events", async () => {
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1421,7 +1593,7 @@ describe("OnCallCalendarFeedRenderer.render (schedule feed)", () => {
       );
     }
 
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts,
@@ -1490,7 +1662,7 @@ describe("OnCallCalendarFeedRenderer.render (project feed)", () => {
 
     expect(outcome.status).toBe(FeedRenderStatus.Empty);
     expect(outcome.reason).toBe(NO_PROJECT_SCHEDULES_REASON);
-    expect(materializeForSchedule).not.toHaveBeenCalled();
+    expect(materializeForSchedules).not.toHaveBeenCalled();
   });
 
   test("renders every schedule in the project together, named after the project", async () => {
@@ -1509,25 +1681,29 @@ describe("OnCallCalendarFeedRenderer.render (project feed)", () => {
 
     installSchedules([payments, search, elsewhere]);
 
-    materializeForSchedule.mockImplementation(
-      async (data: { scheduleId: ObjectID }): Promise<MaterializeResult> => {
-        const schedule: ScheduleFixture =
-          data.scheduleId.toString() === payments.id.toString()
-            ? payments
-            : search;
+    materializeForSchedules.mockImplementation(
+      async (data: {
+        scheduleIds: Array<ObjectID>;
+      }): Promise<MaterializeResult> => {
+        return batchedMaterialization(
+          data.scheduleIds.map((id: ObjectID): MaterializeResult => {
+            const schedule: ScheduleFixture =
+              id.toString() === payments.id.toString() ? payments : search;
 
-        return materialization({
-          schedule,
-          shifts: [
-            shiftOn(
+            return materialization({
               schedule,
-              "user-a",
-              "2026-09-02T07:00:00Z",
-              "2026-09-02T15:00:00Z",
-            ),
-          ],
-          projectName: "Acme",
-        });
+              shifts: [
+                shiftOn(
+                  schedule,
+                  "user-a",
+                  "2026-09-02T07:00:00Z",
+                  "2026-09-02T15:00:00Z",
+                ),
+              ],
+              projectName: "Acme",
+            });
+          }),
+        );
       },
     );
 
@@ -1537,7 +1713,23 @@ describe("OnCallCalendarFeedRenderer.render (project feed)", () => {
 
     expect(outcome.status).toBe(FeedRenderStatus.Rendered);
     expect(outcome.eventCount).toBe(2);
-    expect(materializeForSchedule).toHaveBeenCalledTimes(2);
+
+    /*
+     * ONE resolver call for BOTH schedules. Each schedule used to be
+     * materialized on its own -- seven queries apiece, the same user and
+     * project rows read again every time, fanned out concurrently -- which a
+     * project feed multiplies by every schedule in the project.
+     */
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        materializeForSchedules.mock.calls[0]?.[0] as {
+          scheduleIds: Array<ObjectID>;
+        }
+      ).scheduleIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([payments.id.toString(), search.id.toString()]);
     expect(summaries(outcome.body).sort()).toEqual([
       "Name of user-a · On-call · Payments",
       "Name of user-a · On-call · Search",
@@ -1556,6 +1748,80 @@ describe("OnCallCalendarFeedRenderer.render (project feed)", () => {
     expect(String(listing.query["projectId"])).toBe(projectId.toString());
     expect(listing.props?.isRoot).toBe(true);
   });
+
+  /*
+   * The batch fills one cache entry per schedule, so a later render only
+   * materializes the schedules whose entries are gone -- the whole point of
+   * caching per schedule rather than per feed.
+   */
+  test("only the schedule whose cache was purged is materialized again", async () => {
+    const payments: ScheduleFixture = scheduleFixture({
+      projectId,
+      name: "Payments",
+    });
+    const search: ScheduleFixture = scheduleFixture({
+      projectId,
+      name: "Search",
+    });
+
+    installSchedules([payments, search]);
+
+    materializeForSchedules.mockImplementation(
+      async (data: {
+        scheduleIds: Array<ObjectID>;
+      }): Promise<MaterializeResult> => {
+        return batchedMaterialization(
+          data.scheduleIds.map((id: ObjectID): MaterializeResult => {
+            const schedule: ScheduleFixture =
+              id.toString() === payments.id.toString() ? payments : search;
+
+            return materialization({
+              schedule,
+              shifts: [
+                shiftOn(
+                  schedule,
+                  "user-a",
+                  "2026-09-02T07:00:00Z",
+                  "2026-09-02T15:00:00Z",
+                ),
+              ],
+              projectName: "Acme",
+            });
+          }),
+        );
+      },
+    );
+
+    const first: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      projectRequest({ projectId }),
+    );
+
+    expect(first.eventCount).toBe(2);
+
+    /* Drop the body cache and ONE schedule's segments. */
+    await OnCallCalendarFeedCache.purgeForProject(projectId.toString());
+    await OnCallCalendarFeedCache.purgeForSchedule(search.id.toString());
+
+    const second: FeedRenderOutcome = await OnCallCalendarFeedRenderer.render(
+      projectRequest({ projectId }),
+    );
+
+    expect(second.eventCount).toBe(2);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        materializeForSchedules.mock.calls[1]?.[0] as {
+          scheduleIds: Array<ObjectID>;
+        }
+      ).scheduleIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([search.id.toString()]);
+    expect(summaries(second.body).sort()).toEqual([
+      "Name of user-a · On-call · Payments",
+      "Name of user-a · On-call · Search",
+    ]);
+  });
 });
 
 // -- Schedule-level cache ------------------------------------------------------------
@@ -1564,7 +1830,7 @@ describe("OnCallCalendarFeedRenderer.loadScheduleSegments", () => {
   test("renders once per (version, window) and hands back a JSON-safe copy on the hit", async () => {
     const schedule: ScheduleFixture = scheduleFixture({ projectId });
 
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1610,7 +1876,7 @@ describe("OnCallCalendarFeedRenderer.loadScheduleSegments", () => {
         now: NOW,
       });
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
     expect(second).toEqual(first);
     expect(first.scheduleId).toBe(schedule.id.toString());
     expect(first.scheduleName).toBe("Payments");
@@ -1635,7 +1901,7 @@ describe("OnCallCalendarFeedRenderer.loadScheduleSegments", () => {
       now: NOW,
     });
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(2);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(2);
 
     /* A different window is a new key. */
     await OnCallCalendarFeedRenderer.loadScheduleSegments({
@@ -1645,7 +1911,7 @@ describe("OnCallCalendarFeedRenderer.loadScheduleSegments", () => {
       now: NOW,
     });
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(3);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(3);
   });
 
   test("a legacy schedule (no timezone) caches a null timezone and the schedule's own facts fill the gaps", async () => {
@@ -1654,7 +1920,7 @@ describe("OnCallCalendarFeedRenderer.loadScheduleSegments", () => {
       timezone: undefined,
     });
 
-    materializeForSchedule.mockResolvedValue({
+    materializeForSchedules.mockResolvedValue({
       shifts: [],
       truncated: false,
       schedules: [],
@@ -1693,7 +1959,7 @@ describe("OnCallCalendarFeedRenderer.materializeUserShifts", () => {
     schedule = scheduleFixture({ projectId });
     installSchedules([schedule]);
     candidateIds.mockResolvedValue([schedule.id]);
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({
         schedule,
         shifts: [
@@ -1759,7 +2025,7 @@ describe("OnCallCalendarFeedRenderer.materializeUserShifts", () => {
       });
 
     const materializeArgs: { windowStart: Date; windowEnd: Date } =
-      materializeForSchedule.mock.calls[0]?.[0] as {
+      materializeForSchedules.mock.calls[0]?.[0] as {
         windowStart: Date;
         windowEnd: Date;
       };
@@ -1809,7 +2075,7 @@ describe("OnCallCalendarFeedRenderer.materializeUserShifts", () => {
     });
 
     const materializeArgs: { windowStart: Date; windowEnd: Date } =
-      materializeForSchedule.mock.calls[0]?.[0] as {
+      materializeForSchedules.mock.calls[0]?.[0] as {
         windowStart: Date;
         windowEnd: Date;
       };
@@ -1837,11 +2103,11 @@ describe("OnCallCalendarFeedRenderer.materializeUserShifts", () => {
       now: NOW,
     });
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
   });
 
   test("truncated propagates from the schedule-level materialization", async () => {
-    materializeForSchedule.mockResolvedValue(
+    materializeForSchedules.mockResolvedValue(
       materialization({ schedule, shifts: [], truncated: true }),
     );
 
@@ -1870,7 +2136,7 @@ describe("OnCallCalendarFeedRenderer.materializeUserShifts", () => {
         now: NOW,
       });
 
-    expect(materializeForSchedule).toHaveBeenCalledTimes(1);
+    expect(materializeForSchedules).toHaveBeenCalledTimes(1);
     expect(result.shifts).toHaveLength(2);
   });
 });
