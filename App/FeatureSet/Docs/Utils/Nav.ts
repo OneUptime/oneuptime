@@ -758,6 +758,10 @@ const DocsNav: NavGroup[] = [
       { title: "Core Web Vitals", url: "/docs/rum/web-vitals" },
       { title: "Managing Applications", url: "/docs/rum/applications" },
       { title: "Session Replay", url: "/docs/telemetry/session-replay" },
+      {
+        title: "Session Replay Troubleshooting",
+        url: "/docs/rum/session-replay-troubleshooting",
+      },
       { title: "RUM Troubleshooting", url: "/docs/rum/troubleshooting" },
     ],
   },
