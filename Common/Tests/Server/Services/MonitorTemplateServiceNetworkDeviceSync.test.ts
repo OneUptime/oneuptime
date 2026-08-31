@@ -366,8 +366,21 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     const bulkUpdateSpy: SpyInstance<typeof MonitorService.updateBy> = jest
       .spyOn(MonitorService, "updateBy")
       .mockResolvedValue(3);
-    const findMonitorsSpy: SpyInstance<typeof MonitorService.findBy> =
-      jest.spyOn(MonitorService, "findBy");
+    /*
+     * The bulk path reads ids so it can cover a fleet larger than one update
+     * batch, but it must still write through updateBy rather than rebinding
+     * each monitor the way the Network Device path does.
+     */
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([
+        buildLinkedMonitor([DEVICE_ONE_ID]),
+        buildLinkedMonitor([DEVICE_ONE_ID]),
+        buildLinkedMonitor([DEVICE_TWO_ID]),
+      ]);
+    const perMonitorUpdateSpy: SpyInstance<
+      typeof MonitorService.updateOneById
+    > = jest.spyOn(MonitorService, "updateOneById");
 
     const result: SyncLinkedMonitorsResult =
       await MonitorTemplateService.syncLinkedMonitors({
@@ -378,6 +391,6 @@ describe("MonitorTemplateService Network Device synchronization", () => {
 
     expect(result).toEqual({ totalLinkedMonitors: 3, syncedMonitors: 3 });
     expect(bulkUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(findMonitorsSpy).not.toHaveBeenCalled();
+    expect(perMonitorUpdateSpy).not.toHaveBeenCalled();
   });
 });

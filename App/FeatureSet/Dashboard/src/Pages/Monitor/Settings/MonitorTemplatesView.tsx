@@ -3,6 +3,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import MonitorsTable from "../../../Components/Monitor/MonitorTable";
+import { getMonitorTemplateFacetSelection } from "../../../Components/Monitor/MonitorFacets";
+import { getMonitorListRouteForFacet } from "../../../Components/Monitor/MonitorListFacetRoute";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -15,6 +17,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import {
+  buildSyncResultSummary,
+  SyncResultSummary,
+} from "./MonitorTemplateSyncResultUtil";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -105,6 +111,7 @@ const MonitorTemplatesView: FunctionComponent<
     null,
   );
   const [syncResultMessage, setSyncResultMessage] = useState<string>("");
+  const [syncResultTitle, setSyncResultTitle] = useState<string>("Done");
 
   const [showCriteriaSyncModal, setShowCriteriaSyncModal] =
     useState<boolean>(false);
@@ -214,9 +221,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced criteria onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "criteria",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowCriteriaSyncModal(false);
       setIsSyncingCriteria(false);
       fetchLinkedMonitorCount();
@@ -252,9 +264,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced monitoring interval onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "monitoring interval",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowIntervalSyncModal(false);
       setIsSyncingInterval(false);
       fetchLinkedMonitorCount();
@@ -290,9 +307,14 @@ const MonitorTemplatesView: FunctionComponent<
       const total: number =
         (response.data["totalLinkedMonitors"] as number) || 0;
 
-      setSyncResultMessage(
-        `Synced labels onto ${synced} monitor${synced === 1 ? "" : "s"} (${total} linked to this template).`,
-      );
+      const summary: SyncResultSummary = buildSyncResultSummary({
+        subject: "labels",
+        syncedMonitors: synced,
+        totalLinkedMonitors: total,
+      });
+
+      setSyncResultTitle(summary.title);
+      setSyncResultMessage(summary.message);
       setShowLabelsSyncModal(false);
       setIsSyncingLabels(false);
       fetchLinkedMonitorCount();
@@ -328,6 +350,7 @@ const MonitorTemplatesView: FunctionComponent<
       const monitorName: string = singleSyncMonitor.name || "monitor";
       setSingleSyncMonitor(null);
       setIsSyncingSingle(false);
+      setSyncResultTitle("Done");
       setSyncResultMessage(`Synced "${monitorName}" from this template.`);
       setTableRefreshToggle(Math.random().toString());
     } catch (e) {
@@ -435,6 +458,7 @@ const MonitorTemplatesView: FunctionComponent<
 
     setShowLinkModal(false);
     setEligibleMonitors([]);
+    setSyncResultTitle("Done");
     setSyncResultMessage(
       `Linked ${monitorIds.length} monitor${monitorIds.length === 1 ? "" : "s"} to this template.`,
     );
@@ -467,6 +491,7 @@ const MonitorTemplatesView: FunctionComponent<
       const monitorName: string = unlinkTarget.name || "monitor";
       setUnlinkTarget(null);
       setIsUnlinking(false);
+      setSyncResultTitle("Done");
       setSyncResultMessage(`Unlinked "${monitorName}" from this template.`);
       fetchLinkedMonitorCount();
       setTableRefreshToggle(Math.random().toString());
@@ -490,6 +515,17 @@ const MonitorTemplatesView: FunctionComponent<
     linkedMonitorCount === null
       ? "Sync Labels to Linked Monitors"
       : `Sync Labels to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
+  /*
+   * The count goes in the title rather than only inside the sync buttons: "how
+   * many monitors would a template edit touch" is the question this page is
+   * open to answer, and it should be answerable without reading a button that
+   * is about to overwrite them.
+   */
+  const linkedMonitorsTitle: string =
+    linkedMonitorCount === null
+      ? "Linked Monitors"
+      : `Linked Monitors (${linkedMonitorCount})`;
 
   return (
     <Fragment>
@@ -942,12 +978,31 @@ const MonitorTemplatesView: FunctionComponent<
       />
 
       <MonitorsTable
-        title="Linked Monitors"
+        title={linkedMonitorsTitle}
         description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor."
         noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
         query={linkedMonitorsQuery}
         cardButtons={[
+          {
+            /*
+             * The same rows, on the page where monitors are actually worked
+             * with — bulk actions, saved views, every other chip. The Template
+             * chip travels in the monitor list's own facet URL namespace, so
+             * the list arrives with a real, editable chip rather than a filter
+             * hidden under the table.
+             */
+            title: "Open in Monitors List",
+            icon: IconProp.ExternalLink,
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              Navigation.navigate(
+                getMonitorListRouteForFacet(
+                  getMonitorTemplateFacetSelection(modelId.toString()),
+                ),
+              );
+            },
+          },
           {
             title: "Link Existing Monitors",
             icon: IconProp.Add,
@@ -1152,7 +1207,7 @@ const MonitorTemplatesView: FunctionComponent<
 
       {syncResultMessage && (
         <ConfirmModal
-          title="Done"
+          title={syncResultTitle}
           description={syncResultMessage}
           submitButtonText="OK"
           submitButtonType={ButtonStyleType.PRIMARY}
