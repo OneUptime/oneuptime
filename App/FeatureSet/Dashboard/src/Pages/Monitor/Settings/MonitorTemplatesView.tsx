@@ -3,6 +3,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import MonitorsTable from "../../../Components/Monitor/MonitorTable";
+import { getMonitorTemplateFacetSelection } from "../../../Components/Monitor/MonitorFacets";
+import { getMonitorListRouteForFacet } from "../../../Components/Monitor/MonitorListFacetRoute";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -481,6 +483,17 @@ const MonitorTemplatesView: FunctionComponent<
       ? "Sync Labels to Linked Monitors"
       : `Sync Labels to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
 
+  /*
+   * The count goes in the title rather than only inside the sync buttons: "how
+   * many monitors would a template edit touch" is the question this page is
+   * open to answer, and it should be answerable without reading a button that
+   * is about to overwrite them.
+   */
+  const linkedMonitorsTitle: string =
+    linkedMonitorCount === null
+      ? "Linked Monitors"
+      : `Linked Monitors (${linkedMonitorCount})`;
+
   return (
     <Fragment>
       {/* Template Info — identity of the template itself. */}
@@ -910,12 +923,31 @@ const MonitorTemplatesView: FunctionComponent<
       />
 
       <MonitorsTable
-        title="Linked Monitors"
+        title={linkedMonitorsTitle}
         description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor."
         noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
         query={linkedMonitorsQuery}
         cardButtons={[
+          {
+            /*
+             * The same rows, on the page where monitors are actually worked
+             * with — bulk actions, saved views, every other chip. The Template
+             * chip travels in the monitor list's own facet URL namespace, so
+             * the list arrives with a real, editable chip rather than a filter
+             * hidden under the table.
+             */
+            title: "Open in Monitors List",
+            icon: IconProp.ExternalLink,
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              Navigation.navigate(
+                getMonitorListRouteForFacet(
+                  getMonitorTemplateFacetSelection(modelId.toString()),
+                ),
+              );
+            },
+          },
           {
             title: "Link Existing Monitors",
             icon: IconProp.Add,
