@@ -238,6 +238,18 @@ describe("GET /microsoft-bot/test", () => {
         "the installed Teams app package belonging to this deployment",
         ["installed", "this deployment"],
       ],
+      /*
+       * Reachability is listed apart from the endpoint being *configured*
+       * because the two fail separately and are indistinguishable from in
+       * here. A correctly configured endpoint on a deployment Azure cannot
+       * dial produces working outbound alerts and a completely dead bot —
+       * which reads as a half-broken integration rather than a network
+       * problem, and is how this endpoint's blessing gets misread.
+       */
+      [
+        "Azure Bot Service being able to reach this deployment",
+        ["reach this deployment", "public internet"],
+      ],
     ])(
       "notVerified explicitly disclaims %s",
       async (_label: string, requiredFragments: Array<string>) => {
@@ -256,6 +268,20 @@ describe("GET /microsoft-bot/test", () => {
         expect(match).toBeDefined();
       },
     );
+
+    test("notVerified warns that a working alert does not test reachability", async () => {
+      /*
+       * The trap this endpoint exists to avoid: an admin whose alerts arrive
+       * in Teams reads that as proof the bot is wired up, when outbound
+       * notifications go out over a connection OneUptime opens itself and
+       * never touch the inbound path the bot depends on.
+       */
+      const response: InvokedResponse = await callBotTest();
+      const joined: string = joinStrings(response.body["notVerified"]);
+
+      expect(joined).toContain("outbound notifications work without it");
+      expect(joined).toContain("working alert does not test this");
+    });
 
     test("nextStep names the client id and tells the admin to compare it against the installed app's bot id", async () => {
       const response: InvokedResponse = await callBotTest();
