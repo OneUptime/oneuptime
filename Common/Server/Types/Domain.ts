@@ -11,6 +11,13 @@ import URL from "../../Types/API/URL";
 import API from "../../Utils/API";
 import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
 
+/*
+ * A status page that is up answers the verification path well inside this.
+ * It is a ceiling on how long one unreachable domain may hold up the rest of a
+ * certificate run, not a latency target.
+ */
+export const DOMAIN_VERIFICATION_TIMEOUT_IN_MS: number = 10000;
+
 export default class Domain extends DomainCommon {
   /*
    * GET a domain-verification URL built from a tenant-supplied domain.
@@ -26,6 +33,15 @@ export default class Domain extends DomainCommon {
    *
    * Private ranges stay reachable on self-hosted installs, where a status page
    * domain legitimately resolves inside the corporate network.
+   *
+   * The call is bounded. A customer domain that has been pointed at an address
+   * which silently drops packets - a decommissioned load balancer, a firewall
+   * that blackholes instead of refusing - never answers and never resets, so an
+   * unbounded request sits until the kernel gives up on the TCP connect, which
+   * is a little over two minutes on Linux. The certificate crons walk every
+   * status page domain in turn, so each such domain would burn that timeout out
+   * of the run's budget and push the domains behind it into the next run - the
+   * renewals that matter get starved by the domains that will never answer.
    */
   @CaptureSpan()
   public static async getForDomainVerification(data: {
@@ -41,6 +57,7 @@ export default class Domain extends DomainCommon {
       url: URL.fromString(data.url),
       options: {
         doNotFollowRedirects: true,
+        timeout: DOMAIN_VERIFICATION_TIMEOUT_IN_MS,
         httpAgent,
         httpsAgent,
       },
