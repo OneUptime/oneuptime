@@ -1,7 +1,6 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -24,6 +23,29 @@ import ObjectID from "../../Types/ObjectID";
  * the returned Monitor through MonitorService so tenant, billing, reference,
  * rule-engine, and audit hooks still run.
  */
+
+/*
+ * The widest name a provisioned monitor may carry.
+ *
+ * Monitor.name is varchar(100), but the real ceiling is the SLUG: Monitor is
+ * @SlugifyColumn("name", "slug") and Slug.getSlug appends a dash plus ten
+ * random digits into its own varchar(100), and the create path THROWS on
+ * overflow rather than truncating. A name that fills the name column
+ * therefore produces a 111-character slug and fails the insert — the monitor
+ * is counted into `monitorsFailed` and the device silently never gets one.
+ *
+ * 88 leaves exactly the slug's 11-character tail, the same cap
+ * MAX_PING_MONITOR_NAME_LENGTH uses on the other provisioning path. Device
+ * names arrive clamped to 80 by DiscoveredDeviceBuilder, so this only bites a
+ * device renamed by hand or a long template suffix.
+ */
+export const MAX_PROVISIONED_MONITOR_NAME_LENGTH: number = 88;
+
+/*
+ * What sits between the device's own identity and the template's default
+ * monitor name when the template supplies one.
+ */
+const MONITOR_NAME_SEPARATOR: string = " - ";
 
 type NetworkDeviceId = ObjectID | string | null | undefined;
 
@@ -300,12 +322,42 @@ export default class NetworkDeviceMonitorTemplateUtil {
       data.networkDevice.hostname?.trim() ||
       `Network Device ${networkDeviceId}`;
     const templateMonitorName: string =
-      data.monitorTemplate.monitorName?.trim() || "Monitor";
+      data.monitorTemplate.monitorName?.trim() || "";
 
-    return this.truncateWithoutSplittingSurrogatePair(
-      `${deviceIdentity} - ${templateMonitorName}`,
-      ColumnLength.ShortText,
+    /*
+     * The suffix is OPT-IN (issue #3486). A template with no default monitor
+     * name names its monitors after the device and nothing else, because the
+     * alternative — the old `|| "Monitor"` fallback — was an invented suffix
+     * on an estate the operator never asked to have suffixed. A template that
+     * DOES carry a name keeps the composed form, which is what tells two
+     * templates apart on the same device.
+     */
+    const composedName: string = templateMonitorName
+      ? `${deviceIdentity}${MONITOR_NAME_SEPARATOR}${templateMonitorName}`
+      : deviceIdentity;
+
+    const truncatedName: string = this.truncateWithoutSplittingSurrogatePair(
+      composedName,
+      MAX_PROVISIONED_MONITOR_NAME_LENGTH,
     );
+
+    /*
+     * The device identity leads, so a cap reached inside the separator leaves
+     * the name trailing " ", " -" or " - " — a suffix that is visibly half
+     * there. Everything that survived such a cut IS the device identity, so
+     * return that rather than the remnant. Checked by LENGTH rather than by
+     * trailing characters, so a device genuinely named "Router A -" keeps its
+     * own trailing hyphen when nothing was cut at all.
+     */
+    if (
+      truncatedName.length > deviceIdentity.length &&
+      truncatedName.length <=
+        deviceIdentity.length + MONITOR_NAME_SEPARATOR.length
+    ) {
+      return deviceIdentity;
+    }
+
+    return truncatedName;
   }
 
   private static truncateWithoutSplittingSurrogatePair(

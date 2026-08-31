@@ -90,8 +90,16 @@ const MonitorTemplatesView: FunctionComponent<
    * is offline"), and compares against those same seeded strings to tell
    * criteria nobody has edited from criteria somebody has - so handing it
    * the wrong name costs both a readable criteria and that comparison.
+   *
+   * Optional since issue #3486, hence the template's own name beside it:
+   * the seeded strings are persisted into monitorSteps and inherited by
+   * every monitor made from this template, so a blank here has to fall back
+   * to something readable rather than seed "Check if  is offline" forever.
    */
   const [templateMonitorName, setTemplateMonitorName] = useState<string>("");
+  const [templateName, setTemplateName] = useState<string>("");
+
+  const criteriaSeedMonitorName: string = templateMonitorName || templateName;
 
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
@@ -167,10 +175,12 @@ const MonitorTemplatesView: FunctionComponent<
             select: {
               monitorType: true,
               monitorName: true,
+              templateName: true,
             },
           });
         setMonitorType(item?.monitorType);
-        setTemplateMonitorName(item?.monitorName || "");
+        setTemplateMonitorName(item?.monitorName?.trim() || "");
+        setTemplateName(item?.templateName?.trim() || "");
       } catch {
         // Leave undefined — the dependent cards will simply not render.
       }
@@ -535,6 +545,16 @@ const MonitorTemplatesView: FunctionComponent<
             },
           },
         ]}
+        /*
+         * The template's own name is the stand-in the criteria editor seeds
+         * with while the optional default monitor name is blank (issue
+         * #3486), so a rename here has to reach that state too.
+         */
+        onSaveSuccess={(item: MonitorTemplate) => {
+          if (item.templateName?.trim()) {
+            setTemplateName(item.templateName.trim());
+          }
+        }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: MonitorTemplate,
@@ -590,14 +610,17 @@ const MonitorTemplatesView: FunctionComponent<
               monitorName: true,
             },
             title: "Default Monitor Name",
+            /*
+             * Optional, and clearable back to blank, since issue #3486 - see
+             * the note on the model column. No minLength, because a field
+             * that accepts nothing at all has no business rejecting a
+             * one-character name.
+             */
             description:
-              "Default name applied to monitors created from this template.",
+              "Default name applied to monitors created from this template. Leave it blank to name each monitor after the resource it watches.",
             fieldType: FormFieldSchemaType.Text,
-            required: true,
+            required: false,
             placeholder: "Monitor Name",
-            validation: {
-              minLength: 2,
-            },
           },
           {
             field: {
@@ -629,9 +652,12 @@ const MonitorTemplatesView: FunctionComponent<
             setMonitorType(item.monitorType as MonitorType);
           }
 
-          if (item.monitorName) {
-            setTemplateMonitorName(item.monitorName);
-          }
+          /*
+           * Assigned unconditionally: the name is clearable now, and a
+           * truthiness guard here would leave the criteria editor quoting a
+           * default name the template no longer carries.
+           */
+          setTemplateMonitorName(item.monitorName?.trim() || "");
         }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -642,8 +668,8 @@ const MonitorTemplatesView: FunctionComponent<
               setMonitorType(item.monitorType as MonitorType);
             }
 
-            if (item.monitorName && !templateMonitorName) {
-              setTemplateMonitorName(item.monitorName);
+            if (item.monitorName?.trim() && !templateMonitorName) {
+              setTemplateMonitorName(item.monitorName.trim());
             }
           },
           fields: [
@@ -653,6 +679,12 @@ const MonitorTemplatesView: FunctionComponent<
               },
               title: "Default Monitor Name",
               fieldType: FieldType.Text,
+              /*
+               * Rendered when the column is empty. Without it the row is a
+               * labelled blank, which reads as a failed load rather than as
+               * the deliberate "name monitors after the resource" choice.
+               */
+              placeholder: "Named after the resource",
             },
             {
               field: {
@@ -720,7 +752,7 @@ const MonitorTemplatesView: FunctionComponent<
                   <MonitorStepsForm
                     {...fieldProps}
                     monitorType={monitorType}
-                    monitorName={templateMonitorName}
+                    monitorName={criteriaSeedMonitorName}
                   />
                 );
               },

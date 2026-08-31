@@ -56,6 +56,8 @@ Selecting a monitor template creates active monitors and may affect plan usage o
 
 The monitor template is the alerting layer: it supplies evaluation criteria and monitor settings. SNMP Health OIDs, interface walking, and endpoint collection remain polling settings on the Network Device itself; auto-imported devices continue to use the existing vendor-health-template seeding behavior for those fields.
 
+Provisioned monitors are named after the DEVICE, not the template: the discovered host's SNMP sysName, falling back to its address. A template that fills in **Default Monitor Name** appends it as a suffix (\`UN0660WANRTR01 - Unit Router\`), which is what tells two templates apart on one device; leave that field blank and each monitor carries the device name alone.
+
 Provisioning is reconciled and safe to repeat: a missing template monitor is added even when the Network Device was registered by an earlier scan, while an existing automatic or manually configured Network Device monitor is left alone. If several matching rules select the same template, OneUptime creates one monitor. If they deliberately select different templates, it creates one monitor per distinct template.
 
 Changing a rule's template does not delete or rewrite monitors created from its old template. This avoids destructive surprises; delete the old automatic monitor and let the intended rule recreate it, or replace it with a manual monitor if you are migrating templates.

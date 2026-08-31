@@ -14,10 +14,15 @@ import type {
   FeedItem,
 } from "../api/types";
 
+/*
+ * `AlertEpisodeItem | null`, because `fetchAlertEpisodeById` resolves `null`
+ * for an episode that is gone. That miss is settled DATA, so `isError` here
+ * means the request failed and a null `data` means there is no such episode.
+ */
 export function useAlertEpisodeDetail(
   projectId: string,
   episodeId: string,
-): UseQueryResult<AlertEpisodeItem, Error> {
+): UseQueryResult<AlertEpisodeItem | null, Error> {
   return useQuery({
     queryKey: ["alert-episode", projectId, episodeId],
     queryFn: () => {

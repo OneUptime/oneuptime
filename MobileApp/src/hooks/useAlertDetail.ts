@@ -12,10 +12,16 @@ import type {
   FeedItem,
 } from "../api/types";
 
+/*
+ * `AlertItem | null`, because `fetchAlertById` resolves `null` for an alert
+ * that no longer exists. That miss is settled DATA, not a failure: `isError`
+ * on this result means the request itself went wrong, and a caller reading a
+ * null `data` is reading "there is no such alert".
+ */
 export function useAlertDetail(
   projectId: string,
   alertId: string,
-): UseQueryResult<AlertItem, Error> {
+): UseQueryResult<AlertItem | null, Error> {
   return useQuery({
     queryKey: ["alert", projectId, alertId],
     queryFn: () => {

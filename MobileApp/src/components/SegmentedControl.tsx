@@ -41,6 +41,16 @@ export default function SegmentedControl<T extends string>({
           <TouchableOpacity
             key={segment.key}
             activeOpacity={0.7}
+            /*
+             * Which of the two segments is showing is conveyed visually by a
+             * filled background and nothing else, and a filled background is
+             * not something a screen reader can read out. Without the role and
+             * the selected state, VoiceOver and TalkBack announce two
+             * identical, unrelated buttons - "Alerts", "Episodes" - and give a
+             * responder no way to tell which list is under them.
+             */
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
             onPress={() => {
               return onSelect(segment.key);
             }}
