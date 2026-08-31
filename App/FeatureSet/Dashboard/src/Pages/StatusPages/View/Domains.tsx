@@ -27,6 +27,7 @@ import React, {
 import OneUptimeDate from "Common/Types/Date";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
+import CertificateReissueUtil from "Common/Utils/CertificateReissue";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -49,6 +50,21 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const [showOrderSSLModal, setShowOrderSSLModal] = useState<boolean>(false);
+
+  const [showReissueSSLModal, setShowReissueSSLModal] =
+    useState<boolean>(false);
+
+  const [reissueSslLoading, setReissueSslLoading] = useState<boolean>(false);
+
+  /*
+   * The server enforces the cooldown; this is only so the button explains
+   * itself before it is pressed rather than after the request comes back
+   * rejected. Both sides read the same helper, so they cannot disagree.
+   */
+  const isReissueCoolingDown: boolean = CertificateReissueUtil.isInCooldown(
+    selectedStatusPageDomain?.certificateReissueRequestedAt,
+    OneUptimeDate.getCurrentDate(),
+  );
 
   return (
     <Fragment>
@@ -141,6 +157,46 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }
               },
             },
+            {
+              /*
+               * Certificates renew themselves, so this is not part of the
+               * normal path - it is here for the customer who has a reason to
+               * want a brand new certificate now (a key they would rather not
+               * keep, a certificate their own scanner is unhappy with, a
+               * domain that went through a change upstream).
+               */
+              title: "Reissue SSL",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Refresh,
+              isVisible: (item: StatusPageDomain): boolean => {
+                /*
+                 * Only where there is a Let's Encrypt certificate of ours to
+                 * replace. A custom certificate is the customer's own upload,
+                 * and a domain that never ordered one still shows "Order Free
+                 * SSL" instead.
+                 */
+                return Boolean(
+                  !item.isCustomCertificate &&
+                    item["isCnameVerified"] &&
+                    item.isSslOrdered,
+                );
+              },
+              onClick: async (
+                item: StatusPageDomain,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ) => {
+                try {
+                  setShowReissueSSLModal(true);
+                  setSelectedStatusPageDomain(item);
+                  onCompleteAction();
+                } catch (err) {
+                  onCompleteAction();
+                  setSelectedStatusPageDomain(null);
+                  onError(err as Error);
+                }
+              },
+            },
           ]}
           noItemsMessage={"No custom domains found."}
           viewPageRoute={Navigation.getCurrentRoute()}
@@ -149,6 +205,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isSslProvisioned: true,
             isCnameVerified: true,
             isCustomCertificate: true,
+            // Read by the reissue modal to show the cooldown before it is hit.
+            certificateReissueRequestedAt: true,
           }}
           formSteps={[
             {
@@ -460,6 +518,82 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               }
 
               setOrderSslLoading(false);
+            }}
+          />
+        )}
+
+        {showReissueSSLModal && selectedStatusPageDomain && (
+          <ConfirmModal
+            title={`Reissue SSL Certificate for this Status Page`}
+            description={
+              !StatusPageCNameRecord ? (
+                <div>
+                  <span>
+                    Custom Domains not enabled for this OneUptime installation.
+                    Please contact your server admin to enable this feature.
+                  </span>
+                </div>
+              ) : isReissueCoolingDown ? (
+                <div>
+                  {CertificateReissueUtil.getCooldownMessage(
+                    selectedStatusPageDomain.certificateReissueRequestedAt!,
+                    OneUptimeDate.getCurrentDate(),
+                  )}
+                </div>
+              ) : (
+                <div>
+                  We will ask Let&apos;s Encrypt for a brand new certificate for
+                  this domain, and replace the one we currently serve with it.
+                  Your status page stays online on the existing certificate
+                  while this happens, and the new certificate is served within
+                  15 minutes.
+                  <br />
+                  <br />
+                  Certificates renew automatically well before they expire, so
+                  you do not need to do this to stay online. Because Let&apos;s
+                  Encrypt rate limits how often the same domain can be issued, a
+                  reissue can only be requested once every{" "}
+                  {CertificateReissueUtil.COOLDOWN_IN_HOURS} hours.
+                </div>
+              )
+            }
+            submitButtonText={"Reissue SSL Certificate"}
+            disableSubmitButton={isReissueCoolingDown}
+            onClose={() => {
+              setShowReissueSSLModal(false);
+              setError("");
+              return setSelectedStatusPageDomain(null);
+            }}
+            isLoading={reissueSslLoading}
+            error={error}
+            onSubmit={async () => {
+              try {
+                setReissueSslLoading(true);
+                setError("");
+
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.get<JSONObject>({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
+                      `/${
+                        new StatusPageDomain().crudApiPath
+                      }/reissue-ssl/${selectedStatusPageDomain?.id?.toString()}`,
+                    ),
+                    data: {},
+                    headers: ModelAPI.getCommonHeaders(),
+                  });
+
+                if (response.isFailure()) {
+                  throw response;
+                }
+
+                setShowReissueSSLModal(false);
+                setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+                setSelectedStatusPageDomain(null);
+              } catch (err) {
+                setError(API.getFriendlyMessage(err));
+              }
+
+              setReissueSslLoading(false);
             }}
           />
         )}

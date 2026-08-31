@@ -285,12 +285,32 @@ async function messageThrownByClient(responses: {
 /*
  * The prefixes, derived rather than pasted.
  *
- * Both client templates are `<prefix>${responseText.slice(0, 500)}`, so
- * driving the failure with an EMPTY response body makes the thrown message
- * be exactly the prefix — trailing ": " and embedded HTTP status included.
+ * Both client templates open `<family> (HTTP <status>): `, and everything
+ * after that marker belongs to the failure rather than to the taxonomy:
+ * the echoed response body, and — on the alerts path only — the operator
+ * hint describeHttpFailure appends behind it. So the prefix is taken by
+ * cutting at the marker the client itself writes, not by driving the
+ * failure with an empty body and calling whatever came back "the prefix".
+ * That older trick read as prefix + hint the moment the client started
+ * appending guidance, and every startsWith below silently inverted.
  */
 let tokenExchangePrefix: string = "";
 let alertsFetchPrefix: string = "";
+
+// The separator the client puts between its prefix and the echoed body.
+const PREFIX_END_MARKER: string = "): ";
+
+function prefixOf(message: string): string {
+  const markerIndex: number = message.indexOf(PREFIX_END_MARKER);
+
+  if (markerIndex === -1) {
+    throw new Error(
+      `GoogleSecOpsClient no longer opens its HTTP failures with "<family> (HTTP <status>): ". The taxonomy these tests assert cannot be derived from: ${message}`,
+    );
+  }
+
+  return message.slice(0, markerIndex + PREFIX_END_MARKER.length);
+}
 
 /*
  * The status-free half of each prefix ("Google token exchange failed",
@@ -329,15 +349,19 @@ function carriesGoogleRequestPrefix(message: string): boolean {
 }
 
 beforeAll(async () => {
-  tokenExchangePrefix = await messageThrownByClient({
-    token: { status: TOKEN_EXCHANGE_FAILURE_STATUS, body: "" },
-    alerts: okTokenResponse(),
-  });
+  tokenExchangePrefix = prefixOf(
+    await messageThrownByClient({
+      token: { status: TOKEN_EXCHANGE_FAILURE_STATUS, body: "" },
+      alerts: okTokenResponse(),
+    }),
+  );
 
-  alertsFetchPrefix = await messageThrownByClient({
-    token: okTokenResponse(),
-    alerts: { status: ALERTS_FETCH_FAILURE_STATUS, body: "" },
-  });
+  alertsFetchPrefix = prefixOf(
+    await messageThrownByClient({
+      token: okTokenResponse(),
+      alerts: { status: ALERTS_FETCH_FAILURE_STATUS, body: "" },
+    }),
+  );
 
   nonJsonBodyMessage = await messageThrownByClient({
     token: okTokenResponse(),
@@ -548,6 +572,22 @@ describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
     expect(tokenExchangePrefix.length).toBeGreaterThan(0);
     expect(alertsFetchPrefix.length).toBeGreaterThan(0);
     expect(tokenExchangePrefix).not.toBe(alertsFetchPrefix);
+
+    /*
+     * Each derivation stopped at the marker rather than swallowing an
+     * echoed body or a trailing operator hint. Without this, a prefix that
+     * had quietly absorbed the tail would still satisfy every startsWith
+     * below when applied to the message it was derived from, and fail only
+     * against the other bucket — which reads as a passing test.
+     */
+    expect(tokenExchangePrefix.endsWith(PREFIX_END_MARKER)).toBe(true);
+    expect(alertsFetchPrefix.endsWith(PREFIX_END_MARKER)).toBe(true);
+    expect(tokenExchangePrefix.indexOf(PREFIX_END_MARKER)).toBe(
+      tokenExchangePrefix.length - PREFIX_END_MARKER.length,
+    );
+    expect(alertsFetchPrefix.indexOf(PREFIX_END_MARKER)).toBe(
+      alertsFetchPrefix.length - PREFIX_END_MARKER.length,
+    );
 
     // The statuses used to provoke each failure are inside each prefix.
     expect(tokenExchangePrefix).toContain(

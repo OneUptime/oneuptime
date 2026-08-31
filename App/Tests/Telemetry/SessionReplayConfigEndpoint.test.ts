@@ -213,6 +213,7 @@ jest.mock("../../FeatureSet/Telemetry/Config", () => {
     SESSION_REPLAY_ENABLED_BY_DEFAULT: true,
     SESSION_REPLAY_INGEST_ENABLED: true,
     SESSION_REPLAY_TRUSTED_GEO_HEADER: "",
+    SESSION_REPLAY_DEBUG: false,
   };
 });
 
@@ -449,6 +450,89 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
      */
     expect(res.headers["Cache-Control"]).toBe("no-store");
     expect(consumeTargetMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * WHY a config says enabled:false.
+   *
+   * The disabled response is deliberately a well-formed config rather than an
+   * error, so a recorder that cannot parse one refuses to record. The cost of
+   * that was a single answer for five very different causes: from a browser,
+   * an instance kill switch, a deployment whose recorder bundle was never
+   * built, an application somebody switched off and a Redis outage were all
+   * "enabled: false" and nothing else - and no amount of dashboard
+   * configuration fixes three of them.
+   */
+  test("a disabled application says WHY it is disabled", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("not-enabled-for-application");
+  });
+
+  /*
+   * Fail closed AND say that it failed. A policy lookup that throws produced
+   * a response identical to "this application is switched off", which sent
+   * the customer to a settings page that was already correct.
+   */
+  test("a policy lookup that throws is reported as unavailable, not as disabled", async () => {
+    getPolicyMock.mockRejectedValue(new Error("redis down") as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("policy-unavailable");
+  });
+
+  /*
+   * A live config has nothing to explain, and a stray disabledReason on one
+   * would make the recorder log a warning about a policy that is working.
+   */
+  test("a live config carries no disabledReason", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["disabledReason"]).toBeUndefined();
+  });
+
+  /*
+   * Recorder diagnostics are off unless the deployment asks for them. This
+   * script runs on customers' sites in their end users' browsers, so the
+   * default has to be silence.
+   */
+  test("does not ask recorders to log when SESSION_REPLAY_DEBUG is unset", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const live: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(live["debug"]).toBeUndefined();
+
+    jest.clearAllMocks();
+    consumeTargetMock.mockResolvedValue(false as never);
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const disabled: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(disabled["debug"]).toBe(false);
   });
 
   test("malformed percent-encoding matches the literal header value instead of erroring", async () => {

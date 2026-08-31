@@ -6,6 +6,7 @@ import {
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import { debugLog, debugWarn, setEnabled } from "./Debug";
 
 /*
  * Init options and the policy fetch.
@@ -88,6 +89,14 @@ export const RECORDER_VERSION_PATTERN: RegExp =
 export const CONFIG_FETCH_TIMEOUT_MS: number = 5000;
 
 /*
+ * The spellings a person actually types into an HTML attribute. Kept
+ * identical to TRUTHY in Debug.ts, which resolves the same switch from the
+ * init global - a switch that works from one place and not the other is
+ * worse than no switch at all on a diagnostic nobody can reach a console for.
+ */
+const TRUTHY_OPTION_PATTERN: RegExp = /^(1|true|yes|on)$/i;
+
+/*
  * The policy snapshot as the recorder consumes it.
  *
  * recorderIntegrity is additive on top of the shared wire type: the loader
@@ -134,6 +143,14 @@ export interface RecorderInitOptions {
    * and the server's own respectDoNotTrack still applies on top.
    */
   respectDoNotTrack?: boolean;
+
+  /*
+   * Print the recorder's decisions to the console. Off unless asked for -
+   * this script runs on end users' machines, not the customer's - and
+   * equivalent to the localStorage and query-string switches in Debug.ts.
+   * See there for why the diagnostic exists at all.
+   */
+  debug?: boolean;
 }
 
 export default class Config {
@@ -155,10 +172,40 @@ export default class Config {
     );
 
     if (fromGlobal) {
-      return fromGlobal;
+      return Config.acceptOptions(fromGlobal, "init-global");
     }
 
-    return Config.readScriptTagOptions(documentRef);
+    const fromTag: RecorderInitOptions | null =
+      Config.readScriptTagOptions(documentRef);
+
+    return fromTag ? Config.acceptOptions(fromTag, "script-tag") : null;
+  }
+
+  /*
+   * One exit for both option sources.
+   *
+   * It applies the page's own debug switch - read here rather than in
+   * Debug.resolve, because resolving it there would mean a document-wide
+   * querySelector on every page load for a switch that is off on virtually
+   * all of them - and reports what was read. `host` and `appIdentifier` are
+   * the two values a wrong install gets wrong, and neither is user data.
+   */
+  private static acceptOptions(
+    options: RecorderInitOptions,
+    source: string,
+  ): RecorderInitOptions {
+    if (options.debug === true) {
+      setEnabled(true, source);
+    }
+
+    debugLog("init-options-read", "Init options read.", {
+      source: source,
+      host: options.host,
+      appIdentifier: options.appIdentifier,
+      respectDoNotTrack: options.respectDoNotTrack !== false,
+    });
+
+    return options;
   }
 
   private static readGlobalOptions(
@@ -170,7 +217,10 @@ export default class Config {
       return null;
     }
 
-    return Config.normaliseOptions(raw as Record<string, unknown>);
+    return Config.normaliseOptions(
+      raw as Record<string, unknown>,
+      "init-global",
+    );
   }
 
   private static readScriptTagOptions(
@@ -212,9 +262,10 @@ export default class Config {
       userRef: tag.getAttribute("data-oneuptime-user-ref"),
       respectDoNotTrack:
         tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false",
+      debug: tag.getAttribute("data-oneuptime-debug"),
     };
 
-    return Config.normaliseOptions(dataset);
+    return Config.normaliseOptions(dataset, "script-tag");
   }
 
   /*
@@ -242,6 +293,7 @@ export default class Config {
 
   private static normaliseOptions(
     raw: Record<string, unknown>,
+    source: string,
   ): RecorderInitOptions | null {
     const host: unknown = raw["host"];
     const token: unknown = raw["token"];
@@ -257,6 +309,33 @@ export default class Config {
       !token ||
       !appIdentifier
     ) {
+      /*
+       * WHICH field is missing, and on WHICH source. "the snippet is wrong"
+       * and "the host could not be derived from the script src" are
+       * different bugs with different fixes, and the console.warn the loader
+       * prints for this case cannot tell them apart.
+       *
+       * Deliberately not phrased as an outcome. The global is only the FIRST
+       * of two sources, so a page that sets `window.__ONEUPTIME_SESSION_REPLAY__
+       * = { debug: true }` purely to switch diagnostics on - which is a
+       * documented way to do it - reaches this line and then records
+       * perfectly well from its script tag. Saying "nothing will be
+       * recorded" there would hand the person who just enabled diagnostics a
+       * fault that does not exist. Whether anything actually records is the
+       * loader's to report, and it does.
+       */
+      debugWarn(
+        "init-options-incomplete",
+        "An init source is missing a required field and was skipped.",
+        {
+          source: source,
+          hasHost: typeof host === "string" && Boolean(host),
+          hasToken: typeof token === "string" && Boolean(token),
+          hasAppIdentifier:
+            typeof appIdentifier === "string" && Boolean(appIdentifier),
+        },
+      );
+
       return null;
     }
 
@@ -267,6 +346,10 @@ export default class Config {
       respectDoNotTrack: respectDoNotTrack !== false,
     };
 
+    if (Config.readBooleanOption(raw["debug"])) {
+      options.debug = true;
+    }
+
     /*
      * Assigned conditionally rather than as `userRef: undefined`, because
      * exactOptionalPropertyTypes makes those two different types.
@@ -276,6 +359,24 @@ export default class Config {
     }
 
     return options;
+  }
+
+  /*
+   * The spellings a person actually types into an HTML attribute.
+   *
+   * The tag attribute used to be compared against the literal string "true"
+   * while the init global went through Debug's own resolver, which accepts
+   * "1", "yes" and "on" in any case - so data-oneuptime-debug="1" silently
+   * did nothing while the equivalent global worked. On a feature whose whole
+   * point is being reachable by somebody who cannot get to a console, a
+   * switch that only works if you guess the right word is worse than no
+   * switch.
+   */
+  private static readBooleanOption(value: unknown): boolean {
+    return (
+      value === true ||
+      (typeof value === "string" && TRUTHY_OPTION_PATTERN.test(value))
+    );
   }
 
   public static getConfigUrl(options: RecorderInitOptions): string {
@@ -357,8 +458,15 @@ export default class Config {
       }
     }
 
+    const url: string = Config.getConfigUrl(options);
+
+    debugLog("config-fetch-start", "Requesting the policy.", {
+      url: url,
+      timeoutMs: CONFIG_FETCH_TIMEOUT_MS,
+    });
+
     try {
-      const response: Response = await fetch(Config.getConfigUrl(options), {
+      const response: Response = await fetch(url, {
         method: "GET",
         headers: headers,
         signal: controller.signal,
@@ -373,13 +481,57 @@ export default class Config {
       });
 
       if (!response.ok) {
+        /*
+         * The three statuses that account for nearly every report, named
+         * because the fix for each is somewhere completely different: a
+         * key in Project Settings, an nginx route, a header on the tag.
+         */
+        debugWarn(
+          "config-fetch-rejected",
+          "The config endpoint refused the request. Nothing will be recorded.",
+          { url: url, status: response.status },
+        );
+
         return null;
       }
 
-      const body: unknown = await response.json();
+      let body: unknown = null;
+
+      try {
+        body = await response.json();
+      } catch {
+        /*
+         * A 2xx that is not JSON. Reported separately from the catch below,
+         * because "the request never left the browser" and "something on the
+         * path answered 200 with an HTML page" are different faults with
+         * different fixes - a CSP or an ad blocker for the first, a proxy,
+         * captive portal or SSO interstitial for the second - and collapsing
+         * them sends the reader to the wrong one.
+         */
+        debugWarn(
+          "config-body-unparseable",
+          "The config endpoint answered, but not with JSON. Something on the path is answering instead of OneUptime.",
+          { url: url, status: response.status },
+        );
+
+        return null;
+      }
 
       return Config.validateConfig(body);
     } catch {
+      /*
+       * A rejected fetch is a network-layer failure the page cannot see
+       * either: DNS, TLS, offline, an ad blocker, a CSP connect-src that
+       * does not list the OneUptime origin, or this request outliving
+       * CONFIG_FETCH_TIMEOUT_MS. The browser prints its own message for
+       * some of these and nothing at all for others.
+       */
+      debugWarn(
+        "config-fetch-failed",
+        "The config request never completed. Nothing will be recorded.",
+        { url: url, timeoutMs: CONFIG_FETCH_TIMEOUT_MS },
+      );
+
       return null;
     } finally {
       clearTimeout(timeout);
@@ -396,12 +548,46 @@ export default class Config {
    */
   public static validateConfig(body: unknown): LoaderConfig | null {
     if (!body || typeof body !== "object") {
+      debugWarn(
+        "config-unparseable",
+        "The config response was not a JSON object. Nothing will be recorded.",
+      );
+
       return null;
     }
 
     const raw: Record<string, unknown> = body as Record<string, unknown>;
 
+    /*
+     * The server can be told to turn diagnostics on for EVERY visitor, which
+     * is the only switch reachable by an operator who cannot touch the
+     * customer's page. Applied before the gates below so a disabled response
+     * still explains itself. See SESSION_REPLAY_DEBUG.
+     */
+    if (raw["debug"] === true) {
+      setEnabled(true, "server-config");
+    }
+
     if (raw["enabled"] !== true) {
+      /*
+       * The single most common answer to "replay is on in the dashboard but
+       * nothing happens", and until the server started sending
+       * disabledReason there was no way to tell the five causes apart from a
+       * browser. `recorder-not-built` in particular is a deployment that
+       * never ran the recorder build, which no amount of dashboard
+       * configuration will fix.
+       */
+      const reason: unknown = raw["disabledReason"];
+
+      debugWarn(
+        "config-disabled",
+        "The server says replay is off here. Nothing will be recorded.",
+        {
+          disabledReason:
+            typeof reason === "string" && reason ? reason : "not-reported",
+        },
+      );
+
       return null;
     }
 
@@ -413,6 +599,15 @@ export default class Config {
      * published artifact.
      */
     if (!Config.isValidRecorderVersion(recorderVersion)) {
+      debugWarn(
+        "config-recorder-version-invalid",
+        "The server named no published recorder version, so no artifact can load.",
+        {
+          recorderVersion:
+            typeof recorderVersion === "string" ? recorderVersion : "missing",
+        },
+      );
+
       return null;
     }
 
@@ -478,6 +673,57 @@ export default class Config {
 
     if (typeof integrity === "string" && integrity) {
       config.recorderIntegrity = integrity;
+    }
+
+    /*
+     * The policy line. Everything below is a decision the recorder will now
+     * make silently for the rest of the page's life, and the combination is
+     * what usually explains "no requests in the network tab":
+     * OnErrorOrFrustration with samplePercentage 0 is a session that records
+     * into memory and uploads NOTHING until something goes wrong. That is
+     * working as designed, and it is indistinguishable from broken.
+     */
+    debugLog("config-accepted", "Policy accepted.", {
+      captureTrigger: config.captureTrigger,
+      samplePercentage: config.samplePercentage,
+      consentMode: config.consentMode,
+      maskingMode: config.maskingMode,
+      recorderVersion: config.recorderVersion,
+      configEpoch: config.configEpoch,
+      directive: config.directive,
+      respectDoNotTrack: config.respectDoNotTrack,
+      hasIntegrity: Boolean(config.recorderIntegrity),
+    });
+
+    /*
+     * A value this build does not recognise collapses to the STRICTEST
+     * option, not to the one the server meant. That is the right default and
+     * a genuinely confusing one: a newer server, or a proxy rewriting the
+     * body, can leave a customer looking at MaskAllText while the dashboard
+     * shows something else entirely - and silently.
+     *
+     * One loop rather than three blocks: this file is bundled into the
+     * loader stub, which every visitor to a customer's site downloads.
+     */
+    for (const field of ["maskingMode", "consentMode", "captureTrigger"]) {
+      const sent: unknown = raw[field];
+
+      if (
+        sent !== undefined &&
+        sent !== (config as unknown as Record<string, unknown>)[field]
+      ) {
+        debugWarn(
+          "config-value-unrecognised",
+          "This build does not know a value the server sent; using the safest one instead.",
+          {
+            field: field,
+            sent: typeof sent === "string" ? sent : typeof sent,
+            using: String(
+              (config as unknown as Record<string, unknown>)[field],
+            ),
+          },
+        );
+      }
     }
 
     return config;

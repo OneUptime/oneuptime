@@ -1,0 +1,167 @@
+import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * The Session Replay troubleshooting page, and the nav entry that makes it
+ * reachable.
+ *
+ * Nav membership is load-bearing rather than cosmetic: the docs route looks
+ * the requested path up in the canonical English nav and renders NotFound if
+ * it is absent, so a markdown file with no nav entry is a 404 even though the
+ * file is right there on disk. That failure is invisible in review and only
+ * shows up when somebody follows the link.
+ *
+ * And this particular page IS a link target. The recorder prints its URL into
+ * the browser console the moment diagnostics are switched on, so a broken one
+ * lands in front of the exact person who is already having trouble.
+ */
+const CONTENT_DIR: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Docs/Content",
+);
+
+const PAGE_URL: string = "/docs/rum/session-replay-troubleshooting";
+const PAGE_PATH: string = path.join(
+  CONTENT_DIR,
+  "en",
+  "rum",
+  "session-replay-troubleshooting.md",
+);
+
+const NAV_GROUP_TITLE: string = "Real User Monitoring";
+
+function readPage(): string {
+  return fs.readFileSync(PAGE_PATH, "utf8");
+}
+
+function ownGroup(): NavGroup | undefined {
+  return DocsNav.find((group: NavGroup): boolean => {
+    return group.title === NAV_GROUP_TITLE;
+  });
+}
+
+describe("Session Replay troubleshooting docs page", (): void => {
+  it("exists on disk", (): void => {
+    expect(fs.existsSync(PAGE_PATH)).toBe(true);
+  });
+
+  it("is listed in the nav, so the route can find it", (): void => {
+    const links: Array<NavLink> = ownGroup()?.links || [];
+
+    expect(
+      links.some((link: NavLink): boolean => {
+        return link.url === PAGE_URL;
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * The renderer strips the first line, because the title already appears in
+   * the page chrome. A page that does not open with an H1 therefore loses its
+   * first real paragraph.
+   */
+  it("opens with an H1 the renderer can strip", (): void => {
+    expect(readPage().split("\n")[0]).toBe("# Session Replay Troubleshooting");
+  });
+
+  /*
+   * Every nav entry in this group must resolve to a file. Scoped to the RUM
+   * group rather than the whole nav so this test fails for a reason its own
+   * name explains.
+   */
+  it("leaves no dangling nav entry in the RUM group", (): void => {
+    const missing: Array<string> = [];
+
+    for (const link of ownGroup()?.links || []) {
+      const relative: string = link.url.replace(/^\/docs\//, "");
+      const file: string = path.join(CONTENT_DIR, "en", `${relative}.md`);
+
+      if (!fs.existsSync(file)) {
+        missing.push(link.url);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  /*
+   * The switches the page documents are string literals in the recorder
+   * bundle. If one is renamed in src/Debug.ts and not here, the page tells a
+   * customer to type something that does nothing - and there is no build step
+   * that would notice, because markdown is not compiled.
+   */
+  it("documents the switches the recorder actually reads", (): void => {
+    const page: string = readPage();
+
+    const debugSource: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../FeatureSet/BrowserRecorder/src/Debug.ts",
+      ),
+      "utf8",
+    );
+
+    for (const literal of [
+      "oneuptime.sessionReplay.debug",
+      "oneuptime_debug",
+    ]) {
+      expect(debugSource).toContain(literal);
+      expect(page).toContain(literal);
+    }
+
+    /* The docs URL the recorder prints has to be this page's own URL. */
+    expect(debugSource).toContain(PAGE_URL);
+  });
+
+  /*
+   * The page is an index of codes, and the recorder's `code` strings are the
+   * stable part of the contract - a customer quotes one into a support
+   * ticket. A code that no longer exists in the source, or a source code the
+   * page never explains, is a broken lookup at the worst moment.
+   */
+  it("explains the codes the recorder can emit", (): void => {
+    const page: string = readPage();
+
+    const sourceDir: string = path.resolve(
+      __dirname,
+      "../../../FeatureSet/BrowserRecorder/src",
+    );
+
+    const emitted: Set<string> = new Set<string>();
+
+    for (const file of fs.readdirSync(sourceDir)) {
+      if (!file.endsWith(".ts") || file === "Debug.ts") {
+        continue;
+      }
+
+      const contents: string = fs.readFileSync(
+        path.join(sourceDir, file),
+        "utf8",
+      );
+
+      const matches: Array<string> =
+        contents.match(/\bdebug(?:Log|Warn)\(\s*"([a-z0-9-]+)"/g) || [];
+
+      for (const match of matches) {
+        const code: string | undefined = match.split('"')[1];
+
+        if (code) {
+          emitted.add(code);
+        }
+      }
+    }
+
+    /* Sanity: the scan found something, so the assertion below is not vacuous. */
+    expect(emitted.size).toBeGreaterThan(20);
+
+    const undocumented: Array<string> = Array.from(emitted)
+      .filter((code: string): boolean => {
+        return !page.includes(`\`${code}\``);
+      })
+      .sort();
+
+    expect(undocumented).toEqual([]);
+  });
+});

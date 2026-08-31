@@ -99,9 +99,16 @@ describe("bundle hygiene", (): void => {
     const loaderGzip: number = manifest.files["loader.js"]?.gzipBytes || 0;
 
     expect(recorderGzip).toBeGreaterThan(0);
-    expect(recorderGzip).toBeLessThanOrEqual(76 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(78 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
-    expect(loaderGzip).toBeLessThanOrEqual(3 * 1024);
+
+    /*
+     * Raised from 3 KB for src/Debug.ts and the decision points that report
+     * through it. esbuild.config.js carries the measurement and the reason;
+     * the two numbers are asserted in both places on purpose, because a
+     * budget only enforced by the thing being budgeted is not a budget.
+     */
+    expect(loaderGzip).toBeLessThanOrEqual(5 * 1024);
   });
 
   /*
@@ -161,7 +168,7 @@ describe("bundle hygiene", (): void => {
     /* A distinctive rrweb internal that would appear if it were bundled. */
     expect(loaderBundle).not.toContain("rrweb");
     expect(loaderBundle).not.toContain("takeFullSnapshot");
-    expect(loaderBundle.length).toBeLessThan(7 * 1024);
+    expect(loaderBundle.length).toBeLessThan(13 * 1024);
   });
 
   it("contains the recorder itself", (): void => {
@@ -179,6 +186,46 @@ describe("bundle hygiene", (): void => {
     expect(loaderBundle).toContain("/session-replay/v1/config");
     expect(loaderBundle).toContain("globalPrivacyControl");
     expect(loaderBundle).toContain("integrity");
+  });
+
+  /*
+   * The diagnostics have to survive into BOTH artifacts, and the loader's
+   * copy is the one that matters most: the stub decides five different ways
+   * not to record, all of them before the recorder artifact exists.
+   */
+  it("ships the diagnostics switch in both bundles", (): void => {
+    for (const bundle of [recorderBundle, loaderBundle]) {
+      expect(bundle).toContain("oneuptime.sessionReplay.debug");
+      expect(bundle).toContain("oneuptime_debug");
+      expect(bundle).toContain("__ONEUPTIME_SESSION_REPLAY_DEBUG__");
+    }
+  });
+
+  it("exposes getDiagnostics on the artifact's public API", (): void => {
+    expect(recorderBundle).toContain("getDiagnostics");
+    expect(recorderBundle).toContain("setDebug");
+  });
+
+  /*
+   * The output is off unless somebody asks for it. A recorder that printed
+   * on every visitor of every customer would be noise on somebody else's
+   * site, so the console calls must be reached through the enabled check
+   * rather than sprinkled across the bundle.
+   */
+  it("routes every console call in the loader through the diagnostics switch", (): void => {
+    const consoleCalls: number = (
+      loaderBundle.match(/console\.(info|warn|log|error|debug)/g) || []
+    ).length;
+
+    /*
+     * Exactly one: the unconditional misconfiguration warning, which is a
+     * setup error on the customer's own page and is meant to be seen. The
+     * diagnostics writer reaches the console through a dynamic property
+     * lookup on globalThis.console (a page may have replaced or frozen it),
+     * so it contributes no literal `console.` at all - which makes this a
+     * sharp check that no bare console call was added outside the switch.
+     */
+    expect(consoleCalls).toBe(1);
   });
 });
 

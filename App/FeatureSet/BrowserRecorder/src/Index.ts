@@ -2,6 +2,13 @@ import { SessionReplayConfigResponse } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import Config, { RECORDER_VERSION, RecorderInitOptions } from "./Config";
 import Consent from "./Consent";
+import {
+  DebugRecord,
+  debugLog,
+  debugWarn,
+  getDebugRecords,
+  setEnabled,
+} from "./Debug";
 import { EarlyErrorRecord } from "./EarlyErrors";
 import Recorder from "./Recorder";
 
@@ -55,6 +62,33 @@ export interface SessionReplayApi {
   identify: (userRef: string) => void;
   stop: () => void;
   getSessionId: () => string | null;
+
+  /*
+   * Turn the console diagnostics on or off for this page only. The
+   * localStorage switch in Debug.ts is the one to reach for when the
+   * problem is that the recorder never starts, because this call needs an
+   * artifact that already loaded.
+   */
+  setDebug: (enabled: boolean) => void;
+
+  /*
+   * Everything the recorder decided, whether or not diagnostics were on.
+   *
+   * This is the call a support ticket asks for: the ring is filled
+   * unconditionally, and it includes the LOADER's records - the ones from
+   * before this bundle existed - because both bundles share one timeline.
+   */
+  getDiagnostics: () => SessionReplayDiagnostics;
+}
+
+/* Shape of getDiagnostics(). Additive-only, like everything else here. */
+export interface SessionReplayDiagnostics {
+  version: string;
+  sessionId: string | null;
+  isRecording: boolean;
+  isUploading: boolean;
+  triggerReason: string | null;
+  records: Array<DebugRecord>;
 }
 
 let activeRecorder: Recorder | null = null;
@@ -79,13 +113,36 @@ export function bootstrap(
   config: SessionReplayConfigResponse,
   earlyErrors?: Array<EarlyErrorRecord>,
 ): void {
+  if (initOptions.debug === true) {
+    setEnabled(true, "init-options");
+  }
+
   if (activeRecorder) {
+    debugWarn(
+      "bootstrap-already-running",
+      "bootstrap() called again while a recorder is running; ignored.",
+    );
+
     return;
   }
 
   if (!markStarted()) {
+    /*
+     * Two copies of the snippet, or a stub and a self-hosted artifact on the
+     * same page. Both would record the same session twice.
+     */
+    debugWarn(
+      "bootstrap-already-started",
+      "Already started on this page; ignoring a second start.",
+    );
+
     return;
   }
+
+  debugLog("bootstrap", "Artifact bootstrapping.", {
+    recorderVersion: RECORDER_VERSION,
+    earlyErrors: earlyErrors ? earlyErrors.length : 0,
+  });
 
   /*
    * Re-checked here even though the loader already checked. The artifact may
@@ -98,10 +155,20 @@ export function bootstrap(
       config.respectDoNotTrack,
     )
   ) {
+    debugWarn(
+      "privacy-signal",
+      "Do Not Track or Global Privacy Control is set. Nothing is recorded.",
+    );
+
     return;
   }
 
   if (config.directive === "stop") {
+    debugWarn(
+      "directive-stop",
+      "The policy carries a stop directive. Nothing is recorded.",
+    );
+
     return;
   }
 
@@ -125,6 +192,11 @@ export function bootstrap(
 
   if (!activeRecorder) {
     /* Revoked or stopped before it ever started. Nothing may upload. */
+    debugWarn(
+      "bootstrap-cancelled",
+      "A queued revokeConsent() or stop() ran before start().",
+    );
+
     return;
   }
 
@@ -138,6 +210,17 @@ export async function start(initOptions?: RecorderInitOptions): Promise<void> {
     initOptions === undefined ? Config.readInitOptions() : initOptions;
 
   if (!options) {
+    /*
+     * The self-hosted entry point. The loader stub prints an unconditional
+     * console.warn for this same condition and this path had nothing at all,
+     * so a customer who bundles the artifact themselves got total silence
+     * from the one failure that WAS instrumented.
+     */
+    debugWarn(
+      "init-options-missing",
+      "start() found no init options. Nothing will be recorded.",
+    );
+
     return;
   }
 
@@ -146,6 +229,11 @@ export async function start(initOptions?: RecorderInitOptions): Promise<void> {
 
   /* No config, no recording. The fail-closed rule, restated at the edge. */
   if (!config) {
+    debugWarn(
+      "start-stopped",
+      "No usable policy. start() will not record anything.",
+    );
+
     return;
   }
 
@@ -153,19 +241,39 @@ export async function start(initOptions?: RecorderInitOptions): Promise<void> {
 }
 
 export function captureSession(): void {
-  if (activeRecorder) {
-    activeRecorder.trigger(SessionReplayTriggerReason.Manual);
+  if (!activeRecorder) {
+    debugWarn(
+      "api-no-recorder",
+      "captureSession() called with no recorder running.",
+    );
+
+    return;
   }
+
+  debugLog("api-capture-session", "captureSession() called.");
+
+  activeRecorder.trigger(SessionReplayTriggerReason.Manual);
 }
 
 export function grantConsent(): void {
-  if (activeRecorder) {
-    activeRecorder.grantConsent();
+  if (!activeRecorder) {
+    debugWarn(
+      "api-no-recorder",
+      "grantConsent() called with no recorder running.",
+    );
+
+    return;
   }
+
+  debugLog("api-grant-consent", "grantConsent() called.");
+
+  activeRecorder.grantConsent();
 }
 
 export function revokeConsent(): void {
   if (activeRecorder) {
+    debugLog("api-revoke-consent", "revokeConsent() called.");
+
     activeRecorder.revokeConsent();
     activeRecorder = null;
   }
@@ -177,8 +285,25 @@ export function identify(userRef: string): void {
   }
 }
 
+export function setDebug(enabled: boolean): void {
+  setEnabled(enabled === true, "api");
+}
+
+export function getDiagnostics(): SessionReplayDiagnostics {
+  return {
+    version: RECORDER_VERSION,
+    sessionId: activeRecorder ? activeRecorder.getSessionId() : null,
+    isRecording: Boolean(activeRecorder),
+    isUploading: activeRecorder ? activeRecorder.isUploading() : false,
+    triggerReason: activeRecorder ? activeRecorder.getTriggerReason() : null,
+    records: getDebugRecords(),
+  };
+}
+
 export function stop(): void {
   if (activeRecorder) {
+    debugLog("api-stop", "stop() called.");
+
     activeRecorder.stop();
     activeRecorder = null;
   }
@@ -218,6 +343,20 @@ function drainCommandQueue(only?: ReadonlyArray<string>): void {
   const queue: unknown = globalRecord[COMMAND_QUEUE_GLOBAL];
 
   if (!Array.isArray(queue)) {
+    /*
+     * Reported on the FULL drain only. bootstrap() drains twice - the
+     * consent-shaped commands before start(), then everything after - and
+     * warning on both put the same line in the console twice for one page
+     * load, which reads like two different faults.
+     */
+    if (queue !== undefined && !only) {
+      debugWarn(
+        "command-queue-not-an-array",
+        `window.${COMMAND_QUEUE_GLOBAL} is not an array; queued commands ignored.`,
+        { type: typeof queue },
+      );
+    }
+
     return;
   }
 
@@ -246,6 +385,18 @@ function drainCommandQueue(only?: ReadonlyArray<string>): void {
       identify(argument);
     } else if (command === "stop") {
       stop();
+    } else {
+      /*
+       * Unknown names are ignored rather than thrown on - the page may have
+       * been written against a newer recorder than the config pinned - but
+       * ignoring them SILENTLY is how a misspelt "grantconsent" becomes a
+       * session that records forever and uploads nothing.
+       */
+      debugWarn(
+        "command-queue-unknown-command",
+        "A queued command was not recognised and was dropped.",
+        { command: typeof command === "string" ? command : typeof command },
+      );
     }
   }
 

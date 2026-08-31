@@ -1,6 +1,7 @@
 import { generateKeyPairSync } from "crypto";
 import jwt from "jsonwebtoken";
 import GoogleSecOpsClient, {
+  FetchAlertsResult,
   FetchLike,
   FetchResponseLike,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
@@ -25,10 +26,20 @@ const { privateKey } = generateKeyPairSync("rsa", {
   publicKeyEncoding: { type: "spki", format: "pem" },
 });
 
+/*
+ * token_uri has to be a real Google host now. It arrives inside
+ * customer-supplied service-account JSON and is the address this client
+ * POSTs a signed assertion for their service account to, so an arbitrary
+ * host there is a credential-exfiltration primitive rather than a
+ * configuration choice — the client allowlists it at construction. The
+ * fetch is injected, so nothing here touches the network either way.
+ */
+const TOKEN_URI: string = "https://oauth2.googleapis.com/token";
+
 const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
   client_email: "poller@example.iam.gserviceaccount.com",
   private_key: privateKey,
-  token_uri: "https://oauth2.example.com/token",
+  token_uri: TOKEN_URI,
 });
 
 const INSTANCE: string =
@@ -157,10 +168,27 @@ describe("GoogleSecOpsClient.extractAlerts", () => {
     ).toEqual([{ id: "d" }]);
   });
 
-  test("returns [] for shapes it does not recognize instead of guessing", () => {
+  /*
+   * extractAlerts is the legacy top-level fallback, and it is reached only
+   * after parseAlertsBody has already recognized the body. So [] here means
+   * "this recognized shape carried nothing", and is safe.
+   *
+   * It is emphatically NOT the client's answer to an unrecognized body.
+   * That used to be exactly what it was, and it is the bug the rewrite
+   * exists for: a body the client could not read came back as zero alerts,
+   * the poller read zero alerts as a healthy quiet window, and the cursor
+   * advanced past alerts nobody had ever seen. The second half of this test
+   * pins where that decision actually lives now, so this file cannot be
+   * read as evidence that an unknown body is harmless.
+   */
+  test("returns [] for a recognized shape that carried nothing, while the body gate refuses it outright", () => {
     expect(GoogleSecOpsClient.extractAlerts({ nope: true })).toEqual([]);
     expect(GoogleSecOpsClient.extractAlerts("junk")).toEqual([]);
     expect(GoogleSecOpsClient.extractAlerts(null)).toEqual([]);
+
+    expect(() => {
+      return GoogleSecOpsClient.parseAlertsBody(JSON.stringify({ nope: true }));
+    }).toThrow(APIException);
   });
 });
 
@@ -187,17 +215,28 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
       { status: 200, body: JSON.stringify({ alerts: [{ id: "a-1" }] }) },
     ]);
 
-    const alerts: Array<JSONObject> = await client.fetchDetectionAlerts({
+    const result: FetchAlertsResult = await client.fetchDetectionAlerts({
       startTime: new Date("2026-08-21T09:00:00.000Z"),
       endTime: new Date("2026-08-21T10:00:00.000Z"),
     });
 
-    expect(alerts).toEqual([{ id: "a-1" }]);
+    expect(result.alerts).toEqual([{ id: "a-1" }]);
+
+    /*
+     * The counts and flags are the point of the return type: a bare array
+     * could not tell the poller "the window was quiet" from "the window was
+     * truncated" or "the stream ended early", and all three used to arrive
+     * identically as [].
+     */
+    expect(result.truncatedByCount).toBe(false);
+    expect(result.truncatedByBytes).toBe(false);
+    expect(result.chunkCount).toBe(1);
+
     expect(requests).toHaveLength(2);
 
     // Token exchange: form-encoded JWT-bearer grant against token_uri.
     const tokenRequest: RecordedRequest = requests[0]!;
-    expect(tokenRequest.url).toBe("https://oauth2.example.com/token");
+    expect(tokenRequest.url).toBe(TOKEN_URI);
     expect(tokenRequest.method).toBe("POST");
     expect(tokenRequest.headers["Content-Type"]).toBe(
       "application/x-www-form-urlencoded",
@@ -214,19 +253,43 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
       params.get("assertion") || "",
     ) as JSONObject;
     expect(assertion["iss"]).toBe("poller@example.iam.gserviceaccount.com");
-    expect(assertion["aud"]).toBe("https://oauth2.example.com/token");
+    expect(assertion["aud"]).toBe(TOKEN_URI);
     expect(assertion["scope"]).toBe(
       "https://www.googleapis.com/auth/cloud-platform",
     );
 
     // Alerts call: regional base URL, instance path, window params, Bearer.
     const alertsRequest: RecordedRequest = requests[1]!;
-    expect(alertsRequest.url).toContain(
-      `https://us-chronicle.googleapis.com/v1alpha/${INSTANCE}/legacy:legacyFetchAlertsView?`,
+    const alertsUrl: URL = new URL(alertsRequest.url);
+
+    /*
+     * Parsed, not substring-matched.
+     *
+     * This assertion used to be two toContain calls, and that is how the
+     * production outage got out: the client was also sending a `pageSize`
+     * the endpoint does not accept, Chronicle 400'd every poll with
+     * "Unknown name pageSize", and both toContain calls went on passing,
+     * because an extra parameter cannot make a substring stop appearing.
+     * The whole query is pinned here, so an added, renamed or dropped
+     * parameter fails rather than hides.
+     */
+    expect(`${alertsUrl.origin}${alertsUrl.pathname}`).toBe(
+      `https://us-chronicle.googleapis.com/v1alpha/${INSTANCE}/legacy:legacyFetchAlertsView`,
     );
-    expect(alertsRequest.url).toContain(
-      encodeURIComponent("2026-08-21T09:00:00.000Z"),
+
+    expect([...alertsUrl.searchParams.keys()].sort()).toEqual([
+      "alertListOptions.maxReturnedAlerts",
+      "timeRange.endTime",
+      "timeRange.startTime",
+    ]);
+
+    expect(alertsUrl.searchParams.get("timeRange.startTime")).toBe(
+      "2026-08-21T09:00:00.000Z",
     );
+    expect(alertsUrl.searchParams.get("timeRange.endTime")).toBe(
+      "2026-08-21T10:00:00.000Z",
+    );
+
     expect(alertsRequest.headers["Authorization"]).toBe("Bearer test-token");
   });
 
@@ -248,7 +311,7 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
 
     const tokenCalls: Array<RecordedRequest> = requests.filter(
       (request: RecordedRequest): boolean => {
-        return request.url === "https://oauth2.example.com/token";
+        return request.url === TOKEN_URI;
       },
     );
 

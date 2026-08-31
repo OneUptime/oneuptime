@@ -53,8 +53,8 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  *      getMaxLengthFromTableColumnType returns undefined and the length
  *      check cannot reject a stored error at all,
  *   2. the widest message the producers can actually emit really is
- *      accepted — pinned end to end, from the client's own error
- *      templates through ConnectorErrorMessage.toMessage to the real
+ *      accepted — pinned end to end, from every one of the client's own
+ *      failure paths through ConnectorErrorMessage.toMessage to the real
  *      DatabaseService length check,
  *   3. the migration widens the live Postgres columns with ALTER COLUMN
  *      ... TYPE text rather than DROP + ADD, which would discard every
@@ -108,22 +108,59 @@ const GOOGLE_SECOPS_CLIENT_SOURCE: string = fs.readFileSync(
 );
 
 /*
- * How many characters of the Chronicle response body each client error
- * template echoes, read out of the client itself rather than restated
- * here. Restating it would let the client widen its echo without a single
- * test noticing that the stored value grew with it.
+ * How many characters of whatever Google sent back the client is willing to
+ * echo, read out of the client itself rather than restated here. Restating
+ * it would let the client widen its echo without a single test noticing
+ * that the stored value grew with it.
+ *
+ * The premise this file was written on — "there are two error templates and
+ * both write `responseText.slice(0, 500)`" — no longer holds. The client
+ * reports the failures that arrive on an HTTP 200 as well now (an empty
+ * body, a body that is not JSON, a shape the parser does not recognize, a
+ * query Chronicle rejected in band), and each of those echoes the thing it
+ * could not read through a NAMED constant rather than an inline literal. A
+ * scan pinned to the inline form kept passing while it covered less than a
+ * third of the sites, which is the failure mode this function exists to
+ * prevent. So: every `.slice(0, N)` in the client, named bounds resolved.
  */
 function responseBodyEchoLimits(): Array<number> {
-  const pattern: RegExp = /responseText\.slice\(0,\s*(\d+)\)/g;
+  const pattern: RegExp = /\.slice\(\s*0\s*,\s*(\w+)\s*\)/g;
   const limits: Array<number> = [];
 
   let match: RegExpExecArray | null = pattern.exec(GOOGLE_SECOPS_CLIENT_SOURCE);
   while (match) {
-    limits.push(Number(match[1]));
+    limits.push(resolveNumericToken(String(match[1])));
     match = pattern.exec(GOOGLE_SECOPS_CLIENT_SOURCE);
   }
 
   return limits;
+}
+
+/*
+ * An inline bound is its own value; a named one is resolved out of the
+ * client's `const NAME: number = N` declaration. An unresolvable name
+ * throws rather than becoming NaN and satisfying "they are all equal" by
+ * accident.
+ */
+const INLINE_BOUND_PATTERN: RegExp = /^\d+$/;
+
+function resolveNumericToken(token: string): number {
+  if (INLINE_BOUND_PATTERN.test(token)) {
+    return Number(token);
+  }
+
+  const declaration: RegExpMatchArray | null =
+    GOOGLE_SECOPS_CLIENT_SOURCE.match(
+      new RegExp(`\\b${token}\\s*:\\s*number\\s*=\\s*(\\d+)`),
+    );
+
+  if (!declaration || declaration[1] === undefined) {
+    throw new Error(
+      `GoogleSecOpsClient truncates with .slice(0, ${token}) but declares no numeric ${token} — this file cannot bound what it stores`,
+    );
+  }
+
+  return Number(declaration[1]);
 }
 
 function responseBodyEchoLimit(): number {
@@ -131,7 +168,7 @@ function responseBodyEchoLimit(): number {
 
   if (limits.length === 0) {
     throw new Error(
-      "GoogleSecOpsClient no longer echoes the response body with responseText.slice(0, N) — this file's premise needs revisiting",
+      "GoogleSecOpsClient no longer truncates anything with .slice(0, N) — this file's premise, that every stored error is bounded by a cap the client applies before ConnectorErrorMessage ever sees it, needs revisiting",
     );
   }
 
@@ -144,10 +181,17 @@ const { privateKey } = generateKeyPairSync("rsa", {
   publicKeyEncoding: { type: "spki", format: "pem" },
 });
 
+/*
+ * The real token endpoint, not an example.com stand-in: the client now
+ * refuses a token_uri outside Google's hosts, because that URL is
+ * customer-supplied and the first 500 characters of whatever answers it are
+ * echoed straight into lastError. Nothing here reaches the network — the
+ * fetch is injected — so the host only has to satisfy that check.
+ */
 const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
   client_email: "poller@example.iam.gserviceaccount.com",
   private_key: privateKey,
-  token_uri: "https://oauth2.example.com/token",
+  token_uri: "https://oauth2.googleapis.com/token",
 });
 
 const INSTANCE: string =
@@ -400,13 +444,21 @@ describe("the widest error the producers can emit is storable", () => {
         : tokenExchangeError;
   });
 
-  test("the client has exactly two error templates and both echo the body under the same cap", () => {
+  test("every body the client echoes is capped at the same limit", () => {
+    /*
+     * The premise, restated honestly. It is no longer "exactly two
+     * templates" — the count is whatever the client has, and what must hold
+     * is that all of them truncate at one number. A single site echoing
+     * further than the rest would widen the stored value without widening
+     * anything that bounds it, and the two-site scan this replaced would
+     * not have seen it: four of the seven sites did not exist when that
+     * assertion was written.
+     */
     const limits: Array<number> = responseBodyEchoLimits();
 
-    expect(limits).toHaveLength(2);
-    for (const limit of limits) {
-      expect(limit).toBe(responseBodyEchoLimit());
-    }
+    expect(limits.length).toBeGreaterThan(2);
+    expect(new Set(limits).size).toBe(1);
+    expect(responseBodyEchoLimit()).toBe(limits[0]);
   });
 
   test("each template is a fixed prefix plus a full-width echo of the response body", () => {
@@ -538,6 +590,90 @@ describe("the widest error the producers can emit is storable", () => {
       );
     }
   });
+});
+
+interface InBandFailure {
+  label: string;
+  /* The 200 body Chronicle answers with. */
+  body: string;
+  /* Everything the client's message carries ahead of the echoed text. */
+  prefix: string;
+}
+
+/*
+ * The failures Chronicle reports on an HTTP 200. They are not covered by the
+ * two templates above because before the client learned to read the stream
+ * envelope they did not reach lastError at all — an unreadable body was
+ * reported as a healthy poll that found nothing. Each of them now echoes the
+ * text it could not read, which is a new way for the stored value to grow,
+ * so each has to clear the same end-to-end path: the client's own cap, the
+ * connector clamp, and the real length check on both columns.
+ */
+const IN_BAND_FAILURES: Array<InBandFailure> = [
+  {
+    label: "an empty body",
+    body: "",
+    prefix: "Google SecOps alerts fetch returned an empty body.",
+  },
+  {
+    label: "a body that is not JSON",
+    body: `<html>${OVERSIZED_RESPONSE_BODY}</html>`,
+    prefix: "Google SecOps alerts fetch returned a non-JSON body.",
+  },
+  {
+    label: "a shape the parser does not recognize",
+    body: JSON.stringify([{ somethingElseEntirely: OVERSIZED_RESPONSE_BODY }]),
+    prefix:
+      "Google SecOps alerts fetch returned an unrecognized response shape: ",
+  },
+  {
+    label: "a query Chronicle rejected in band",
+    body: JSON.stringify([
+      {
+        validSnapshotQuery: false,
+        queryValidationErrors: [{ message: OVERSIZED_RESPONSE_BODY }],
+      },
+    ]),
+    prefix:
+      "Google SecOps alerts query was rejected by Chronicle on an HTTP 200: ",
+  },
+];
+
+describe("the failures Chronicle reports on an HTTP 200 are storable too", () => {
+  test.each(IN_BAND_FAILURES)(
+    "$label is echoed under the client's own cap and stored whole",
+    async (failure: InBandFailure) => {
+      const error: Error = await thrownClientError([
+        successfulTokenResponse(),
+        { status: 200, body: failure.body },
+      ]);
+
+      expect(error.message.startsWith(failure.prefix)).toBe(true);
+
+      /*
+       * Prefix plus at most one full-width echo — the same shape as the
+       * HTTP templates, so nothing here is wider than the case the column
+       * was widened for.
+       */
+      expect(error.message.length).toBeLessThanOrEqual(
+        failure.prefix.length + responseBodyEchoLimit(),
+      );
+
+      // The clamp leaves it untouched, so lastError carries the whole thing.
+      const stored: string = ConnectorErrorMessage.toMessage(error);
+
+      expect(stored).toBe(error.message);
+      expect(stored.length).toBeLessThanOrEqual(
+        MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+      );
+
+      for (const column of LAST_ERROR_COLUMNS) {
+        expect(() => {
+          return column.checkLastError(stored);
+        }).not.toThrow();
+      }
+    },
+  );
 });
 
 describe("WidenSecurityEventLastErrorColumns1789800000000 SQL contract", () => {

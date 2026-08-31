@@ -187,8 +187,30 @@ Watching a recording is a separate permission from listing sessions, and neither
 
 Every playback is recorded in an audit trail — who watched which session, when, from what IP, and for how long — under _Real User Monitoring → your application → **Replay Access Log**_.
 
+## Troubleshooting
+
+Session replay records into memory and uploads only when something goes wrong, so **a healthy page makes exactly one request to OneUptime per page load** — the config fetch — and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab that is indistinguishable from an installation that does not work.
+
+The recorder can tell you which one you are looking at. Turn on diagnostics in the failing browser:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+// then reload the page
+```
+
+Every decision the recorder makes is then printed with a stable code, and
+
+```js
+OneUptimeReplay.getDiagnostics();
+```
+
+returns the last 250 of them — **whether or not diagnostics were switched on when they happened**, so you do not have to reproduce the problem first. It carries no page content by construction, so it is safe to paste into a support ticket.
+
+[Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it, and the **Test your installation** panel in _RUM → Session Replay Settings_ answers the same question from the server's side.
+
 ## Self-hosted notes
 
 - Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
 - Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning.
 - Recordings are stored in ClickHouse. No object storage is required.
+- `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.

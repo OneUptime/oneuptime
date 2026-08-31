@@ -329,10 +329,16 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     publicKeyEncoding: { type: "spki", format: "pem" },
   });
 
+  /*
+   * A real Google token host, because the client now allowlists token_uri
+   * and rejects anything else at construction. Nothing here reaches the
+   * network — the fetch is injected — so the host is only ever a string
+   * the validator has to accept.
+   */
   const SERVICE_ACCOUNT_JSON: string = JSON.stringify({
     client_email: "poller@example.iam.gserviceaccount.com",
     private_key: privateKey,
-    token_uri: "https://oauth2.example.com/token",
+    token_uri: "https://oauth2.googleapis.com/token",
   });
 
   const INSTANCE: string =
@@ -410,14 +416,29 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     expect(rawMessage.startsWith(prefix)).toBe(true);
 
     /*
-     * The template is a 46-character prefix plus responseText.slice(0, 500).
-     * 546 > 500, so under the old TableColumnType.LongText declaration
-     * checkMaxLengthOfFields threw BadDataException on the poller's own
-     * recovery write — which is how lastPolledAt and lastError both stayed
-     * null while the connector silently stopped polling.
+     * The template is a 46-character prefix plus responseText.slice(0, 500),
+     * and now an operator hint behind that. 546 was already > 500, so under
+     * the old TableColumnType.LongText declaration checkMaxLengthOfFields
+     * threw BadDataException on the poller's own recovery write — which is
+     * how lastPolledAt and lastError both stayed null while the connector
+     * silently stopped polling. The hint only makes the overflow worse.
+     *
+     * Both halves are pinned by content rather than by total length: the
+     * echo is exactly the first 500 characters of the body, and the tail is
+     * exactly what describeHttpFailure derives for this status and body. A
+     * length-only check would go on passing if the echo and the hint ever
+     * traded characters with each other.
      */
+    const guidance: string = GoogleSecOpsClient.describeHttpFailure(
+      403,
+      HUGE_ERROR_BODY,
+    );
+
     expect(prefix.length).toBe(46);
-    expect(rawMessage.length).toBe(prefix.length + 500);
+    expect(guidance.length).toBeGreaterThan(0);
+    expect(rawMessage).toBe(
+      `${prefix}${HUGE_ERROR_BODY.slice(0, 500)}${guidance}`,
+    );
     expect(rawMessage.length).toBeGreaterThan(OLD_LAST_ERROR_COLUMN_MAX_LENGTH);
     expect(rawMessage.length).toBeGreaterThan(
       getMaxLengthFromTableColumnType(TableColumnType.LongText)!,
@@ -428,7 +449,16 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     expect(stored.length).toBeLessThanOrEqual(
       MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
     );
-    // 546 fits inside 1000, so the whole diagnostic survives the clamp.
+
+    /*
+     * Prefix + echo + hint still fits inside 1000, so the whole diagnostic
+     * survives the clamp. Asserted rather than assumed: if a future hint
+     * pushes the worst case past the clamp, the operator starts reading a
+     * truncated message and this test should be the thing that says so.
+     */
+    expect(rawMessage.length).toBeLessThanOrEqual(
+      MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+    );
     expect(stored).toBe(rawMessage);
   });
 
@@ -442,7 +472,16 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
 
     expect(rawMessage.startsWith(prefix)).toBe(true);
 
-    // Same shape as above: prefix + 500 characters of echoed body > 500.
+    /*
+     * Prefix + 500 characters of echoed body, and nothing behind it. The
+     * token exchange deliberately carries no Chronicle hint: every hint
+     * describeHttpFailure knows how to give is about the instance resource
+     * name, the chronicle.viewer role or the region prefix, none of which
+     * explains a refusal from the OAuth token endpoint. Pinned exactly, so
+     * that appending guidance here becomes a decision rather than a
+     * side effect of editing the alerts path.
+     */
+    expect(rawMessage).toBe(`${prefix}${HUGE_ERROR_BODY.slice(0, 500)}`);
     expect(rawMessage.length).toBe(prefix.length + 500);
     expect(rawMessage.length).toBeGreaterThan(OLD_LAST_ERROR_COLUMN_MAX_LENGTH);
 
