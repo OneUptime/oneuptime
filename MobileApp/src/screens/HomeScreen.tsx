@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,7 +20,9 @@ import type { MainTabParamList } from "../navigation/types";
 import type { ProjectItem } from "../api/types";
 import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
-import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
+import { useOnCallDuty } from "../hooks/useOnCallDuty";
+import { useNow } from "../hooks/useNow";
+import { formatDuration, millisecondsUntil } from "../utils/duration";
 import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
 import { isProjectSsoDenied } from "../sso/ssoDenials";
 
@@ -174,12 +176,57 @@ export default function HomeScreen(): React.JSX.Element {
     refetch,
   } = useAllProjectCounts();
 
+  const now: number = useNow();
+
+  /*
+   * The Home card used to count assignments. A count is not what somebody
+   * checking their phone at 7am wants to know - whether they are on, and for
+   * how much longer, is - so the card leads with the duty state and the
+   * countdown and keeps the count as a secondary detail.
+   */
   const {
-    totalAssignments,
-    projects: onCallProjects,
+    summary: onCallSummary,
     isLoading: onCallLoading,
     refetch: refetchOnCall,
-  } = useAllProjectOnCallPolicies();
+  } = useOnCallDuty();
+
+  const totalAssignments: number =
+    onCallSummary.standingAssignmentCount +
+    onCallSummary.scheduleAssignmentCount;
+
+  /*
+   * Same precedence as the on-call tab's status card: a real handoff time
+   * beats everything, then a next-shift time, and only then the assignment
+   * count. The card never invents a handoff for a standing assignment, which
+   * has none.
+   */
+  const onCallSummaryLine: string = useMemo((): string => {
+    const handoffIn: number | null = millisecondsUntil(
+      onCallSummary.nextHandoffAt,
+      now,
+    );
+
+    if (onCallSummary.isOnCall && handoffIn !== null) {
+      return `Handoff in ${formatDuration(handoffIn)}`;
+    }
+
+    if (onCallSummary.isOnCall) {
+      return totalAssignments === 1
+        ? "1 active assignment · no scheduled handoff"
+        : `${totalAssignments} active assignments · no scheduled handoff`;
+    }
+
+    const nextShiftIn: number | null = millisecondsUntil(
+      onCallSummary.nextShiftStartsAt,
+      now,
+    );
+
+    if (nextShiftIn !== null) {
+      return `Next shift starts in ${formatDuration(nextShiftIn)}`;
+    }
+
+    return "No active on-call assignments";
+  }, [onCallSummary, now, totalAssignments]);
 
   const { lightImpact } = useHaptics();
 
@@ -547,7 +594,7 @@ export default function HomeScreen(): React.JSX.Element {
               };
             }}
             accessibilityRole="button"
-            accessibilityLabel="View my on-call assignments"
+            accessibilityLabel={`${onCallSummary.isOnCall ? "You are on call" : "You are not on call"}. ${onCallSummaryLine}. Tap to open the on-call tab.`}
           >
             <View
               style={{
@@ -561,7 +608,9 @@ export default function HomeScreen(): React.JSX.Element {
             >
               <LinearGradient
                 colors={[
-                  theme.colors.oncallActiveBg,
+                  onCallSummary.isOnCall
+                    ? theme.colors.oncallActiveBg
+                    : theme.colors.oncallInactiveBg,
                   theme.colors.accentGradientEnd + "06",
                 ]}
                 start={{ x: 0, y: 0 }}
@@ -597,13 +646,19 @@ export default function HomeScreen(): React.JSX.Element {
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: 12,
-                      backgroundColor: theme.colors.oncallActiveBg,
+                      backgroundColor: onCallSummary.isOnCall
+                        ? theme.colors.oncallActiveBg
+                        : theme.colors.oncallInactiveBg,
                     }}
                   >
                     <Ionicons
-                      name="call-outline"
+                      name={onCallSummary.isOnCall ? "call" : "call-outline"}
                       size={18}
-                      color={theme.colors.oncallActive}
+                      color={
+                        onCallSummary.isOnCall
+                          ? theme.colors.oncallActive
+                          : theme.colors.textTertiary
+                      }
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -614,7 +669,11 @@ export default function HomeScreen(): React.JSX.Element {
                         color: theme.colors.textPrimary,
                       }}
                     >
-                      My On-Call Policies
+                      {onCallLoading
+                        ? "On-Call"
+                        : onCallSummary.isOnCall
+                          ? "You're on call"
+                          : "You're not on call"}
                     </Text>
                     <Text
                       style={{
@@ -622,32 +681,48 @@ export default function HomeScreen(): React.JSX.Element {
                         marginTop: 2,
                         color: theme.colors.textSecondary,
                       }}
+                      numberOfLines={2}
                     >
                       {onCallLoading
-                        ? "Loading assignments..."
-                        : totalAssignments > 0
-                          ? `${totalAssignments} active ${totalAssignments === 1 ? "assignment" : "assignments"} across ${onCallProjects.length} ${onCallProjects.length === 1 ? "project" : "projects"}`
-                          : "You are not currently on-call"}
+                        ? "Checking your duty status..."
+                        : onCallSummaryLine}
                     </Text>
                   </View>
                 </View>
 
                 <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
-                  <Text
+                  <View
                     style={{
-                      fontSize: 28,
-                      fontWeight: "bold",
-                      color: theme.colors.textPrimary,
-                      fontVariant: ["tabular-nums"],
-                      letterSpacing: -1,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 9999,
+                      backgroundColor: onCallSummary.isOnCall
+                        ? theme.colors.oncallActiveBg
+                        : theme.colors.oncallInactiveBg,
                     }}
                   >
-                    {onCallLoading ? "--" : totalAssignments}
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "700",
+                        letterSpacing: 0.8,
+                        color: onCallSummary.isOnCall
+                          ? theme.colors.oncallActive
+                          : theme.colors.textTertiary,
+                      }}
+                    >
+                      {onCallLoading
+                        ? "--"
+                        : onCallSummary.isOnCall
+                          ? "ON CALL"
+                          : "OFF CALL"}
+                    </Text>
+                  </View>
                   <Ionicons
                     name="chevron-forward"
                     size={14}
                     color={theme.colors.textTertiary}
+                    style={{ marginTop: 6 }}
                   />
                 </View>
               </View>
