@@ -120,7 +120,12 @@ describe("Self-hosted docs: verifying the messaging endpoint during setup", () =
      * outright — an admin who reads 405 as an error stops here.
      */
     expect(stepFour).toContain("**405**");
-    expect(stepFour.toLowerCase()).toMatch(/405.*(correct|done)/s);
+    /*
+     * [\s\S] rather than the dotAll flag: this package targets es2017, where
+     * /s is a compile error (TS1501) that takes the whole suite down with it.
+     * stepFour spans several lines, so `.` alone would not reach the verdict.
+     */
+    expect(stepFour.toLowerCase()).toMatch(/405[\s\S]*(correct|done)/);
   });
 
   test("splits 404 by response body rather than calling every 404 unreachable", () => {
