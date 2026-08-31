@@ -363,3 +363,93 @@ export interface ProjectOnCallAssignments {
   projectName: string;
   assignments: OnCallAssignmentItem[];
 }
+
+/*
+ * A person as the on-call screens need them: enough to render a row and to
+ * compare against the signed-in user, and nothing more. The API hands back
+ * `name` and `email` on a joined user; both are optional because a project
+ * member who has never set a name has only the email.
+ */
+export interface OnCallUserRef {
+  _id: string;
+  name?: string;
+  email?: string;
+}
+
+/**
+ * A schedule with its persisted roster: who is on it now, who is next, and the
+ * boundaries between them. Every date is nullable because a schedule with no
+ * layers - or one whose rotation has run out - has no computed roster at all.
+ */
+export interface OnCallScheduleItem {
+  _id: string;
+  name: string;
+  currentUserOnRoster: OnCallUserRef | null;
+  nextUserOnRoster: OnCallUserRef | null;
+  rosterStartAt: string | null;
+  rosterHandoffAt: string | null;
+  rosterNextStartAt: string | null;
+  rosterNextHandoffAt: string | null;
+}
+
+export type ProjectOnCallScheduleItem = WithProject<OnCallScheduleItem>;
+
+/**
+ * A stretch of time the signed-in user is (or will be) the on-call person for
+ * one schedule. Derived from `OnCallScheduleItem`, never fetched directly.
+ */
+export interface OnCallShift {
+  scheduleId: string;
+  scheduleName: string;
+  projectId: string;
+  projectName: string;
+  status: "active" | "upcoming";
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+/**
+ * A substitution: `overrideUser`'s pages go to `routeAlertsToUser` between
+ * `startsAt` and `endsAt`. `onCallDutyPolicy` is null for a project-wide
+ * override, which is the kind the app creates - covering somebody for one
+ * policy while leaving them paged by the rest is not what "cover for me"
+ * means to the person asking for it.
+ */
+export interface OnCallOverrideItem {
+  _id: string;
+  projectId: string;
+  projectName: string;
+  overrideUser: OnCallUserRef | null;
+  routeAlertsToUser: OnCallUserRef | null;
+  onCallDutyPolicy: { _id?: string; name?: string } | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+}
+
+export interface ProjectUserItem {
+  userId: string;
+  name: string;
+  email: string;
+}
+
+/**
+ * One page that was sent to the signed-in user, with what triggered it and
+ * whether it was acknowledged. `status` is the server's
+ * UserNotificationExecutionStatus, kept as a plain string because the app only
+ * ever displays it.
+ */
+export interface OnCallPageItem {
+  _id: string;
+  projectId: string;
+  projectName: string;
+  createdAt: string;
+  status?: string;
+  statusMessage?: string;
+  acknowledgedAt: string | null;
+  policyName?: string;
+  triggeredByIncident: { _id?: string; title?: string } | null;
+  triggeredByAlert: { _id?: string; title?: string } | null;
+  triggeredByIncidentEpisode: { _id?: string; title?: string } | null;
+  triggeredByAlertEpisode: { _id?: string; title?: string } | null;
+}

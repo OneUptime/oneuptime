@@ -57,7 +57,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 
       const navRoute: Route = new Route(
         safeRedirectUrl
-          ? `${ssoBasePath}?redirectUrl=${safeRedirectUrl}`
+          ? `${ssoBasePath}?redirectUrl=${encodeURIComponent(safeRedirectUrl)}`
           : ssoBasePath,
       );
 
@@ -166,11 +166,10 @@ const LoginPage: FunctionComponent<ComponentProps> = (
             submitButtonText={t("accounts.login.submit")}
             onSuccess={(
               value: StatusPagePrivateUser,
-              miscData: JSONObject | undefined,
+              _miscData: JSONObject | undefined,
             ) => {
               LoginUtil.login({
                 user: value,
-                token: miscData ? miscData["token"] : undefined,
               });
 
               const safeRedirectUrl: string | null =

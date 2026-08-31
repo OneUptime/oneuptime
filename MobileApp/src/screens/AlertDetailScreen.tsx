@@ -28,6 +28,7 @@ import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
+import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
@@ -46,6 +47,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const {
     data: alert,
     isLoading,
+    isError,
     refetch: refetchAlert,
   } = useAlertDetail(projectId, alertId);
   const { data: states } = useAlertStates(projectId);
@@ -148,19 +150,54 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     );
   }
 
+  /*
+   * Nothing to show, and the two reasons for that are not the same reason.
+   *
+   * This screen is where a page lands: the responder tapped a push
+   * notification about an alert that is on fire somewhere. "Alert not found."
+   * was every one of those endings - the token expired, the gateway was down,
+   * the train went into a tunnel - and it told the responder the page they
+   * were woken for does not exist, with nothing to press. The alert was still
+   * on fire.
+   *
+   * So a failure that might clear says so and offers another go, and only a
+   * request that succeeded and found nothing is allowed to say the alert is
+   * gone. Telling them apart takes no cleverness now: `fetchAlertById` resolves
+   * `null` for an alert that is not there, so a deleted alert reaches us as
+   * settled data and `isError` means only that the request failed.
+   *
+   * Note the guard is inside `!alert`: a refresh that fails while the alert is
+   * already on screen must not replace it with an error page, because a stale
+   * alert is worth vastly more here than an apology.
+   */
   if (!alert) {
+    if (isError) {
+      return (
+        <View
+          style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        >
+          <EmptyState
+            title="Something went wrong"
+            subtitle="This alert could not be loaded, which is not the same as it no longer existing. Try again."
+            icon="alerts"
+            actionLabel="Retry"
+            onAction={() => {
+              return refetchAlert();
+            }}
+          />
+        </View>
+      );
+    }
+
     return (
       <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.backgroundPrimary,
-        }}
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Alert not found.
-        </Text>
+        <EmptyState
+          title="Alert not found"
+          subtitle="This alert no longer exists, or it is not part of this project."
+          icon="alerts"
+        />
       </View>
     );
   }

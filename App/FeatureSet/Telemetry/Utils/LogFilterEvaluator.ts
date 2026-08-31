@@ -64,7 +64,17 @@ function stringifyAttrValue(val: unknown): string {
   return String(val);
 }
 
-function getFieldValue(logRow: JSONObject, fieldPath: string): string {
+/*
+ * Resolve a user-written field path against a log/span row and return it
+ * as a string. Exported because the pipeline's grok processor reads its
+ * source field with exactly these semantics - a grok `source` of
+ * "body", "attributes.message" or a bare attribute key has to mean the
+ * same thing it means in a filter query.
+ */
+export function getRowFieldValue(
+  logRow: JSONObject,
+  fieldPath: string,
+): string {
   if (fieldPath.startsWith("attributes.")) {
     const attrKey: string = fieldPath.slice("attributes.".length);
     const attrs: Record<string, unknown> =
@@ -438,7 +448,7 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
   switch (expr.type) {
     case "comparison": {
       const comp: ComparisonExpr = expr as ComparisonExpr;
-      const fieldVal: string = getFieldValue(logRow, comp.field);
+      const fieldVal: string = getRowFieldValue(logRow, comp.field);
 
       switch (comp.operator) {
         case "=":

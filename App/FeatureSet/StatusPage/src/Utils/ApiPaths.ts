@@ -6,6 +6,10 @@ export const LOGIN_API_URL: URL = URL.fromURL(
   STATUS_PAGE_IDENTITY_API_URL,
 ).addRoute(new Route("/login"));
 
+export const LOGIN_CODE_EXCHANGE_API_URL: URL = URL.fromURL(
+  STATUS_PAGE_IDENTITY_API_URL,
+).addRoute(new Route("/exchange-login-code"));
+
 export const FORGOT_PASSWORD_API_URL: URL = URL.fromURL(
   STATUS_PAGE_IDENTITY_API_URL,
 ).addRoute(new Route("/forgot-password"));

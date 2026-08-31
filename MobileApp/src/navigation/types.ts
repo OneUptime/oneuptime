@@ -61,8 +61,19 @@ export type SettingsStackParamList = {
   };
 };
 
+/*
+ * The on-call stack starts on an OVERVIEW, not on the policy list. The list
+ * answers "which escalation rules name me", which is a configuration question;
+ * the overview answers "am I on call and until when", which is why anybody
+ * opens this tab. `OnCallList` is still here - it is one row down.
+ */
 export type OnCallStackParamList = {
+  OnCallOverview: undefined;
   OnCallList: undefined;
+  WhoIsOnCall: undefined;
+  OnCallOverrides: undefined;
+  CreateOnCallOverride: undefined;
+  MyOnCallPages: undefined;
 };
 
 export type IncidentsStackParamList = {
