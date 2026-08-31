@@ -18,24 +18,29 @@ export default class StatusPageUtil {
 
   // Check if a path is an authentication-related page
   public static isAuthPath(path: string): boolean {
-    const normalizedPath: string = path.toLowerCase().split("?")[0] || "";
+    const normalizedPath: string = path.toLowerCase().split(/[?#]/)[0] || "";
     return StatusPageUtil.AUTH_PATHS.some((authPath: string) => {
-      return (
-        normalizedPath === authPath ||
-        normalizedPath.endsWith(authPath) ||
-        normalizedPath.includes(authPath + "?")
-      );
+      return normalizedPath === authPath || normalizedPath.endsWith(authPath);
     });
   }
 
-  // Get a safe redirect URL, returning null if the URL is an auth page
-  public static getSafeRedirectUrl(): string | null {
-    const redirectUrl: string | null =
-      Navigation.getQueryStringByName("redirectUrl");
-    if (!redirectUrl || StatusPageUtil.isAuthPath(redirectUrl)) {
+  public static getSafeRedirectPath(redirectUrl: string | null): string | null {
+    if (
+      !redirectUrl ||
+      !Navigation.isSafeInternalRoute(redirectUrl) ||
+      StatusPageUtil.isAuthPath(redirectUrl)
+    ) {
       return null;
     }
+
     return redirectUrl;
+  }
+
+  // Get a same-origin path redirect, returning null for unsafe or auth pages.
+  public static getSafeRedirectUrl(): string | null {
+    return StatusPageUtil.getSafeRedirectPath(
+      Navigation.getQueryStringByName("redirectUrl"),
+    );
   }
 
   // Get the default redirect path (overview page)
@@ -188,7 +193,7 @@ export default class StatusPageUtil {
 
     const route: Route = new Route(
       shouldIncludeRedirect
-        ? `${basePath}?redirectUrl=${currentPath}`
+        ? `${basePath}?redirectUrl=${encodeURIComponent(currentPath)}`
         : basePath,
     );
 
@@ -210,7 +215,9 @@ export default class StatusPageUtil {
 
     const route: Route = new Route(
       shouldIncludeRedirect
-        ? `${basePath}/master-password?redirectUrl=${currentPath}`
+        ? `${basePath}/master-password?redirectUrl=${encodeURIComponent(
+            currentPath,
+          )}`
         : `${basePath}/master-password`,
     );
 
