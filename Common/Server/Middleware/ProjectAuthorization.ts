@@ -199,8 +199,12 @@ export default class ProjectMiddleware {
         (req as OneUptimeRequest).userType = UserType.API;
 
         /*
-         * Global permissions for API keys include AuthenticatedRequest to
-         * enable file operations (File/FileModel gate on this permission).
+         * The two halves of an API key's authority. The global half is the
+         * fixed marker set every key carries (see APIKeyAccessPermission); the
+         * per-key grants an administrator actually configured are read from
+         * ApiKeyPermission just below. That second half is what the long-lived
+         * "TODO: Add API key permissions" here was asking for, and it is done -
+         * the TODO outlived the work.
          */
         (req as OneUptimeRequest).userGlobalAccessPermission =
           await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);
