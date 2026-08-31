@@ -1,3 +1,5 @@
+import Route from "../../../Types/API/Route";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import Navigation from "../../../UI/Utils/Navigation";
 import {
   afterEach,
@@ -179,5 +181,85 @@ describe("Navigation URL query string helpers", () => {
 
       expect(replaceState).toHaveBeenCalled();
     });
+  });
+});
+
+describe("Navigation internal route safety", () => {
+  beforeEach(() => {
+    setUrl("/dashboard/monitors");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    "/",
+    "/incidents/incident-id",
+    "/scheduled-maintenance/event-id?tab=timeline#note",
+    "/status-page/status-page-id/",
+    "/callback?next=https://example.com/complete",
+    "/literal/javascript:alert(1)",
+  ])("accepts same-origin path %s", (routeValue: string) => {
+    expect(Navigation.isSafeInternalRoute(routeValue)).toBe(true);
+  });
+
+  test.each([
+    "",
+    "incidents/incident-id",
+    "?tab=timeline",
+    "#note",
+    "javascript:alert(document.domain)",
+    "JaVaScRiPt:alert(1)",
+    "data:text/plain,hello",
+    "http://evil.example/path",
+    "https://evil.example/path",
+    "//evil.example/path",
+    "///evil.example/path",
+    "\\evil.example/path",
+    "/\\evil.example/path",
+    '/"',
+    "/☃",
+    "/\u0000control",
+  ])("rejects non-internal target %s", (routeValue: string) => {
+    expect(Navigation.isSafeInternalRoute(routeValue)).toBe(false);
+  });
+
+  test("rejects an absolute URL even when it names the current origin", () => {
+    expect(
+      Navigation.isSafeInternalRoute(
+        `${window.location.origin}/dashboard/monitors`,
+      ),
+    ).toBe(false);
+  });
+
+  test.each([
+    "javascript:alert(document.domain)",
+    "https://evil.example/path",
+    "//evil.example/path",
+    "incidents/incident-id",
+    "/\\evil.example/path",
+  ])(
+    "forced navigation independently rejects spoofed Route target %s",
+    (routeValue: string) => {
+      const currentUrl: string = window.location.href;
+      const route: Route = new Route("/safe");
+
+      jest.spyOn(route, "toString").mockReturnValue(routeValue);
+
+      expect(() => {
+        Navigation.navigate(route, { forceNavigate: true });
+      }).toThrowError(BadDataException);
+      expect(window.location.href).toBe(currentUrl);
+    },
+  );
+
+  test("forced navigation still accepts an internal path", () => {
+    Navigation.navigate(new Route("/dashboard/monitors#forced"), {
+      forceNavigate: true,
+    });
+
+    expect(window.location.pathname).toBe("/dashboard/monitors");
+    expect(window.location.hash).toBe("#forced");
   });
 });
