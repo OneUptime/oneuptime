@@ -18,6 +18,7 @@ import {
   TwoFactorMethod,
 } from "../api/auth";
 import { setOnAuthFailure } from "../api/client";
+import { queryClient } from "../api/queryClient";
 import { unregisterPushToken } from "./pushTokenUtils";
 import {
   clearAllSsoTokens,
@@ -222,6 +223,25 @@ export function AuthProvider({
     setOnAuthFailure((): void => {
       setIsAuthenticated(false);
       setUser(null);
+
+      /*
+       * The cache goes here too, for the same reason it goes on sign-out.
+       *
+       * This fires only after a refresh attempt failed and the client threw
+       * the stored tokens away, so the session is over just as definitively as
+       * if the user had pressed Sign out - and this is the MORE likely way the
+       * next responder finds themselves at the login screen, because it is
+       * what an app that sat in a pocket past its refresh token does on its
+       * own. Leaving the cache behind here would mean the one sign-out path
+       * nobody chooses is the one that hands the previous user's alerts,
+       * incidents and internal notes to whoever signs in next.
+       *
+       * The cost of being wrong in this direction is a refetch: if a straggler
+       * request from the dead session 401s after somebody has already signed
+       * back in, that user loses cached rows they can fetch again. The cost of
+       * the other direction is showing one account another account's data.
+       */
+      queryClient.clear();
     });
   }, []);
 
@@ -428,6 +448,28 @@ export function AuthProvider({
      * whoever signs in next on the same handset.
      */
     clearAllSsoDenials();
+
+    /*
+     * Everything the departing user's screens fetched is still sitting in the
+     * shared react-query cache under keys that carry no account identity -
+     * ["alerts", "all-projects"], ["incidents", projectId, ...] and the
+     * internal notes hanging off them - and nothing else ever evicts it inside
+     * a 24 hour gcTime. Hand the handset to the next responder on the rotation
+     * and react-query serves them the previous user's rows instantly while the
+     * refetch is still in flight; if the new account cannot see those projects
+     * the refetch fails and the stale rows just stay on screen. Internal notes
+     * are the worst of it.
+     *
+     * Cleared HERE, after the awaits, rather than at the top of logout: until
+     * apiLogout has returned the old session is still valid and its screens
+     * are still mounted, so a request that went out before the clear would
+     * resolve after it and write the departing user's rows straight back in.
+     * Cleared SYNCHRONOUSLY inside logout, and not from an effect watching
+     * isAuthenticated, because the login screen is one render away - a clear
+     * that lands late would empty the NEXT user's first page instead.
+     */
+    queryClient.clear();
+
     setIsAuthenticated(false);
     setUser(null);
     setPendingTwoFactor(null);

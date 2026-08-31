@@ -67,7 +67,13 @@ export default function OnCallStackNavigator(): React.JSX.Element {
            * "changed my mind" a swipe rather than a navigation decision.
            */
           presentation: "modal",
-          headerLargeTitle: false,
+
+          /*
+           * Gated the way every other pushed screen in the app gates it:
+           * headerLargeTitle is an iOS option, and handing Android a value it
+           * ignores today is how it ends up being interpreted tomorrow.
+           */
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
         }}
       />
       <Stack.Screen

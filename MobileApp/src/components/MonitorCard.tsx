@@ -54,6 +54,25 @@ export default function MonitorCard({
   const timeString: string = formatRelativeTime(monitor.createdAt);
   const isDisabled: boolean = monitor.disableActiveMonitoring === true;
 
+  /*
+   * What the pill below actually says, which is not always the status.
+   *
+   * When active monitoring is switched off the card deliberately REPLACES the
+   * status pill with "Disabled", because a status nobody is checking any more
+   * is a stale status: the monitor was Operational at the moment someone
+   * turned it off and it will read Operational for ever after, however far the
+   * service behind it has since fallen over.
+   *
+   * The accessibility label was built straight from currentMonitorStatus and
+   * so ignored that, which left the two descriptions of one card disagreeing -
+   * and the one a blind responder gets was the wrong one. It told them
+   * "Operational" about the single kind of monitor that cannot tell them
+   * anything of the sort. Sighted users were never shown that claim.
+   */
+  const statusLabel: string = isDisabled
+    ? "Disabled"
+    : monitor.currentMonitorStatus?.name ?? "unknown";
+
   return (
     <Pressable
       style={({ pressed }: { pressed: boolean }) => {
@@ -64,7 +83,7 @@ export default function MonitorCard({
       }}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Monitor ${monitor.name}. Status: ${monitor.currentMonitorStatus?.name ?? "unknown"}.`}
+      accessibilityLabel={`Monitor ${monitor.name}. Status: ${statusLabel}.`}
     >
       <View
         style={{

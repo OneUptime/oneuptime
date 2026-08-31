@@ -83,7 +83,7 @@ export async function fetchAllAlerts(
 export async function fetchAlertById(
   projectId: string,
   alertId: string,
-): Promise<AlertItem> {
+): Promise<AlertItem | null> {
   const response: AxiosResponse = await apiClient.post(
     "/api/alert/get-list?skip=0&limit=1",
     {
@@ -106,7 +106,21 @@ export async function fetchAlertById(
       headers: { tenantid: projectId },
     },
   );
-  return response.data.data[0];
+
+  /*
+   * `null` for a row that is not there, and never `undefined`.
+   *
+   * An alert that has been deleted - or that belongs to a project this
+   * responder has lost access to - answers with an empty list from a request
+   * that SUCCEEDED, so `data[0]` is `undefined`. React Query v5 refuses to put
+   * `undefined` in its cache: it rejects the query with a synthetic
+   * `<queryHash> data is undefined` error instead, and a deleted alert then
+   * reaches the detail screen wearing the same clothes as a 502. `null` is a
+   * value the cache accepts, so the miss settles as ordinary data and
+   * `isError` goes back to meaning the request failed. Anyone writing the next
+   * by-id fetcher: `undefined` here is a trap, not a style choice.
+   */
+  return response.data.data[0] ?? null;
 }
 
 export async function fetchAlertStates(

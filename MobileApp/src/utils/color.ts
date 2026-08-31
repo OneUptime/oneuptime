@@ -21,6 +21,17 @@ function toChannel(value: number | undefined): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
+/**
+ * Whether a channel field actually carries a number we can use.
+ *
+ * toChannel cannot answer this: it returns 0 both for a channel that is genuinely
+ * zero and for one that is missing entirely, and telling those two apart is the
+ * whole point here.
+ */
+function isChannel(value: number | undefined): boolean {
+  return typeof value === "number" && !Number.isNaN(value);
+}
+
 function normalizeHex(color: string): string | null {
   const trimmed: string = color.trim();
 
@@ -63,9 +74,29 @@ export function rgbToHex(color: ColorInput): string {
     return normalizeHex(color.color) || "#9ca3af";
   }
 
-  const r: number = toChannel(color.r ?? color.red);
-  const g: number = toChannel(color.g ?? color.green);
-  const b: number = toChannel(color.b ?? color.blue);
+  const rawR: number | undefined = color.r ?? color.red;
+  const rawG: number | undefined = color.g ?? color.green;
+  const rawB: number | undefined = color.b ?? color.blue;
+
+  /*
+   * An object that names no channel at all still reaches this point - an empty
+   * object, one carrying only a name, or one whose `value` was a number rather
+   * than a hex string. Without this guard each missing channel becomes 0 and
+   * the function returns "#000000": a badge that renders black-on-dark, i.e.
+   * invisible, instead of the neutral grey it falls back to for every other
+   * input it cannot read.
+   *
+   * The test is "did the object mention a channel", not "did the arithmetic come
+   * out as zero", because r:0,g:0,b:0 is a colour the server really did send and
+   * black is the right answer for it.
+   */
+  if (!isChannel(rawR) && !isChannel(rawG) && !isChannel(rawB)) {
+    return "#9ca3af";
+  }
+
+  const r: number = toChannel(rawR);
+  const g: number = toChannel(rawG);
+  const b: number = toChannel(rawB);
 
   return (
     "#" +
