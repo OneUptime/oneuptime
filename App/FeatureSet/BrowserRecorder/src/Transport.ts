@@ -7,6 +7,7 @@ import {
   SessionReplayDirective,
   SessionReplayPayloadEncoding,
 } from "Common/Types/Rum/SessionReplay";
+import { debugLog, debugWarn } from "./Debug";
 
 /*
  * Chunk upload.
@@ -36,8 +37,21 @@ export interface TransportOptions {
   url: string;
   headers: Record<string, string>;
 
-  /* Server's instruction to a live recorder, carried on every response. */
-  onDirective: (directive: SessionReplayDirective) => void;
+  /*
+   * Server's instruction to a live recorder, carried on every response,
+   * together with the reason it gave.
+   *
+   * SessionReplayChunkResponse has carried `reason` from the start, for the
+   * stated purpose of letting "a recorder told to stop without a reason
+   * leave the customer diagnosing silence" - and it was read by nobody. It
+   * is a closed vocabulary ("budget-exhausted", "not-sampled",
+   * "rate-limited", ...) with no user data in it, so it is safe to log and
+   * it is exactly what a support ticket needs to quote.
+   */
+  onDirective: (
+    directive: SessionReplayDirective,
+    reason: string | null,
+  ) => void;
 
   /*
    * The circuit breaker tripped. The recorder must stop recording and
@@ -68,6 +82,14 @@ interface QueuedChunk {
  * behind it silently gone".
  */
 type PostOutcome = "accepted" | "chunk-rejected" | "halt";
+
+/*
+ * The shape of a directive reason. The server sends a closed vocabulary
+ * ("budget-exhausted", "not-sampled", "rate-limited"), but it arrives over
+ * the network and ends up in a console line a customer pastes into a support
+ * ticket, so anything outside this charset is dropped rather than printed.
+ */
+const DIRECTIVE_REASON_PATTERN: RegExp = /^[A-Za-z0-9_.:-]+$/;
 
 /*
  * Uint8Array<ArrayBuffer>, not the default Uint8Array<ArrayBufferLike>. The
@@ -307,6 +329,12 @@ export default class Transport {
     );
 
     if (body.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES) {
+      debugWarn(
+        "final-chunk-too-large",
+        "The final chunk was over the keepalive quota and was dropped.",
+        { bytes: body.length, maxBytes: SESSION_REPLAY_KEEPALIVE_MAX_BYTES },
+      );
+
       this.droppedChunks++;
       return false;
     }
@@ -365,22 +393,74 @@ export default class Transport {
       });
     } catch {
       /* Network-level failure: retryable, and it counts against the breaker. */
+      debugWarn(
+        "chunk-post-failed",
+        "A chunk upload never reached the server.",
+        {
+          url: this.options.url,
+          chunkIndex: chunk.envelope.chunkIndex,
+          consecutiveFailures: this.consecutiveFailures + 1,
+        },
+      );
+
       this.recordRetryableFailure(chunk, isRetry);
       return "halt";
     }
 
-    return await this.handleResponse(response, chunk, isRetry);
+    return await this.handleResponse(response, chunk, envelope, isRetry);
   }
 
+  /*
+   * `sent` is the envelope that actually went on the wire - the caller's
+   * envelope with the post-compression encoding and byte count written into
+   * it. The diagnostics report from `sent`, so the number a support engineer
+   * reads is the number the server received.
+   */
   private async handleResponse(
     response: Response,
     chunk: QueuedChunk,
+    sent: SessionReplayChunkEnvelope,
     isRetry: boolean,
   ): Promise<PostOutcome> {
     const status: number = response.status;
 
     if (status >= 200 && status < 300) {
       this.consecutiveFailures = 0;
+
+      /*
+       * 204 is NOT an accepted chunk. It is the status the server sends when
+       * it deliberately did not record - over budget, unsampled, application
+       * disabled, session chunk cap - and it carries the directive and the
+       * reason in headers rather than a body. The server's own metrics
+       * middleware refuses the same conflation in as many words ("204 is
+       * counted as 'refused' rather than 'accepted'"), and the docs teach a
+       * customer to look for "chunk-accepted" as proof their installation
+       * works, so calling a stand-down an acceptance would confirm an
+       * installation that is storing nothing.
+       *
+       * payloadBytes comes from `sent`, not from chunk.envelope: the
+       * caller's envelope carries the RAW count and post() replaces it with
+       * the post-gzip length before the request goes out. Reporting the raw
+       * one would show a support engineer a different number from the one
+       * the server received for the same chunk.
+       */
+      if (status === 204) {
+        debugWarn(
+          "chunk-not-recorded",
+          "The server accepted the request but deliberately did not record the chunk.",
+          { status: status, chunkIndex: sent.chunkIndex },
+        );
+      } else {
+        debugLog("chunk-accepted", "Chunk accepted.", {
+          status: status,
+          chunkIndex: sent.chunkIndex,
+          sessionId: sent.sessionId,
+          payloadBytes: sent.payloadBytes,
+          payloadEncoding: sent.payloadEncoding,
+          isFinal: sent.isFinal,
+        });
+      }
+
       await this.applyDirective(response);
       return "accepted";
     }
@@ -391,6 +471,17 @@ export default class Transport {
      * going quiet.
      */
     if (status === 401 || status === 403 || status === 404) {
+      /*
+       * The three statuses that stop the recorder for good, each with a fix
+       * in a different place. Until now this produced a recorder that simply
+       * went quiet mid-session with nothing printed anywhere.
+       */
+      debugWarn(
+        "chunk-rejected-terminal",
+        "Uploading stopped for good: the server refused this recorder.",
+        { status: status, url: this.options.url },
+      );
+
       this.disable(`http-${status}`);
       return "halt";
     }
@@ -401,12 +492,28 @@ export default class Transport {
      * against the circuit breaker - the transport is healthy.
      */
     if (status === 413 || status === 422 || status === 400) {
+      debugWarn(
+        "chunk-refused",
+        "The server refused one chunk; recording continues without it.",
+        {
+          status: status,
+          chunkIndex: sent.chunkIndex,
+          payloadBytes: sent.payloadBytes,
+        },
+      );
+
       this.droppedChunks++;
       return "chunk-rejected";
     }
 
     if (status === 429) {
       const retryAfterSeconds: number = Transport.parseRetryAfter(response);
+
+      debugWarn(
+        "chunk-throttled",
+        "Rate limited. Uploads pause and resume on their own.",
+        { retryAfterSeconds: retryAfterSeconds },
+      );
 
       this.throttledUntilUnixMs = Date.now() + retryAfterSeconds * 1000;
       this.enqueueForRetry(chunk);
@@ -418,6 +525,17 @@ export default class Transport {
       return "halt";
     }
 
+    debugWarn(
+      "chunk-post-server-error",
+      "The server could not accept a chunk. It will be retried.",
+      {
+        status: status,
+        chunkIndex: sent.chunkIndex,
+        consecutiveFailures: this.consecutiveFailures + 1,
+        maxFlushFailures: SESSION_REPLAY_MAX_FLUSH_FAILURES,
+      },
+    );
+
     this.recordRetryableFailure(chunk, isRetry);
 
     return "halt";
@@ -427,7 +545,21 @@ export default class Transport {
     try {
       const text: string = await response.text();
 
+      /*
+       * A 204 has NO BODY, and 204 is precisely the status the server sends
+       * when it is standing a recorder down - deliberately not recording,
+       * over budget, unsampled, rate limited. It puts the directive in
+       * x-oneuptime-replay-directive and the reason in
+       * x-oneuptime-replay-reason for that case, and CorsOptions exposes
+       * both cross-origin specifically so the recorder can read them.
+       *
+       * This method only ever parsed the body and returned early when it was
+       * empty, so every one of those responses was read as a plain success:
+       * the kill switch's fast path did not work, and the recorder kept
+       * posting chunks the server had already told it to stop sending.
+       */
       if (!text) {
+        this.applyHeaderDirective(response);
         return;
       }
 
@@ -439,13 +571,22 @@ export default class Transport {
 
       const raw: Record<string, unknown> = body as Record<string, unknown>;
       const directive: unknown = raw["directive"];
+      const reason: string | null = Transport.readReason(raw["reason"]);
 
       if (
         directive === "stop" ||
         directive === "throttle" ||
         directive === "continue"
       ) {
-        this.options.onDirective(directive);
+        if (directive !== "continue") {
+          debugWarn(
+            "server-directive",
+            "The server changed what this recorder should do.",
+            { directive: directive, reason: reason || "not-reported" },
+          );
+        }
+
+        this.options.onDirective(directive, reason);
       }
 
       const retryAfterSeconds: unknown = raw["retryAfterSeconds"];
@@ -463,6 +604,65 @@ export default class Transport {
        * directive is an optimisation, not a requirement.
        */
     }
+  }
+
+  /*
+   * The bodyless case. Reads the three headers CorsOptions exposes, all of
+   * which are absent on a same-origin-shaped or older server - in which case
+   * nothing happens, which is the pre-existing behaviour.
+   */
+  private applyHeaderDirective(response: Response): void {
+    if (!response.headers) {
+      return;
+    }
+
+    const directive: string | null = response.headers.get(
+      "x-oneuptime-replay-directive",
+    );
+
+    const reason: string | null = Transport.readReason(
+      response.headers.get("x-oneuptime-replay-reason"),
+    );
+
+    if (
+      directive !== "stop" &&
+      directive !== "throttle" &&
+      directive !== "continue"
+    ) {
+      return;
+    }
+
+    if (directive !== "continue") {
+      debugWarn(
+        "server-directive",
+        "The server told this recorder to change what it is doing.",
+        {
+          directive: directive,
+          reason: reason || "not-reported",
+          via: "header",
+        },
+      );
+    }
+
+    this.options.onDirective(directive, reason);
+  }
+
+  /*
+   * A closed server-side vocabulary, but it arrives over the wire, so it is
+   * bounded and character-restricted here before it is ever logged.
+   *
+   * REJECTED rather than truncated when it is too long. Slicing first and
+   * testing the slice let a 300-character string made only of vocabulary
+   * characters through as its first 64 - which is not a member of the
+   * vocabulary, matches nothing a reader could branch on, and is 64
+   * characters of someone else's choosing landing in a console line.
+   */
+  private static readReason(value: unknown): string | null {
+    if (typeof value !== "string" || !value || value.length > 64) {
+      return null;
+    }
+
+    return DIRECTIVE_REASON_PATTERN.test(value) ? value : null;
   }
 
   private recordRetryableFailure(chunk: QueuedChunk, isRetry: boolean): void {
@@ -513,6 +713,17 @@ export default class Transport {
 
     this.disabled = true;
     this.disabledReason = reason;
+
+    debugWarn(
+      "transport-disabled",
+      "Uploading has stopped for good. Fix the cause and reload.",
+      {
+        reason: reason,
+        queuedChunksDropped: this.retryQueue.length,
+        droppedChunks: this.droppedChunks,
+      },
+    );
+
     this.retryQueue = [];
 
     this.options.onPermanentFailure(reason);

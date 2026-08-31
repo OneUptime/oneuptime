@@ -147,13 +147,44 @@ describe("Microsoft Teams inbound route authentication", () => {
   });
 
   test("keeps exactly one POST route for the authenticated Bot Framework adapter", () => {
+    /*
+     * Counted by method rather than by layer. What must stay unique is the
+     * inbound POST — a second one is how the unauthenticated legacy webhook
+     * got in, and this test exists to keep it out. The path itself carries a
+     * second layer on purpose since the 405 diagnostic landed: a GET handler
+     * that answers a browser probe instead of letting it fall through to the
+     * catch-all 404, which is what convinced the reporter of #3488 that the
+     * route had been dropped from the build.
+     *
+     * So: exactly one layer accepts POST, and no other layer on this path
+     * accepts POST either. The second assertion is the one doing the security
+     * work — a layer registered with router.all() would accept POST while
+     * reporting no `post` key of its own.
+     */
     const botFrameworkLayers: Array<ExpressRouterLayer> =
       getRouterLayers().filter((layer: ExpressRouterLayer): boolean => {
         return layer.route?.path === BOT_FRAMEWORK_PATH;
       });
 
-    expect(botFrameworkLayers).toHaveLength(1);
-    expect(botFrameworkLayers[0]!.route!.methods).toEqual({ post: true });
+    const postLayers: Array<ExpressRouterLayer> = botFrameworkLayers.filter(
+      (layer: ExpressRouterLayer): boolean => {
+        return layer.route?.methods["post"] === true;
+      },
+    );
+
+    expect(postLayers).toHaveLength(1);
+    expect(postLayers[0]!.route!.methods).toEqual({ post: true });
+
+    const otherLayerMethods: Array<string> = botFrameworkLayers
+      .filter((layer: ExpressRouterLayer): boolean => {
+        return layer !== postLayers[0];
+      })
+      .flatMap((layer: ExpressRouterLayer): Array<string> => {
+        return Object.keys(layer.route!.methods);
+      });
+
+    expect(otherLayerMethods).not.toContain("post");
+    expect(otherLayerMethods).not.toContain("_all");
   });
 
   test.each([

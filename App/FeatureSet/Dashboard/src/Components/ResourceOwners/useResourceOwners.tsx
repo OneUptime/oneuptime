@@ -24,7 +24,6 @@ import React, {
 } from "react";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import FilterChipDropdown, {
   FilterChipDropdownOption,
@@ -34,11 +33,7 @@ import FilterChipDateRange from "./FilterChipDateRange";
 import FilterChipValueInput from "./FilterChipValueInput";
 import { CUSTOM_FIELD_FACET_KEY_PREFIX } from "../CustomFields/CustomFieldFacets";
 import { ResourceFacet } from "./ResourceFacet";
-import {
-  FacetColumnQuery,
-  buildFacetColumnQuery,
-  defaultFacetQueryValue,
-} from "./FacetColumnQuery";
+import { FacetColumnQuery, buildFacetColumnQuery } from "./FacetColumnQuery";
 import {
   OPTION_FACET_OPERATORS,
   isTypedValueFacetKind,
@@ -57,81 +52,18 @@ import {
 
 const PICKER_PAGE_SIZE: number = 50;
 
-/**
- * Helper for facets whose values are ObjectIDs (entity references like
- * Status, Severity, State, Monitor). Wraps each value in ObjectID and
- * picks the right operator wrapper.
+/*
+ * The three "what does this chip write" helpers now live in FacetColumnQuery,
+ * next to the merge rules they feed, so that a facet vocabulary module — one
+ * that only *describes* chips and must stay importable from App/Tests, where
+ * there is no React — can reach them. Re-exported here because every page that
+ * builds a chip imports them off this hook.
  */
-export const buildEntityFacetQuery: (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti: boolean,
-) => unknown = (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti: boolean,
-): unknown => {
-  if (operator === "is_empty") {
-    return new IsNull();
-  }
-  if (operator === "is_not_empty") {
-    return new NotNull();
-  }
-  if (values.length === 0) {
-    return undefined;
-  }
-  const ids: Array<ObjectID> = values.map((v: string) => {
-    return new ObjectID(v);
-  });
-  if (isMulti) {
-    return operator === "is_not" ? new IncludesNone(ids) : new Includes(ids);
-  }
-  // NotEqual only accepts string/number/Date — wrap ObjectID's string form.
-  return operator === "is_not" ? new NotEqual(values[0]!) : ids[0]!;
-};
-
-/**
- * Helper for facets whose values are plain strings (enum-like fields:
- * MonitorType, otelCollectorStatus, OS, Architecture). Defaults to
- * multi-select semantics; pass `false` for single-select fields.
- */
-export const buildEnumFacetQuery: (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti?: boolean,
-) => unknown = (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti: boolean = true,
-): unknown => {
-  return defaultFacetQueryValue(values, operator, isMulti);
-};
-
-/**
- * Helper for boolean facets. Maps string "true"/"false" → real booleans
- * with optional NotEqual for the "is_not" operator. Empty operators
- * aren't meaningful here (booleans aren't nullable in our schema).
- */
-export const buildBooleanFacetQuery: (
-  values: Array<string>,
-  operator: FilterOperator,
-) => unknown = (values: Array<string>, operator: FilterOperator): unknown => {
-  if (operator === "is_empty") {
-    return new IsNull();
-  }
-  if (operator === "is_not_empty") {
-    return new NotNull();
-  }
-  if (values.length === 0) {
-    return undefined;
-  }
-  const asBool: boolean = values[0] === "true";
-  /*
-   * NotEqual<CompareType> can't take boolean; coerce to a string the
-   * ORM compares against. The Includes/equality path keeps the real bool.
-   */
-  return operator === "is_not" ? new NotEqual(String(asBool)) : asBool;
-};
+export {
+  buildBooleanFacetQuery,
+  buildEntityFacetQuery,
+  buildEnumFacetQuery,
+} from "./FacetColumnQuery";
 
 const getInitials: (name: string) => string = (name: string): string => {
   const parts: Array<string> = name

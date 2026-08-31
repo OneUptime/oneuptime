@@ -328,9 +328,51 @@ export interface SessionReplayChunkEnvelope {
 }
 
 /*
+ * WHY a config response says enabled:false.
+ *
+ * The disabled response is deliberately a complete, well-formed config
+ * rather than an error, so a recorder that cannot parse a config still
+ * refuses to record. The cost of that was one answer for five very
+ * different causes: from a browser, an instance-wide kill switch, a
+ * deployment whose recorder bundle was never built, an application
+ * somebody switched off and a Redis outage were all "enabled: false" and
+ * nothing else, and no amount of dashboard configuration fixes three of
+ * them.
+ *
+ * This is a closed vocabulary carrying no project data - it is answered
+ * only to a request already bearing a valid ingestion key for that
+ * project, and it says strictly less than the Dashboard's own ingest
+ * status endpoint already shows the same customer.
+ */
+export enum SessionReplayDisabledReason {
+  /* SESSION_REPLAY_INGEST_ENABLED=false on this deployment. */
+  IngestDisabled = "ingest-disabled",
+
+  /* SESSION_REPLAY_ENABLED_BY_DEFAULT=false on this deployment. */
+  DisabledByDefault = "disabled-by-default",
+
+  /*
+   * No published recorder artifact. The build never ran, or its output is
+   * not where the server looks for it - overwhelmingly the answer on a
+   * self-hosted install where replay has never worked at all.
+   */
+  RecorderNotBuilt = "recorder-not-built",
+
+  /* The policy lookup threw. Fail closed, and say that it failed. */
+  PolicyUnavailable = "policy-unavailable",
+
+  /*
+   * No policy for this project/application pair: the application is
+   * switched off, the project is not allowed replay, the identifier does
+   * not match one, or a kill key is set.
+   */
+  NotEnabledForApplication = "not-enabled-for-application",
+}
+
+/*
  * Policy snapshot handed to the recorder at startup. This endpoint is
  * what makes every server-side privacy control reachable by a live
- * recorder — without it, flipping a masking setting would never take
+ * recorder - without it, flipping a masking setting would never take
  * effect in a browser that already loaded.
  */
 export interface SessionReplayConfigResponse {
@@ -415,6 +457,25 @@ export interface SessionReplayConfigResponse {
   configEpoch: number;
 
   directive: SessionReplayDirective;
+
+  /*
+   * Set only alongside enabled:false. Optional on the wire like every
+   * other field added after v1: an older recorder ignores it, a newer one
+   * logs it, and neither breaks.
+   */
+  disabledReason?: SessionReplayDisabledReason;
+
+  /*
+   * Ask every recorder that reads this policy to print its decisions to
+   * the browser console (SESSION_REPLAY_DEBUG on the deployment).
+   *
+   * The switch of last resort, and the only one an operator can reach
+   * without editing a page they do not own: the per-browser localStorage
+   * and query-string switches need somebody at that browser. It is off by
+   * default and must stay that way - a RUM script logging on every visitor
+   * of every customer is noise on somebody else's site.
+   */
+  debug?: boolean;
 }
 
 /* Response to a chunk POST. Deliberately tiny. */
