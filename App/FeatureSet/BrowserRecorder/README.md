@@ -77,6 +77,47 @@ made before it arrives.
 | `identify(userRef)` | attaches an opaque user reference (hashed server-side unless identity capture is enabled)  |
 | `stop()`            | stops recording                                                                            |
 | `getSessionId()`    | the current session id, or null                                                            |
+| `setDebug(bool)`    | turn the console diagnostics on or off for this page                                       |
+| `getDiagnostics()`  | the recorder's state plus its last 250 decisions, kept whether or not diagnostics were on  |
+
+### Diagnostics
+
+Every gate in this package fails **closed and silent**: no init options, a privacy signal, a config
+fetch that 404s behind a reverse proxy, an application somebody switched off, a deployment whose
+recorder artifact was never built, a session that lost the sample draw, a consent mode nobody
+granted, a 401 that trips the circuit breaker. Every one of those produces the same observable
+outcome on a customer's page — nothing, not even a network request — and server telemetry cannot see
+a recorder that never loaded.
+
+`src/Debug.ts` is the other half of the Dashboard's "test your installation" panel: the browser's
+side of the answer. It is **off by default** (a RUM script must not print into a customer's end
+users' consoles) and turns on without a redeploy, because the page that is failing is usually
+production:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true"); // then reload
+```
+
+…or `?oneuptime_debug=1` on the URL, `data-oneuptime-debug="true"` on the tag, `debug: true` in the
+init global, `OneUptimeReplay.setDebug(true)` at runtime, or `SESSION_REPLAY_DEBUG=true` on the
+OneUptime deployment for every recorder it serves.
+
+Two properties are load-bearing and both have tests:
+
+- **Records are always kept; the switch gates OUTPUT.** The ring holds 250 entries, every call site
+  is a cold path (startup, a config fetch, a chunk boundary — never the rrweb emit hot path), and
+  the state lives on a global so the **loader stub** and the artifact share one timeline. So
+  `getDiagnostics()` returns the stub's records too, which are the ones that explain why the
+  artifact was never reached — and it works on a page nobody thought to instrument first.
+- **No page content, ever.** `DebugDetail` admits only primitives, values are truncated, and a
+  non-primitive handed in from untyped JavaScript is replaced with `<object omitted>` rather than
+  stringified. A diagnostics channel that could carry a DOM node would be a second, unmasked egress
+  path for exactly the data the rest of this package exists to protect.
+
+Each record carries a stable kebab-case `code`; `/docs/rum/session-replay-troubleshooting` is the
+index of what every one of them means. The messages in the bundle are deliberately terse for the
+same reason the loader has a byte budget at all — the remediation prose lives in the docs, not in
+every visitor's download.
 
 ## Two-stage load
 
@@ -263,6 +304,10 @@ defend in an incident review.
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |
+| `src/PerformanceRecorder.ts` | LCP, long tasks and slow requests — the performance trigger               |
+| `src/EarlyErrors.ts`         | the stub's pre-load error buffer, replayed through masking at start      |
+| `src/ExtendedConfig.ts`      | artifact-side normalisation of fields the stub passes through unvalidated |
+| `src/Debug.ts`               | the diagnostics switch, the record ring, and the redaction that keeps page content out of it |
 | `Manifest.ts`                | **server-side**, not bundled: reads `public/dist/manifest.json` and is the one place the published version, SRI hash and route policy come from |
 
 ## Commands
@@ -277,10 +322,18 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 231 KB raw / 71.4 KB gzip**, **loader.js 4.9 KB raw /
-1.9 KB gzip**. Both raw AND gzip budgets are enforced by the build, which fails
+Measured: **recorder.js 245 KB raw / 75.7 KB gzip**, **loader.js 12.1 KB raw /
+4.6 KB gzip**. Both raw AND gzip budgets are enforced by the build, which fails
 rather than shipping a regression — gzip being the number a customer's browser
 actually pays.
+
+The stub was 6.5 KB raw / 2.5 KB gzip before the diagnostics module and the ~20
+decision points that report through it. That increase is real and was taken
+deliberately: the stub's entire job is to decide **not** to record, it did so
+five different ways that were indistinguishable from each other and from a
+broken installation, and the browser is the only place that answer exists.
+Roughly 1.9 KB gzip once, for output that is off unless somebody asks for it,
+against support round trips per incident.
 
 The design doc's ~52 KB gzip target is not reachable, and it is worth being
 precise about why rather than leaving it as an open action:

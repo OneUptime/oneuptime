@@ -95,9 +95,20 @@ An internal or low-traffic app with no overnight visitors is legitimately discon
 
 ## 8. Session Replay problems
 
-Session replay is a separate pipeline with its own failure modes — the recorder script, the origin allowlist, consent, CSP and masking. They are documented in [Session Replay](/docs/telemetry/session-replay); the **Test your installation** panel in _RUM → Session Replay Settings_ checks the token, origin allowlist and CSP together.
+Session replay is a separate pipeline with its own failure modes — the recorder script, the origin allowlist, consent, CSP and masking. They have their own page: [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting).
 
-One overlap worth naming here: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
+Start there rather than here, and start by turning on the recorder's diagnostics, because most of its failure modes are deliberately silent:
+
+```js
+localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+// then reload the page
+```
+
+The **Test your installation** panel in _RUM → Session Replay Settings_ checks the token, origin allowlist and CSP from the server's side; the console tells you the half the server cannot see.
+
+Worth naming here: a session replay recorder that makes **no chunk requests at all** is usually working correctly. Under the default capture trigger it uploads only when something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path.
+
+The two pipelines are independent: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
 
 ## Still stuck
 

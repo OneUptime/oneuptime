@@ -485,6 +485,45 @@ const InstallationTestPanel: FunctionComponent = (): ReactElement => {
                 {`script-src  ${oneuptimeUrl};
 connect-src ${oneuptimeUrl};`}
               </pre>
+
+              {/*
+               * Every check above answers from the SERVER's side, which is
+               * the half that cannot see a recorder that never loaded - a
+               * blocked script, a browser privacy signal, an unsampled
+               * session, a consent mode nobody granted. This is the other
+               * half, and it is the same panel's job to hand it over.
+               */}
+              <div className="mt-3 text-xs font-semibold text-gray-700">
+                Ask the browser instead
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                These checks answer from the server&apos;s side. Anything that
+                stops the recorder before it uploads — a blocked script, a Do
+                Not Track signal, an unsampled session, consent that was never
+                granted — is only visible in the browser. Run this in the
+                console on the page that is failing, then reload:
+              </p>
+              <pre className="mt-2 overflow-x-auto whitespace-pre rounded bg-gray-900 p-3 text-[11px] leading-relaxed text-gray-100">
+                {`localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+
+// after reloading, for a support ticket:
+OneUptimeReplay.getDiagnostics();`}
+              </pre>
+              <p className="mt-1 text-xs text-gray-500">
+                Every line is explained in{" "}
+                <a
+                  className="underline"
+                  href="/docs/rum/session-replay-troubleshooting"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Session Replay Troubleshooting
+                </a>
+                . Note that a recorder making no upload requests is usually
+                working correctly: under the <code>OnErrorOrFrustration</code>{" "}
+                trigger it uploads only when something goes wrong. Call{" "}
+                <code>OneUptimeReplay.captureSession()</code> to force one.
+              </p>
             </div>
           </div>
         )}
