@@ -409,12 +409,27 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     ExplorerLink.openInExplorer(pinnedViewData);
   };
 
+  /*
+   * The window this panel is pinned to is the one the user just picked in the
+   * time range picker a click away, so it has to be written the same way that
+   * button writes it: on the machine's own 12- or 24-hour clock, in the
+   * configured timezone. getInBetweenDatesAsFormattedString cannot do that -
+   * it forwards no options, so it is hardcoded to a 24-hour clock, and it
+   * formats the digits in the browser's zone while labelling them with the
+   * configured zone's abbreviation.
+   */
+  const formatPinnedWindow: () => string = (): string => {
+    const format: (date: Date) => string = (date: Date): string => {
+      return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date);
+    };
+
+    return `${format(pinnedWindow.startValue)} - ${format(pinnedWindow.endValue)}`;
+  };
+
   return (
     <SideOver
       title={props.title || "Investigate window"}
-      description={OneUptimeDate.getInBetweenDatesAsFormattedString(
-        pinnedWindow,
-      )}
+      description={formatPinnedWindow()}
       size={SideOverSize.Large}
       onClose={props.onClose}
     >

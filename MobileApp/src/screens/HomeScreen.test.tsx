@@ -3,9 +3,10 @@ import { render, screen, waitFor } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import HomeScreen from "./HomeScreen";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
-import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
+import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { makeProject } from "../__tests__/testSupport";
-import type { ProjectItem, ProjectOnCallAssignments } from "../api/types";
+import type { ProjectItem } from "../api/types";
+import type { OnCallDutySummary } from "../oncall/duty";
 
 /*
  * Home is a verdict screen. A responder glances at it, reads the digits, and
@@ -23,18 +24,22 @@ import type { ProjectItem, ProjectOnCallAssignments } from "../api/types";
  * down" on the strength of a request that never landed - which on an on-call
  * app is not a cosmetic bug.
  *
- * The same applies, harder, to the on-call card: "You are not currently
- * on-call" is a sentence that makes people put the phone down, and a failed
- * or partial fan-out across projects produces the same zero as a real one.
+ * The same applies, harder, to the on-call card. "You're not on call" is a
+ * sentence that makes people put the phone down, and useOnCallDuty reports the
+ * same `isOnCall: false` whether every project answered and none of them put
+ * this responder on duty or nothing answered at all.
  *
  * The hooks themselves are covered by their own suites. Here they are stand-ins
  * whose state each test sets directly, because the question under test is
- * purely which number this screen is willing to claim from a given hook state.
+ * purely which claim this screen is willing to make from a given hook state.
  * The `mock` prefix is what lets jest.mock's hoisted factories reach them.
  */
 
 type CountsState = ReturnType<typeof useAllProjectCounts>;
-type OnCallState = ReturnType<typeof useAllProjectOnCallPolicies>;
+type OnCallState = ReturnType<typeof useOnCallDuty>;
+
+/* Pinned so the countdowns below are arithmetic rather than a race. */
+const mockNowMs: number = new Date(2026, 2, 3, 12, 0, 0, 0).getTime();
 
 const mockCounts: { current: CountsState } = {
   current: {} as CountsState,
@@ -56,10 +61,18 @@ jest.mock("../hooks/useAllProjectCounts", () => {
   };
 });
 
-jest.mock("../hooks/useAllProjectOnCallPolicies", () => {
+jest.mock("../hooks/useOnCallDuty", () => {
   return {
-    useAllProjectOnCallPolicies: () => {
+    useOnCallDuty: () => {
       return mockOnCall.current;
+    },
+  };
+});
+
+jest.mock("../hooks/useNow", () => {
+  return {
+    useNow: () => {
+      return mockNowMs;
     },
   };
 });
@@ -146,14 +159,28 @@ function countsWith(overrides: Partial<CountsState> = {}): CountsState {
   };
 }
 
+function dutySummary(
+  overrides: Partial<OnCallDutySummary> = {},
+): OnCallDutySummary {
+  return {
+    isOnCall: false,
+    activeShifts: [],
+    upcomingShifts: [],
+    nextHandoffAt: null,
+    nextShiftStartsAt: null,
+    standingAssignmentCount: 0,
+    scheduleAssignmentCount: 0,
+    ...overrides,
+  };
+}
+
 function onCallWith(overrides: Partial<OnCallState> = {}): OnCallState {
   return {
-    projects: [],
-    totalAssignments: 0,
+    summary: dutySummary(),
+    assignmentsByProject: [],
+    schedules: [],
     isLoading: false,
     isError: false,
-    failedProjectCount: 0,
-    isPartialFailure: false,
     refetch: jest.fn(async () => {
       return undefined;
     }) as unknown as () => Promise<void>,
@@ -161,42 +188,15 @@ function onCallWith(overrides: Partial<OnCallState> = {}): OnCallState {
   };
 }
 
-function makeOnCallProject(): ProjectOnCallAssignments {
-  return {
-    projectId: "project-1",
-    projectName: "Acme Production",
-    assignments: [
-      {
-        projectId: "project-1",
-        projectName: "Acme Production",
-        policyId: "policy-1",
-        policyName: "Primary rotation",
-        escalationRuleName: "Rule 1",
-        assignmentType: "user",
-        assignmentDetail: "You are directly assigned",
-      },
-      {
-        projectId: "project-1",
-        projectName: "Acme Production",
-        policyId: "policy-2",
-        policyName: "Database escalation",
-        escalationRuleName: "Rule 1",
-        assignmentType: "team",
-        assignmentDetail: "Via the Database team",
-      },
-    ],
-  };
-}
-
 /*
  * A settled, unambiguous on-call state for the tests that are about the count
- * cards. It puts a "2" in the on-call slot rather than a "0", so that any zero
- * these tests find on the screen can only have come from a stat card.
+ * cards: on duty, and by a standing assignment rather than a shift, so the
+ * card draws neither a placeholder nor a countdown of its own. Any "--" or "0"
+ * those tests find on the screen can then only have come from a stat card.
  */
 function onCallOnDuty(): OnCallState {
   return onCallWith({
-    projects: [makeOnCallProject()],
-    totalAssignments: 2,
+    summary: dutySummary({ isOnCall: true, standingAssignmentCount: 2 }),
   });
 }
 
@@ -333,91 +333,134 @@ describe("The on-call card distinguishes not on call from could not ask", () => 
     mockOnCall.current = onCallWith();
   });
 
-  test("a complete answer of no duty is reported as not on call", async () => {
+  test("a settled answer of no duty is reported as not on call", async () => {
     mockOnCall.current = onCallWith();
 
     await render(<HomeScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText("You are not currently on-call")).toBeTruthy();
+      expect(screen.getByText("You're not on call")).toBeTruthy();
     });
 
+    expect(screen.getByText("OFF CALL")).toBeTruthy();
+    expect(screen.getByText("No active on-call assignments")).toBeTruthy();
     expect(screen.queryByText("--")).toBeNull();
   });
 
-  test("nothing answering is not an all-clear", async () => {
+  test("a duty check that failed is not an all-clear", async () => {
+    /*
+     * The reason this file exists. `isOnCall` is false here because nothing
+     * answered, not because the answer was no, and a responder who reads OFF
+     * CALL off this card stops watching their phone.
+     */
     mockOnCall.current = onCallWith({ isError: true });
 
     await render(<HomeScreen />);
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Could not check your on-call status/i),
+        screen.getByText("Could not load your on-call status"),
       ).toBeTruthy();
     });
 
-    expect(screen.queryByText("You are not currently on-call")).toBeNull();
+    expect(screen.getByText("Pull to refresh or try again.")).toBeTruthy();
+    expect(screen.queryByText("You're not on call")).toBeNull();
+    expect(screen.queryByText("OFF CALL")).toBeNull();
 
     /*
      * The counts are settled zeros in this test, so the only placeholder that
-     * can be on the screen is the on-call card's own number.
+     * can be on the screen is the on-call badge.
      */
     expect(screen.getAllByText("--")).toHaveLength(1);
   });
 
-  test("a partial answer that adds up to zero is not an all-clear either", async () => {
+  test("a duty check that failed does not tell a screen reader they are off duty either", async () => {
     /*
-     * This is the dangerous half of a partial fan-out: the project that failed
-     * to answer is exactly the one that could be holding the page, and every
-     * project that did answer said no.
+     * The card's spoken label is a second copy of the same claim, and it is
+     * the only copy a responder using VoiceOver gets.
      */
-    mockOnCall.current = onCallWith({
-      failedProjectCount: 1,
-      isPartialFailure: true,
-    });
+    mockOnCall.current = onCallWith({ isError: true });
 
     await render(<HomeScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Could not check every project/i)).toBeTruthy();
+      expect(
+        screen.getByLabelText(/Your on-call status could not be loaded/),
+      ).toBeTruthy();
     });
 
-    expect(screen.queryByText("You are not currently on-call")).toBeNull();
+    expect(screen.queryByLabelText(/You are not on call/)).toBeNull();
+  });
+
+  test("a duty check still in flight has not answered yet", async () => {
+    mockOnCall.current = onCallWith({ isLoading: true });
+
+    await render(<HomeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Checking your duty status...")).toBeTruthy();
+    });
+
+    expect(screen.queryByText("You're not on call")).toBeNull();
+    expect(screen.queryByText("OFF CALL")).toBeNull();
     expect(screen.getAllByText("--")).toHaveLength(1);
   });
 
-  test("a partial answer with duty in it keeps its count and says it is incomplete", async () => {
+  test("an active shift is counted down to its handoff", async () => {
     mockOnCall.current = onCallWith({
-      projects: [makeOnCallProject()],
-      totalAssignments: 2,
-      failedProjectCount: 1,
-      isPartialFailure: true,
+      summary: dutySummary({
+        isOnCall: true,
+        scheduleAssignmentCount: 1,
+        nextHandoffAt: new Date(2026, 2, 3, 14, 0, 0, 0).toISOString(),
+      }),
     });
 
     await render(<HomeScreen />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          "2 active assignments across 1 project (some projects did not answer)",
-        ),
-      ).toBeTruthy();
+      expect(screen.getByText("You're on call")).toBeTruthy();
     });
 
-    /* "You are on call" is not made wrong by a project that did not reply. */
-    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByText("ON CALL")).toBeTruthy();
+    expect(screen.getByText("Handoff in 2h")).toBeTruthy();
   });
 
-  test("a complete answer with duty in it carries no caveat", async () => {
-    mockOnCall.current = onCallOnDuty();
+  test("a standing assignment is not given a handoff it does not have", async () => {
+    /*
+     * An escalation rule that names somebody directly has no window at all, so
+     * there is no boundary to count down to. Borrowing one from an unrelated
+     * schedule would be the app telling a responder when they can stop.
+     */
+    mockOnCall.current = onCallWith({
+      summary: dutySummary({ isOnCall: true, standingAssignmentCount: 1 }),
+    });
 
     await render(<HomeScreen />);
 
     await waitFor(() => {
       expect(
-        screen.getByText("2 active assignments across 1 project"),
+        screen.getByText("1 active assignment · no scheduled handoff"),
       ).toBeTruthy();
     });
+
+    expect(screen.getByText("ON CALL")).toBeTruthy();
+    expect(screen.queryByText(/Handoff in/)).toBeNull();
+  });
+
+  test("an off-duty responder is told when they are next on", async () => {
+    mockOnCall.current = onCallWith({
+      summary: dutySummary({
+        nextShiftStartsAt: new Date(2026, 2, 4, 9, 0, 0, 0).toISOString(),
+      }),
+    });
+
+    await render(<HomeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Next shift starts in 21h")).toBeTruthy();
+    });
+
+    expect(screen.getByText("OFF CALL")).toBeTruthy();
   });
 });
 

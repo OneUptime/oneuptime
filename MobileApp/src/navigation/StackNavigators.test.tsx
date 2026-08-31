@@ -135,8 +135,28 @@ jest.mock("../screens/MonitorDetailScreen", () => {
   return mockScreenStub("screen-monitor-detail");
 });
 
+jest.mock("../screens/OnCallOverviewScreen", () => {
+  return mockScreenStub("screen-on-call-overview");
+});
+
 jest.mock("../screens/MyOnCallPoliciesScreen", () => {
   return mockScreenStub("screen-on-call-list");
+});
+
+jest.mock("../screens/WhoIsOnCallScreen", () => {
+  return mockScreenStub("screen-who-is-on-call");
+});
+
+jest.mock("../screens/OnCallOverridesScreen", () => {
+  return mockScreenStub("screen-on-call-overrides");
+});
+
+jest.mock("../screens/CreateOnCallOverrideScreen", () => {
+  return mockScreenStub("screen-create-on-call-override");
+});
+
+jest.mock("../screens/MyOnCallPagesScreen", () => {
+  return mockScreenStub("screen-my-on-call-pages");
 });
 
 jest.mock("../screens/SettingsScreen", () => {
@@ -255,10 +275,47 @@ const MONITORS_ROUTES: Record<keyof MonitorsStackParamList, TitledRoute> = {
   },
 };
 
+/*
+ * Declared in registration order, because the first entry is what the shared
+ * tests below treat as the stack's landing screen. The tab now opens on the
+ * overview - "am I on call and until when" - and the policy list it used to
+ * open on is one row down.
+ */
 const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
+  OnCallOverview: {
+    testID: "screen-on-call-overview",
+    title: "On-Call",
+    keepsIosLargeTitle: true,
+  },
   OnCallList: {
     testID: "screen-on-call-list",
     title: "My On-Call Policies",
+    keepsIosLargeTitle: true,
+  },
+  WhoIsOnCall: {
+    testID: "screen-who-is-on-call",
+    title: "Who's On Call",
+    keepsIosLargeTitle: true,
+  },
+  OnCallOverrides: {
+    testID: "screen-on-call-overrides",
+    title: "Overrides",
+    keepsIosLargeTitle: true,
+  },
+  CreateOnCallOverride: {
+    testID: "screen-create-on-call-override",
+    title: "New Override",
+
+    /*
+     * The one route in this stack presented as a modal rather than pushed. A
+     * sheet that re-expanded into a large title on scroll would read as a
+     * pushed screen, so it keeps the compact header.
+     */
+    keepsIosLargeTitle: false,
+  },
+  MyOnCallPages: {
+    testID: "screen-my-on-call-pages",
+    title: "Pages Sent To Me",
     keepsIosLargeTitle: true,
   },
 };
@@ -380,7 +437,7 @@ for (const stack of CONTENT_STACKS) {
   });
 
   describe(`The ${stack.name} stack`, () => {
-    test("opens on its list screen", async () => {
+    test("opens on its landing screen", async () => {
       const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
         await renderStack(stack.element);
 
@@ -433,10 +490,10 @@ for (const stack of CONTENT_STACKS) {
     });
 
     /*
-     * Registered only where there is something to carry. The On-Call stack has
-     * a single route that takes nothing, and a test that iterates an empty
-     * list and asserts nothing is worse than no test at all - it reports green
-     * for work it never did.
+     * Registered only where there is something to carry. Every route on the
+     * On-Call stack is reached from a tap on the screen before it and takes
+     * nothing, and a test that iterates an empty list and asserts nothing is
+     * worse than no test at all - it reports green for work it never did.
      */
     if (routesWithParams.length > 0) {
       test("the params a route is opened with survive the trip", async () => {

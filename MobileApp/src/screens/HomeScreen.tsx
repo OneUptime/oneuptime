@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,7 +20,9 @@ import type { MainTabParamList } from "../navigation/types";
 import type { ProjectItem } from "../api/types";
 import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
-import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
+import { useOnCallDuty } from "../hooks/useOnCallDuty";
+import { useNow } from "../hooks/useNow";
+import { formatDuration, millisecondsUntil } from "../utils/duration";
 import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
 import { isProjectSsoDenied } from "../sso/ssoDenials";
 
@@ -197,14 +199,58 @@ export default function HomeScreen(): React.JSX.Element {
     refetch,
   } = useAllProjectCounts();
 
+  const now: number = useNow();
+
+  /*
+   * The Home card used to count assignments. A count is not what somebody
+   * checking their phone at 7am wants to know - whether they are on, and for
+   * how much longer, is - so the card leads with the duty state and the
+   * countdown and keeps the count as a secondary detail.
+   */
   const {
-    totalAssignments,
-    projects: onCallProjects,
+    summary: onCallSummary,
     isLoading: onCallLoading,
     isError: onCallError,
-    isPartialFailure: onCallPartialFailure,
     refetch: refetchOnCall,
-  } = useAllProjectOnCallPolicies();
+  } = useOnCallDuty();
+
+  const totalAssignments: number =
+    onCallSummary.standingAssignmentCount +
+    onCallSummary.scheduleAssignmentCount;
+
+  /*
+   * Same precedence as the on-call tab's status card: a real handoff time
+   * beats everything, then a next-shift time, and only then the assignment
+   * count. The card never invents a handoff for a standing assignment, which
+   * has none.
+   */
+  const onCallSummaryLine: string = useMemo((): string => {
+    const handoffIn: number | null = millisecondsUntil(
+      onCallSummary.nextHandoffAt,
+      now,
+    );
+
+    if (onCallSummary.isOnCall && handoffIn !== null) {
+      return `Handoff in ${formatDuration(handoffIn)}`;
+    }
+
+    if (onCallSummary.isOnCall) {
+      return totalAssignments === 1
+        ? "1 active assignment · no scheduled handoff"
+        : `${totalAssignments} active assignments · no scheduled handoff`;
+    }
+
+    const nextShiftIn: number | null = millisecondsUntil(
+      onCallSummary.nextShiftStartsAt,
+      now,
+    );
+
+    if (nextShiftIn !== null) {
+      return `Next shift starts in ${formatDuration(nextShiftIn)}`;
+    }
+
+    return "No active on-call assignments";
+  }, [onCallSummary, now, totalAssignments]);
 
   /*
    * Whether Home is allowed to print a count at all.
@@ -390,48 +436,43 @@ export default function HomeScreen(): React.JSX.Element {
       : `${projectList.length} Projects`;
 
   /*
-   * Which of the ways of arriving at "zero assignments" this actually is.
+   * Which of the ways of arriving at "not on call" this actually is.
    *
-   * "You are not currently on-call" is the most expensive sentence this app
-   * can print, because a responder reads it and stops watching their phone.
-   * It is only true when every project we asked answered and none of them put
-   * them on duty. useAllProjectOnCallPolicies now separates that from the two
-   * ways of failing into the same zero: nothing answered at all (isError), and
-   * some projects answered while others did not (isPartialFailure). The second
-   * one matters here as much as the first, because a partial answer summing to
-   * zero is precisely the case where the project that never replied is the one
-   * holding the page.
+   * `isOnCall` comes back false both when every project answered and none of
+   * them put this responder on duty, and when the check never landed at all -
+   * and the headline, the badge and the screen-reader label would all read
+   * that same false as the all-clear. "You're not on call" is the most
+   * expensive sentence this app can print, because somebody reads it and stops
+   * watching their phone. The on-call tab refuses to answer at all while
+   * useOnCallDuty reports isError; Home has one card rather than a screen, so
+   * it says the same thing in the space it has.
    */
-  let onCallSummary: string;
-  if (onCallLoading) {
-    onCallSummary = "Loading assignments...";
-  } else if (onCallError) {
-    onCallSummary = "Could not check your on-call status. Pull to refresh.";
-  } else if (totalAssignments > 0) {
-    const assignmentWord: string =
-      totalAssignments === 1 ? "assignment" : "assignments";
-    const projectWord: string =
-      onCallProjects.length === 1 ? "project" : "projects";
-    const caveat: string = onCallPartialFailure
-      ? " (some projects did not answer)"
-      : "";
-    onCallSummary = `${totalAssignments} active ${assignmentWord} across ${onCallProjects.length} ${projectWord}${caveat}`;
-  } else if (onCallPartialFailure) {
-    onCallSummary = "Could not check every project. Pull to refresh.";
-  } else {
-    onCallSummary = "You are not currently on-call";
-  }
+  let onCallHeadline: string;
+  let onCallSpokenStatus: string;
+  let onCallDetailLine: string;
+  let onCallBadgeLabel: string;
 
-  /*
-   * A partial answer with assignments in it still prints its number - "you are
-   * on call" is not made wrong by a project that failed to reply, and the
-   * caveat above carries the incompleteness. A partial answer that adds up to
-   * zero prints nothing, for the same reason the counts do not.
-   */
-  const onCallCountIsKnown: boolean =
-    !onCallLoading &&
-    !onCallError &&
-    !(onCallPartialFailure && totalAssignments === 0);
+  if (onCallLoading) {
+    onCallHeadline = "On-Call";
+    onCallSpokenStatus = "Checking whether you are on call";
+    onCallDetailLine = "Checking your duty status...";
+    onCallBadgeLabel = "--";
+  } else if (onCallError) {
+    onCallHeadline = "Could not load your on-call status";
+    onCallSpokenStatus = "Your on-call status could not be loaded";
+    onCallDetailLine = "Pull to refresh or try again.";
+    onCallBadgeLabel = "--";
+  } else if (onCallSummary.isOnCall) {
+    onCallHeadline = "You're on call";
+    onCallSpokenStatus = "You are on call";
+    onCallDetailLine = onCallSummaryLine;
+    onCallBadgeLabel = "ON CALL";
+  } else {
+    onCallHeadline = "You're not on call";
+    onCallSpokenStatus = "You are not on call";
+    onCallDetailLine = onCallSummaryLine;
+    onCallBadgeLabel = "OFF CALL";
+  }
 
   return (
     <ScrollView
@@ -647,7 +688,7 @@ export default function HomeScreen(): React.JSX.Element {
               };
             }}
             accessibilityRole="button"
-            accessibilityLabel="View my on-call assignments"
+            accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
           >
             <View
               style={{
@@ -661,7 +702,9 @@ export default function HomeScreen(): React.JSX.Element {
             >
               <LinearGradient
                 colors={[
-                  theme.colors.oncallActiveBg,
+                  onCallSummary.isOnCall
+                    ? theme.colors.oncallActiveBg
+                    : theme.colors.oncallInactiveBg,
                   theme.colors.accentGradientEnd + "06",
                 ]}
                 start={{ x: 0, y: 0 }}
@@ -697,13 +740,19 @@ export default function HomeScreen(): React.JSX.Element {
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: 12,
-                      backgroundColor: theme.colors.oncallActiveBg,
+                      backgroundColor: onCallSummary.isOnCall
+                        ? theme.colors.oncallActiveBg
+                        : theme.colors.oncallInactiveBg,
                     }}
                   >
                     <Ionicons
-                      name="call-outline"
+                      name={onCallSummary.isOnCall ? "call" : "call-outline"}
                       size={18}
-                      color={theme.colors.oncallActive}
+                      color={
+                        onCallSummary.isOnCall
+                          ? theme.colors.oncallActive
+                          : theme.colors.textTertiary
+                      }
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -714,7 +763,7 @@ export default function HomeScreen(): React.JSX.Element {
                         color: theme.colors.textPrimary,
                       }}
                     >
-                      My On-Call Policies
+                      {onCallHeadline}
                     </Text>
                     <Text
                       style={{
@@ -722,28 +771,42 @@ export default function HomeScreen(): React.JSX.Element {
                         marginTop: 2,
                         color: theme.colors.textSecondary,
                       }}
+                      numberOfLines={2}
                     >
-                      {onCallSummary}
+                      {onCallDetailLine}
                     </Text>
                   </View>
                 </View>
 
                 <View style={{ alignItems: "flex-end", marginLeft: 12 }}>
-                  <Text
+                  <View
                     style={{
-                      fontSize: 28,
-                      fontWeight: "bold",
-                      color: theme.colors.textPrimary,
-                      fontVariant: ["tabular-nums"],
-                      letterSpacing: -1,
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 9999,
+                      backgroundColor: onCallSummary.isOnCall
+                        ? theme.colors.oncallActiveBg
+                        : theme.colors.oncallInactiveBg,
                     }}
                   >
-                    {onCallCountIsKnown ? totalAssignments : "--"}
-                  </Text>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "700",
+                        letterSpacing: 0.8,
+                        color: onCallSummary.isOnCall
+                          ? theme.colors.oncallActive
+                          : theme.colors.textTertiary,
+                      }}
+                    >
+                      {onCallBadgeLabel}
+                    </Text>
+                  </View>
                   <Ionicons
                     name="chevron-forward"
                     size={14}
                     color={theme.colors.textTertiary}
+                    style={{ marginTop: 6 }}
                   />
                 </View>
               </View>
