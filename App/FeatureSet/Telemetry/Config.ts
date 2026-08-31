@@ -129,6 +129,26 @@ export const SESSION_REPLAY_ENABLED_BY_DEFAULT: boolean =
   process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] !== "false";
 
 /*
+ * Ask every browser recorder this deployment serves to print its decisions
+ * to the console. OFF by default, and it must stay that way: the recorder
+ * runs on a customer's site in their end users' browsers, and logging there
+ * unasked is noise on somebody else's property.
+ *
+ * The recorder already has two per-browser switches (a localStorage key and
+ * a ?oneuptime_debug query parameter), and they are the right ones whenever
+ * somebody can reach the failing browser. This one exists for the case they
+ * cannot cover: an operator of a self-hosted install who needs to know why
+ * replay produces nothing on a page they do not own and cannot edit. Turn it
+ * on, ask the customer to reload once and send the console, turn it off.
+ *
+ * It changes no policy - not sampling, not masking, not consent - and it
+ * only ever adds output, so a deployment that leaves it on records exactly
+ * the same data it would have otherwise.
+ */
+export const SESSION_REPLAY_DEBUG: boolean =
+  process.env["SESSION_REPLAY_DEBUG"] === "true";
+
+/*
  * Per-project chunk rate ceiling, enforced with a Redis counter so it holds
  * across every app pod rather than per process. 20k chunks/min is roughly
  * 1,400 concurrently-recording tabs at the 15s flush cadence - far above

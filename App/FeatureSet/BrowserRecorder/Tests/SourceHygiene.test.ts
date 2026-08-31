@@ -73,6 +73,7 @@ describe("source hygiene", (): void => {
       "Config.ts",
       "Consent.ts",
       "ConsoleRecorder.ts",
+      "Debug.ts",
       "EarlyErrors.ts",
       "ErrorRecorder.ts",
       "ExtendedConfig.ts",
@@ -274,6 +275,100 @@ describe("source hygiene", (): void => {
           }
         }
       }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  /*
+   * The diagnostics are a second channel out of the page, and unlike the
+   * recording itself they have no masking of their own - the guarantee comes
+   * entirely from DebugDetail admitting only primitives, plus the runtime
+   * redaction that refuses anything else. A call site that reached into the
+   * DOM for a value would satisfy neither, and it would put page content
+   * into a console line and into whatever a customer pastes into a support
+   * ticket.
+   *
+   * Scanned at the source level because a violation might live on a path no
+   * fixture ever exercises, which is the whole reason this file exists.
+   */
+  it("never reads page content into a diagnostic", (): void => {
+    /*
+     * Every debugLog/debugWarn call, including its multi-line detail object.
+     * Non-greedy up to the closing ");" at the start of a line, which is
+     * what prettier produces for every call in this package.
+     */
+    const callPattern: RegExp = /\bdebug(?:Log|Warn)\s*\(([\s\S]*?)\n\s*\);/g;
+
+    /*
+     * Reading a node's own content, an element's text, or a form value.
+     * `.value` is deliberately absent: it is far too common a property name
+     * on our own objects (config.value, entry.value) to scan for usefully,
+     * and DebugDetail already refuses the objects those live on.
+     */
+    const forbidden: Array<RegExp> = [
+      /\binnerHTML\b/,
+      /\bouterHTML\b/,
+      /\btextContent\b/,
+      /\binnerText\b/,
+      /\bnodeValue\b/,
+      /\bgetAttribute\s*\(/,
+      /\blocation\.href\b/,
+      /\bdocument\b/,
+    ];
+
+    const offenders: Array<string> = [];
+
+    for (const source of sources) {
+      let match: RegExpExecArray | null = callPattern.exec(source.contents);
+
+      while (match !== null) {
+        const call: string = match[1] || "";
+
+        for (const pattern of forbidden) {
+          if (pattern.test(call)) {
+            offenders.push(`${source.name}: ${pattern.source}`);
+          }
+        }
+
+        match = callPattern.exec(source.contents);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  /*
+   * The diagnostics must stay OFF by default. This bundle runs on a
+   * customer's site in THEIR end users' browsers, and a RUM script that
+   * chatters into those consoles is one a customer removes.
+   *
+   * Enforced by routing every console call through Debug.ts, which checks
+   * the switch first. The ONE exception is the unconditional misconfiguration
+   * warning in the loader, which is a setup error on the customer's own page
+   * and is meant to be seen.
+   */
+  it("keeps console output inside the diagnostics module", (): void => {
+    const offenders: Array<string> = [];
+
+    for (const source of sources) {
+      if (source.name === "Debug.ts") {
+        continue;
+      }
+
+      const calls: number = (
+        source.contents.match(/\bconsole\s*\.\s*[a-z]+/g) || []
+      ).length;
+
+      if (calls === 0) {
+        continue;
+      }
+
+      if (source.name === "Loader.ts" && calls === 1) {
+        continue;
+      }
+
+      offenders.push(`${source.name}: ${calls}`);
     }
 
     expect(offenders).toEqual([]);

@@ -920,6 +920,81 @@ export default class MicrosoftTeamsAPI {
     );
 
     /*
+     * The same path, answering the browser.
+     *
+     * Azure Bot Service only ever POSTs here, so for a long time GET fell
+     * through to the catch-all 404 in StartServer and answered
+     * "Page not found - /api/microsoft-bot/messages". That is the single
+     * cheapest thing an admin can do to check their messaging endpoint, and
+     * OneUptime replied with the words for "this route does not exist" — so
+     * admins concluded the route had been dropped from the build and went
+     * looking for a regression, while the actual fault (Azure cannot reach
+     * this deployment) sat untouched. The 404 was true of the method and false
+     * of the endpoint, and nothing in the response said which.
+     *
+     * 405 is the honest answer, and it is honest in a way a human reads at a
+     * glance: the route is here, the deployment is reachable from wherever the
+     * request came from, and POST is what it wants. Everything else in the
+     * body exists to redirect the next hour of debugging away from OneUptime's
+     * routing table and towards the network path Azure has to traverse.
+     */
+    router.get(
+      "/microsoft-bot/messages",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Allow", "POST");
+
+        /*
+         * Written straight onto the response rather than through
+         * Response.sendJsonObjectResponse, whose ?output-type=csv branch
+         * answers 200 regardless of the status code it was handed. The status
+         * code is the entire point of this route — it is what distinguishes
+         * "wrong method" from "no such route" — so no query parameter gets to
+         * rewrite it.
+         */
+        res.status(405).json({
+          status:
+            "This is the OneUptime Microsoft Teams bot messaging endpoint. It exists, and it accepts POST only.",
+          allow: ["POST"],
+          messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
+          /*
+           * Stated as a fact about this response rather than as advice,
+           * because it is the one thing the admin has actually proven by
+           * getting here and it is easy to under-read.
+           */
+          whatThisProves:
+            "You reached OneUptime. This endpoint is registered and this deployment served your request, so the messaging endpoint is not missing.",
+          whatThisDoesNotProve:
+            "That Azure Bot Service can reach this URL. Azure calls it from the public internet, and your browser or terminal may not be on the same path.",
+          /*
+           * A 404 on this path does NOT mean the request failed to arrive, and
+           * saying so would repeat the mistake this endpoint exists to end.
+           * OneUptime's own catch-all (StartServer's app.get("*")) answers an
+           * unmatched GET with a 404 whose body is
+           * {"message":"Page not found - <path>"} — 58 bytes for this path,
+           * which is exactly the `404 58` an admin sees in their access log.
+           * That 404 is proof the request arrived, not proof it did not. Only
+           * the body separates it from a proxy's own 404, so point at the body.
+           */
+          ifYouGetA404InsteadOfThis:
+            'Read the body, not just the status code. A body of {"message":"Page not found - /api/microsoft-bot/messages"} comes from OneUptime itself, which means the request DID arrive: either this deployment predates this 405 response (the path was POST-only, so a GET fell through to the generic not-found handler), or something in front of OneUptime rewrote the path and stripped the /api prefix before the app saw it. An HTML error page from nginx, your ingress or a load balancer means the opposite — the request never reached OneUptime.',
+          /*
+           * Ordered by what actually goes wrong on self-hosted deployments.
+           * Outbound-works-inbound-fails leads because it is the state that
+           * makes people doubt the route: alerts arrive in Teams, so the
+           * integration looks live, and only the interactive half is dead.
+           */
+          ifTeamsSaysUnableToReachApp: [
+            "Working outbound alerts prove nothing here. OneUptime posts cards by calling Microsoft, which needs no inbound access. Card buttons, bot commands and chat registration all travel the other way — Azure Bot Service POSTs to this URL — and that is the direction that is failing.",
+            "Confirm this exact URL is set as the messaging endpoint on the Azure Bot resource, then check that it resolves publicly. A private DNS name or an internal-only ingress is the most common cause.",
+            "Azure requires HTTPS with a publicly trusted certificate served with its full chain. A self-signed certificate, an internal CA, or a missing intermediate fails the TLS handshake before OneUptime ever sees the request, so nothing appears in your access log.",
+            "Then look for the POST, not the 404, in your access log: `grep 'POST /api/microsoft-bot/messages' <access log>`. No POST lines at all means Azure never got through, and the fault is the network path rather than OneUptime.",
+          ],
+          nextStep: `GET ${AppApiClientUrl.toString()}/microsoft-bot/test to see this deployment's bot id, and compare it with the bot id of the OneUptime app package installed in Microsoft Teams.`,
+        });
+      },
+    );
+
+    /*
      * Echoes this deployment's bot configuration.
      *
      * It reads local environment variables and nothing else — it does not call
@@ -963,6 +1038,15 @@ export default class MicrosoftTeamsAPI {
           notVerified: [
             "That an Azure Bot resource exists for this client id",
             "That the Azure Bot's messaging endpoint points at this deployment",
+            /*
+             * Reachability is listed separately from the endpoint being
+             * configured, because they fail separately and look identical from
+             * in here. A correctly configured endpoint on a deployment Azure
+             * cannot dial produces working outbound alerts and a completely
+             * dead bot, which reads as a half-broken integration rather than a
+             * network problem.
+             */
+            "That Azure Bot Service can actually reach this deployment over the public internet — outbound notifications work without it, so a working alert does not test this",
             "That the Azure Bot has the Microsoft Teams channel enabled",
             "That the client secret is valid and has not expired",
             "That the Teams app package installed in your teams was built from this deployment",

@@ -80,6 +80,19 @@ If you uploaded the app manifest before this permission existed, download it aga
 5. Set the "Messaging endpoint" to `https://your-oneuptime-domain.com/api/microsoft-bot/messages`
 6. Save the configuration
 
+**Verify the endpoint before you move on.** Azure Bot Service calls this URL from the public internet, so check it from somewhere outside your network — not from inside the cluster, and not from a VPN that can see the host when Azure cannot:
+
+```bash
+curl -sS -i https://your-oneuptime-domain.com/api/microsoft-bot/messages
+```
+
+Use `-i` rather than just the status code: on a 404 the **body is the only thing that tells you who produced it**, and that distinction is the whole diagnosis.
+
+- **405** is correct and means you are done. The endpoint only accepts POST, so a GET is answered `405 Method Not Allowed`, with `Allow: POST` and a description of the endpoint. Reaching it at all is the thing being tested.
+- **404 with a JSON body of `{"message":"Page not found - /api/microsoft-bot/messages"}`** came from OneUptime, so the request *did* arrive. Either this deployment predates the 405 response above — older versions served this path for POST only, so a GET fell through to the generic not-found handler — or something in front of OneUptime is rewriting the path and stripping the `/api` prefix before the app sees it (a Kubernetes ingress with `rewrite-target: /` is the usual culprit).
+- **404 with an HTML error page** from nginx, your ingress or a load balancer means the opposite: the request never reached OneUptime, and whatever is in front of it is not routing `/api` to the app.
+- **A TLS error, a timeout or a connection refusal** means Azure will not reach it either. See [the messaging endpoint troubleshooting section](#card-buttons-say-unable-to-reach-app-and-chats-never-appear) below.
+
 ### Step 5: Add Microsoft Teams Channel to the Bot
 
 1. In your Azure Bot resource, navigate to "Channels"
@@ -147,6 +160,61 @@ If you encounter issues:
 - Make sure the bot messaging endpoint is accessible from the internet
 - Verify that the bot is properly configured with the Teams channel
 - Check that the Teams app manifest has been uploaded successfully
+
+### Card buttons say "Unable to reach app", and chats never appear
+
+These are one failure, not two: **Azure Bot Service cannot reach your messaging endpoint.**
+
+The confusing part is that alert cards keep arriving in Teams, which makes the integration look mostly healthy. It is not — the two directions are independent, and only one of them is working:
+
+| Direction | How it travels | Needs Azure to reach you? |
+| --- | --- | --- |
+| OneUptime posts an alert card to a channel | OneUptime calls Microsoft, authenticating with your client secret | **No** |
+| You tap a button on that card | Azure Bot Service POSTs to `/api/microsoft-bot/messages` | **Yes** |
+| You type `help` to the bot | Azure Bot Service POSTs to `/api/microsoft-bot/messages` | **Yes** |
+| A chat registers under **Chats** | Azure Bot Service POSTs a bot activity to `/api/microsoft-bot/messages` | **Yes** |
+
+So a working alert tells you your client secret and Graph permissions are fine, and tells you nothing at all about the bot endpoint. Everything interactive depends on inbound traffic that never arrives.
+
+The empty **Chats** list is the clearest confirmation. Microsoft does not let an app list chats with application permissions, so OneUptime can only record a chat when the bot hears from it — the app being installed, the bot being added to the conversation, or simply any message sent to the bot in that chat. All three arrive over the same inbound endpoint, so "No chats connected yet" after adding the app to a chat *and* messaging the bot in it means no bot activity has ever been received at all. Clicking **Refresh Chats** re-reads what OneUptime already stored; it cannot go and fetch them.
+
+**Diagnose it in this order:**
+
+1. **Look for the POST, not for 404s.** This is where most investigations go wrong:
+
+   ```bash
+   grep 'POST /api/microsoft-bot/messages' <your access log>
+   ```
+
+   If there are no POST lines at all, Azure never got through, and nothing inside OneUptime is at fault. `GET` lines returning 404 are a different thing entirely — see the note below.
+
+2. **Call the endpoint from outside your network,** as in Step 4, with `curl -i` so you can see the body. A `405` proves the route is live and reachable from wherever you ran the command. A TLS error, timeout or refused connection is your answer.
+
+3. **Check the certificate chain.** Azure requires HTTPS with a publicly trusted certificate served with its full chain. A self-signed certificate, an internal CA, or a missing intermediate fails the TLS handshake before OneUptime sees the request — so your access log stays empty and looks like Azure never tried:
+
+   ```bash
+   openssl s_client -connect your-oneuptime-domain.com:443 -servername your-oneuptime-domain.com -verify_return_error </dev/null
+   ```
+
+4. **Check that the host is publicly resolvable.** A private DNS name, a split-horizon record, or an internal-only ingress all reach you and your VPN while remaining invisible to Azure. Resolve it from a network with no access to yours.
+
+5. **Confirm the endpoint on the Azure Bot resource** matches this deployment exactly, including scheme and path: `https://your-oneuptime-domain.com/api/microsoft-bot/messages`.
+
+**A 404 on `GET /api/microsoft-bot/messages` is not the bug, and it is not evidence Azure could not reach you.** The endpoint has always accepted POST only, so on versions before this one a browser GET fell through to OneUptime's generic not-found handler and came back `{"message":"Page not found - /api/microsoft-bot/messages"}`. That reads as a missing route and has sent more than one admin looking for a regression that was not there — but note what it actually proves: OneUptime generated that response, so the request reached the app. It is 58 bytes, which is why it shows up in an access log as `"GET /api/microsoft-bot/messages HTTP/1.1" 404 58`.
+
+This version answers a GET with `405 Method Not Allowed` and a description of itself, so the distinction no longer needs explaining. If you are still on an older build, judge a 404 by its body: OneUptime's JSON means the request arrived, an HTML error page from your proxy means it did not.
+
+### Checking this deployment's bot configuration
+
+```bash
+curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
+```
+
+This reports what OneUptime can see locally: whether `MICROSOFT_TEAMS_APP_CLIENT_ID` and `MICROSOFT_TEAMS_APP_CLIENT_SECRET` are set, the messaging endpoint this deployment expects, and — most usefully — the **bot id** your Teams app package must carry.
+
+It reads environment variables and nothing else. It does not call Azure, so it cannot tell you the Azure Bot resource exists, that its messaging endpoint points back here, that the Teams channel is enabled, that the secret is still valid, or that Azure can reach you. The response says as much, listing what it checked and what it did not, so it is never mistaken for a green light.
+
+The one decisive check it enables: compare the `botId` it returns against the bot id of the OneUptime app installed in Teams. If they differ, that package cannot receive messages from this deployment — see Step 7.
 
 ### "The OneUptime app is not installed in the Microsoft Teams team ..."
 

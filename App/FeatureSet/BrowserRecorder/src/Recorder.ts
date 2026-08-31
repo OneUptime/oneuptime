@@ -28,6 +28,7 @@ import Config, {
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
+import { debugLog, debugWarn } from "./Debug";
 import { EarlyErrorRecord } from "./EarlyErrors";
 import ErrorRecorder, {
   CompiledIgnorePatterns,
@@ -262,8 +263,11 @@ export default class Recorder {
     this.transport = new Transport({
       url: getChunkUrl(this.initOptions),
       headers: Config.getIngestHeaders(this.initOptions),
-      onDirective: (directive: SessionReplayDirective): void => {
-        this.onDirective(directive);
+      onDirective: (
+        directive: SessionReplayDirective,
+        reason: string | null,
+      ): void => {
+        this.onDirective(directive, reason);
       },
       onPermanentFailure: (reason: string): void => {
         this.onPermanentFailure(reason);
@@ -514,6 +518,22 @@ export default class Recorder {
       this.config.captureTrigger === SessionReplayCaptureTrigger.Always &&
       !isSampled
     ) {
+      /*
+       * The hardest no-op in the package to diagnose from outside: no
+       * listener is installed, no chunk is built, no request is made, and it
+       * looks exactly like a broken script tag. Sampling is deterministic in
+       * the session id, so this is not bad luck the customer can reload
+       * their way out of - the same session will never be sampled.
+       */
+      debugWarn(
+        "not-sampled",
+        "Not selected by the sample percentage. Nothing is recorded.",
+        {
+          samplePercentage: this.config.samplePercentage,
+          sessionId: this.identity.sessionId,
+        },
+      );
+
       this.stopped = true;
       return;
     }
@@ -606,6 +626,35 @@ export default class Recorder {
     if (SessionId.isRefreshRage(refreshRageCount)) {
       this.frustrationDetector.reportRefreshRage(refreshRageCount, Date.now());
     }
+
+    /*
+     * The single most useful line in this whole file.
+     *
+     * Under the default policy - OnErrorOrFrustration with a 0% sample - a
+     * perfectly healthy recorder makes exactly ONE request per page load
+     * (the config fetch) and never posts a chunk unless something goes
+     * wrong. That is the entire design, and from a Network tab it is
+     * indistinguishable from an installation that does not work, which is
+     * why "I see no data going to OneUptime" is the most common report
+     * against a recorder that is behaving perfectly.
+     */
+    debugLog(
+      "recording",
+      this.uploading
+        ? "Recording and uploading."
+        : "Recording into memory. Nothing uploads until a trigger fires - call OneUptimeReplay.captureSession() to force one.",
+      {
+        sessionId: this.identity.sessionId,
+        tabId: this.identity.tabId,
+        captureTrigger: this.config.captureTrigger,
+        samplePercentage: this.config.samplePercentage,
+        isSampled: isSampled,
+        consentMode: this.config.consentMode,
+        consentState: this.consent.getState(),
+        uploading: this.uploading,
+        isTargeted: this.extendedConfig.isTargeted,
+      },
+    );
 
     /*
      * A dashboard user asked for this end user's next session by name.
@@ -742,6 +791,18 @@ export default class Recorder {
         return true;
       },
     });
+
+    if (stop === undefined) {
+      /*
+       * rrweb declines to start rather than throwing (no document, an
+       * environment it cannot serialise). Nothing downstream works after
+       * this: no snapshot, no events, no chunks, no custom events.
+       */
+      debugWarn(
+        "rrweb-did-not-start",
+        "rrweb declined to start; no DOM will be captured.",
+      );
+    }
 
     this.stopRrweb = stop === undefined ? null : stop;
   }
@@ -997,6 +1058,12 @@ export default class Recorder {
 
     if (this.triggerReason === null) {
       this.triggerReason = reason;
+
+      debugLog(
+        "trigger",
+        "A capture trigger fired; this session may upload now.",
+        { reason: reason, sessionId: this.identity.sessionId },
+      );
     }
 
     this.startUploadingIfAllowed();
@@ -1008,14 +1075,45 @@ export default class Recorder {
     }
 
     if (!this.consent.isUploadAllowed()) {
+      /*
+       * A trigger fired and the recording is being held rather than sent.
+       * Under RequireExplicit this is a page that never called
+       * grantConsent(), which records forever and uploads nothing - correct,
+       * and until now completely invisible.
+       */
+      debugWarn(
+        "upload-blocked-consent",
+        "Triggered, but consent was never granted. Call OneUptimeReplay.grantConsent().",
+        {
+          consentMode: this.config.consentMode,
+          consentState: this.consent.getState(),
+          isRevoked: this.consent.isRevoked(),
+        },
+      );
+
       return;
     }
 
     if (this.transport.isDisabled()) {
+      debugWarn(
+        "upload-blocked-transport",
+        "Triggered, but uploading is already disabled for this page.",
+        { reason: this.transport.getDisabledReason() },
+      );
+
       return;
     }
 
     this.uploading = true;
+
+    debugLog(
+      "upload-started",
+      "Uploading; the buffered pre-roll is being flushed.",
+      {
+        sessionId: this.identity.sessionId,
+        triggerReason: this.triggerReason,
+      },
+    );
 
     /*
      * The pre-roll becomes the front of the upload. Flushed immediately
@@ -1154,6 +1252,16 @@ export default class Recorder {
      */
     this.performanceRecorder.resetForNewSession();
 
+    debugLog(
+      "session-rotated",
+      "The session rolled over; a new recording starts here.",
+      {
+        previousSessionId: previousSessionId,
+        sessionId: this.identity.sessionId,
+        rotationReason: String(reason || SessionRotationReason.New),
+      },
+    );
+
     this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, {
       previousSessionId: previousSessionId,
       rotationReason: reason || SessionRotationReason.New,
@@ -1244,6 +1352,28 @@ export default class Recorder {
 
   private onChunkClosed(chunk: PendingChunk): void {
     if (!this.consent.isUploadAllowed()) {
+      /*
+       * A fully built chunk, discarded. Not re-queued, not counted in
+       * droppedEvents, and the chunker has already reset its per-chunk
+       * signals - so from the outside this is simply a gap.
+       *
+       * Defensive rather than routine: every path that closes a chunk is
+       * already gated on this.uploading, which can only be set after
+       * isUploadAllowed() returned true, and the one public way to withdraw
+       * consent (revokeConsent) stops the recorder outright. So this fires
+       * only if a future change lets consent flip underneath a live
+       * recorder - and a chunk of end-user content vanishing silently is
+       * exactly the failure that would be worth knowing about if it did.
+       */
+      debugWarn(
+        "chunk-discarded-consent",
+        "A chunk was built but consent does not allow uploading; discarded.",
+        {
+          eventCount: chunk.eventCount,
+          consentState: this.consent.getState(),
+        },
+      );
+
       return;
     }
 
@@ -1504,22 +1634,55 @@ export default class Recorder {
     return false;
   }
 
-  private onDirective(directive: SessionReplayDirective): void {
+  private onDirective(
+    directive: SessionReplayDirective,
+    reason: string | null,
+  ): void {
     if (directive === "stop") {
       /*
        * The server has switched this project or application off. Stopping
        * here is what makes "I turned this off" take effect inside one chunk
        * window instead of waiting out the config cache.
        */
+      debugWarn(
+        "recorder-stopped-by-server",
+        "The server told this recorder to stop. Recording has ended.",
+        { reason: reason || "not-reported" },
+      );
+
       this.stop();
+      return;
+    }
+
+    if (directive === "throttle") {
+      /*
+       * Recognised, deliberately not acted on beyond the transport's own
+       * Retry-After handling - but no longer invisible. A throttled recorder
+       * looks exactly like a broken one from the network tab.
+       */
+      debugWarn(
+        "recorder-throttled-by-server",
+        "The server asked this recorder to slow down.",
+        { reason: reason || "not-reported" },
+      );
     }
   }
 
-  private onPermanentFailure(_reason: string): void {
+  private onPermanentFailure(reason: string): void {
     /*
      * The circuit breaker tripped. Release the buffer as well as stopping:
      * holding end-user content we will never upload is pure liability.
+     *
+     * The reason used to be an unused parameter, which meant a wrong
+     * ingestion token could shut the whole recorder down with nothing
+     * printed anywhere at all.
      */
+    debugWarn(
+      "recorder-stopped-transport",
+      "Uploading failed for good. Recording has stopped.",
+      { reason: reason },
+    );
+
     this.buffer.clear();
     this.stop();
   }
@@ -1577,6 +1740,14 @@ export default class Recorder {
     }
 
     this.stopped = true;
+
+    debugLog("recorder-stopped", "Recording has stopped.", {
+      sessionId: this.identity.sessionId,
+      uploaded: this.uploading,
+      droppedEvents: this.droppedEvents,
+      droppedChunks: this.transport.getDroppedChunkCount(),
+      flushFailures: this.transport.getFlushFailureCount(),
+    });
 
     if (this.flushTimer !== null) {
       clearInterval(this.flushTimer);
