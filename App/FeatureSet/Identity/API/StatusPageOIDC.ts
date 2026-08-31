@@ -34,7 +34,6 @@ import { Client } from "openid-client";
 
 const router: ExpressRouter = Express.getRouter();
 
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 const OIDC_STATE_COOKIE_TTL_SECONDS: number = 10 * 60;
 
 const getOidcStateCookieName: (statusPageOidcId: ObjectID) => string = (
@@ -366,7 +365,7 @@ router.get(
       }
 
       const sessionMetadata: StatusPageSessionMetadata =
-        await StatusPagePrivateUserSessionService.createSession({
+        await StatusPagePrivateUserSessionService.createLoginCodeSession({
           projectId: alreadySavedUser.projectId!,
           statusPageId: statusPageId,
           statusPagePrivateUserId: alreadySavedUser.id!,
@@ -374,16 +373,6 @@ router.get(
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
         });
-
-      const token: string = CookieUtil.setStatusPagePrivateUserCookie({
-        expressResponse: res,
-        user: alreadySavedUser,
-        statusPageId: statusPageId,
-        sessionId: sessionMetadata.session.id!,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
-      });
 
       const statusPageURL: string =
         await StatusPageService.getStatusPageFirstURL(statusPageId);
@@ -393,11 +382,13 @@ router.get(
         getLogAttributesFromRequest(req as RequestLike),
       );
 
+      Response.setNoCacheHeaders(res);
+
       return Response.redirect(
         req,
         res,
         URL.fromString(statusPageURL).addQueryParams({
-          token: token,
+          loginCode: sessionMetadata.refreshToken,
         }),
       );
     } catch (err) {

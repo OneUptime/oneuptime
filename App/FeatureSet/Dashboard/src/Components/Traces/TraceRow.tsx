@@ -3,6 +3,7 @@ import Span, { SpanStatus, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import SpanUtil from "../../Utils/SpanUtil";
+import { formatAbsoluteTime } from "./TraceTimeFormat";
 
 export interface TraceRowProps {
   span: Span;
@@ -83,15 +84,6 @@ function formatRelativeTime(time: Date): string {
   }
   const yr: number = Math.floor(mo / 12);
   return `${yr}y ago`;
-}
-
-function formatAbsoluteTime(time: Date): string {
-  return time.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
 }
 
 const TraceRow: FunctionComponent<TraceRowProps> = (

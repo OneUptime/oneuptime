@@ -134,17 +134,32 @@ function pivotTimeseriesData(rows: Array<AnalyticsTimeseriesRow>): {
   };
 }
 
-function formatTickTime(time: string): string {
+export function formatTickTime(time: string): string {
   const date: Date = OneUptimeDate.fromString(time);
 
   if (isNaN(date.getTime())) {
     return time;
   }
 
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
+  return OneUptimeDate.getLocalTimeString(date, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+}
+
+/** The bucket a tooltip is pointing at, dated because it can be any day in the window. */
+export function formatTooltipLabel(label: string | undefined): string {
+  if (!label) {
+    return "";
+  }
+
+  const date: Date = OneUptimeDate.fromString(label);
+
+  if (isNaN(date.getTime())) {
+    return label;
+  }
+
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
   });
 }
 
@@ -234,32 +249,10 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
     0,
   );
 
-  const formatTime: (label: string | undefined) => string = (
-    label: string | undefined,
-  ): string => {
-    if (!label) {
-      return "";
-    }
-
-    const date: Date = OneUptimeDate.fromString(label);
-
-    if (isNaN(date.getTime())) {
-      return label;
-    }
-
-    return date.toLocaleString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
-
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
       <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-400">
-        {formatTime(props.label)}
+        {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
         {entries.map((entry: { key: string; value: number; color: string }) => {

@@ -194,32 +194,48 @@ export default class OneUptimeDate {
     return this.getLocalShortMonthName(date);
   }
 
+  /**
+   * The wall clock `date` reads at in the current timezone - "14:30", or
+   * "2:30 PM" when the caller asks for a 12-hour clock.
+   *
+   * `use12HourFormat` is opt-in rather than defaulted to
+   * `getUserPrefers12HourFormat()`: the chart x-axes in
+   * UI/Components/Charts/Utils/XAxis.ts label ticks with this and are laid out
+   * for the fixed width of a 24-hour reading, so they must keep the clock they
+   * were built against. Surfaces that show a person a timestamp - histogram
+   * ticks and tooltips, span rows - pass
+   * `use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat()` explicitly.
+   */
   public static getLocalTimeString(
     date: Date | string,
     options?: {
       includeMinutes?: boolean;
       includeSeconds?: boolean;
+      use12HourFormat?: boolean | undefined;
     },
   ): string {
     date = this.fromString(date);
 
     const includeMinutes: boolean = options?.includeMinutes ?? true;
     const includeSeconds: boolean = options?.includeSeconds ?? false;
-    const localDate: moment.Moment = this.inCurrentTimezone(date);
-    const hours: string = this.padDatePart(localDate.hours());
+    const use12HourFormat: boolean = options?.use12HourFormat ?? false;
 
-    if (!includeMinutes) {
-      return hours;
+    // "HH" and "h" are the zero-padded 24-hour and the bare 12-hour readings.
+    let timeFormat: string = use12HourFormat ? "h" : "HH";
+
+    if (includeMinutes) {
+      timeFormat += ":mm";
+
+      if (includeSeconds) {
+        timeFormat += ":ss";
+      }
     }
 
-    const minutes: string = this.padDatePart(localDate.minutes());
-
-    if (!includeSeconds) {
-      return `${hours}:${minutes}`;
+    if (use12HourFormat) {
+      timeFormat += " A";
     }
 
-    const seconds: string = this.padDatePart(localDate.seconds());
-    return `${hours}:${minutes}:${seconds}`;
+    return this.inCurrentTimezone(date).format(timeFormat);
   }
 
   public static getDateAsLocalDayMonthString(date: Date | string): string {
@@ -890,6 +906,25 @@ export default class OneUptimeDate {
     date1 = this.fromString(date1);
     date2 = this.fromString(date2);
     return moment(date1).isSame(date2, "day");
+  }
+
+  /**
+   * Whether the two instants fall on the same calendar day *in the current
+   * timezone*, which is the question a UI is asking when it decides whether a
+   * timestamp needs its date spelled out or a bare clock reading will do.
+   *
+   * `areOnTheSameDay` above answers it in the zone the process happens to run
+   * in. Near midnight those two zones disagree, so asking the wrong one drops
+   * the date from yesterday's buckets and adds it to today's.
+   */
+  public static areOnTheSameLocalDay(
+    date1: Date | string,
+    date2: Date | string,
+  ): boolean {
+    return this.inCurrentTimezone(date1).isSame(
+      this.inCurrentTimezone(date2),
+      "day",
+    );
   }
 
   public static areOnTheSameMonth(date1: Date, date2: Date): boolean {

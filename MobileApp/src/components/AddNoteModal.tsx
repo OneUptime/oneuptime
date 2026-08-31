@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -28,11 +28,34 @@ export default function AddNoteModal({
   const { theme } = useTheme();
   const [noteText, setNoteText] = useState("");
 
+  /*
+   * The draft outlives the submit, and is dropped only once the note is
+   * actually filed.
+   *
+   * `onSubmit` starts a POST and returns immediately, so clearing the box next
+   * to the call threw the note away while the request was still in the air.
+   * When the POST then failed the responder was left with a "Failed to add
+   * note" alert and an empty box - and the note they had just typed, often the
+   * only written record of what they had done to the incident, was gone with
+   * nothing to retry from.
+   *
+   * Every screen that hosts this modal closes it (`visible` goes false) on
+   * success and leaves it open on failure, so the parent hiding us IS the
+   * signal that the note landed - and it is the only one available here, since
+   * those screens swallow the error themselves to show their own alert. So the
+   * draft is cleared on the way out instead: it survives a failed submit, ready
+   * for another attempt, and the next Add Note still opens on an empty box.
+   */
+  useEffect((): void => {
+    if (!visible) {
+      setNoteText("");
+    }
+  }, [visible]);
+
   const handleSubmit: () => void = (): void => {
     const trimmed: string = noteText.trim();
     if (trimmed) {
       onSubmit(trimmed);
-      setNoteText("");
     }
   };
 

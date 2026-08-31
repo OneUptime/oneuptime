@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * hand-written.
  */
 
-export class AddOnCallCalendarFeeds1790200000000 implements MigrationInterface {
-  public name: string = "AddOnCallCalendarFeeds1790200000000";
+export class AddOnCallCalendarFeeds1790300000000 implements MigrationInterface {
+  public name: string = "AddOnCallCalendarFeeds1790300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

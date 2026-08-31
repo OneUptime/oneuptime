@@ -114,14 +114,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   if (LocalStorage.getItem("redirectUrl")) {
-    // const get item
-
     const redirectUrl: string = LocalStorage.getItem("redirectUrl") as string;
-
-    // clear local storage.
     LocalStorage.removeItem("redirectUrl");
 
-    Navigation.navigate(new Route(redirectUrl));
+    const safeRedirectPath: string | null =
+      StatusPageUtil.getSafeRedirectPath(redirectUrl);
+
+    if (safeRedirectPath) {
+      Navigation.navigate(new Route(safeRedirectPath));
+    }
   }
 
   const [isLoading, setIsLoading] = useState<boolean>(true);

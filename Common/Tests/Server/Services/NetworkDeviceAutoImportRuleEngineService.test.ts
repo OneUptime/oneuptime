@@ -785,6 +785,63 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       ).toBe(TEMPLATE_DEVICE_ID);
     });
 
+    /*
+     * ISSUE #3486. "Default Monitor Name" is optional, and a template that
+     * leaves it blank names what it provisions after the DEVICE and nothing
+     * else - the whole complaint being that every auto-imported device came
+     * back carrying the same fixed suffix.
+     *
+     * Driven end to end through the engine rather than through
+     * NetworkDeviceMonitorTemplateUtil alone, because the name only survives
+     * to the create call if `monitorName` is still in this service's template
+     * select; a dropped select column looks exactly like a blank stored value
+     * and would silently un-suffix every project's monitors.
+     */
+    it("names the provisioned monitor after the device alone when the template has no default name", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([
+        makeTemplate({ monitorName: undefined }),
+      ]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ monitorsCreated: 1, monitorsFailed: 0 });
+
+      const monitor: Monitor = provisionedMonitor(0);
+      expect(monitor.name).toBe("core-switch-01");
+      expect(monitor.name).not.toContain(" - ");
+
+      // The read that makes the suffix possible at all.
+      expect(monitorTemplateFindByMock.mock.calls[0]![0].select).toMatchObject({
+        monitorName: true,
+      });
+    });
+
+    it("names the provisioned monitor after the device alone when the stored default name is empty", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      /*
+       * Reachable without any migration backfill: the dashboard's edit form
+       * PUTs an empty string, not null, when the operator clears the box.
+       */
+      monitorTemplateFindByMock.mockResolvedValue([
+        makeTemplate({ monitorName: "" }),
+      ]);
+
+      await processScan();
+
+      expect(provisionedMonitor(0).name).toBe("core-switch-01");
+    });
+
     it("backfills a selected template monitor for an already-registered matching device", async () => {
       const existingDevice: NetworkDevice = makeExistingDevice();
       scanFindOneByMock.mockResolvedValue(

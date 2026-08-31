@@ -53,7 +53,7 @@ export interface UseOnCallCalendarFeedResult {
  * singleton whose entries outlive a sign-out. Without the id, the next person
  * to sign in on the same handset would be shown the previous user's private
  * link - and could copy it - until their own request came back. The cache is
- * also emptied on sign-out (see `clearQueryCache`); this key is the second
+ * also emptied on sign-out (see `queryClient` in api/queryClient); this key is the second
  * lock on the same door.
  */
 export function calendarFeedQueryKey(

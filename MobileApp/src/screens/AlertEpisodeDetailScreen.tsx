@@ -30,6 +30,7 @@ import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
+import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
@@ -49,6 +50,7 @@ export default function AlertEpisodeDetailScreen({
   const {
     data: episode,
     isLoading,
+    isError,
     refetch: refetchEpisode,
   } = useAlertEpisodeDetail(projectId, episodeId);
   const { data: states } = useAlertEpisodeStates(projectId);
@@ -110,6 +112,23 @@ export default function AlertEpisodeDetailScreen({
         await queryClient.invalidateQueries({
           queryKey: ["alert-episodes"],
         });
+        /*
+         * The episode list is not the only list this just falsified. An
+         * episode is a bundle of alerts, and changing the episode's state
+         * changes the state of every alert inside it server-side - so the
+         * moment a responder resolves an episode, every cached row on the
+         * Alerts tab that belongs to it is wrong.
+         *
+         * Invalidating only ["alert-episodes"] left the responder returning
+         * to a list where the episode reads Resolved and its member alerts
+         * still read as open. On an on-call app that is not cosmetic: an
+         * alert that looks unresolved is an alert somebody goes and works,
+         * or one that makes a responder doubt that their resolve landed. The
+         * alert detail screen already invalidates ["alerts"] after the same
+         * kind of state change; the episode screen has the same duty and had
+         * simply never been given it.
+         */
+        await queryClient.invalidateQueries({ queryKey: ["alerts"] });
       } catch {
         queryClient.setQueryData(queryKey, previousData);
         await errorFeedback();
@@ -152,6 +171,45 @@ export default function AlertEpisodeDetailScreen({
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <SkeletonCard variant="detail" />
+      </View>
+    );
+  }
+
+  /*
+   * "We asked, and this episode does not exist" and "we could not ask" are
+   * different facts, and they used to arrive at the same sentence. A responder
+   * who has just been paged and taps through over a flaky connection was told
+   * the episode was not found - so the page looked spurious, or already
+   * cleaned up by somebody else, and there was nothing on screen to press to
+   * find out otherwise. The only recovery was to back out and hope the list
+   * still held the row.
+   *
+   * A failure gets its own screen and a retry, because the honest answer is
+   * "ask again". A deleted episode falls through to the sentence below, which
+   * is the one case where "not found" is the truth and a retry button would be
+   * a lie. Nothing here has to guess which is which: `fetchAlertEpisodeById`
+   * resolves `null` for an episode that is not there, so that miss arrives as
+   * settled data and `isError` is left meaning only "the request failed".
+   *
+   * The `!episode` guard keeps this specific to a failure that left us with
+   * nothing: react-query holds the last good payload through a failed refetch,
+   * and stale episode data on screen beats an error page for somebody who is
+   * mid-response.
+   */
+  if (isError && !episode) {
+    return (
+      <View
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+      >
+        <EmptyState
+          title="Something went wrong"
+          subtitle="This alert episode could not be loaded, which is not the same as it no longer existing. Try again."
+          icon="episodes"
+          actionLabel="Retry"
+          onAction={() => {
+            return refetchEpisode();
+          }}
+        />
       </View>
     );
   }
@@ -420,6 +478,21 @@ export default function AlertEpisodeDetailScreen({
         </View>
       </View>
 
+      {/*
+       * These two controls are the whole point of the screen, and they were
+       * the two least legible things on it to a screen-reader user. Neither
+       * carried a role or a name, so VoiceOver and TalkBack announced them
+       * from their children - and the instant a change went in flight those
+       * children became a bare ActivityIndicator, leaving the responder
+       * swiping across two unlabelled shapes on the one screen where pressing
+       * the wrong one has consequences.
+       *
+       * The names are therefore explicit, and they carry the in-flight fact
+       * rather than dropping it. "state change in progress" is deliberately
+       * not "acknowledging" or "resolving": `changingState` is a single flag
+       * for both buttons, so it says only what is actually known - that a
+       * change is in the air - instead of guessing which one was pressed.
+       */}
       {!isResolved ? (
         <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Actions" iconName="flash-outline" />
@@ -452,6 +525,12 @@ export default function AlertEpisodeDetailScreen({
                       );
                     }}
                     disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      changingState
+                        ? "Acknowledge alert episode, state change in progress"
+                        : "Acknowledge alert episode"
+                    }
                   >
                     {changingState ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -504,6 +583,12 @@ export default function AlertEpisodeDetailScreen({
                       );
                     }}
                     disabled={changingState}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      changingState
+                        ? "Resolve alert episode, state change in progress"
+                        : "Resolve alert episode"
+                    }
                   >
                     {changingState ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />

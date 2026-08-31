@@ -48,6 +48,14 @@ export default function GradientButton({
       <Pressable
         testID={testID}
         accessibilityRole="button"
+        /*
+         * Named explicitly because the label is not always rendered. While
+         * `loading` the text is replaced by a spinner, and a Pressable with no
+         * text inside it has no accessible name at all - so the control a
+         * responder is waiting on becomes an unlabelled button at the exact
+         * moment they ask what it is doing.
+         */
+        accessibilityLabel={label}
         onPress={onPress}
         disabled={isDisabled}
         style={[
@@ -98,6 +106,8 @@ export default function GradientButton({
     <Pressable
       testID={testID}
       accessibilityRole="button"
+      /* Named explicitly for the reason given on the secondary variant above. */
+      accessibilityLabel={label}
       onPress={onPress}
       disabled={isDisabled}
       style={[

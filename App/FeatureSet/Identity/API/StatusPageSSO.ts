@@ -13,7 +13,6 @@ import StatusPagePrivateUserSessionService, {
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPageSsoService from "Common/Server/Services/StatusPageSsoService";
-import CookieUtil from "Common/Server/Utils/Cookie";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -33,8 +32,6 @@ import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 
 // Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
-
-const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
 // Define a GET route for SSO in a status page context.
 router.get(
@@ -289,7 +286,7 @@ router.post(
       }
 
       const sessionMetadata: StatusPageSessionMetadata =
-        await StatusPagePrivateUserSessionService.createSession({
+        await StatusPagePrivateUserSessionService.createLoginCodeSession({
           projectId: alreadySavedUser.projectId!,
           statusPageId: statusPageId,
           statusPagePrivateUserId: alreadySavedUser.id!,
@@ -298,25 +295,17 @@ router.post(
           ...extractDeviceInfo(req),
         });
 
-      const token: string = CookieUtil.setStatusPagePrivateUserCookie({
-        expressResponse: res,
-        user: alreadySavedUser,
-        statusPageId: statusPageId,
-        sessionId: sessionMetadata.session.id!,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
-      });
-
       // get status page URL.
       const statusPageURL: string =
         await StatusPageService.getStatusPageFirstURL(statusPageId);
+
+      Response.setNoCacheHeaders(res);
 
       return Response.redirect(
         req,
         res,
         URL.fromString(statusPageURL).addQueryParams({
-          token: token,
+          loginCode: sessionMetadata.refreshToken,
         }),
       );
     } catch (err) {

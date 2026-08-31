@@ -290,21 +290,15 @@ export function formatLogChartTickTime(
     return time;
   }
 
-  const timeLabel: string = date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
 
   if (!includeDate) {
-    return timeLabel;
+    return OneUptimeDate.getLocalTimeString(date, { use12HourFormat });
   }
 
-  const dateLabel: string = date.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
+    use12HourFormat,
   });
-  return `${dateLabel}, ${timeLabel}`;
 }
 
 export function formatLogCount(value: number): string {

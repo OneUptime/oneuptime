@@ -16,11 +16,64 @@ import ServerException from "../../../Types/Exception/ServerException";
 import Text from "../../../Types/Text";
 import AcmeCertificate from "../../../Models/DatabaseModels/AcmeCertificate";
 import AcmeChallenge from "../../../Models/DatabaseModels/AcmeChallenge";
+import ArrayUtil from "../../../Utils/Array";
 import acme from "acme-client";
 import { Challenge } from "acme-client/types/rfc8555";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class GreenlockUtil {
+  /*
+   * How early a certificate is renewed, as a range rather than a single value.
+   *
+   * Let's Encrypt issues for 90 days, so every domain ordered on the same day
+   * expires on the same day. Renewing them all at one fixed lead time keeps
+   * that batch together for every cycle that follows, and a single bad day -
+   * an upstream outage, a rate limit, a run that does not finish - then expires
+   * the whole batch at once instead of one domain.
+   *
+   * Spreading the lead time across a range pulls the batch apart: domains that
+   * expire on the same day come due days apart, and having been renewed days
+   * apart they expire days apart next cycle too. The offset is derived from the
+   * domain name so it is stable - a domain must not drift in and out of
+   * eligibility between two runs, which would leave it renewed by neither.
+   */
+  public static readonly RENEW_LEAD_TIME_MAX_IN_DAYS: number = 40;
+  public static readonly RENEW_LEAD_TIME_MIN_IN_DAYS: number = 25;
+
+  /*
+   * A run renews at most this many domains, at most this many at a time.
+   *
+   * Both bound how much of a backlog is dispatched at once. Let's Encrypt
+   * allows 300 new orders per account per three hours, and the reactive
+   * provisioning sweep spends from the same allowance, so a run that tried to
+   * clear a large backlog in one pass would spend the account's budget and get
+   * the renewals behind it refused. At the schedule this job runs on the cap
+   * still clears far more per day than one sequential daily pass ever did,
+   * while leaving room under the limit.
+   */
+  public static readonly RENEW_MAX_PER_RUN: number = 10;
+  public static readonly RENEW_CONCURRENCY: number = 5;
+
+  /*
+   * Stable per-domain lead time, somewhere in the range above. Same domain,
+   * same answer, on every run and every replica.
+   */
+  public static getRenewalLeadTimeInDays(domain: string): number {
+    const spanInDays: number =
+      GreenlockUtil.RENEW_LEAD_TIME_MAX_IN_DAYS -
+      GreenlockUtil.RENEW_LEAD_TIME_MIN_IN_DAYS;
+
+    let hash: number = 0;
+
+    for (let i: number = 0; i < domain.length; i++) {
+      hash = (hash * 31 + domain.charCodeAt(i)) % 1000003;
+    }
+
+    return (
+      GreenlockUtil.RENEW_LEAD_TIME_MIN_IN_DAYS + (hash % (spanInDays + 1))
+    );
+  }
+
   @CaptureSpan()
   public static async renewAllCertsWhichAreExpiringSoon(data: {
     validateCname: (domain: string) => Promise<boolean>;
@@ -29,15 +82,17 @@ export default class GreenlockUtil {
     try {
       logger.debug("Renewing all certificates");
 
-      // get all certificates which are expiring soon
-
+      /*
+       * Read the widest window any domain's lead time can make it due in, then
+       * keep only the domains whose own lead time has actually been reached.
+       */
       const certificates: AcmeCertificate[] =
         await AcmeCertificateService.findBy({
           query: {
             expiresAt: QueryHelper.lessThanEqualTo(
               OneUptimeDate.addRemoveDays(
                 OneUptimeDate.getCurrentDate(),
-                40, // 40 days before expiry
+                GreenlockUtil.RENEW_LEAD_TIME_MAX_IN_DAYS,
               ),
             ),
           },
@@ -45,6 +100,7 @@ export default class GreenlockUtil {
           skip: 0,
           select: {
             domain: true,
+            expiresAt: true,
           },
           sort: {
             expiresAt: SortOrder.Ascending,
@@ -54,76 +110,118 @@ export default class GreenlockUtil {
           },
         });
 
-      logger.debug(
-        `Found ${certificates.length} certificates which are expiring soon`,
-        { certificateCount: certificates.length },
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const dueCertificates: AcmeCertificate[] = certificates.filter(
+        (certificate: AcmeCertificate) => {
+          if (!certificate.domain || !certificate.expiresAt) {
+            return false;
+          }
+
+          const renewAt: Date = OneUptimeDate.addRemoveDays(
+            certificate.expiresAt,
+            -GreenlockUtil.getRenewalLeadTimeInDays(certificate.domain),
+          );
+
+          return !OneUptimeDate.isAfter(renewAt, now);
+        },
       );
 
-      // order certificate for each domain
+      /*
+       * Still sorted by expiry, so a run that cannot take the whole backlog
+       * spends itself on the domains closest to expiring and leaves the rest -
+       * which by construction still have weeks of lead time - to the next run.
+       */
+      const batch: AcmeCertificate[] = dueCertificates.slice(
+        0,
+        GreenlockUtil.RENEW_MAX_PER_RUN,
+      );
 
-      for (const certificate of certificates) {
-        if (!certificate.domain) {
-          continue;
-        }
+      logger.debug(
+        `Found ${dueCertificates.length} certificates due for renewal, renewing ${batch.length} in this run`,
+        {
+          dueCount: dueCertificates.length,
+          batchCount: batch.length,
+        },
+      );
 
-        const certLogAttributes: LogAttributes = {
-          domain: certificate.domain,
-        };
-
-        logger.debug(
-          `Renewing certificate for domain: ${certificate.domain}`,
-          certLogAttributes,
-        );
-
-        try {
-          //validate cname
-          const isValidCname: boolean = await data.validateCname(
-            certificate.domain,
-          );
-
-          if (!isValidCname) {
-            logger.debug(
-              `CNAME is not valid for domain: ${certificate.domain}`,
-              certLogAttributes,
-            );
-
-            // if cname is not valid then remove the domain
-            await GreenlockUtil.removeDomain(certificate.domain);
-            await data.notifyDomainRemoved(certificate.domain);
-
-            logger.error(
-              `Cname is not valid for domain: ${certificate.domain}`,
-              certLogAttributes,
-            );
-          } else {
-            logger.debug(
-              `CNAME is valid for domain: ${certificate.domain}`,
-              certLogAttributes,
-            );
-
-            await GreenlockUtil.orderCert({
-              domain: certificate.domain,
-              validateCname: data.validateCname,
-            });
-
-            logger.debug(
-              `Certificate renewed for domain: ${certificate.domain}`,
-              certLogAttributes,
-            );
-          }
-        } catch (e) {
-          logger.error(
-            `Error renewing certificate for domain: ${certificate.domain}`,
-            certLogAttributes,
-          );
-          logger.error(e, certLogAttributes);
-        }
-      }
+      await ArrayUtil.forEachWithConcurrency(
+        batch,
+        GreenlockUtil.RENEW_CONCURRENCY,
+        async (certificate: AcmeCertificate): Promise<void> => {
+          await GreenlockUtil.renewCertForDomain({
+            domain: certificate.domain as string,
+            validateCname: data.validateCname,
+            notifyDomainRemoved: data.notifyDomainRemoved,
+          });
+        },
+      );
     } catch (e) {
       logger.error("Error renewing all certificates");
       logger.error(e);
 
       throw e;
+    }
+  }
+
+  /*
+   * Renew one domain. Never throws: one domain that cannot be renewed - a CNAME
+   * that no longer points here, a challenge the CA would not accept - must not
+   * take down the rest of the run with it.
+   */
+  private static async renewCertForDomain(data: {
+    domain: string;
+    validateCname: (domain: string) => Promise<boolean>;
+    notifyDomainRemoved: (domain: string) => Promise<void>;
+  }): Promise<void> {
+    const { domain } = data;
+
+    const certLogAttributes: LogAttributes = {
+      domain: domain,
+    };
+
+    logger.debug(
+      `Renewing certificate for domain: ${domain}`,
+      certLogAttributes,
+    );
+
+    try {
+      //validate cname
+      const isValidCname: boolean = await data.validateCname(domain);
+
+      if (!isValidCname) {
+        logger.debug(
+          `CNAME is not valid for domain: ${domain}`,
+          certLogAttributes,
+        );
+
+        // if cname is not valid then remove the domain
+        await GreenlockUtil.removeDomain(domain);
+        await data.notifyDomainRemoved(domain);
+
+        logger.error(
+          `Cname is not valid for domain: ${domain}`,
+          certLogAttributes,
+        );
+      } else {
+        logger.debug(`CNAME is valid for domain: ${domain}`, certLogAttributes);
+
+        await GreenlockUtil.orderCert({
+          domain: domain,
+          validateCname: data.validateCname,
+        });
+
+        logger.debug(
+          `Certificate renewed for domain: ${domain}`,
+          certLogAttributes,
+        );
+      }
+    } catch (e) {
+      logger.error(
+        `Error renewing certificate for domain: ${domain}`,
+        certLogAttributes,
+      );
+      logger.error(e, certLogAttributes);
     }
   }
 

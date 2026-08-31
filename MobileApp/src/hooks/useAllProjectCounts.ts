@@ -28,11 +28,12 @@ interface UseAllProjectCountsResult {
   disabledMonitorCount: number;
   inoperationalMonitorCount: number;
   isLoading: boolean;
+  isError: boolean;
   refetch: () => Promise<void>;
 }
 
 export function useAllProjectCounts(): UseAllProjectCountsResult {
-  const { projectList } = useProject();
+  const { projectList, isLoadingProjects } = useProject();
   const enabled: boolean = projectList.length > 0;
 
   const incidentQuery: UseQueryResult<
@@ -149,14 +150,74 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     0,
   );
 
+  /*
+   * What "loading" has to mean here, in three parts.
+   *
+   * `isPending` in react-query v5 means "there is no data yet", NOT "a request
+   * is in flight", and a query with enabled:false is pending forever. The four
+   * single queries above are disabled while the responder has no projects, so
+   * reading isPending pinned Home under a skeleton that could never resolve -
+   * for a brand new account, or for one whose project fetch failed, with
+   * nothing to retry. `isLoading` is isPending && isFetching, which is the
+   * question the screen is actually asking.
+   *
+   * The per-project queries are built FROM the project list, so before it
+   * lands there are none of them and `some()` is false. isLoadingProjects
+   * covers that window; without it Home reports settled cards while the list
+   * they are summed from is still being fetched.
+   *
+   * The disabled- and inoperational-monitor arrays belong here because their
+   * counts are returned. Leaving them out drew those two cards as a confident
+   * 0 before their requests had landed, which a responder reads as "nothing is
+   * down" - the single most expensive thing this screen can say wrongly.
+   */
   const isLoading: boolean =
-    incidentQuery.isPending ||
-    alertQuery.isPending ||
-    incidentEpisodeQuery.isPending ||
-    alertEpisodeQuery.isPending ||
+    isLoadingProjects ||
+    incidentQuery.isLoading ||
+    alertQuery.isLoading ||
+    incidentEpisodeQuery.isLoading ||
+    alertEpisodeQuery.isLoading ||
     monitorQueries.some(
       (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
         return q.isLoading;
+      },
+    ) ||
+    disabledMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isLoading;
+      },
+    ) ||
+    inoperationalMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isLoading;
+      },
+    );
+
+  /*
+   * Every count above falls back to 0 when its query has no data, so a request
+   * that FAILED arrives at Home as the same number as a project with genuinely
+   * nothing outstanding. Reporting the failure alongside the counts is what
+   * lets the screen say "we could not ask" instead of quietly claiming
+   * all-clear.
+   */
+  const isError: boolean =
+    incidentQuery.isError ||
+    alertQuery.isError ||
+    incidentEpisodeQuery.isError ||
+    alertEpisodeQuery.isError ||
+    monitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
+      },
+    ) ||
+    disabledMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
+      },
+    ) ||
+    inoperationalMonitorQueries.some(
+      (q: UseQueryResult<ListResponse<MonitorItem>, Error>) => {
+        return q.isError;
       },
     );
 
@@ -193,6 +254,7 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     disabledMonitorCount,
     inoperationalMonitorCount,
     isLoading,
+    isError,
     refetch,
   };
 }

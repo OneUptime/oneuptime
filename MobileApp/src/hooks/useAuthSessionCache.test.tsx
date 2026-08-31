@@ -14,7 +14,7 @@ import {
 import { consumeInitialSsoCallbackUrl } from "../sso/deepLink";
 import { unregisterPushToken } from "./pushTokenUtils";
 import { setOnAuthFailure } from "../api/client";
-import { queryClient } from "../queryClient";
+import { queryClient } from "../api/queryClient";
 import { calendarFeedQueryKey } from "./useOnCallCalendarFeed";
 
 /*

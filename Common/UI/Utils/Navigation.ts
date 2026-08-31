@@ -270,6 +270,42 @@ abstract class Navigation {
     this.navigateHook(-1);
   }
 
+  /**
+   * Return whether a value is an unambiguous same-origin path. Redirect
+   * targets must be paths rather than URLs so schemes, protocol-relative
+   * values, and backslash authority tricks can never reach a browser
+   * navigation sink.
+   */
+  public static isSafeInternalRoute(route: Route | string): boolean {
+    const routeValue: string = route.toString();
+
+    if (
+      !routeValue.startsWith("/") ||
+      routeValue.startsWith("//") ||
+      routeValue.includes("\\")
+    ) {
+      return false;
+    }
+
+    try {
+      /*
+       * URL accepts characters that Route deliberately rejects. Validate the
+       * exact sink contract here so a value marked safe cannot crash later
+       * when a caller constructs the Route used for navigation.
+       */
+      new Route(routeValue);
+
+      const parsedUrl: globalThis.URL = new window.URL(
+        routeValue,
+        window.location.origin,
+      );
+
+      return parsedUrl.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
   public static navigate(
     to: Route | URL,
     options?: {
@@ -288,6 +324,12 @@ abstract class Navigation {
     }
 
     if (options?.forceNavigate && to instanceof Route) {
+      if (!this.isSafeInternalRoute(to)) {
+        throw new BadDataException(
+          `Cannot force navigate to a non-internal route: ${finalUrl}`,
+        );
+      }
+
       window.location.href = finalUrl;
       return;
     }

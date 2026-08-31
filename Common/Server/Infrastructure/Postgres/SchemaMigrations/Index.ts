@@ -561,7 +561,8 @@ import { AddTelemetrySourceMap1790000000000 } from "./1790000000000-AddTelemetry
 import { AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001 } from "./1790000000001-AddSnmpConfigsToNetworkDeviceDiscoveryScan";
 import { AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000 } from "./1790003445000-AddSnmpEnabledToNetworkDeviceDiscoveryScan";
 import { AddResourceActivityFeeds1790100000000 } from "./1790100000000-AddResourceActivityFeeds";
-import { AddOnCallCalendarFeeds1790200000000 } from "./1790200000000-AddOnCallCalendarFeeds";
+import { AllowNullMonitorNameOnMonitorTemplate1790200000000 } from "./1790200000000-AllowNullMonitorNameOnMonitorTemplate";
+import { AddOnCallCalendarFeeds1790300000000 } from "./1790300000000-AddOnCallCalendarFeeds";
 
 export default [
   InitialMigration,
@@ -1127,5 +1128,6 @@ export default [
   AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001,
   AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000,
   AddResourceActivityFeeds1790100000000,
-  AddOnCallCalendarFeeds1790200000000,
+  AllowNullMonitorNameOnMonitorTemplate1790200000000,
+  AddOnCallCalendarFeeds1790300000000,
 ];

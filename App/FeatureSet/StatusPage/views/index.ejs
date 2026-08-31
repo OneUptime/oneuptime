@@ -2,6 +2,54 @@
 <html lang="<%= typeof lang !== 'undefined' && lang ? lang : 'en' %>">
   <head>
     <meta charset="utf-8" />
+    <meta name="referrer" content="no-referrer" />
+    <script>
+      (function (handoffWindow) {
+        var storageKey = "oneuptime-status-page-login-code";
+        var loginCode = null;
+
+        try {
+          var currentUrl = new URL(handoffWindow.location.href);
+          loginCode = currentUrl.searchParams.get("loginCode");
+
+          if (loginCode) {
+            try {
+              handoffWindow.sessionStorage.setItem(storageKey, loginCode);
+            } catch (_storageError) {
+              handoffWindow.__ONEUPTIME_STATUS_PAGE_LOGIN_CODE__ = loginCode;
+            }
+          } else {
+            try {
+              loginCode = handoffWindow.sessionStorage.getItem(storageKey);
+            } catch (_storageError) {
+              loginCode =
+                handoffWindow.__ONEUPTIME_STATUS_PAGE_LOGIN_CODE__ || null;
+            }
+          }
+
+          handoffWindow.__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__ =
+            Boolean(loginCode);
+
+          if (
+            currentUrl.searchParams.has("loginCode") ||
+            currentUrl.searchParams.has("token")
+          ) {
+            currentUrl.searchParams.delete("loginCode");
+            currentUrl.searchParams.delete("token");
+            var queryString = currentUrl.searchParams.toString();
+            handoffWindow.history.replaceState(
+              handoffWindow.history.state,
+              "",
+              currentUrl.pathname +
+                (queryString ? "?" + queryString : "") +
+                currentUrl.hash,
+            );
+          }
+        } catch (_handoffError) {
+          // Fail closed: the application will show the normal login flow.
+        }
+      })(window);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -75,7 +123,7 @@
     
     <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
         <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+<script>(function(w,d,s,l,i){if(w.__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__){return;}w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);

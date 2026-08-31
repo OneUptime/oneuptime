@@ -1,6 +1,43 @@
 import ObjectID from "../Types/ObjectID";
 
 export default class ArrayUtil {
+  /*
+   * Run handler over every item, at most `concurrency` of them in flight.
+   *
+   * For work that is spent waiting on the network rather than on the CPU -
+   * walking a list of customer domains and making a request against each -
+   * awaiting one at a time leaves the caller idle for almost all of its wall
+   * clock, and a single slow item delays every item behind it.
+   *
+   * Items are handed out in order, so a caller that has sorted by urgency still
+   * gets the urgent ones started first. handler is expected to deal with its
+   * own failures: as with Promise.all, the first rejection is what the caller
+   * sees, and it does not stop work already in flight.
+   */
+  public static async forEachWithConcurrency<T>(
+    array: Array<T>,
+    concurrency: number,
+    handler: (item: T) => Promise<void>,
+  ): Promise<void> {
+    let nextIndex: number = 0;
+
+    const worker: () => Promise<void> = async (): Promise<void> => {
+      while (nextIndex < array.length) {
+        const index: number = nextIndex++;
+        await handler(array[index] as T);
+      }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.max(1, Math.min(concurrency, array.length)) },
+        (): Promise<void> => {
+          return worker();
+        },
+      ),
+    );
+  }
+
   public static mergeStringArrays(
     array1: Array<string>,
     array2: Array<string>,

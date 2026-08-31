@@ -58,8 +58,15 @@ function getAssignmentBadge(
 export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { lightImpact } = useHaptics();
-  const { projects, totalAssignments, isLoading, isError, refetch } =
-    useAllProjectOnCallPolicies();
+  const {
+    projects,
+    totalAssignments,
+    isLoading,
+    isError,
+    failedProjectCount,
+    isPartialFailure,
+    refetch,
+  } = useAllProjectOnCallPolicies();
 
   const projectCount: number = projects.length;
 
@@ -67,9 +74,23 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
     const assignmentLabel: string =
       totalAssignments === 1 ? "assignment" : "assignments";
     const projectLabel: string = projectCount === 1 ? "project" : "projects";
+    const summary: string = `You are currently on duty for ${totalAssignments} ${assignmentLabel} across ${projectCount} ${projectLabel}.`;
 
-    return `You are currently on duty for ${totalAssignments} ${assignmentLabel} across ${projectCount} ${projectLabel}.`;
-  }, [projectCount, totalAssignments]);
+    if (failedProjectCount === 0) {
+      return summary;
+    }
+
+    /*
+     * Some projects answered and some did not, so the count above is a floor,
+     * not a total. Stating it on its own would be a confident number built on
+     * a partial answer, and the responder has no way to tell from the screen
+     * that a project is missing from it.
+     */
+    const failedLabel: string =
+      failedProjectCount === 1 ? "project" : "projects";
+
+    return `${summary} ${failedProjectCount} ${failedLabel} did not answer, so this list may be incomplete.`;
+  }, [failedProjectCount, projectCount, totalAssignments]);
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
@@ -106,14 +127,34 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
     );
   }
 
-  if (isError) {
+  /*
+   * "We asked, and you hold no duty" and "we could not ask" used to land on
+   * the same screen, and the gap between them is a responder who puts the
+   * phone down versus one who checks again. Two shapes of silence mean we do
+   * not know:
+   *
+   *   - isError: every project we asked failed, so there is no answer at all.
+   *   - a partial failure that left us with nothing to show: the projects
+   *     that answered hold no duty, and the only projects that could have
+   *     held some are exactly the ones that went missing. Rendering "Not
+   *     currently on-call" here states as fact the one thing we did not
+   *     manage to check.
+   *
+   * A partial failure WITH assignments to show is deliberately not here - the
+   * duty we did find is real and must stay on screen. That case is disclosed
+   * in the summary line instead.
+   */
+  const cannotEstablishDuty: boolean =
+    isError || (isPartialFailure && projectCount === 0);
+
+  if (cannotEstablishDuty) {
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <EmptyState
-          title="Could not load on-call assignments"
-          subtitle="Pull to refresh or try again."
+          title="Something went wrong"
+          subtitle="Your on-call duty could not be established, which is not the same as being off duty. Try again."
           icon="alerts"
           actionLabel="Retry"
           onAction={() => {
@@ -220,16 +261,24 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
           </View>
         </View>
 
-        <Text
-          style={{
-            fontSize: 13,
-            marginTop: 16,
-            lineHeight: 20,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {summaryText}
-        </Text>
+        {/*
+         * With nothing on duty there is nothing to summarise, and this line
+         * sits directly above the "Not currently on-call" empty state - so
+         * the screen said the same thing twice, once as the stilted "on duty
+         * for 0 assignments across 0 projects".
+         */}
+        {projectCount > 0 ? (
+          <Text
+            style={{
+              fontSize: 13,
+              marginTop: 16,
+              lineHeight: 20,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {summaryText}
+          </Text>
+        ) : null}
       </View>
 
       {projects.length === 0 ? (

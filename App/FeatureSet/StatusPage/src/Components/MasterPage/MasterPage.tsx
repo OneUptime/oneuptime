@@ -1,6 +1,8 @@
 import API from "../../Utils/API";
+import { LOGIN_CODE_EXCHANGE_API_URL } from "../../Utils/ApiPaths";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
 import LoginUtil from "../../Utils/Login";
+import LoginCodeUtil from "../../Utils/LoginCode";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
@@ -20,23 +22,23 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ShellSkeleton } from "../Skeleton/PageSkeletons";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
-import JSONWebToken from "Common/UI/Utils/JsonWebToken";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
 import { useTranslation } from "react-i18next";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
 
 export interface ComponentProps {
@@ -70,6 +72,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
+  const [loginCode] = useState<string | null>(() => {
+    return LoginCodeUtil.peek();
+  });
+  const loginCodeExchangeStarted: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [hidePoweredByOneUptimeBranding, setHidePoweredByOneUptimeBranding] =
     useState<boolean>(false);
@@ -80,68 +87,62 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   });
 
   useEffect(() => {
-    // if there is an SSO token. We need to save that to localstorage.
+    if (!loginCode || !statusPageId || loginCodeExchangeStarted.current) {
+      return;
+    }
 
-    const token: string | null = Navigation.getQueryStringByName("token");
+    const loginCodeToExchange: string | null = LoginCodeUtil.consume();
 
-    if (token && statusPageId) {
-      // set token.
+    if (!loginCodeToExchange) {
+      return;
+    }
 
-      const logoutRoute: Route = props.isPreview
+    loginCodeExchangeStarted.current = true;
+
+    const exchangeLoginCode: () => Promise<void> = async (): Promise<void> => {
+      const overviewRoute: Route = props.isPreview
         ? RouteUtil.populateRouteParams(
-            RouteMap[PageMap.PREVIEW_LOGOUT]!,
+            RouteMap[PageMap.PREVIEW_OVERVIEW]!,
             statusPageId,
           )
         : RouteUtil.populateRouteParams(
-            RouteMap[PageMap.LOGOUT]!,
+            RouteMap[PageMap.OVERVIEW]!,
             statusPageId,
           );
 
-      const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
-        token,
-      ) as JSONWebTokenData;
+      try {
+        const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+          url: URL.fromURL(LOGIN_CODE_EXCHANGE_API_URL).addRoute(
+            `/${statusPageId.toString()}`,
+          ),
+          data: { loginCode: loginCodeToExchange },
+        });
 
-      if (!decodedtoken) {
-        alert("Invalid Token. Please log in again.");
-        return Navigation.navigate(logoutRoute);
-      }
+        if (response.isFailure()) {
+          return;
+        }
 
-      if (!decodedtoken.userId.toString()) {
-        alert("User ID not found in Token. Logging out.");
-        return Navigation.navigate(logoutRoute);
-      }
-
-      LoginUtil.login({
-        user: { ...decodedtoken, _id: decodedtoken.userId },
-        token: token,
-      });
-
-      if (!decodedtoken.statusPageId) {
-        alert("Status Page ID not found in the token. Logging out.");
-        return Navigation.navigate(logoutRoute);
-      }
-
-      if (Navigation.getQueryStringByName("redirectUrl")) {
-        Navigation.navigate(
-          new Route(Navigation.getQueryStringByName("redirectUrl")!),
-          { forceNavigate: true },
+        const user: StatusPagePrivateUser = BaseModel.fromJSONObject(
+          response.data,
+          StatusPagePrivateUser,
         );
-      } else {
-        Navigation.navigate(
-          !props.isPreview
-            ? RouteUtil.populateRouteParams(
-                RouteMap[PageMap.OVERVIEW]!,
-                statusPageId,
-              )
-            : RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PREVIEW_OVERVIEW]!,
-                statusPageId,
-              ),
-          { forceNavigate: true },
-        );
+
+        LoginUtil.login({ user });
+
+        return Navigation.navigate(overviewRoute, { forceNavigate: true });
+      } catch {
+        return;
       }
+    };
+
+    void exchangeLoginCode();
+  }, [statusPageId, loginCode]);
+
+  useEffect(() => {
+    if (loginCode || Navigation.getQueryStringByName("token")) {
+      Navigation.setQueryString({ loginCode: null, token: null });
     }
-  }, [statusPageId]);
+  }, [loginCode]);
 
   useEffect(() => {
     if (!canRenderCustomizations || !customCss) {

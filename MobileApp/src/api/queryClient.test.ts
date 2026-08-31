@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach } from "@jest/globals";
-import { clearQueryCache, queryClient } from "./queryClient";
+import { queryClient } from "./queryClient";
 
 /*
  * The shared cache and the one operation that has security consequences.
@@ -20,7 +20,7 @@ describe("the app's query client", () => {
     );
   });
 
-  test("clearQueryCache removes every entry", () => {
+  test("queryClient.clear() removes every entry", () => {
     queryClient.setQueryData(["oncall", "calendar-feed", "user-a", "p1"], {
       urls: { https: "https://h/api/on-call-calendar/user/secret/shifts.ics" },
     });
@@ -28,7 +28,7 @@ describe("the app's query client", () => {
 
     expect(queryClient.getQueryCache().getAll()).toHaveLength(2);
 
-    clearQueryCache();
+    queryClient.clear();
 
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(
@@ -38,7 +38,7 @@ describe("the app's query client", () => {
 
   test("clearing an empty cache is a no-op, not a throw", () => {
     expect((): void => {
-      clearQueryCache();
+      queryClient.clear();
     }).not.toThrow();
   });
 });

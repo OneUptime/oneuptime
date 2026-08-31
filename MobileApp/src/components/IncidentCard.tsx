@@ -31,7 +31,15 @@ export default function IncidentCard({
     : theme.colors.textTertiary;
 
   const monitorCount: number = incident.monitors?.length ?? 0;
-  const monitorNames: string = incident.monitors
+  /*
+   * `monitors` is typed as always present but is not: an incident declared by
+   * hand carries no monitor at all, and detaching the last monitor from an
+   * existing one leaves the field off the payload too. The count above already
+   * allows for that; reading it again unguarded here threw, and because this
+   * card is a list row that TypeError took down the entire incident list -
+   * every other incident with it - rather than one row.
+   */
+  const monitorNames: string = (incident.monitors ?? [])
     .map((m: NamedEntity) => {
       return m.name;
     })

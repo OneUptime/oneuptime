@@ -29,6 +29,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import OneUptimeDate from "Common/Types/Date";
+import { formatTickTime, formatTooltipLabel } from "./TraceTimeFormat";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -173,18 +174,6 @@ function formatCount(value: number): string {
   return Math.round(value).toLocaleString();
 }
 
-function formatTickTime(time: string): string {
-  const date: Date = OneUptimeDate.fromString(time);
-  if (isNaN(date.getTime())) {
-    return time;
-  }
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   const diffMinutes: number =
     (endTime.getTime() - startTime.getTime()) / (1000 * 60);
@@ -225,29 +214,10 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
     return null;
   }
 
-  const formatLabel: (label: string | undefined) => string = (
-    label: string | undefined,
-  ): string => {
-    if (!label) {
-      return "";
-    }
-    const date: Date = OneUptimeDate.fromString(label);
-    if (isNaN(date.getTime())) {
-      return label;
-    }
-    return date.toLocaleString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
-
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
       <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-400">
-        {formatLabel(props.label)}
+        {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
         {props.payload.map(

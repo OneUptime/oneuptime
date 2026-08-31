@@ -111,6 +111,7 @@ import AccessTokenService from "../../../Services/AccessTokenService";
 import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+import TeamMemberService from "../../../Services/TeamMemberService";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -3999,27 +4000,48 @@ All monitoring checks are passing normally.`;
           userLookupParamsRes,
         );
 
-      // Handle incident actions
-      if (MicrosoftTeamsIncidentActions.isIncidentAction({ actionType })) {
-        await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
-          actionType,
-          actionValue,
-          value,
-          projectId,
-          oneUptimeUserId,
-          turnContext: data.turnContext,
-        });
-        return;
-      }
+      const isIncidentAction: boolean =
+        MicrosoftTeamsIncidentActions.isIncidentAction({ actionType });
+      const isAlertAction: boolean = MicrosoftTeamsAlertActions.isAlertAction({
+        actionType,
+      });
 
-      // Handle alert actions
-      if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
+      if (isIncidentAction || isAlertAction) {
+        const databaseProps: DatabaseCommonInteractionProps =
+          await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+            {
+              userId: oneUptimeUserId,
+              projectId: projectId,
+            },
+          );
+
+        databaseProps.userTeamIds = await TeamMemberService.getTeamIdsForUser(
+          oneUptimeUserId,
+          projectId,
+        );
+
+        // Handle incident actions
+        if (isIncidentAction) {
+          await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+            actionType,
+            actionValue,
+            value,
+            projectId,
+            oneUptimeUserId,
+            databaseProps,
+            turnContext: data.turnContext,
+          });
+          return;
+        }
+
+        // Handle alert actions
         await MicrosoftTeamsAlertActions.handleBotAlertAction({
           actionType,
           actionValue,
           value,
           projectId,
           oneUptimeUserId,
+          databaseProps,
           turnContext: data.turnContext,
         });
         return;
