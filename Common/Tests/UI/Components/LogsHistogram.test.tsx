@@ -3,9 +3,10 @@
 import LogsHistogram from "../../../UI/Components/LogsViewer/components/LogsHistogram";
 import { HistogramBucket } from "../../../UI/Components/LogsViewer/types";
 import LogSeverity from "../../../Types/Log/LogSeverity";
+import OneUptimeDate from "../../../Types/Date";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ResponsiveContainer measures its parent, which is always 0x0 in jsdom, so the
@@ -39,7 +40,27 @@ function seriesCount(container: HTMLElement): number {
   return container.querySelectorAll(".recharts-bar").length;
 }
 
-const CLOCK_LABEL: RegExp = /^\d{2}:\d{2}$/;
+/*
+ * Matches a tick on either clock. The axis follows the machine's 12/24-hour
+ * preference now, so a pattern that only knew "HH:mm" would quietly classify
+ * every tick as a count label on an AM/PM machine and leave the assertions
+ * below comparing empty arrays.
+ */
+const CLOCK_LABEL: RegExp = /^\d{1,2}:\d{2}( [AP]M)?$/;
+
+/*
+ * The tick labels are the machine's business, not the test's, so every case
+ * that reads them says which clock it is asking about.
+ */
+function pinClock(use12HourFormat: boolean): void {
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(use12HourFormat);
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 /*
  * Recharts portals tick labels out of their axis group, so the two axes are
@@ -126,11 +147,27 @@ describe("LogsHistogram", () => {
     });
 
     test("labels the time axis in the reader's clock", () => {
+      pinClock(false);
+
       const { container } = render(
         <LogsHistogram buckets={ONE_SEVERITY} isLoading={false} />,
       );
 
       expect(axisLabels(container, "time")).toContain("12:00");
+    });
+
+    /*
+     * Noon is where the two clocks are hardest to tell apart - "12:00" is a
+     * valid reading on both - so the marker is the whole assertion.
+     */
+    test("labels the time axis with AM/PM when that is the reader's clock", () => {
+      pinClock(true);
+
+      const { container } = render(
+        <LogsHistogram buckets={ONE_SEVERITY} isLoading={false} />,
+      );
+
+      expect(axisLabels(container, "time")).toContain("12:00 PM");
     });
 
     test("lists only the severities present in the window", () => {
@@ -176,6 +213,8 @@ describe("LogsHistogram", () => {
     });
 
     test("follows the window as it slides off the oldest bucket", () => {
+      pinClock(false);
+
       const view: ReturnType<typeof render> = render(
         <LogsHistogram buckets={ONE_SEVERITY} isLoading={false} />,
       );

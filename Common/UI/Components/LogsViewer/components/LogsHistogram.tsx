@@ -68,10 +68,8 @@ function formatTickTime(time: string): string {
     return time;
   }
 
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
+  return OneUptimeDate.getLocalTimeString(date, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
   });
 }
 
