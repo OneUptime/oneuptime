@@ -136,6 +136,18 @@ Once the CNAME is verified — and only if you did not upload your own certifica
 
 Once provisioned, renewal is automatic. There is nothing recurring for you to do.
 
+## Reissuing a certificate
+
+Renewal being automatic covers the ordinary case, but sometimes you want a brand new certificate right now — a private key you would rather not keep, a certificate your own scanner is unhappy with, or a domain that changed upstream. Once a free certificate has been ordered for a domain, the row shows a **Reissue SSL** action.
+
+Its modal, **Reissue SSL Certificate for this Status Page**, asks LetsEncrypt for a fresh certificate for the domain and replaces the one we serve with it. Your status page stays online on the existing certificate while that happens, and the new certificate is served within 15 minutes.
+
+**A domain can only be reissued once every 24 hours.** LetsEncrypt rate limits how often the same domain can be issued, and every OneUptime certificate is ordered against one shared account — including the automatic renewals keeping everybody else's pages online. If you press the button inside that window the modal tells you how long is left instead of ordering.
+
+The action does not appear on a domain using a certificate you uploaded yourself; there is no LetsEncrypt certificate there for us to reissue, so upload a new one by editing the domain instead. It also does not appear before you have ordered a certificate at all — **Order Free SSL** is the action for that.
+
+The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Custom Domains**.
+
 ## Reading the domain Status column
 
 The **Status** column is the whole setup state machine in one cell. Each message tells you either what to do next or that you are done.

@@ -562,6 +562,7 @@ import { AddSnmpConfigsToNetworkDeviceDiscoveryScan1790000000001 } from "./17900
 import { AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000 } from "./1790003445000-AddSnmpEnabledToNetworkDeviceDiscoveryScan";
 import { AddResourceActivityFeeds1790100000000 } from "./1790100000000-AddResourceActivityFeeds";
 import { AllowNullMonitorNameOnMonitorTemplate1790200000000 } from "./1790200000000-AllowNullMonitorNameOnMonitorTemplate";
+import { AddCertificateReissueRequestedAtToDomains1790300000000 } from "./1790300000000-AddCertificateReissueRequestedAtToDomains";
 
 export default [
   InitialMigration,
@@ -1128,4 +1129,5 @@ export default [
   AddSnmpEnabledToNetworkDeviceDiscoveryScan1790003445000,
   AddResourceActivityFeeds1790100000000,
   AllowNullMonitorNameOnMonitorTemplate1790200000000,
+  AddCertificateReissueRequestedAtToDomains1790300000000,
 ];
