@@ -199,7 +199,8 @@ export default class ProjectMiddleware {
         (req as OneUptimeRequest).userType = UserType.API;
 
         /*
-         * TODO: Add API key permissions.
+         * Global permissions for API keys include AuthenticatedRequest to
+         * enable file operations (File/FileModel gate on this permission).
          */
         (req as OneUptimeRequest).userGlobalAccessPermission =
           await APIKeyAccessPermission.getDefaultApiGlobalPermission(tenantId);

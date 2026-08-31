@@ -21,6 +21,7 @@ export default class APIKeyAccessPermission {
         Permission.Public,
         Permission.User,
         Permission.CurrentUser,
+        Permission.AuthenticatedRequest,
       ],
       _type: "UserGlobalAccessPermission",
     };
@@ -36,6 +37,7 @@ export default class APIKeyAccessPermission {
         Permission.Public,
         Permission.User,
         Permission.CurrentUser,
+        Permission.AuthenticatedRequest,
         Permission.ProjectOwner,
       ],
       _type: "UserGlobalAccessPermission",
