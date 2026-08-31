@@ -104,6 +104,11 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
+type ResponseModule = {
+  sendErrorResponse: MockedFn;
+  sendEmptySuccessResponse: MockedFn;
+};
+
 const sendEmptySuccessResponseMock: MockedFn =
   Response.sendEmptySuccessResponse as unknown as MockedFn;
 const sendErrorResponseMock: MockedFn =
@@ -411,11 +416,9 @@ describe("reissue-ssl with custom domains switched off", () => {
       const freshService: { reissueCert: unknown; countBy: unknown } = require(
         disabled.serviceModulePath,
       ).default;
+      const responseModulePath: string = "../../../Server/Utils/Response";
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      const freshResponse: {
-        sendErrorResponse: MockedFn;
-        sendEmptySuccessResponse: MockedFn;
-      } = require("../../../Server/Utils/Response").default;
+      const freshResponse: ResponseModule = require(responseModulePath).default;
 
       mockRouter.routes.length = 0;
       new FreshAPI();
