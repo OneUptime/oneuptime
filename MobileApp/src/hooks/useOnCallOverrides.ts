@@ -22,6 +22,13 @@ export interface CreateOverrideInput {
   routeAlertsToUserId: string;
   startsAt: Date;
   endsAt: Date;
+
+  /*
+   * Scope to one escalation policy. Left out for the project-wide override
+   * "Cover for me" creates; set only when covering a policy-variant shift,
+   * which exists inside that one policy.
+   */
+  onCallDutyPolicyId?: string;
 }
 
 export interface UseOnCallOverridesResult {

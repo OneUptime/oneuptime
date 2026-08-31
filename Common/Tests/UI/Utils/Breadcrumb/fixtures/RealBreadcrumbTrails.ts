@@ -1505,6 +1505,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getOnCallDutyBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/on-call-duty/calendar-feeds",
+    titles: ["Project", "On-Call Duty", "Calendar Feeds"],
+  },
+  {
+    getter: "getOnCallDutyBreadcrumbs",
     pagePattern: "/dashboard/:projectId/on-call-duty/execution-logs",
     titles: ["Project", "On-Call Duty", "Execution Logs"],
   },
@@ -2828,6 +2833,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/alert-on-call-rules",
     titles: ["Project", "User Settings", "Alert On-Call Rules"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/calendar-feed",
+    titles: ["Project", "User Settings", "Calendar Feed"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",

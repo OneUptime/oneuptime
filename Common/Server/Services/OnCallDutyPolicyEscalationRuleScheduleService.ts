@@ -25,10 +25,33 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * Attaching to / detaching from a policy changes the schedule's policy
+   * context (which overrides apply, and which policies its calendar events
+   * list), so it is a configuration change for the calendar feeds and the
+   * reminders: bump shiftConfigVersion, purge the feed caches, notify the
+   * listeners. Runs after the roster refresh; never throws.
+   */
+  private async propagateAttachmentChange(
+    onCallDutyPolicyScheduleId: ObjectID | null | undefined,
+    projectId: ObjectID | null | undefined,
+  ): Promise<void> {
+    if (!onCallDutyPolicyScheduleId) {
+      return;
+    }
+
+    await OnCallDutyPolicyScheduleService.propagateShiftConfigChange({
+      scheduleIds: [onCallDutyPolicyScheduleId],
+      projectId: projectId || null,
+      reason: OnCallShiftChangeReason.PolicyAttachmentChanged,
+    });
   }
 
   /**
@@ -122,6 +145,11 @@ export class Service extends DatabaseService<Model> {
      * anything below can return early. See refreshScheduleRoster.
      */
     await this.refreshScheduleRoster(createdModel.onCallDutyPolicyScheduleId);
+
+    await this.propagateAttachmentChange(
+      createdModel.onCallDutyPolicyScheduleId,
+      createdModel.projectId,
+    );
 
     // send notification to the new current user.
 
@@ -387,6 +415,10 @@ export class Service extends DatabaseService<Model> {
       }
       refreshedScheduleIds.add(scheduleId);
       await this.refreshScheduleRoster(deletedItem.onCallDutyPolicyScheduleId);
+      await this.propagateAttachmentChange(
+        deletedItem.onCallDutyPolicyScheduleId,
+        deletedItem.projectId,
+      );
     }
 
     for (const deletedItem of deletedItems) {

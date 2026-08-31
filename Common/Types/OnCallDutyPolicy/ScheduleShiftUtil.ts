@@ -1,5 +1,6 @@
 import CalendarEvent from "../Calendar/CalendarEvent";
 import OneUptimeDate from "../Date";
+import UserOverrideUtil, { OverrideEventMeta } from "./UserOverrideUtil";
 
 /*
  * Turns the low-level calendar events produced by LayerUtil into the
@@ -36,6 +37,38 @@ export interface OnCallShift {
    * coverage ("40h across the week") instead of the misleading span ("4d 8h").
    */
   coverageSeconds: number;
+  /*
+   * Metadata carried over from the FIRST raw segment folded into this shift:
+   * the override that produced it (UserOverrideUtil stamps it on the event)
+   * and the layer it came from (LayerUtil stamps layerId/layerName when the
+   * caller identified the layer). Only present when the segment carried them.
+   *
+   * With the default grouping (by user id) a shift can span segments from
+   * several layers or override windows, so these describe the first segment
+   * only. Callers that need them to hold for the WHOLE shift pass a groupKey
+   * that includes them (see groupKeyByUserOverrideAndLayer), which is what the
+   * on-call calendar feed does.
+   */
+  override?: OverrideEventMeta;
+  layerId?: string;
+  layerName?: string;
+}
+
+/*
+ * Decides which raw segments may be folded into the same shift. Two adjacent
+ * segments are merged only when their keys are equal (and they touch, or the
+ * caller asked to merge across gaps).
+ */
+export type ShiftGroupKeyFunction = (event: CalendarEvent) => string;
+
+export interface GroupEventsIntoShiftsOptions {
+  mergeAcrossGaps?: boolean | undefined;
+  /*
+   * Defaults to the on-call user id (event.title), which is what every
+   * schedule summary in the dashboard wants: "Alice, Mon 09:00 -> Fri 17:00"
+   * regardless of which layer or override put her there.
+   */
+  groupKey?: ShiftGroupKeyFunction | undefined;
 }
 
 export interface CoverageGap {
@@ -116,13 +149,15 @@ export default class ScheduleShiftUtil {
    */
   public static groupEventsIntoShifts(
     events: Array<CalendarEvent>,
-    options?: { mergeAcrossGaps?: boolean | undefined } | undefined,
+    options?: GroupEventsIntoShiftsOptions | undefined,
   ): Array<OnCallShift> {
     if (!events || events.length === 0) {
       return [];
     }
 
     const mergeAcrossGaps: boolean = Boolean(options?.mergeAcrossGaps);
+    const groupKey: ShiftGroupKeyFunction =
+      options?.groupKey ?? ScheduleShiftUtil.defaultGroupKey;
 
     // Work on a copy sorted by start time; never mutate the caller's array.
     const sorted: Array<CalendarEvent> = [...events]
@@ -142,16 +177,18 @@ export default class ScheduleShiftUtil {
       });
 
     const shifts: Array<OnCallShift> = [];
+    let lastKey: string | null = null;
 
     for (const event of sorted) {
       const userId: string = event.title;
+      const key: string = groupKey(event);
       const eventSeconds: number = OneUptimeDate.getDifferenceInSeconds(
         event.end,
         event.start,
       );
       const last: OnCallShift | undefined = shifts[shifts.length - 1];
 
-      const sameUser: boolean = Boolean(last) && last!.userId === userId;
+      const sameUser: boolean = Boolean(last) && lastKey === key;
 
       const isContiguous: boolean =
         Boolean(last) &&
@@ -175,15 +212,84 @@ export default class ScheduleShiftUtil {
         continue;
       }
 
-      shifts.push({
+      const shift: OnCallShift = {
         userId,
         start: event.start,
         end: event.end,
         coverageSeconds: eventSeconds,
-      });
+      };
+
+      /*
+       * Only add the metadata keys when the segment carries them, so callers
+       * that never stamp them (every dashboard summary) get the exact shift
+       * objects they always did.
+       */
+      const override: OverrideEventMeta | null =
+        UserOverrideUtil.getOverrideMeta(event);
+      if (override) {
+        shift.override = override;
+      }
+
+      const layerId: string | undefined =
+        ScheduleShiftUtil.getEventLayerId(event);
+      if (layerId !== undefined) {
+        shift.layerId = layerId;
+      }
+
+      const layerName: string | undefined =
+        ScheduleShiftUtil.getEventLayerName(event);
+      if (layerName !== undefined) {
+        shift.layerName = layerName;
+      }
+
+      shifts.push(shift);
+      lastKey = key;
     }
 
     return shifts;
+  }
+
+  // The default grouping: one shift per run of the same on-call user.
+  public static defaultGroupKey(event: CalendarEvent): string {
+    return event.title;
+  }
+
+  /*
+   * Grouping that keeps a shift inside ONE layer and ONE override window: the
+   * user id, plus the override identity (original user + window) when the
+   * segment was produced by an override, plus the layer id when known. This
+   * is the key the on-call calendar feed groups with, so an override split
+   * yields A / B / A as three events and a layer handover is visible as a
+   * boundary instead of being folded into a single shift.
+   */
+  public static groupKeyByUserOverrideAndLayer(event: CalendarEvent): string {
+    const override: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(event);
+
+    const overridePart: string = override
+      ? `${override.originalUserId}@${override.overrideStartsAt.getTime()}-${override.overrideEndsAt.getTime()}`
+      : "";
+
+    return `${event.title}|${overridePart}|${ScheduleShiftUtil.getEventLayerId(event) ?? ""}`;
+  }
+
+  /*
+   * LayerUtil stamps layerId/layerName onto merged events (see
+   * PriorityCalendarEvents). CalendarEvent is a JSONObject, so the keys are
+   * read through the index signature and type-checked here.
+   */
+  public static getEventLayerId(event: CalendarEvent): string | undefined {
+    const value: unknown = (event as unknown as Record<string, unknown>)[
+      "layerId"
+    ];
+    return typeof value === "string" ? value : undefined;
+  }
+
+  public static getEventLayerName(event: CalendarEvent): string | undefined {
+    const value: unknown = (event as unknown as Record<string, unknown>)[
+      "layerName"
+    ];
+    return typeof value === "string" ? value : undefined;
   }
 
   /*

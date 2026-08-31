@@ -59,6 +59,28 @@ const PROXY_HTTP_VERSION_EXCEPTIONS = [
   "~* ^/(manifest\\.json|service-worker\\.js)$",
 ];
 
+/*
+ * The on-call calendar feed location. The URL carries a bearer token
+ * (/api/on-call-calendar/user/<token>/shifts.ics), so it is the ONE place in
+ * the shipped config where per-request access logging is switched off: an
+ * access-log line there is a credential written to disk. Every server block
+ * must carry it, because a calendar client can be pointed at any of the three
+ * listeners, and every copy must be `access_log off` -- a copy that logs
+ * defeats the purpose on that listener.
+ */
+const CALENDAR_FEED_LOCATION_SPEC =
+  "~ ^/api/on-call-calendar/(user|schedule|project)/";
+
+function findCalendarFeedLocation(serverBlock) {
+  return getLocationBlocks(serverBlock.body).find((location) => {
+    return location.spec === CALENDAR_FEED_LOCATION_SPEC;
+  });
+}
+
+function isCalendarFeedLocation(location) {
+  return location.spec === CALENDAR_FEED_LOCATION_SPEC;
+}
+
 // ---------------------------------------------------------------------------
 // gzip
 // ---------------------------------------------------------------------------
@@ -207,6 +229,14 @@ test("every access_log in the ingress config uses identical buffer parameters", 
   assert.ok(allAccessLogs.length > 1);
 
   for (const directive of allAccessLogs) {
+    /*
+     * `access_log off` names no file, so it cannot conflict with anything;
+     * that it appears only where it is allowed to is asserted separately.
+     */
+    if (directive === "access_log off;") {
+      continue;
+    }
+
     assert.ok(
       directive.includes("/var/log/nginx/access.log"),
       `unexpected access_log target: ${directive}`,
@@ -218,16 +248,54 @@ test("every access_log in the ingress config uses identical buffer parameters", 
   }
 });
 
-test("no access_log is switched off anywhere in the ingress config", () => {
+test("access_log is switched off only where the URL is a credential", () => {
   // Per-request status and client IP at the ingress are how a tenant's 413s
   // and 429s get diagnosed. Ingest logging is operator-controllable, never
-  // hard-disabled in the shipped config.
-  for (const source of [nginxConf, template]) {
-    assert.ok(
-      !/^\s*access_log\s+off\s*;/m.test(source),
-      "access_log off must not appear in the shipped config",
-    );
+  // hard-disabled in the shipped config -- with exactly one exception: the
+  // on-call calendar feed location, whose request line contains a bearer
+  // token. Anywhere else, `access_log off` is a regression.
+  assert.ok(
+    !/^\s*access_log\s+off\s*;/m.test(nginxConf),
+    "access_log off must not appear in nginx.conf",
+  );
+
+  const offDirectivesInTemplate = (
+    stripComments(template).match(/^\s*access_log\s+off\s*;/gm) || []
+  ).length;
+
+  let offDirectivesInCalendarFeedLocations = 0;
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const offDirectives = getDirectives(location.body, "access_log").filter(
+        (directive) => {
+          return directive === "access_log off;";
+        },
+      );
+
+      if (isCalendarFeedLocation(location)) {
+        offDirectivesInCalendarFeedLocations += offDirectives.length;
+        continue;
+      }
+
+      assert.deepEqual(
+        offDirectives,
+        [],
+        `location ${location.spec} switches access logging off; only the calendar feed location may`,
+      );
+    }
   }
+
+  assert.equal(
+    offDirectivesInTemplate,
+    offDirectivesInCalendarFeedLocations,
+    "every access_log off in the template must sit inside a calendar feed location",
+  );
+  assert.equal(
+    offDirectivesInCalendarFeedLocations,
+    serverBlocks.length,
+    "one access_log off per server block, no more and no fewer",
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -268,10 +336,220 @@ test("ordinary locations are left on the inherited global access_log", () => {
       continue;
     }
 
+    // The one non-ingest location with its own access_log, and it is `off`;
+    // asserted in the calendar feed section below.
+    if (isCalendarFeedLocation(location)) {
+      continue;
+    }
+
     assert.deepEqual(
       getDirectives(location.body, "access_log"),
       [],
       `location ${location.spec} should not carry its own access_log`,
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// On-call calendar feeds: token-in-URL, so no access log
+// ---------------------------------------------------------------------------
+
+test("every server block carries the calendar feed location", () => {
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.ok(
+      location,
+      "a server block without the calendar feed location writes every feed token it proxies to the access log",
+    );
+  }
+
+  const copies = serverBlocks.map(findCalendarFeedLocation).filter(Boolean);
+
+  assert.equal(copies.length, serverBlocks.length);
+});
+
+test("the calendar feed location switches access logging off in every server block", () => {
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(
+      getDirectives(location.body, "access_log"),
+      ["access_log off;"],
+      "the calendar feed location must carry exactly `access_log off`, not a file-naming directive and not nothing",
+    );
+  }
+});
+
+test("the calendar feed regex covers the three feed kinds and nothing else", () => {
+  const pattern = new RegExp(locationRegexSource(CALENDAR_FEED_LOCATION_SPEC));
+
+  const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
+
+  for (const uri of [
+    `/api/on-call-calendar/user/${token}/shifts.ics`,
+    `/api/on-call-calendar/schedule/${token}/schedule.ics`,
+    `/api/on-call-calendar/project/${token}/project.ics`,
+    // Any path under the three prefixes: a mistyped file name still has the
+    // token in it and still must not be logged.
+    "/api/on-call-calendar/user/not-a-token/anything",
+  ]) {
+    assert.ok(pattern.test(uri), `should match ${uri}`);
+  }
+
+  for (const uri of [
+    // The session-authenticated management routes carry no token and are
+    // meant to be logged like any other API call.
+    "/api/on-call-calendar/feed/current",
+    "/api/on-call-calendar/feed/rotate",
+    "/api/on-call-calendar/schedule-feed/00000000-0000-4000-8000-000000000000/current",
+    "/api/on-call-calendar/project-feed/current",
+    "/api/on-call-calendar/my-shifts?from=2026-01-01",
+    // Prefix, not substring.
+    "/api/on-call-calendarx/user/abc/shifts.ics",
+    "/status-page-api/on-call-calendar/user/abc/shifts.ics",
+    "/api/on-call-calendar/users/abc/shifts.ics",
+    "/api/on-call-calendar/user",
+    "/api/on-call-calendar/",
+  ]) {
+    assert.ok(!pattern.test(uri), `should NOT match ${uri}`);
+  }
+});
+
+test("nginx location precedence sends feed requests to the calendar block and management requests to /api", () => {
+  const locations = getLocationBlocks(primaryServerBlock.body);
+  const token = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCd0";
+
+  for (const kind of ["user", "schedule", "project"]) {
+    assert.equal(
+      resolveLocation(locations, `/api/on-call-calendar/${kind}/${token}/x.ics`)
+        .spec,
+      CALENDAR_FEED_LOCATION_SPEC,
+      `a ${kind} feed request must land in the unlogged location, not /api`,
+    );
+  }
+
+  assert.equal(
+    resolveLocation(locations, "/api/on-call-calendar/feed/current").spec,
+    "/api",
+    "the management routes must keep landing in /api and being logged",
+  );
+  assert.equal(
+    resolveLocation(locations, "/api/on-call-calendar/my-shifts").spec,
+    "/api",
+  );
+});
+
+test("the calendar feed location proxies exactly like the block it pre-empts", () => {
+  /*
+   * A regex location wins outright over the prefix locations, so anything the
+   * pre-empted block did for the request has to be restated here or it is not
+   * done. For the primary ingress that block is /api; for the two status-page
+   * servers it is `location /`. The proxy headers are the part that matters
+   * for correctness: without X-Forwarded-For the app's rate limiter and IP
+   * checks see the gateway's own address for every feed request.
+   */
+  const REQUIRED_PROXY_HEADERS = [
+    "proxy_set_header Host $host;",
+    "proxy_set_header X-Real-IP $remote_addr;",
+    "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+    "proxy_set_header X-Forwarded-Proto $scheme;",
+  ];
+
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+    const headers = getDirectives(location.body, "proxy_set_header");
+
+    for (const header of REQUIRED_PROXY_HEADERS) {
+      assert.ok(
+        headers.includes(header),
+        `calendar feed location in a server block is missing "${header}"`,
+      );
+    }
+
+    assert.ok(
+      /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(location.body),
+      "the calendar feed location must proxy to the app backend",
+    );
+    assert.ok(
+      /resolver\s+\$\{NGINX_RESOLVER\}/.test(location.body),
+      "the calendar feed location must carry the resolver like every other proxying location",
+    );
+    assert.deepEqual(getDirectives(location.body, "proxy_http_version"), [
+      "proxy_http_version 1.1;",
+    ]);
+  }
+});
+
+test("the calendar feed location in the status-page HTTP server keeps the billing redirect", () => {
+  /*
+   * The first server block's `location /` sends plain-HTTP traffic to https
+   * when billing is enabled (the hosted product) and proxies otherwise. The
+   * feed location pre-empts it, so a copy without the split would serve a
+   * bearer-token feed over plain HTTP on the hosted product.
+   */
+  const httpStatusPageBlock = serverBlocks.find((block) => {
+    return /listen\s+\$\{NGINX_LISTEN_ADDRESS\}7849\s+default_server/.test(
+      block.body,
+    );
+  });
+
+  assert.ok(httpStatusPageBlock, "expected the status-page HTTP server block");
+
+  const rootLocation = getLocationBlocks(httpStatusPageBlock.body).find(
+    (location) => {
+      return location.spec === "/";
+    },
+  );
+  const feedLocation = findCalendarFeedLocation(httpStatusPageBlock);
+
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*=\s*true\)\s*\{\s*return 301 https:\/\/\$host\$request_uri;/.test(
+      rootLocation.body,
+    ),
+    "the premise: location / redirects to https when billing is enabled",
+  );
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*=\s*true\)\s*\{\s*return 301 https:\/\/\$host\$request_uri;/.test(
+      feedLocation.body,
+    ),
+    "the calendar feed location must keep the https redirect of the location it pre-empts",
+  );
+  assert.ok(
+    /if\s*\(\$billing_enabled\s*!=\s*true\)\s*\{\s*proxy_pass \$\{BACKEND_APP_TARGET\};/.test(
+      feedLocation.body,
+    ),
+    "the calendar feed location must still proxy when billing is disabled",
+  );
+});
+
+test("the calendar feed location does not inherit /api's raised timeouts or body size", () => {
+  // A feed is a small GET; a hung render should fail at nginx's 60s default
+  // rather than pin a client connection for five minutes. This is also what
+  // keeps PROXY_TIMEOUT_LOCATIONS above exact.
+  for (const serverBlock of serverBlocks) {
+    const location = findCalendarFeedLocation(serverBlock);
+
+    assert.deepEqual(getDirectives(location.body, "proxy_read_timeout"), []);
+    assert.deepEqual(getDirectives(location.body, "proxy_send_timeout"), []);
+    assert.deepEqual(getDirectives(location.body, "client_max_body_size"), []);
+  }
+});
+
+test("text/calendar is not added to gzip_types", () => {
+  /*
+   * Deliberate. A compressed response body is what makes BREACH-style
+   * attacks possible when secrets share a response with attacker-influenced
+   * content; the feed carries a user's roster, is polled through a
+   * bearer-token URL, and is a few kilobytes -- not worth the trade.
+   */
+  for (const block of serverBlocks) {
+    const [gzipTypes] = getDirectives(block.body, "gzip_types");
+
+    assert.ok(gzipTypes);
+    assert.ok(
+      !gzipTypes.includes("text/calendar"),
+      "gzip_types must not include text/calendar",
     );
   }
 });

@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
@@ -13,7 +17,7 @@ import GradientButton from "../components/GradientButton";
 import SegmentedControl from "../components/SegmentedControl";
 import SectionHeader from "../components/SectionHeader";
 import UserPickerModal from "../components/UserPickerModal";
-import { formatShiftTime } from "../utils/duration";
+import { formatShiftTime, formatShiftWindow } from "../utils/duration";
 import { getFriendlyErrorMessage } from "../utils/error";
 import {
   buildOverrideRequest,
@@ -21,14 +25,50 @@ import {
   DURATION_PRESETS,
   type BuildOverrideResult,
   type OverrideDirection,
+  type OverrideWindow,
 } from "../oncall/overrideDraft";
-import type { OnCallStackParamList } from "../navigation/types";
+import type {
+  CreateOnCallOverrideParams,
+  OnCallStackParamList,
+} from "../navigation/types";
 import type { ProjectItem, ProjectUserItem } from "../api/types";
 
 type CreateOverrideNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
   "CreateOnCallOverride"
 >;
+
+type CreateOverrideRouteProp = RouteProp<
+  OnCallStackParamList,
+  "CreateOnCallOverride"
+>;
+
+/**
+ * The shift window a "Get cover" tap carried in, or null when the sheet was
+ * opened from "Cover for me" and the window is "now plus a duration".
+ *
+ * Unparseable params read as "no prefill" rather than as a broken window: the
+ * sheet is still usable, the user just picks a duration.
+ */
+export function readPrefilledWindow(
+  params: CreateOnCallOverrideParams | undefined,
+): OverrideWindow | null {
+  if (!params) {
+    return null;
+  }
+
+  const startsAt: Date = new Date(params.startsAt);
+  const endsAt: Date = new Date(params.endsAt);
+
+  if (
+    !Number.isFinite(startsAt.getTime()) ||
+    !Number.isFinite(endsAt.getTime())
+  ) {
+    return null;
+  }
+
+  return { startsAt, endsAt };
+}
 
 /*
  * "I can't take this - somebody else has it."
@@ -40,20 +80,35 @@ type CreateOverrideNavProp = NativeStackNavigationProp<
  *
  * Overrides start NOW and run for a preset number of hours. A future-dated
  * override is a planning task and belongs on the web, where a calendar is
- * usable.
+ * usable - with one exception: "Get cover" on a shift card arrives here with
+ * that shift's window already known, and then the sheet covers exactly that
+ * shift (from now, if it has already started) and asks only who takes it.
  */
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { successFeedback, errorFeedback, selectionFeedback } = useHaptics();
   const navigation: CreateOverrideNavProp =
     useNavigation<CreateOverrideNavProp>();
+  const route: CreateOverrideRouteProp = useRoute<CreateOverrideRouteProp>();
+  const prefill: CreateOnCallOverrideParams | undefined = route.params;
+  const prefilledWindow: OverrideWindow | null =
+    useMemo((): OverrideWindow | null => {
+      return readPrefilledWindow(prefill);
+    }, [prefill]);
 
   const { projectList } = useProject();
   const currentUserId: string | null = useCurrentUserId();
   const overrides: ReturnType<typeof useOnCallOverrides> = useOnCallOverrides();
 
+  /*
+   * A prefilled shift is always MINE (the list only shows the signed-in
+   * user's shifts), so the only direction that makes sense is handing it to
+   * somebody else; the segmented control is not offered in that case.
+   */
   const [direction, setDirection] = useState<OverrideDirection>("cover-me");
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(
+    prefill?.projectId ?? null,
+  );
   const [counterpart, setCounterpart] = useState<ProjectUserItem | null>(null);
   const [durationHours, setDurationHours] = useState<number>(4);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
@@ -81,17 +136,44 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
     ? counterpart.name || counterpart.email
     : "a teammate";
 
+  const windowLabel: string | null = useMemo((): string | null => {
+    if (!prefilledWindow) {
+      return null;
+    }
+
+    const range: string | null = formatShiftWindow(
+      prefilledWindow.startsAt.toISOString(),
+      prefilledWindow.endsAt.toISOString(),
+    );
+
+    const scheduleLabel: string = prefill?.scheduleName
+      ? ` on ${prefill.scheduleName}`
+      : "";
+
+    return range
+      ? `for your shift${scheduleLabel} (${range})`
+      : `for your shift${scheduleLabel}`;
+  }, [prefilledWindow, prefill?.scheduleName]);
+
   const previewSentence: string = describeOverride(
     direction,
     counterpartName,
     durationHours,
+    windowLabel,
   );
 
   const endsAtLabel: string | null = useMemo(() => {
+    if (prefilledWindow) {
+      return formatShiftTime(prefilledWindow.endsAt.toISOString());
+    }
+
     return formatShiftTime(
       new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString(),
     );
-  }, [durationHours]);
+  }, [durationHours, prefilledWindow]);
+
+  const startsNow: boolean =
+    !prefilledWindow || prefilledWindow.startsAt.getTime() <= Date.now();
 
   const onSubmit: () => Promise<void> = async (): Promise<void> => {
     setError(null);
@@ -102,6 +184,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         projectId,
         counterpartUserId: counterpart?.userId ?? null,
         durationHours,
+        window: prefilledWindow,
+        onCallDutyPolicyId: prefill?.policyId ?? null,
       },
       currentUserId,
       Date.now(),
@@ -132,20 +216,68 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
         keyboardShouldPersistTaps="handled"
       >
-        <SegmentedControl<OverrideDirection>
-          segments={[
-            { key: "cover-me", label: "Cover for me" },
-            { key: "take-over", label: "I'll take over" },
-          ]}
-          selected={direction}
-          onSelect={(key: OverrideDirection) => {
-            selectionFeedback();
-            setDirection(key);
-            setError(null);
-          }}
-        />
+        {prefilledWindow ? (
+          <View
+            testID="prefilled-shift"
+            style={{
+              padding: 16,
+              borderRadius: 18,
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.oncallActive + "55",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "600",
+                letterSpacing: 0.6,
+                textTransform: "uppercase",
+                color: theme.colors.textTertiary,
+              }}
+            >
+              Cover for my shift
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "600",
+                marginTop: 6,
+                color: theme.colors.textPrimary,
+              }}
+              numberOfLines={1}
+            >
+              {prefill?.scheduleName ?? "On-call shift"}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                marginTop: 4,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              {formatShiftWindow(
+                prefilledWindow.startsAt.toISOString(),
+                prefilledWindow.endsAt.toISOString(),
+              ) ?? ""}
+            </Text>
+          </View>
+        ) : (
+          <SegmentedControl<OverrideDirection>
+            segments={[
+              { key: "cover-me", label: "Cover for me" },
+              { key: "take-over", label: "I'll take over" },
+            ]}
+            selected={direction}
+            onSelect={(key: OverrideDirection) => {
+              selectionFeedback();
+              setDirection(key);
+              setError(null);
+            }}
+          />
+        )}
 
-        {projectList.length > 1 ? (
+        {projectList.length > 1 && !prefill ? (
           <View style={{ marginTop: 24 }}>
             <SectionHeader title="Project" iconName="folder-open-outline" />
             <View style={{ gap: 8 }}>
@@ -257,60 +389,62 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           </Pressable>
         </View>
 
-        <View style={{ marginTop: 24 }}>
-          <SectionHeader title="For how long" iconName="time-outline" />
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-            }}
-          >
-            {DURATION_PRESETS.map(
-              (preset: { label: string; hours: number }) => {
-                const isSelected: boolean = preset.hours === durationHours;
+        {prefilledWindow ? null : (
+          <View style={{ marginTop: 24 }}>
+            <SectionHeader title="For how long" iconName="time-outline" />
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              {DURATION_PRESETS.map(
+                (preset: { label: string; hours: number }) => {
+                  const isSelected: boolean = preset.hours === durationHours;
 
-                return (
-                  <Pressable
-                    key={preset.hours}
-                    testID={`duration-${preset.hours}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Override lasts ${preset.label}`}
-                    onPress={() => {
-                      selectionFeedback();
-                      setDurationHours(preset.hours);
-                      setError(null);
-                    }}
-                    style={{
-                      paddingVertical: 10,
-                      paddingHorizontal: 16,
-                      borderRadius: 9999,
-                      backgroundColor: isSelected
-                        ? theme.colors.oncallActiveBg
-                        : theme.colors.backgroundElevated,
-                      borderWidth: 1,
-                      borderColor: isSelected
-                        ? theme.colors.oncallActive + "55"
-                        : theme.colors.borderGlass,
-                    }}
-                  >
-                    <Text
+                  return (
+                    <Pressable
+                      key={preset.hours}
+                      testID={`duration-${preset.hours}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Override lasts ${preset.label}`}
+                      onPress={() => {
+                        selectionFeedback();
+                        setDurationHours(preset.hours);
+                        setError(null);
+                      }}
                       style={{
-                        fontSize: 13,
-                        fontWeight: "600",
-                        color: isSelected
-                          ? theme.colors.oncallActive
-                          : theme.colors.textSecondary,
+                        paddingVertical: 10,
+                        paddingHorizontal: 16,
+                        borderRadius: 9999,
+                        backgroundColor: isSelected
+                          ? theme.colors.oncallActiveBg
+                          : theme.colors.backgroundElevated,
+                        borderWidth: 1,
+                        borderColor: isSelected
+                          ? theme.colors.oncallActive + "55"
+                          : theme.colors.borderGlass,
                       }}
                     >
-                      {preset.label}
-                    </Text>
-                  </Pressable>
-                );
-              },
-            )}
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "600",
+                          color: isSelected
+                            ? theme.colors.oncallActive
+                            : theme.colors.textSecondary,
+                        }}
+                      >
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  );
+                },
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         <View
           testID="override-preview"
@@ -352,7 +486,13 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                 color: theme.colors.textSecondary,
               }}
             >
-              {`Starts now, ends ${endsAtLabel}.`}
+              {startsNow
+                ? `Starts now, ends ${endsAtLabel}.`
+                : `Starts ${
+                    formatShiftTime(
+                      prefilledWindow?.startsAt.toISOString() ?? null,
+                    ) ?? "with the shift"
+                  }, ends ${endsAtLabel}.`}
             </Text>
           ) : null}
         </View>

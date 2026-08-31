@@ -13,15 +13,23 @@ import { useTheme } from "../theme";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
+import { useMyShifts } from "../hooks/useMyShifts";
+import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { useNow } from "../hooks/useNow";
 import OnCallStatusCard from "../components/OnCallStatusCard";
 import ShiftCard from "../components/ShiftCard";
+import MyShiftCard from "../components/MyShiftCard";
 import QuickActionTile from "../components/QuickActionTile";
 import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
+import {
+  buildCoverParams,
+  groupShiftsByDay,
+  type ShiftDayGroup,
+} from "../oncall/shiftGroups";
 import type { OnCallStackParamList } from "../navigation/types";
-import type { OnCallShift } from "../api/types";
+import type { MyOnCallShift, OnCallShift } from "../api/types";
 
 type OnCallNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
@@ -47,12 +55,39 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
   const duty: ReturnType<typeof useOnCallDuty> = useOnCallDuty();
   const overrides: ReturnType<typeof useOnCallOverrides> =
     useOnCallOverrides(now);
+  const myShifts: ReturnType<typeof useMyShifts> = useMyShifts({ now });
+  const calendarFeed: ReturnType<typeof useOnCallCalendarFeedAvailability> =
+    useOnCallCalendarFeedAvailability();
 
   const activeOverrideCount: number = overrides.active.length;
 
+  /*
+   * The server's materialized shifts win whenever it produced any. When it
+   * could not answer (an older server, the render cap, an outage) OR it
+   * answered with nothing, the roster-derived list stays: the roster looks
+   * further ahead than the fortnight asked for here, so an empty fortnight
+   * can still have a "next up" on it worth showing.
+   */
+  const useServerShifts: boolean =
+    myShifts.isSuccess && myShifts.shifts.length > 0;
+
+  const shiftGroups: ShiftDayGroup[] = useServerShifts
+    ? groupShiftsByDay(myShifts.shifts, now)
+    : [];
+
+  const requestCover: (shift: MyOnCallShift) => void = (
+    shift: MyOnCallShift,
+  ): void => {
+    navigation.navigate("CreateOnCallOverride", buildCoverParams(shift));
+  };
+
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();
-    await Promise.all([duty.refetch(), overrides.refetch()]);
+    await Promise.all([
+      duty.refetch(),
+      overrides.refetch(),
+      myShifts.refetch(),
+    ]);
   };
 
   if (duty.isLoading) {
@@ -189,7 +224,55 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       <View style={{ marginTop: 28 }}>
         <SectionHeader title="Your shifts" iconName="calendar-outline" />
 
-        {allShifts.length === 0 ? (
+        {useServerShifts ? (
+          <View testID="my-shifts-list" style={{ gap: 12 }}>
+            {shiftGroups.map((group: ShiftDayGroup) => {
+              return (
+                <View key={group.key} testID={`shift-day-${group.key}`}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      letterSpacing: 0.6,
+                      textTransform: "uppercase",
+                      marginBottom: 8,
+                      marginLeft: 4,
+                      color: theme.colors.textTertiary,
+                    }}
+                  >
+                    {group.label}
+                  </Text>
+                  <View style={{ gap: 12 }}>
+                    {group.shifts.map((shift: MyOnCallShift) => {
+                      return (
+                        <MyShiftCard
+                          key={shift.shiftKey}
+                          shift={shift}
+                          now={now}
+                          onRequestCover={requestCover}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
+
+            {myShifts.truncated ? (
+              <Text
+                testID="my-shifts-truncated"
+                style={{
+                  fontSize: 12,
+                  marginLeft: 4,
+                  color: theme.colors.textTertiary,
+                }}
+              >
+                The server could not expand every schedule; some shifts may be
+                missing from this list.
+              </Text>
+            ) : null}
+          </View>
+        ) : allShifts.length === 0 ? (
           <View
             style={{
               borderRadius: 18,
@@ -296,6 +379,18 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
             navigation.navigate("MyOnCallPages");
           }}
         />
+
+        {calendarFeed.isAvailable ? (
+          <NavigationRow
+            testID="row-calendar"
+            iconName="calendar-outline"
+            title="Add shifts to my calendar"
+            subtitle="Subscribe from Google, Outlook or Apple Calendar"
+            onPress={() => {
+              navigation.navigate("OnCallCalendarFeed");
+            }}
+          />
+        ) : null}
       </View>
     </ScrollView>
   );

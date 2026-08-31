@@ -383,6 +383,37 @@ it directly is the peer, and no header setting compensates for that.
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
 
+## On-call calendar feeds
+
+People can subscribe Google Calendar, Outlook or Apple Calendar to their
+on-call shifts through a secret `.ics` URL of the form
+`https://<host>/api/on-call-calendar/user/<token>/shifts.ics` (schedule-wide
+and project-wide feeds live under `/schedule/` and `/project/`). The token in
+the path is the whole credential, so treat those URLs like passwords: the
+chart's own nginx does not write them to its access log, but any proxy, WAF or
+CDN you put in front will log the URI unless you tell it not to.
+
+`onCallCalendarFeed.disabled: true` switches every feed URL off. Clients get a
+`503` with `Retry-After: 3600`, keep the copy they already have and try again in
+an hour; nothing is deleted, and flipping it back resumes the feeds.
+
+The rate limits bound those public routes. `perTokenPerWindow` is the budget one
+subscribed calendar gets (keyed on token + client address); `perIpPerWindow` is
+the ceiling that survives a caller rotating tokens. Calendar clients poll about
+hourly -- Apple Calendar every five minutes at most -- so the defaults leave
+plenty of room for a whole team's clients behind one office address. The client
+address is the one `trustedProxyHops` selects, so a deployment behind an extra
+load balancer needs that set correctly for the per-address limit to mean
+anything. The limiter fails open when Redis is unreachable: it is load control,
+not the only thing guarding the token.
+
+| Parameter                                    | Description                                                                             | Default |
+|----------------------------------------------|-----------------------------------------------------------------------------------------|---------|
+| `onCallCalendarFeed.disabled`                | Set to `true` to answer every feed URL with `503` + `Retry-After: 3600`.                | `false` |
+| `onCallCalendarFeed.rateLimit.windowSeconds` | Length of the fixed rate-limit window.                                                  | `60`    |
+| `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
+| `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
+
 ## Other
 
 | Parameter                          | Description                              | Default |

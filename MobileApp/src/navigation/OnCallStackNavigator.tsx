@@ -8,6 +8,7 @@ import WhoIsOnCallScreen from "../screens/WhoIsOnCallScreen";
 import OnCallOverridesScreen from "../screens/OnCallOverridesScreen";
 import CreateOnCallOverrideScreen from "../screens/CreateOnCallOverrideScreen";
 import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
+import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import type { OnCallStackParamList } from "./types";
 
 const Stack: ReturnType<
@@ -74,6 +75,11 @@ export default function OnCallStackNavigator(): React.JSX.Element {
         name="MyOnCallPages"
         component={MyOnCallPagesScreen}
         options={{ title: "Pages Sent To Me" }}
+      />
+      <Stack.Screen
+        name="OnCallCalendarFeed"
+        component={OnCallCalendarFeedScreen}
+        options={{ title: "Calendar Feed" }}
       />
     </Stack.Navigator>
   );

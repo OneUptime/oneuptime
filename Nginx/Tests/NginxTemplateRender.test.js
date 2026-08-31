@@ -412,6 +412,55 @@ test(
 );
 
 test(
+  "the calendar feed location survives rendering in every server block",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    /*
+     * The location's whole purpose is `access_log off` on a URL that carries
+     * a bearer token. The sed passes and envsubst run over the source before
+     * nginx sees it, so assert on the rendered output: three copies of the
+     * location (one per server block), three `access_log off`, and no other
+     * `access_log off` anywhere.
+     */
+    const rendered = render(baseEnvironment());
+
+    const locationHeader =
+      "location ~ ^/api/on-call-calendar/(user|schedule|project)/ {";
+
+    assert.equal(rendered.split(locationHeader).length - 1, 3);
+    assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);
+
+    // Each copy proxies to the app and keeps the pooled upstream connection.
+    let searchFrom = 0;
+
+    for (let copy = 0; copy < 3; copy++) {
+      const start = rendered.indexOf(locationHeader, searchFrom);
+
+      assert.ok(start >= 0, `copy ${copy + 1} of the location is missing`);
+
+      const end = rendered.indexOf("\n    }", start);
+      const block = rendered.slice(start, end);
+
+      for (const directive of [
+        "access_log off;",
+        "proxy_pass $backend_app;",
+        "proxy_http_version 1.1;",
+        "proxy_set_header Connection $connection_upgrade;",
+        "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
+        "resolver 127.0.0.11 valid=30s;",
+      ]) {
+        assert.ok(
+          block.includes(directive),
+          `copy ${copy + 1} of the calendar feed location lost "${directive}" in rendering`,
+        );
+      }
+
+      searchFrom = end;
+    }
+  },
+);
+
+test(
   "the /api proxy timeouts survive rendering",
   { skip: hasEnvsubst ? false : "envsubst not on PATH" },
   () => {

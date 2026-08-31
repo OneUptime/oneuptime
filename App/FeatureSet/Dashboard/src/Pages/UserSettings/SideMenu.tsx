@@ -149,6 +149,24 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
         },
       ],
     },
+    /*
+     * Before Workspace: the calendar link is something everybody on a rota
+     * wants, while the workspace links only matter in projects that use them.
+     */
+    {
+      title: "Calendar",
+      items: [
+        {
+          link: {
+            title: "Calendar Feed",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED] as Route,
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
+      ],
+    },
     {
       title: "Workspace",
       items: [

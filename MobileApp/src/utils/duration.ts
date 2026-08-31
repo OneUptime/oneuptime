@@ -18,7 +18,7 @@ const MILLISECONDS_PER_MINUTE: number = 60 * 1000;
 const MILLISECONDS_PER_HOUR: number = 60 * MILLISECONDS_PER_MINUTE;
 const MILLISECONDS_PER_DAY: number = 24 * MILLISECONDS_PER_HOUR;
 
-const WEEKDAY_NAMES: Array<string> = [
+export const WEEKDAY_NAMES: Array<string> = [
   "Sun",
   "Mon",
   "Tue",
@@ -28,7 +28,7 @@ const WEEKDAY_NAMES: Array<string> = [
   "Sat",
 ];
 
-const MONTH_NAMES: Array<string> = [
+export const MONTH_NAMES: Array<string> = [
   "Jan",
   "Feb",
   "Mar",

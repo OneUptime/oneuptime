@@ -164,6 +164,12 @@ import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyScheduleOwnerTeam from "./OnCallDutyPolicyScheduleOwnerTeam";
 import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUser";
+// On-call calendar feeds and shift reminders
+import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
+import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
+import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
+import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
 // On-Call Duty Label and Owner Rules
 import OnCallDutyPolicyLabelRule from "./OnCallDutyPolicyLabelRule";
@@ -762,6 +768,11 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleLayerUser,
   OnCallDutyPolicyScheduleOwnerTeam,
   OnCallDutyPolicyScheduleOwnerUser,
+  OnCallDutyPolicyScheduleCalendarFeed,
+  ProjectOnCallCalendarFeed,
+  UserOnCallCalendarFeed,
+  UserOnCallShiftReminder,
+  UserOnCallShiftReminderLog,
   OnCallDutyPolicyFeed,
   OnCallDutyPolicyOwnerTeam,
   OnCallDutyPolicyOwnerUser,

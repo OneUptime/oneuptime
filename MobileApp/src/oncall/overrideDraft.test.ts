@@ -234,3 +234,242 @@ describe("describeOverride", () => {
     expect(describeOverride("cover-me", "Priya", 1)).toContain("1 hour.");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Prefilled windows ("Get cover" on a shift card) and policy scoping.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("buildOverrideRequest with an explicit window", () => {
+  test("covers the whole shift when it has not started", () => {
+    const startsAt: Date = new Date(NOW + 2 * HOUR);
+    const endsAt: Date = new Date(NOW + 10 * HOUR);
+
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 4,
+          window: { startsAt, endsAt },
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect(result.input.startsAt.getTime()).toBe(startsAt.getTime());
+    expect(result.input.endsAt.getTime()).toBe(endsAt.getTime());
+    expect(result.input.overrideUserId).toBe(ME);
+    expect(result.input.routeAlertsToUserId).toBe(TEAMMATE);
+  });
+
+  test("the window wins over the duration preset", () => {
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 1,
+          window: {
+            startsAt: new Date(NOW + HOUR),
+            endsAt: new Date(NOW + 9 * HOUR),
+          },
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect(
+      (result.input.endsAt.getTime() - result.input.startsAt.getTime()) / HOUR,
+    ).toBe(8);
+  });
+
+  test("a shift already in progress is covered from NOW, not from its start", () => {
+    /*
+     * An override cannot start in the past, and one that claims to would be
+     * rejected by the server after the user has stopped reading.
+     */
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 4,
+          window: {
+            startsAt: new Date(NOW - 3 * HOUR),
+            endsAt: new Date(NOW + 5 * HOUR),
+          },
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect(result.input.startsAt.getTime()).toBe(NOW);
+    expect(result.input.endsAt.getTime()).toBe(NOW + 5 * HOUR);
+  });
+
+  test("refuses a shift that has already ended", () => {
+    const result: BuildOverrideResult = buildOverrideRequest(
+      {
+        direction: "cover-me",
+        projectId: "project-1",
+        counterpartUserId: TEAMMATE,
+        durationHours: 4,
+        window: {
+          startsAt: new Date(NOW - 10 * HOUR),
+          endsAt: new Date(NOW - 2 * HOUR),
+        },
+      },
+      ME,
+      NOW,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.reason).toBe("That shift has already ended.");
+  });
+
+  test("refuses an inverted or unreadable window", () => {
+    const inverted: BuildOverrideResult = buildOverrideRequest(
+      {
+        direction: "cover-me",
+        projectId: "project-1",
+        counterpartUserId: TEAMMATE,
+        durationHours: 4,
+        window: {
+          startsAt: new Date(NOW + 9 * HOUR),
+          endsAt: new Date(NOW + HOUR),
+        },
+      },
+      ME,
+      NOW,
+    );
+
+    expect(inverted.ok).toBe(false);
+
+    const unreadable: BuildOverrideResult = buildOverrideRequest(
+      {
+        direction: "cover-me",
+        projectId: "project-1",
+        counterpartUserId: TEAMMATE,
+        durationHours: 4,
+        window: {
+          startsAt: new Date("garbage"),
+          endsAt: new Date(NOW + HOUR),
+        },
+      },
+      ME,
+      NOW,
+    );
+
+    expect(unreadable.ok).toBe(false);
+  });
+
+  test("a null window falls back to the duration", () => {
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 2,
+          window: null,
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect(result.input.startsAt.getTime()).toBe(NOW);
+    expect(result.input.endsAt.getTime()).toBe(NOW + 2 * HOUR);
+  });
+});
+
+describe("buildOverrideRequest policy scope", () => {
+  test("stays project-wide by default", () => {
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 4,
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect("onCallDutyPolicyId" in result.input).toBe(false);
+  });
+
+  test("carries the policy for a policy-variant shift", () => {
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 4,
+          onCallDutyPolicyId: "policy-1",
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect(result.input.onCallDutyPolicyId).toBe("policy-1");
+  });
+
+  test("an explicit null policy is the same as none", () => {
+    const result: Extract<BuildOverrideResult, { ok: true }> = expectOk(
+      buildOverrideRequest(
+        {
+          direction: "cover-me",
+          projectId: "project-1",
+          counterpartUserId: TEAMMATE,
+          durationHours: 4,
+          onCallDutyPolicyId: null,
+        },
+        ME,
+        NOW,
+      ),
+    );
+
+    expect("onCallDutyPolicyId" in result.input).toBe(false);
+  });
+});
+
+describe("describeOverride with a window label", () => {
+  test("names the window instead of a duration", () => {
+    expect(
+      describeOverride(
+        "cover-me",
+        "Priya Rao",
+        4,
+        "for your shift on Primary (Today 9:00 AM → Today 5:00 PM)",
+      ),
+    ).toBe(
+      "Your on-call pages go to Priya Rao for your shift on Primary (Today 9:00 AM → Today 5:00 PM).",
+    );
+
+    expect(describeOverride("take-over", "Priya Rao", 4, "on Thursday")).toBe(
+      "Priya Rao's on-call pages come to you on Thursday.",
+    );
+  });
+
+  test("an empty label falls back to the duration wording", () => {
+    expect(describeOverride("cover-me", "Priya Rao", 4, null)).toBe(
+      "Your on-call pages go to Priya Rao for the next 4 hours.",
+    );
+    expect(describeOverride("cover-me", "Priya Rao", 4, "")).toBe(
+      "Your on-call pages go to Priya Rao for the next 4 hours.",
+    );
+  });
+});

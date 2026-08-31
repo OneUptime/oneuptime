@@ -792,4 +792,47 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     nullable: true,
   })
   public rosterStartAt?: Date = undefined;
+
+  /*
+   * Monotone counter of the schedule's shift-producing configuration: bumped
+   * (atomically, in the service) whenever a layer, layer user, override or
+   * escalation-rule attachment of this schedule changes, or the schedule's
+   * name/timezone does. NEVER bumped by the roster refresh cron - a hand-off
+   * is the rotation doing its job, not a configuration change.
+   *
+   * It is the SEQUENCE of every VEVENT in the calendar feeds (so a calendar
+   * client knows an event really changed) and part of every feed cache key.
+   * Read-only through the API: create/update are root-only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicySchedule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Shift Config Version",
+    description:
+      "Incremented whenever the schedule's layers, members, overrides or policy attachments change. Used as the calendar feed SEQUENCE.",
+    example: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public shiftConfigVersion?: number = undefined;
 }

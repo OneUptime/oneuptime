@@ -166,6 +166,12 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "./OnCallDutyPolicySchedule
 import OnCallDutyPolicyScheduleLabelRuleService from "./OnCallDutyPolicyScheduleLabelRuleService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+// On-call calendar feeds and shift reminders
+import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
+import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
+import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
+import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
@@ -688,6 +694,12 @@ const services: Array<BaseService> = [
   OnCallDutyPolicyScheduleOwnerTeamService,
   OnCallDutyPolicyScheduleLabelRuleService,
   OnCallDutyPolicyScheduleLayerUserService,
+  // On-call calendar feeds and shift reminders
+  UserOnCallCalendarFeedService,
+  OnCallDutyPolicyScheduleCalendarFeedService,
+  ProjectOnCallCalendarFeedService,
+  UserOnCallShiftReminderService,
+  UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
   OnCallDutyPolicyEscalationRuleScheduleService,
 

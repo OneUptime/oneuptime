@@ -54,9 +54,45 @@ const THREAT_INTEL_FEED_MODEL_SOURCE: string = fs.readFileSync(
 const RETENTION_PATTERN: RegExp =
   /hardDeleteItemsOlderThanInDays\(\s*"(\w+)"\s*,\s*([^)]+?)\s*\)/;
 
+/*
+ * Alphabetical, because it is compared with a sorted directory listing.
+ *
+ * The three on-call CALENDAR feeds are configuration in the same sense as the
+ * threat-intel feed: each row is a long-lived capability token (the calendar
+ * subscription URL) plus its settings and fetch bookkeeping. Age-expiring one
+ * would silently break every calendar app subscribed to it after three years.
+ * Their semantics are pinned in "calendar feeds own a subscription token"
+ * below.
+ */
 const CONFIGURATION_FEED_SERVICE_NAMES: ReadonlyArray<string> = [
+  "OnCallDutyPolicyScheduleCalendarFeedService",
+  "ProjectOnCallCalendarFeedService",
   "ThreatIntelFeedService",
+  "UserOnCallCalendarFeedService",
 ];
+
+const CALENDAR_FEED_MODEL_NAMES: ReadonlyArray<string> = [
+  "OnCallDutyPolicyScheduleCalendarFeed",
+  "ProjectOnCallCalendarFeed",
+  "UserOnCallCalendarFeed",
+];
+
+const readModelSource: (modelName: string) => string = (
+  modelName: string,
+): string => {
+  return fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Models",
+      "DatabaseModels",
+      `${modelName}.ts`,
+    ),
+    "utf8",
+  );
+};
 
 interface FeedRetention {
   serviceName: string;
@@ -172,6 +208,40 @@ describe("Feed service retention windows", () => {
       );
     }
   });
+
+  test.each(CALENDAR_FEED_MODEL_NAMES)(
+    "%s owns a subscription token, not an activity timeline",
+    (modelName: string) => {
+      /*
+       * What makes a calendar feed configuration rather than history: a
+       * capability token (hashed for lookup, encrypted for re-display), an
+       * enable switch, a rotation stamp and fetch bookkeeping. Deleting the
+       * row for age would revoke a link that calendar apps poll forever.
+       */
+      const source: string = readModelSource(modelName);
+
+      expect(source).toMatch(/@CrudApiEndpoint\(new Route\("\/[a-z-]+"\)\)/);
+      expect(source).not.toContain("@EnableDocumentation");
+
+      for (const fieldName of [
+        "tokenHash",
+        "token",
+        "previousTokenHash",
+        "previousTokenExpiresAt",
+        "tokenHint",
+        "isEnabled",
+        "rotatedAt",
+        "lastFetchedAt",
+        "fetchCount",
+      ]) {
+        expect(source).toMatch(new RegExp(`public ${fieldName}\\?`));
+      }
+
+      // An activity feed would carry these; a token row never does.
+      expect(source).not.toMatch(/public feedInfoInMarkdown\?/);
+      expect(source).not.toMatch(/public postedAt\?/);
+    },
+  );
 
   test.each(CONFIGURATION_FEED_SERVICE_NAMES)(
     "%s is not age-expired while it remains an active configuration",

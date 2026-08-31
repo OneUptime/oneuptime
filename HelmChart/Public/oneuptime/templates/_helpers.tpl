@@ -791,6 +791,23 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   value: {{ $.Values.trustedProxyHops | squote }}
 {{- end }}
 
+{{/*
+  On-call calendar feeds: the kill switch and the fixed-window rate limits for
+  the token-in-URL .ics routes. `default` is safe on the limits because 0 is
+  not a valid value for any of them (the app falls back to its default too).
+*/}}
+- name: DISABLE_ON_CALL_CALENDAR_FEED
+  value: {{ default false $.Values.onCallCalendarFeed.disabled | squote }}
+
+- name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS
+  value: {{ default 60 $.Values.onCallCalendarFeed.rateLimit.windowSeconds | squote }}
+
+- name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW
+  value: {{ default 60 $.Values.onCallCalendarFeed.rateLimit.perTokenPerWindow | squote }}
+
+- name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
+  value: {{ default 3000 $.Values.onCallCalendarFeed.rateLimit.perIpPerWindow | squote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

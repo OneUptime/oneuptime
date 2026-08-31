@@ -103,6 +103,7 @@ import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
 import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaintenanceTemplateOwnerPermissions";
 import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
 import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStatus";
+import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNotificationSettingsForUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -353,6 +354,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * is re-derived from the binding and only written when it disagrees.
    */
   new BackfillMonitorBackedDeviceStatus(),
+  /*
+   * Backfills the two on-call shift-reminder notification settings ("before
+   * my shift starts", "my upcoming shift is reassigned") for every existing
+   * project member. sendUserNotification sends nothing without a settings
+   * row and the defaults are only written on project join, so without this
+   * a pre-existing user's configured reminder lead times would silently
+   * never fire. Idempotent count-then-create per (user, project, event).
+   */
+  new AddShiftReminderNotificationSettingsForUsers(),
 ];
 
 export default DataMigrations;

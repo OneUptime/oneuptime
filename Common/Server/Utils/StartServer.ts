@@ -3,6 +3,7 @@ import CommonAPI from "../API/Index";
 import { StatusAPIOptions } from "../API/StatusAPI";
 import {
   AppVersion,
+  EncryptionSecretWarning,
   GoogleTagManagerEnabled,
   TrustedProxyHops,
   getFrontendEnvVars,
@@ -313,6 +314,15 @@ const init: InitFunction = async (
   const { appName, port, isFrontendApp = false } = data;
 
   logger.info(`App Version: ${AppVersion.toString()}`);
+
+  /*
+   * Said once per process at boot, where an operator reading the startup log
+   * will see it. EnvironmentConfig computes the message but cannot log it
+   * (Logger depends on EnvironmentConfig), so the entrypoint does.
+   */
+  if (EncryptionSecretWarning) {
+    logger.warn(EncryptionSecretWarning);
+  }
 
   await Express.launchApplication(appName, port);
   LocalCache.setString("app", "name", appName);
