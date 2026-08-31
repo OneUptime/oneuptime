@@ -1,4 +1,4 @@
-import { AddOnCallCalendarFeeds1790300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790300000000-AddOnCallCalendarFeeds";
+import { AddOnCallCalendarFeeds1790400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790400000000-AddOnCallCalendarFeeds";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import fs from "fs";
@@ -16,7 +16,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * it.
  */
 
-const MIGRATION_NAME: string = "AddOnCallCalendarFeeds1790300000000";
+const MIGRATION_NAME: string = "AddOnCallCalendarFeeds1790400000000";
 
 const NEW_TABLES: Array<string> = [
   "UserOnCallCalendarFeed",
@@ -43,8 +43,8 @@ async function run(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddOnCallCalendarFeeds1790300000000 =
-    new AddOnCallCalendarFeeds1790300000000();
+  const migration: AddOnCallCalendarFeeds1790400000000 =
+    new AddOnCallCalendarFeeds1790400000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -104,10 +104,10 @@ beforeAll(async () => {
 
 describe("AddOnCallCalendarFeeds migration", () => {
   test("names itself after its timestamp, in the class and the recorded name", () => {
-    const migration: AddOnCallCalendarFeeds1790300000000 =
-      new AddOnCallCalendarFeeds1790300000000();
+    const migration: AddOnCallCalendarFeeds1790400000000 =
+      new AddOnCallCalendarFeeds1790400000000();
 
-    expect(AddOnCallCalendarFeeds1790300000000.name).toBe(MIGRATION_NAME);
+    expect(AddOnCallCalendarFeeds1790400000000.name).toBe(MIGRATION_NAME);
     expect(migration.name).toBe(MIGRATION_NAME);
   });
 
@@ -116,11 +116,11 @@ describe("AddOnCallCalendarFeeds migration", () => {
       SchemaMigrations as Array<MigrationClass>;
 
     expect(registered[registered.length - 1]).toBe(
-      AddOnCallCalendarFeeds1790300000000,
+      AddOnCallCalendarFeeds1790400000000,
     );
     expect(
       registered.filter((migration: MigrationClass) => {
-        return migration === AddOnCallCalendarFeeds1790300000000;
+        return migration === AddOnCallCalendarFeeds1790400000000;
       }),
     ).toHaveLength(1);
   });
@@ -134,10 +134,10 @@ describe("AddOnCallCalendarFeeds migration", () => {
     const files: Array<string> = fs
       .readdirSync(directory)
       .filter((file: string) => {
-        return file.startsWith("1790300000000-");
+        return file.startsWith("1790400000000-");
       });
 
-    expect(files).toEqual(["1790300000000-AddOnCallCalendarFeeds.ts"]);
+    expect(files).toEqual(["1790400000000-AddOnCallCalendarFeeds.ts"]);
   });
 
   test("creates exactly the five new tables", () => {
