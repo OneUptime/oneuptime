@@ -4,7 +4,9 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
-import GoogleSecOpsClient from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
+import GoogleSecOpsClient, {
+  FetchAlertsResult,
+} from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
 import GoogleSecOpsPoller from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import logger from "../../../../Server/Utils/Logger";
@@ -67,6 +69,12 @@ function makeServiceMetadata(): TelemetryServiceMetadata {
   };
 }
 
+/*
+ * A quiet, complete fetch carrying exactly the given alerts. The double
+ * returns the full FetchAlertsResult rather than a bare array because the
+ * poller now reads truncation and completeness off the result: a double
+ * that resolved an array would let a poller that ignored those flags pass.
+ */
 function makeFakeClient(alerts: Array<JSONObject>): {
   client: GoogleSecOpsClient;
   calls: Array<{ startTime: Date; endTime: Date }>;
@@ -77,9 +85,18 @@ function makeFakeClient(alerts: Array<JSONObject>): {
     fetchDetectionAlerts: (data: {
       startTime: Date;
       endTime: Date;
-    }): Promise<Array<JSONObject>> => {
+    }): Promise<FetchAlertsResult> => {
       calls.push({ startTime: data.startTime, endTime: data.endTime });
-      return Promise.resolve(alerts);
+      return Promise.resolve({
+        alerts,
+        complete: true,
+        progress: 1,
+        truncatedByCount: false,
+        truncatedByBytes: false,
+        baselineAlertsCount: alerts.length,
+        filteredAlertsCount: alerts.length,
+        chunkCount: 1,
+      });
     },
   } as unknown as GoogleSecOpsClient;
 
