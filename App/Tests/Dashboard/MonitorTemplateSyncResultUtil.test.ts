@@ -176,4 +176,40 @@ describe("Monitor template result modal title wiring", () => {
 
     expect(source).toContain("title={syncResultTitle}");
   });
+
+  /*
+   * Modal titles are resolved through translateString, which falls back to the
+   * raw English on a miss. The modal used to hardcode "Done", which every
+   * catalog carries; a title that varies has to be carried too, or the one
+   * case that needs the operator's attention is the one that shows up
+   * untranslated.
+   */
+  it("carries both modal titles in every locale catalog", () => {
+    const localeDir: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Locales",
+    );
+
+    const catalogs: Array<string> = fs
+      .readdirSync(localeDir)
+      .filter((file: string) => {
+        return file.endsWith(".json");
+      });
+
+    expect(catalogs.length).toBeGreaterThan(0);
+
+    for (const catalog of catalogs) {
+      const messages: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(localeDir, catalog), "utf8"),
+      );
+
+      expect(messages["Done"]).toBeTruthy();
+      expect(messages["Partially synced"]).toBeTruthy();
+    }
+  });
 });

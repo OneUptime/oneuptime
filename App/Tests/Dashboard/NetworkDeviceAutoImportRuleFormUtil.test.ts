@@ -20,6 +20,8 @@ import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import Column from "Common/UI/Components/ModelTable/Column";
 import { getColumnBaseId } from "Common/UI/Components/ModelTable/ColumnPreference";
+import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -110,6 +112,38 @@ describe("Network Device auto-import rule monitor form state", () => {
         getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate])!,
       ),
     ).toBe("monitorTemplate.templateName");
+  });
+
+  /*
+   * The column comment justifies selectedProperty over getElement entirely on
+   * CSV grounds — the exporter never calls getElement and looks for display
+   * keys the template does not carry. Run the real exporter statics so that
+   * justification is pinned rather than asserted in prose.
+   */
+  it("exports the template name rather than a JSON blob", () => {
+    const rule: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule();
+    const monitorTemplate: MonitorTemplate = new MonitorTemplate();
+    monitorTemplate.templateName = "Unit Router Monitor";
+    rule.monitorTemplate = monitorTemplate;
+
+    const cellKey: string = getColumnBaseId(
+      getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate])!,
+    );
+
+    expect(
+      TableColumnsToCsv.formatValueForCsv(
+        TableColumnsToCsv.getRawValueByPath(rule, cellKey),
+        FieldType.Entity,
+      ),
+    ).toBe("Unit Router Monitor");
+
+    // The pre-fix key handed the exporter the relation itself.
+    expect(
+      TableColumnsToCsv.formatValueForCsv(
+        TableColumnsToCsv.getRawValueByPath(rule, "monitorTemplate"),
+        FieldType.Entity,
+      ),
+    ).not.toBe("Unit Router Monitor");
   });
 
   it("leaves the cell empty for an inventory-only rule with no template", () => {

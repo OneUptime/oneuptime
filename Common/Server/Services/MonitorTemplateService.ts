@@ -276,7 +276,7 @@ export class Service extends DatabaseService<Model> {
             monitorSteps: true,
             autoProvisionedNetworkDeviceId: true,
           },
-          sort: { createdAt: SortOrder.Ascending },
+          sort: { createdAt: SortOrder.Ascending, _id: SortOrder.Ascending },
           limit: LIMIT_MAX,
           skip: skip,
           props: { isRoot: true },
@@ -328,7 +328,13 @@ export class Service extends DatabaseService<Model> {
      * config and still return success. Offset paging cannot fix that here:
      * updateBy takes no sort, and rewriting a row moves its tuple, so a
      * second page at a higher skip can step over rows the first page moved.
-     * Page the ids under a stable sort instead, then update by id batch.
+     * Page the ids first instead, then update by id batch.
+     *
+     * `_id` rides along in the sort because skip/limit paging is only stable
+     * over a total order: a fleet provisioned by one auto-import run shares a
+     * createdAt, and without the tiebreaker a tie straddling a page boundary
+     * returns one row twice and another never — which here would inflate
+     * syncedMonitors by exactly the number of rows it dropped.
      */
     const linkedMonitorIds: Array<ObjectID> = [];
 
@@ -339,7 +345,7 @@ export class Service extends DatabaseService<Model> {
           projectId: template.projectId,
         },
         select: { _id: true },
-        sort: { createdAt: SortOrder.Ascending },
+        sort: { createdAt: SortOrder.Ascending, _id: SortOrder.Ascending },
         limit: LIMIT_MAX,
         skip: skip,
         props: { isRoot: true },

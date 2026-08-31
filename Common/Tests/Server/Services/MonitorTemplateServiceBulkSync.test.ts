@@ -6,7 +6,9 @@ import MonitorTemplateService, {
 } from "../../../Server/Services/MonitorTemplateService";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import FindBy from "../../../Server/Types/Database/FindBy";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
@@ -36,27 +38,51 @@ function buildPingTemplate(): MonitorTemplate {
  * can carry. Pages are served by skip so the service's paging loop is what
  * decides how many rows it discovers.
  */
-function mockLinkedMonitorPages(totalLinkedMonitors: number): void {
+function mockLinkedMonitorPages(totalLinkedMonitors: number): Array<ObjectID> {
+  /*
+   * A fixed pool rather than ids minted per page, so a test can assert which
+   * monitors were written and not merely how many — dropping one row while
+   * double-writing another keeps the counts intact.
+   */
+  const pool: Array<ObjectID> = Array.from(
+    { length: totalLinkedMonitors },
+    (): ObjectID => {
+      return ObjectID.generate();
+    },
+  );
+
   jest
     .spyOn(MonitorService, "findBy")
     .mockImplementation(
       async (findBy: FindBy<Monitor>): Promise<Array<Monitor>> => {
         const skip: number = Number(findBy.skip?.toString() || 0);
         const limit: number = Number(findBy.limit?.toString() || 0);
-        const pageSize: number = Math.max(
-          0,
-          Math.min(limit, totalLinkedMonitors - skip),
-        );
 
-        return Array.from({ length: pageSize }, (): Monitor => {
+        return pool.slice(skip, skip + limit).map((id: ObjectID): Monitor => {
           const monitor: Monitor = new Monitor();
-          monitor.id = ObjectID.generate();
+          monitor.id = id;
           monitor.projectId = PROJECT_ID;
           monitor.monitorTemplateId = TEMPLATE_ID;
           return monitor;
         });
       },
     );
+
+  return pool;
+}
+
+function writtenIdsFrom(
+  updateSpy: SpyInstance<typeof MonitorService.updateBy>,
+): Array<string> {
+  return updateSpy.mock.calls.flatMap(
+    (call: [UpdateBy<Monitor>]): Array<string> => {
+      return (call[0].query as Record<string, Includes>)["_id"]!.values.map(
+        (id: string | ObjectID | number): string => {
+          return id.toString();
+        },
+      );
+    },
+  );
 }
 
 afterEach(() => {
@@ -351,6 +377,162 @@ describe("MonitorTemplateService bulk sync coverage", () => {
     expect(result).toEqual({ totalLinkedMonitors: 5, syncedMonitors: 0 });
     expect(findSpy).not.toHaveBeenCalled();
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The read enumerates as root so the reported linked total is project-wide,
+   * while every write carries the caller so updateBy can narrow it. Losing
+   * either half is a security-relevant change, and a count assertion cannot
+   * see it.
+   */
+  it("enumerates ids as root while narrowing every write to the caller", async () => {
+    const callerProps: DatabaseCommonInteractionProps = {
+      tenantId: PROJECT_ID,
+      userId: ObjectID.generate(),
+    };
+
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(buildPingTemplate());
+    jest
+      .spyOn(MonitorTemplateService, "countLinkedMonitors")
+      .mockResolvedValue(3);
+    mockLinkedMonitorPages(3);
+
+    const findSpy: SpyInstance<typeof MonitorService.findBy> = jest.spyOn(
+      MonitorService,
+      "findBy",
+    );
+    const updateSpy: SpyInstance<typeof MonitorService.updateBy> = jest
+      .spyOn(MonitorService, "updateBy")
+      .mockResolvedValue(3);
+
+    await MonitorTemplateService.syncLinkedMonitors({
+      monitorTemplateId: TEMPLATE_ID,
+      fields: ["monitoringInterval"],
+      props: callerProps,
+    });
+
+    expect(findSpy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    for (const call of updateSpy.mock.calls) {
+      expect(call[0].props).toBe(callerProps);
+    }
+  });
+
+  /*
+   * skip/limit paging is only stable over a total order, and a fleet
+   * provisioned by one auto-import run shares a createdAt. Without the _id
+   * tiebreaker a boundary tie returns one row twice and another never.
+   */
+  it("pages linked ids under a total order scoped to the template", async () => {
+    const total: number = LIMIT_MAX * 2 + 5;
+
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(buildPingTemplate());
+    jest
+      .spyOn(MonitorTemplateService, "countLinkedMonitors")
+      .mockResolvedValue(total);
+    mockLinkedMonitorPages(total);
+
+    const findSpy: SpyInstance<typeof MonitorService.findBy> = jest.spyOn(
+      MonitorService,
+      "findBy",
+    );
+    jest.spyOn(MonitorService, "updateBy").mockResolvedValue(0);
+
+    await MonitorTemplateService.syncLinkedMonitors({
+      monitorTemplateId: TEMPLATE_ID,
+      fields: ["monitoringInterval"],
+      props: { isRoot: true },
+    });
+
+    expect(findSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { monitorTemplateId: TEMPLATE_ID, projectId: PROJECT_ID },
+        select: { _id: true },
+        sort: {
+          createdAt: SortOrder.Ascending,
+          _id: SortOrder.Ascending,
+        },
+        props: { isRoot: true },
+      }),
+    );
+
+    // A dropped skip increment would hang rather than fail; pin the walk.
+    expect(
+      findSpy.mock.calls.map((call: [FindBy<Monitor>]): number => {
+        return Number(call[0].skip?.toString() || 0);
+      }),
+    ).toEqual([0, LIMIT_MAX, LIMIT_MAX * 2]);
+  });
+
+  it("writes every linked monitor exactly once across batches", async () => {
+    const total: number = LIMIT_MAX + 250;
+
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(buildPingTemplate());
+    jest
+      .spyOn(MonitorTemplateService, "countLinkedMonitors")
+      .mockResolvedValue(total);
+    const pool: Array<ObjectID> = mockLinkedMonitorPages(total);
+
+    const updateSpy: SpyInstance<typeof MonitorService.updateBy> = jest
+      .spyOn(MonitorService, "updateBy")
+      .mockResolvedValue(0);
+
+    await MonitorTemplateService.syncLinkedMonitors({
+      monitorTemplateId: TEMPLATE_ID,
+      fields: ["monitoringInterval"],
+      props: { isRoot: true },
+    });
+
+    const written: Array<string> = writtenIdsFrom(updateSpy);
+
+    expect(written).toHaveLength(total);
+    expect(new Set(written).size).toBe(total);
+    expect(new Set(written)).toEqual(
+      new Set(
+        pool.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ),
+    );
+  });
+
+  /*
+   * Batch width and the update limit are the same constant today. If they ever
+   * diverge, updateBy silently truncates each batch and the original bug comes
+   * back green.
+   */
+  it("never hands updateBy more ids than its own limit allows", async () => {
+    const total: number = LIMIT_MAX * 2 + 7;
+
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(buildPingTemplate());
+    jest
+      .spyOn(MonitorTemplateService, "countLinkedMonitors")
+      .mockResolvedValue(total);
+    mockLinkedMonitorPages(total);
+
+    const updateSpy: SpyInstance<typeof MonitorService.updateBy> = jest
+      .spyOn(MonitorService, "updateBy")
+      .mockResolvedValue(0);
+
+    await MonitorTemplateService.syncLinkedMonitors({
+      monitorTemplateId: TEMPLATE_ID,
+      fields: ["monitoringInterval"],
+      props: { isRoot: true },
+    });
+
+    for (const call of updateSpy.mock.calls) {
+      const batchSize: number = (call[0].query as Record<string, Includes>)[
+        "_id"
+      ]!.values.length;
+      expect(Number(call[0].limit)).toBeGreaterThanOrEqual(batchSize);
+    }
   });
 
   it("rejects a field that is not syncable from a template", async () => {
