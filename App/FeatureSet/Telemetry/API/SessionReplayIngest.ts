@@ -24,6 +24,7 @@ import {
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayChunkResponse,
   SessionReplayConfigResponse,
+  SessionReplayDisabledReason,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -31,6 +32,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  SESSION_REPLAY_DEBUG,
   SESSION_REPLAY_ENABLED_BY_DEFAULT,
   SESSION_REPLAY_INGEST_ENABLED,
   SESSION_REPLAY_TRUSTED_GEO_HEADER,
@@ -266,6 +268,25 @@ function readCountryCode(req: ExpressRequest): string {
   }
 
   return "";
+}
+
+/*
+ * Stamp a disabled config with WHY, and with the debug flag.
+ *
+ * A helper rather than five inline spreads so no future disabled branch can
+ * quietly ship without a reason: the customer-visible symptom of a missing
+ * one is total silence in the browser, which is precisely the failure mode
+ * the field exists to end.
+ */
+function sendDisabledConfig(
+  disabledResponse: SessionReplayConfigResponse,
+  reason: SessionReplayDisabledReason,
+): JSONObject {
+  return {
+    ...disabledResponse,
+    disabledReason: reason,
+    debug: SESSION_REPLAY_DEBUG,
+  } as unknown as JSONObject;
 }
 
 function sendChunkDirective(
@@ -641,10 +662,25 @@ router.get(
         !SESSION_REPLAY_ENABLED_BY_DEFAULT ||
         !publishedRecorderVersion
       ) {
+        /*
+         * Three deployment-level causes that a customer cannot fix from the
+         * Dashboard, and which used to be indistinguishable from "somebody
+         * switched this application off". `recorder-not-built` in particular
+         * is a self-hosted install whose recorder bundle was never produced:
+         * there is no artifact to serve, replay has never worked there and
+         * never will until the build runs, and nothing anywhere said so.
+         */
         Response.sendJsonObjectResponse(
           req,
           res,
-          disabledResponse as unknown as JSONObject,
+          sendDisabledConfig(
+            disabledResponse,
+            !SESSION_REPLAY_INGEST_ENABLED
+              ? SessionReplayDisabledReason.IngestDisabled
+              : !SESSION_REPLAY_ENABLED_BY_DEFAULT
+                ? SessionReplayDisabledReason.DisabledByDefault
+                : SessionReplayDisabledReason.RecorderNotBuilt,
+          ),
         );
         return;
       }
@@ -668,7 +704,10 @@ router.get(
         Response.sendJsonObjectResponse(
           req,
           res,
-          disabledResponse as unknown as JSONObject,
+          sendDisabledConfig(
+            disabledResponse,
+            SessionReplayDisabledReason.PolicyUnavailable,
+          ),
         );
         return;
       }
@@ -677,7 +716,10 @@ router.get(
         Response.sendJsonObjectResponse(
           req,
           res,
-          disabledResponse as unknown as JSONObject,
+          sendDisabledConfig(
+            disabledResponse,
+            SessionReplayDisabledReason.NotEnabledForApplication,
+          ),
         );
         return;
       }
@@ -736,6 +778,14 @@ router.get(
        * server that cannot produce one yields a script tag without integrity
        * rather than no recording at all.
        */
+      /*
+       * Deployment-wide recorder diagnostics. Adds console output on the
+       * customer's page and changes no policy; see SESSION_REPLAY_DEBUG.
+       */
+      if (SESSION_REPLAY_DEBUG) {
+        config.debug = true;
+      }
+
       const recorderIntegrity: string | null = getRecorderIntegrity();
 
       if (recorderIntegrity) {

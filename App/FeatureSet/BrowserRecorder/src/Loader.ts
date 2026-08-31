@@ -1,6 +1,12 @@
 import Config, { LoaderConfig, RecorderInitOptions } from "./Config";
 import Consent from "./Consent";
 import {
+  DEBUG_STORAGE_KEY,
+  debugLog,
+  debugWarn,
+  isDebugEnabled,
+} from "./Debug";
+import {
   EarlyErrorBuffer,
   EarlyErrorRecord,
   installEarlyErrorBuffer,
@@ -35,6 +41,14 @@ const LOADER_FLAG_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_LOADER__";
 
 const ARTIFACT_GLOBAL: string = "OneUptimeReplay";
 
+/*
+ * One string for both DNT checks. The signal is read before the config
+ * request and again after it, and both stand-downs look identical to a
+ * customer - so they read identically here too.
+ */
+const PRIVACY_SIGNAL_MESSAGE: string =
+  "Do Not Track or Global Privacy Control is set. Nothing is recorded.";
+
 interface ArtifactApi {
   bootstrap: (
     initOptions: RecorderInitOptions,
@@ -44,6 +58,16 @@ interface ArtifactApi {
 }
 
 export async function load(): Promise<void> {
+  /*
+   * The very first line, so a customer who turned diagnostics on can tell
+   * "the stub never ran" (CSP, a blocked request, a tag that is not on the
+   * page) from "the stub ran and decided not to record". Those two look
+   * identical from the network tab and have nothing in common.
+   */
+  debugLog("loader-start", "Loader running.", {
+    diagnostics: isDebugEnabled() ? "on" : "off",
+  });
+
   const options: RecorderInitOptions | null = Config.readInitOptions();
 
   if (!options) {
@@ -59,7 +83,20 @@ export async function load(): Promise<void> {
      */
     // eslint-disable-next-line no-console
     console.warn(
-      "OneUptime Session Replay: not starting. The script tag needs data-oneuptime-token and data-oneuptime-app-identifier, and a host it can derive from its own src (or an explicit data-oneuptime-host).",
+      `OneUptime Session Replay: not starting. The script tag needs data-oneuptime-token and data-oneuptime-app-identifier, and a host it can derive from its own src (or an explicit data-oneuptime-host). For a step-by-step diagnosis run localStorage.setItem("${DEBUG_STORAGE_KEY}", "true") and reload.`,
+    );
+
+    /*
+     * Also recorded, so getDiagnostics() is a complete account on its own.
+     * Config reports WHICH field was missing when it found a source to read;
+     * this is the case where it found none at all - a misspelt marker
+     * attribute, a snippet injected into a different document, or a tag
+     * manager that dropped it - and without this line the timeline would
+     * simply stop after loader-start.
+     */
+    debugWarn(
+      "init-options-missing",
+      "No usable init options on this page. Nothing will be recorded.",
     );
 
     return;
@@ -74,6 +111,10 @@ export async function load(): Promise<void> {
     options.respectDoNotTrack !== false &&
     Consent.hasPrivacySignal(navigator)
   ) {
+    debugWarn("privacy-signal", PRIVACY_SIGNAL_MESSAGE, {
+      stage: "before-config-fetch",
+    });
+
     return;
   }
 
@@ -91,6 +132,7 @@ export async function load(): Promise<void> {
   const config: LoaderConfig | null = await Config.fetchConfig(options);
 
   if (!config) {
+    /* fetchConfig has already logged which of the five reasons it was. */
     earlyErrors.discard();
     return;
   }
@@ -107,11 +149,21 @@ export async function load(): Promise<void> {
       navigator,
     )
   ) {
+    debugWarn("privacy-signal", PRIVACY_SIGNAL_MESSAGE, {
+      stage: "after-config-fetch",
+      policyRespectsDoNotTrack: config.respectDoNotTrack,
+    });
+
     earlyErrors.discard();
     return;
   }
 
   if (config.directive === "stop") {
+    debugWarn(
+      "directive-stop",
+      "The server told this recorder to stand down. Nothing is recorded.",
+    );
+
     earlyErrors.discard();
     return;
   }
@@ -152,6 +204,12 @@ function loadArtifact(
    * customer's page.
    */
   if (!url) {
+    debugWarn(
+      "artifact-url-invalid",
+      "The policy names a version this loader will not build a URL from.",
+      { recorderVersion: config.recorderVersion },
+    );
+
     earlyErrors.discard();
     return;
   }
@@ -189,6 +247,18 @@ function loadArtifact(
        */
       api.bootstrap(options, config, earlyErrors.drain());
     } else {
+      /*
+       * The script loaded and then the global was not there: something else
+       * on the page overwrote it, or a proxy served a different bundle. The
+       * artifact is on the page and doing nothing, which looks exactly like
+       * it never arrived.
+       */
+      debugWarn(
+        "artifact-api-missing",
+        `The artifact loaded but did not publish window.${ARTIFACT_GLOBAL}.`,
+        { url: url },
+      );
+
       earlyErrors.discard();
     }
   };
@@ -196,11 +266,17 @@ function loadArtifact(
   script.onerror = (): void => {
     /*
      * Most often a customer CSP that does not allow our origin in script-src,
-     * which fails silently from the page's point of view. There is nothing
-     * useful to do from here - the Dashboard's "test your installation" panel
-     * is the diagnostic, because server telemetry cannot see a script that
-     * never loaded. The buffer is released: no artifact will ever replay it.
+     * which fails silently from the page's point of view. Server telemetry
+     * cannot see a script that never loaded, so the Dashboard's "test your
+     * installation" panel and this line are the only two diagnostics there
+     * are. The buffer is released: no artifact will ever replay it.
      */
+    debugWarn(
+      "artifact-load-failed",
+      "The artifact failed to load. Check CSP script-src and SRI.",
+      { url: url, hasIntegrity: Boolean(config.recorderIntegrity) },
+    );
+
     earlyErrors.discard();
   };
 
@@ -213,6 +289,11 @@ function loadArtifact(
    * cross-origin fetch on a customer's page buys nothing, and bootstrap
    * happens from onload either way.
    */
+  debugLog("artifact-requested", "Injecting the artifact.", {
+    url: url,
+    hasIntegrity: Boolean(config.recorderIntegrity),
+  });
+
   parent.appendChild(script);
 }
 
@@ -244,6 +325,17 @@ function readArtifactApi(): ArtifactApi | null {
  * handler exists so a failure inside our own loading path can never surface
  * as an unhandled rejection on the customer's page.
  */
-void load().catch((): void => {
-  /* Intentionally silent. */
+void load().catch((error: unknown): void => {
+  /*
+   * Still silent for everyone else - an exception in our own loading path
+   * must not surface as an unhandled rejection on the customer's page - but
+   * no longer silent for someone who asked. This catch used to swallow every
+   * failure in the whole loader, so a genuine bug in here was
+   * indistinguishable from a deliberate stand-down.
+   */
+  debugWarn(
+    "loader-threw",
+    "The loader threw. This is a recorder bug; please report it.",
+    { error: String(error) },
+  );
 });
