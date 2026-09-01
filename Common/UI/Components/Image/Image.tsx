@@ -1,13 +1,25 @@
 // Taiwind
-import Route from "../../../Types/API/Route";
 import URLFromProject from "../../../Types/API/URL";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import File from "../../../Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * The src of an <img>.
+ *
+ * Deliberately no Route member. A Route is a same-origin application PATH and
+ * rejects scheme-prefixed values by design (Common/Types/API/Route.ts). An
+ * image src is routinely scheme-prefixed - esbuild's file-loader inlines every
+ * .svg/.png import as a "data:" URL (Common/UI/esbuild-config.js). Wrapping one
+ * in a Route to satisfy this type is what threw on every dashboard page once
+ * Route started rejecting schemes. Pass a string; `someRoute.toString()` if you
+ * are starting from a Route.
+ */
+export type ImageSource = string | URLFromProject | ReactElement;
+
 export interface ComponentProps {
   onClick?: () => void | undefined;
-  imageUrl?: URLFromProject | Route | ReactElement | undefined;
+  imageUrl?: ImageSource | undefined;
   height?: number | undefined;
   file?: File | undefined;
   className?: string | undefined;
@@ -55,7 +67,12 @@ const Image: FunctionComponent<ComponentProps> = (
     );
   };
 
-  if (props.imageUrl) {
+  if (props.imageUrl !== undefined && props.imageUrl !== null) {
+    /*
+     * Not `if (props.imageUrl)`: an empty string is falsy and would fall
+     * through to the `file` branch below and throw. Render the <img> with an
+     * empty src instead, which keeps data-testid and className on the node.
+     */
     return getImageElement(props.imageUrl.toString());
   }
 

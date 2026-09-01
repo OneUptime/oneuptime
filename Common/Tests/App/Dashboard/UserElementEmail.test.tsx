@@ -4,11 +4,19 @@ import React from "react";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
- * The bundler turns an .svg import into a URL string; jest's asset mapper
- * turns it into {}, which UserElement then feeds to Route.fromString and
- * which throws. Hand it the string shape the browser actually gets.
+ * The shape esbuild's file-loader actually hands these components: the asset
+ * inlined as a "data:" URL (Common/UI/esbuild-config.js createFileLoaderPlugin).
+ * jest's asset mapper turns an .svg import into {} instead, so it has to be
+ * mocked - but it must be mocked as a data: URL, not as a plain path like
+ * "/blank-profile.svg". A plain path is precisely the shape that does NOT
+ * reproduce the crash, which is why this suite stayed green while every
+ * dashboard page threw.
+ *
+ * The "//" in the base64 payload is deliberate. Route collapses /+ into a
+ * single /, so a "just let Route accept data: URLs" fix would silently corrupt
+ * the image - this constant makes that fix fail here too.
  */
-const BLANK_PROFILE_PIC: string = "/blank-profile.svg";
+const BLANK_PROFILE_PIC: string = "data:image/svg+xml;base64,////YXZhdGFy";
 
 jest.mock("../../../UI/Images/users/blank-profile.svg", () => {
   return BLANK_PROFILE_PIC;
