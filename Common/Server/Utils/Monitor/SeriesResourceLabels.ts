@@ -161,6 +161,40 @@ export const ServiceNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * Every label key above, in one list: the complete set of attribute
+ * names that make a series claim to belong to a specific Host / cluster
+ * / Service.
+ *
+ * `extractResourceRefs` below is the READ side of these keys. Writers
+ * that accept attribute names from a user — the custom code and
+ * synthetic monitors, whose scripts choose their own
+ * `oneuptime.captureMetric()` attribute keys — need the same list to
+ * decide what a script must NOT be allowed to stamp, because a series
+ * label saying `service.name = payments-api` is taken at face value
+ * downstream: alerts and incidents get linked to that Service, its
+ * owners are paged through owner inheritance, and a maintenance window
+ * on it silences the series. Deriving the write-side guard from this
+ * array is what stops the two sides from drifting apart the way the
+ * alert and incident linkers once did.
+ */
+export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
+  ...HostIdLabelKeys,
+  ...HostNameLabelKeys,
+  ...DockerHostIdLabelKeys,
+  ...DockerHostNameLabelKeys,
+  ...PodmanHostIdLabelKeys,
+  ...PodmanHostNameLabelKeys,
+  ...DockerSwarmClusterNameLabelKeys,
+  ...KubernetesClusterIdLabelKeys,
+  ...KubernetesClusterNameLabelKeys,
+  ...ProxmoxClusterNameLabelKeys,
+  ...CephClusterNameLabelKeys,
+  ...IoTFleetNameLabelKeys,
+  ...ServiceIdLabelKeys,
+  ...ServiceNameLabelKeys,
+];
+
+/*
  * The identifiers carried by one series, split by resource type and by
  * id-vs-name. Ids are OneUptime database ids (the `oneuptime.*.id`
  * stamps); names are the human/telemetry identifiers (host.name,

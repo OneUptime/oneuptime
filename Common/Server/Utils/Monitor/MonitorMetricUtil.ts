@@ -2,6 +2,9 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricResourceAttributeUtil from "../../../Utils/Metrics/MetricResourceAttributeUtil";
+import CapturedMetricAttributeUtil, {
+  SanitizedCapturedMetricAttributes,
+} from "./CapturedMetricAttributeUtil";
 import MetricService from "../../Services/MetricService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -249,9 +252,14 @@ export default class MonitorMetricUtil {
    * same monitor, so there is nothing per-metric to decide, and one pass is
    * far easier to keep correct than thirty call sites.
    *
-   * Resource attributes are merged LAST. Custom code monitors let a user
-   * supply their own attribute names, and those must not be able to shadow the
-   * oneuptime.* namespace.
+   * Resource attributes are merged LAST, so a resource attribute wins any
+   * collision. That merge is NOT what keeps the oneuptime.* namespace safe
+   * from a monitor script, though — it only ever writes the handful of keys
+   * this monitor's own labels and custom fields produce, and it does not run
+   * at all for a monitor that has neither. Script-supplied attribute keys are
+   * refused at the point they are read instead, by
+   * CapturedMetricAttributeUtil, which rejects the whole oneuptime.* and
+   * resource.* namespaces rather than the keys that happen to collide today.
    */
   public static applyResourceAttributesToMetricRows(data: {
     metricRows: Array<JSONObject>;
@@ -1338,13 +1346,13 @@ export default class MonitorMetricUtil {
       );
     }
 
-    const reservedAttributeKeys: Set<string> = new Set([
-      "monitorId",
-      "projectId",
-      "monitorName",
-      "probeName",
-      "probeId",
-    ]);
+    /*
+     * Keys a script tried to write but is not allowed to own, collected
+     * across the whole check so the operator gets one line naming them
+     * rather than one per datapoint. Without it, an attribute that silently
+     * never reaches a chart is indistinguishable from a bug in the script.
+     */
+    const droppedReservedAttributeKeys: Set<string> = new Set<string>();
 
     for (const customMetric of allCustomMetrics) {
       if (
@@ -1358,7 +1366,20 @@ export default class MonitorMetricUtil {
 
       const prefixedName: string = `custom.monitor.${customMetric.name}`;
 
+      /*
+       * Script-supplied attributes first, OneUptime's own stamps after, so
+       * the stamps are written onto a set the guard has already cleared of
+       * every key OneUptime owns.
+       */
+      const sanitized: SanitizedCapturedMetricAttributes =
+        CapturedMetricAttributeUtil.sanitize(customMetric.attributes);
+
+      for (const droppedKey of sanitized.droppedReservedKeys) {
+        droppedReservedAttributeKeys.add(droppedKey);
+      }
+
       const extraAttributes: JSONObject = {
+        ...sanitized.attributes,
         isCustomMetric: "true",
       };
 
@@ -1366,14 +1387,6 @@ export default class MonitorMetricUtil {
         extraAttributes["probeId"] = (
           data.dataToProcess as ProbeMonitorResponse
         ).probeId.toString();
-      }
-
-      if (customMetric.attributes) {
-        for (const [key, val] of Object.entries(customMetric.attributes)) {
-          if (typeof val === "string" && !reservedAttributeKeys.has(key)) {
-            extraAttributes[key] = val;
-          }
-        }
       }
 
       const attributes: JSONObject = this.buildMonitorMetricAttributes({
@@ -1401,6 +1414,16 @@ export default class MonitorMetricUtil {
       metricType.unit = "";
 
       metricNameServiceNameMap[prefixedName] = metricType;
+    }
+
+    if (droppedReservedAttributeKeys.size > 0) {
+      logger.warn(
+        `${data.monitorId.toString()} - Custom metric attributes dropped, these keys are reserved by OneUptime: ${Array.from(
+          droppedReservedAttributeKeys,
+        )
+          .sort()
+          .join(", ")}`,
+      );
     }
 
     this.applyResourceAttributesToMetricRows({

@@ -632,10 +632,19 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             stepId: "service-info",
             title: "Tech Stack",
+            /*
+             * Optional, like the same field on Service > Settings and like
+             * the create form, which does not offer it at all. It used to be
+             * required here, which meant renaming a service that ingest had
+             * auto-created forced the editor to invent a language for it —
+             * and `detectServiceLanguage` then reported that guess as the
+             * service's detected "Technology", indistinguishable in the UI
+             * from a real telemetry.sdk.language reading.
+             */
             description:
-              "The language or framework used to build this service.",
+              "Optional. The language or framework used to build this service. Leave blank to use the language detected from this service's telemetry.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: true,
+            required: false,
             placeholder: "Tech Stack",
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
           },

@@ -58,7 +58,7 @@ oneuptime.captureMetric(name, value, attributes);
 
 - `name` (string, required): The metric name (e.g. `"api.response.time"`). It will be stored with a `custom.monitor.` prefix automatically.
 - `value` (number, required): The numeric metric value.
-- `attributes` (object, optional): Key-value pairs for additional context.
+- `attributes` (object, optional): Key-value pairs for additional context. String, number and boolean values are recorded (numbers and booleans are stored as text, because metric attributes are dimensions rather than measurements). Values of any other type are ignored.
 
 #### Example
 
@@ -86,6 +86,17 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 - Maximum 100 metrics per script execution.
 - Metric names are limited to 200 characters.
 - Values must be numeric.
+- Maximum 50 attributes per metric. Attribute keys are limited to 200 characters and attribute values to 1000 characters.
+
+**Reserved attribute keys:**
+
+Some attribute names are OneUptime's own, and a script cannot write them. If your script sets one, the attribute is dropped — the metric itself is still recorded — and a warning naming the key is written to the OneUptime server logs. They are:
+
+- The monitor's identity: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- Anything in the `oneuptime.` or `resource.` namespaces — these carry the identifiers OneUptime stamps at ingest.
+- Resource identity attributes: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `ceph.cluster.name` and `docker.swarm.cluster.name`.
+
+The reason is that these names are not just labels — OneUptime reads them back as a claim about which resource a datapoint belongs to. A metric tagged `service.name: payments-api` would show up on that service's Metrics tab, and if you later built a metric monitor grouped by `service.name`, its alerts would be linked to that service, would page that service's owners, and would fall silent during a maintenance window on it. To associate a monitor with a service or host, use the monitor's own labels instead.
 
 ### Modules available in the script
 
