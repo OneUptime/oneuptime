@@ -6,6 +6,7 @@ import Columns from "./Types/Columns";
 import SortOrder, {
   SortOrderToAriaSortMap,
 } from "../../../Types/BaseDatabase/SortOrder";
+import { VoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
@@ -113,60 +114,75 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   ? "none"
                   : undefined;
 
+            const sortColumn: VoidFunction = (): void => {
+              if (!column.key || !canSort) {
+                return;
+              }
+
+              const sortOrder: SortOrder =
+                props.sortOrder === SortOrder.Ascending
+                  ? SortOrder.Descending
+                  : SortOrder.Ascending;
+
+              props.onSortChanged(column.key, sortOrder);
+            };
+
+            const contentClassName: string = `flex w-full px-6 py-3 ${
+              column.type === FieldType.Actions
+                ? "justify-end"
+                : "justify-start"
+            }`;
+
+            const headerContent: ReactElement = (
+              <>
+                {translateString(column.title) ?? column.title}
+                {canSort &&
+                  props.sortBy === column.key &&
+                  props.sortOrder === SortOrder.Ascending && (
+                    <Icon
+                      icon={IconProp.ChevronUp}
+                      thick={ThickProp.Thick}
+                      className="ml-2  p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                    />
+                  )}
+                {canSort &&
+                  props.sortBy === column.key &&
+                  props.sortOrder === SortOrder.Descending && (
+                    <Icon
+                      icon={IconProp.ChevronDown}
+                      thick={ThickProp.Thick}
+                      className="ml-2 p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                    />
+                  )}
+              </>
+            );
+
             return (
               <th
                 key={i}
                 scope="col"
                 aria-sort={ariaSort}
-                className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                  canSort ? "cursor-pointer" : ""
-                }`}
-                onClick={() => {
-                  if (!column.key) {
-                    return;
-                  }
-
-                  if (!canSort) {
-                    return;
-                  }
-
-                  const sortOrder: SortOrder =
-                    props.sortOrder === SortOrder.Ascending
-                      ? SortOrder.Descending
-                      : SortOrder.Ascending;
-
-                  const currentSortColumn: keyof T = column.key;
-
-                  props.onSortChanged(currentSortColumn, sortOrder);
-                }}
+                className="text-left text-sm font-semibold text-gray-900"
               >
-                <div
-                  className={`flex ${
-                    column.type === FieldType.Actions
-                      ? "justify-end"
-                      : "justify-start"
-                  }`}
-                >
-                  {translateString(column.title) ?? column.title}
-                  {canSort &&
-                    props.sortBy === column.key &&
-                    props.sortOrder === SortOrder.Ascending && (
-                      <Icon
-                        icon={IconProp.ChevronUp}
-                        thick={ThickProp.Thick}
-                        className="ml-2  p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
-                      />
-                    )}
-                  {canSort &&
-                    props.sortBy === column.key &&
-                    props.sortOrder === SortOrder.Descending && (
-                      <Icon
-                        icon={IconProp.ChevronDown}
-                        thick={ThickProp.Thick}
-                        className="ml-2 p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
-                      />
-                    )}
-                </div>
+                {/*
+                 * The sort handler used to sit on the <th> itself, which is
+                 * not focusable and does not answer Enter or Space - so
+                 * sorting any table in the product was mouse-only, even though
+                 * aria-sort was already announcing the column as sortable. The
+                 * padding moves onto the button so the clickable area is the
+                 * whole cell, exactly as before.
+                 */}
+                {canSort ? (
+                  <button
+                    type="button"
+                    onClick={sortColumn}
+                    className={`${contentClassName} cursor-pointer text-left font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
+                  >
+                    {headerContent}
+                  </button>
+                ) : (
+                  <div className={contentClassName}>{headerContent}</div>
+                )}
               </th>
             );
           })}

@@ -8,6 +8,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  */
 import AskAI from "./AskAI";
 import Help from "./Help";
+import Search from "./Search";
 import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
@@ -880,6 +881,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            <Search />
             <AskAI />
             <NotificationBell
               items={buildNotificationItems()}
