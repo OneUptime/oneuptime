@@ -63,7 +63,9 @@ jest.mock(
 );
 
 import useEventTimeReferenceLines, {
+  EVENT_MARKER_TITLE_MAX_LENGTH,
   EventTimeReferenceLines,
+  truncateEventMarkerTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/UseEventTimeReferenceLines";
 import ChartTimeReferenceLineProps from "../../../UI/Components/Charts/Types/TimeReferenceLineProps";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -100,6 +102,8 @@ function Probe(props: {
             data-color={line.color}
             data-dash={line.strokeDasharray || "solid"}
             data-clickable={line.onClick ? "yes" : "no"}
+            data-kind={line.kind || "none"}
+            data-subtitle={line.subtitle || ""}
           >
             {line.label}
           </div>
@@ -192,6 +196,127 @@ describe("useEventTimeReferenceLines", () => {
     expect(deploy.dataset["dash"]).toBe("4 4");
     // Change events have no detail page — no dead-end click handler.
     expect(deploy.dataset["clickable"]).toBe("no");
+  });
+
+  test("markers carry the kind and subtitle the rail chip reads", async () => {
+    /*
+     * `kind` is what lets a chip holding a deploy AND an incident paint
+     * itself as the incident; `subtitle` is the card's second line. Both
+     * are additions — the label strings the surfaces reverse-engineer are
+     * deliberately unchanged.
+     */
+    getListMock.mockImplementation((args: { modelType: { name: string } }) => {
+      if (args.modelType.name === "Incident") {
+        return Promise.resolve({
+          data: [
+            {
+              id: new ObjectID("11111111-0000-4000-8000-000000000001"),
+              createdAt: "2026-08-20T10:10:00.000Z",
+              title: "API is down",
+              incidentSeverity: { name: "Sev1", color: "#123456" },
+            },
+          ],
+        });
+      }
+      return Promise.resolve({
+        data: [
+          {
+            id: new ObjectID("22222222-0000-4000-8000-000000000002"),
+            createdAt: "2026-08-20T10:20:00.000Z",
+            title: "High latency",
+            alertSeverity: { name: "Warning" },
+          },
+        ],
+      });
+    });
+    analyticsGetListMock.mockResolvedValue({
+      data: [
+        {
+          time: "2026-08-20T10:03:00.000Z",
+          title: "v2.31.0",
+          eventType: "deployment",
+        },
+      ],
+    });
+
+    render(<Probe enabled={true} window={WINDOW} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("marker-count").textContent).toBe("3");
+    });
+
+    const markers: Array<HTMLElement> = screen.getAllByTestId("marker");
+    const byLabel: (needle: string) => HTMLElement = (
+      needle: string,
+    ): HTMLElement => {
+      const found: HTMLElement | undefined = markers.find(
+        (marker: HTMLElement) => {
+          return (marker.textContent || "").includes(needle);
+        },
+      );
+      if (!found) {
+        throw new Error(`no marker containing ${needle}`);
+      }
+      return found;
+    };
+
+    const incident: HTMLElement = byLabel("Incident: API is down");
+    expect(incident.dataset["kind"]).toBe("incident");
+    expect(incident.dataset["subtitle"]).toBe("Incident · Sev1");
+
+    const alert: HTMLElement = byLabel("Alert: High latency");
+    expect(alert.dataset["kind"]).toBe("alert");
+    expect(alert.dataset["subtitle"]).toBe("Alert · Warning");
+
+    const deploy: HTMLElement = byLabel("Deploy: v2.31.0");
+    expect(deploy.dataset["kind"]).toBe("change");
+    expect(deploy.dataset["subtitle"]).toBe("Change event");
+  });
+
+  test("a severity with no name still names the marker's kind", async () => {
+    getListMock.mockImplementation((args: { modelType: { name: string } }) => {
+      if (args.modelType.name === "Incident") {
+        return Promise.resolve({
+          data: [
+            {
+              id: new ObjectID("11111111-0000-4000-8000-000000000001"),
+              createdAt: "2026-08-20T10:10:00.000Z",
+              title: "API is down",
+              incidentSeverity: undefined,
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    analyticsGetListMock.mockResolvedValue({ data: [] });
+
+    render(<Probe enabled={true} window={WINDOW} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("marker-count").textContent).toBe("1");
+    });
+
+    const marker: HTMLElement = screen.getAllByTestId("marker")[0]!;
+    expect(marker.dataset["kind"]).toBe("incident");
+    expect(marker.dataset["subtitle"]).toBe("Incident");
+  });
+
+  test("a long title keeps enough of itself to be recognisable", () => {
+    /*
+     * The cap exists so a card listing a dozen clustered events stays
+     * scannable, not because the label has to fit inside the plot any
+     * more — it is generous now, and only bites well past a real title.
+     */
+    const ordinary: string = "Checkout API p99 latency breached its SLO";
+    expect(truncateEventMarkerTitle(ordinary)).toBe(ordinary);
+
+    const overlong: string = "x".repeat(EVENT_MARKER_TITLE_MAX_LENGTH + 20);
+    const truncated: string = truncateEventMarkerTitle(overlong);
+    expect(truncated.endsWith("…")).toBe(true);
+    expect(truncated.length).toBeLessThanOrEqual(
+      EVENT_MARKER_TITLE_MAX_LENGTH + 1,
+    );
   });
 
   test("one source failing never takes the others down", async () => {

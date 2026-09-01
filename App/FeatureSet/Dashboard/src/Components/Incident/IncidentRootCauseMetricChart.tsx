@@ -19,6 +19,11 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
+/*
+ * Sibling-relative on purpose — the `Common` specifier can resolve a
+ * checkout that predates this branch-new enum.
+ */
+import ChartEventKind from "../../../../../../Common/UI/Components/Charts/Types/ChartEventKind";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -236,6 +241,7 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
                 {
                   date: incidentDeclaredAt,
                   label: "Incident declared",
+                  kind: ChartEventKind.Incident,
                   color: "#f87171", // muted red — matches explorer markers
                 },
               ]

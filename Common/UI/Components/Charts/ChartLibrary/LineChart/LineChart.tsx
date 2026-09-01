@@ -37,6 +37,9 @@ import {
   getColorHex,
   isHexColorValue,
 } from "../Utils/ChartColors";
+import useChartAnnotations, {
+  UseChartAnnotationsResult,
+} from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
@@ -45,15 +48,6 @@ import {
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
 import ChartCurve from "../../Types/ChartCurve";
-
-/*
- * Incident/alert time markers each label at the same "insideTop" band, so
- * several events in one window pile their labels into an unreadable stack.
- * A single marker keeps the classic horizontal top label; a handful get
- * rotated to run along their lines; past this cap inline labels are hidden
- * entirely (the dashed lines and their click-through remain).
- */
-const MAX_LABELED_TIME_REFERENCE_LINES: number = 6;
 
 /*
  * recharts invokes child event handlers with varying shapes ((event) for
@@ -740,10 +734,32 @@ const LineChart: React.ForwardRefExoticComponent<
       React.useRef<boolean>(false);
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
-    const timeReferenceLineCount: number =
-      formattedTimeReferenceLines?.length || 0;
-    const showTimeReferenceLineLabels: boolean =
-      timeReferenceLineCount <= MAX_LABELED_TIME_REFERENCE_LINES;
+
+    /*
+     * Annotations are drawn onto the categorical axis, so the layer needs
+     * the same x values recharts is drawing — not the source dates.
+     */
+    const categoryLabels: Array<string> = React.useMemo(():
+      | Array<string>
+      | never => {
+      return (data as Array<Record<string, unknown>>).map(
+        (row: Record<string, unknown>): string => {
+          return String(row[index] ?? "");
+        },
+      );
+    }, [data, index]);
+
+    const annotations: UseChartAnnotationsResult = useChartAnnotations({
+      formattedTimeReferenceLines,
+      formattedReferenceRegions,
+      categoryLabels,
+      axisPaddingPx: paddingValue,
+      scaleKind: "point",
+      hasTopLegend: showLegend,
+      isClickSuppressed: (): boolean => {
+        return suppressNextClickRef.current;
+      },
+    });
 
     const yAxisDomain: (number | "auto")[] = getYAxisDomain(
       autoMinValue,
@@ -972,560 +988,491 @@ const LineChart: React.ForwardRefExoticComponent<
         )}
         {...other}
       >
-        <ResponsiveContainer>
-          <RechartsLineChart
-            data={data}
-            /*
-             * Omitted, not "": recharts treats "" as a real sync
-             * channel, so every unsynced chart page-wide would
-             * accidentally sync with every other one.
-             */
-            {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
-            {...(hasOnTimeRangeSelect
-              ? {
-                  onMouseDown: handleRangeSelectMouseDown,
-                  onMouseMove: handleRangeSelectMouseMove,
-                  onMouseUp: handleRangeSelectMouseUp,
+        {/*
+         * The hover card is HTML over the SVG, so it needs a positioned
+         * ancestor that is exactly the chart's box. recharts sizes its
+         * <svg> in CSS pixels with no viewBox, so the card can reuse the
+         * coordinates the rail was drawn with.
+         */}
+        <div className={cx("relative isolate h-full w-full")}>
+          <ResponsiveContainer>
+            <RechartsLineChart
+              data={data}
+              /*
+               * Omitted, not "": recharts treats "" as a real sync
+               * channel, so every unsynced chart page-wide would
+               * accidentally sync with every other one.
+               */
+              {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
+              {...(hasOnTimeRangeSelect
+                ? {
+                    onMouseDown: handleRangeSelectMouseDown,
+                    onMouseMove: handleRangeSelectMouseMove,
+                    onMouseUp: handleRangeSelectMouseUp,
+                  }
+                : {})}
+              onClick={(chartState: RangeSelectionChartState) => {
+                // Ignore the click that follows a drag-to-select.
+                if (suppressNextClickRef.current) {
+                  return;
                 }
-              : {})}
-            onClick={(chartState: RangeSelectionChartState) => {
-              // Ignore the click that follows a drag-to-select.
-              if (suppressNextClickRef.current) {
-                return;
-              }
-              /*
-               * A click while a legend/dot selection is active keeps its
-               * long-standing meaning — clear the selection — and never
-               * also pins a bucket.
-               */
-              if (hasOnValueChange && (activeLegend || activeDot)) {
-                setActiveDot(undefined);
-                setActiveLegend(undefined);
-                onValueChange?.(null);
-                return;
-              }
-              if (!onBucketClick) {
-                return;
-              }
-              const rowIndex: number | null =
-                getRowIndexFromChartState(chartState);
-              if (rowIndex === null) {
-                return;
-              }
-              const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
-              if (!bucketStart) {
-                return;
-              }
-              /*
-               * Cover the full bucket: width from adjacent row dates, the
-               * same derivation drag-to-select uses.
-               */
-              const adjacentDate: Date | null =
-                rowIndex > 0
-                  ? getBucketDateAtIndex(rowIndex - 1)
-                  : getBucketDateAtIndex(rowIndex + 1);
-              const bucketWidthInMs: number = adjacentDate
-                ? Math.abs(bucketStart.getTime() - adjacentDate.getTime())
-                : 0;
-              onBucketClick(
-                bucketStart,
-                new Date(bucketStart.getTime() + bucketWidthInMs),
-                (data[rowIndex] || {}) as Record<string, number | string>,
-              );
-            }}
-            margin={{
-              /*
-               * Tick labels are 10px font with a translate(0, 6) — they
-               * need ~20px of bottom space, plus another ~20px for the
-               * optional axis label. 8px (the no-axis case) is only
-               * valid when the axis is hidden entirely.
-               */
-              bottom: (xAxisLabel
-                ? 40
-                : showXAxis
-                  ? 24
-                  : 8) as unknown as number,
-              left: (yAxisLabel ? 20 : 0) as unknown as number,
-              right: (yAxisLabel ? 5 : 8) as unknown as number,
-              top: 5,
-            }}
-          >
-            {showGridLines ? (
-              <CartesianGrid
-                className={cx("stroke-gray-100")}
-                strokeDasharray="3 3"
-                horizontal={true}
-                vertical={false}
-              />
-            ) : null}
-            <XAxis
-              padding={{ left: paddingValue, right: paddingValue }}
-              hide={!showXAxis}
-              dataKey={index}
-              interval={startEndOnly ? "preserveStartEnd" : intervalType}
-              tick={{
-                transform: "translate(0, 6)",
-                fontSize: 10,
-                fontWeight: 500,
-                fill: "var(--ou-chart-tick)",
-              }}
-              ticks={
-                startEndOnly
-                  ? ([
-                      (data[0] as any)[index],
-                      (data[data.length - 1] as any)[index],
-                    ] as any)
-                  : undefined
-              }
-              fill=""
-              stroke=""
-              className={cx(
-                // base
-                "tabular-nums",
-                // text fill
-                "fill-gray-500",
-              )}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={tickGap}
-            >
-              {xAxisLabel && (
-                <Label
-                  position="insideBottom"
-                  offset={-20}
-                  className="fill-gray-800 text-sm font-medium"
-                >
-                  {xAxisLabel}
-                </Label>
-              )}
-            </XAxis>
-            <YAxis
-              width={yAxisWidth}
-              hide={!showYAxis}
-              axisLine={false}
-              tickLine={false}
-              type="number"
-              domain={yAxisDomain as AxisDomain}
-              tick={{
-                transform: "translate(-4, 0)",
-                fontSize: 10,
-                fontWeight: 500,
-                fill: "var(--ou-chart-tick)",
-              }}
-              fill=""
-              stroke=""
-              className={cx(
-                // base
-                "tabular-nums",
-                // text fill
-                "fill-gray-500",
-              )}
-              tickFormatter={valueFormatter}
-              allowDecimals={allowDecimals}
-            >
-              {yAxisLabel && (
-                <Label
-                  position="insideLeft"
-                  style={{ textAnchor: "middle" }}
-                  angle={-90}
-                  offset={-15}
-                  className="fill-gray-800 text-sm font-medium"
-                >
-                  {yAxisLabel}
-                </Label>
-              )}
-            </YAxis>
-            <Tooltip
-              wrapperStyle={{ outline: "none", zIndex: 10 }}
-              isAnimationActive={true}
-              animationDuration={100}
-              cursor={{
-                stroke: "var(--ou-chart-cursor, #d1d5db)",
-                strokeWidth: 1,
-              }}
-              offset={20}
-              position={{ y: 0 }}
-              content={({ active, payload, label }: any) => {
-                const cleanPayload: TooltipProps["payload"] = payload
-                  ? payload.map((item: any) => {
-                      return {
-                        category: item.dataKey,
-                        value: item.value,
-                        index: item.payload[index],
-                        color: categoryColors.get(
-                          item.dataKey,
-                        ) as ChartColorValue,
-                        type: item.type,
-                        payload: item.payload,
-                      };
-                    })
-                  : [];
-
-                if (
-                  tooltipCallback &&
-                  (active !== prevActiveRef.current ||
-                    label !== prevLabelRef.current)
-                ) {
-                  tooltipCallback({ active, payload: cleanPayload, label });
-                  prevActiveRef.current = active;
-                  prevLabelRef.current = label;
+                /*
+                 * A click while a legend/dot selection is active keeps its
+                 * long-standing meaning — clear the selection — and never
+                 * also pins a bucket.
+                 */
+                if (hasOnValueChange && (activeLegend || activeDot)) {
+                  setActiveDot(undefined);
+                  setActiveLegend(undefined);
+                  onValueChange?.(null);
+                  return;
                 }
-
-                return showTooltip && active ? (
-                  CustomTooltip ? (
-                    <CustomTooltip
-                      active={active}
-                      payload={cleanPayload}
-                      label={label}
-                    />
-                  ) : (
-                    <ChartTooltip
-                      active={active}
-                      payload={cleanPayload}
-                      label={label}
-                      valueFormatter={valueFormatter}
-                    />
-                  )
-                ) : null;
+                if (!onBucketClick) {
+                  return;
+                }
+                const rowIndex: number | null =
+                  getRowIndexFromChartState(chartState);
+                if (rowIndex === null) {
+                  return;
+                }
+                const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
+                if (!bucketStart) {
+                  return;
+                }
+                /*
+                 * Cover the full bucket: width from adjacent row dates, the
+                 * same derivation drag-to-select uses.
+                 */
+                const adjacentDate: Date | null =
+                  rowIndex > 0
+                    ? getBucketDateAtIndex(rowIndex - 1)
+                    : getBucketDateAtIndex(rowIndex + 1);
+                const bucketWidthInMs: number = adjacentDate
+                  ? Math.abs(bucketStart.getTime() - adjacentDate.getTime())
+                  : 0;
+                onBucketClick(
+                  bucketStart,
+                  new Date(bucketStart.getTime() + bucketWidthInMs),
+                  (data[rowIndex] || {}) as Record<string, number | string>,
+                );
               }}
-            />
+              margin={{
+                /*
+                 * Tick labels are 10px font with a translate(0, 6) — they
+                 * need ~20px of bottom space, plus another ~20px for the
+                 * optional axis label. 8px (the no-axis case) is only
+                 * valid when the axis is hidden entirely.
+                 */
+                bottom: (xAxisLabel
+                  ? 40
+                  : showXAxis
+                    ? 24
+                    : 8) as unknown as number,
+                left: (yAxisLabel ? 20 : 0) as unknown as number,
+                right: (yAxisLabel ? 5 : 8) as unknown as number,
+                /*
+                 * The annotation rail is drawn in the top margin, so the
+                 * margin has to grow to hold it — otherwise chips render
+                 * above the SVG's own edge and get clipped.
+                 */
+                top: annotations.marginTop,
+              }}
+            >
+              {showGridLines ? (
+                <CartesianGrid
+                  className={cx("stroke-gray-100")}
+                  strokeDasharray="3 3"
+                  horizontal={true}
+                  vertical={false}
+                />
+              ) : null}
+              <XAxis
+                padding={{ left: paddingValue, right: paddingValue }}
+                hide={!showXAxis}
+                dataKey={index}
+                interval={startEndOnly ? "preserveStartEnd" : intervalType}
+                tick={{
+                  transform: "translate(0, 6)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                ticks={
+                  startEndOnly
+                    ? ([
+                        (data[0] as any)[index],
+                        (data[data.length - 1] as any)[index],
+                      ] as any)
+                    : undefined
+                }
+                fill=""
+                stroke=""
+                className={cx(
+                  // base
+                  "tabular-nums",
+                  // text fill
+                  "fill-gray-500",
+                )}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={tickGap}
+              >
+                {xAxisLabel && (
+                  <Label
+                    position="insideBottom"
+                    offset={-20}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {xAxisLabel}
+                  </Label>
+                )}
+              </XAxis>
+              <YAxis
+                width={yAxisWidth}
+                hide={!showYAxis}
+                axisLine={false}
+                tickLine={false}
+                type="number"
+                domain={yAxisDomain as AxisDomain}
+                tick={{
+                  transform: "translate(-4, 0)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                fill=""
+                stroke=""
+                className={cx(
+                  // base
+                  "tabular-nums",
+                  // text fill
+                  "fill-gray-500",
+                )}
+                tickFormatter={valueFormatter}
+                allowDecimals={allowDecimals}
+              >
+                {yAxisLabel && (
+                  <Label
+                    position="insideLeft"
+                    style={{ textAnchor: "middle" }}
+                    angle={-90}
+                    offset={-15}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {yAxisLabel}
+                  </Label>
+                )}
+              </YAxis>
+              <Tooltip
+                wrapperStyle={{ outline: "none", zIndex: 10 }}
+                isAnimationActive={true}
+                animationDuration={100}
+                cursor={{
+                  stroke: "var(--ou-chart-cursor, #d1d5db)",
+                  strokeWidth: 1,
+                }}
+                offset={20}
+                position={{ y: 0 }}
+                content={({ active, payload, label }: any) => {
+                  const cleanPayload: TooltipProps["payload"] = payload
+                    ? payload.map((item: any) => {
+                        return {
+                          category: item.dataKey,
+                          value: item.value,
+                          index: item.payload[index],
+                          color: categoryColors.get(
+                            item.dataKey,
+                          ) as ChartColorValue,
+                          type: item.type,
+                          payload: item.payload,
+                        };
+                      })
+                    : [];
 
-            {showLegend ? (
-              <RechartsLegend
-                verticalAlign="top"
-                height={legendHeight}
-                content={({ payload }: any) => {
-                  return ChartLegend(
-                    { payload },
-                    categoryColors,
-                    setLegendHeight,
-                    activeLegend,
-                    hasOnValueChange
-                      ? (clickedLegendItem: string) => {
-                          return onCategoryClick(clickedLegendItem);
-                        }
-                      : undefined,
-                    enableLegendSlider,
-                    legendPosition,
-                    yAxisWidth,
-                  );
+                  if (
+                    tooltipCallback &&
+                    (active !== prevActiveRef.current ||
+                      label !== prevLabelRef.current)
+                  ) {
+                    tooltipCallback({ active, payload: cleanPayload, label });
+                    prevActiveRef.current = active;
+                    prevLabelRef.current = label;
+                  }
+
+                  return showTooltip && active ? (
+                    CustomTooltip ? (
+                      <CustomTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                      />
+                    ) : (
+                      <ChartTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                        valueFormatter={valueFormatter}
+                      />
+                    )
+                  ) : null;
                 }}
               />
-            ) : null}
-            {categories.map((category: string) => {
-              const lineColor: ChartColorValue = categoryColors.get(
-                category,
-              ) as ChartColorValue;
-              const isCustomColor: boolean = isHexColorValue(lineColor);
-              const lineHex: string = getColorHex(lineColor);
-              const isGhost: boolean =
-                ghostCategories?.includes(category) || false;
-              return (
-                <Line
-                  className={cx(getColorClassName(lineColor, "stroke"))}
-                  strokeOpacity={
-                    (activeDot || (activeLegend && activeLegend !== category)
-                      ? 0.3
-                      : 1) * (isGhost ? 0.45 : 1)
-                  }
-                  activeDot={
-                    isGhost
-                      ? false
-                      : (props: any) => {
-                          const {
-                            cx: cxCoord,
-                            cy: cyCoord,
-                            stroke,
-                            strokeLinecap,
-                            strokeLinejoin,
-                            strokeWidth,
-                          } = props;
-                          return (
-                            <Dot
-                              className={cx(
-                                "stroke-white",
-                                onValueChange ? "cursor-pointer" : "",
-                                getColorClassName(lineColor, "fill"),
-                              )}
-                              cx={cxCoord}
-                              cy={cyCoord}
-                              r={5}
-                              fill={isCustomColor ? lineHex : ""}
-                              stroke={stroke}
-                              strokeLinecap={strokeLinecap}
-                              strokeLinejoin={strokeLinejoin}
-                              strokeWidth={strokeWidth}
-                              onClick={(_: any, event: any) => {
-                                return onDotClick(props, event);
-                              }}
-                            />
-                          );
-                        }
-                  }
-                  dot={
-                    isGhost
-                      ? false
-                      : (props: any) => {
-                          const {
-                            stroke,
-                            strokeLinecap,
-                            strokeLinejoin,
-                            strokeWidth,
-                            cx: cxCoord,
-                            cy: cyCoord,
-                            index,
-                          } = props;
 
-                          if (
-                            (hasOnlyOneValueForKey(data, category) &&
-                              !(
-                                activeDot ||
-                                (activeLegend && activeLegend !== category)
-                              )) ||
-                            (activeDot?.index === index &&
-                              activeDot?.dataKey === category)
-                          ) {
+              {showLegend ? (
+                <RechartsLegend
+                  verticalAlign="top"
+                  /*
+                   * Padded so the annotation rail gets a clear strip between
+                   * the legend and the plot; see UseChartAnnotations.
+                   */
+                  height={legendHeight + annotations.railHeight}
+                  content={({ payload }: any) => {
+                    return ChartLegend(
+                      { payload },
+                      categoryColors,
+                      setLegendHeight,
+                      activeLegend,
+                      hasOnValueChange
+                        ? (clickedLegendItem: string) => {
+                            return onCategoryClick(clickedLegendItem);
+                          }
+                        : undefined,
+                      enableLegendSlider,
+                      legendPosition,
+                      yAxisWidth,
+                    );
+                  }}
+                />
+              ) : null}
+              {categories.map((category: string) => {
+                const lineColor: ChartColorValue = categoryColors.get(
+                  category,
+                ) as ChartColorValue;
+                const isCustomColor: boolean = isHexColorValue(lineColor);
+                const lineHex: string = getColorHex(lineColor);
+                const isGhost: boolean =
+                  ghostCategories?.includes(category) || false;
+                return (
+                  <Line
+                    className={cx(getColorClassName(lineColor, "stroke"))}
+                    strokeOpacity={
+                      (activeDot || (activeLegend && activeLegend !== category)
+                        ? 0.3
+                        : 1) * (isGhost ? 0.45 : 1)
+                    }
+                    activeDot={
+                      isGhost
+                        ? false
+                        : (props: any) => {
+                            const {
+                              cx: cxCoord,
+                              cy: cyCoord,
+                              stroke,
+                              strokeLinecap,
+                              strokeLinejoin,
+                              strokeWidth,
+                            } = props;
                             return (
                               <Dot
-                                key={index}
-                                cx={cxCoord}
-                                cy={cyCoord}
-                                r={5}
-                                stroke={stroke}
-                                fill={isCustomColor ? lineHex : ""}
-                                strokeLinecap={strokeLinecap}
-                                strokeLinejoin={strokeLinejoin}
-                                strokeWidth={strokeWidth}
                                 className={cx(
                                   "stroke-white",
                                   onValueChange ? "cursor-pointer" : "",
                                   getColorClassName(lineColor, "fill"),
                                 )}
+                                cx={cxCoord}
+                                cy={cyCoord}
+                                r={5}
+                                fill={isCustomColor ? lineHex : ""}
+                                stroke={stroke}
+                                strokeLinecap={strokeLinecap}
+                                strokeLinejoin={strokeLinejoin}
+                                strokeWidth={strokeWidth}
+                                onClick={(_: any, event: any) => {
+                                  return onDotClick(props, event);
+                                }}
                               />
                             );
                           }
-                          return <React.Fragment key={index}></React.Fragment>;
-                        }
-                  }
-                  key={category}
-                  name={category}
-                  type={props.curve || ChartCurve.LINEAR}
-                  dataKey={category}
-                  /*
-                   * Custom hex → set the stroke inline; named palette → keep ""
-                   * so the `stroke-*` Tailwind class on the Line applies.
-                   */
-                  stroke={isCustomColor ? lineHex : ""}
-                  strokeWidth={isGhost ? 1.5 : 2}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  isAnimationActive={false}
-                  connectNulls={connectNulls}
-                  {...(isGhost ? { strokeDasharray: "6 4" } : {})}
-                />
-              );
-            })}
-            {/* hidden lines to increase clickable target area */}
-            {onValueChange
-              ? categories
-                  .filter((category: string) => {
-                    // Ghosts are context, not click-selectable series.
-                    return !(ghostCategories?.includes(category) || false);
-                  })
-                  .map((category: string) => {
-                    return (
-                      <Line
-                        className={cx("cursor-pointer")}
-                        strokeOpacity={0}
-                        key={category}
-                        name={category}
-                        type={props.curve || ChartCurve.LINEAR}
-                        dataKey={category}
-                        stroke="transparent"
-                        fill="transparent"
-                        legendType="none"
-                        tooltipType="none"
-                        strokeWidth={12}
-                        connectNulls={connectNulls}
-                        onClick={(props: any, event: any) => {
-                          event.stopPropagation();
-                          const { name } = props;
-                          onCategoryClick(name);
-                        }}
-                      />
-                    );
-                  })
-              : null}
-            {props.referenceLines?.map(
-              (refLine: ChartReferenceLineProps, refIndex: number) => {
-                return (
-                  <ReferenceLine
-                    key={`ref-${refIndex}`}
-                    y={refLine.value}
-                    stroke={refLine.color}
-                    strokeDasharray={refLine.strokeDasharray || "4 4"}
-                    strokeWidth={1.5}
-                  >
-                    {refLine.label && (
-                      <Label
-                        value={refLine.label}
-                        position="insideTopRight"
-                        fill={refLine.color}
-                        fontSize={11}
-                        fontWeight={500}
-                      />
-                    )}
-                  </ReferenceLine>
-                );
-              },
-            )}
-            {/* Time-anchored shaded regions (e.g. incident/maintenance windows) */}
-            {formattedReferenceRegions?.map(
-              (region: FormattedReferenceRegion, regionIndex: number) => {
-                const regionColor: string = region.original.color || "#6366f1";
-                return (
-                  <ReferenceArea
-                    key={`ref-region-${regionIndex}`}
-                    x1={region.formattedX1}
-                    x2={region.formattedX2}
-                    fill={regionColor}
-                    fillOpacity={0.12}
-                    stroke={regionColor}
-                    strokeOpacity={0.35}
-                    strokeWidth={1}
-                    {...(region.original.onClick
-                      ? {
-                          style: { cursor: "pointer" as const },
-                          onClick: (...args: Array<unknown>): void => {
-                            // Never let an annotation click also pin a bucket.
-                            stopChartEventPropagation(...args);
-                            if (suppressNextClickRef.current) {
-                              return;
-                            }
-                            region.original.onClick?.();
-                          },
-                        }
-                      : {})}
-                  >
-                    {region.original.label && (
-                      <Label
-                        value={region.original.label}
-                        position="insideTop"
-                        fill={regionColor}
-                        fontSize={10}
-                        fontWeight={500}
-                      />
-                    )}
-                  </ReferenceArea>
-                );
-              },
-            )}
-            {/* Time-anchored vertical event markers (e.g. deploys, incidents) */}
-            {formattedTimeReferenceLines?.map(
-              (
-                timeRefLine: FormattedTimeReferenceLine,
-                timeRefIndex: number,
-              ) => {
-                const lineColor: string =
-                  timeRefLine.original.color || "#f59e0b";
-                return (
-                  <ReferenceLine
-                    key={`time-ref-${timeRefIndex}`}
-                    x={timeRefLine.formattedX}
-                    stroke={lineColor}
-                    strokeDasharray={
-                      timeRefLine.original.strokeDasharray || "4 4"
                     }
-                    strokeWidth={1.5}
-                    {...(timeRefLine.original.onClick
-                      ? {
-                          style: { cursor: "pointer" as const },
-                          onClick: (...args: Array<unknown>): void => {
-                            // Never let an annotation click also pin a bucket.
-                            stopChartEventPropagation(...args);
-                            if (suppressNextClickRef.current) {
-                              return;
+                    dot={
+                      isGhost
+                        ? false
+                        : (props: any) => {
+                            const {
+                              stroke,
+                              strokeLinecap,
+                              strokeLinejoin,
+                              strokeWidth,
+                              cx: cxCoord,
+                              cy: cyCoord,
+                              index,
+                            } = props;
+
+                            if (
+                              (hasOnlyOneValueForKey(data, category) &&
+                                !(
+                                  activeDot ||
+                                  (activeLegend && activeLegend !== category)
+                                )) ||
+                              (activeDot?.index === index &&
+                                activeDot?.dataKey === category)
+                            ) {
+                              return (
+                                <Dot
+                                  key={index}
+                                  cx={cxCoord}
+                                  cy={cyCoord}
+                                  r={5}
+                                  stroke={stroke}
+                                  fill={isCustomColor ? lineHex : ""}
+                                  strokeLinecap={strokeLinecap}
+                                  strokeLinejoin={strokeLinejoin}
+                                  strokeWidth={strokeWidth}
+                                  className={cx(
+                                    "stroke-white",
+                                    onValueChange ? "cursor-pointer" : "",
+                                    getColorClassName(lineColor, "fill"),
+                                  )}
+                                />
+                              );
                             }
-                            timeRefLine.original.onClick?.();
-                          },
-                        }
-                      : {})}
-                  >
-                    {timeRefLine.original.label &&
-                      showTimeReferenceLineLabels && (
+                            return (
+                              <React.Fragment key={index}></React.Fragment>
+                            );
+                          }
+                    }
+                    key={category}
+                    name={category}
+                    type={props.curve || ChartCurve.LINEAR}
+                    dataKey={category}
+                    /*
+                     * Custom hex → set the stroke inline; named palette → keep ""
+                     * so the `stroke-*` Tailwind class on the Line applies.
+                     */
+                    stroke={isCustomColor ? lineHex : ""}
+                    strokeWidth={isGhost ? 1.5 : 2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    isAnimationActive={false}
+                    connectNulls={connectNulls}
+                    {...(isGhost ? { strokeDasharray: "6 4" } : {})}
+                  />
+                );
+              })}
+              {/* hidden lines to increase clickable target area */}
+              {onValueChange
+                ? categories
+                    .filter((category: string) => {
+                      // Ghosts are context, not click-selectable series.
+                      return !(ghostCategories?.includes(category) || false);
+                    })
+                    .map((category: string) => {
+                      return (
+                        <Line
+                          className={cx("cursor-pointer")}
+                          strokeOpacity={0}
+                          key={category}
+                          name={category}
+                          type={props.curve || ChartCurve.LINEAR}
+                          dataKey={category}
+                          stroke="transparent"
+                          fill="transparent"
+                          legendType="none"
+                          tooltipType="none"
+                          strokeWidth={12}
+                          connectNulls={connectNulls}
+                          onClick={(props: any, event: any) => {
+                            event.stopPropagation();
+                            const { name } = props;
+                            onCategoryClick(name);
+                          }}
+                        />
+                      );
+                    })
+                : null}
+              {props.referenceLines?.map(
+                (refLine: ChartReferenceLineProps, refIndex: number) => {
+                  return (
+                    <ReferenceLine
+                      key={`ref-${refIndex}`}
+                      y={refLine.value}
+                      stroke={refLine.color}
+                      strokeDasharray={refLine.strokeDasharray || "4 4"}
+                      strokeWidth={1.5}
+                    >
+                      {refLine.label && (
                         <Label
-                          value={timeRefLine.original.label}
-                          {...(timeReferenceLineCount > 1
-                            ? {
-                                /*
-                                 * Several markers: run each label down its
-                                 * own line so labels at different x stop
-                                 * sharing one horizontal band.
-                                 */
-                                position: "insideTopLeft" as const,
-                                angle: 90,
-                              }
-                            : { position: "insideTop" as const })}
-                          fill={lineColor}
-                          fontSize={10}
+                          value={refLine.label}
+                          position="insideTopRight"
+                          fill={refLine.color}
+                          fontSize={11}
                           fontWeight={500}
                         />
                       )}
-                  </ReferenceLine>
-                );
-              },
-            )}
-            {/* Exemplar dots - clickable markers linking to traces */}
-            {props.formattedExemplarPoints?.map(
-              (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
-                return (
-                  <ReferenceDot
-                    key={`exemplar-${exemplarIndex}`}
-                    x={exemplar.formattedX}
-                    y={exemplar.y}
-                    r={5}
-                    fill="#7c3aed"
-                    stroke="var(--ou-chart-marker-ring, #ffffff)"
-                    strokeWidth={2}
-                    style={{ cursor: "pointer" }}
-                    onClick={(...args: Array<unknown>) => {
-                      // Never let an exemplar click also pin a bucket.
-                      stopChartEventPropagation(...args);
-                      // Ignore the click that follows a drag-to-select.
-                      if (suppressNextClickRef.current) {
-                        return;
-                      }
-                      props.onExemplarClick?.(exemplar.original);
-                    }}
-                  >
-                    <Label
-                      value="E"
-                      position="center"
-                      /*
-                       * Sits on the dot's purple, not on the surface, so it must
-                       * not follow the ring token that flips dark with the theme.
-                       */
-                      fill="#ffffff"
-                      fontSize={8}
-                      fontWeight={700}
-                    />
-                  </ReferenceDot>
-                );
-              },
-            )}
-            {/* Live drag-to-select highlight */}
-            {rangeSelectionStart && rangeSelectionEnd ? (
-              <ReferenceArea
-                x1={rangeSelectionStart}
-                x2={rangeSelectionEnd}
-                fill="rgba(99,102,241,0.12)"
-                stroke="rgba(99,102,241,0.5)"
-                strokeWidth={1}
-                radius={2}
-              />
-            ) : null}
-          </RechartsLineChart>
-        </ResponsiveContainer>
+                    </ReferenceLine>
+                  );
+                },
+              )}
+              {/*
+               * Event markers and shaded windows: hairlines through the plot
+               * topped by a chip rail in the chart's top margin. Everything
+               * that used to be painted over the series as rotated text now
+               * lives in the chip's hover card.
+               */}
+              {annotations.layer}
+              {/* Exemplar dots - clickable markers linking to traces */}
+              {props.formattedExemplarPoints?.map(
+                (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
+                  return (
+                    <ReferenceDot
+                      key={`exemplar-${exemplarIndex}`}
+                      x={exemplar.formattedX}
+                      y={exemplar.y}
+                      r={5}
+                      fill="#7c3aed"
+                      stroke="var(--ou-chart-marker-ring, #ffffff)"
+                      strokeWidth={2}
+                      style={{ cursor: "pointer" }}
+                      onClick={(...args: Array<unknown>) => {
+                        // Never let an exemplar click also pin a bucket.
+                        stopChartEventPropagation(...args);
+                        // Ignore the click that follows a drag-to-select.
+                        if (suppressNextClickRef.current) {
+                          return;
+                        }
+                        props.onExemplarClick?.(exemplar.original);
+                      }}
+                    >
+                      <Label
+                        value="E"
+                        position="center"
+                        /*
+                         * Sits on the dot's purple, not on the surface, so it must
+                         * not follow the ring token that flips dark with the theme.
+                         */
+                        fill="#ffffff"
+                        fontSize={8}
+                        fontWeight={700}
+                      />
+                    </ReferenceDot>
+                  );
+                },
+              )}
+              {/* Live drag-to-select highlight */}
+              {rangeSelectionStart && rangeSelectionEnd ? (
+                <ReferenceArea
+                  x1={rangeSelectionStart}
+                  x2={rangeSelectionEnd}
+                  fill="rgba(99,102,241,0.12)"
+                  stroke="rgba(99,102,241,0.5)"
+                  strokeWidth={1}
+                  radius={2}
+                />
+              ) : null}
+            </RechartsLineChart>
+          </ResponsiveContainer>
+          {annotations.overlay}
+        </div>
       </div>
     );
   },
