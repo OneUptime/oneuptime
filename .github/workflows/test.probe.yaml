@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - run: cd Probe && npm install
       - run: cd Probe && npx playwright install --with-deps chromium firefox

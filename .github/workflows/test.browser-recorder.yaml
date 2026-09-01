@@ -24,6 +24,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
 
       # No Common install: the recorder is bundled for third-party origins and
       # must not pull server dependencies. The shared pure logic it does use

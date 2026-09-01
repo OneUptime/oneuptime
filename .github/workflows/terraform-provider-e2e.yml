@@ -219,13 +219,32 @@ jobs:
       # slow service boot), so it is the only step that gets retried. The test
       # suite itself runs exactly once — retrying it would mask real provider
       # bugs as flakes.
+      #
+      # Only `app` and `ingress` are named. A bare `npm run dev` brings up every
+      # service in docker-compose.dev.yml, and since each carries a `build:`
+      # section that means building every image from source on a cold runner:
+      # `home` (which clones the ~4 GB blog repo),
+      # `e2e` (which downloads Playwright's browsers), both probes, the runner,
+      # test-server, fluentd and fluent-bit. That was ~27 of this job's ~43
+      # minutes spent on containers no assertion in this suite ever reaches:
+      # every request it makes is `http://localhost/api/...`, which is nginx in
+      # front of `app`.
+      #
+      # Nothing is lost by naming them. postgres, redis and clickhouse still
+      # come up — `app` and `ingress` both depend_on them with
+      # condition: service_healthy — and all eight endpoints status-check waits
+      # on (/, /dashboard, /admin/env.js, /public-dashboard, /accounts,
+      # /status-page, /status, /status/ready) are served by `app` through nginx,
+      # so the readiness gate below still means exactly what it did before.
+      # (`/` proxies to `home` only when BILLING_ENABLED=true; config.env
+      # defaults it to false, which is what this job runs with.)
       - name: Start OneUptime services
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: |
-            npm run dev
+            npm run dev --services="app ingress"
             npm run status-check
 
       - name: Set up test account

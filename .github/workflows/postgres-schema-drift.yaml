@@ -56,6 +56,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
 
       # typeorm + ts-node live in the root package; the entities the check
       # reflects over resolve their imports through Common's.

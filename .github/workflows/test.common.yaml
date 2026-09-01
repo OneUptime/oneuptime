@@ -12,6 +12,29 @@ on:
       - master
 
 jobs:
+  # Common's `npm run test` used to pass --detectOpenHandles. Jest's scheduler
+  # turns that into an unconditional runInBand -- "detectOpenHandles makes no
+  # sense without runInBand, because it cannot detect leaks in workers", in
+  # @jest/core/build/testSchedulerHelper.js -- so the whole suite ran in one
+  # process, one file at a time. 1645 test files, each dragging Common's import
+  # graph through ts-jest's per-file type check, with nine tenths of the runner
+  # idle. That is what put every shard at 15 minutes and this workflow at ~2
+  # hours of runner time per commit. The suite now runs on Jest's worker pool.
+  #
+  # --forceExit stays, and it is the flag that actually mattered: it is what
+  # stops a leaked handle from hanging the job. --detectOpenHandles only prints
+  # the stack traces that say which handle leaked -- a debugging aid, not a
+  # gate; it never changed a pass into a fail. `npm run debug:test` still has
+  # it for when a leak needs chasing.
+  #
+  # Type checking is deliberately left on. App's suite could go transpile-only
+  # (App/jest.config.json, isolatedModules) because the compile-app job takes
+  # every App test file as a tsc program root, so nothing went unchecked.
+  # Common has no such job -- Common/tsconfig.json excludes Tests from the
+  # build -- so ts-jest is the only thing type-checking these 1645 files, and
+  # turning it off here would silently drop that. Doing it properly means
+  # giving Common's tests their own tsc project first, which is a change worth
+  # making on its own rather than smuggling into a CI-timing commit.
   test:
     name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
