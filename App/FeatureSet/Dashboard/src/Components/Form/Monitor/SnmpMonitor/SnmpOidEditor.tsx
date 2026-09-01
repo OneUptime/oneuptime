@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useId,
 } from "react";
 import SnmpOid, {
   SnmpOidTemplates,
@@ -109,6 +110,14 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
   const [oids, setOids] = useState<Array<SnmpOid>>(props.value || []);
   const [showTemplates, setShowTemplates] = useState<boolean>(false);
 
+  /*
+   * Prefix for the per-row message ids below. Generated rather than derived
+   * from the row index alone because Input's own error element uses one fixed
+   * id for every instance on the page, and an aria-describedby that resolves
+   * to more than one element is a coin toss.
+   */
+  const editorId: string = useId();
+
   useEffect(() => {
     setOids(props.value || []);
   }, [props.value]);
@@ -195,18 +204,41 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
         <div className="space-y-3 mt-3">
           {oids.map((oid: SnmpOid, index: number) => {
             const issue: OidRowIssue = rowIssues[index] || {};
+            const errorId: string = `${editorId}-oid-${index}-error`;
+            const advisoryId: string = `${editorId}-oid-${index}-advisory`;
+
+            /*
+             * The row renders its own message, so the input must not also be
+             * handed `error` — Input draws its own copy of the same sentence
+             * underneath, and the operator reads the identical line twice.
+             * `ariaInvalid` / `ariaDescribedby` are the pair Input documents
+             * for exactly this case (ColorPicker and IconPicker use them the
+             * same way), so dropping the duplicate does not also drop the
+             * input's invalid state or its link to the message on screen.
+             *
+             * One id, never both: an error and an advisory are mutually
+             * exclusive by construction in getRowIssues.
+             */
+            const messageId: string | undefined = issue.error
+              ? errorId
+              : issue.advisory
+                ? advisoryId
+                : undefined;
 
             return (
               <div
                 key={index}
                 data-testid={`snmp-oid-row-${index}`}
-                className="flex items-start space-x-2 p-3 border rounded-md bg-gray-50"
+                className={`flex items-start space-x-2 p-3 border rounded-md bg-gray-50${
+                  issue.error ? " border-red-300" : ""
+                }`}
               >
                 <div className="flex-1 space-y-2">
                   <Input
                     initialValue={oid.oid}
                     dataTestId={`snmp-oid-row-${index}-oid`}
-                    error={issue.error}
+                    ariaInvalid={Boolean(issue.error)}
+                    ariaDescribedby={messageId}
                     placeholder="OID (e.g., 1.3.6.1.2.1.1.1.0)"
                     onChange={(value: string) => {
                       updateOid(index, "oid", value);
@@ -214,6 +246,8 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
                   />
                   {issue.error ? (
                     <p
+                      id={errorId}
+                      role="alert"
                       data-testid={`snmp-oid-row-${index}-error`}
                       className="text-sm text-red-600"
                     >
@@ -224,6 +258,7 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
                   )}
                   {issue.advisory ? (
                     <p
+                      id={advisoryId}
                       data-testid={`snmp-oid-row-${index}-advisory`}
                       className="text-sm text-amber-700"
                     >

@@ -37,6 +37,18 @@ export interface ComponentProps {
    * copy dropdown is offered at all.
    */
   templateOids?: Array<SnmpOid> | undefined;
+  /*
+   * Whether an EMPTY templateOids means what it looks like.
+   *
+   * The two readings are opposites for an operator: a template that really
+   * holds no OIDs contributes nothing, while a template whose body the page
+   * could not load (a reader without permission on templates, a fetch that
+   * failed) is still collected in full on every poll and simply cannot be
+   * listed here. Absent means resolved — a caller that read the list
+   * directly has nothing to qualify, so only a caller that knows it came up
+   * short passes false.
+   */
+  areTemplateOidsResolved?: boolean | undefined;
   templateName?: string | undefined;
 }
 
@@ -89,6 +101,17 @@ const DeviceHealthOidsFormField: FunctionComponent<ComponentProps> = (
 
   const templateOids: Array<SnmpOid> | undefined = props.templateOids;
   const isTemplateLinked: boolean = templateOids !== undefined;
+
+  /*
+   * Absent means resolved, so a caller that does not know about this prop
+   * keeps the plain empty-template wording it already had.
+   */
+  const areTemplateOidsResolved: boolean =
+    props.areTemplateOidsResolved !== false;
+
+  const emptyTemplateMessage: string = areTemplateOidsResolved
+    ? "This template has no OIDs yet, so it adds nothing to this device — only the device-specific OIDs below are collected."
+    : "This device collects this template's OIDs on every poll, but they could not be loaded here, so what is shown is incomplete. Open the template itself to see what it contains.";
 
   /*
    * An OID on both lists resolves to the DEVICE's entry at the TEMPLATE's
@@ -144,8 +167,13 @@ const DeviceHealthOidsFormField: FunctionComponent<ComponentProps> = (
               })}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-gray-500">
-              This template has no OIDs yet, so it adds nothing to this device.
+            <p
+              data-testid="device-health-oids-template-empty"
+              className={`mt-2 text-sm ${
+                areTemplateOidsResolved ? "text-gray-500" : "text-amber-700"
+              }`}
+            >
+              {emptyTemplateMessage}
             </p>
           )}
         </div>

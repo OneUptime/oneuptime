@@ -57,12 +57,17 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
   /*
    * For Network Device monitors: the effective health-OID list of the device
-   * this step points at, and the names of the interfaces its last walk found.
-   * Both are fetched once per step in MonitorStep and read by the SNMP OID and
-   * interface pickers on each criteria filter.
+   * this step points at, and the names and aliases of the interfaces its last
+   * walk found. Both are fetched once per step in MonitorStep and read by the
+   * SNMP OID and interface pickers on each criteria filter.
+   *
+   * isNetworkDeviceCatalogueLoaded says whether that fetch has answered for
+   * the currently selected device; until it has, the pickers must not read an
+   * empty catalogue as proof that a saved value is gone.
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
@@ -104,8 +109,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       return {
         oids: props.networkDeviceOidCatalogue || [],
         interfaceNames: props.networkDeviceInterfaceNames || [],
+        isLoaded: props.isNetworkDeviceCatalogueLoaded === true,
       };
-    }, [props.networkDeviceOidCatalogue, props.networkDeviceInterfaceNames]);
+    }, [
+      props.networkDeviceOidCatalogue,
+      props.networkDeviceInterfaceNames,
+      props.isNetworkDeviceCatalogueLoaded,
+    ]);
 
   const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
     ObjectID | undefined

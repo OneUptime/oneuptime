@@ -42,12 +42,17 @@ export interface ComponentProps {
   monitorStep: MonitorStep;
   /*
    * For Network Device monitors: the effective health-OID list of the device
-   * this step points at, and the names of the interfaces its last walk found.
-   * Fetched once per step in MonitorStep and forwarded to each criteria so the
-   * SNMP OID and interface pickers have real values to offer.
+   * this step points at, and the names and aliases of the interfaces its last
+   * walk found. Fetched once per step in MonitorStep and forwarded to each
+   * criteria so the SNMP OID and interface pickers have real values to offer.
+   *
+   * isNetworkDeviceCatalogueLoaded says whether that fetch has answered for
+   * the currently selected device; until it has, the pickers must not read an
+   * empty catalogue as proof that a saved value is gone.
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   /*
    * The project's offline (worst, non-operational) monitor status.
    * Pack-generated criteria that change monitor status use it as the
@@ -288,6 +293,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     }
                                     networkDeviceInterfaceNames={
                                       props.networkDeviceInterfaceNames
+                                    }
+                                    isNetworkDeviceCatalogueLoaded={
+                                      props.isNetworkDeviceCatalogueLoaded
                                     }
                                     monitorStatusDropdownOptions={
                                       props.monitorStatusDropdownOptions

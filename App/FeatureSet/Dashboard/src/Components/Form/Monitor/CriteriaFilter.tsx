@@ -52,14 +52,28 @@ export interface NetworkDeviceOidCatalogueEntry {
 
 export interface NetworkDeviceCriteriaCatalogue {
   oids: Array<NetworkDeviceOidCatalogueEntry>;
-  // Names of the monitored interfaces the device's last walk found.
+  /*
+   * Names AND aliases of the monitored interfaces the device's last walk
+   * found. Both, because the server scopes a criteria by matching
+   * interfaceName against ifName or ifAlias, case-insensitively - see
+   * SnmpMonitorCriteria.scopeInterfaces.
+   */
   interfaceNames: Array<string>;
+  /*
+   * False until the fetch for the currently selected device has actually come
+   * back. The pickers below tell an operator that a saved OID or interface is
+   * gone whenever they cannot find it in the catalogue - which is also true of
+   * a catalogue that is merely still loading, so an empty one must stay silent
+   * until this flips.
+   */
+  isLoaded: boolean;
 }
 
 export const EMPTY_NETWORK_DEVICE_CRITERIA_CATALOGUE: NetworkDeviceCriteriaCatalogue =
   {
     oids: [],
     interfaceNames: [],
+    isLoaded: false,
   };
 
 /*
@@ -395,11 +409,18 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
              * the criteria: the form claimed nothing was selected while the
              * monitor still evaluated an OID nothing polls. Now it is listed,
              * selected, and labelled with why it will never match.
+             *
+             * Only once the catalogue has loaded, though - an empty catalogue
+             * is also what the first render of a perfectly healthy monitor
+             * looks like, and accusing it of being broken for the length of a
+             * fetch is worse than saying nothing.
              */
             if (savedOid && !selectedOidOption) {
               selectedOidOption = {
                 value: savedOid,
-                label: `${savedOid} - no longer collected by this device`,
+                label: networkDeviceCatalogue.isLoaded
+                  ? `${savedOid} - no longer collected by this device`
+                  : savedOid,
               };
               oidOptions.push(selectedOidOption);
             }
@@ -451,8 +472,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
 
             /*
-             * "*" first, then the interfaces the device's last walk actually
-             * reported. The free-text input below stays, and has to: "*" is
+             * "*" first, then the names and aliases the device's last walk
+             * actually reported - the server accepts either, so the picker
+             * offers both.
+             *
+             * The free-text input below stays, and has to: "*" is
              * not an interface, and a port that has not been walked yet - a
              * device registered minutes ago, a line card about to go in - is
              * a legitimate thing to write a criteria against before it shows
@@ -489,14 +513,17 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
             /*
              * Same rule as the OID picker: never show an empty control next
-             * to a value that is saved. A hand-typed alias, or a port that
-             * has since dropped off the walk, is shown as selected and said
-             * to be off the list.
+             * to a value that is saved. A port that has since dropped off the
+             * walk is shown as selected and said to be off the list - but,
+             * again like the OID picker, only once the catalogue has actually
+             * loaded. Before that the value stands on its own, unjudged.
              */
             if (savedInterfaceName && !selectedInterfaceOption) {
               selectedInterfaceOption = {
                 value: savedInterfaceName,
-                label: `${savedInterfaceName} - not on this device's last interface walk`,
+                label: networkDeviceCatalogue.isLoaded
+                  ? `${savedInterfaceName} - not on this device's last interface walk`
+                  : savedInterfaceName,
               };
             }
 

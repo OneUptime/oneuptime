@@ -64,19 +64,18 @@ const NetworkDeviceSettings: FunctionComponent<
   /*
    * The project's OID Collection Templates, WITH their OID lists.
    *
-   * Fetched as a top-level list rather than reached through the device's
-   * `oidTemplate` relation, and that is a hard constraint, not a preference:
-   * QueryPermission.checkRelationQueryPermission refuses any column on a
-   * joined model that does not carry canReadOnRelationQuery, and on
-   * NetworkDeviceOidTemplate only `name` and `projectId` do. A select of
-   * `oidTemplate: { oids: true }` throws "Column oids on OID Collection
-   * Template does not support read on relation query" and takes the whole
-   * request with it — the card would not render at all.
+   * For the EDIT FORM, and only for it. The editor has to show the OIDs of
+   * the template the form currently has SELECTED, which is not necessarily
+   * the one the device is saved with — the operator picks a different
+   * template in the dropdown and expects to see what it would contribute
+   * before saving — and no query on this device can answer for a template it
+   * is not linked to yet.
    *
-   * One list serves both readers below: the editor, which shows what the
-   * selected template contributes while the form is open, and the read-only
-   * Health OIDs row, which has to merge the same list to say what the device
-   * actually collects.
+   * Nothing else here needs it. The dropdown fetches and searches its own
+   * options server-side (an entity-backed `dropdownModal` renders an
+   * EntityDropdown), and the read-only Health OIDs row below reads the saved
+   * template's OIDs straight through the device's own `oidTemplate`
+   * relation, which `oids` permits (canReadOnRelationQuery on the column).
    */
   const [oidTemplates, setOidTemplates] = useState<
     Array<NetworkDeviceOidTemplate>
@@ -88,10 +87,11 @@ const NetworkDeviceSettings: FunctionComponent<
    * Deliberately swallows its own errors instead of failing the page.
    *
    * A reader with ReadNetworkDevice but no ReadNetworkDeviceOidTemplate gets
-   * a 401 here, and this list is an enrichment — losing it costs the OID
-   * bodies, not the ability to see or edit the device's polling settings.
-   * Both readers below say so explicitly rather than rendering a device that
-   * looks like it collects nothing but its own OIDs.
+   * a 401 here, and this list is an enrichment for the editor — losing it
+   * costs the selected template's OID bodies, not the ability to see or edit
+   * the device's polling settings. The editor is told which of the two it
+   * got (areTemplateOidsResolved) so an unloadable template reads as
+   * incomplete rather than as empty.
    */
   const fetchOidTemplates: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -118,10 +118,10 @@ const NetworkDeviceSettings: FunctionComponent<
   };
 
   /*
-   * Both fetches gate the loader, and the templates one has to.
-   * ModelDetail captures its `fields` — closures included — in a mount-time
-   * effect, so a template list that arrives after the card has rendered is
-   * never seen by the Health OIDs element below.
+   * Both fetches gate the loader. The probe list must — it becomes the Probe
+   * dropdown's options — and the template list rides along on purpose: the
+   * cards do not mount until this resolves, so the closure the Health OIDs
+   * editor is built from never captures a half-loaded list.
    */
   const fetchPageData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -450,12 +450,16 @@ const NetworkDeviceSettings: FunctionComponent<
                    * what tells the editor a template is linked, so an
                    * explicit undefined would read as "no template" and put
                    * the vendor copy dropdown back on screen next to it.
-                   * Passing an empty list for a template the fetch could not
-                   * resolve is the honest answer — it is linked, and this
-                   * page cannot say what it contains.
+                   * areTemplateOidsResolved carries the rest: an empty list
+                   * for a template the fetch could not resolve means "linked,
+                   * collected, and not listable here", which is the opposite
+                   * of "this template is empty" and has to read differently.
                    */
                   {...(selectedTemplateId
-                    ? { templateOids: selectedTemplate?.oids || [] }
+                    ? {
+                        templateOids: selectedTemplate?.oids || [],
+                        areTemplateOidsResolved: Boolean(selectedTemplate),
+                      }
                     : {})}
                   {...(selectedTemplate?.name
                     ? { templateName: selectedTemplate.name }
@@ -473,7 +477,7 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. Auto-imported devices have this on by default.",
+              "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. A device linked to an OID Collection Template is never seeded either, whatever this is set to, because its list comes from the template. Auto-imported devices have this on by default.",
           },
         ]}
         modelDetailProps={{
@@ -534,43 +538,31 @@ const NetworkDeviceSettings: FunctionComponent<
                * answer to "what does this device collect?" the moment
                * templates existed — it is only the device's own additions.
                *
-               * The template's NAME comes through the relation, which it may
-               * (canReadOnRelationQuery); its OIDs come from the list fetched
-               * above, which they must — see the comment on that fetch. The
-               * id is selected so a template whose body could not be fetched
-               * is still reported as linked instead of silently vanishing.
+               * Both halves of the template come through the device's own
+               * relation: `name` and `oids` each carry canReadOnRelationQuery,
+               * so one query answers this whole row and there is no state
+               * where the link is known but its contents are not. The FK is
+               * selected alongside them and is what "linked" is read from: it
+               * IS the link, where the joined row is only whatever the join
+               * happened to return for it.
                */
               field: {
                 snmpOids: true,
                 oidTemplateId: true,
                 oidTemplate: {
                   name: true,
+                  oids: true,
                 },
               },
               title: "Health OIDs",
               fieldType: FieldType.Element,
               getElement: (item: NetworkDevice): ReactElement => {
-                const linkedTemplateId: string | undefined =
-                  item.oidTemplateId?.toString();
-
-                const templateName: string | undefined = linkedTemplateId
+                const templateName: string | undefined = item.oidTemplateId
                   ? item.oidTemplate?.name || "the linked template"
                   : undefined;
 
-                const linkedTemplate: NetworkDeviceOidTemplate | undefined =
-                  findOidTemplate(linkedTemplateId);
-
-                if (linkedTemplateId && !linkedTemplate) {
-                  return (
-                    <span>
-                      This device is linked to {templateName}, but its OIDs
-                      could not be loaded, so the full collected list cannot be
-                      shown here.
-                    </span>
-                  );
-                }
-
-                const templateOids: Array<SnmpOid> = linkedTemplate?.oids || [];
+                const templateOids: Array<SnmpOid> =
+                  item.oidTemplate?.oids || [];
                 const deviceOids: Array<SnmpOid> = item.snmpOids || [];
 
                 const effectiveOids: Array<SnmpOid> =

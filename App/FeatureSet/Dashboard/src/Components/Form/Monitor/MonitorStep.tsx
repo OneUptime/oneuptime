@@ -151,6 +151,16 @@ import MonitorStepExternalStatusPageMonitor, {
  */
 const MAX_NETWORK_INTERFACES_IN_CRITERIA_PICKER: number = 500;
 
+/*
+ * What the fetch below answers with: the catalogue minus isLoaded, which is
+ * not the fetch's to report - a resolved promise says nothing about whether
+ * the device it resolved for is still the selected one.
+ */
+type NetworkDeviceCatalogueData = Omit<
+  NetworkDeviceCriteriaCatalogue,
+  "isLoaded"
+>;
+
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
@@ -371,16 +381,32 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [networkDeviceInterfaceNames, setNetworkDeviceInterfaceNames] =
     useState<Array<string>>([]);
 
+  /*
+   * The device the catalogue currently in state was fetched for, rather than
+   * a plain "loaded" flag. Comparing it to the current selection makes a
+   * device change count as not-loaded from the very render it happens on,
+   * instead of from whenever the effect below next runs - and a failed fetch
+   * never sets it, because a request that did not answer is no evidence that
+   * a saved OID or interface is gone.
+   */
+  const [loadedCatalogueNetworkDeviceId, setLoadedCatalogueNetworkDeviceId] =
+    useState<string | undefined>(undefined);
+
   const selectedNetworkDeviceId: string | undefined =
     props.monitorType === MonitorType.NetworkDevice
       ? props.value?.data?.networkDeviceMonitor?.networkDeviceId || undefined
       : undefined;
 
+  const isNetworkDeviceCatalogueLoaded: boolean = Boolean(
+    selectedNetworkDeviceId &&
+      loadedCatalogueNetworkDeviceId === selectedNetworkDeviceId,
+  );
+
   const loadNetworkDeviceCatalogue: (
     networkDeviceId: string,
-  ) => Promise<NetworkDeviceCriteriaCatalogue> = async (
+  ) => Promise<NetworkDeviceCatalogueData> = async (
     networkDeviceId: string,
-  ): Promise<NetworkDeviceCriteriaCatalogue> => {
+  ): Promise<NetworkDeviceCatalogueData> => {
     const device: NetworkDevice | null = await ModelAPI.getItem<NetworkDevice>({
       modelType: NetworkDevice,
       id: new ObjectID(networkDeviceId),
@@ -423,6 +449,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         skip: 0,
         select: {
           name: true,
+          alias: true,
         },
         sort: {
           name: SortOrder.Ascending,
@@ -433,17 +460,37 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       throw interfaceResult;
     }
 
-    const interfaceNames: Array<string> = Array.from(
-      new Set(
-        interfaceResult.data
-          .map((networkInterface: NetworkInterface): string => {
-            return networkInterface.name || "";
-          })
-          .filter((interfaceName: string): boolean => {
-            return interfaceName.length > 0;
-          }),
-      ),
-    );
+    /*
+     * Aliases are offered alongside names because the server accepts either:
+     * a criteria's interfaceName is matched against ifName AND ifAlias,
+     * case-insensitively (SnmpMonitorCriteria.scopeInterfaces). Listing names
+     * only did more than hide a valid choice - the picker then failed to find
+     * an alias-scoped criteria in its own list and labelled a working
+     * criteria "not on this device's last interface walk".
+     *
+     * Deduped case-insensitively, on the same rule, so a port whose alias only
+     * differs from its name in case does not appear twice as two rows that do
+     * exactly the same thing.
+     */
+    const seenInterfaceNames: Set<string> = new Set<string>();
+
+    const interfaceNames: Array<string> = interfaceResult.data
+      .flatMap((networkInterface: NetworkInterface): Array<string> => {
+        return [
+          (networkInterface.name || "").trim(),
+          (networkInterface.alias || "").trim(),
+        ];
+      })
+      .filter((interfaceName: string): boolean => {
+        const key: string = interfaceName.toLowerCase();
+
+        if (interfaceName.length === 0 || seenInterfaceNames.has(key)) {
+          return false;
+        }
+
+        seenInterfaceNames.add(key);
+        return true;
+      });
 
     return {
       oids: effectiveOids.map(
@@ -468,13 +515,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
     if (selectedNetworkDeviceId) {
       loadNetworkDeviceCatalogue(selectedNetworkDeviceId)
-        .then((catalogue: NetworkDeviceCriteriaCatalogue): void => {
+        .then((catalogue: NetworkDeviceCatalogueData): void => {
           if (isCancelled) {
             return;
           }
 
           setNetworkDeviceOidCatalogue(catalogue.oids);
           setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
+          setLoadedCatalogueNetworkDeviceId(selectedNetworkDeviceId);
         })
         .catch((): void => {
           /*
@@ -490,10 +538,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
           setNetworkDeviceOidCatalogue([]);
           setNetworkDeviceInterfaceNames([]);
+          setLoadedCatalogueNetworkDeviceId(undefined);
         });
     } else {
       setNetworkDeviceOidCatalogue([]);
       setNetworkDeviceInterfaceNames([]);
+      setLoadedCatalogueNetworkDeviceId(undefined);
     }
 
     return () => {
@@ -1967,6 +2017,7 @@ return {
           monitorStep={monitorStep}
           networkDeviceOidCatalogue={networkDeviceOidCatalogue}
           networkDeviceInterfaceNames={networkDeviceInterfaceNames}
+          isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
           offlineMonitorStatusId={props.offlineMonitorStatusId}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={
