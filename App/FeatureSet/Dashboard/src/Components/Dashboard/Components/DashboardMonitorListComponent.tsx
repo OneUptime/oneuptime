@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
@@ -65,6 +66,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 ];
 
 const NO_VALUE_LABEL: string = "—";
+const ONGOING_LABEL: string = "Ongoing";
 
 /*
  * Labels stop being time-only once the window is longer than a day, so a
@@ -83,6 +85,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   >([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * Which fetch is the current one. The timeline mode issues two sequential
+   * requests, so a range change part way through leaves an older, narrower
+   * window still in flight; without this guard its late response overwrites
+   * the newer one and the lanes render a truncated history and a wrong uptime
+   * against the window the axis is labelled with.
+   */
+  const fetchGeneration: React.MutableRefObject<number> = useRef<number>(0);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
 
@@ -114,10 +125,22 @@ const DashboardMonitorListComponentElement: FunctionComponent<
    * dashboard refreshes, and a timeline that kept the first window would
    * silently stop advancing.
    */
-  const timelineWindow: InBetween<Date> = useMemo(() => {
-    return RangeStartAndEndDateTimeUtil.getStartAndEndDate(
-      props.dashboardStartAndEndDate,
-    );
+  const timelineWindow: { startDate: Date; endDate: Date } = useMemo(() => {
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(
+        props.dashboardStartAndEndDate,
+      );
+
+    /*
+     * Clamped BEFORE anything is drawn or requested. The public route applies
+     * the same ceiling server side; without matching it here, an over-long
+     * CUSTOM range would draw an axis spanning months against history the
+     * server only returned the tail of.
+     */
+    return MonitorStateTimelineUtil.clampWindow({
+      startDate: range.startValue,
+      endDate: range.endValue,
+    });
     /*
      * refreshTick is a deliberate extra dependency, not an oversight: on a
      * relative range the resolver reads the wall clock, so the window has to
@@ -125,7 +148,19 @@ const DashboardMonitorListComponentElement: FunctionComponent<
      */
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
+  /*
+   * What the monitor fetch actually depends on. In list and honeycomb mode the
+   * query is time-independent, so keying the fetch on the window itself would
+   * refire every Monitor List widget on the board on every range change, for
+   * data that cannot have changed.
+   */
+  const timelineWindowKey: string = isTimelineView
+    ? `${timelineWindow.startDate.getTime()}-${timelineWindow.endDate.getTime()}`
+    : "";
+
   const fetchMonitors: () => Promise<void> = useCallback(async () => {
+    const generation: number = ++fetchGeneration.current;
+
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -188,15 +223,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         },
       });
 
-      setMonitors(listResult.data);
-
       /*
        * The timeline is a second read, and only in the mode that draws it —
        * a list or honeycomb widget must not pay for status history it never
        * renders.
        */
+      let nextStatusTimelines: Array<MonitorStatusTimeline> = [];
+
       if (isTimelineView) {
-        setStatusTimelines(
+        nextStatusTimelines =
           await MonitorStateTimelineWidgetData.fetchStatusTimelines({
             componentId: props.componentId,
             monitorIds: listResult.data
@@ -207,21 +242,38 @@ const DashboardMonitorListComponentElement: FunctionComponent<
                 return id !== null;
               }),
             projectId: projectId,
-            startDate: timelineWindow.startValue,
-            endDate: timelineWindow.endValue,
+            startDate: timelineWindow.startDate,
+            endDate: timelineWindow.endDate,
             variables: props.variables,
-          }),
-        );
-      } else {
-        setStatusTimelines([]);
+          });
       }
 
+      if (generation !== fetchGeneration.current) {
+        // A newer fetch started while this one was in flight; it owns the state.
+        return;
+      }
+
+      /*
+       * Both together, after both reads. Committing the monitors first would
+       * end the skeleton (its guard is isLoading && count === 0) and paint a
+       * full set of "No status history" lanes for the whole of the second
+       * round trip, then jump the track narrower when the uptime column
+       * finally appears.
+       */
+      setMonitors(listResult.data);
+      setStatusTimelines(nextStatusTimelines);
       setError(null);
     } catch (err: unknown) {
-      setError(API.getFriendlyErrorMessage(err as Error));
-    }
+      if (generation !== fetchGeneration.current) {
+        return;
+      }
 
-    setIsLoading(false);
+      setError(API.getFriendlyErrorMessage(err as Error));
+    } finally {
+      if (generation === fetchGeneration.current) {
+        setIsLoading(false);
+      }
+    }
   }, [
     maxRows,
     statusFilter,
@@ -229,7 +281,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     monitorTypesKey,
     labelIdsKey,
     isTimelineView,
-    timelineWindow,
+    timelineWindowKey,
     props.componentId,
     props.variables,
   ]);
@@ -291,8 +343,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         };
       }),
       statusTimelines: statusTimelines,
-      startDate: timelineWindow.startValue,
-      endDate: timelineWindow.endValue,
+      startDate: timelineWindow.startDate,
+      endDate: timelineWindow.endDate,
     });
   }, [isTimelineView, monitors, statusTimelines, timelineWindow]);
 
@@ -323,7 +375,14 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       case MonitorStateTimelineTooltipField.StartedAt:
         return getDashboardDateTimeLabel(segment.startDate);
       case MonitorStateTimelineTooltipField.EndedAt:
-        return getDashboardDateTimeLabel(segment.endDate);
+        /*
+         * A run that had not ended when the window closed has no end to
+         * report — printing the clipped one reads as "Ended: <now>" over an
+         * outage that is still happening.
+         */
+        return segment.continuesAfterWindow
+          ? ONGOING_LABEL
+          : getDashboardDateTimeLabel(segment.endDate);
       case MonitorStateTimelineTooltipField.Duration:
         return OneUptimeDate.secondsToFormattedFriendlyTimeString(
           segment.durationInSeconds,
@@ -401,10 +460,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         const uptimeLabel: string | undefined =
           row.uptimePercent === null ? undefined : `${row.uptimePercent}%`;
 
+        /*
+         * "at the end of this time range", not "currently": on a custom range
+         * that ends in the past the last bar is not the monitor's status now,
+         * and the same widget's list mode would announce a different one.
+         */
         const ariaLabel: string =
           row.segments.length === 0
             ? `${row.monitorName}: no status history in this time range.`
-            : `${row.monitorName}: currently ${row.currentStatusName}, ${uptimeLabel} uptime in this time range.`;
+            : `${row.monitorName}: ${row.currentStatusName} at the end of this time range, ${uptimeLabel} uptime.`;
 
         return {
           id: row.monitorId,
@@ -424,12 +488,12 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     }
 
     const isLongWindow: boolean =
-      timelineWindow.endValue.getTime() - timelineWindow.startValue.getTime() >
+      timelineWindow.endDate.getTime() - timelineWindow.startDate.getTime() >
       ONE_DAY_IN_MS;
 
     return MonitorStateTimelineUtil.getAxisTicks({
-      startDate: timelineWindow.startValue,
-      endDate: timelineWindow.endValue,
+      startDate: timelineWindow.startDate,
+      endDate: timelineWindow.endDate,
       tickCount: isLongWindow
         ? TICK_COUNT_FOR_LONG_WINDOW
         : TICK_COUNT_FOR_SHORT_WINDOW,
@@ -546,15 +610,23 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
   /*
    * The State Timeline is the one view mode whose data depends on the
    * dashboard's time range, so unlike the other list widgets this one has to
-   * re-render when the range changes.
+   * re-render when the range changes — but ONLY in that mode. Comparing it
+   * unconditionally would re-render (and refetch) every list-mode Monitor List
+   * widget on the board on every range change, for a query that does not read
+   * the range at all.
    */
   if (
-    !JSONFunctions.deepEqual(
-      prev.dashboardStartAndEndDate as unknown as Record<string, unknown>,
-      next.dashboardStartAndEndDate as unknown as Record<string, unknown>,
-    )
+    next.component.arguments.viewMode === "timeline" ||
+    prev.component.arguments.viewMode === "timeline"
   ) {
-    return false;
+    if (
+      !JSONFunctions.deepEqual(
+        prev.dashboardStartAndEndDate as unknown as Record<string, unknown>,
+        next.dashboardStartAndEndDate as unknown as Record<string, unknown>,
+      )
+    ) {
+      return false;
+    }
   }
 
   return JSONFunctions.deepEqual(

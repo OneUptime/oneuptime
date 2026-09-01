@@ -1,6 +1,7 @@
 /** @timezone UTC */
 import { describe, expect, jest, test } from "@jest/globals";
 import MonitorStateTimelineUtil, {
+  MAX_STATE_TIMELINE_WINDOW_IN_DAYS,
   MonitorStateTimelineAxisTick,
   MonitorStateTimelineLegendItem,
   MonitorStateTimelineRow,
@@ -803,7 +804,7 @@ describe("MonitorStateTimelineUtil", () => {
       );
     });
 
-    test("reports the CLIPPED change time when the status last changed before the window", () => {
+    test("reports NO last change when the status did not change inside the window", () => {
       const rows: Array<MonitorStateTimelineRow> = buildTwoLanes([
         createTimeline({
           monitorId: MONITOR_A,
@@ -813,11 +814,34 @@ describe("MonitorStateTimelineUtil", () => {
       ]);
 
       /*
-       * Everything in a lane is expressed in the window's own terms, so the
-       * "last change" a viewer reads matches the bar they are looking at
-       * rather than a moment off the left of the chart.
+       * The one segment is clipped to the window start, but nothing happened
+       * there. Reporting that boundary would tell an operator a monitor that
+       * has been Offline for two days changed status an hour ago — and the
+       * reported moment would march forward on every auto-refresh, because a
+       * relative window is re-resolved each tick.
        */
-      expect(rows[0]?.lastStatusChangeAt).toEqual(WINDOW_START);
+      expect(rows[0]?.lastStatusChangeAt).toBeNull();
+      expect(rows[0]?.currentStatusName).toBe("Offline");
+    });
+
+    test("reports the change time when the status DID change inside the window", () => {
+      const rows: Array<MonitorStateTimelineRow> = buildTwoLanes([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-08-30T09:00:00.000Z",
+          endsAt: "2026-09-01T11:20:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-09-01T11:20:00.000Z",
+        }),
+      ]);
+
+      expect(rows[0]?.lastStatusChangeAt).toEqual(
+        new Date("2026-09-01T11:20:00.000Z"),
+      );
     });
 
     test("does not report uptime when the window is degenerate", () => {
@@ -849,6 +873,430 @@ describe("MonitorStateTimelineUtil", () => {
             omitStatusRelation: true,
           }),
         ]);
+      }).not.toThrow();
+    });
+  });
+
+  describe("clampWindow", () => {
+    const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
+
+    test("leaves a window inside the ceiling exactly as it is", () => {
+      const clamped: { startDate: Date; endDate: Date } =
+        MonitorStateTimelineUtil.clampWindow({
+          startDate: WINDOW_START,
+          endDate: WINDOW_END,
+        });
+
+      expect(clamped.startDate).toEqual(WINDOW_START);
+      expect(clamped.endDate).toEqual(WINDOW_END);
+    });
+
+    test("leaves a window exactly at the ceiling alone", () => {
+      const startDate: Date = new Date(
+        WINDOW_END.getTime() - MAX_STATE_TIMELINE_WINDOW_IN_DAYS * MS_PER_DAY,
+      );
+
+      expect(
+        MonitorStateTimelineUtil.clampWindow({
+          startDate: startDate,
+          endDate: WINDOW_END,
+        }).startDate,
+      ).toEqual(startDate);
+    });
+
+    test("moves the START forward on an over-long window, keeping the end", () => {
+      /*
+       * The end is the edge the viewer is looking at, so that is the one that
+       * survives. The same ceiling is enforced by the public route, which is
+       * why the browser has to apply it BEFORE it draws — otherwise the axis
+       * would label months the server was never asked about.
+       */
+      const clamped: { startDate: Date; endDate: Date } =
+        MonitorStateTimelineUtil.clampWindow({
+          startDate: new Date("2020-01-01T00:00:00.000Z"),
+          endDate: WINDOW_END,
+        });
+
+      expect(clamped.endDate).toEqual(WINDOW_END);
+      expect(clamped.endDate.getTime() - clamped.startDate.getTime()).toBe(
+        MAX_STATE_TIMELINE_WINDOW_IN_DAYS * MS_PER_DAY,
+      );
+    });
+
+    test("leaves a degenerate or inverted window for the caller to reject", () => {
+      /*
+       * Clamping is about length, not validity — isWindowValid is what refuses
+       * to draw, and swallowing an inverted range here would hide it.
+       */
+      expect(
+        MonitorStateTimelineUtil.clampWindow({
+          startDate: WINDOW_END,
+          endDate: WINDOW_START,
+        }),
+      ).toEqual({ startDate: WINDOW_END, endDate: WINDOW_START });
+    });
+  });
+
+  describe("isStillInStateAtWindowEnd", () => {
+    test("is true for a monitor whose live row is still open", () => {
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OFFLINE,
+              startsAt: "2026-09-01T11:30:00.000Z",
+            }),
+          ],
+          WINDOW_END,
+        ),
+      ).toBe(true);
+    });
+
+    test("is true for a row that only closes AFTER the window", () => {
+      /*
+       * A past window: the run had not ended by the time the chart stops, so
+       * the last bar is still clipped even though the row is closed today.
+       */
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OFFLINE,
+              startsAt: "2026-09-01T11:30:00.000Z",
+              endsAt: "2026-09-01T13:00:00.000Z",
+            }),
+          ],
+          WINDOW_END,
+        ),
+      ).toBe(true);
+    });
+
+    test("is false when the run ended inside the window", () => {
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OFFLINE,
+              startsAt: "2026-09-01T11:00:00.000Z",
+              endsAt: "2026-09-01T11:30:00.000Z",
+            }),
+          ],
+          WINDOW_END,
+        ),
+      ).toBe(false);
+    });
+
+    test("takes the LATEST covering row, so an orphaned open row cannot claim the end", () => {
+      /*
+       * The documented production hazard: a write race left rows with
+       * endsAt = NULL and a later successor. A naive "any open row" test
+       * would report a status the monitor left long ago as still running.
+       */
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OFFLINE,
+              startsAt: "2026-09-01T10:00:00.000Z",
+            }),
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OPERATIONAL,
+              startsAt: "2026-09-01T11:00:00.000Z",
+              endsAt: "2026-09-01T11:30:00.000Z",
+            }),
+          ],
+          WINDOW_END,
+        ),
+      ).toBe(false);
+    });
+
+    test("ignores rows that start after the window closes", () => {
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OFFLINE,
+              startsAt: "2026-09-02T00:00:00.000Z",
+            }),
+          ],
+          WINDOW_END,
+        ),
+      ).toBe(false);
+    });
+
+    test("is false when there is nothing covering the window end at all", () => {
+      expect(
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd([], WINDOW_END),
+      ).toBe(false);
+    });
+  });
+
+  describe("continuesAfterWindow", () => {
+    test("marks only the last bar of a lane, and only while the run is open", () => {
+      const segments: Array<MonitorStateTimelineSegment> = buildSegments([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-09-01T11:00:00.000Z",
+          endsAt: "2026-09-01T11:30:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-09-01T11:30:00.000Z",
+        }),
+      ]);
+
+      expect(
+        segments.map((segment: MonitorStateTimelineSegment) => {
+          return segment.continuesAfterWindow;
+        }),
+      ).toEqual([false, true]);
+    });
+
+    test("does not mark a lane whose last run ended before the window closed", () => {
+      /*
+       * A monitor that recovered and has been Operational since: the last bar
+       * IS still running, so this checks the negative case properly — a run
+       * that closed inside the window and was never replaced.
+       */
+      const segments: Array<MonitorStateTimelineSegment> = buildSegments([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-09-01T11:00:00.000Z",
+          endsAt: "2026-09-01T11:30:00.000Z",
+        }),
+      ]);
+
+      expect(segments).toHaveLength(1);
+      expect(segments[0]?.continuesAfterWindow).toBe(false);
+    });
+  });
+
+  describe("windows that do not end at now", () => {
+    // A whole day, a fortnight before "now".
+    const PAST_START: Date = new Date("2026-08-18T00:00:00.000Z");
+    const PAST_END: Date = new Date("2026-08-19T00:00:00.000Z");
+
+    type BuildPastRowsFunction = (
+      statusTimelines: Array<MonitorStatusTimeline>,
+    ) => Array<MonitorStateTimelineRow>;
+
+    const buildPastRows: BuildPastRowsFunction = (
+      statusTimelines: Array<MonitorStatusTimeline>,
+    ): Array<MonitorStateTimelineRow> => {
+      return MonitorStateTimelineUtil.buildRows({
+        monitors: [{ monitorId: MONITOR_A, monitorName: "core-switch-01" }],
+        statusTimelines: statusTimelines,
+        startDate: PAST_START,
+        endDate: PAST_END,
+      });
+    };
+
+    test("draws the state the monitor was in THEN, not the one it is in now", () => {
+      const rows: Array<MonitorStateTimelineRow> = buildPastRows([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-08-18T06:00:00.000Z",
+          endsAt: "2026-08-18T12:00:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-08-18T12:00:00.000Z",
+        }),
+      ]);
+
+      /*
+       * The open row runs to the end of the WINDOW, not to now — otherwise a
+       * one-day chart from a fortnight ago would be drawn as if it covered
+       * the fortnight since.
+       */
+      expect(
+        rows[0]?.segments.map((segment: MonitorStateTimelineSegment) => {
+          return [segment.label, segment.startPercent, segment.widthPercent];
+        }),
+      ).toEqual([
+        ["Offline", 25, 25],
+        ["Operational", 50, 50],
+      ]);
+    });
+
+    test("measures uptime over the period it has data for, not the whole window", () => {
+      const rows: Array<MonitorStateTimelineRow> = buildPastRows([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-08-18T06:00:00.000Z",
+          endsAt: "2026-08-18T12:00:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-08-18T12:00:00.000Z",
+        }),
+      ]);
+
+      /*
+       * 6 hours offline out of the 18 hours from the first recorded event to
+       * the end of the window — 66.66%, NOT 75% of the 24 hour window. The
+       * denominator is clamped forward to the monitor's first event by
+       * UptimeUtil, deliberately, so a monitor younger than the window is
+       * measured from when it started existing rather than diluted by time it
+       * did not. Every uptime figure in the product (monitor page, status
+       * page, SLOs) is computed that way; this widget agreeing with them
+       * matters more than agreeing with the width of its own empty track, so
+       * the behaviour is pinned here rather than special-cased.
+       */
+      expect(rows[0]?.uptimePercent).toBe(66.66);
+    });
+
+    test("marks the last bar of a past window as still running when it was", () => {
+      const rows: Array<MonitorStateTimelineRow> = buildPastRows([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-08-18T12:00:00.000Z",
+        }),
+      ]);
+
+      /*
+       * The run had not ended by the time the chart stops, so the bar's right
+       * edge is where the chart stops — the hover card must not print it as
+       * an end time.
+       */
+      expect(rows[0]?.segments[0]?.continuesAfterWindow).toBe(true);
+      expect(rows[0]?.segments[0]?.endDate).toEqual(PAST_END);
+    });
+
+    test("stops the bars at now when the window reaches into the future", () => {
+      const rows: Array<MonitorStateTimelineRow> =
+        MonitorStateTimelineUtil.buildRows({
+          monitors: [{ monitorId: MONITOR_A, monitorName: "core-switch-01" }],
+          statusTimelines: [
+            createTimeline({
+              monitorId: MONITOR_A,
+              status: OPERATIONAL,
+              startsAt: "2026-09-01T11:00:00.000Z",
+            }),
+          ],
+          startDate: WINDOW_START,
+          // One hour of past, one hour that has not happened yet.
+          endDate: new Date("2026-09-01T13:00:00.000Z"),
+        });
+
+      /*
+       * Painting to the right edge would claim a status for time that has not
+       * happened. The unlived half of the window stays empty.
+       */
+      expect(rows[0]?.segments).toHaveLength(1);
+      expect(rows[0]?.segments[0]?.startPercent).toBe(0);
+      expect(rows[0]?.segments[0]?.widthPercent).toBe(50);
+    });
+  });
+
+  describe("data that is not a clean contiguous run", () => {
+    test("leaves a gap in the lane where the monitor has no rows", () => {
+      const segments: Array<MonitorStateTimelineSegment> = buildSegments([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-09-01T11:00:00.000Z",
+          endsAt: "2026-09-01T11:15:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-09-01T11:45:00.000Z",
+        }),
+      ]);
+
+      /*
+       * The half hour with no rows is drawn as empty track rather than being
+       * filled by whichever neighbour happens to be adjacent — the widget must
+       * not invent a status for a period it has no record of.
+       */
+      expect(
+        segments.map((segment: MonitorStateTimelineSegment) => {
+          return [segment.startPercent, segment.widthPercent];
+        }),
+      ).toEqual([
+        [0, 25],
+        [75, 25],
+      ]);
+    });
+
+    test("never draws bars that overlap or exceed the lane", () => {
+      /*
+       * Two rows for one monitor that overlap in time — a data anomaly the
+       * write path serializes against, but one the reader has to survive. The
+       * bars are built from the same de-overlapped event list the uptime
+       * number comes from, so the two can never disagree about the same rows.
+       */
+      const segments: Array<MonitorStateTimelineSegment> = buildSegments([
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OPERATIONAL,
+          startsAt: "2026-09-01T11:00:00.000Z",
+          endsAt: "2026-09-01T11:50:00.000Z",
+        }),
+        createTimeline({
+          monitorId: MONITOR_A,
+          status: OFFLINE,
+          startsAt: "2026-09-01T11:10:00.000Z",
+          endsAt: "2026-09-01T12:00:00.000Z",
+        }),
+      ]);
+
+      let cursor: number = 0;
+      let total: number = 0;
+      for (const segment of segments) {
+        expect(segment.startPercent).toBeGreaterThanOrEqual(cursor);
+        cursor = segment.startPercent + segment.widthPercent;
+        total += segment.widthPercent;
+      }
+
+      expect(total).toBeLessThanOrEqual(100.000001);
+      expect(cursor).toBeLessThanOrEqual(100.000001);
+    });
+
+    test("survives a status relation that carries no id", () => {
+      /*
+       * buildRows runs inside a render memo, not the widget's fetch
+       * try/catch, so an unguarded throw here blanks the whole dashboard tile
+       * rather than one lane. UptimeUtil dereferences monitorStatus.id without
+       * a guard, so the presence of the relation is not enough.
+       */
+      const timeline: MonitorStatusTimeline = createTimeline({
+        monitorId: MONITOR_A,
+        status: OPERATIONAL,
+        startsAt: "2026-09-01T11:00:00.000Z",
+      });
+      /*
+       * `id` is a getter over `_id`; clearing the backing column is what a
+       * partially-selected relation actually looks like on the wire. The cast
+       * is the point of the test — the type says it cannot happen, the API
+       * response says otherwise.
+       */
+      delete (timeline.monitorStatus as unknown as Record<string, unknown>)[
+        "_id"
+      ];
+
+      expect(() => {
+        return MonitorStateTimelineUtil.buildRows({
+          monitors: [{ monitorId: MONITOR_A, monitorName: "core-switch-01" }],
+          statusTimelines: [timeline],
+          startDate: WINDOW_START,
+          endDate: WINDOW_END,
+        });
       }).not.toThrow();
     });
   });

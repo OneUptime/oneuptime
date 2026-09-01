@@ -100,6 +100,31 @@ describe("MonitorStateTimelineTooltipField", () => {
     });
   });
 
+  describe("the titles a viewer reads", () => {
+    test("does not call the end-of-range status 'current'", () => {
+      /*
+       * On a custom range that ends in the past, the value is the status the
+       * monitor was in when the chart stops — not the one it is in now, which
+       * the same widget's list mode would show. A title claiming otherwise
+       * makes the two view modes contradict each other.
+       */
+      const title: string = MonitorStateTimelineTooltipFieldUtil.getTitle(
+        MonitorStateTimelineTooltipField.CurrentStatus,
+      );
+
+      expect(title.toLowerCase()).not.toContain("current");
+      expect(title).toBe("Status at range end");
+    });
+
+    test("scopes the uptime row to the visible range", () => {
+      expect(
+        MonitorStateTimelineTooltipFieldUtil.getTitle(
+          MonitorStateTimelineTooltipField.UptimePercent,
+        ).toLowerCase(),
+      ).toContain("range");
+    });
+  });
+
   describe("resolveFields", () => {
     test("falls back to the defaults when nothing is stored", () => {
       /*
@@ -203,6 +228,36 @@ describe("MonitorStateTimelineTooltipField", () => {
         ),
       );
     });
+
+    test.each([
+      ["a string", "status"],
+      ["a number", 3],
+      ["an object", { status: true }],
+      ["null", null],
+      ["a boolean", true],
+    ])(
+      "falls back to the defaults rather than throwing on %s",
+      (_label: string, stored: unknown) => {
+        /*
+         * Widget arguments are untyped JSONB, so the declared Array<string> is
+         * a promise the database never enforced — a hand-edited config or an
+         * older writer can put anything here. resolveFields runs inside a
+         * render memo, so a TypeError from `new Set(notIterable)` would blank
+         * the dashboard tile rather than lose one tooltip row.
+         */
+        expect(() => {
+          return MonitorStateTimelineTooltipFieldUtil.resolveFields(
+            stored as Array<string> | undefined,
+          );
+        }).not.toThrow();
+
+        expect(
+          MonitorStateTimelineTooltipFieldUtil.resolveFields(
+            stored as Array<string> | undefined,
+          ),
+        ).toEqual([...DEFAULT_MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS]);
+      },
+    );
 
     test("does not hand back the shared default array", () => {
       /*

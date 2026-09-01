@@ -79,6 +79,7 @@ import {
   PublicDashboardContext,
   setPublicDashboardContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -93,9 +94,10 @@ import Color from "../../../Types/Color";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardMonitorListComponent from "../../../Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
 import MonitorStateTimelineTooltipField from "../../../Types/Dashboard/MonitorStateTimelineTooltipField";
+import { MAX_STATE_TIMELINE_WINDOW_IN_DAYS } from "../../../Utils/Monitor/MonitorStateTimelineUtil";
 import PublicDashboardMonitorStateTimelinePolicy from "../../../Server/Utils/Dashboard/PublicDashboardMonitorStateTimelinePolicy";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
-import { JSONObject, ObjectType } from "../../../Types/JSON";
+import { JSONArray, JSONObject, ObjectType } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
@@ -151,6 +153,7 @@ interface PublicRequest {
 }
 
 let publicRequests: Array<PublicRequest> = [];
+let publicTimelinePayload: JSONArray = [];
 
 const PUBLIC_DASHBOARD_CONTEXT: PublicDashboardContext = {
   dashboardId: DASHBOARD_ID,
@@ -162,7 +165,7 @@ const PUBLIC_DASHBOARD_CONTEXT: PublicDashboardContext = {
   postJSON: (route: string, body: JSONObject) => {
     publicRequests.push({ route, body });
     return Promise.resolve({
-      data: { data: [] },
+      data: { data: publicTimelinePayload },
     } as unknown as HTTPResponse<JSONObject>);
   },
 } as unknown as PublicDashboardContext;
@@ -327,14 +330,14 @@ const buildBaseProps: BuildPropsFunction = (
   };
 };
 
-type RenderWidgetFunction = (
+type BuildComponentFunction = (
   args?: DashboardMonitorListComponent["arguments"] | undefined,
-) => RenderResult;
+) => DashboardMonitorListComponent;
 
-const renderWidget: RenderWidgetFunction = (
+const buildComponent: BuildComponentFunction = (
   args?: DashboardMonitorListComponent["arguments"] | undefined,
-): RenderResult => {
-  const component: DashboardMonitorListComponent = {
+): DashboardMonitorListComponent => {
+  return {
     _type: ObjectType.DashboardComponent,
     componentId: COMPONENT_ID,
     componentType: DashboardComponentType.MonitorList,
@@ -346,6 +349,16 @@ const renderWidget: RenderWidgetFunction = (
     minHeightInDashboardUnits: 3,
     arguments: args || { viewMode: "timeline" },
   } as unknown as DashboardMonitorListComponent;
+};
+
+type RenderWidgetFunction = (
+  args?: DashboardMonitorListComponent["arguments"] | undefined,
+) => RenderResult;
+
+const renderWidget: RenderWidgetFunction = (
+  args?: DashboardMonitorListComponent["arguments"] | undefined,
+): RenderResult => {
+  const component: DashboardMonitorListComponent = buildComponent(args);
 
   /*
    * The list view links each monitor with AppLink, which needs a router in
@@ -381,6 +394,7 @@ const segmentStyles: SegmentStyleFunction = (): Array<{
 beforeEach((): void => {
   jest.clearAllMocks();
   publicRequests = [];
+  publicTimelinePayload = [];
   monitorsResponse = [
     buildMonitor({ id: MONITOR_A_ID, name: "core-switch-01" }),
     buildMonitor({
@@ -487,7 +501,7 @@ describe("Monitor List widget — State Timeline", () => {
       ).toEqual(START_DATE);
     });
 
-    test("orders history by startsAt, the clock the timeline math uses", async (): Promise<void> => {
+    test("orders history newest-first by startsAt, so a row cap cannot eat the current status", async (): Promise<void> => {
       renderWidget({ viewMode: "timeline" });
 
       await waitFor((): void => {
@@ -495,12 +509,17 @@ describe("Monitor List widget — State Timeline", () => {
       });
 
       /*
-       * startsAt and createdAt are different clocks (DB now() vs worker
-       * moment()) with real skew; sorting by createdAt can put segments out
-       * of order and make the last one — the "current status" — wrong.
+       * startsAt, not createdAt: they are different clocks (DB now() vs worker
+       * moment()) with real skew, and startsAt is the one the timeline math
+       * orders by.
+       *
+       * DESCENDING because the read is capped. A flapping fleet can produce
+       * more rows than the cap, and ascending would hand back the OLDEST of
+       * them — silently dropping the newest, which is exactly where the lane
+       * reads its current status and last change from.
        */
       expect(callsFor(MonitorStatusTimeline)[0]!.sort).toEqual({
-        startsAt: SortOrder.Ascending,
+        startsAt: SortOrder.Descending,
       });
     });
 
@@ -661,7 +680,9 @@ describe("Monitor List widget — State Timeline", () => {
        * than A's and the bars would stop lining up down the column — which is
        * the entire point of stacking them.
        */
-      timelinesResponse = [operational(MONITOR_A_ID, "2026-09-01T08:00:00.000Z")];
+      timelinesResponse = [
+        operational(MONITOR_A_ID, "2026-09-01T08:00:00.000Z"),
+      ];
 
       renderWidget({ viewMode: "timeline" });
 
@@ -695,7 +716,7 @@ describe("Monitor List widget — State Timeline", () => {
       );
       expect(lane).toHaveAttribute(
         "aria-label",
-        "core-switch-01: currently Offline, 0% uptime in this time range.",
+        "core-switch-01: Offline at the end of this time range, 0% uptime.",
       );
     });
 
@@ -962,6 +983,175 @@ describe("Monitor List widget — State Timeline", () => {
       });
 
       expect(screen.queryAllByTestId("state-timeline-no-data")).toHaveLength(2);
+    });
+  });
+
+  describe("reacting to a time range change", () => {
+    type RerenderWithRangeFunction = (
+      result: RenderResult,
+      range: RangeStartAndEndDateTime,
+    ) => void;
+
+    const rerenderWithRange: RerenderWithRangeFunction = (
+      result: RenderResult,
+      range: RangeStartAndEndDateTime,
+    ): void => {
+      result.rerender(
+        <MemoryRouter>
+          <DashboardMonitorListComponentElement
+            {...buildBaseProps({ dashboardStartAndEndDate: range })}
+            component={buildComponent({ viewMode: "timeline" })}
+          />
+        </MemoryRouter>,
+      );
+    };
+
+    test("refetches history for the new window when the range changes", async (): Promise<void> => {
+      const result: RenderResult = renderWidget({ viewMode: "timeline" });
+
+      await waitFor((): void => {
+        expect(callsFor(MonitorStatusTimeline)).toHaveLength(1);
+      });
+
+      const widerStart: Date = new Date("2026-09-01T04:00:00.000Z");
+      rerenderWithRange(result, {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(widerStart, END_DATE),
+      });
+
+      await waitFor((): void => {
+        expect(callsFor(MonitorStatusTimeline)).toHaveLength(2);
+      });
+
+      /*
+       * The memo comparator has to let a range change through in timeline
+       * mode, and the fetch has to key on the new window — otherwise the axis
+       * is relabelled while the bars still describe the old one.
+       */
+      const second: ListArgs = callsFor(MonitorStatusTimeline)[1]!;
+      expect(
+        (second.query["endsAt"] as unknown as GreaterThanOrNull<Date>).value,
+      ).toEqual(widerStart);
+    });
+
+    test("does NOT refetch in list view when only the range changes", async (): Promise<void> => {
+      /*
+       * A list-mode Monitor List query does not read the range at all. Every
+       * such widget on a board refiring on every range change is pure waste,
+       * and the memo comparator is the only thing standing between them.
+       */
+      const result: RenderResult = render(
+        <MemoryRouter>
+          <DashboardMonitorListComponentElement
+            {...buildBaseProps()}
+            component={buildComponent({})}
+          />
+        </MemoryRouter>,
+      );
+
+      await screen.findByText("core-switch-01");
+      expect(callsFor(Monitor)).toHaveLength(1);
+
+      result.rerender(
+        <MemoryRouter>
+          <DashboardMonitorListComponentElement
+            {...buildBaseProps({
+              dashboardStartAndEndDate: {
+                range: TimeRange.CUSTOM,
+                startAndEndDate: new InBetween<Date>(
+                  new Date("2026-09-01T04:00:00.000Z"),
+                  END_DATE,
+                ),
+              },
+            })}
+            component={buildComponent({})}
+          />
+        </MemoryRouter>,
+      );
+
+      await waitFor((): void => {
+        expect(callsFor(Monitor)).toHaveLength(1);
+      });
+      expect(callsFor(MonitorStatusTimeline)).toHaveLength(0);
+    });
+
+    test("clamps an over-long custom range to what the server will serve", async (): Promise<void> => {
+      /*
+       * The public route caps the window at 92 days. If the browser drew the
+       * range it asked for rather than the one it can get, the axis would
+       * label months of chart against history the server only returned the
+       * tail of.
+       */
+      const result: RenderResult = renderWidget({ viewMode: "timeline" });
+
+      await waitFor((): void => {
+        expect(callsFor(MonitorStatusTimeline)).toHaveLength(1);
+      });
+
+      rerenderWithRange(result, {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2020-01-01T00:00:00.000Z"),
+          END_DATE,
+        ),
+      });
+
+      await waitFor((): void => {
+        expect(callsFor(MonitorStatusTimeline)).toHaveLength(2);
+      });
+
+      const requestedStart: Date = (
+        callsFor(MonitorStatusTimeline)[1]!.query[
+          "endsAt"
+        ] as unknown as GreaterThanOrNull<Date>
+      ).value;
+
+      expect(END_DATE.getTime() - requestedStart.getTime()).toBe(
+        MAX_STATE_TIMELINE_WINDOW_IN_DAYS * 24 * 60 * 60 * 1000,
+      );
+    });
+  });
+
+  describe("reading a real public payload", () => {
+    beforeEach((): void => {
+      setPublicDashboardContext(PUBLIC_DASHBOARD_CONTEXT);
+      monitorsResponse = [
+        buildMonitor({ id: MONITOR_A_ID, name: "core-switch-01" }),
+      ];
+    });
+
+    test("renders lanes from the serialized rows the route actually returns", async (): Promise<void> => {
+      /*
+       * The public path goes through BaseModel.fromJSONArray rather than
+       * ModelAPI, so nothing else in this suite exercises the deserialization
+       * the widget depends on. The payload below is what the route's
+       * sendEntityArrayResponse produces for two rows.
+       */
+      publicTimelinePayload = BaseModel.toJSONArray(
+        [
+          operational(
+            MONITOR_A_ID,
+            "2026-09-01T08:00:00.000Z",
+            "2026-09-01T10:00:00.000Z",
+          ),
+          offline(MONITOR_A_ID, "2026-09-01T10:00:00.000Z"),
+        ],
+        MonitorStatusTimeline,
+      );
+
+      renderWidget({ viewMode: "timeline" });
+
+      await waitFor((): void => {
+        expect(segmentStyles()).toHaveLength(2);
+      });
+
+      expect(segmentStyles()).toEqual([
+        { left: "0%", width: "50%" },
+        { left: "50%", width: "50%" },
+      ]);
+      expect(
+        await screen.findByTestId("state-timeline-trailing-label"),
+      ).toHaveTextContent("50%");
     });
   });
 

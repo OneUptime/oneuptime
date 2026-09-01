@@ -1532,6 +1532,10 @@ export default class DashboardAPI extends BaseAPI<
               : undefined,
           });
 
+          PublicDashboardMonitorStateTimelinePolicy.assertWidgetDrawsTimeline(
+            widget,
+          );
+
           const window: InBetween<Date> =
             PublicDashboardMonitorStateTimelinePolicy.resolveWindowFromBody(
               req.body as JSONObject | undefined,
@@ -1613,8 +1617,15 @@ export default class DashboardAPI extends BaseAPI<
                 endsAt: QueryHelper.greaterThanEqualToOrNull(window.startValue),
               },
               select: PUBLIC_STATE_TIMELINE_SELECT,
+              /*
+               * Newest first, matching the authenticated path: this read is
+               * capped, and ascending would drop the most recent rows — the
+               * ones the lane reads its current status from — rather than the
+               * far left of the chart. The timeline math sorts what it is
+               * given, so order is otherwise immaterial.
+               */
               sort: {
-                startsAt: SortOrder.Ascending,
+                startsAt: SortOrder.Descending,
               },
               limit: MAX_PUBLIC_STATE_TIMELINE_ROWS,
               skip: 0,

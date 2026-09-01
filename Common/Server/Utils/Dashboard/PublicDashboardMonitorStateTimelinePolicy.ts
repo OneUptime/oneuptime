@@ -4,6 +4,9 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import Select from "../../Types/Database/Select";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorStateTimelineUtil, {
+  MAX_STATE_TIMELINE_WINDOW_IN_DAYS,
+} from "../../../Utils/Monitor/MonitorStateTimelineUtil";
 
 /*
  * The server-owned policy for the public Monitor List "State Timeline" read.
@@ -16,16 +19,13 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
  */
 
 /*
- * Hard ceiling on the window a public viewer may request, independent of the
- * range picker's own options. A timeline row is written on every status
- * CHANGE, so an unbounded window on a flapping monitor is an unbounded read
- * — and unlike the authenticated app there is no session to attribute it to.
- * 3 months matches the longest range the dashboard time picker offers
- * (TimeRange.PAST_THREE_MONTHS).
+ * Re-exported so this module reads as the complete public-route policy, but
+ * OWNED by the shared timeline util: the browser applies the same ceiling
+ * before it draws, so an over-long range narrows identically on both sides of
+ * the wire instead of the axis labelling a span the server never queried.
  */
-export const MAX_PUBLIC_STATE_TIMELINE_WINDOW_IN_DAYS: number = 92;
-
-const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
+export const MAX_PUBLIC_STATE_TIMELINE_WINDOW_IN_DAYS: number =
+  MAX_STATE_TIMELINE_WINDOW_IN_DAYS;
 
 /*
  * Enough rows to draw a busy window, far below LIMIT_PER_PROJECT. A widget
@@ -57,6 +57,34 @@ export const PUBLIC_STATE_TIMELINE_SELECT: Select<MonitorStatusTimeline> = {
 
 export default class PublicDashboardMonitorStateTimelinePolicy {
   /**
+   * Refuse a widget that does not draw a state timeline.
+   *
+   * Only the timeline view mode publishes status HISTORY. A Monitor List left
+   * in list or honeycomb mode publishes each monitor's name, type and CURRENT
+   * status and nothing more — the resource-list policy's select says exactly
+   * that — so serving 92 days of every status change for one would hand out
+   * history its author never put on the page. Adding a widget to a public
+   * dashboard is the owner's only opt-in to exposing data, and the view mode
+   * is part of what they opted into.
+   */
+  public static assertWidgetDrawsTimeline(widget: JSONObject): void {
+    const widgetArguments: unknown = widget["arguments"];
+
+    const viewMode: unknown =
+      widgetArguments &&
+      typeof widgetArguments === "object" &&
+      !Array.isArray(widgetArguments)
+        ? (widgetArguments as Record<string, unknown>)["viewMode"]
+        : undefined;
+
+    if (viewMode !== "timeline") {
+      throw new BadDataException(
+        "This dashboard widget does not show a monitor state timeline.",
+      );
+    }
+  }
+
+  /**
    * The validated, bounded window for a public state-timeline read.
    *
    * A window longer than the ceiling is CLAMPED (its start is moved forward)
@@ -87,17 +115,13 @@ export default class PublicDashboardMonitorStateTimelinePolicy {
       );
     }
 
-    const maxWindowInMs: number =
-      MAX_PUBLIC_STATE_TIMELINE_WINDOW_IN_DAYS * MS_PER_DAY;
+    const clamped: { startDate: Date; endDate: Date } =
+      MonitorStateTimelineUtil.clampWindow({
+        startDate: startDate,
+        endDate: endDate,
+      });
 
-    if (endDate.getTime() - startDate.getTime() > maxWindowInMs) {
-      return new InBetween<Date>(
-        new Date(endDate.getTime() - maxWindowInMs),
-        endDate,
-      );
-    }
-
-    return new InBetween<Date>(startDate, endDate);
+    return new InBetween<Date>(clamped.startDate, clamped.endDate);
   }
 
   private static validDate(value: unknown): Date {

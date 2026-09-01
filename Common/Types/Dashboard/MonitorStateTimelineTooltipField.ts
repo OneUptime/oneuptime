@@ -19,7 +19,11 @@ enum MonitorStateTimelineTooltipField {
   Duration = "duration",
   /** Uptime for this monitor across the whole visible window. */
   UptimePercent = "uptimePercent",
-  /** The status the monitor is in at the end of the visible window. */
+  /*
+   * The status the monitor is in at the END of the visible window — which is
+   * "now" only while the range ends now. The stored value keeps its original
+   * name; the title below is what a viewer reads.
+   */
   CurrentStatus = "currentStatus",
   /** When the monitor last changed status inside the visible window. */
   LastStatusChange = "lastStatusChange",
@@ -66,7 +70,7 @@ export const MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS: ReadonlyArray<MonitorStateTi
     },
     {
       field: MonitorStateTimelineTooltipField.CurrentStatus,
-      title: "Current status",
+      title: "Status at range end",
     },
     {
       field: MonitorStateTimelineTooltipField.LastStatusChange,
@@ -89,6 +93,17 @@ export class MonitorStateTimelineTooltipFieldUtil {
     storedFields: Array<string> | undefined,
   ): Array<MonitorStateTimelineTooltipField> {
     if (storedFields === undefined) {
+      return [...DEFAULT_MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS];
+    }
+
+    /*
+     * Widget arguments are stored as untyped JSONB, so the declared
+     * Array<string> is a promise the database never enforced. Anything that is
+     * not an array is treated as "never configured" rather than fed to
+     * `new Set`, which throws on a non-iterable — and this runs inside a
+     * render memo, so the throw would blank the tile.
+     */
+    if (!Array.isArray(storedFields)) {
       return [...DEFAULT_MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS];
     }
 

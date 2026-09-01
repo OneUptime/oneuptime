@@ -334,9 +334,30 @@ describe("WidgetCatalog", () => {
     });
 
     test("matches text that only appears in the description", () => {
-      expect(getMatchedTypes("honeycomb")).toEqual([
-        DashboardComponentType.CephOsdList,
-      ]);
+      /*
+       * Two widgets name the honeycomb in their copy: the Ceph OSD list, which
+       * defaults to it, and the Monitor List, which offers it alongside the
+       * list and the state timeline.
+       */
+      expect(getMatchedTypes("honeycomb").sort()).toEqual(
+        [
+          DashboardComponentType.CephOsdList,
+          DashboardComponentType.MonitorList,
+        ].sort(),
+      );
+    });
+
+    test("finds the Monitor List by what its timeline mode is for", () => {
+      /*
+       * The reason someone opens this picker at all (issue #3503) is to see
+       * when a device went down and for how long, so those are the words that
+       * have to lead there.
+       */
+      for (const term of ["state timeline", "status history", "downtime"]) {
+        expect(getMatchedTypes(term)).toContain(
+          DashboardComponentType.MonitorList,
+        );
+      }
     });
 
     test("matches keywords that are not in the visible copy", () => {

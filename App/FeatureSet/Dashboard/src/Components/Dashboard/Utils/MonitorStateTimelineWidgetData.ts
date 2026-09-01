@@ -67,6 +67,17 @@ export default class MonitorStateTimelineWidgetData {
     endDate: Date;
     variables?: Array<DashboardVariable> | undefined;
   }): Promise<Array<MonitorStatusTimeline>> {
+    /*
+     * No monitors, nothing to ask about — on either path. The public route
+     * re-derives the monitor set itself and never trusts these ids, but their
+     * COUNT is still a safe hint: it can only skip a request whose answer
+     * provably has nowhere to render, since the lanes are built from the
+     * monitor list this count came from.
+     */
+    if (data.monitorIds.length === 0) {
+      return [];
+    }
+
     const context: PublicDashboardContext | null = getPublicDashboardContext();
 
     if (context) {
@@ -79,7 +90,7 @@ export default class MonitorStateTimelineWidgetData {
       });
     }
 
-    if (data.monitorIds.length === 0 || !data.projectId) {
+    if (!data.projectId) {
       return [];
     }
 
@@ -105,8 +116,15 @@ export default class MonitorStateTimelineWidgetData {
            * startsAt, not createdAt: they are different clocks (DB now() vs
            * worker moment()) with real skew, and startsAt is the one the
            * timeline math orders by.
+           *
+           * DESCENDING, because this read is capped. A flapping fleet can
+           * produce more rows than the cap, and ascending would hand back the
+           * OLDEST of them — silently dropping the newest, which is exactly
+           * where the lane reads its current status and last change from.
+           * Newest-first degrades the far left of the chart instead. Order
+           * does not otherwise matter: UptimeUtil sorts the rows it is given.
            */
-          startsAt: SortOrder.Ascending,
+          startsAt: SortOrder.Descending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,

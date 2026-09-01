@@ -216,6 +216,11 @@ const buildPublicRoutes: (dashboardId: string) => Array<PublicRoute> = (
     },
     {
       method: "POST",
+      uri: "/dashboard/monitor-status-timeline/:dashboardId",
+      params: { dashboardId },
+    },
+    {
+      method: "POST",
       uri: "/dashboard/master-password/:dashboardId",
       params: { dashboardId },
     },

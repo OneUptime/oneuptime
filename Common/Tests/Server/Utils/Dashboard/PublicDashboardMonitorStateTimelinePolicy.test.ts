@@ -42,6 +42,63 @@ const serializedRange: SerializedRangeFunction = (
 };
 
 describe("PublicDashboardMonitorStateTimelinePolicy", () => {
+  describe("assertWidgetDrawsTimeline", () => {
+    type WidgetFunction = (viewMode?: unknown) => JSONObject;
+
+    const widget: WidgetFunction = (viewMode?: unknown): JSONObject => {
+      return {
+        componentType: "MonitorList",
+        arguments: viewMode === undefined ? {} : ({ viewMode } as JSONObject),
+      } as JSONObject;
+    };
+
+    it("accepts a widget that is actually in timeline mode", () => {
+      expect(() => {
+        return PublicDashboardMonitorStateTimelinePolicy.assertWidgetDrawsTimeline(
+          widget("timeline"),
+        );
+      }).not.toThrow();
+    });
+
+    it.each([
+      ["list", "list"],
+      ["honeycomb", "honeycomb"],
+      ["an unset view mode", undefined],
+      ["a mode from a newer version", "heatmap"],
+      ["a non-string", 7],
+      ["null", null],
+    ])("refuses a widget in %s", (_label: string, viewMode: unknown) => {
+      /*
+       * A Monitor List in list or honeycomb mode publishes each monitor's
+       * name, type and CURRENT status and nothing more. Serving 92 days of
+       * every status change for one would hand out history its author never
+       * put on the page — adding the widget is the owner's ONLY opt-in, and
+       * the view mode is part of what they opted into.
+       */
+      expect(() => {
+        return PublicDashboardMonitorStateTimelinePolicy.assertWidgetDrawsTimeline(
+          widget(viewMode),
+        );
+      }).toThrow(BadDataException);
+    });
+
+    it.each([
+      ["no arguments object at all", {}],
+      ["a null arguments object", { arguments: null }],
+      ["an arguments array", { arguments: [] }],
+      ["a string arguments value", { arguments: "timeline" }],
+    ])(
+      "refuses a widget with %s rather than reading through it",
+      (_label: string, malformed: JSONObject) => {
+        expect(() => {
+          return PublicDashboardMonitorStateTimelinePolicy.assertWidgetDrawsTimeline(
+            { componentType: "MonitorList", ...malformed } as JSONObject,
+          );
+        }).toThrow(BadDataException);
+      },
+    );
+  });
+
   describe("resolveWindow", () => {
     it("accepts a well-formed range sent as ISO strings", () => {
       const window: InBetween<Date> =

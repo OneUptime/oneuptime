@@ -1,9 +1,8 @@
 import OneUptimeDate from "../../Types/Date";
-import ObjectID from "../../Types/ObjectID";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
-import MonitorEvent from "../Uptime/MonitorEvent";
+import Event from "../Uptime/Event";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 
 /*
@@ -36,6 +35,18 @@ export interface MonitorStateTimelineSegment {
   durationInSeconds: number;
   startPercent: number;
   widthPercent: number;
+  /*
+   * The monitor was STILL in this state at the right edge of the window, so
+   * the segment's end is where the chart stops, not where the state did.
+   * Only the last segment of a lane can carry it.
+   */
+  continuesAfterWindow: boolean;
+  /*
+   * The monitor was ALREADY in this state when the window opened, so the
+   * segment's start is where the chart begins, not where the state did. Only
+   * the first segment of a lane can carry it.
+   */
+  beganBeforeWindow: boolean;
 }
 
 /** One lane of the timeline: a single monitor and everything it did. */
@@ -55,6 +66,23 @@ export interface MonitorStateTimelineRow {
   /** Start of the last segment, i.e. when the status last changed. */
   lastStatusChangeAt: Date | null;
 }
+
+/*
+ * The longest range a state timeline will draw.
+ *
+ * A timeline row is written on every status CHANGE, so an unbounded window on
+ * a flapping fleet is an unbounded read, and a lane thousands of segments deep
+ * is unreadable anyway. 92 days matches the longest range the dashboard's own
+ * time picker offers (TimeRange.PAST_THREE_MONTHS); a longer CUSTOM range is
+ * clamped to it.
+ *
+ * Both ends of the wire share this number. The public route enforces it, and
+ * the browser applies it BEFORE it draws, so the axis never labels a span the
+ * server was never asked about.
+ */
+export const MAX_STATE_TIMELINE_WINDOW_IN_DAYS: number = 92;
+
+const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
 
 /** One label under the timeline axis. */
 export interface MonitorStateTimelineAxisTick {
@@ -92,6 +120,30 @@ export default class MonitorStateTimelineUtil {
    */
   public static isWindowValid(startDate: Date, endDate: Date): boolean {
     return endDate.getTime() > startDate.getTime();
+  }
+
+  /**
+   * The window a timeline may actually draw, given the one the dashboard asked
+   * for. A range longer than the ceiling keeps its END — that is the edge the
+   * viewer is looking at — and has its start moved forward.
+   */
+  public static clampWindow(data: { startDate: Date; endDate: Date }): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const { startDate, endDate } = data;
+
+    const maxWindowInMs: number =
+      MAX_STATE_TIMELINE_WINDOW_IN_DAYS * MS_PER_DAY;
+
+    if (endDate.getTime() - startDate.getTime() > maxWindowInMs) {
+      return {
+        startDate: new Date(endDate.getTime() - maxWindowInMs),
+        endDate: endDate,
+      };
+    }
+
+    return { startDate: startDate, endDate: endDate };
   }
 
   /**
@@ -157,15 +209,89 @@ export default class MonitorStateTimelineUtil {
   ): Array<MonitorStatusTimeline> {
     return statusTimelines.filter((timeline: MonitorStatusTimeline) => {
       /*
-       * A row whose status did not come back joined is dropped rather than
-       * passed on: UptimeUtil reads `monitorStatus.id` unguarded, so one such
-       * row would throw and take the whole widget down. It happens when the
-       * status was deleted out from under the row, and a lane that is missing
-       * one segment is a far better outcome than a blank dashboard tile.
+       * A row whose status did not come back fully joined is dropped rather
+       * than passed on: UptimeUtil reads `monitorStatus.id` unguarded, so one
+       * such row throws and takes the whole widget down — and buildRows runs
+       * inside a render memo, not the fetch's try/catch, so the throw blanks
+       * the dashboard rather than the lane. The `id` is checked, not merely
+       * the relation: a status object present but without one fails in exactly
+       * the same place, and getDowntimeStatuses below already tests for it.
        */
       return (
         timeline.monitorId?.toString() === monitorId &&
-        Boolean(timeline.monitorStatus)
+        Boolean(timeline.monitorStatus?.id)
+      );
+    });
+  }
+
+  /**
+   * Whether the monitor was still in whatever state it was in when the window
+   * closed — i.e. the run the last bar draws had not ended by then.
+   *
+   * Read off the RAW rows rather than the clipped events, because a clipped
+   * event always ends at the window edge and so cannot tell the difference.
+   * The row that covers the window end is the latest one starting at or before
+   * it; if that row is open, or closes after the window, the state was still
+   * running. Taking the LATEST such row is also what makes this immune to the
+   * orphaned open rows (endsAt = NULL with a later successor) that
+   * MonitorStatusTimelineReconciler exists to repair — an orphan is superseded
+   * by the row that starts after it.
+   */
+  public static isStillInStateAtWindowEnd(
+    statusTimelines: Array<MonitorStatusTimeline>,
+    endDate: Date,
+  ): boolean {
+    let covering: MonitorStatusTimeline | null = null;
+
+    for (const timeline of statusTimelines) {
+      if (
+        !timeline.startsAt ||
+        timeline.startsAt.getTime() > endDate.getTime()
+      ) {
+        continue;
+      }
+
+      if (
+        !covering ||
+        !covering.startsAt ||
+        timeline.startsAt.getTime() >= covering.startsAt.getTime()
+      ) {
+        covering = timeline;
+      }
+    }
+
+    if (!covering) {
+      return false;
+    }
+
+    return !covering.endsAt || covering.endsAt.getTime() > endDate.getTime();
+  }
+
+  /**
+   * Whether the monitor was already in some state before the window opened —
+   * i.e. the run the first bar draws started earlier than the chart does.
+   *
+   * Same shape as isStillInStateAtWindowEnd and read off the RAW rows for the
+   * same reason: a clipped event always starts at the window edge, so it
+   * cannot tell a status change that happened at that instant from one that
+   * happened a year earlier.
+   */
+  public static beganBeforeWindowStart(
+    statusTimelines: Array<MonitorStatusTimeline>,
+    startDate: Date,
+  ): boolean {
+    return statusTimelines.some((timeline: MonitorStatusTimeline) => {
+      if (!timeline.startsAt) {
+        return false;
+      }
+
+      if (timeline.startsAt.getTime() >= startDate.getTime()) {
+        return false;
+      }
+
+      // Still running when the window opened.
+      return (
+        !timeline.endsAt || timeline.endsAt.getTime() > startDate.getTime()
       );
     });
   }
@@ -194,17 +320,26 @@ export default class MonitorStateTimelineUtil {
       endDate: endDate,
     };
 
-    const events: Array<MonitorEvent> = UptimeUtil.getMonitorEventsForId(
-      new ObjectID(monitorId),
-      /*
-       * Filtered here as well as in buildRows so this stays safe when called
-       * on its own with every monitor's rows: the filter is what drops rows
-       * with no joined status, which UptimeUtil would throw on.
-       */
+    /*
+     * Filtered here as well as in buildRows so this stays safe when called on
+     * its own with every monitor's rows: the filter is what drops rows with no
+     * usable status, which UptimeUtil would throw on.
+     */
+    const timelinesForMonitor: Array<MonitorStatusTimeline> =
       MonitorStateTimelineUtil.getTimelinesForMonitor(
         statusTimelines,
         monitorId,
-      ),
+      );
+
+    /*
+     * The NON-overlapping event list, which is the same one
+     * UptimeUtil.calculateUptimePercentage derives its number from. Drawing
+     * the raw list instead would let two overlapping rows paint bars summing
+     * past the width of the lane while the percentage beside them was computed
+     * from a different, split interpretation of the same rows.
+     */
+    const events: Array<Event> = UptimeUtil.getNonOverlappingMonitorEvents(
+      timelinesForMonitor,
       window,
     );
 
@@ -241,6 +376,9 @@ export default class MonitorStateTimelineUtil {
         ),
         startPercent: startPercent,
         widthPercent: widthPercent,
+        // Both decided once the whole run is known — below.
+        continuesAfterWindow: false,
+        beganBeforeWindow: false,
       });
     }
 
@@ -255,6 +393,37 @@ export default class MonitorStateTimelineUtil {
         return a.startDate.getTime() - b.startDate.getTime();
       },
     );
+
+    /*
+     * Only the last bar can still be running: every earlier one is bounded by
+     * the bar after it. Without this the hover card reads "Ended: <the current
+     * time>" over an outage that is still happening.
+     */
+    const lastSegment: MonitorStateTimelineSegment | undefined =
+      segments[segments.length - 1];
+
+    if (lastSegment) {
+      lastSegment.continuesAfterWindow =
+        MonitorStateTimelineUtil.isStillInStateAtWindowEnd(
+          timelinesForMonitor,
+          endDate,
+        );
+    }
+
+    /*
+     * Likewise only the first bar can have been cut off at the left. It is
+     * what tells the caller that the run it draws is older than the chart, so
+     * the clipped start is not a status change that happened.
+     */
+    const firstSegment: MonitorStateTimelineSegment | undefined = segments[0];
+
+    if (firstSegment) {
+      firstSegment.beganBeforeWindow =
+        MonitorStateTimelineUtil.beganBeforeWindowStart(
+          timelinesForMonitor,
+          startDate,
+        );
+    }
 
     return segments;
   }
@@ -322,7 +491,18 @@ export default class MonitorStateTimelineUtil {
           uptimePercent: uptimePercent,
           currentStatusName: lastSegment?.label,
           currentStatusColor: lastSegment?.color,
-          lastStatusChangeAt: lastSegment ? lastSegment.startDate : null,
+          /*
+           * null when nothing CHANGED inside the window. A monitor that has
+           * sat in one status since before the window opened has exactly one
+           * segment, clipped to the window start — reporting that boundary as
+           * a status change would tell an operator a seven-year-old
+           * Operational monitor changed status an hour ago, and would move
+           * forward on every auto-refresh.
+           */
+          lastStatusChangeAt:
+            lastSegment && !lastSegment.beganBeforeWindow
+              ? lastSegment.startDate
+              : null,
         };
       },
     );

@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -83,6 +84,23 @@ const LANE_HEIGHT_IN_PX: number = 18;
  */
 const MIN_SEGMENT_WIDTH_IN_PX: number = 2;
 
+/*
+ * Segments are absolutely positioned siblings, so without this the LAST one in
+ * the lane paints over every earlier one it overlaps — which is exactly the
+ * pixels the min-width above just bought a brief outage. Stacking them
+ * narrowest-on-top makes the widening real for both painting and hit testing,
+ * and it costs nothing when nothing overlaps. widthPercent is 0-100, so this
+ * is always a non-negative integer and a wider bar can never outrank a
+ * narrower one.
+ */
+type GetSegmentZIndexFunction = (widthPercent: number) => number;
+
+const getSegmentZIndex: GetSegmentZIndexFunction = (
+  widthPercent: number,
+): number => {
+  return Math.max(0, Math.round(100 - widthPercent));
+};
+
 interface TooltipState {
   rowLabel: string;
   segment: StateTimelineSegment;
@@ -135,6 +153,7 @@ const SegmentBar: FunctionComponent<SegmentBarProps> = (
         left: `${segment.startPercent}%`,
         width: `${segment.widthPercent}%`,
         minWidth: `${MIN_SEGMENT_WIDTH_IN_PX}px`,
+        zIndex: getSegmentZIndex(segment.widthPercent),
         backgroundColor: segment.color,
       }}
     />
@@ -220,6 +239,32 @@ const DashboardResourceStateTimeline: FunctionComponent<
   const onHoverEnd: () => void = (): void => {
     setTooltipState(null);
   };
+
+  /*
+   * React dispatches no mouseleave for an element it unmounts, so a refresh
+   * tick that drops the hovered bar (the window slid, an event fell out of
+   * range) would otherwise leave its fixed-position card pinned to the screen
+   * for good. Hovering is not cleared on every refresh — only when the bar
+   * under the pointer is actually gone — so a card over a bar that survived
+   * the refresh does not flicker.
+   */
+  useEffect(() => {
+    setTooltipState((current: TooltipState | null): TooltipState | null => {
+      if (!current) {
+        return current;
+      }
+
+      const stillRendered: boolean = props.rows.some(
+        (row: StateTimelineRow) => {
+          return row.segments.some((segment: StateTimelineSegment) => {
+            return segment.id === current.segment.id;
+          });
+        },
+      );
+
+      return stillRendered ? current : null;
+    });
+  }, [props.rows]);
 
   /*
    * Decided once for the whole widget, not per lane: if only the lanes that
@@ -318,52 +363,59 @@ const DashboardResourceStateTimeline: FunctionComponent<
 
   return (
     <div className="h-full w-full flex flex-col">
+      {/*
+       * The axis lives INSIDE the scrolling container, stuck to its bottom.
+       * As a sibling it would be laid out against a containing block wider by
+       * the scrollbar, and its 34%-plus-flex-1 split would no longer line up
+       * with the lanes' — so every tick would sit a few pixels away from the
+       * instant it names, on exactly the tall widgets where the axis matters.
+       */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
         {props.rows.map(getLane)}
-      </div>
 
-      {props.axisTicks.length > 0 && (
-        <div className="flex items-center gap-2 px-2 pb-1">
-          <div
-            className="flex-shrink-0"
-            style={{ width: "34%", maxWidth: "180px", minWidth: "64px" }}
-          ></div>
-          <div className="relative flex-1 h-4">
-            {props.axisTicks.map(
-              (tick: StateTimelineAxisTick, index: number) => {
-                /*
-                 * The first and last labels are anchored to their edge rather
-                 * than centred on it, so neither is clipped by the lane.
-                 */
-                const isFirst: boolean = index === 0;
-                const isLast: boolean = index === props.axisTicks.length - 1;
+        {props.axisTicks.length > 0 && (
+          <div className="sticky bottom-0 flex items-center gap-2 px-2 pt-1 pb-1 bg-white">
+            <div
+              className="flex-shrink-0"
+              style={{ width: "34%", maxWidth: "180px", minWidth: "64px" }}
+            ></div>
+            <div className="relative flex-1 h-4">
+              {props.axisTicks.map(
+                (tick: StateTimelineAxisTick, index: number) => {
+                  /*
+                   * The first and last labels are anchored to their edge rather
+                   * than centred on it, so neither is clipped by the lane.
+                   */
+                  const isFirst: boolean = index === 0;
+                  const isLast: boolean = index === props.axisTicks.length - 1;
 
-                let transform: string = "translateX(-50%)";
-                if (isFirst) {
-                  transform = "translateX(0)";
-                } else if (isLast) {
-                  transform = "translateX(-100%)";
-                }
+                  let transform: string = "translateX(-50%)";
+                  if (isFirst) {
+                    transform = "translateX(0)";
+                  } else if (isLast) {
+                    transform = "translateX(-100%)";
+                  }
 
-                return (
-                  <span
-                    key={index}
-                    data-testid="state-timeline-axis-tick"
-                    className="absolute top-0 text-[10px] text-gray-400 whitespace-nowrap tabular-nums"
-                    style={{
-                      left: `${tick.percent}%`,
-                      transform: transform,
-                    }}
-                  >
-                    {tick.label}
-                  </span>
-                );
-              },
-            )}
+                  return (
+                    <span
+                      key={index}
+                      data-testid="state-timeline-axis-tick"
+                      className="absolute top-0 text-[10px] text-gray-400 whitespace-nowrap tabular-nums"
+                      style={{
+                        left: `${tick.percent}%`,
+                        transform: transform,
+                      }}
+                    >
+                      {tick.label}
+                    </span>
+                  );
+                },
+              )}
+            </div>
+            {hasTrailingLabels && <div className="flex-shrink-0 w-12"></div>}
           </div>
-          {hasTrailingLabels && <div className="flex-shrink-0 w-12"></div>}
-        </div>
-      )}
+        )}
+      </div>
 
       {props.legend && props.legend.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 pb-2 pt-1 border-t border-gray-100 bg-gray-50/50">
