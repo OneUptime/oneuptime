@@ -27,6 +27,19 @@ jobs:
   # gate; it never changed a pass into a fail. `npm run debug:test` still has
   # it for when a leak needs chasing.
   #
+  # Moving off runInBand is also why the test script now pins --maxWorkers and
+  # a smaller heap. --max-old-space-size is a per-process ceiling, and
+  # jest-worker forwards the parent's execArgv to every worker it forks
+  # (ChildProcessWorker only strips --debug/--inspect), so the old
+  # --max-old-space-size=6144 stopped describing one process and started
+  # describing each of them. On a 4-vCPU runner Jest defaults to three workers,
+  # which is an 18 GB ceiling on a 16 GB box: the workers grew until the VM
+  # itself died, and every shard failed with "the runner has received a
+  # shutdown signal" rather than a test failure. A shard's live set measures
+  # ~2 GB per worker and peaks near 3.5 GB, so 2 workers x 4 GB keeps the hard
+  # ceiling at 8 GB with room to spare for the postgres and redis containers
+  # test-setup.sh starts alongside.
+  #
   # Type checking is deliberately left on. App's suite could go transpile-only
   # (App/jest.config.json, isolatedModules) because the compile-app job takes
   # every App test file as a tsc program root, so nothing went unchecked.
