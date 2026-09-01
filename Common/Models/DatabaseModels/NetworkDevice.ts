@@ -118,6 +118,18 @@ import {
  */
 @Index(["projectId", "siteId"])
 /*
+ * "Which devices use this OID Collection Template?" - the count on the
+ * template page, the Template column's filter on the device list, and the
+ * FK's own ON DELETE SET NULL scan.
+ *
+ * Project-prefixed and composite, like every other index on this table and
+ * for the reason written at the top of this block: a bare column index on a
+ * nullable FK is one btree entry per row of the product's hottest table,
+ * paid on every poll, to serve queries that all carry a projectId anyway.
+ * This is the same shape siteId gets above, and deliberately so.
+ */
+@Index(["projectId", "oidTemplateId"])
+/*
  * The other half of the Overview's attention list: reachable devices with the
  * most dark ports.
  *
@@ -668,13 +680,10 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   /*
-   * Indexed, and all three readers need it: the "how many devices use this
-   * template" count on the template page, the filterable Template column on
-   * the device list, and Postgres's own ON DELETE SET NULL action, which
-   * would otherwise sequentially scan a table with eighty thousand rows in
-   * it every time a template is removed.
+   * No column-level index here on purpose - the composite
+   * (projectId, oidTemplateId) declared at the top of the class serves every
+   * reader. See the comment there.
    */
-  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
