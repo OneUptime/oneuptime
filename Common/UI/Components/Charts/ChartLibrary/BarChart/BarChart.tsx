@@ -11,7 +11,6 @@ import {
   Label,
   BarChart as RechartsBarChart,
   Legend as RechartsLegend,
-  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -31,6 +30,9 @@ import {
   getColorHex,
   isHexColorValue,
 } from "../Utils/ChartColors";
+import useChartAnnotations, {
+  UseChartAnnotationsResult,
+} from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import {
@@ -38,15 +40,6 @@ import {
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
-
-/*
- * Incident/alert time markers each label at the same "insideTop" band, so
- * several events in one window pile their labels into an unreadable stack.
- * A single marker keeps the classic horizontal top label; a handful get
- * rotated to run along their lines; past this cap inline labels are hidden
- * entirely (the dashed lines and their click-through remain).
- */
-const MAX_LABELED_TIME_REFERENCE_LINES: number = 6;
 
 //#region Shape
 
@@ -753,10 +746,33 @@ const BarChart: React.ForwardRefExoticComponent<
     );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
-    const timeReferenceLineCount: number =
-      formattedTimeReferenceLines?.length || 0;
-    const showTimeReferenceLineLabels: boolean =
-      timeReferenceLineCount <= MAX_LABELED_TIME_REFERENCE_LINES;
+
+    /*
+     * Annotations are drawn onto the categorical axis, so the layer needs
+     * the same x values recharts is drawing — not the source dates. A
+     * vertical bar chart has no time axis to hang them on, so it gets
+     * none.
+     */
+    const categoryLabels: Array<string> = React.useMemo(():
+      | Array<string>
+      | never => {
+      return (data as Array<Record<string, unknown>>).map(
+        (row: Record<string, unknown>): string => {
+          return String(row[index] ?? "");
+        },
+      );
+    }, [data, index]);
+
+    const annotations: UseChartAnnotationsResult = useChartAnnotations({
+      formattedTimeReferenceLines:
+        layout === "vertical" ? undefined : formattedTimeReferenceLines,
+      formattedReferenceRegions:
+        layout === "vertical" ? undefined : formattedReferenceRegions,
+      categoryLabels,
+      axisPaddingPx: paddingValue,
+      scaleKind: "band",
+      hasTopLegend: showLegend,
+    });
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
     );
@@ -840,376 +856,312 @@ const BarChart: React.ForwardRefExoticComponent<
         data-tremor-id="tremor-raw"
         {...other}
       >
-        <ResponsiveContainer>
-          <RechartsBarChart
-            data={data}
-            /*
-             * Omitted, not "": recharts treats "" as a real sync
-             * channel, so every unsynced chart page-wide would
-             * accidentally sync with every other one.
-             */
-            {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
-            {...(hasOnValueChange && (activeLegend || activeBar)
-              ? {
-                  onClick: handleChartClick,
-                }
-              : {})}
-            margin={{
-              bottom: xAxisLabel ? 40 : showXAxis ? 24 : 8,
-              left: yAxisLabel ? 20 : 0,
-              right: yAxisLabel ? 5 : 8,
-              top: 5,
-            }}
-            stackOffset={type === "percent" ? "expand" : "none"}
-            layout={layout}
-            barCategoryGap={barCategoryGap ?? "10%"}
-          >
-            {showGridLines ? (
-              <CartesianGrid
-                className={cx("stroke-gray-100")}
-                strokeDasharray="3 3"
-                horizontal={layout !== "vertical"}
-                vertical={layout === "vertical"}
-              />
-            ) : null}
-            <XAxis
-              hide={!showXAxis}
-              tick={{
-                transform:
-                  layout !== "vertical" ? "translate(0, 6)" : undefined,
-                fontSize: 10,
-                fontWeight: 500,
-                fill: "var(--ou-chart-tick)",
-              }}
-              fill=""
-              stroke=""
-              className={cx(
-                // base
-                "tabular-nums",
-                // text fill
-                "fill-gray-500",
-                { "mt-4": layout !== "vertical" },
-              )}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={tickGap}
-              {...(layout !== "vertical"
+        {/*
+         * The hover card is HTML over the SVG, so it needs a positioned
+         * ancestor that is exactly the chart's box. recharts sizes its
+         * <svg> in CSS pixels with no viewBox, so the card can reuse the
+         * coordinates the rail was drawn with.
+         */}
+        <div className={cx("relative isolate h-full w-full")}>
+          <ResponsiveContainer>
+            <RechartsBarChart
+              data={data}
+              /*
+               * Omitted, not "": recharts treats "" as a real sync
+               * channel, so every unsynced chart page-wide would
+               * accidentally sync with every other one.
+               */
+              {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
+              {...(hasOnValueChange && (activeLegend || activeBar)
                 ? {
-                    padding: {
-                      left: paddingValue,
-                      right: paddingValue,
-                    },
-                    dataKey: index,
-                    interval: startEndOnly ? "preserveStartEnd" : intervalType,
-                    ...(startEndOnly && data.length > 0
-                      ? {
-                          ticks: [
-                            data[0]?.[index],
-                            data[data.length - 1]?.[index],
-                          ].filter(Boolean),
-                        }
-                      : {}),
+                    onClick: handleChartClick,
                   }
-                : {
-                    type: "number" as const,
-                    domain: yAxisDomain as AxisDomain,
-                    tickFormatter:
-                      type === "percent" ? valueToPercent : valueFormatter,
-                    allowDecimals: allowDecimals,
-                  })}
-            >
-              {xAxisLabel && (
-                <Label
-                  position="insideBottom"
-                  offset={-20}
-                  className="fill-gray-800 text-sm font-medium"
-                >
-                  {xAxisLabel}
-                </Label>
-              )}
-            </XAxis>
-            <YAxis
-              width={yAxisWidth}
-              hide={!showYAxis}
-              axisLine={false}
-              tickLine={false}
-              fill=""
-              stroke=""
-              className={cx(
-                // base
-                "tabular-nums",
-                // text fill
-                "fill-gray-500",
-              )}
-              tick={{
-                transform:
-                  layout !== "vertical"
-                    ? "translate(-4, 0)"
-                    : "translate(0, 0)",
-                fontSize: 10,
-                fontWeight: 500,
-                fill: "var(--ou-chart-tick)",
+                : {})}
+              margin={{
+                bottom: xAxisLabel ? 40 : showXAxis ? 24 : 8,
+                left: yAxisLabel ? 20 : 0,
+                right: yAxisLabel ? 5 : 8,
+                /*
+                 * The annotation rail is drawn in the top margin, so the
+                 * margin has to grow to hold it — otherwise chips render
+                 * above the SVG's own edge and get clipped.
+                 */
+                top: annotations.marginTop,
               }}
-              {...(layout !== "vertical"
-                ? {
-                    type: "number" as const,
-                    domain: yAxisDomain as AxisDomain,
-                    tickFormatter:
-                      type === "percent" ? valueToPercent : valueFormatter,
-                    allowDecimals: allowDecimals,
+              stackOffset={type === "percent" ? "expand" : "none"}
+              layout={layout}
+              barCategoryGap={barCategoryGap ?? "10%"}
+            >
+              {showGridLines ? (
+                <CartesianGrid
+                  className={cx("stroke-gray-100")}
+                  strokeDasharray="3 3"
+                  horizontal={layout !== "vertical"}
+                  vertical={layout === "vertical"}
+                />
+              ) : null}
+              <XAxis
+                hide={!showXAxis}
+                tick={{
+                  transform:
+                    layout !== "vertical" ? "translate(0, 6)" : undefined,
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                fill=""
+                stroke=""
+                className={cx(
+                  // base
+                  "tabular-nums",
+                  // text fill
+                  "fill-gray-500",
+                  { "mt-4": layout !== "vertical" },
+                )}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={tickGap}
+                {...(layout !== "vertical"
+                  ? {
+                      padding: {
+                        left: paddingValue,
+                        right: paddingValue,
+                      },
+                      dataKey: index,
+                      interval: startEndOnly
+                        ? "preserveStartEnd"
+                        : intervalType,
+                      ...(startEndOnly && data.length > 0
+                        ? {
+                            ticks: [
+                              data[0]?.[index],
+                              data[data.length - 1]?.[index],
+                            ].filter(Boolean),
+                          }
+                        : {}),
+                    }
+                  : {
+                      type: "number" as const,
+                      domain: yAxisDomain as AxisDomain,
+                      tickFormatter:
+                        type === "percent" ? valueToPercent : valueFormatter,
+                      allowDecimals: allowDecimals,
+                    })}
+              >
+                {xAxisLabel && (
+                  <Label
+                    position="insideBottom"
+                    offset={-20}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {xAxisLabel}
+                  </Label>
+                )}
+              </XAxis>
+              <YAxis
+                width={yAxisWidth}
+                hide={!showYAxis}
+                axisLine={false}
+                tickLine={false}
+                fill=""
+                stroke=""
+                className={cx(
+                  // base
+                  "tabular-nums",
+                  // text fill
+                  "fill-gray-500",
+                )}
+                tick={{
+                  transform:
+                    layout !== "vertical"
+                      ? "translate(-4, 0)"
+                      : "translate(0, 0)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  fill: "var(--ou-chart-tick)",
+                }}
+                {...(layout !== "vertical"
+                  ? {
+                      type: "number" as const,
+                      domain: yAxisDomain as AxisDomain,
+                      tickFormatter:
+                        type === "percent" ? valueToPercent : valueFormatter,
+                      allowDecimals: allowDecimals,
+                    }
+                  : {
+                      dataKey: index,
+                      ...(startEndOnly && data.length > 0
+                        ? {
+                            ticks: [
+                              data[0]?.[index],
+                              data[data.length - 1]?.[index],
+                            ].filter(Boolean),
+                          }
+                        : {}),
+                      type: "category" as const,
+                      interval: "equidistantPreserveStart" as const,
+                    })}
+              >
+                {yAxisLabel && (
+                  <Label
+                    position="insideLeft"
+                    style={{ textAnchor: "middle" }}
+                    angle={-90}
+                    offset={-15}
+                    className="fill-gray-800 text-sm font-medium"
+                  >
+                    {yAxisLabel}
+                  </Label>
+                )}
+              </YAxis>
+              <Tooltip
+                wrapperStyle={{ outline: "none", zIndex: 10 }}
+                isAnimationActive={true}
+                animationDuration={100}
+                cursor={{
+                  fill: "var(--ou-chart-cursor, #d1d5db)",
+                  opacity: "0.15",
+                }}
+                offset={20}
+                {...(layout === "horizontal"
+                  ? { position: { y: 0 } }
+                  : { position: { x: yAxisWidth + 20 } })}
+                content={({ active, payload, label }: any) => {
+                  const cleanPayload: TooltipProps["payload"] = payload
+                    ? payload.map((item: any) => {
+                        return {
+                          category: item.dataKey,
+                          value: item.value,
+                          index: item.payload[index],
+                          color: categoryColors.get(
+                            item.dataKey,
+                          ) as ChartColorValue,
+                          type: item.type,
+                          payload: item.payload,
+                        };
+                      })
+                    : [];
+
+                  if (
+                    tooltipCallback &&
+                    (active !== prevActiveRef.current ||
+                      label !== prevLabelRef.current)
+                  ) {
+                    tooltipCallback({ active, payload: cleanPayload, label });
+                    prevActiveRef.current = active;
+                    prevLabelRef.current = label;
                   }
-                : {
-                    dataKey: index,
-                    ...(startEndOnly && data.length > 0
-                      ? {
-                          ticks: [
-                            data[0]?.[index],
-                            data[data.length - 1]?.[index],
-                          ].filter(Boolean),
-                        }
-                      : {}),
-                    type: "category" as const,
-                    interval: "equidistantPreserveStart" as const,
-                  })}
-            >
-              {yAxisLabel && (
-                <Label
-                  position="insideLeft"
-                  style={{ textAnchor: "middle" }}
-                  angle={-90}
-                  offset={-15}
-                  className="fill-gray-800 text-sm font-medium"
-                >
-                  {yAxisLabel}
-                </Label>
-              )}
-            </YAxis>
-            <Tooltip
-              wrapperStyle={{ outline: "none", zIndex: 10 }}
-              isAnimationActive={true}
-              animationDuration={100}
-              cursor={{
-                fill: "var(--ou-chart-cursor, #d1d5db)",
-                opacity: "0.15",
-              }}
-              offset={20}
-              {...(layout === "horizontal"
-                ? { position: { y: 0 } }
-                : { position: { x: yAxisWidth + 20 } })}
-              content={({ active, payload, label }: any) => {
-                const cleanPayload: TooltipProps["payload"] = payload
-                  ? payload.map((item: any) => {
-                      return {
-                        category: item.dataKey,
-                        value: item.value,
-                        index: item.payload[index],
-                        color: categoryColors.get(
-                          item.dataKey,
-                        ) as ChartColorValue,
-                        type: item.type,
-                        payload: item.payload,
-                      };
-                    })
-                  : [];
 
-                if (
-                  tooltipCallback &&
-                  (active !== prevActiveRef.current ||
-                    label !== prevLabelRef.current)
-                ) {
-                  tooltipCallback({ active, payload: cleanPayload, label });
-                  prevActiveRef.current = active;
-                  prevLabelRef.current = label;
-                }
-
-                return showTooltip && active ? (
-                  CustomTooltip ? (
-                    <CustomTooltip
-                      active={active}
-                      payload={cleanPayload}
-                      label={label}
-                    />
-                  ) : (
-                    <ChartTooltip
-                      active={active}
-                      payload={cleanPayload}
-                      label={label}
-                      valueFormatter={valueFormatter}
-                    />
-                  )
-                ) : null;
-              }}
-            />
-            {showLegend ? (
-              <RechartsLegend
-                verticalAlign="top"
-                height={legendHeight}
-                content={({ payload }: any) => {
-                  return ChartLegend(
-                    { payload },
-                    categoryColors,
-                    setLegendHeight,
-                    activeLegend,
-                    hasOnValueChange
-                      ? (clickedLegendItem: string): void => {
-                          return onCategoryClick(clickedLegendItem);
-                        }
-                      : undefined,
-                    enableLegendSlider,
-                    legendPosition,
-                    yAxisWidth,
-                  );
+                  return showTooltip && active ? (
+                    CustomTooltip ? (
+                      <CustomTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                      />
+                    ) : (
+                      <ChartTooltip
+                        active={active}
+                        payload={cleanPayload}
+                        label={label}
+                        valueFormatter={valueFormatter}
+                      />
+                    )
+                  ) : null;
                 }}
               />
-            ) : null}
-            {categories.map((category: string) => {
-              const barColor: ChartColorValue = categoryColors.get(
-                category,
-              ) as ChartColorValue;
-              const isCustomColor: boolean = isHexColorValue(barColor);
-              return (
-                <Bar
-                  className={cx(
-                    getColorClassName(barColor, "fill"),
-                    onValueChange ? "cursor-pointer" : "",
-                  )}
-                  key={category}
-                  name={category}
-                  type="linear"
-                  dataKey={category}
-                  {...(stacked ? { stackId: "stack" } : {})}
-                  isAnimationActive={false}
+              {showLegend ? (
+                <RechartsLegend
+                  verticalAlign="top"
                   /*
-                   * Custom hex → apply the color inline (Tailwind has no class
-                   * for arbitrary user hex); named palette → keep "" so the
-                   * `fill-*` class on the Bar cascades to the shape path.
+                   * Padded so the annotation rail gets a clear strip between
+                   * the legend and the plot; see UseChartAnnotations.
                    */
-                  fill={isCustomColor ? getColorHex(barColor) : ""}
-                  shape={shapeRenderer}
-                  onClick={onBarClick}
+                  height={legendHeight + annotations.railHeight}
+                  content={({ payload }: any) => {
+                    return ChartLegend(
+                      { payload },
+                      categoryColors,
+                      setLegendHeight,
+                      activeLegend,
+                      hasOnValueChange
+                        ? (clickedLegendItem: string): void => {
+                            return onCategoryClick(clickedLegendItem);
+                          }
+                        : undefined,
+                      enableLegendSlider,
+                      legendPosition,
+                      yAxisWidth,
+                    );
+                  }}
                 />
-              );
-            })}
-            {props.referenceLines?.map(
-              (refLine: ChartReferenceLineProps, refIndex: number) => {
+              ) : null}
+              {categories.map((category: string) => {
+                const barColor: ChartColorValue = categoryColors.get(
+                  category,
+                ) as ChartColorValue;
+                const isCustomColor: boolean = isHexColorValue(barColor);
                 return (
-                  <ReferenceLine
-                    key={`ref-${refIndex}`}
-                    y={refLine.value}
-                    stroke={refLine.color}
-                    strokeDasharray={refLine.strokeDasharray || "4 4"}
-                    strokeWidth={1.5}
-                  >
-                    {refLine.label && (
-                      <Label
-                        value={refLine.label}
-                        position="insideTopRight"
-                        fill={refLine.color}
-                        fontSize={11}
-                        fontWeight={500}
-                      />
+                  <Bar
+                    className={cx(
+                      getColorClassName(barColor, "fill"),
+                      onValueChange ? "cursor-pointer" : "",
                     )}
-                  </ReferenceLine>
+                    key={category}
+                    name={category}
+                    type="linear"
+                    dataKey={category}
+                    {...(stacked ? { stackId: "stack" } : {})}
+                    isAnimationActive={false}
+                    /*
+                     * Custom hex → apply the color inline (Tailwind has no class
+                     * for arbitrary user hex); named palette → keep "" so the
+                     * `fill-*` class on the Bar cascades to the shape path.
+                     */
+                    fill={isCustomColor ? getColorHex(barColor) : ""}
+                    shape={shapeRenderer}
+                    onClick={onBarClick}
+                  />
                 );
-              },
-            )}
-            {/*
-             * Time annotations need the x-axis to be the category axis,
-             * which is only true in horizontal layout.
-             */}
-            {/* Time-anchored shaded regions (e.g. incident/maintenance windows) */}
-            {layout !== "vertical"
-              ? formattedReferenceRegions?.map(
-                  (region: FormattedReferenceRegion, regionIndex: number) => {
-                    const regionColor: string =
-                      region.original.color || "#6366f1";
-                    return (
-                      <ReferenceArea
-                        key={`ref-region-${regionIndex}`}
-                        x1={region.formattedX1}
-                        x2={region.formattedX2}
-                        fill={regionColor}
-                        fillOpacity={0.12}
-                        stroke={regionColor}
-                        strokeOpacity={0.35}
-                        strokeWidth={1}
-                        {...(region.original.onClick
-                          ? {
-                              style: { cursor: "pointer" as const },
-                              onClick: (): void => {
-                                region.original.onClick?.();
-                              },
-                            }
-                          : {})}
-                      >
-                        {region.original.label && (
-                          <Label
-                            value={region.original.label}
-                            position="insideTop"
-                            fill={regionColor}
-                            fontSize={10}
-                            fontWeight={500}
-                          />
-                        )}
-                      </ReferenceArea>
-                    );
-                  },
-                )
-              : null}
-            {/* Time-anchored vertical event markers (e.g. deploys, incidents) */}
-            {layout !== "vertical"
-              ? formattedTimeReferenceLines?.map(
-                  (
-                    timeRefLine: FormattedTimeReferenceLine,
-                    timeRefIndex: number,
-                  ) => {
-                    const lineColor: string =
-                      timeRefLine.original.color || "#f59e0b";
-                    return (
-                      <ReferenceLine
-                        key={`time-ref-${timeRefIndex}`}
-                        x={timeRefLine.formattedX}
-                        stroke={lineColor}
-                        strokeDasharray={
-                          timeRefLine.original.strokeDasharray || "4 4"
-                        }
-                        strokeWidth={1.5}
-                        {...(timeRefLine.original.onClick
-                          ? {
-                              style: { cursor: "pointer" as const },
-                              onClick: (): void => {
-                                timeRefLine.original.onClick?.();
-                              },
-                            }
-                          : {})}
-                      >
-                        {timeRefLine.original.label &&
-                          showTimeReferenceLineLabels && (
-                            <Label
-                              value={timeRefLine.original.label}
-                              {...(timeReferenceLineCount > 1
-                                ? {
-                                    /*
-                                     * Several markers: run each label down
-                                     * its own line so labels at different x
-                                     * stop sharing one horizontal band.
-                                     */
-                                    position: "insideTopLeft" as const,
-                                    angle: 90,
-                                  }
-                                : { position: "insideTop" as const })}
-                              fill={lineColor}
-                              fontSize={10}
-                              fontWeight={500}
-                            />
-                          )}
-                      </ReferenceLine>
-                    );
-                  },
-                )
-              : null}
-          </RechartsBarChart>
-        </ResponsiveContainer>
+              })}
+              {props.referenceLines?.map(
+                (refLine: ChartReferenceLineProps, refIndex: number) => {
+                  return (
+                    <ReferenceLine
+                      key={`ref-${refIndex}`}
+                      y={refLine.value}
+                      stroke={refLine.color}
+                      strokeDasharray={refLine.strokeDasharray || "4 4"}
+                      strokeWidth={1.5}
+                    >
+                      {refLine.label && (
+                        <Label
+                          value={refLine.label}
+                          position="insideTopRight"
+                          fill={refLine.color}
+                          fontSize={11}
+                          fontWeight={500}
+                        />
+                      )}
+                    </ReferenceLine>
+                  );
+                },
+              )}
+              {/*
+               * Time annotations need the x-axis to be the category axis,
+               * which is only true in horizontal layout.
+               */}
+              {/*
+               * Event markers and shaded windows: hairlines through the plot
+               * topped by a chip rail in the chart's top margin. Everything
+               * that used to be painted over the series as rotated text now
+               * lives in the chip's hover card.
+               */}
+              {annotations.layer}
+            </RechartsBarChart>
+          </ResponsiveContainer>
+          {annotations.overlay}
+        </div>
       </div>
     );
   },

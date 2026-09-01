@@ -8,7 +8,13 @@ import XAxisUtil from "./XAxis";
 interface AxisBuckets {
   intervals: Array<Date>;
   labels: Array<string>;
-  labelSet: Set<string>;
+  /*
+   * First index each label appears at. DataPointUtil places a series row
+   * by finding the first row with a matching label, so an annotation that
+   * resolves through the formatter has to land on that same first index to
+   * sit with its data.
+   */
+  labelToIndex: Map<string, number>;
   formatter: (value: Date) => string;
 }
 
@@ -25,7 +31,14 @@ export default class TimeAnnotationUtil {
     const labels: Array<string> = intervals.map((interval: Date) => {
       return formatter(interval);
     });
-    return { intervals, labels, labelSet: new Set(labels), formatter };
+    const labelToIndex: Map<string, number> = new Map<string, number>();
+    for (let index: number = 0; index < labels.length; index++) {
+      const label: string = labels[index]!;
+      if (!labelToIndex.has(label)) {
+        labelToIndex.set(label, index);
+      }
+    }
+    return { intervals, labels, labelToIndex, formatter };
   }
 
   /*
@@ -65,19 +78,35 @@ export default class TimeAnnotationUtil {
   }
 
   /*
-   * Resolve a date to a bucket label that is guaranteed to exist on the
-   * categorical x-axis. Prefer formatter output — series datapoints are
-   * bucketed by the exact same formatter, so annotations land where data
-   * with the same timestamp lands. The formatter floors to wall-clock
-   * boundaries while buckets start at the raw window start, so its output
-   * can match no bucket; fall back to the bucket containing the date.
-   * Returns null when the date is outside the charted window.
+   * Resolve a date to a bucket that is guaranteed to exist on the
+   * categorical x-axis, as an INDEX into that axis rather than a label.
+   *
+   * The index is what the renderer needs: a sub-hour axis over a
+   * multi-day window repeats its labels, and recharts' categorical scale
+   * cannot resolve any label once its domain holds a duplicate, so a
+   * label is not a usable position there.
+   *
+   * Prefer formatter output — series datapoints are bucketed by the exact
+   * same formatter, so annotations land where data with the same timestamp
+   * lands. The formatter floors to wall-clock boundaries while buckets
+   * start at the raw window start, so its output can match no bucket; fall
+   * back to the bucket containing the date. Returns null when the date is
+   * outside the charted window.
+   *
+   * On a repeated-label axis (sub-hour buckets over more than a day) that
+   * first-occurrence lookup puts a day-two marker on day one. Do not
+   * "fix" it here alone: DataPointUtil places series rows by the very same
+   * first-match-on-label rule, so day-two DATA is merged onto day one too.
+   * Sending the marker to its true bucket while the data stays merged
+   * would park it over empty space, which is worse than sitting with the
+   * data it describes. The real fix is XAxisUtil's sub-hour formatters
+   * emitting a date, and it moves both sides at once.
    */
-  private static resolveBucketLabel(data: {
+  private static resolveBucketIndex(data: {
     date: Date;
     buckets: AxisBuckets;
-  }): string | null {
-    const { intervals, labels, labelSet, formatter } = data.buckets;
+  }): number | null {
+    const { intervals, labelToIndex, formatter } = data.buckets;
 
     const firstInterval: Date | undefined = intervals[0];
     if (!firstInterval || data.date.getTime() < firstInterval.getTime()) {
@@ -87,19 +116,14 @@ export default class TimeAnnotationUtil {
       return null;
     }
 
-    const formatted: string = formatter(data.date);
-    if (labelSet.has(formatted)) {
-      return formatted;
+    const formattedIndex: number | undefined = labelToIndex.get(
+      formatter(data.date),
+    );
+    if (formattedIndex !== undefined) {
+      return formattedIndex;
     }
 
-    const bucketIndex: number | null = this.getBucketIndexForDate(
-      intervals,
-      data.date,
-    );
-    if (bucketIndex === null) {
-      return null;
-    }
-    return labels[bucketIndex] ?? null;
+    return this.getBucketIndexForDate(intervals, data.date);
   }
 
   public static formatTimeReferenceLines(data: {
@@ -110,14 +134,18 @@ export default class TimeAnnotationUtil {
 
     const formatted: Array<FormattedTimeReferenceLine> = [];
     for (const timeReferenceLine of data.timeReferenceLines) {
-      const formattedX: string | null = this.resolveBucketLabel({
+      const bucketIndex: number | null = this.resolveBucketIndex({
         date: timeReferenceLine.date,
         buckets,
       });
-      if (formattedX === null) {
+      if (bucketIndex === null) {
         continue; // outside the charted window
       }
-      formatted.push({ formattedX, original: timeReferenceLine });
+      const formattedX: string | undefined = buckets.labels[bucketIndex];
+      if (formattedX === undefined) {
+        continue;
+      }
+      formatted.push({ formattedX, bucketIndex, original: timeReferenceLine });
     }
     return formatted;
   }
@@ -128,8 +156,8 @@ export default class TimeAnnotationUtil {
   }): Array<FormattedReferenceRegion> {
     const buckets: AxisBuckets = this.getAxisBuckets(data.xAxis);
     const firstInterval: Date | undefined = buckets.intervals[0];
-    const lastLabel: string | undefined =
-      buckets.labels[buckets.labels.length - 1];
+    const lastIndex: number = buckets.labels.length - 1;
+    const lastLabel: string | undefined = buckets.labels[lastIndex];
     if (!firstInterval || lastLabel === undefined) {
       return [];
     }
@@ -155,14 +183,19 @@ export default class TimeAnnotationUtil {
        * A region overlapping the window edge clamps to the nearest
        * in-window bucket rather than vanishing.
        */
-      const formattedX1: string =
-        this.resolveBucketLabel({ date: new Date(startInMs), buckets }) ||
-        buckets.labels[0]!;
-      const formattedX2: string =
-        this.resolveBucketLabel({ date: new Date(endInMs), buckets }) ||
-        lastLabel;
+      const startBucketIndex: number =
+        this.resolveBucketIndex({ date: new Date(startInMs), buckets }) ?? 0;
+      const endBucketIndex: number =
+        this.resolveBucketIndex({ date: new Date(endInMs), buckets }) ??
+        lastIndex;
 
-      formatted.push({ formattedX1, formattedX2, original: referenceRegion });
+      formatted.push({
+        formattedX1: buckets.labels[startBucketIndex]!,
+        formattedX2: buckets.labels[endBucketIndex]!,
+        startBucketIndex,
+        endBucketIndex,
+        original: referenceRegion,
+      });
     }
     return formatted;
   }
