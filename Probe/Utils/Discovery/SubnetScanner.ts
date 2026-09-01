@@ -4,6 +4,7 @@ import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import ReverseDnsResolver, { ReverseDnsResolution } from "./ReverseDnsResolver";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 
@@ -11,6 +12,22 @@ export interface DiscoveredHost {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;
+  /*
+   * The host's reverse-DNS (PTR) name, when it has one (OneUptime issue
+   * #3529).
+   *
+   * Resolved after the sweep, for the discovered addresses only, and always
+   * best-effort: absent means the address has no PTR record, the answer was
+   * not usable as a name (ReverseDnsNameUtil decides), or this probe has no
+   * working resolver. Absent on every result stored before this field existed
+   * and by every older probe, which is why nothing downstream may require it.
+   *
+   * It NAMES the host; it does not address it. The device a discovered host
+   * imports as still carries the IP in `hostname`, because that is the
+   * registered-host dedup key and because a name that stops resolving must
+   * not stop a device being polled.
+   */
+  dnsHostname?: string | undefined;
   /*
    * The rest of the SNMP system group. probeSystemInfo reads all six
    * scalars in the same single GET that fetches sysName/sysDescr, so
@@ -189,6 +206,16 @@ export interface SubnetScanResult {
    * as a complete answer.
    */
   isIcmpSweepIncomplete?: boolean | undefined;
+  /*
+   * How many discovered hosts came back with a usable reverse-DNS name
+   * (OneUptime issue #3529).
+   *
+   * OPTIONAL, and absent is not zero: a result built before this field
+   * existed says nothing about reverse DNS, whereas zero says the lookups ran
+   * and named nobody. Nothing branches on it — it is here so the probe log
+   * can report what the enrichment achieved without re-walking the hosts.
+   */
+  reverseDnsResolvedCount?: number | undefined;
 }
 
 // Sweeping the whole subnet at once would exhaust sockets; probe in waves.
@@ -367,12 +394,21 @@ export default class SubnetScanner {
         });
 
       /*
+       * The ICMP-only sweep is the case issue #3529 was actually reported
+       * against: every host it finds is by definition without a system group,
+       * so before this the Review dialog could only ever list bare addresses.
+       */
+      const icmpOnlyReverseDnsResolvedCount: number =
+        await SubnetScanner.attachReverseDnsHostnames(pingOnlyHosts);
+
+      /*
        * Already in ascending order: `hosts` comes out of expandTarget sorted
        * and this filter preserves that, unlike the SNMP path below where
        * hosts are appended in completion order and have to be sorted.
        */
       return {
         discoveredHosts: pingOnlyHosts,
+        reverseDnsResolvedCount: icmpOnlyReverseDnsResolvedCount,
         scannedHostCount: hosts.length,
         // No port was dialled, and an empty list is the only honest answer.
         scannedPorts: [],
@@ -566,8 +602,19 @@ export default class SubnetScanner {
       );
     });
 
+    /*
+     * After the sweep and after the sort, so the lookups are paid for once
+     * per discovered address and never for a dead one. SNMP responders get a
+     * name too: a device whose sysName is a factory default ("Switch") is
+     * common, and the PTR record is often the only place the estate's real
+     * name for it is written down.
+     */
+    const reverseDnsResolvedCount: number =
+      await SubnetScanner.attachReverseDnsHostnames(discoveredHosts);
+
     return {
       discoveredHosts: discoveredHosts,
+      reverseDnsResolvedCount: reverseDnsResolvedCount,
       // Full sweep size — hosts skipped by the ICMP gate still count as scanned.
       scannedHostCount: hosts.length,
       scannedPorts: SubnetScanner.getScannedPorts(snmpConfigs),
@@ -842,6 +889,84 @@ export default class SubnetScanner {
     }
 
     return false;
+  }
+
+  /*
+   * Stamps `dnsHostname` onto every host that has a usable PTR record, in
+   * place, and answers how many got one (OneUptime issue #3529).
+   *
+   * Mutates rather than returning a new list because it is called on the
+   * exact array each return path is about to hand back, after that array is
+   * final — there is no ordering, filtering or counting decision left for it
+   * to disturb.
+   *
+   * NEVER throws and never fails a scan. A sweep that found twelve hosts
+   * found twelve hosts whether or not any of them can be named, and a broken
+   * resolver in the probe container must not turn that into a failed scan.
+   * The one visible consequence of a total failure is a warning in the probe
+   * log (ReverseDnsResolver) and hosts named by address, which is exactly the
+   * behaviour that predates this method.
+   */
+  public static async attachReverseDnsHostnames(
+    hosts: Array<DiscoveredHost>,
+  ): Promise<number> {
+    if (hosts.length === 0) {
+      return 0;
+    }
+
+    try {
+      const resolution: ReverseDnsResolution =
+        await SubnetScanner.resolveReverseDnsHostnames(
+          hosts.map((host: DiscoveredHost) => {
+            return host.ipAddress;
+          }),
+        );
+
+      let resolvedCount: number = 0;
+
+      for (const host of hosts) {
+        const dnsHostname: string | undefined =
+          resolution.hostnameByIpAddress.get(host.ipAddress);
+
+        if (dnsHostname) {
+          host.dnsHostname = dnsHostname;
+          resolvedCount++;
+        }
+      }
+
+      logger.debug(
+        `Discovery reverse DNS named ${resolvedCount} of ${hosts.length} discovered host(s).`,
+      );
+
+      return resolvedCount;
+    } catch (err) {
+      /*
+       * Unreachable by design — resolveHostnames swallows every per-address
+       * failure itself — and caught anyway, because the ONE thing this
+       * enrichment must never do is lose a completed sweep's results on the
+       * way out of it.
+       */
+      logger.warn(
+        `Discovery reverse DNS enrichment failed; discovered hosts will be named by IP address. ${err}`,
+      );
+
+      return 0;
+    }
+  }
+
+  /*
+   * The lookup pass, as a seam.
+   *
+   * Public and static for the same reason isHostAliveByPing is: it is the
+   * only part of the sweep that talks to the outside world on this path, and
+   * every scanner test spies on it rather than standing up a resolver. The
+   * resolver's own behaviour — timeouts, the failure budget, which answers
+   * are usable — is tested directly against ReverseDnsResolver.
+   */
+  public static async resolveReverseDnsHostnames(
+    ipAddresses: Array<string>,
+  ): Promise<ReverseDnsResolution> {
+    return await new ReverseDnsResolver().resolveHostnames(ipAddresses);
   }
 
   /*

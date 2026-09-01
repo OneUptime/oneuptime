@@ -4,6 +4,7 @@ import {
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
+  getDiscoveredHostDisplayName,
   DiscoveredDeviceScanSource,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -553,5 +554,258 @@ describe("the name override", () => {
     expect(device.name).toBe("core-switch-01 (10.0.0.5)");
     // Everything else is still derived from the host as usual.
     expect(device.hostname).toBe("10.0.0.5");
+  });
+});
+
+/*
+ * OneUptime issue #3529 — "Network Discovery Scan should perform reverse DNS
+ * lookup and display hostnames".
+ *
+ * The reporter's Review dialog listed 10.18.166.51, .53, .54, .55 on an
+ * estate where every one of those addresses has a DNS record. Those rows are
+ * hosts with no readable SNMP: with no sysName, `sysName || ipAddress` had
+ * nothing left to fall back to. `dnsHostname` is the missing middle term.
+ *
+ * What these cases pin is the ORDER, and the order is a deliberate judgement
+ * rather than a reading of the issue text. The issue asks for the hostname to
+ * be "the device name"; sysName is nonetheless kept ahead of it, because
+ * sysName is the name the device asserts about itself, it is what every scan
+ * imported under before this existed, and demoting it would silently rename
+ * devices that already import correctly for people who never asked for
+ * anything to change. The PTR name lands exactly where the complaint was —
+ * the hosts that had no name at all — and the dialog surfaces both when they
+ * disagree, so nothing is hidden by the choice.
+ */
+describe("the reverse-DNS name (issue #3529)", () => {
+  describe("precedence", () => {
+    test("a host with no sysName is named by its PTR record", () => {
+      // The reported case, in one line.
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core-gw.corp.example.com",
+        }),
+      ).toBe("core-gw.corp.example.com");
+    });
+
+    test("sysName still wins when the host has both", () => {
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          sysName: "core-switch-01",
+          dnsHostname: "sw1.corp.example.com",
+        }),
+      ).toBe("core-switch-01");
+    });
+
+    test("a blank sysName falls through to the PTR name", () => {
+      /*
+       * A whitespace-only sysName is truthy and is a real thing to read off a
+       * device with a half-configured system group. It used to produce a
+       * device named " ".
+       */
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          sysName: "   ",
+          dnsHostname: "sw1.corp.example.com",
+        }),
+      ).toBe("sw1.corp.example.com");
+    });
+
+    test("the address is still the last resort", () => {
+      expect(buildDeviceName({ ipAddress: "10.18.166.51" })).toBe(
+        "10.18.166.51",
+      );
+      expect(
+        buildDeviceName({ ipAddress: "10.18.166.51", dnsHostname: "" }),
+      ).toBe("10.18.166.51");
+    });
+
+    test("a host stored before the field existed is named exactly as it was", () => {
+      /*
+       * Back-compat, and it is not hypothetical: every scan result already in
+       * the database predates this field, as does every result from a probe
+       * that has not been upgraded yet.
+       */
+      expect(
+        buildDeviceName({ ipAddress: "10.0.0.5", sysName: "core-switch-01" }),
+      ).toBe("core-switch-01");
+      expect(buildDeviceName({ ipAddress: "10.0.0.5" })).toBe("10.0.0.5");
+    });
+  });
+
+  describe("the display name and the device name agree", () => {
+    /*
+     * The operator ticks a box next to a name and gets a device with that
+     * name. The two used to be spelled out separately — the dialog said
+     * `sysName || ipAddress` and the builder said the same thing again — and
+     * that duplication is what this shared function exists to end.
+     */
+    test("buildDeviceName is getDiscoveredHostDisplayName, clamped", () => {
+      const hosts: Array<DiscoveredNetworkDevice> = [
+        { ipAddress: "10.0.0.1" },
+        { ipAddress: "10.0.0.2", dnsHostname: "gw.corp.example.com" },
+        { ipAddress: "10.0.0.3", sysName: "sw-3" },
+        {
+          ipAddress: "10.0.0.4",
+          sysName: "sw-4",
+          dnsHostname: "sw4.corp.example.com",
+        },
+      ];
+
+      for (const discoveredHost of hosts) {
+        expect(buildDeviceName(discoveredHost)).toBe(
+          getDiscoveredHostDisplayName(discoveredHost),
+        );
+      }
+    });
+
+    test("the display name is returned unclamped", () => {
+      /*
+       * The 80-character ceiling exists for the SLUG, not for the eye. A
+       * dialog row has its own truncation, and showing the operator a name cut
+       * at a different point than the device gets is a smaller problem than
+       * pretending the ceiling is a display concern.
+       */
+      const longName: string = `${"a".repeat(63)}.${"b".repeat(40)}.example.com`;
+
+      expect(
+        getDiscoveredHostDisplayName({
+          ipAddress: "10.0.0.1",
+          dnsHostname: longName,
+        }),
+      ).toBe(longName);
+      expect(
+        buildDeviceName({ ipAddress: "10.0.0.1", dnsHostname: longName }),
+      ).toHaveLength(MAX_DEVICE_NAME_LENGTH);
+    });
+  });
+
+  describe("an untrusted PTR record never becomes a name", () => {
+    /*
+     * `dnsHostname` is the ONE field in a scan result whose value is chosen by
+     * the scanned network. The probe normalises it, and normalizeDiscoveredHosts
+     * normalises it again on the way out of the jsonb — but this function is the
+     * last point before the value becomes a rendered line and a slugified device
+     * name, and a row written by an older probe or straight through the API
+     * reaches it without having passed either.
+     */
+    test("falls back to the address rather than naming a device after markup", () => {
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "<script>alert(1)</script>",
+        }),
+      ).toBe("10.18.166.51");
+    });
+
+    test("falls back to the address for a name with whitespace in it", () => {
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core switch",
+        }),
+      ).toBe("10.18.166.51");
+    });
+
+    test("falls back to the address for a PTR that merely restates it", () => {
+      /*
+       * Not a name. Showing it as one would assert a resolved hostname nobody
+       * published, which is worse than showing the address as an address.
+       */
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "10.18.166.51",
+        }),
+      ).toBe("10.18.166.51");
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "51.166.18.10.in-addr.arpa",
+        }),
+      ).toBe("10.18.166.51");
+    });
+
+    test("does not throw when the column holds a non-string", () => {
+      // jsonb read at render time; a throw here lands inside the modal body.
+      expect(
+        buildDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: 51 as unknown as string,
+        }),
+      ).toBe("10.18.166.51");
+    });
+
+    test("stores the normalised form, not the raw answer", () => {
+      expect(
+        buildDeviceName({
+          ipAddress: "10.0.0.1",
+          dnsHostname: "  gw.corp.example.com.  ",
+        }),
+      ).toBe("gw.corp.example.com");
+    });
+  });
+
+  describe("the rest of the device", () => {
+    test("the address stays the hostname even when the host resolved a name", () => {
+      /*
+       * The issue asks for this in as many words ("retain the IP address as
+       * the address/IP field"), and the system needs it: `hostname` is the
+       * registered-host dedup key, what the SNMP poller dials, and what a
+       * trap's source IP correlates to. A name here would make a device stop
+       * polling the day its reverse zone changed.
+       */
+      const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: {
+          ipAddress: "10.18.166.51",
+          dnsHostname: "core-gw.corp.example.com",
+        },
+        scan: fullScanSource(),
+      });
+
+      expect(device.hostname).toBe("10.18.166.51");
+      expect(device.name).toBe("core-gw.corp.example.com");
+    });
+
+    test("a ping-only host still imports as a monitor-backed device", () => {
+      /*
+       * Naming must not change WHAT a host imports as. A PTR record says
+       * nothing about whether the device can be SNMP-polled.
+       */
+      const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: {
+          ipAddress: "10.18.166.51",
+          snmpReachable: false,
+          dnsHostname: "cam-lobby.corp.example.com",
+        },
+        scan: fullScanSource(),
+      });
+
+      expect(device.name).toBe("cam-lobby.corp.example.com");
+      expect(device.monitoringMethod).toBe(
+        NetworkDeviceMonitoringMethod.Monitor,
+      );
+      expect(device.isPollingEnabled).toBe(false);
+      expect(device.snmpCommunityString).toBeUndefined();
+    });
+
+    test("the collision fallback appends the address to the PTR name", () => {
+      /*
+       * Two devices legitimately sharing a name is common — and a shared PTR
+       * name is if anything MORE likely than a shared sysName, because a
+       * wildcard reverse zone hands every address in a range the same answer.
+       * The address is what tells them apart.
+       */
+      expect(
+        buildFallbackDeviceName({
+          ipAddress: "10.18.166.51",
+          dnsHostname: "dhcp-pool.corp.example.com",
+        }),
+      ).toBe("dhcp-pool.corp.example.com (10.18.166.51)");
+    });
   });
 });

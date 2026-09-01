@@ -219,3 +219,130 @@ describe("normalizeDiscoveredHosts", () => {
     });
   });
 });
+
+/*
+ * OneUptime issue #3529 — the scan's reverse-DNS name.
+ *
+ * `dnsHostname` differs in kind from every other field this function cleans
+ * up. The others are untrusted by ACCIDENT: they are what they are because
+ * nothing validates the probe's payload, and the shapes that broke things
+ * were probe bugs. This one is untrusted by CONSTRUCTION — its value is
+ * published by whoever runs DNS for the subnet being swept, which on a
+ * discovery scan is frequently not this project, and it is stored verbatim in
+ * a jsonb column that then feeds a rendered line, a device name and a slug.
+ *
+ * So the character rules are applied on the way OUT of the column as well as
+ * on the way in. The probe that wrote the row applied them too, but "the
+ * probe already checked" holds only for the probe version that wrote it — not
+ * for an older probe, a modified one, or a row written straight through the
+ * API.
+ */
+describe("normalizeDiscoveredHosts — the reverse-DNS name (issue #3529)", () => {
+  test("a usable PTR name is carried through unchanged", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "core-gw.corp.example.com" }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("a fully qualified name loses its root dot and surrounding space", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  core-gw.corp.example.com.  " }),
+    ]);
+
+    expect(normalized?.dnsHostname).toBe("core-gw.corp.example.com");
+  });
+
+  test("an unusable name is DELETED, not blanked", () => {
+    /*
+     * The key is removed rather than set to "" or undefined so that a reader
+     * checking `if (host.dnsHostname)` and one checking `"dnsHostname" in
+     * host` cannot disagree about the same row — the class of split reading
+     * this whole function exists to prevent.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "<script>alert(1)</script>" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a name that merely restates the address is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ ipAddress: "10.18.166.51", dnsHostname: "10.18.166.51" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+    // The address itself is untouched — it is still how the host is reached.
+    expect(normalized?.ipAddress).toBe("10.18.166.51");
+  });
+
+  test("an in-addr.arpa query name echoed back is dropped", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ dnsHostname: "51.166.18.10.in-addr.arpa" }),
+    ]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("a non-string value in the column does not throw", () => {
+    /*
+     * This runs inside the Review dialog's render. The lesson is the null-row
+     * one, relearned: a throw here takes out the modal body, not one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ dnsHostname: 51 as unknown as string }),
+      host({ dnsHostname: {} as unknown as string }),
+      host({ dnsHostname: ["gw.example.com"] as unknown as string }),
+      host({ dnsHostname: null as unknown as string }),
+    ];
+
+    const normalized: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(rows);
+
+    expect(normalized).toHaveLength(4);
+    for (const row of normalized) {
+      expect(row).not.toHaveProperty("dnsHostname");
+    }
+  });
+
+  test("a host with no PTR name gains no key", () => {
+    // Absence must stay absence — the field is optional in the model.
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("dnsHostname");
+  });
+
+  test("normalising is stable when applied twice", () => {
+    /*
+     * The dashboard normalises on open and again on every re-render of the
+     * list; the rule engine normalises the same rows server-side. All three
+     * must agree, or the name an operator ticks and the name the device gets
+     * could differ.
+     */
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ dnsHostname: "  GW-01.corp.example.com.  " }),
+      host({ ipAddress: "10.0.0.2", dnsHostname: "core switch" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
+  });
+
+  test("cleaning the name leaves the row's other fields alone", () => {
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: "core-switch-01",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+        snmpConfigId: "config-2",
+        dnsHostname: "not a hostname",
+      }),
+    ]);
+
+    expect(normalized?.sysName).toBe("core-switch-01");
+    expect(normalized?.sysDescr).toBe("Cisco IOS");
+    expect(normalized?.snmpReachable).toBe(true);
+    expect(normalized?.snmpConfigId).toBe("config-2");
+  });
+});

@@ -55,7 +55,10 @@ import {
 import ScanModeUtil, {
   ScanMethodLabel,
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
-import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import {
+  buildNetworkDeviceFromDiscoveredHost,
+  getDiscoveredHostDisplayName,
+} from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import {
   buildPingMonitorForDiscoveredHost,
   MonitorCriteriaSeedIds,
@@ -1725,6 +1728,26 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 const isSelectable: boolean = isSelectableDiscoveredHost(entry);
                 const isChecked: boolean =
                   isSelectable && Boolean(selectedIps[entry.ipAddress]);
+                /*
+                 * The SAME recipe the import uses, so the operator ticks a
+                 * box next to a name and gets a device with that name — see
+                 * getDiscoveredHostDisplayName. Since issue #3529 that
+                 * includes the host's reverse-DNS name, which is what a
+                 * ping-only host is called now that it is no longer
+                 * necessarily its own address.
+                 */
+                const displayName: string = getDiscoveredHostDisplayName(entry);
+                /*
+                 * Shown BESIDE the address when it is not already the line
+                 * above: an SNMP device whose sysName and PTR record disagree
+                 * is worth surfacing rather than hiding — it is either two
+                 * teams naming one box, or a stale reverse zone, and both are
+                 * things an operator wants to see while deciding to import.
+                 */
+                const secondaryDnsHostname: string | undefined =
+                  entry.dnsHostname && entry.dnsHostname !== displayName
+                    ? entry.dnsHostname
+                    : undefined;
                 return (
                   <div
                     /*
@@ -1754,7 +1777,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                          * does not say why reads as broken rather than as
                          * deliberate.
                          */
-                        ariaLabel={`Import ${entry.sysName || entry.ipAddress} (${entry.ipAddress || "no address"})`}
+                        ariaLabel={`Import ${displayName} (${entry.ipAddress || "no address"})`}
                         hoverText={
                           entry.isAlreadyRegistered
                             ? "Already added as a Network Device."
@@ -1773,10 +1796,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-900">
-                          {entry.sysName || entry.ipAddress}
+                          {displayName}
                         </div>
                         <div className="text-sm text-gray-500">
                           {entry.ipAddress}
+                          {secondaryDnsHostname && (
+                            <span className="text-gray-400">
+                              {" · "}
+                              {secondaryDnsHostname}
+                            </span>
+                          )}
                         </div>
                         {entry.sysDescr && (
                           <div className="mt-0.5 truncate text-xs text-gray-400">

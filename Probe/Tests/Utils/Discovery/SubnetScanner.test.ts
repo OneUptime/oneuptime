@@ -21,6 +21,8 @@ import {
   jest,
 } from "@jest/globals";
 
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
+
 /*
  * A scan carries an ORDERED LIST of credential sets rather than one flattened
  * set, so every sweep below is built through these two helpers.
@@ -61,6 +63,15 @@ function scanConfig(
     snmpConfigs: [buildSnmpConfig(overrides)],
   };
 }
+
+/*
+ * Reverse DNS (issue #3529) is the sweep's third network seam, alongside ICMP
+ * and SNMP, and is stubbed out for this whole file for the same reason those
+ * are: nothing here is about naming, and a unit test must not ask the
+ * machine's real resolver about 10.0.0.0/8. Hosts therefore come back with no
+ * dnsHostname, exactly as they did before the feature existed.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("SubnetScanner.countHosts", () => {
   it("counts a /24 as 254 usable hosts (excludes network + broadcast)", () => {

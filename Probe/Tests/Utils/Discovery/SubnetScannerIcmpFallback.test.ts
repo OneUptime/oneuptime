@@ -16,6 +16,8 @@ import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol"
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
+
 /*
  * github.com/OneUptime/oneuptime/issues/3078 — "SNMP Discovery Scan finds
  * 0 of N hosts for some subnet ranges while identical scans on other ranges
@@ -125,6 +127,15 @@ function discoveredAddresses(result: SubnetScanResult): Array<string> {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+/*
+ * Reverse DNS (issue #3529) is the sweep's third network seam, alongside ICMP
+ * and SNMP, and is stubbed out for this whole file for the same reason those
+ * are: nothing here is about naming, and a unit test must not ask the
+ * machine's real resolver about 10.0.0.0/8. Hosts therefore come back with no
+ * dnsHostname, exactly as they did before the feature existed.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("SubnetScanner — an entirely ICMP-filtered subnet", () => {
   /*
