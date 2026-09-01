@@ -11,6 +11,7 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 
 class AlertPrivacyRuleEngineServiceClass {
   /**
@@ -51,7 +52,7 @@ class AlertPrivacyRuleEngineServiceClass {
             monitorNamePattern: true,
             monitorDescriptionPattern: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
 

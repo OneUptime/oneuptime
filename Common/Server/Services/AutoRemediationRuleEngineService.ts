@@ -35,6 +35,7 @@ import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -216,7 +217,7 @@ class AutoRemediationRuleEngineServiceClass {
           monitorLabels: { _id: true },
           runbooks: { _id: true, name: true },
         },
-        limit: 100,
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
       });
 

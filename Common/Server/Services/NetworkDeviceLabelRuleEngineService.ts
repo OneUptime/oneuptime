@@ -10,6 +10,7 @@ import { LabelRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult"
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 
 /*
  * Bounds on one manual "Run now" of a label rule. The automatic path only
@@ -65,7 +66,7 @@ class NetworkDeviceLabelRuleEngineServiceClass {
             networkDeviceDescriptionPattern: true,
             labelsToAdd: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
 

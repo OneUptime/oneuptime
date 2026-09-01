@@ -10,6 +10,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 
 class OnCallDutyPolicyOwnerRuleEngineServiceClass {
   @CaptureSpan()
@@ -38,7 +39,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
 
