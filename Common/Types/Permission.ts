@@ -101,6 +101,25 @@ enum Permission {
   TelemetryMember = "TelemetryMember",
   TelemetryViewer = "TelemetryViewer",
 
+  /*
+   * SIEM data is its own domain, not a fourth telemetry signal. Security
+   * events, the Sigma detection rules over them, the threat-intel feeds and
+   * their indicators, and the SecOps connector credentials all read through
+   * these three tiers and through nothing else that is handed out broadly -
+   * not ProjectMember, not the project-wide Viewer, not the Telemetry tiers.
+   *
+   * That exclusion is the whole point of the family. A SIEM holds authentication
+   * failures, privilege escalations and the analyst's own investigation trail;
+   * "everyone who can open a dashboard can read it" is not an access policy an
+   * organisation deploying one can accept. Whoever should see it is given a
+   * Security tier deliberately, the same way BillingViewer is given
+   * deliberately, and everybody else - including a Telemetry Admin with the run
+   * of every log, metric and trace in the project - sees nothing.
+   */
+  SecurityAdmin = "SecurityAdmin",
+  SecurityMember = "SecurityMember",
+  SecurityViewer = "SecurityViewer",
+
   SettingsAdmin = "SettingsAdmin",
   SettingsMember = "SettingsMember",
   SettingsViewer = "SettingsViewer",
@@ -2370,6 +2389,36 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: true,
         group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.SecurityAdmin,
+        title: "Security Admin",
+        description:
+          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and Google SecOps connections. Security data is not readable through any other role.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.SecurityMember,
+        title: "Security Member",
+        description:
+          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure Google SecOps connections.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.SecurityViewer,
+        title: "Security Viewer",
+        description:
+          "Read-only access to security events, detection rules, threat intelligence feeds, and indicators.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: true,
+        group: PermissionGroup.Security,
       },
       {
         permission: Permission.SettingsAdmin,

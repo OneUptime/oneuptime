@@ -7,7 +7,6 @@ import AnalyticsTableColumn, {
 } from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
-import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -31,23 +30,41 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
  * ("everything mentioning this host") cheap.
  */
 
+/*
+ * Security events read through the Security tiers and nothing broader.
+ *
+ * The layout mirrors Log, but the access list deliberately does not: Log names
+ * ProjectMember, the project-wide Viewer and the three Telemetry tiers, and if
+ * this table did the same then every principal in the project could read the
+ * SIEM. A Telemetry Admin is trusted with logs, metrics and traces; that is not
+ * the same decision as being trusted with authentication failures, privilege
+ * escalations and the detections written over them, and an organisation running
+ * a SIEM needs to be able to make the second decision separately from the first.
+ *
+ * ProjectOwner and ProjectAdmin stay so a project is never locked out of its own
+ * data - they are the principals who can grant the Security tiers in the first
+ * place, so excluding them would only mean nobody could open the door.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
   Permission.ReadSecurityEvent,
 ];
 
+/*
+ * Rows normally arrive through the SecOps poller, the detection-rule evaluator
+ * and the threat-intel matcher, all of which insert as root and never reach
+ * this list. It gates the CRUD API only, which is why it stops at the tiers
+ * that administer the SIEM.
+ */
 const createPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
   Permission.CreateSecurityEvent,
 ];
 
@@ -149,7 +166,19 @@ function arrayTextColumn(
   });
 }
 
-@OperationalResource()
+/*
+ * Not @OperationalResource, which Log and Span both are.
+ *
+ * That decorator's only effect on an analytics model is to widen the table's
+ * permission list with the *AllOperationalResources wildcards - the grant whose
+ * own description reads "all operational resources in this project (Monitor,
+ * Incident, Alert, StatusPage, etc.)". Nobody handing that to an integration is
+ * deciding to hand it the SIEM, and leaving it on would have left one door open
+ * behind the Security tiers.
+ *
+ * @OwnedThrough stays: owned-scope filtering keys off it alone, so a Security
+ * role granted with scope=Owned still narrows to the services it owns.
+ */
 @OwnedThrough("primaryEntityId", Service, { includeProjectScope: true })
 export default class SecurityEvent extends AnalyticsBaseModel {
   public constructor() {
@@ -450,17 +479,20 @@ export default class SecurityEvent extends AnalyticsBaseModel {
         update: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
+          Permission.SecurityAdmin,
+          Permission.SecurityMember,
           Permission.EditSecurityEvent,
         ],
+        /*
+         * Deleting a security event destroys the record of something that
+         * happened, which is the one thing a SIEM exists to keep. It sits on
+         * the Admin tier rather than Member for the same reason the retention
+         * policy does.
+         */
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
-          Permission.ProjectMember,
-          Permission.TelemetryAdmin,
-          Permission.TelemetryMember,
+          Permission.SecurityAdmin,
           Permission.DeleteSecurityEvent,
         ],
       },

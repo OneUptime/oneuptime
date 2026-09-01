@@ -30,14 +30,18 @@ import Permission from "../../Types/Permission";
  * lazy garbage collection, not expiry enforcement.
  */
 
+/*
+ * Indicators read through the Security tiers, like every other SIEM table.
+ * Which IOCs a project subscribes to is itself intelligence about what it is
+ * defending against, so it follows the security events it is matched against
+ * rather than the telemetry it sits beside in ClickHouse.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
   Permission.ReadProjectThreatIntelFeed,
 ];
 
@@ -258,6 +262,7 @@ export default class ThreatIntelIndicator extends AnalyticsBaseModel {
         delete: [
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
+          Permission.SecurityAdmin,
           Permission.DeleteProjectThreatIntelFeed,
         ],
       },

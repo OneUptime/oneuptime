@@ -351,7 +351,7 @@ describe("Security event attribute API", () => {
       expect(fetchAttributes.mock.calls).toHaveLength(0);
     });
 
-    test("a project member without any telemetry read permission is refused", async () => {
+    test("a project member without any security read permission is refused", async () => {
       const result: CallResult = await callRoute({
         uri: KEYS_ROUTE,
         request: buildPrincipal({
@@ -390,11 +390,9 @@ describe("Security event attribute API", () => {
     test.each([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadSecurityEvent,
     ])("%s can read attribute keys", async (permission: Permission) => {
       const result: CallResult = await callRoute({
@@ -410,14 +408,94 @@ describe("Security event attribute API", () => {
       expect(result.reachedHandler).toBe(true);
     });
 
+    /*
+     * These routes do not go through BaseAnalyticsAPI, so this guard IS the
+     * access control - and until the Security tiers landed it was built from
+     * createTelemetryReadAccessGuard, which admits ProjectMember, the
+     * project-wide Viewer and the Telemetry tiers. Leaving it that way would
+     * have made the split cosmetic: the CRUD API would refuse a Telemetry Admin
+     * the rows while this route handed them every attribute key in the SIEM and
+     * every value ever seen for it - usernames, hostnames, source IPs. That is
+     * most of what the table holds, reached without reading a single row.
+     */
+    test.each([
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.MonitorAdmin,
+    ])("%s cannot read attribute keys", async (permission: Permission) => {
+      const result: CallResult = await callRoute({
+        uri: KEYS_ROUTE,
+        request: buildPrincipal({
+          projectId,
+          userId,
+          permissions: [permission],
+        }),
+        body: {},
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(result.deniedWith).toBeDefined();
+      expect(fetchAttributes.mock.calls).toHaveLength(0);
+    });
+
+    test.each([Permission.TelemetryAdmin, Permission.ProjectMember])(
+      "%s cannot read attribute values either",
+      async (permission: Permission) => {
+        const result: CallResult = await callRoute({
+          uri: VALUES_ROUTE,
+          request: buildPrincipal({
+            projectId,
+            userId,
+            permissions: [permission],
+          }),
+          body: { attributeKey: "device.hostname" },
+        });
+
+        expect(result.reachedHandler).toBe(false);
+        expect(result.deniedWith).toBeDefined();
+        expect(fetchAttributeValues.mock.calls).toHaveLength(0);
+      },
+    );
+
+    /*
+     * Parity with the model, asserted both ways round: every permission the
+     * route accepts is one the model would accept for the same rows, and the
+     * counts match so neither list can grow a member the other does not have.
+     */
     test("the model's read list and the guard have not drifted apart", () => {
       const modelReadPermissions: Array<Permission> =
         new SecurityEvent().getReadPermissions();
 
       expect(modelReadPermissions).toEqual(
-        expect.arrayContaining([Permission.ReadSecurityEvent]),
+        expect.arrayContaining([
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SecurityAdmin,
+          Permission.SecurityMember,
+          Permission.SecurityViewer,
+          Permission.ReadSecurityEvent,
+        ]),
       );
-      expect(modelReadPermissions).toHaveLength(8);
+      expect(modelReadPermissions).toHaveLength(6);
+
+      /*
+       * And the roles the split exists to exclude are not hiding in the model
+       * list either - the route parity above would happily hold with both
+       * lists wrong in the same way.
+       */
+      for (const permission of [
+        Permission.ProjectMember,
+        Permission.ProjectUser,
+        Permission.Viewer,
+        Permission.TelemetryAdmin,
+        Permission.TelemetryMember,
+        Permission.TelemetryViewer,
+      ]) {
+        expect(modelReadPermissions).not.toContain(permission);
+      }
     });
 
     test("the values route is guarded the same way", async () => {

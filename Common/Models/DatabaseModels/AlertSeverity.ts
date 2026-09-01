@@ -33,6 +33,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @EnableDocumentation()
 @EnableMCP()
+/*
+ * The Security tiers read this table but hold none of the alert permissions.
+ * A Sigma detection rule and a threat-intel feed each choose the severity of
+ * the alert they open, so the SIEM's own forms select from here; without the
+ * read grant the dropdown 500s and the rule cannot be configured at all.
+ * Read-only, and only on the severity list itself - it says nothing about
+ * which alerts a Security role may see.
+ */
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -49,6 +57,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.AlertAdmin,
     Permission.AlertMember,
     Permission.AlertViewer,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
     Permission.ReadAlertSeverity,
   ],
   delete: [
@@ -100,6 +111,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -143,6 +157,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -178,6 +195,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [
@@ -213,6 +233,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -247,6 +270,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [
@@ -286,6 +312,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -327,6 +356,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -354,6 +386,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -391,6 +426,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [],
@@ -423,6 +461,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [
@@ -466,6 +507,9 @@ export default class AlertSeverity extends BaseModel {
       Permission.AlertAdmin,
       Permission.AlertMember,
       Permission.AlertViewer,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
       Permission.ReadAlertSeverity,
     ],
     update: [
