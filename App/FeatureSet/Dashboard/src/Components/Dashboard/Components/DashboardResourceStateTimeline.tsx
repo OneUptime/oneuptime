@@ -119,8 +119,7 @@ const SegmentBar: FunctionComponent<SegmentBarProps> = (
 ): ReactElement => {
   const { rowLabel, segment, onHoverStart, onHoverEnd } = props;
 
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   const onMouseEnter: () => void = (): void => {
     if (!ref.current) {
@@ -171,8 +170,7 @@ const StateTimelineTooltip: FunctionComponent<{ state: TooltipState }> = ({
     placement: "above",
   });
 
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     setPosition(
