@@ -15,6 +15,7 @@ import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
@@ -453,9 +454,18 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
+      /*
+       * Compare canonical forms. ".1.3.6.1" and "1.3.6.1" are the same
+       * object, operators type both, and net-snmp always answers with the
+       * dotless form — so a stored leading dot used to make the criterion
+       * silently un-matchable forever. Newly reachable now that the OID
+       * picker actually writes a value.
+       */
+      const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
       const oidResponse: SnmpOidResponse | undefined =
         snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
-          return response.oid === oid;
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
         });
 
       const exists: boolean = Boolean(
@@ -487,9 +497,18 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
+      /*
+       * Compare canonical forms. ".1.3.6.1" and "1.3.6.1" are the same
+       * object, operators type both, and net-snmp always answers with the
+       * dotless form — so a stored leading dot used to make the criterion
+       * silently un-matchable forever. Newly reachable now that the OID
+       * picker actually writes a value.
+       */
+      const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
       const oidResponse: SnmpOidResponse | undefined =
         snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
-          return response.oid === oid;
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
         });
 
       if (!oidResponse || oidResponse.value === null) {

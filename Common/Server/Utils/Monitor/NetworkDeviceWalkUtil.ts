@@ -133,7 +133,24 @@ export default class NetworkDeviceWalkUtil {
         id: device.id,
         data: {
           lastWalkLog: {
-            snmpResponse: JSON.parse(JSON.stringify(data.snmpResponse)),
+            /*
+             * ONLY the interfaces, not the whole response.
+             *
+             * This column exists for exactly one reader —
+             * SnmpInterfaceRateUtil, which computes counter deltas from
+             * `snmpResponse.interfaces` and touches nothing else. Every other
+             * field was dead weight in a jsonb column rewritten on every poll
+             * of every device, and `oidResponses` is the one that grows: OID
+             * Collection Templates make long health-OID lists normal, so
+             * leaving them here would add tens of KB per device per poll of
+             * pure TOAST churn on the product's hottest table, for data
+             * nothing ever reads back.
+             */
+            snmpResponse: {
+              interfaces: JSON.parse(
+                JSON.stringify(data.snmpResponse.interfaces),
+              ),
+            },
             monitoredAt: OneUptimeDate.getCurrentDate(),
           },
         } as any,

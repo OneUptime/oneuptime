@@ -61,6 +61,7 @@ import NetworkDeviceOwnerUserService from "./NetworkDeviceOwnerUserService";
 import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
+import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
@@ -506,6 +507,7 @@ const services: Array<BaseService> = [
   NetworkDeviceOwnerRuleService,
   NetworkDeviceLabelRuleService,
   NetworkDeviceAutoImportRuleService,
+  NetworkDeviceOidTemplateService,
   NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
   NetworkSiteService,

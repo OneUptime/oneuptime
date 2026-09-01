@@ -6,8 +6,12 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import NetworkDeviceOidTemplateService from "Common/Server/Services/NetworkDeviceOidTemplateService";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -100,6 +104,7 @@ router.post(
           walkInterfaces: true,
           collectEndpoints: true,
           snmpOids: true,
+          oidTemplateId: true,
         },
         limit: DEVICE_POLL_FETCH_LIMIT,
         skip: 0,
@@ -107,6 +112,73 @@ router.post(
           isRoot: true,
         },
       });
+
+      /*
+       * This is where an OID Collection Template becomes real. Nothing is
+       * ever copied onto a device: the template's OIDs are read here, fresh,
+       * and merged with the device's own, so editing a template changes what
+       * every linked device collects from its very next poll — with zero
+       * writes to NetworkDevice and no fan-out job. A push instead of a join
+       * would be 80,000 row updates behind a 10,000-row cap.
+       *
+       * Cost is one extra query per batch, and only when the batch actually
+       * contains a linked device. A fleet has a handful of device types, so
+       * 250 devices realistically resolve to a single-digit number of
+       * templates.
+       */
+      const templateIdsInBatch: Array<string> = Array.from(
+        new Set(
+          devices
+            .map((device: NetworkDevice) => {
+              return device.oidTemplateId?.toString();
+            })
+            .filter((templateId: string | undefined): templateId is string => {
+              return Boolean(templateId);
+            }),
+        ),
+      );
+
+      const oidTemplatesById: Map<string, NetworkDeviceOidTemplate> = new Map();
+
+      if (templateIdsInBatch.length > 0) {
+        /*
+         * Degrade rather than drop. Claiming already advanced nextPollAt for
+         * all 250 devices, so an exception anywhere in this handler does not
+         * retry - it silently skips the whole batch for a full interval. A
+         * template lookup that fails is worth one cycle of device-local OIDs;
+         * it is not worth 250 devices going unpolled.
+         */
+        try {
+          const oidTemplates: Array<NetworkDeviceOidTemplate> =
+            await NetworkDeviceOidTemplateService.findBy({
+              query: {
+                _id: QueryHelper.any(templateIdsInBatch),
+              },
+              select: {
+                _id: true,
+                projectId: true,
+                name: true,
+                oids: true,
+              },
+              limit: templateIdsInBatch.length,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+          for (const oidTemplate of oidTemplates) {
+            if (oidTemplate.id) {
+              oidTemplatesById.set(oidTemplate.id.toString(), oidTemplate);
+            }
+          }
+        } catch (err) {
+          logger.error(
+            `Could not load OID Collection Templates for probe ${probeId.toString()}'s poll batch; falling back to device-specific OIDs for this cycle.`,
+          );
+          logger.error(err);
+        }
+      }
 
       const devicePollConfigs: Array<JSONObject> = [];
 
@@ -116,11 +188,64 @@ router.post(
         }
 
         const monitorInterfaces: boolean = device.walkInterfaces !== false;
-        let oids: Array<{
-          oid: string;
-          name?: string | undefined;
-          description?: string | undefined;
-        }> = device.snmpOids || [];
+
+        const linkedTemplate: NetworkDeviceOidTemplate | undefined =
+          device.oidTemplateId
+            ? oidTemplatesById.get(device.oidTemplateId.toString())
+            : undefined;
+
+        /*
+         * The template query runs isRoot, which bypasses the tenant column,
+         * so check the projects match rather than trusting the FK. A
+         * mismatch can only mean corrupted data, and shipping another
+         * project's OIDs to this probe would be an information leak, so drop
+         * the template and say so loudly.
+         */
+        let templateOids: Array<SnmpOid> = [];
+
+        if (linkedTemplate) {
+          if (linkedTemplate.projectId?.toString() === device.projectId?.toString()) {
+            templateOids = linkedTemplate.oids || [];
+          } else {
+            logger.error(
+              `Network device ${device.id?.toString()} references OID Collection Template ${linkedTemplate.id?.toString()} from a different project. Ignoring the template for this poll.`,
+            );
+          }
+        }
+
+        const effectiveOids: {
+          oids: Array<SnmpOid>;
+          truncatedCount: number;
+        } = SnmpOidListUtil.resolveEffectiveOids({
+          templateOids: templateOids,
+          deviceOids: device.snmpOids,
+        });
+
+        /*
+         * Both write paths reject an over-cap list with an error on screen,
+         * so this should be unreachable. It survives for the one case they
+         * cannot catch: a template that grew after devices linked to it.
+         */
+        if (effectiveOids.truncatedCount > 0) {
+          logger.warn(
+            `Network device ${device.id?.toString()}: ${effectiveOids.truncatedCount} health OID(s) beyond the per-device limit were not polled${
+              linkedTemplate ? ` (OID Collection Template "${linkedTemplate.name}")` : ""
+            }.`,
+          );
+        }
+
+        /*
+         * `description` is documentation for the operator and is never read
+         * by the probe (it uses `oid` and `name` only). Dropping it here
+         * matters at scale rather than cosmetically: this list is serialized
+         * once PER DEVICE, so a shared template's prose would be repeated 250
+         * times in a single poll response.
+         */
+        let oids: Array<SnmpOid> = effectiveOids.oids.map((entry: SnmpOid) => {
+          return entry.name === undefined
+            ? { oid: entry.oid }
+            : { oid: entry.oid, name: entry.name };
+        });
 
         /*
          * A device with interface walking off and no health OIDs still

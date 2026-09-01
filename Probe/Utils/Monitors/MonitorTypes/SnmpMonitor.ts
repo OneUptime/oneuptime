@@ -4,6 +4,7 @@ import IP from "Common/Types/IP/IP";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
+import NumberUtil from "Common/Utils/Number";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -1397,83 +1398,188 @@ export default class SnmpMonitor {
     });
   }
 
-  private static async executeSnmpQuery(
-    config: MonitorStepSnmpMonitor,
-    options: SnmpQueryOptions,
-  ): Promise<Array<SnmpOidResponse>> {
+  /*
+   * How many OIDs go into one SNMP GET.
+   *
+   * Every configured OID used to go into a SINGLE get, i.e. a single UDP
+   * datagram. At ~40 bytes per varbind a hundred OIDs is ~4 KB, past a
+   * 1500-byte MTU and past most agents' maximum message size, so the agent
+   * answers tooBig (or nothing at all), the whole GET is rejected, the outer
+   * retry loop burns three attempts, and the device is reported OFFLINE.
+   * Configuring more health OIDs did not collect more data - it took the
+   * router down. That is the defect behind issue #3507, where the reporter
+   * was asked to add "100+ items" per device.
+   *
+   * Twenty varbinds is ~800 bytes plus header: comfortably inside an
+   * Ethernet MTU and inside the 484-byte minimum an SNMPv1 agent must accept
+   * for anything but the longest OIDs. A device with a short list still gets
+   * exactly one GET, so nothing changes for anyone who is not affected.
+   */
+  private static readonly snmpGetChunkSize: number = NumberUtil.parseNumberWithDefault(
+    {
+      value: process.env["PROBE_SNMP_GET_CHUNK_SIZE"],
+      defaultValue: 20,
+      min: 1,
+    },
+  );
+
+  /*
+   * One SNMP GET for one slice of the configured OIDs.
+   *
+   * `offset` is the slice's start in `config.oids`, and it is load-bearing:
+   * net-snmp answers positionally, so the varbind at index i in this response
+   * describes `config.oids[offset + i]`. Pairing against `config.oids[i]`
+   * instead would attach the wrong name to every OID past the first chunk -
+   * and it would fail silently, as correct-looking metrics under wrong
+   * labels.
+   */
+  private static getOidChunk(data: {
+    session: snmp.Session;
+    config: MonitorStepSnmpMonitor;
+    offset: number;
+    oids: Array<string>;
+  }): Promise<Array<SnmpOidResponse>> {
     return new Promise(
       (
         resolve: (value: Array<SnmpOidResponse>) => void,
         reject: (reason?: Error) => void,
       ) => {
-        let session: snmp.Session | undefined;
-
         try {
-          session = SnmpMonitor.createSnmpSession(config, options);
-
-          const oids: Array<string> = config.oids.map((oid: SnmpOid) => {
-            return oid.oid;
-          });
-
-          if (oids.length === 0) {
-            session.close();
-            reject(new Error("No OIDs configured for SNMP monitor"));
-            return;
-          }
-
-          session.get(
-            oids,
+          data.session.get(
+            data.oids,
             (
               error: Error | null,
               varbinds: Array<snmp.Varbind> | undefined,
             ) => {
-              if (error || !varbinds) {
-                session!.close();
-                reject(error || new Error("No varbinds returned"));
-                return;
-              }
-
-              const oidResponses: Array<SnmpOidResponse> = [];
-
-              for (let i: number = 0; i < varbinds.length; i++) {
-                const varbind: snmp.Varbind = varbinds[i]!;
-                const configOid: SnmpOid | undefined = config.oids[i];
-
-                if (snmp.isVarbindError(varbind)) {
-                  oidResponses.push({
-                    oid: varbind.oid,
-                    name: configOid?.name,
-                    value: null,
-                    type: SnmpMonitor.mapSnmpErrorType(varbind.type),
-                  });
-                } else {
-                  oidResponses.push({
-                    oid: varbind.oid,
-                    name: configOid?.name,
-                    value: SnmpMonitor.parseVarbindValue(varbind),
-                    type: SnmpMonitor.mapSnmpDataType(varbind.type),
-                  });
+              /*
+               * This callback runs outside the caller's try block, so it owns
+               * its own failure handling: an unhandled throw here would leave
+               * the outer promise pending forever and hang the whole walk.
+               */
+              try {
+                if (error || !varbinds) {
+                  reject(error || new Error("No varbinds returned"));
+                  return;
                 }
-              }
 
-              session!.close();
-              resolve(oidResponses);
+                const chunkResponses: Array<SnmpOidResponse> = [];
+
+                for (let i: number = 0; i < varbinds.length; i++) {
+                  const varbind: snmp.Varbind = varbinds[i]!;
+                  const configOid: SnmpOid | undefined =
+                    data.config.oids[data.offset + i];
+
+                  if (snmp.isVarbindError(varbind)) {
+                    chunkResponses.push({
+                      oid: varbind.oid,
+                      name: configOid?.name,
+                      value: null,
+                      type: SnmpMonitor.mapSnmpErrorType(varbind.type),
+                    });
+                  } else {
+                    chunkResponses.push({
+                      oid: varbind.oid,
+                      name: configOid?.name,
+                      value: SnmpMonitor.parseVarbindValue(varbind),
+                      type: SnmpMonitor.mapSnmpDataType(varbind.type),
+                    });
+                  }
+                }
+
+                resolve(chunkResponses);
+              } catch (callbackError) {
+                reject(callbackError as Error);
+              }
             },
           );
-        } catch (err) {
-          /*
-           * Close the session if it was created before the throw (e.g. a
-           * synchronous throw from session.get) so we don't leak the socket.
-           */
-          try {
-            session?.close();
-          } catch {
-            // ignore close errors on an already-broken session
-          }
-          reject(err as Error);
+        } catch (dispatchError) {
+          // A synchronous throw from session.get on a broken session.
+          reject(dispatchError as Error);
         }
       },
     );
+  }
+
+  private static async executeSnmpQuery(
+    config: MonitorStepSnmpMonitor,
+    options: SnmpQueryOptions,
+  ): Promise<Array<SnmpOidResponse>> {
+    if (config.oids.length === 0) {
+      throw new Error("No OIDs configured for SNMP monitor");
+    }
+
+    let session: snmp.Session | undefined;
+
+    try {
+      session = SnmpMonitor.createSnmpSession(config, options);
+
+      const oidResponses: Array<SnmpOidResponse> = [];
+
+      for (
+        let offset: number = 0;
+        offset < config.oids.length;
+        offset += SnmpMonitor.snmpGetChunkSize
+      ) {
+        const chunkOids: Array<string> = config.oids
+          .slice(offset, offset + SnmpMonitor.snmpGetChunkSize)
+          .map((oid: SnmpOid) => {
+            return oid.oid;
+          });
+
+        /*
+         * Retry the failing CHUNK once before giving up on the query.
+         *
+         * The session is created with retries: 0 because retries live at the
+         * whole-query level, which was fine when a query was one datagram.
+         * Splitting a long list into ten sequential GETs multiplies the
+         * per-attempt exposure to a single dropped UDP packet by ten, and the
+         * outer retry re-issues every chunk from scratch. One in-place retry
+         * puts the failure surface back roughly where it was.
+         */
+        try {
+          oidResponses.push(
+            ...(await SnmpMonitor.getOidChunk({
+              session: session,
+              config: config,
+              offset: offset,
+              oids: chunkOids,
+            })),
+          );
+        } catch (chunkError) {
+          logger.debug(
+            `SNMP GET chunk at offset ${offset} failed for ${config.hostname}, retrying once: ${chunkError}`,
+          );
+
+          /*
+           * A persistent chunk error still rejects the whole query, which
+           * keeps today's isOnline contract exactly: a device whose health
+           * OIDs cannot be read is reported down, as it always was.
+           */
+          oidResponses.push(
+            ...(await SnmpMonitor.getOidChunk({
+              session: session,
+              config: config,
+              offset: offset,
+              oids: chunkOids,
+            })),
+          );
+        }
+      }
+
+      session.close();
+      return oidResponses;
+    } catch (err) {
+      /*
+       * Close the session if it was created before the throw so we don't leak
+       * the socket - including when a chunk failed halfway through a list.
+       */
+      try {
+        session?.close();
+      } catch {
+        // ignore close errors on an already-broken session
+      }
+      throw err as Error;
+    }
   }
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {

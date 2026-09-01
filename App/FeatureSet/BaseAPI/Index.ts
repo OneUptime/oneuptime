@@ -1641,6 +1641,12 @@ import NetworkDeviceAutoImportRuleService, {
   Service as NetworkDeviceAutoImportRuleServiceType,
 } from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
 
+// NetworkDeviceOidTemplate
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkDeviceOidTemplateService, {
+  Service as NetworkDeviceOidTemplateServiceType,
+} from "Common/Server/Services/NetworkDeviceOidTemplateService";
+
 // NetworkDeviceDiscoveryScan
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService, {
@@ -5172,6 +5178,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         NetworkDeviceAutoImportRule,
         NetworkDeviceAutoImportRuleService,
+      ).getRouter(),
+    );
+
+    // network device oid collection template
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkDeviceOidTemplate,
+        NetworkDeviceOidTemplateServiceType
+      >(
+        NetworkDeviceOidTemplate,
+        NetworkDeviceOidTemplateService,
       ).getRouter(),
     );
 
