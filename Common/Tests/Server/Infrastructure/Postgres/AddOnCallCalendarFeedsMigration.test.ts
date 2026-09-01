@@ -111,18 +111,43 @@ describe("AddOnCallCalendarFeeds migration", () => {
     expect(migration.name).toBe(MIGRATION_NAME);
   });
 
-  test("is registered LAST, above every timestamp already registered", () => {
+  /*
+   * Registered ONCE, and after everything older than it.
+   *
+   * This used to assert it was the last entry in the array, which was true on
+   * the day it was written and false the moment anybody added a migration —
+   * an assertion every future PR has to edit is a tripwire, not a guard. The
+   * property actually worth holding is that this migration sits in ascending
+   * timestamp order and is not registered twice, which is what breaks
+   * migration runs. (SchemaMigrationsOrdering.test.ts holds the same rule for
+   * the array as a whole.)
+   */
+  test("is registered exactly once, after every migration older than it", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
 
-    expect(registered[registered.length - 1]).toBe(
+    const occurrences: Array<MigrationClass> = registered.filter(
+      (migration: MigrationClass) => {
+        return migration === AddOnCallCalendarFeeds1790400000000;
+      },
+    );
+    expect(occurrences).toHaveLength(1);
+
+    const index: number = registered.indexOf(
       AddOnCallCalendarFeeds1790400000000,
     );
-    expect(
-      registered.filter((migration: MigrationClass) => {
-        return migration === AddOnCallCalendarFeeds1790400000000;
-      }),
-    ).toHaveLength(1);
+    expect(index).toBeGreaterThan(-1);
+
+    const timestampOf: (migration: MigrationClass) => number = (
+      migration: MigrationClass,
+    ): number => {
+      const match: RegExpMatchArray | null = migration.name.match(/(\d+)$/);
+      return match ? parseInt(match[1]!, 10) : 0;
+    };
+
+    for (let before: number = 0; before < index; before++) {
+      expect(timestampOf(registered[before]!)).toBeLessThan(1790400000000);
+    }
   });
 
   test("is backed by exactly one file carrying the same timestamp", () => {
