@@ -33,6 +33,18 @@ import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
 
+/*
+ * Path segments that resolve to the object prototype when a dotted series
+ * label key is walked as a nested property path. See the fold in
+ * `getStorageMap`, and the matching write-side guard in
+ * `CapturedMetricAttributeUtil`.
+ */
+const PrototypeWalkingKeySegments: ReadonlySet<string> = new Set<string>([
+  "__proto__",
+  "constructor",
+  "prototype",
+]);
+
 /**
  * Utility for building template variable storage map and processing dynamic placeholders
  * shared between Incident and Alert auto-creation.
@@ -534,6 +546,26 @@ export default class MonitorTemplateUtil {
           continue;
         }
         const parts: Array<string> = key.split(".");
+        /*
+         * Series label keys are attacker-adjacent: they are whatever
+         * attribute names the emitting telemetry chose, and a monitor
+         * script picks them outright via oneuptime.captureMetric(). Walking
+         * `__proto__` here would hand the loop Object.prototype — it is
+         * truthy, an object, and not an Array, so the reset below would be
+         * skipped and the final assignment would land on the prototype
+         * itself, polluting every object in the shared Workers process that
+         * renders every project's alert templates. `constructor` and
+         * `prototype` are refused with it so no spelling of the same walk
+         * survives. The whole label is skipped rather than partially
+         * folded, and it is still reachable in full under `seriesLabels`.
+         */
+        if (
+          parts.some((part: string) => {
+            return PrototypeWalkingKeySegments.has(part);
+          })
+        ) {
+          continue;
+        }
         let cursor: JSONObject = storageMap;
         for (let i: number = 0; i < parts.length - 1; i++) {
           const part: string = parts[i]!;
