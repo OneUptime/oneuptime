@@ -19,11 +19,16 @@ import DashboardBaseComponent from "../../../../Types/Dashboard/DashboardCompone
  * The contract that matters at runtime is machine-readable, not cosmetic. The
  * `id` is the key the chosen value is persisted under, the `type` decides which
  * editor the form renders, and the dropdown option `value`s are the exact
- * strings ("list" / "honeycomb") the rendering code later switches on. If any
- * of those drift, a widget silently renders the wrong view or stores a value no
- * consumer understands, with no compiler error to catch it. This suite pins
- * that contract, and also verifies the factory passes the caller's section
- * through untouched and hands back independent objects on every call.
+ * strings ("list" / "honeycomb" / "timeline") the rendering code later switches
+ * on. If any of those drift, a widget silently renders the wrong view or stores
+ * a value no consumer understands, with no compiler error to catch it. This
+ * suite pins that contract, and also verifies the factory passes the caller's
+ * section through untouched and hands back independent objects on every call.
+ *
+ * The state-timeline mode is OPT-IN. Most list widgets only know an entry's
+ * CURRENT status, so offering them a timeline would hand the operator a
+ * permanently empty widget; only a widget with a stored status history (the
+ * Monitor List) asks for it. Both shapes of the factory call are pinned below.
  */
 
 /*
@@ -39,11 +44,14 @@ const SAMPLE_SECTION: ComponentArgumentSection = {
 };
 
 /*
- * The complete set of view modes the DashboardListViewMode union permits. Each
- * dropdown option value must be one of these and, together, the options must
- * cover all of them.
+ * The complete set of view modes the DashboardListViewMode union permits. Every
+ * dropdown option value must be one of these, whichever call shape produced it.
  */
 const VALID_VIEW_MODES: Set<DashboardListViewMode> =
+  new Set<DashboardListViewMode>(["list", "honeycomb", "timeline"]);
+
+// What a caller that does not opt in to the timeline is offered.
+const DEFAULT_VIEW_MODES: Set<DashboardListViewMode> =
   new Set<DashboardListViewMode>(["list", "honeycomb"]);
 
 describe("getViewModeArgument", () => {
@@ -156,8 +164,118 @@ describe("getViewModeArgument", () => {
       const uniqueValues: Set<string> = new Set<string>(values);
       expect(uniqueValues.size).toBe(values.length);
       expect(uniqueValues).toEqual(
-        new Set<string>(Array.from(VALID_VIEW_MODES)),
+        new Set<string>(Array.from(DEFAULT_VIEW_MODES)),
       );
+    });
+  });
+
+  describe("timeline opt-in", () => {
+    test("adds the State Timeline option only when asked for it", () => {
+      const withTimeline: ComponentArgument<DashboardBaseComponent> =
+        getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, {
+          includeTimeline: true,
+        });
+
+      expect(withTimeline.dropdownOptions).toEqual([
+        { label: "List", value: "list" },
+        { label: "Honeycomb", value: "honeycomb" },
+        { label: "State Timeline", value: "timeline" },
+      ]);
+    });
+
+    test("keeps the timeline last so the default view stays first", () => {
+      /*
+       * The picker's first option is what an operator reads as the default,
+       * and "list" is what an unset viewMode actually renders.
+       */
+      const options: Array<{ value: unknown }> =
+        (getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, {
+          includeTimeline: true,
+        }).dropdownOptions ?? []) as Array<{ value: unknown }>;
+
+      expect(options[0]?.value).toBe("list");
+      expect(options[options.length - 1]?.value).toBe("timeline");
+    });
+
+    test.each([
+      ["no options object", undefined],
+      ["an empty options object", {}],
+      ["an explicit false", { includeTimeline: false }],
+      ["an explicit undefined", { includeTimeline: undefined }],
+    ])(
+      "withholds the timeline option given %s",
+      (
+        _label: string,
+        options: { includeTimeline?: boolean | undefined } | undefined,
+      ) => {
+        /*
+         * Only an explicit `true` opts in. Anything else — including a widget
+         * that simply forwards an absent flag — must get the two-option list,
+         * because offering a timeline for data that has no history renders an
+         * empty widget with no explanation.
+         */
+        const values: Array<unknown> = (
+          getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, options)
+            .dropdownOptions ?? []
+        ).map((option: { value: unknown }): unknown => {
+          return option.value;
+        });
+
+        expect(values).toEqual(["list", "honeycomb"]);
+      },
+    );
+
+    test("describes the timeline in its own words when it is offered", () => {
+      const description: string = getViewModeArgument<DashboardBaseComponent>(
+        SAMPLE_SECTION,
+        { includeTimeline: true },
+      ).description.toLowerCase();
+
+      expect(description).toContain("list");
+      expect(description).toContain("honeycomb");
+      expect(description).toContain("timeline");
+    });
+
+    test("does not mention the timeline when it is not offered", () => {
+      /*
+       * A description that promises a mode the dropdown does not carry sends
+       * the operator looking for a control that is not there.
+       */
+      expect(
+        getViewModeArgument<DashboardBaseComponent>(
+          SAMPLE_SECTION,
+        ).description.toLowerCase(),
+      ).not.toContain("timeline");
+    });
+
+    test("keeps every other part of the argument identical either way", () => {
+      const withoutTimeline: ComponentArgument<DashboardBaseComponent> =
+        getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION);
+      const withTimeline: ComponentArgument<DashboardBaseComponent> =
+        getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, {
+          includeTimeline: true,
+        });
+
+      expect(withTimeline.id).toBe(withoutTimeline.id);
+      expect(withTimeline.type).toBe(withoutTimeline.type);
+      expect(withTimeline.name).toBe(withoutTimeline.name);
+      expect(withTimeline.required).toBe(withoutTimeline.required);
+      expect(withTimeline.section).toBe(withoutTimeline.section);
+    });
+
+    test("hands back an independent options array when the timeline is included", () => {
+      const first: ComponentArgument<DashboardBaseComponent> =
+        getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, {
+          includeTimeline: true,
+        });
+
+      first.dropdownOptions?.push({ label: "Injected", value: "list" });
+
+      expect(
+        getViewModeArgument<DashboardBaseComponent>(SAMPLE_SECTION, {
+          includeTimeline: true,
+        }).dropdownOptions,
+      ).toHaveLength(3);
     });
   });
 

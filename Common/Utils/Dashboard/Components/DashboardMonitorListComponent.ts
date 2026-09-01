@@ -15,6 +15,10 @@ import {
 } from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { getViewModeArgument } from "./DashboardListSharedArgs";
+import {
+  MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS,
+  MonitorStateTimelineTooltipFieldProps,
+} from "../../../Types/Dashboard/MonitorStateTimelineTooltipField";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
@@ -45,6 +49,23 @@ function getMonitorTypeDropdownOptions(): Array<DropdownOption> {
   });
 
   return options;
+}
+
+/*
+ * Kept in the canonical display order of
+ * MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS (NOT sorted alphabetically like the
+ * monitor-type list above): the tooltip renders its rows in that same order,
+ * so a picker that reordered them would misrepresent the result.
+ */
+function getTimelineTooltipFieldOptions(): Array<DropdownOption> {
+  return MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS.map(
+    (props: MonitorStateTimelineTooltipFieldProps): DropdownOption => {
+      return {
+        label: props.title,
+        value: props.field,
+      };
+    },
+  );
 }
 
 export default class DashboardMonitorListComponentUtil extends DashboardBaseComponentUtil {
@@ -92,8 +113,27 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
     });
 
     componentArguments.push(
-      getViewModeArgument<DashboardMonitorListComponent>(DisplaySection),
+      getViewModeArgument<DashboardMonitorListComponent>(DisplaySection, {
+        /*
+         * The monitor list is the one list widget whose entries have a stored
+         * status HISTORY (MonitorStatusTimeline), so it is the one that can
+         * plot a state timeline rather than only a current-status snapshot.
+         */
+        includeTimeline: true,
+      }),
     );
+
+    componentArguments.push({
+      name: "Timeline Tooltip",
+      description:
+        "Which details the State Timeline shows when you hover a bar. Applies to the State Timeline view mode only.",
+      required: false,
+      type: ComponentInputType.MultiSelectDropdown,
+      id: "timelineTooltipFields",
+      placeholder: "Status, Started, Ended, Duration",
+      section: DisplaySection,
+      dropdownOptions: getTimelineTooltipFieldOptions(),
+    });
 
     componentArguments.push({
       name: "Operational Status",

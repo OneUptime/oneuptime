@@ -344,7 +344,8 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
         type: DashboardComponentType.MonitorList,
         label: "Monitor List",
         icon: IconProp.AltGlobe,
-        description: "Monitors with current operational status.",
+        description:
+          "Monitors with current operational status — as a list, a honeycomb, or a state timeline showing when each one went down and for how long.",
         keywords: [
           "uptime",
           "probe",
@@ -352,6 +353,11 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
           "status",
           "health",
           "availability",
+          "state timeline",
+          "status history",
+          "downtime",
+          "outage",
+          "history",
         ],
       },
     ],

@@ -14,6 +14,10 @@ import {
   MonitorTypeHelper,
   MonitorTypeProps,
 } from "../../../../Types/Monitor/MonitorType";
+import {
+  MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS,
+  MonitorStateTimelineTooltipFieldProps,
+} from "../../../../Types/Dashboard/MonitorStateTimelineTooltipField";
 
 /*
  * DashboardMonitorListComponentUtil is a pure factory with two
@@ -51,6 +55,7 @@ const EXPECTED_ARGUMENT_IDS: Array<ArgumentId> = [
   "title",
   "maxRows",
   "viewMode",
+  "timelineTooltipFields",
   "statusFilter",
   "monitorStatusIds",
   "monitorTypes",
@@ -61,6 +66,7 @@ const DISPLAY_SECTION_ARGUMENT_IDS: Array<ArgumentId> = [
   "title",
   "maxRows",
   "viewMode",
+  "timelineTooltipFields",
 ];
 
 const FILTER_SECTION_ARGUMENT_IDS: Array<ArgumentId> = [
@@ -153,6 +159,7 @@ describe("DashboardMonitorListComponentUtil", () => {
        */
       expect(component.arguments.title).toBeUndefined();
       expect(component.arguments.viewMode).toBeUndefined();
+      expect(component.arguments.timelineTooltipFields).toBeUndefined();
       expect(component.arguments.statusFilter).toBeUndefined();
       expect(component.arguments.monitorStatusIds).toBeUndefined();
       expect(component.arguments.monitorTypes).toBeUndefined();
@@ -188,7 +195,7 @@ describe("DashboardMonitorListComponentUtil", () => {
   });
 
   describe("getComponentConfigArguments", () => {
-    test("declares exactly the seven documented arguments, in form order", () => {
+    test("declares exactly the eight documented arguments, in form order", () => {
       expect(
         getArguments().map((arg: MonitorListArgument) => {
           return arg.id;
@@ -250,7 +257,7 @@ describe("DashboardMonitorListComponentUtil", () => {
   });
 
   describe("Display Options section", () => {
-    test("groups the title, maxRows and viewMode fields under 'Display Options' at order 1", () => {
+    test("groups the title, maxRows, viewMode and tooltip fields under 'Display Options' at order 1", () => {
       for (const id of DISPLAY_SECTION_ARGUMENT_IDS) {
         const arg: MonitorListArgument = getArgumentById(id);
         expect(arg.section?.name).toBe("Display Options");
@@ -273,15 +280,69 @@ describe("DashboardMonitorListComponentUtil", () => {
       expect(arg.placeholder).toBe("25");
     });
 
-    test("wires in the shared viewMode dropdown offering list and honeycomb", () => {
+    test("wires in the shared viewMode dropdown, opting in to the state timeline", () => {
       const arg: MonitorListArgument = getArgumentById("viewMode");
 
+      /*
+       * The monitor list is the one list widget whose entries have a stored
+       * status HISTORY (MonitorStatusTimeline), so it is the one that opts in
+       * to the third mode. The exact strings are what the renderer switches
+       * on and what a saved dashboard persists.
+       */
       expect(arg.type).toBe(ComponentInputType.Dropdown);
       expect(
         getOptions("viewMode").map((option: OptionShape) => {
           return option.value;
         }),
-      ).toEqual(["list", "honeycomb"]);
+      ).toEqual(["list", "honeycomb", "timeline"]);
+    });
+
+    test("offers the timeline tooltip rows as a multi-select", () => {
+      const arg: MonitorListArgument = getArgumentById("timelineTooltipFields");
+
+      expect(arg.type).toBe(ComponentInputType.MultiSelectDropdown);
+      expect(arg.required).toBe(false);
+      expect(arg.entityFilterModelType).toBeUndefined();
+    });
+
+    test("offers exactly one tooltip option per known field, in display order", () => {
+      /*
+       * Order is not cosmetic here: the tooltip renders its rows in the
+       * canonical order regardless of the order they were ticked, so a picker
+       * that sorted them differently would misrepresent the result.
+       */
+      expect(getOptions("timelineTooltipFields")).toEqual(
+        MONITOR_STATE_TIMELINE_TOOLTIP_FIELDS.map(
+          (props: MonitorStateTimelineTooltipFieldProps): OptionShape => {
+            return { label: props.title, value: props.field };
+          },
+        ),
+      );
+    });
+
+    test("gives every tooltip option a distinct, non-empty value", () => {
+      const values: Array<string> = getOptions("timelineTooltipFields").map(
+        (option: OptionShape): string => {
+          return String(option.value);
+        },
+      );
+
+      expect(values.length).toBeGreaterThan(0);
+      expect(new Set<string>(values).size).toBe(values.length);
+      for (const value of values) {
+        expect(value.length).toBeGreaterThan(0);
+      }
+    });
+
+    test("hints the default tooltip rows in its placeholder", () => {
+      /*
+       * The field is optional and an unset value falls back to a default set;
+       * the placeholder is the only place a viewer learns what that default
+       * is before touching the control.
+       */
+      expect(getArgumentById("timelineTooltipFields").placeholder).toBe(
+        "Status, Started, Ended, Duration",
+      );
     });
   });
 

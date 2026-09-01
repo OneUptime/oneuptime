@@ -5,6 +5,11 @@ import DashboardResourceHoneycomb, {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import DashboardResourceStateTimeline, {
+  StateTimelineAxisTick,
+  StateTimelineLegendItem,
+  StateTimelineRow,
+} from "./DashboardResourceStateTimeline";
 
 export interface ResourceListColumn {
   label: string;
@@ -12,7 +17,7 @@ export interface ResourceListColumn {
   alignRight?: boolean;
 }
 
-export type ResourceListViewMode = "list" | "honeycomb";
+export type ResourceListViewMode = "list" | "honeycomb" | "timeline";
 
 export interface DashboardResourceListBaseProps {
   title?: string | undefined;
@@ -28,6 +33,15 @@ export interface DashboardResourceListBaseProps {
   viewMode?: ResourceListViewMode | undefined;
   honeycombTiles?: Array<HoneycombTile> | undefined;
   honeycombLegend?: Array<HoneycombLegendItem> | undefined;
+  /*
+   * State-timeline mode. Supplied only by widgets whose entries have a stored
+   * status history; every other widget leaves these undefined and never
+   * selects the mode.
+   */
+  timelineRows?: Array<StateTimelineRow> | undefined;
+  timelineAxisTicks?: Array<StateTimelineAxisTick> | undefined;
+  timelineLegend?: Array<StateTimelineLegendItem> | undefined;
+  timelineNoDataLabel?: string | undefined;
 }
 
 const DashboardResourceListBase: FunctionComponent<
@@ -108,12 +122,19 @@ const DashboardResourceListBase: FunctionComponent<
           </span>
         </div>
       )}
-      {viewMode === "honeycomb" ? (
+      {viewMode === "honeycomb" || viewMode === "timeline" ? (
         <div className="flex-1 overflow-hidden rounded-md border border-gray-100">
           {props.isEmpty ? (
             <div className="h-full flex items-center justify-center px-4 py-8 text-center text-gray-400 text-sm">
               {props.emptyMessage}
             </div>
+          ) : viewMode === "timeline" ? (
+            <DashboardResourceStateTimeline
+              rows={props.timelineRows || []}
+              axisTicks={props.timelineAxisTicks || []}
+              legend={props.timelineLegend}
+              noDataLabel={props.timelineNoDataLabel || "No data"}
+            />
           ) : (
             <DashboardResourceHoneycomb
               tiles={props.honeycombTiles || []}

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
+import getHoverCardPosition from "../Utils/HoverCardPosition";
 
 export interface HoneycombTileDetail {
   label: string;
@@ -179,27 +180,17 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
     useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
-    const tooltipHeight: number = ref.current?.offsetHeight || 100;
-    const viewportWidth: number = window.innerWidth;
-    const viewportHeight: number = window.innerHeight;
-
-    let left: number =
-      state.rect.left + state.rect.width / 2 - TOOLTIP_WIDTH / 2;
-    left = Math.max(8, Math.min(viewportWidth - TOOLTIP_WIDTH - 8, left));
-
-    const spaceAbove: number = state.rect.top;
-    const placement: "above" | "below" =
-      spaceAbove < tooltipHeight + TOOLTIP_OFFSET + 8 ? "below" : "above";
-
-    const top: number =
-      placement === "above"
-        ? Math.max(8, state.rect.top - tooltipHeight - TOOLTIP_OFFSET)
-        : Math.min(
-            viewportHeight - tooltipHeight - 8,
-            state.rect.top + state.rect.height + TOOLTIP_OFFSET,
-          );
-
-    setPosition({ left, top, placement });
+    setPosition(
+      getHoverCardPosition({
+        rect: state.rect,
+        cardWidth: TOOLTIP_WIDTH,
+        // 100 is the first-pass guess, before the card has ever been laid out.
+        cardHeight: ref.current?.offsetHeight || 100,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        offset: TOOLTIP_OFFSET,
+      }),
+    );
   }, [state.rect.left, state.rect.top, state.rect.width, state.rect.height]);
 
   const details: Array<HoneycombTileDetail> = state.tile.tooltip.details || [];

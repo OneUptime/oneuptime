@@ -111,3 +111,34 @@ export function getDashboardDateTimeLabel(
 ): string {
   return getDashboardDateTime(date, options).label;
 }
+
+/**
+ * The label under one tick of a state-timeline axis.
+ *
+ * The axis is the one dashboard surface where a bare clock reading is right:
+ * on a window of a day or less the axis as a whole says which day is on
+ * screen, so there is no date half for a time half to disagree with, and a
+ * repeated date on every tick is noise in a lane only a few hundred pixels
+ * wide. A longer window has to name the day, because consecutive ticks are no
+ * longer on the same one.
+ *
+ * It lives here rather than in the widget for the same reason every other
+ * dashboard timestamp does: both halves resolve through OneUptimeDate's
+ * current-timezone helpers, so a user who picked a timezone in User Settings
+ * reads that wall clock on the axis too.
+ */
+export function getDashboardTimelineAxisLabel(
+  date: Date,
+  options?: { includeDate?: boolean | undefined } | undefined,
+): string {
+  const timeLabel: string = OneUptimeDate.getLocalTimeString(date, {
+    includeMinutes: true,
+    includeSeconds: false,
+  });
+
+  if (options?.includeDate !== true) {
+    return timeLabel;
+  }
+
+  return `${OneUptimeDate.getDateAsLocalFormattedString(date, true)} ${timeLabel}`;
+}

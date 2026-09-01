@@ -17,6 +17,7 @@ import {
   NO_DATE_LABEL,
   getDashboardDateTime,
   getDashboardDateTimeLabel,
+  getDashboardTimelineAxisLabel,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardDateTime";
 
 const NY: Timezone = Timezone.AmericaNew_York;
@@ -492,5 +493,83 @@ describe("DashboardDateTime", () => {
       expect(morning).toContain("Jul 16, 2026");
       expect(evening).toContain("Jul 16, 2026");
     });
+  });
+});
+
+describe("getDashboardTimelineAxisLabel", () => {
+  afterEach(() => {
+    // Never leak a timezone override into another test.
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  it("is a bare clock reading on a window that fits inside one day", () => {
+    /*
+     * The one dashboard surface where a date-less timestamp is right: the
+     * state-timeline axis as a whole says which day is on screen, and a
+     * repeated date on every tick is noise in a lane a few hundred pixels
+     * wide.
+     */
+    OneUptimeDate.setUserTimezone(LA);
+
+    expect(getDashboardTimelineAxisLabel(INSTANT)).toBe("14:32");
+  });
+
+  it("names the day as well when the caller says the window spans days", () => {
+    OneUptimeDate.setUserTimezone(LA);
+
+    expect(getDashboardTimelineAxisLabel(INSTANT, { includeDate: true })).toBe(
+      "Jul 16, 2026 14:32",
+    );
+  });
+
+  it("treats an absent or explicitly false option as time-only", () => {
+    OneUptimeDate.setUserTimezone(LA);
+
+    expect(getDashboardTimelineAxisLabel(INSTANT, {})).toBe("14:32");
+    expect(getDashboardTimelineAxisLabel(INSTANT, { includeDate: false })).toBe(
+      "14:32",
+    );
+    expect(
+      getDashboardTimelineAxisLabel(INSTANT, { includeDate: undefined }),
+    ).toBe("14:32");
+  });
+
+  it("reads the wall clock of the timezone the user picked in settings", () => {
+    OneUptimeDate.setUserTimezone(KOLKATA);
+    expect(getDashboardTimelineAxisLabel(INSTANT)).toBe("03:02");
+
+    OneUptimeDate.setUserTimezone(NY);
+    expect(getDashboardTimelineAxisLabel(INSTANT)).toBe("17:32");
+  });
+
+  it("resolves both halves in the SAME zone when it names the day", () => {
+    /*
+     * The failure this guards against is a label reading "Jul 16, 2026 03:02"
+     * — the UTC date next to the Kolkata time — which is 21:32 UTC rendered
+     * half in one zone and half in another.
+     */
+    OneUptimeDate.setUserTimezone(KOLKATA);
+
+    expect(getDashboardTimelineAxisLabel(INSTANT, { includeDate: true })).toBe(
+      "Jul 17, 2026 03:02",
+    );
+  });
+
+  it("never shows seconds — a tick is a coarse reading", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardTimelineAxisLabel(new Date("2026-07-16T09:05:37.000Z")),
+    ).toBe("09:05");
+  });
+
+  it("distinguishes consecutive ticks inside one hour", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardTimelineAxisLabel(new Date("2026-07-16T09:05:00.000Z")),
+    ).not.toBe(
+      getDashboardTimelineAxisLabel(new Date("2026-07-16T09:20:00.000Z")),
+    );
   });
 });
