@@ -254,6 +254,45 @@ export default class OneUptimeDate {
   }
 
   /**
+   * "02 Mar, 14:30" — a day-qualified wall clock, for chart axes whose
+   * buckets are finer than an hour but whose window is long enough that a
+   * bare "14:30" would name more than one instant.
+   */
+  public static getDateAsLocalDayMonthTimeString(
+    date: Date | string,
+    options?: { includeSeconds?: boolean | undefined },
+  ): string {
+    date = this.fromString(date);
+
+    return `${this.getDateAsLocalDayMonthString(date)}, ${this.getLocalTimeString(
+      date,
+      { includeSeconds: options?.includeSeconds ?? false },
+    )}`;
+  }
+
+  /**
+   * Minutes `date` sits ahead of UTC in the current timezone. Callers use it
+   * to detect a DST transition inside a window: an offset that DROPS across
+   * the window means the clock went back, and a wall-clock reading in that
+   * hour names two different instants.
+   */
+  public static getTimezoneOffsetInMinutes(date: Date | string): number {
+    return this.inCurrentTimezone(date).utcOffset();
+  }
+
+  /**
+   * The current timezone's abbreviation AT `date` — "BST" in summer, "GMT"
+   * in winter. The only thing that separates the two 01:00s on the day the
+   * clocks go back, so chart axes append it when a window straddles one.
+   */
+  public static getLocalZoneAbbr(date: Date | string): string {
+    return this.getZoneAbbrByTimezone(
+      this.getCurrentTimezone(),
+      this.fromString(date),
+    );
+  }
+
+  /**
    * A compact "Mar 1, 14:30" (or "Mar 1, 2:30 PM") label for one instant, used
    * where a whole window has to fit on a button - the time range picker above
    * the metrics, traces and logs explorers, chiefly.

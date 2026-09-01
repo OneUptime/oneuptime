@@ -96,19 +96,21 @@ function minutesIn(minutes: number): Date {
   return new Date(START.getTime() + minutes * 60 * 1000);
 }
 
+interface ChartUnderTestProps {
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  showLegend?: boolean | undefined;
+}
+
 interface ChartUnderTest {
   name: string;
-  render: (props: {
-    timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
-    referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
-    showLegend?: boolean | undefined;
-  }) => React.ReactElement;
+  render: (props: ChartUnderTestProps) => React.ReactElement;
 }
 
 const CHARTS: Array<ChartUnderTest> = [
   {
     name: "LineChart",
-    render: (props): React.ReactElement => {
+    render: (props: ChartUnderTestProps): React.ReactElement => {
       return (
         <LineChartElement
           data={buildSeries()}
@@ -127,7 +129,7 @@ const CHARTS: Array<ChartUnderTest> = [
   },
   {
     name: "AreaChart",
-    render: (props): React.ReactElement => {
+    render: (props: ChartUnderTestProps): React.ReactElement => {
       return (
         <AreaChartElement
           data={buildSeries()}
@@ -146,7 +148,7 @@ const CHARTS: Array<ChartUnderTest> = [
   },
   {
     name: "BarChart",
-    render: (props): React.ReactElement => {
+    render: (props: ChartUnderTestProps): React.ReactElement => {
       return (
         <BarChartElement
           data={buildSeries()}

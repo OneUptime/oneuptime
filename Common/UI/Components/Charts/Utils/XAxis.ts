@@ -8,6 +8,105 @@ export default class XAxisUtil {
     return new Date(value.getTime());
   }
 
+  /*
+   * A chart's x-axis label is not decoration — it IS the identity of its
+   * bucket. DataPointUtil places a series row by finding the first row
+   * whose label matches, TimeAnnotationUtil resolves an event marker the
+   * same way, and recharts' categorical scale resolves no category at all
+   * once its domain holds a duplicate. So a repeated label does not just
+   * read ambiguously: it merges other days' data into the first day's
+   * buckets and silently drops the annotations that land on them.
+   *
+   * Everything from EVERY_HOUR up already carries the date for exactly
+   * this reason. These two helpers decide when the finer tiers must too.
+   */
+
+  private static readonly MILLISECONDS_IN_A_DAY: number = 24 * 60 * 60 * 1000;
+
+  /**
+   * How much a wall-clock label has to say before it names exactly one
+   * instant inside this window.
+   *
+   * Two ways that happens:
+   *
+   * 1. The window is at least a day long, so the clock wraps. Measured:
+   *    a 23h window at the fifteen-minute tier yields 93 intervals and 93
+   *    distinct labels, while 24h yields 97 and 96 — the first and last
+   *    tick both read "00:00". A 48h window at the thirty-minute tier
+   *    yields 97 intervals and only 48 distinct labels.
+   *
+   * 2. The clocks go back inside the window, which replays a wall-clock
+   *    hour, and no duration is short enough to be safe from it.
+   *
+   *    It only bites when the configured timezone is not the one the
+   *    browser reports: intervals are stepped in browser wall-clock time
+   *    while labels are read in the configured zone, so a transition the
+   *    browser cannot see gets walked straight through. Measured on a 4h
+   *    window across London's fall-back — browser UTC, configured London:
+   *    49 intervals, 37 distinct. With both zones London the walker steps
+   *    over the repeated hour itself and the same window measures 37 and
+   *    37, so the zone suffix is redundant there but never wrong.
+   */
+  private static getWallClockLabelDetail(data: {
+    xAxisMin: XAxisMaxMin;
+    xAxisMax: XAxisMaxMin;
+  }): { withDate: boolean; withZone: boolean } {
+    if (
+      typeof data.xAxisMin === "number" ||
+      typeof data.xAxisMax === "number"
+    ) {
+      return { withDate: false, withZone: false };
+    }
+
+    const startDate: Date = data.xAxisMin;
+    const endDate: Date = data.xAxisMax;
+
+    const wrapsTheClock: boolean =
+      endDate.getTime() - startDate.getTime() >=
+      XAxisUtil.MILLISECONDS_IN_A_DAY;
+
+    /*
+     * A drop in the offset is a fall-back; a rise is a spring-forward,
+     * which skips an hour rather than repeating one and is harmless.
+     *
+     * The date does not settle a fall-back — both 01:00s are on the same
+     * day — so the zone abbreviation goes on too, which is the only thing
+     * that tells "01:00 BST" from "01:00 GMT".
+     */
+    const clocksGoBack: boolean =
+      OneUptimeDate.getTimezoneOffsetInMinutes(endDate) <
+      OneUptimeDate.getTimezoneOffsetInMinutes(startDate);
+
+    return {
+      withDate: wrapsTheClock || clocksGoBack,
+      withZone: clocksGoBack,
+    };
+  }
+
+  /**
+   * The label for a bucket finer than an hour: a bare wall clock where
+   * that is unambiguous, and a day-qualified one where it is not.
+   */
+  private static getWallClockLabel(
+    value: Date,
+    detail: { withDate: boolean; withZone: boolean },
+    options?: { includeSeconds?: boolean | undefined },
+  ): string {
+    const includeSeconds: boolean = options?.includeSeconds ?? false;
+
+    const base: string = detail.withDate
+      ? OneUptimeDate.getDateAsLocalDayMonthTimeString(value, {
+          includeSeconds,
+        })
+      : OneUptimeDate.getLocalTimeString(value, { includeSeconds });
+
+    if (!detail.withZone) {
+      return base;
+    }
+
+    return `${base} ${OneUptimeDate.getLocalZoneAbbr(value)}`;
+  }
+
   public static getPrecision(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;
@@ -187,10 +286,17 @@ export default class XAxisUtil {
   }): (value: Date) => string {
     const precision: XAxisPrecision = XAxisUtil.getPrecision(data);
 
+    /*
+     * Computed once here rather than per tick: every sub-hour tier below
+     * needs the same answer, and it does not vary within a window.
+     */
+    const labelDetail: { withDate: boolean; withZone: boolean } =
+      XAxisUtil.getWallClockLabelDetail(data);
+
     switch (precision) {
       case XAxisPrecision.EVERY_SECOND:
         return (value: Date) => {
-          return OneUptimeDate.getLocalTimeString(value, {
+          return XAxisUtil.getWallClockLabel(value, labelDetail, {
             includeSeconds: true,
           });
         };
@@ -202,7 +308,7 @@ export default class XAxisUtil {
           const roundedSeconds: number = Math.floor(seconds / 5) * 5;
           roundedValue.setSeconds(roundedSeconds, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue, {
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
             includeSeconds: true,
           });
         };
@@ -214,7 +320,7 @@ export default class XAxisUtil {
           const roundedSeconds: number = Math.floor(seconds / 10) * 10;
           roundedValue.setSeconds(roundedSeconds, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue, {
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
             includeSeconds: true,
           });
         };
@@ -226,14 +332,14 @@ export default class XAxisUtil {
           const roundedSeconds: number = Math.floor(seconds / 30) * 30;
           roundedValue.setSeconds(roundedSeconds, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue, {
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail, {
             includeSeconds: true,
           });
         };
       case XAxisPrecision.EVERY_MINUTE:
         // round down to nearest minute
         return (value: Date) => {
-          return OneUptimeDate.getLocalTimeString(value);
+          return XAxisUtil.getWallClockLabel(value, labelDetail);
         };
       case XAxisPrecision.EVERY_FIVE_MINUTES:
         // round down to nearest 5 minutes
@@ -243,7 +349,7 @@ export default class XAxisUtil {
           const roundedMinutes: number = Math.floor(minutes / 5) * 5;
           roundedValue.setMinutes(roundedMinutes, 0, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue);
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
         };
       case XAxisPrecision.EVERY_TEN_MINUTES:
         // round down to nearest 10 minutes
@@ -253,7 +359,7 @@ export default class XAxisUtil {
           const roundedMinutes: number = Math.floor(minutes / 10) * 10;
           roundedValue.setMinutes(roundedMinutes, 0, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue);
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
         };
       case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
         // round down to nearest 15 minutes
@@ -263,7 +369,7 @@ export default class XAxisUtil {
           const roundedMinutes: number = Math.floor(minutes / 15) * 15;
           roundedValue.setMinutes(roundedMinutes, 0, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue);
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
         };
       case XAxisPrecision.EVERY_THIRTY_MINUTES:
         // round down to nearest 30 minutes
@@ -273,7 +379,7 @@ export default class XAxisUtil {
           const roundedMinutes: number = Math.floor(minutes / 30) * 30;
           roundedValue.setMinutes(roundedMinutes, 0, 0);
 
-          return OneUptimeDate.getLocalTimeString(roundedValue);
+          return XAxisUtil.getWallClockLabel(roundedValue, labelDetail);
         };
       case XAxisPrecision.EVERY_HOUR:
         /*
@@ -340,12 +446,14 @@ export default class XAxisUtil {
           return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
         };
       case XAxisPrecision.EVERY_WEEK:
-        // round down to nearest week
+        /*
+         * Day and month both read in the configured timezone. These used
+         * to be mixed inside one label — value.getDate() is the BROWSER's
+         * day — so a user whose zone put the tick on the other side of
+         * midnight got a day from one date and a month from another.
+         */
         return (value: Date) => {
-          const day: string = value.getDate().toString();
-          const month: string =
-            OneUptimeDate.getLocalShortMonthNameFromDate(value);
-          return `${day} ${month}`;
+          return OneUptimeDate.getDateAsLocalDayMonthString(value);
         };
       case XAxisPrecision.EVERY_TWO_WEEKS:
         // round down to nearest 2 weeks. // DD MMM
@@ -354,10 +462,9 @@ export default class XAxisUtil {
           const days: number = roundedValue.getDate();
           const roundedDays: number = Math.floor(days / 2) * 2;
           roundedValue.setDate(roundedDays);
-          const day: string = roundedValue.getDate().toString();
-          const month: string =
-            OneUptimeDate.getLocalShortMonthNameFromDate(roundedValue);
-          return `${day} ${month}`;
+
+          // Day and month both in the configured zone; see EVERY_WEEK.
+          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
         };
       case XAxisPrecision.EVERY_MONTH:
         // round down to nearest month // MM YYYY

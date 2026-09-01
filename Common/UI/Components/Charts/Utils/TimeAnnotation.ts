@@ -93,14 +93,15 @@ export default class TimeAnnotationUtil {
    * back to the bucket containing the date. Returns null when the date is
    * outside the charted window.
    *
-   * On a repeated-label axis (sub-hour buckets over more than a day) that
-   * first-occurrence lookup puts a day-two marker on day one. Do not
-   * "fix" it here alone: DataPointUtil places series rows by the very same
-   * first-match-on-label rule, so day-two DATA is merged onto day one too.
-   * Sending the marker to its true bucket while the data stays merged
-   * would park it over empty space, which is worse than sitting with the
-   * data it describes. The real fix is XAxisUtil's sub-hour formatters
-   * emitting a date, and it moves both sides at once.
+   * The first-occurrence lookup is deliberate, and it has to stay tied to
+   * DataPointUtil, which places series rows by the very same
+   * first-match-on-label rule. Whatever bucket a timestamp's DATA lands
+   * in, its marker has to land in too — resolving a marker to some
+   * "truer" bucket than its data would park it over empty space. Sub-hour
+   * axes used to repeat their labels, which sent day-two markers and
+   * day-two data onto day one together; XAxisUtil now keeps them
+   * distinct, so both sides land where they belong. They still move
+   * together, which is the point.
    */
   private static resolveBucketIndex(data: {
     date: Date;

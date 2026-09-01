@@ -10,11 +10,13 @@ export default interface FormattedTimeReferenceLine {
   /**
    * Index of that label in the chart's category list.
    *
-   * The renderer positions markers from this, not from the label: a
-   * sub-hour axis over a multi-day window repeats labels ("14:00" on both
-   * days), and recharts' categorical scale refuses to resolve *any* label
-   * once its domain holds a duplicate — so a label-keyed marker does not
-   * land in the wrong place, it disappears from the chart entirely.
+   * The renderer positions markers from this, not from the label.
+   * recharts' categorical scale refuses to resolve *any* label once its
+   * domain holds a duplicate, so a label-keyed marker does not land in
+   * the wrong place — it disappears from the chart entirely. Sub-hour
+   * axes used to produce exactly that domain over a multi-day window;
+   * XAxisUtil keeps the labels distinct now, and this index means a
+   * regression there could never take the overlay down with it.
    */
   bucketIndex: number;
   /** The original annotation for label/color/click handling */

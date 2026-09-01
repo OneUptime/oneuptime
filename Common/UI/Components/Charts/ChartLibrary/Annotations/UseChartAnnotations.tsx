@@ -3,8 +3,11 @@ import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import AnnotationHoverCard from "./AnnotationHoverCard";
 import ChartAnnotationLayer, { AnnotationHover } from "./ChartAnnotationLayer";
-import { CategoryScaleKind } from "./AnnotationLayout";
-import { getChartMarginTop, getRailHeight } from "./AnnotationLayout";
+import {
+  CategoryScaleKind,
+  getChartMarginTop,
+  getRailHeight,
+} from "./AnnotationLayout";
 
 /*
  * Leaving the card open for a beat after the pointer leaves a chip is what
