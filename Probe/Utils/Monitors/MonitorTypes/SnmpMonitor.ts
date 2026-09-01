@@ -1410,10 +1410,16 @@ export default class SnmpMonitor {
    * router down. That is the defect behind issue #3507, where the reporter
    * was asked to add "100+ items" per device.
    *
-   * Twenty varbinds is ~800 bytes plus header: comfortably inside an
-   * Ethernet MTU and inside the 484-byte minimum an SNMPv1 agent must accept
-   * for anything but the longest OIDs. A device with a short list still gets
-   * exactly one GET, so nothing changes for anyone who is not affected.
+   * Twenty varbinds is ~800 bytes plus header, comfortably inside an Ethernet
+   * MTU and inside what every agent in practice accepts. It is deliberately
+   * NOT sized to the 484-byte minimum an SNMPv1 agent is only required to
+   * accept - meeting that would mean chunks of about ten and twice the
+   * round-trips for every long list, to serve agents that would also have
+   * failed on the unbounded GET this replaces. PROBE_SNMP_GET_CHUNK_SIZE
+   * lowers it for one that genuinely needs it.
+   *
+   * A device with a short list still gets exactly one GET, so nothing changes
+   * for anyone who is not affected.
    */
   private static readonly snmpGetChunkSize: number =
     NumberUtil.parseNumberWithDefault({
