@@ -989,4 +989,48 @@ describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-ap
 
     expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
   });
+
+  /*
+   * A device linked to an OID Collection Template is exempt outright, even
+   * though it satisfies every other condition: opted in, empty local list,
+   * vendor fingerprinted.
+   *
+   * Its effective OID list already comes from the template, resolved fresh on
+   * every poll, and its own snmpOids column is by design the small set of
+   * device-specific ADDITIONS — usually empty, which is exactly the condition
+   * this auto-apply keys off. Without the guard, the first poll after linking
+   * writes a vendor copy on top of the template and the device silently
+   * collects the union of two sources, only one of which the operator can see
+   * or edit. Auto-imported devices are all opted in, so this would have been
+   * the common case rather than an edge one.
+   */
+  test("a device linked to an OID Collection Template is never seeded", async () => {
+    mockServices([], {
+      autoApplyVendorHealthTemplate: true,
+      oidTemplateId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+    });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  test("selects oidTemplateId, or the guard above can never see the link", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["oidTemplateId"]).toBe(true);
+  });
 });
