@@ -24,6 +24,7 @@
   --ou-chart-cursor: #d1d5db;
   --ou-chart-track: #eef2f7;
   --ou-chart-marker-ring: #ffffff;
+  --ou-chart-focus-ring: #4f46e5;
   --ou-flow-mask: rgb(241 245 249 / 70%);
   --ou-accent-soft: #eef2ff;
   --ou-accent-muted: #e0e7ff;
@@ -73,6 +74,7 @@ html.dark {
   --ou-chart-cursor: #64748b;
   --ou-chart-track: #334155;
   --ou-chart-marker-ring: #172033;
+  --ou-chart-focus-ring: #818cf8;
   --ou-flow-mask: rgb(15 23 42 / 72%);
   --ou-accent-soft: #1e1b4b;
   --ou-accent-muted: #312e81;
@@ -1348,6 +1350,42 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
 html.dark :fullscreen,
 html.dark ::backdrop {
   background-color: var(--ou-background-primary);
+}
+
+/*
+ * Chart focus rings. Both themes -- the black box this replaces was never a
+ * dark-mode-only problem.
+ *
+ * recharts leaves its accessibility layer on by default, which puts
+ * tabindex="0" on the root <svg> of every chart. Chrome's SVG user-agent
+ * stylesheet rings a focused <svg> on plain :focus -- not on :focus-visible,
+ * the way it treats focusable HTML -- so simply pressing the mouse inside a
+ * chart paints a hard black rectangle around the entire plot. Dragging out a
+ * zoom range on the Logs and Traces volume charts lands focus there every
+ * time, which is how https://github.com/OneUptime/oneuptime/issues/3528 was
+ * reported: a black box around the graph, over the data, for the rest of the
+ * session.
+ *
+ * Dropping the ring and stopping there would take a real affordance with it:
+ * arrow keys walk the tooltip across a focused chart. So it is drawn again
+ * for :focus-visible only, in the app's own accent, which is what a reader
+ * who arrived by keyboard gets and a reader who arrived by mouse does not.
+ *
+ * The descendant half covers the focusable <g> elements the annotation layer
+ * draws inside the plot: event chips and highlighted windows are clickable by
+ * design, so a pointer lands on them routinely, and each one was getting
+ * boxed the same way.
+ */
+.recharts-surface:focus,
+.recharts-surface [tabindex]:focus {
+  outline: none;
+}
+
+.recharts-surface:focus-visible,
+.recharts-surface [tabindex]:focus-visible {
+  outline: 2px solid var(--ou-chart-focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /*
