@@ -58,6 +58,25 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     };
   }
 
+  /*
+   * The rewrite has to SUBTRACT the blocked labels, not restrict the read to
+   * them. Asserting only that some FindOperator landed on the column would
+   * pass just as happily if notInOrNull() were swapped for its including
+   * counterpart, so read the rendered SQL back and return the ids it denies.
+   */
+  function deniedLabelIds(operator: any): Array<string> {
+    expect(operator).toBeInstanceOf(FindOperator);
+    expect(operator.type).toBe("raw");
+
+    const sql: string = operator.getSql("labelId");
+    expect(sql).toContain("NOT IN");
+    expect(sql).toContain("IS NULL");
+
+    return Object.values(
+      operator.objectLiteralParameters as Record<string, Array<string>>,
+    )[0] as Array<string>;
+  }
+
   it("leaves the query untouched for a root request", async () => {
     const query: any = { projectId };
 
@@ -118,7 +137,9 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     );
 
     expect(result.query.labels).toBeDefined();
-    expect(result.query.labels._id).toBeInstanceOf(FindOperator);
+    expect(deniedLabelIds(result.query.labels._id)).toEqual([
+      blockedLabelA.toString(),
+    ]);
     // The caller's own filters survive the rewrite.
     expect(result.query.projectId).toEqual(projectId);
   });
@@ -135,9 +156,10 @@ describe("ReadPermission.checkReadBlockPermission", () => {
       ]),
     );
 
-    const raw: string = JSON.stringify(result.query.labels._id);
-    expect(raw).toContain(blockedLabelA.toString());
-    expect(raw).toContain(blockedLabelB.toString());
+    expect(deniedLabelIds(result.query.labels._id)).toEqual([
+      blockedLabelA.toString(),
+      blockedLabelB.toString(),
+    ]);
   });
 
   it("ignores a block permission that does not belong to this model", async () => {
@@ -183,6 +205,8 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     );
 
     expect(result.query.labels).toBeDefined();
-    expect(result.query.labels._id).toBeInstanceOf(FindOperator);
+    expect(deniedLabelIds(result.query.labels._id)).toEqual([
+      blockedLabelA.toString(),
+    ]);
   });
 });
