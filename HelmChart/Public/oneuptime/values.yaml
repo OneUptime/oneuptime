@@ -1060,6 +1060,42 @@ alerts:
 telemetry:
   disableIngestion: false
 
+# Browser source maps, uploaded from CI so exception stack traces can be shown
+# with original file names and line numbers instead of minified ones.
+#
+# These were fixed constants sized for "a few dozen chunks per build". Route
+# level code splitting broke that assumption -- a Nuxt / Vite / Next app with a
+# hundred routes emits hundreds of chunk .map files per release -- so they are
+# operator settings now. The defaults are safe for every deployment; raise
+# maxMapsPerRelease if your build emits more maps than fit.
+sourceMaps:
+  # Distinct bundles one release (service + service.version) may hold. An
+  # upload past this is rejected with a clear 400 rather than being accepted
+  # and then silently failing to resolve. Cannot exceed 10000.
+  maxMapsPerRelease: 1000
+
+  # Source map files accepted in ONE upload request. CI splits a large release
+  # across several requests. This can only be LOWERED: the request is parsed
+  # before authentication, and the shared 50-file ceiling is the limit an
+  # unauthenticated caller is held to on every route that parses multipart
+  # bodies, so raising it here would not be safe and has no effect.
+  maxFilesPerRequest: 50
+
+  # Largest single .map file accepted, in bytes (50 MiB). Also cannot be
+  # raised: the multipart parser aborts larger bodies first, so a higher value
+  # would only turn a clear 400 into a confusing 413.
+  maxFileSizeBytes: 52428800
+
+  # Total map bytes ONE stack trace resolution may load into memory (512 MiB).
+  # This -- not the map count -- is what bounds the resolver, which is why
+  # maxMapsPerRelease can be raised safely. Maps that do not fit are skipped
+  # worst-match-first and reported on the response, never dropped silently.
+  maxBytesPerResolve: 536870912
+
+  # How long uploaded maps are kept. A map is only useful while exceptions
+  # from its release are still within telemetry retention.
+  retentionDays: 90
+
 # Once a day this installation asks the GitHub API which OneUptime version is
 # the latest release, so admins are told in the dashboard when an upgrade is
 # available. No usage data is sent — GitHub sees your public IP and a

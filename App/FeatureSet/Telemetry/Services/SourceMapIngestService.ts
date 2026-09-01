@@ -8,7 +8,7 @@ import TelemetrySourceMapService, {
 import SourceMapResolver, {
   MAX_SOURCE_MAP_SIZE_IN_BYTES,
 } from "Common/Server/Utils/Telemetry/SourceMapResolver";
-import { MAX_MULTIPART_FILES } from "Common/Server/Middleware/MultipartFormData";
+import { SourceMapMaxFilesPerRequest } from "Common/Server/EnvironmentConfig";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ColumnLength from "Common/Types/Database/ColumnLength";
@@ -107,13 +107,13 @@ export default class SourceMapIngestService {
       }
 
       /*
-       * The multipart middleware already 413s past MAX_MULTIPART_FILES, so
-       * this branch is defense in depth — and the message states the real
-       * per-request limit rather than the (higher) per-release one.
+       * The multipart middleware already 413s past this count, so the branch
+       * is defense in depth — and the message states the real per-request
+       * limit rather than the (higher) per-release one.
        */
-      if (files.length > MAX_MULTIPART_FILES) {
+      if (files.length > SourceMapMaxFilesPerRequest) {
         throw new BadDataException(
-          `At most ${MAX_MULTIPART_FILES} source maps can be uploaded in one request. Split the upload across requests — up to ${MAX_SOURCE_MAPS_PER_RELEASE} maps are kept per release.`,
+          `At most ${SourceMapMaxFilesPerRequest} source maps can be uploaded in one request. Split the upload across requests — up to ${MAX_SOURCE_MAPS_PER_RELEASE} maps are kept per release.`,
         );
       }
 
@@ -216,9 +216,10 @@ export default class SourceMapIngestService {
 
       /*
        * Per-release ceiling: what is already stored, minus bundles this
-       * request replaces, plus this request's bundles must fit. Without
-       * this, maps past the resolver's read limit would store fine but
-       * silently never resolve.
+       * request replaces, plus this request's bundles must fit. This is a
+       * storage-shape limit the operator chooses, not a resolver constraint —
+       * resolveFramesForService bounds itself by bytes, so everything that
+       * fits this ceiling resolves.
        */
       const existingBundlePaths: Array<string> =
         await TelemetrySourceMapService.getStoredBundlePathsForRelease({
@@ -234,7 +235,7 @@ export default class SourceMapIngestService {
 
       if (bundlePathsAfterUpload.size > MAX_SOURCE_MAPS_PER_RELEASE) {
         throw new BadDataException(
-          `This release already has ${existingBundlePaths.length} source maps and this upload would take it past the limit of ${MAX_SOURCE_MAPS_PER_RELEASE} per release. Delete unused maps or use a new serviceVersion.`,
+          `This release already has ${existingBundlePaths.length} source maps and this upload would take it past the limit of ${MAX_SOURCE_MAPS_PER_RELEASE} per release. Delete unused maps, use a new serviceVersion, or raise SOURCE_MAP_MAX_MAPS_PER_RELEASE.`,
         );
       }
 

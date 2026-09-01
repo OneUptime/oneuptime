@@ -14,6 +14,7 @@ import {
   SourceCodeSnippet,
 } from "../../../Types/Telemetry/SourceMap";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { SourceMapMaxFileSizeInBytes } from "../../EnvironmentConfig";
 import {
   AnyMap,
   TraceMap,
@@ -28,11 +29,12 @@ export interface SourceMapBundle {
 }
 
 /*
- * Hard ceiling on one map. Matches MAX_MULTIPART_FILE_BYTES on the upload
- * path; also enforced on the decoded string (invalid UTF-8 bytes expand to
- * 3-byte U+FFFD on decode, so the string can outgrow the raw file).
+ * Hard ceiling on one map, from SOURCE_MAP_MAX_FILE_SIZE_BYTES. Clamped to
+ * MAX_MULTIPART_FILE_BYTES on the upload path by the config layer; also
+ * enforced on the decoded string (invalid UTF-8 bytes expand to 3-byte
+ * U+FFFD on decode, so the string can outgrow the raw file).
  */
-export const MAX_SOURCE_MAP_SIZE_IN_BYTES: number = 50 * 1024 * 1024;
+export const MAX_SOURCE_MAP_SIZE_IN_BYTES: number = SourceMapMaxFileSizeInBytes;
 
 /** Lines of context shown on each side of the resolved line. */
 const SNIPPET_CONTEXT_LINES: number = 3;
@@ -51,7 +53,16 @@ const MAX_SNIPPET_LINE_LENGTH: number = 512;
  * through unresolved so the output length always equals the input length,
  * which the dashboard overlay relies on.
  */
-const MAX_FRAMES_TO_RESOLVE: number = 500;
+export const MAX_FRAMES_TO_RESOLVE: number = 500;
+
+/*
+ * Hard ceiling on the frames array ONE resolve request may carry. Well above
+ * anything a runtime produces — browsers truncate stack traces long before
+ * this — so it never rejects a real trace; it exists so the request body
+ * cannot be used to drive work proportional to a caller-chosen length. The
+ * per-call resolution cap above is the tighter, non-rejecting bound.
+ */
+export const MAX_FRAMES_PER_RESOLVE_REQUEST: number = 10000;
 
 interface ParsedBundle {
   bundlePath: string;

@@ -7,10 +7,22 @@ import Express, {
   NextFunction,
   RequestHandler,
 } from "Common/Server/Utils/Express";
-import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import { getMultipartFormDataMiddleware } from "Common/Server/Middleware/MultipartFormData";
+import { SourceMapMaxFilesPerRequest } from "Common/Server/EnvironmentConfig";
 import SourceMapIngestService from "../Services/SourceMapIngestService";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Built once at module scope, not per request — each call constructs a multer
+ * instance. SOURCE_MAP_MAX_FILES_PER_REQUEST can only narrow the shared
+ * default, so this never widens the pre-auth parse that every route mounting
+ * the multipart middleware shares.
+ */
+const sourceMapMultipartMiddleware: RequestHandler =
+  getMultipartFormDataMiddleware({
+    maxFiles: SourceMapMaxFilesPerRequest,
+  });
 
 /*
  * Map Authorization: Bearer <token> to x-oneuptime-token so CI tools that
@@ -44,7 +56,7 @@ const mapBearerTokenMiddleware: RequestHandler = (
 router.post(
   "/source-maps/v1/upload",
   TelemetryIngestionDisabled.middleware,
-  MultipartFormDataMiddleware,
+  sourceMapMultipartMiddleware,
   mapBearerTokenMiddleware,
   TelemetryIngest.isAuthorizedServiceMiddleware,
   async (

@@ -808,6 +808,36 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 - name: ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW
   value: {{ default 3000 $.Values.onCallCalendarFeed.rateLimit.perIpPerWindow | squote }}
 
+{{/*
+  Source map ingestion and resolution limits. `default` is safe on all of
+  these because 0 is not a valid value for any of them -- the app falls back
+  to its own default too -- and every one is clamped app-side, so a value the
+  chart cannot honour is narrowed rather than silently ignored.
+
+  `int64` before quoting is NOT decoration. Helm parses values.yaml through
+  JSON, so a number arrives as a float64, and Go prints a float64 above 1e6 in
+  exponent form: the 52428800 an operator wrote in a values file would reach
+  the container as '5.24288e+07'. The same value passed with --set goes
+  through strvals as an int64 and renders plainly, so without this the env var
+  depends on HOW it was set, not what it was set to. Node's Number() happens
+  to accept exponent notation, which is the only reason that was not already a
+  bug -- and not a property to rely on.
+*/}}
+- name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+  value: {{ default 1000 $.Values.sourceMaps.maxMapsPerRelease | int64 | squote }}
+
+- name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+  value: {{ default 50 $.Values.sourceMaps.maxFilesPerRequest | int64 | squote }}
+
+- name: SOURCE_MAP_MAX_FILE_SIZE_BYTES
+  value: {{ default 52428800 $.Values.sourceMaps.maxFileSizeBytes | int64 | squote }}
+
+- name: SOURCE_MAP_MAX_BYTES_PER_RESOLVE
+  value: {{ default 536870912 $.Values.sourceMaps.maxBytesPerResolve | int64 | squote }}
+
+- name: SOURCE_MAP_RETENTION_DAYS
+  value: {{ default 90 $.Values.sourceMaps.retentionDays | int64 | squote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

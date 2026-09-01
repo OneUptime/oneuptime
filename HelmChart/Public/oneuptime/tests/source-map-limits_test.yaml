@@ -1,0 +1,350 @@
+# Browser source maps used to be governed by hardcoded constants sized for "a
+# few dozen chunks per build". Route-level code splitting broke that
+# assumption, so the five limits are operator settings now -- and settings are
+# only settings if they actually reach the container. Every one of these fails
+# silently when the wiring breaks, which is what makes them worth pinning:
+#
+#   - SOURCE_MAP_MAX_MAPS_PER_RELEASE is the one that gets RAISED. An operator
+#     whose build emits 400 chunks raises it, the value never arrives, and CI
+#     keeps getting the same 400 at upload 1001. The symptom is identical to
+#     not having raised it at all, so the operator blames the app.
+#   - SOURCE_MAP_MAX_FILES_PER_REQUEST and SOURCE_MAP_MAX_FILE_SIZE_BYTES only
+#     ever get LOWERED (both are clamped app-side to the chart default, since
+#     the multipart body is parsed before authentication). A lowering that
+#     never lands leaves an unauthenticated route wider open than the operator
+#     believes it is -- the dangerous direction to fail in.
+#   - SOURCE_MAP_MAX_BYTES_PER_RESOLVE is what bounds resolver memory now that
+#     the map COUNT no longer does. If it never arrives, raising the map count
+#     is the unsafe change it was specifically made safe by.
+#   - SOURCE_MAP_RETENTION_DAYS decides how long maps are kept. Silently
+#     keeping 90 days of maps for every release is a storage bill.
+#
+# And they have to reach EVERY workload that boots the server, not just app:
+# the ingest route and the resolve route live in the same image, and the
+# shared `oneuptime.env.runtime` helper is what puts them there. worker,
+# telemetry-writer, runner and the workloads built from the shared
+# `oneuptime.deployment` helper all pull that same block in, so a refactor
+# that drops the include from one of them is a real and invisible regression.
+suite: source map limits
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships the documented default caps
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "1000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+            value: "50"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_RETENTION_DAYS
+            value: "90"
+
+  # Helm parses values.yaml through JSON, so every number in it arrives as a
+  # float64, and Go prints a float64 in exponent form once it reaches 1e6.
+  # Without the `int64` pipe in _helpers.tpl the two byte-valued limits would
+  # reach the container as '5.24288e+07' and '5.36870912e+08'.
+  #
+  # That mattered for two reasons. It is only harmless to the app by luck --
+  # it parses with Number(), which accepts exponent notation; anything using
+  # parseInt() reads '5.24288e+07' as 5, turning a 50 MiB cap into a 5 BYTE
+  # cap. And it was not even consistent per value: only the values.yaml / `-f`
+  # path goes through JSON, so `--set sourceMaps.maxFileSizeBytes=10485760`
+  # rendered '10485760' while the same number in a `-f` file rendered
+  # '1.048576e+07'. Same operator intent, two different env values.
+  #
+  # These assertions are what keeps the `int64` pipes in place.
+  - it: renders the byte-valued limits as plain integers, never in exponent form
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILE_SIZE_BYTES
+            value: "52428800"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_BYTES_PER_RESOLVE
+            value: "536870912"
+
+  - it: passes a raised per-release map cap through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxMapsPerRelease: 5000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "5000"
+
+  # The app clamps this to 10000, so the chart must be able to express the
+  # exact ceiling -- an operator who asks for the maximum and silently gets
+  # the 1000 default has no way to tell the difference from the rejection they
+  # were trying to avoid.
+  - it: passes the per-release map cap through at its 10000 ceiling
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxMapsPerRelease: 10000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "10000"
+
+  # maxFilesPerRequest and maxFileSizeBytes can only ever be lowered, so
+  # lowering is the ONLY direction that needs to work for them.
+  - it: passes a lowered per-request file cap through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxFilesPerRequest: 10
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+            value: "10"
+
+  # 1 is the schema minimum and the narrowest an operator can go: one map per
+  # request. `default` would eat a 0 here, but the schema rejects 0 before the
+  # template ever runs, so 1 is the real edge and it has to survive.
+  - it: passes the per-request file cap through at its minimum of 1
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxFilesPerRequest: 1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+            value: "1"
+
+  - it: passes a lowered maximum file size through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxFileSizeBytes: 1048576
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILE_SIZE_BYTES
+            value: "1048576"
+
+  - it: passes a raised resolve byte budget through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxBytesPerResolve: 1073741824
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_BYTES_PER_RESOLVE
+            value: "1073741824"
+
+  # The same knob below 1e6, where a float64 would not have reached exponent
+  # form anyway. Paired with the gigabyte case above, this pins the rendering
+  # on BOTH sides of the magnitude where the formatting used to change.
+  - it: renders a sub-megabyte resolve budget as a plain integer
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxBytesPerResolve: 999999
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_BYTES_PER_RESOLVE
+            value: "999999"
+
+  - it: passes a shortened retention window through
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.retentionDays: 7
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_RETENTION_DAYS
+            value: "7"
+
+  - it: passes every knob through at once
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxMapsPerRelease: 4000
+      sourceMaps.maxFilesPerRequest: 25
+      sourceMaps.maxFileSizeBytes: 999999
+      sourceMaps.maxBytesPerResolve: 888888
+      sourceMaps.retentionDays: 30
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "4000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+            value: "25"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILE_SIZE_BYTES
+            value: "999999"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_BYTES_PER_RESOLVE
+            value: "888888"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_RETENTION_DAYS
+            value: "30"
+
+  # The worker boots the same server image as app and reads the same config,
+  # so a limit that reaches only app is a split brain: an upload accepted by
+  # one pod and rejected by another depending on which one the gateway picked.
+  - it: reaches the worker
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Off by default; the worker Deployment renders nothing without this.
+      worker.enabled: true
+      sourceMaps.maxMapsPerRelease: 5000
+      sourceMaps.retentionDays: 14
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "5000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_RETENTION_DAYS
+            value: "14"
+
+  - it: reaches the telemetry writer
+    templates:
+      - templates/telemetry-writer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Explicit opt-in tier; renders nothing without this.
+      telemetryWriter.enabled: true
+      sourceMaps.maxMapsPerRelease: 6000
+      sourceMaps.maxFilesPerRequest: 20
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "6000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_FILES_PER_REQUEST
+            value: "20"
+
+  - it: reaches the runner
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      sourceMaps.maxMapsPerRelease: 7000
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "7000"
+
+  # test-server does not include the env helper itself -- it is built from the
+  # shared `oneuptime.deployment` helper, which is a second, independent path
+  # to the same env block. A regression there is invisible to every assertion
+  # above, because app, worker, telemetry-writer and runner all inline the
+  # include directly.
+  - it: reaches workloads built from the shared deployment helper
+    templates:
+      - templates/test-server.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      testServer.enabled: true
+      sourceMaps.maxMapsPerRelease: 8000
+      sourceMaps.retentionDays: 3
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
+            value: "8000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SOURCE_MAP_RETENTION_DAYS
+            value: "3"
