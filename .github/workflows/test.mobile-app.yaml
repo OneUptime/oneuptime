@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd MobileApp && npm install
       - name: Run Expo Doctor
         run: cd MobileApp && npx expo-doctor@latest
@@ -34,6 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd MobileApp && npm install
       - name: Run Jest Tests
         run: cd MobileApp && npm test
@@ -47,6 +55,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd MobileApp && npm install
       - name: Export Web Bundle
         uses: nick-fields/retry@v3

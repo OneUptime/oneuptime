@@ -61,10 +61,18 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y curl gcc
-      - run: sudo apt-get install -y build-essential
-      - run: sudo apt-get install -y nodejs
+      # This job used to `apt-get update` and then install curl, gcc,
+      # build-essential and nodejs. ubuntu-latest ships all four, and the apt
+      # `nodejs` package is older than the Node this repo requires anyway (it
+      # installs as /usr/bin/nodejs and never shadowed the runner's node), so
+      # the four steps cost a minute of package-index traffic and changed
+      # nothing. setup-node pins the Node the rest of CI uses and caches the
+      # npm download for the install below.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: npm install
       - run: npm run lint
       - name: Validate locale files (key parity + placeholders)

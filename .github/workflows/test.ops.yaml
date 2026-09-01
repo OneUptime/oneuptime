@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          # Restores ~/.npm so the npm install below resolves from cache
+          # instead of re-downloading the tree from the registry every run.
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       # Static/structural tests over the ClickHouse config.d drop-ins, the
       # docker-compose mounts and the backup/restore scripts. No services are
       # started, so this needs nothing beyond the package's own deps.

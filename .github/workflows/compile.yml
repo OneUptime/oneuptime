@@ -14,6 +14,9 @@ on:
       - master
 
 
+# Every job below runs at least one `npm install`. `cache: npm` keyed on every
+# lockfile in the repo gives them all one shared ~/.npm cache entry, so only the
+# first job to run pays the registry download.
 jobs:
 
   compile-accounts:
@@ -25,6 +28,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile Accounts
         uses: nick-fields/retry@v3
@@ -42,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - name: Compile Common
         uses: nick-fields/retry@v3
         with:
@@ -58,6 +65,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile App
         uses: nick-fields/retry@v3
@@ -75,6 +84,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile Home
         uses: nick-fields/retry@v3
@@ -93,6 +104,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       
       - name: Compile Nginx
@@ -127,6 +140,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       
       - name: Compile Admin Dashboard
@@ -145,6 +160,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       
       - name: Compile Dashboard
@@ -164,6 +181,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
 
       # The session-replay recorder deliberately does NOT depend on Common:
       # it is bundled and served to third-party origins, so it must not carry
@@ -191,6 +210,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: sudo apt-get update
       - run: cd Common && npm install
       - name: Compile E2E
@@ -213,6 +234,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile Probe
         uses: nick-fields/retry@v3
@@ -230,6 +253,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
 
       - name: Compile Status Page
@@ -250,6 +275,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       # PublicDashboard imports Dashboard sources directly (e.g.
       # src/Components/DashboardCanvas.tsx -> ../../../Dashboard/src/...), and
@@ -273,6 +300,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile Test Server
         uses: nick-fields/retry@v3
@@ -290,6 +319,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install && npm run compile
       - name: Compile MobileApp
         uses: nick-fields/retry@v3
@@ -307,6 +338,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile Runner
         uses: nick-fields/retry@v3
@@ -324,6 +357,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - run: cd Common && npm install
       - name: Compile CLI
         uses: nick-fields/retry@v3
