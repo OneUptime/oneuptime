@@ -58,6 +58,7 @@ import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import EnterpriseLicenseSeatUtil from "../Utils/EnterpriseLicense/EnterpriseLicenseSeatUtil";
 
 /*
  * Names the Redis mutex that serializes the first-Master-Admin election across
@@ -184,6 +185,32 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * The enterprise seat limit, enforced here because this is the one place
+     * every new user passes through: team invitations, self-service signup,
+     * SSO/OIDC just-in-time provisioning, SCIM, and the Admin Dashboard all
+     * end up in `create`. Enforcing on the invitation instead would leave
+     * signup and SSO as open doors around it.
+     *
+     * No isRoot exemption on purpose — invitations create the invited user as
+     * root, so exempting root would exempt invitations, which is the exact
+     * thing this is here to bound. It is a no-op on Community Edition and on
+     * oneuptime.com (see EnterpriseLicenseSeatUtil.isSeatLimitEnforceable),
+     * and it never counts the User table on a licence with no seat limit.
+     */
+    await EnterpriseLicenseSeatUtil.assertSeatAvailableForNewUser({
+      getLocalUserCount: async (): Promise<number> => {
+        const userCount: PositiveNumber = await this.countBy({
+          query: {},
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return userCount.toNumber();
+      },
+    });
+
     /*
      * clickIds / firstTouchAttribution are publicly creatable jsonb columns
      * (set during signup). Unlike the varchar(500) utm columns they have no

@@ -29,6 +29,7 @@ import {
 import Alert, { AlertType } from "../Alerts/Alert";
 import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import VersionUtil from "../../../Utils/VersionUtil";
+import UserUtil from "../../Utils/User";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -136,7 +137,24 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [validationError, setValidationError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [isRefreshingLicense, setIsRefreshingLicense] =
+    useState<boolean>(false);
   const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
+  /*
+   * The seat limit as this installation actually enforces it, rather than as
+   * oneuptime.com last reported it. The server computes it from the live User
+   * table, so it knows about everybody added since the last daily report -
+   * including the person whose invitation is about to be refused.
+   *
+   * Only returned to a signed-in caller, so all four stay at their "nothing to
+   * say" values on the login page.
+   */
+  const [isSeatLimitEnforced, setIsSeatLimitEnforced] =
+    useState<boolean>(false);
+  const [enforcedSeatsInUse, setEnforcedSeatsInUse] = useState<number | null>(
+    null,
+  );
+  const [canAddMoreUsers, setCanAddMoreUsers] = useState<boolean>(true);
   const [licenseInstances, setLicenseInstances] = useState<
     Array<EnterpriseLicenseInstanceSummary>
   >([]);
@@ -177,6 +195,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   if (BILLING_ENABLED) {
     return <></>;
   }
+
+  /*
+   * Both the license GET and the two license POSTs answer with the same seat
+   * fields, so the three responses are unpacked in one place.
+   * isSeatLimitEnforced is what tells "this installation does not enforce a
+   * seat limit" apart from "this build did not report one" - without it, an
+   * older server's silence would read as a limit of zero.
+   */
+  const applySeatEnforcementPayload: (payload: JSONObject) => void =
+    useCallback((payload: JSONObject): void => {
+      setIsSeatLimitEnforced(payload["isSeatLimitEnforced"] === true);
+      setEnforcedSeatsInUse(
+        typeof payload["seatsInUse"] === "number"
+          ? (payload["seatsInUse"] as number)
+          : null,
+      );
+      /*
+       * Defaults to true, so a build or a response that says nothing about
+       * enforcement never renders a "you cannot add users" warning it has no
+       * evidence for.
+       */
+      setCanAddMoreUsers(payload["canAddMoreUsers"] !== false);
+    }, []);
 
   /*
    * Runs on Community Edition too. The license half of the response is empty
@@ -278,6 +319,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         );
         setIsUpdateAvailable(payload["isUpdateAvailable"] === true);
         setIsUpdateCheckDisabled(payload["isUpdateCheckDisabled"] === true);
+        applySeatEnforcementPayload(payload);
 
         if (!licenseInputEditedRef.current) {
           setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
@@ -293,11 +335,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setLatestVersionCheckedAt("");
         setIsUpdateAvailable(false);
         setIsUpdateCheckDisabled(false);
+        setIsSeatLimitEnforced(false);
+        setEnforcedSeatsInUse(null);
+        setCanAddMoreUsers(true);
         setConfigError(API.getFriendlyMessage(err));
       } finally {
         setIsConfigLoading(false);
       }
-    }, []);
+    }, [applySeatEnforcementPayload]);
 
   /*
    * Only Enterprise Edition needs this on mount — its pill reports license
@@ -468,6 +513,25 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       : null;
   }, [globalConfig?.enterpriseLicenseCurrentUserCount]);
 
+  /*
+   * The seat figure everything below is measured against.
+   *
+   * currentUserCount is what oneuptime.com last computed across every instance
+   * on this license, which is up to a day old. On an installation that
+   * enforces a seat limit the server also sends seatsInUse: the same
+   * cross-instance figure reconciled with the live User table here, and the
+   * number invitations are actually refused on. Showing anything else would
+   * leave the card reading "98 of 100" next to an invitation that had just
+   * bounced.
+   */
+  const effectiveUserCount: number | null = useMemo(() => {
+    if (isSeatLimitEnforced && typeof enforcedSeatsInUse === "number") {
+      return enforcedSeatsInUse;
+    }
+
+    return currentUserCount;
+  }, [isSeatLimitEnforced, enforcedSeatsInUse, currentUserCount]);
+
   const userCountUpdatedAtText: string | null = useMemo(() => {
     if (!globalConfig?.enterpriseLicenseUserCountUpdatedAt) {
       return null;
@@ -493,12 +557,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return false;
     }
 
-    if (typeof currentUserCount !== "number") {
+    if (typeof effectiveUserCount !== "number") {
       return false;
     }
 
-    return currentUserCount > userLimit;
-  }, [licenseValid, userLimit, currentUserCount]);
+    return effectiveUserCount > userLimit;
+  }, [licenseValid, userLimit, effectiveUserCount]);
 
   /*
    * Unclamped and unrounded. The only value that can tell 120/120 apart from
@@ -510,12 +574,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    if (typeof currentUserCount !== "number") {
+    if (typeof effectiveUserCount !== "number") {
       return null;
     }
 
-    return Math.max(0, (currentUserCount / userLimit) * 100);
-  }, [userLimit, currentUserCount]);
+    return Math.max(0, (effectiveUserCount / userLimit) * 100);
+  }, [userLimit, effectiveUserCount]);
 
   /*
    * The percent the admin reads, and the one the warning fires on. May exceed
@@ -558,12 +622,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    if (typeof currentUserCount !== "number") {
+    if (typeof effectiveUserCount !== "number") {
       return null;
     }
 
-    return userLimit - currentUserCount;
-  }, [userLimit, currentUserCount]);
+    return userLimit - effectiveUserCount;
+  }, [userLimit, effectiveUserCount]);
 
   const seatsRemainingText: string = useMemo(() => {
     if (typeof seatsRemaining !== "number") {
@@ -600,6 +664,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "breached";
     }
 
+    /*
+     * Exactly at the limit is not over it, but it is the point where the
+     * installation starts refusing new users - so it gets the red treatment
+     * rather than the amber "nearly full" nudge, which would understate a
+     * door that is already shut.
+     */
+    if (isSeatLimitEnforced && !canAddMoreUsers) {
+      return "breached";
+    }
+
     if (
       typeof seatUsageDisplayPercent === "number" &&
       seatUsageDisplayPercent >= SEAT_WARNING_PERCENT
@@ -608,7 +682,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     return "healthy";
-  }, [licenseValid, isUserLimitBreached, seatUsageDisplayPercent]);
+  }, [
+    licenseValid,
+    isUserLimitBreached,
+    isSeatLimitEnforced,
+    canAddMoreUsers,
+    seatUsageDisplayPercent,
+  ]);
 
   /*
    * Copy containing apostrophes lives in string literals rather than JSX text,
@@ -617,6 +697,14 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const seatAdvisoryTitle: string = useMemo(() => {
     if (seatTone === "breached") {
       const over: number = Math.abs(seatsRemaining || 0);
+
+      /*
+       * Reachable now that "every seat taken" is a breach in its own right:
+       * an installation sitting exactly on its limit is not "0 users over".
+       */
+      if (over === 0) {
+        return "Every licensed seat is in use";
+      }
 
       return over === 1
         ? "1 user over your licensed seats"
@@ -638,9 +726,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const seatAdvisoryBody: string = useMemo(() => {
     const limitText: string = (userLimit || 0).toLocaleString();
-    const inUse: string = `${(currentUserCount || 0).toLocaleString()} of ${limitText}`;
+    const inUse: string = `${(effectiveUserCount || 0).toLocaleString()} of ${limitText}`;
 
     if (seatTone === "breached") {
+      /*
+       * When the limit is being enforced this is no longer advice, it is a
+       * description of what the installation is already doing to invitations
+       * and signups - so it says so plainly rather than suggesting an upgrade
+       * as though adding people were still an option.
+       */
+      if (isSeatLimitEnforced && !canAddMoreUsers) {
+        return `This installation is using ${inUse} licensed seats. New users cannot be invited, signed up or provisioned until a seat is freed up or the license is expanded.`;
+      }
+
       return `This installation is using ${inUse} licensed seats. Expand your license so it covers everyone on the platform.`;
     }
 
@@ -649,7 +747,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     return "";
-  }, [seatTone, currentUserCount, userLimit]);
+  }, [
+    seatTone,
+    effectiveUserCount,
+    userLimit,
+    isSeatLimitEnforced,
+    canAddMoreUsers,
+  ]);
 
   const seatUsageAriaValueText: string = useMemo(() => {
     if (typeof seatUsageDisplayPercent !== "number") {
@@ -878,7 +982,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         "We would like to expand the seat count on our enterprise license.",
         "",
         `Company: ${globalConfig?.enterpriseCompanyName || "Not specified"}`,
-        `Seats in use: ${(currentUserCount || 0).toLocaleString()} of ${(
+        `Seats in use: ${(effectiveUserCount || 0).toLocaleString()} of ${(
           userLimit || 0
         ).toLocaleString()}`,
         `Instances on this license: ${licenseInstances.length}`,
@@ -958,14 +1062,96 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     void runLicenseValidation(licenseKeyInput, setIsValidating);
   };
 
+  /*
+   * Re-ask oneuptime.com about the license this installation already holds.
+   *
+   * The seat limit and the expiry are changed on oneuptime.com, and the daily
+   * report job is what normally carries them here - so without this, an
+   * administrator who has just bought seats waits up to a day before the
+   * installation stops refusing invitations. Deliberately sends no key: the
+   * server refreshes the stored one.
+   */
+  const handleRefreshLicense: () => void = useCallback((): void => {
+    if (isRefreshingLicense) {
+      return;
+    }
+
+    const refresh: () => Promise<void> = async (): Promise<void> => {
+      setValidationError("");
+      setSuccessMessage("");
+      setIsRefreshingLicense(true);
+
+      try {
+        const refreshUrl: URL = URL.fromURL(APP_API_URL).addRoute(
+          new Route("/global-config/license/refresh"),
+        );
+
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.fetch<JSONObject>({
+            method: HTTPMethod.POST,
+            url: refreshUrl,
+          });
+
+        if (!response.isSuccess()) {
+          throw response;
+        }
+
+        applySeatEnforcementPayload(response.data as JSONObject);
+
+        setSuccessMessage("License refreshed from OneUptime.");
+
+        /*
+         * The POST already returned the new terms, but the modal renders from
+         * what the GET reports - re-reading keeps one source of truth for the
+         * whole dialog instead of two that can disagree.
+         */
+        await fetchGlobalConfig();
+      } catch (err) {
+        setValidationError(API.getFriendlyMessage(err));
+      } finally {
+        setIsRefreshingLicense(false);
+      }
+    };
+
+    void refresh();
+  }, [isRefreshingLicense, fetchGlobalConfig, applySeatEnforcementPayload]);
+
   const handleRetryFetch: () => void = () => {
     if (!isConfigLoading) {
       void fetchGlobalConfig();
     }
   };
 
+  /*
+   * Activating, replacing and refreshing the license are master-admin actions:
+   * the license is instance-wide, and its seat limit is what UserService
+   * enforces against, so being able to rewrite it is being able to raise the
+   * ceiling on the whole installation. The server enforces this
+   * (MasterAdminAuthorization on both POSTs); hiding the controls here just
+   * stops everyone else being offered a button that can only fail.
+   *
+   * False for a signed-out visitor, which is what keeps the license key input
+   * off the login page where this same component renders the edition pill.
+   */
+  const canManageLicense: boolean = useMemo(() => {
+    return Boolean(UserUtil.isMasterAdmin());
+  }, []);
+
   const showLicenseKeyInput: boolean =
-    IS_ENTERPRISE_EDITION && (!licenseValid || isChangingLicense);
+    IS_ENTERPRISE_EDITION &&
+    canManageLicense &&
+    (!licenseValid || isChangingLicense);
+
+  /*
+   * Someone who cannot fix the license still needs to be told why the
+   * installation is behaving like an unlicensed one, and who can fix it.
+   */
+  const showLicenseAdminRequiredNotice: boolean =
+    IS_ENTERPRISE_EDITION &&
+    !configError &&
+    !isConfigLoading &&
+    !licenseValid &&
+    !canManageLicense;
 
   const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
 
@@ -1066,13 +1252,34 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   ) : undefined;
 
   const modalLeftFooterElement: ReactElement | undefined =
-    showLicenseDetails && !isChangingLicense ? (
-      <Button
-        title="Change license key"
-        icon={IconProp.Edit}
-        buttonStyle={ButtonStyleType.NORMAL}
-        onClick={handleStartChangingLicense}
-      />
+    showLicenseDetails && !isChangingLicense && canManageLicense ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {/*
+         * The seat limit and the expiry are changed on oneuptime.com and reach
+         * this installation through the daily report job. This is the button
+         * for the administrator who has just bought seats and would rather not
+         * wait a day for the installation to stop refusing invitations.
+         */}
+        <Button
+          title="Refresh license"
+          icon={IconProp.Refresh}
+          buttonStyle={ButtonStyleType.NORMAL}
+          onClick={handleRefreshLicense}
+          isLoading={isRefreshingLicense}
+          disabled={isRefreshingLicense || isConfigLoading}
+          tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
+          dataTestId="refresh-enterprise-license"
+          className="!mt-0 md:!ml-0"
+        />
+        <Button
+          title="Change license key"
+          icon={IconProp.Edit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          onClick={handleStartChangingLicense}
+          disabled={isRefreshingLicense}
+          className="!mt-0 md:!ml-0"
+        />
+      </div>
     ) : undefined;
 
   const pillClassName: string =
@@ -1320,6 +1527,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   <Alert type={AlertType.SUCCESS} title={successMessage} />
                 )}
 
+                {/*
+                 * A failed refresh has nowhere else to go: the license key
+                 * section carries its own copy of this alert, but that
+                 * section is not rendered at all while the license is valid,
+                 * which is exactly when refreshing is worth doing.
+                 */}
+                {!configError && validationError && !showLicenseKeyInput && (
+                  <Alert type={AlertType.DANGER} title={validationError} />
+                )}
+
                 {configError && (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                     <div className="flex items-start gap-2.5">
@@ -1412,15 +1629,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       <p className="flex items-baseline gap-1.5">
                         <span
                           className={`text-3xl font-semibold leading-none tabular-nums ${
-                            typeof currentUserCount !== "number"
+                            typeof effectiveUserCount !== "number"
                               ? "text-gray-300"
                               : seatTone === "breached"
                                 ? "text-red-700"
                                 : "text-gray-900"
                           }`}
                         >
-                          {typeof currentUserCount === "number"
-                            ? currentUserCount.toLocaleString()
+                          {typeof effectiveUserCount === "number"
+                            ? effectiveUserCount.toLocaleString()
                             : "—"}
                         </span>
                         <span className="text-sm tabular-nums text-gray-500">
@@ -1568,6 +1785,28 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                         {userCountUpdatedAtText
                           ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
                           : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
+                        {isSeatLimitEnforced && (
+                          <>
+                            {" "}
+                            This installation enforces the seat limit: users
+                            above it cannot be invited, signed up or
+                            provisioned.
+                          </>
+                        )}
+                        {/*
+                         * Only pointed at somebody who can actually press it.
+                         * The refresh button is master-admin only, so telling
+                         * everyone else to use it would be an instruction they
+                         * cannot follow.
+                         */}
+                        {isSeatLimitEnforced && canManageLicense && (
+                          <>
+                            {" "}
+                            Bought more seats? Use &quot;Refresh license&quot;
+                            below to apply the new limit without waiting for the
+                            next daily report.
+                          </>
+                        )}
                       </p>
                     </div>
                   </section>
@@ -1729,6 +1968,19 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </div>
                   )}
 
+                {showLicenseAdminRequiredNotice && (
+                  <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                    <h4 className="text-sm font-semibold text-amber-900">
+                      A master admin has to activate this license
+                    </h4>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                      This installation does not have a valid enterprise
+                      license. Ask a master admin of this OneUptime installation
+                      to enter or refresh the license key from this dialog.
+                    </p>
+                  </section>
+                )}
+
                 {!configError && showLicenseKeyInput && (
                   <section className="rounded-xl border border-gray-200 bg-white p-5">
                     <div className="flex items-start justify-between gap-4">
@@ -1801,7 +2053,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       What your license unlocks
                     </h4>
                     <p className="mt-0.5 text-xs text-indigo-700">
-                      Validate your key above to turn these on immediately.
+                      {canManageLicense
+                        ? "Validate your key above to turn these on immediately."
+                        : "A master admin can activate the license to turn these on."}
                     </p>
                     <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {enterpriseFeatures.map(
