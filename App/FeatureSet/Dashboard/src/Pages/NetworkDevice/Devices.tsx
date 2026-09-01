@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import NetworkDeviceMonitoringMethod, {
   NetworkDeviceMonitoringMethodUtil,
@@ -32,6 +33,8 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
+import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -50,6 +53,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
 import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
 import DeviceStatusUtil, {
   DEVICE_STATUS_SELECT,
@@ -308,6 +312,17 @@ const NetworkDevices: FunctionComponent<
     modelType: NetworkDevice,
   });
 
+  /*
+   * Linking an EXISTING fleet to an OID Collection Template. Without a bulk
+   * path the template only ever reaches devices created after it shipped,
+   * which is the opposite of the problem issue #3507 describes: the routers
+   * that need it were imported months ago.
+   */
+  const {
+    bulkActions: oidTemplateBulkActions,
+    modals: oidTemplateBulkActionModals,
+  } = useBulkOidTemplateActions();
+
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -372,7 +387,11 @@ const NetworkDevices: FunctionComponent<
         isCreateable={true}
         showRefreshButton={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...archiveBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...oidTemplateBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         name="Network Devices"
         isViewable={true}
@@ -407,6 +426,28 @@ const NetworkDevices: FunctionComponent<
             },
             title: "Vendor",
             type: FieldType.Text,
+          },
+          {
+            /*
+             * No chip owns `oidTemplateId`, so this one is free to live here:
+             * it is how an operator finds the fleet a template already covers
+             * — and, after a bulk link, how they check it landed.
+             */
+            field: {
+              oidTemplate: {
+                name: true,
+              },
+            },
+            title: "OID Collection Template",
+            type: FieldType.Entity,
+            filterEntityType: NetworkDeviceOidTemplate,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
         ]}
         cardProps={{
@@ -740,6 +781,29 @@ const NetworkDevices: FunctionComponent<
           },
           {
             field: {
+              oidTemplate: {
+                name: true,
+              },
+            },
+            title: "Template",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            /*
+             * `selectedProperty` and `getElement` do two different jobs and
+             * both are needed. Without the first, the column key is the
+             * relation itself, so the cell stringifies to "[object Object]"
+             * and the CSV exporter — which never calls getElement — writes
+             * the raw object (OneUptime/oneuptime#3490). Naming the property
+             * extends the key to "oidTemplate.name", which both resolve to
+             * the string.
+             */
+            selectedProperty: "name",
+            getElement: (item: NetworkDevice): ReactElement => {
+              return <OidTemplateElement oidTemplate={item["oidTemplate"]} />;
+            },
+          },
+          {
+            field: {
               site: {
                 name: true,
                 _id: true,
@@ -937,6 +1001,7 @@ const NetworkDevices: FunctionComponent<
         }}
       />
       {labelBulkActionModals}
+      {oidTemplateBulkActionModals}
     </Fragment>
   );
 };

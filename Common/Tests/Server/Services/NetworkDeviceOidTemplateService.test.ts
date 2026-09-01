@@ -3,7 +3,11 @@ import { Service as NetworkDeviceOidTemplateServiceType } from "../../../Server/
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
@@ -51,8 +55,7 @@ function buildService(): {
   const service: NetworkDeviceOidTemplateServiceType =
     new NetworkDeviceOidTemplateServiceType();
 
-  const internals: ServiceInternals =
-    service as unknown as ServiceInternals;
+  const internals: ServiceInternals = service as unknown as ServiceInternals;
 
   return { service, internals };
 }
@@ -158,9 +161,7 @@ describe("NetworkDeviceOidTemplateService write validation", () => {
       },
     );
 
-    await expect(
-      internals.onBeforeCreate(createBy(tooMany)),
-    ).rejects.toThrow(
+    await expect(internals.onBeforeCreate(createBy(tooMany))).rejects.toThrow(
       new RegExp(`more than the limit of ${MAX_OIDS_PER_TEMPLATE}`),
     );
   });

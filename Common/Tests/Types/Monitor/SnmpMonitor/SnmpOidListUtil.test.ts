@@ -80,7 +80,10 @@ describe("SnmpOidListUtil.validateOidList", () => {
       options,
     );
 
-    expect(oidStrings(result)).toEqual(["1.3.6.1.2.1.1.3.0", "1.3.6.1.4.1.9.1"]);
+    expect(oidStrings(result)).toEqual([
+      "1.3.6.1.2.1.1.3.0",
+      "1.3.6.1.4.1.9.1",
+    ]);
     expect(result[0]!.name).toBe("uptime");
     expect(result[0]!.description).toBe("desc-uptime");
   });
@@ -100,7 +103,10 @@ describe("SnmpOidListUtil.validateOidList", () => {
    */
   it("drops a blank row instead of refusing the save", () => {
     const result: Array<SnmpOid> = SnmpOidListUtil.validateOidList(
-      [oid("1.3.6.1.2.1.1.3.0", "uptime"), { oid: "", name: "", description: "" }],
+      [
+        oid("1.3.6.1.2.1.1.3.0", "uptime"),
+        { oid: "", name: "", description: "" },
+      ],
       options,
     );
 

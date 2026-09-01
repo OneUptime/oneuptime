@@ -5187,10 +5187,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         NetworkDeviceOidTemplate,
         NetworkDeviceOidTemplateServiceType
-      >(
-        NetworkDeviceOidTemplate,
-        NetworkDeviceOidTemplateService,
-      ).getRouter(),
+      >(NetworkDeviceOidTemplate, NetworkDeviceOidTemplateService).getRouter(),
     );
 
     // network device discovery scan

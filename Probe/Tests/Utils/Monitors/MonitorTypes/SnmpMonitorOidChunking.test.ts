@@ -259,9 +259,9 @@ describe("SnmpMonitor OID GET chunking", () => {
       };
     });
 
-    await expect(Internal.executeSnmpQuery(buildConfig(45), {})).rejects.toThrow(
-      "simulated request timed out",
-    );
+    await expect(
+      Internal.executeSnmpQuery(buildConfig(45), {}),
+    ).rejects.toThrow("simulated request timed out");
 
     // One attempt plus one retry of the first chunk, then give up.
     expect(getCalls).toHaveLength(2);

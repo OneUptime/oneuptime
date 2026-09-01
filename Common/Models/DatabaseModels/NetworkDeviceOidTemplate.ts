@@ -331,6 +331,21 @@ export default class NetworkDeviceOidTemplate extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
+    /*
+     * Readable through a device's `oidTemplate` relation, because the
+     * dashboard has to show the EFFECTIVE OID list - the template's plus the
+     * device's own - in two places that only hold a device: the criteria OID
+     * picker, and the device's own settings card. Live resolution means the
+     * device row alone no longer says what it collects, so without this the
+     * operator has no way to see it.
+     *
+     * Safe specifically because NetworkDeviceService now refuses to link a
+     * device to a template from another project (assertOidTemplateBelongsTo-
+     * Project). Nested relation selects are NOT tenant-checked - only the root
+     * query is - so that write-time guard is what makes this read-time flag
+     * sound.
+     */
+    canReadOnRelationQuery: true,
     title: "OIDs",
     description:
       "SNMP OIDs (CPU, memory, temperature, or any custom OID) collected by every device linked to this template. You do not need OIDs for interfaces - bits in/out, errors, utilization and up/down are walked for every port automatically.",

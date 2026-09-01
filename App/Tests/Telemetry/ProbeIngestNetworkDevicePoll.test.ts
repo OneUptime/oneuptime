@@ -725,7 +725,7 @@ describe("POST /probe/network-device/list", () => {
       expect(oidTemplateService.findBy).toHaveBeenCalledTimes(1);
       const findArgs: JSONObject = oidTemplateService.findBy.mock
         .calls[0]![0] as JSONObject;
-      expect((findArgs["limit"] as number)).toBe(1);
+      expect(findArgs["limit"] as number).toBe(1);
     });
 
     /*

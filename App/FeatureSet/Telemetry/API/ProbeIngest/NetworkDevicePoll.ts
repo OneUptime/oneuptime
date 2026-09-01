@@ -204,7 +204,10 @@ router.post(
         let templateOids: Array<SnmpOid> = [];
 
         if (linkedTemplate) {
-          if (linkedTemplate.projectId?.toString() === device.projectId?.toString()) {
+          if (
+            linkedTemplate.projectId?.toString() ===
+            device.projectId?.toString()
+          ) {
             templateOids = linkedTemplate.oids || [];
           } else {
             logger.error(
@@ -229,7 +232,9 @@ router.post(
         if (effectiveOids.truncatedCount > 0) {
           logger.warn(
             `Network device ${device.id?.toString()}: ${effectiveOids.truncatedCount} health OID(s) beyond the per-device limit were not polled${
-              linkedTemplate ? ` (OID Collection Template "${linkedTemplate.name}")` : ""
+              linkedTemplate
+                ? ` (OID Collection Template "${linkedTemplate.name}")`
+                : ""
             }.`,
           );
         }

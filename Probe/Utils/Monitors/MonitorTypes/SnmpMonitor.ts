@@ -1415,13 +1415,12 @@ export default class SnmpMonitor {
    * for anything but the longest OIDs. A device with a short list still gets
    * exactly one GET, so nothing changes for anyone who is not affected.
    */
-  private static readonly snmpGetChunkSize: number = NumberUtil.parseNumberWithDefault(
-    {
+  private static readonly snmpGetChunkSize: number =
+    NumberUtil.parseNumberWithDefault({
       value: process.env["PROBE_SNMP_GET_CHUNK_SIZE"],
       defaultValue: 20,
       min: 1,
-    },
-  );
+    });
 
   /*
    * One SNMP GET for one slice of the configured OIDs.

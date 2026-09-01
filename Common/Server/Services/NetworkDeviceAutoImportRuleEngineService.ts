@@ -1131,7 +1131,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
        * every scan would import devices that somebody has to go back and
        * bulk-assign by hand, which is the chore issue #3507 is about.
        */
-      const oidTemplateIdForHost: ObjectID | undefined = ((): ObjectID | undefined => {
+      const oidTemplateIdForHost: ObjectID | undefined = (():
+        | ObjectID
+        | undefined => {
         for (const matchedRule of evaluation.matchedRules) {
           const candidateId: string =
             matchedRule.oidTemplateId?.toString() || "";

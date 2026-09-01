@@ -115,6 +115,14 @@ import NetworkDeviceMonitorStepForm from "./NetworkDeviceMonitor/NetworkDeviceMo
 import MonitorStepNetworkDeviceMonitor, {
   MonitorStepNetworkDeviceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepNetworkDeviceMonitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
+import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import {
+  NetworkDeviceCriteriaCatalogue,
+  NetworkDeviceOidCatalogueEntry,
+} from "./CriteriaFilter";
 import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
   MonitorStepDnsMonitorUtil,
@@ -135,6 +143,13 @@ import ExternalStatusPageMonitorStepForm from "./ExternalStatusPageMonitor/Exter
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+
+/*
+ * The interface picker on an SNMP criteria is a picker, not an inventory. A
+ * chassis switch can expose thousands of subinterfaces, so the list the
+ * criteria editor asks for is bounded and never grows with the device.
+ */
+const MAX_NETWORK_INTERFACES_IN_CRITERIA_PICKER: number = 500;
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -334,6 +349,157 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyErrorMessage(err as Error));
     });
   }, [props.monitorType]);
+
+  /*
+   * What the network device this step points at actually collects.
+   *
+   * The SNMP OID criteria used to source their dropdown from
+   * monitorStep.data.snmpMonitor.oids, a field of the retired standalone SNMP
+   * monitor type that a Network Device step never writes - so the dropdown was
+   * empty for everyone and no OID criteria could ever be configured. The real
+   * source is the device: its OID Collection Template merged with its own
+   * device-specific OIDs, resolved by the same util the poll path uses so the
+   * editor shows exactly the list the probe will receive.
+   *
+   * Fetched once per STEP and handed down as props, following the MetricValue
+   * precedent above - a criteria set can hold a dozen filters, and each of
+   * them fetching this itself would be a dozen round trips for one answer.
+   */
+  const [networkDeviceOidCatalogue, setNetworkDeviceOidCatalogue] = useState<
+    Array<NetworkDeviceOidCatalogueEntry>
+  >([]);
+  const [networkDeviceInterfaceNames, setNetworkDeviceInterfaceNames] =
+    useState<Array<string>>([]);
+
+  const selectedNetworkDeviceId: string | undefined =
+    props.monitorType === MonitorType.NetworkDevice
+      ? props.value?.data?.networkDeviceMonitor?.networkDeviceId || undefined
+      : undefined;
+
+  const loadNetworkDeviceCatalogue: (
+    networkDeviceId: string,
+  ) => Promise<NetworkDeviceCriteriaCatalogue> = async (
+    networkDeviceId: string,
+  ): Promise<NetworkDeviceCriteriaCatalogue> => {
+    const device: NetworkDevice | null = await ModelAPI.getItem<NetworkDevice>({
+      modelType: NetworkDevice,
+      id: new ObjectID(networkDeviceId),
+      select: {
+        snmpOids: true,
+        oidTemplate: {
+          name: true,
+          oids: true,
+        },
+      },
+    });
+
+    const templateOids: Array<SnmpOid> = device?.oidTemplate?.oids || [];
+    const templateName: string | undefined = device?.oidTemplate?.name;
+
+    /*
+     * Normalized before comparing: mergeOidLists returns canonical OIDs, and
+     * ".1.3.6.1" and "1.3.6.1" are the same object spelled two ways. Without
+     * this every template entry would look device-specific.
+     */
+    const normalizedTemplateOids: Set<string> = new Set(
+      templateOids.map((entry: SnmpOid): string => {
+        return SnmpOidListUtil.normalizeOid(entry.oid);
+      }),
+    );
+
+    const effectiveOids: Array<SnmpOid> = SnmpOidListUtil.mergeOidLists(
+      templateOids,
+      device?.snmpOids || [],
+    );
+
+    const interfaceResult: ListResult<NetworkInterface> =
+      await ModelAPI.getList<NetworkInterface>({
+        modelType: NetworkInterface,
+        query: {
+          networkDeviceId: networkDeviceId,
+          isMonitored: true,
+        },
+        limit: MAX_NETWORK_INTERFACES_IN_CRITERIA_PICKER,
+        skip: 0,
+        select: {
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      });
+
+    if (interfaceResult instanceof HTTPErrorResponse) {
+      throw interfaceResult;
+    }
+
+    const interfaceNames: Array<string> = Array.from(
+      new Set(
+        interfaceResult.data
+          .map((networkInterface: NetworkInterface): string => {
+            return networkInterface.name || "";
+          })
+          .filter((interfaceName: string): boolean => {
+            return interfaceName.length > 0;
+          }),
+      ),
+    );
+
+    return {
+      oids: effectiveOids.map(
+        (entry: SnmpOid): NetworkDeviceOidCatalogueEntry => {
+          const isFromTemplate: boolean = normalizedTemplateOids.has(entry.oid);
+
+          return {
+            oid: entry.oid,
+            ...(entry.name ? { name: entry.name } : {}),
+            ...(isFromTemplate && templateName
+              ? { templateName: templateName }
+              : {}),
+          };
+        },
+      ),
+      interfaceNames: interfaceNames,
+    };
+  };
+
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    if (selectedNetworkDeviceId) {
+      loadNetworkDeviceCatalogue(selectedNetworkDeviceId)
+        .then((catalogue: NetworkDeviceCriteriaCatalogue): void => {
+          if (isCancelled) {
+            return;
+          }
+
+          setNetworkDeviceOidCatalogue(catalogue.oids);
+          setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
+        })
+        .catch((): void => {
+          /*
+           * Deliberately not surfaced as a form-level error. The criteria
+           * pickers fall back to their empty state and every other field on
+           * the step keeps working; a device the user cannot read, or one
+           * deleted since the step was saved, must not blank out the whole
+           * monitor editor.
+           */
+          if (isCancelled) {
+            return;
+          }
+
+          setNetworkDeviceOidCatalogue([]);
+          setNetworkDeviceInterfaceNames([]);
+        });
+    } else {
+      setNetworkDeviceOidCatalogue([]);
+      setNetworkDeviceInterfaceNames([]);
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedNetworkDeviceId]);
 
   const [errors, setErrors] = useState<Dictionary<string>>({});
   const [touched, setTouched] = useState<Dictionary<boolean>>({});
@@ -1799,6 +1965,8 @@ return {
         <MonitorCriteriaElement
           monitorType={props.monitorType}
           monitorStep={monitorStep}
+          networkDeviceOidCatalogue={networkDeviceOidCatalogue}
+          networkDeviceInterfaceNames={networkDeviceInterfaceNames}
           offlineMonitorStatusId={props.offlineMonitorStatusId}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={

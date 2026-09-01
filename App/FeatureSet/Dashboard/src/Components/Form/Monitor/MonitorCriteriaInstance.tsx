@@ -1,4 +1,9 @@
 import CriteriaFilters from "./CriteriaFilters";
+import {
+  NetworkDeviceCriteriaCatalogue,
+  NetworkDeviceCriteriaCatalogueContext,
+  NetworkDeviceOidCatalogueEntry,
+} from "./CriteriaFilter";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import Dictionary from "Common/Types/Dictionary";
@@ -29,6 +34,7 @@ import React, {
   ReactElement,
   useEffect,
   useId,
+  useMemo,
   useState,
 } from "react";
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
@@ -49,6 +55,14 @@ export interface ComponentProps {
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
+  /*
+   * For Network Device monitors: the effective health-OID list of the device
+   * this step points at, and the names of the interfaces its last walk found.
+   * Both are fetched once per step in MonitorStep and read by the SNMP OID and
+   * interface pickers on each criteria filter.
+   */
+  networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
+  networkDeviceInterfaceNames?: Array<string> | undefined;
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
   onDelete?: undefined | (() => void);
@@ -79,6 +93,19 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       }),
     ),
   );
+
+  /*
+   * Memoized so the provider hands the same object down on every re-render
+   * this component does for unrelated reasons - the pickers below rebuild
+   * their option lists from it.
+   */
+  const networkDeviceCatalogue: NetworkDeviceCriteriaCatalogue =
+    useMemo((): NetworkDeviceCriteriaCatalogue => {
+      return {
+        oids: props.networkDeviceOidCatalogue || [],
+        interfaceNames: props.networkDeviceInterfaceNames || [],
+      };
+    }, [props.networkDeviceOidCatalogue, props.networkDeviceInterfaceNames]);
 
   const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
     ObjectID | undefined
@@ -369,23 +396,27 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <CriteriaFilters
-            monitorStep={props.monitorStep}
-            monitorType={props.monitorType}
-            value={monitorCriteriaInstance?.data?.filters || []}
-            filterCondition={
-              monitorCriteriaInstance?.data?.filterCondition ||
-              FilterCondition.All
-            }
-            onChange={(value: Array<CriteriaFilter>) => {
-              monitorCriteriaInstance.setFilters(value);
-              if (props.onChange) {
-                props.onChange(
-                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                );
+          <NetworkDeviceCriteriaCatalogueContext.Provider
+            value={networkDeviceCatalogue}
+          >
+            <CriteriaFilters
+              monitorStep={props.monitorStep}
+              monitorType={props.monitorType}
+              value={monitorCriteriaInstance?.data?.filters || []}
+              filterCondition={
+                monitorCriteriaInstance?.data?.filterCondition ||
+                FilterCondition.All
               }
-            }}
-          />
+              onChange={(value: Array<CriteriaFilter>) => {
+                monitorCriteriaInstance.setFilters(value);
+                if (props.onChange) {
+                  props.onChange(
+                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                  );
+                }
+              }}
+            />
+          </NetworkDeviceCriteriaCatalogueContext.Provider>
         </div>
       </CollapsibleSection>
 
