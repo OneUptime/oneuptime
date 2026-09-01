@@ -6,6 +6,7 @@ import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
 } from "./SnmpScanConfigUtil";
 import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
+import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
 /*
  * One discovered host -> one NetworkDevice, the same way everywhere.
@@ -38,12 +39,51 @@ function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? value.substring(0, maxLength) : value;
 }
 
-/** The name a discovered host imports under: its sysName, or its address. */
-export function buildDeviceName(host: DiscoveredNetworkDevice): string {
-  return truncate(
-    (host.sysName || "").trim() || host.ipAddress,
-    MAX_DEVICE_NAME_LENGTH,
+/**
+ * What a discovered host is CALLED — in the Review dialog, and (clamped by
+ * `buildDeviceName`) on the device it imports as.
+ *
+ * Three sources, in this order, first non-empty wins:
+ *
+ *   1. `sysName`, the name the device gives for itself over SNMP. It stays
+ *      first because it always has been, and because it is the one name the
+ *      device itself asserts: demoting it would silently rename devices that
+ *      import correctly today, which nobody asked for.
+ *   2. `dnsHostname`, its reverse-DNS (PTR) name (OneUptime issue #3529).
+ *      This is the whole point of the addition, and it lands exactly where
+ *      the complaint was: a host with no readable SNMP has no sysName, so
+ *      before this it fell straight through to its address. On an estate that
+ *      keeps DNS records — the reporter's does — that turns a review list of
+ *      "10.18.166.51, 10.18.166.53, ..." into names an operator recognises.
+ *   3. The address, unchanged, when neither name exists.
+ *
+ * Split out of `buildDeviceName` so the dashboard row and the device it
+ * creates cannot disagree: the operator ticks a box next to a name, and that
+ * is the name the device gets. Returned UNTRUNCATED — the display has its own
+ * ellipsis and the 80-character ceiling exists for the slug, not the eye.
+ */
+export function getDiscoveredHostDisplayName(
+  host: DiscoveredNetworkDevice,
+): string {
+  /*
+   * The PTR name is re-normalised here rather than trusted from the column.
+   * `discoveredDevices` is jsonb stored verbatim from the probe's payload, so
+   * "the probe already checked it" holds only for the probe version that
+   * wrote the row — not for a result from an older or a modified probe, and
+   * not for a row written straight through the API. This function is the last
+   * point before the value becomes a rendered line and a slugified device
+   * name, so it is the right place to be sure. See ReverseDnsNameUtil.
+   */
+  return (
+    (host.sysName || "").trim() ||
+    normalizeReverseDnsName(host.dnsHostname) ||
+    host.ipAddress
   );
+}
+
+/** The name a discovered host imports under, clamped to the slug's ceiling. */
+export function buildDeviceName(host: DiscoveredNetworkDevice): string {
+  return truncate(getDiscoveredHostDisplayName(host), MAX_DEVICE_NAME_LENGTH);
 }
 
 /**
@@ -131,7 +171,19 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
   const device: NetworkDevice = new NetworkDevice();
   device.projectId = data.projectId;
   device.name = data.name || buildDeviceName(host);
-  // The address is the device's hostname AND the registered-host dedup key.
+  /*
+   * The address is the device's hostname AND the registered-host dedup key.
+   *
+   * It stays the ADDRESS even when the host resolved a PTR name, which is
+   * what issue #3529 asked for in as many words ("retain the IP address as
+   * the address/IP field"), and what the rest of the system needs: this
+   * column is what the ingest path matches a scan's results against
+   * (NetworkDeviceService.getRegisteredHostnames), what the SNMP poller
+   * dials, and what a trap's source IP is correlated to. Storing a name here
+   * would make a device stop polling the day its reverse zone changed, and
+   * would make the same host import twice — once by address, once by name.
+   * The PTR record names the device; it does not address it.
+   */
   device.hostname = host.ipAddress;
 
   if (host.sysDescr) {

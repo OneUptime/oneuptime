@@ -18,6 +18,8 @@ import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol"
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
+
 /*
  * A discovery scan carries an ORDERED LIST of SNMP credential sets, not one.
  *
@@ -212,6 +214,15 @@ function hostAt(result: SubnetScanResult, ipAddress: string): DiscoveredHost {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+/*
+ * Reverse DNS (issue #3529) is the sweep's third network seam, alongside ICMP
+ * and SNMP, and is stubbed out for this whole file for the same reason those
+ * are: nothing here is about naming, and a unit test must not ask the
+ * machine's real resolver about 10.0.0.0/8. Hosts therefore come back with no
+ * dnsHostname, exactly as they did before the feature existed.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("SubnetScanner multi-config sweep — the first config that answers wins", () => {
   /*

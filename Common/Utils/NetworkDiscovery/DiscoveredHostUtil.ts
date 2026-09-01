@@ -1,4 +1,5 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
 /*
  * Normalisation for a scan's stored results, shared by every reader of the
@@ -40,7 +41,12 @@ function isDiscoveredHostObject(
  *     import, so whether a device already in the inventory got created a
  *     second time depended on which order the probe happened to list them in.
  *
- * All three are fixed here rather than at each call site, so the row the
+ * A fourth was added with reverse DNS (issue #3529) and is not a probe bug at
+ * all — `dnsHostname` is a value the SCANNED NETWORK chooses, so it is
+ * untrusted by construction rather than by accident, and it is normalised
+ * here for the same reason: one reading of the payload for every reader.
+ *
+ * All of them are fixed here rather than at each call site, so the row the
  * operator sees, the badge above it, the list Import walks, and the hosts an
  * auto-import rule evaluates can never be working from different readings of
  * the same payload.
@@ -60,13 +66,35 @@ export function normalizeDiscoveredHosts(
      * truthy, so it used to pass selectability and import as a Network Device
      * whose hostname was a single space.
      */
-    cleaned.push({
+    const normalized: DiscoveredNetworkDevice = {
       ...host,
       ipAddress:
         host.ipAddress === undefined || host.ipAddress === null
           ? ""
           : String(host.ipAddress).trim(),
-    });
+    };
+
+    /*
+     * The PTR name gets the same treatment, for a sharper version of the same
+     * reason (OneUptime issue #3529): unlike every other field here, its
+     * value was chosen by whoever runs DNS for the scanned subnet — routinely
+     * not this project — and it is stored verbatim in jsonb. So the rules
+     * about what a name may contain are applied on the way OUT of the column
+     * as well as on the way in, and anything that fails them is DELETED
+     * rather than blanked, so a reader that checks `if (host.dnsHostname)`
+     * and a reader that checks `"dnsHostname" in host` cannot disagree.
+     */
+    const dnsHostname: string | undefined = normalizeReverseDnsName(
+      host.dnsHostname,
+    );
+
+    if (dnsHostname) {
+      normalized.dnsHostname = dnsHostname;
+    } else {
+      delete normalized.dnsHostname;
+    }
+
+    cleaned.push(normalized);
   }
 
   // An address the scan reports as registered is registered on every row.

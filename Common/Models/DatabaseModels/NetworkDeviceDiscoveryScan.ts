@@ -34,6 +34,28 @@ export interface DiscoveredNetworkDevice {
   sysLocation?: string | undefined;
   sysContact?: string | undefined;
   sysUpTimeSeconds?: number | undefined;
+  /*
+   * The host's reverse-DNS (PTR) name, resolved by the probe against the
+   * scanned network's own resolvers (OneUptime issue #3529).
+   *
+   * This is what a ping-only host is NAMED by. Before it existed the Review
+   * dialog could only show such a host as its address, which is what the
+   * issue reported: an estate with DNS records for everything still read as
+   * a list of bare IPs.
+   *
+   * Optional in three different ways that all mean "no name": the address has
+   * no PTR record, the probe has no usable resolver, or the row was stored
+   * before this field existed / by an older probe. Every reader falls back to
+   * the address, so none of the three needs telling apart.
+   *
+   * ATTACKER-INFLUENCED. Its value is chosen by whoever runs DNS for the
+   * scanned subnet, which on a discovery scan is frequently not this project,
+   * and it is stored here verbatim in jsonb. Never render or store it without
+   * ReverseDnsNameUtil.normalizeReverseDnsName — normalizeDiscoveredHosts and
+   * buildDeviceName both apply it, which covers every path that reaches a
+   * screen or a name column.
+   */
+  dnsHostname?: string | undefined;
   isAlreadyRegistered?: boolean | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be

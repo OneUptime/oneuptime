@@ -11,6 +11,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -92,6 +94,15 @@ function networkWhereIcmpIsFilteredAndSnmpWorks(
       return null;
     });
 }
+
+/*
+ * Reverse DNS (issue #3529) is the sweep's third network seam, alongside ICMP
+ * and SNMP, and is stubbed out for this whole file for the same reason those
+ * are: nothing here is about naming, and a unit test must not ask the
+ * machine's real resolver about 10.0.0.0/8. Hosts therefore come back with no
+ * dnsHostname, exactly as they did before the feature existed.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("discovery on a subnet where ICMP is filtered", () => {
   test("the devices are found and reported, not silently dropped", async () => {
