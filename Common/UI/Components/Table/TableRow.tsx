@@ -95,10 +95,20 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     };
   }, []);
 
+  /*
+   * The local isMobile state above starts false and is only corrected inside
+   * an effect, i.e. after the first paint. TableBody already knows which
+   * layout it is mounting and says so explicitly, so prefer what it passed:
+   * without this, a mobile card renders its hideOnMobile columns for one frame
+   * and then drops them, which is a visible jump on exactly the narrow screens
+   * the flag exists to protect.
+   */
+  const isMobileView: boolean = props.isMobile ?? isMobile;
+
   // The columns this row will actually put on screen.
   const renderedColumns: Array<Column<T>> = (props.columns || []).filter(
     (column: Column<T>) => {
-      return !(column.hideOnMobile && isMobile);
+      return !(column.hideOnMobile && isMobileView);
     },
   );
 
@@ -175,7 +185,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             )}
 
             <div className="space-y-3">
-              {props.columns.map((column: Column<T>, i: number) => {
+              {renderedColumns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
                   return (
                     <div key={i} className="flex flex-wrap gap-2">
@@ -520,7 +530,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           }
 
                           // Hide button on mobile if hideOnMobile is true
-                          if (button.hideOnMobile && isMobile) {
+                          if (button.hideOnMobile && isMobileView) {
                             return <div key={i}></div>;
                           }
 

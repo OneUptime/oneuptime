@@ -1293,7 +1293,7 @@ describe("ResponderReadinessCard", () => {
       expect(
         await screen.findByText("Could not load readiness"),
       ).toBeInTheDocument();
-      expect(screen.getByRole("refresh-button")).toBeInTheDocument();
+      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
     });
 
     test("retrying issues another request", async () => {
@@ -1305,7 +1305,7 @@ describe("ResponderReadinessCard", () => {
 
       const callsBefore: number = getMock.mock.calls.length;
 
-      fireEvent.click(screen.getByRole("refresh-button"));
+      fireEvent.click(screen.getByTestId("refresh-button"));
 
       await waitFor((): void => {
         expect(getMock.mock.calls.length).toBeGreaterThan(callsBefore);
@@ -1784,7 +1784,7 @@ describe("On-call readiness page", () => {
       expect(
         await screen.findByText("Could not load readiness"),
       ).toBeInTheDocument();
-      expect(screen.getByRole("refresh-button")).toBeInTheDocument();
+      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
     });
 
     test("the card chrome survives a failed request", async () => {

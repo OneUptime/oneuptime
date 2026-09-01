@@ -32,6 +32,7 @@ import {
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import Card, {
@@ -417,6 +418,72 @@ export enum ModalType {
   Create,
   Edit,
 }
+
+/*
+ * The fields a row is worth naming itself by, in the order a human would pick
+ * one. `title` is not decoration here: incidents, alerts and scheduled
+ * maintenance key on `title` rather than `name`, and those are exactly the
+ * tables where deleting the row next to the one you meant hurts most.
+ *
+ * Only the fields the table already selected are present on the row, so this
+ * reads whatever is there and gives up quietly rather than guessing.
+ */
+const ITEM_LABEL_FIELDS: Array<string> = [
+  "name",
+  "title",
+  "slug",
+  "email",
+  "username",
+  "domain",
+];
+
+type ReadLabelFieldFunction = (value: unknown) => string;
+
+/*
+ * Some of these fields arrive as objects with a meaningful toString - Name,
+ * Email, ObjectID all define one. Anything that does not is skipped rather
+ * than rendered as "[object Object]".
+ */
+const readLabelField: ReadLabelFieldFunction = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const text: string = String(value);
+
+  return text === "[object Object]" ? "" : text.trim();
+};
+
+type GetItemLabelFunction = (item: unknown) => string;
+
+/*
+ * Every per-row Delete in the product opened the same dialog: "Are you sure
+ * you want to delete this monitor?" - a sentence equally true of the row that
+ * was clicked and of the twenty either side of it. That is precisely the
+ * moment a user wants to be told which one, and the one moment the dialog
+ * would not say.
+ */
+const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
+  if (!item || typeof item !== "object") {
+    return "";
+  }
+
+  const record: Record<string, unknown> = item as Record<string, unknown>;
+
+  for (const field of ITEM_LABEL_FIELDS) {
+    const label: string = readLabelField(record[field]);
+
+    if (label) {
+      return label;
+    }
+  }
+
+  return "";
+};
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -2921,6 +2988,54 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return isSearchActive() ? false : isLoading;
   };
 
+  type HasFilterAppliedFunction = (
+    dataToCheck: FilterData<TBaseModel>,
+  ) => boolean;
+
+  /*
+   * Lifted out of the onFilterChanged callback below, which is where this test
+   * used to live inline. Two definitions of "a filter is applied" in one
+   * component is exactly the kind of thing that drifts apart.
+   */
+  const hasFilterApplied: HasFilterAppliedFunction = (
+    dataToCheck: FilterData<TBaseModel>,
+  ): boolean => {
+    for (const key in dataToCheck) {
+      if (dataToCheck[key]) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  type GetNoItemsMessageFunction = () => string | ReactElement;
+
+  /*
+   * An empty table has two quite different causes and used to have one
+   * sentence for both. A monitors table with nothing in it said "No monitor"
+   * - ungrammatical, and worse, it said the same thing after a search that
+   * matched nothing, so a typo in the search box looked exactly like an empty
+   * project. A caller's own noItemsMessage is deliberately overridden while a
+   * search or filter is active: those are usually "create your first X"
+   * panels, and offering one to someone whose search just missed is wrong.
+   */
+  const getNoItemsMessage: GetNoItemsMessageFunction = ():
+    | string
+    | ReactElement => {
+    const plural: string = (
+      props.pluralName ||
+      model.pluralName ||
+      "items"
+    ).toLocaleLowerCase();
+
+    if (isSearchActive() || hasFilterApplied(filterData)) {
+      return `${tx("No")} ${plural} ${tx("match your search or filters.")}`;
+    }
+
+    return props.noItemsMessage || `${tx("No")} ${plural} ${tx("yet.")}`;
+  };
+
   const getTable: GetReactElementFunction = (): ReactElement => {
     return (
       <Table
@@ -2929,17 +3044,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           setTableView(null);
 
           // check if there's anything in the filter data and update the isFilterApplied prop.
-          let isFilterApplied: boolean = false;
-
-          for (const key in filterData) {
-            if (filterData[key]) {
-              isFilterApplied = true;
-              break;
-            }
-          }
-
           if (props.onFilterApplied) {
-            props.onFilterApplied(isFilterApplied);
+            props.onFilterApplied(hasFilterApplied(filterData));
           }
         }}
         filterData={filterData}
@@ -3127,9 +3233,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
           const label: string = props.singularName || item.singularName || "";
-          const name: string =
-            (item as unknown as Record<string, unknown>)["name"]?.toString() ||
-            "";
+          // Same deriver the delete confirmation uses, so the two cannot drift.
+          const name: string = getItemLabel(item);
           if (name) {
             return label ? `${label}: ${name}` : name;
           }
@@ -3200,7 +3305,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={props.noItemsMessage || ""}
+        noItemsMessage={getNoItemsMessage()}
         onRefreshClick={async () => {
           await fetchItems();
         }}
@@ -3256,7 +3361,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         shouldAddItemInTheEnd={
           props.orderedStatesListProps.shouldAddItemInTheEnd
         }
-        noItemsMessage={props.noItemsMessage || ""}
+        noItemsMessage={getNoItemsMessage()}
         onRefreshClick={async () => {
           await fetchItems();
         }}
@@ -3343,7 +3448,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           setItemsOnPage(newItemsOnPage);
         }}
-        noItemsMessage={props.noItemsMessage || ""}
+        noItemsMessage={getNoItemsMessage()}
         onRefreshClick={async () => {
           await fetchItems();
         }}
@@ -4498,11 +4603,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       {showDeleteConfirmModal && (
         <ConfirmModal
           title={`Delete ${props.singularName || model.singularName}`}
-          description={`Are you sure you want to delete this ${(
-            props.singularName ||
-            model.singularName ||
-            "item"
-          )?.toLowerCase()}?`}
+          description={((): string => {
+            const label: string = (
+              props.singularName ||
+              model.singularName ||
+              "item"
+            ).toLowerCase();
+            const name: string = getItemLabel(currentDeleteableItem);
+
+            return `Are you sure you want to delete ${
+              name ? `"${name}"` : `this ${label}`
+            }? This action cannot be undone.`;
+          })()}
           onClose={() => {
             setShowDeleteConfirmModal(false);
           }}
@@ -4535,10 +4647,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           description={
             <div>
               <span>
-                ID of this {props.singularName || model.singularName || ""}:{" "}
-                {viewId}
+                ID of this {props.singularName || model.singularName || ""}:
               </span>
-              <br />
+              {/*
+               * Handing over the id is the entire point of this dialog, and it
+               * used to be inline prose the user had to select by hand - an
+               * awkward drag over a 36-character UUID, and easy to clip a
+               * character. It gets its own row and a copy button now.
+               */}
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                <code className="flex-1 break-all font-mono text-xs text-gray-800">
+                  {viewId}
+                </code>
+                <CopyTextButton
+                  textToBeCopied={viewId || ""}
+                  size="sm"
+                  title="Copy ID to clipboard"
+                />
+              </div>
               <br />
 
               <span>

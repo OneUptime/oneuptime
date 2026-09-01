@@ -901,7 +901,7 @@ describe("PendingProjectInvitations", () => {
         expect(screen.getByTestId("invitations-error")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole("refresh-button"));
+      fireEvent.click(screen.getByTestId("refresh-button"));
 
       await waitFor(() => {
         expect(getInvitationCards()).toHaveLength(1);
