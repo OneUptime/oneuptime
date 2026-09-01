@@ -18,11 +18,13 @@ import YAxisType from "../../../../UI/Components/Charts/Types/YAxis/YAxisType";
 
 /*
  * TimeAnnotationUtil is what puts an incident, alert or deploy onto a
- * chart's categorical x-axis. It had no tests at all, and it now carries
- * the load-bearing part of the marker rail: the BUCKET INDEX. The renderer
- * positions from that index rather than from the label, because a sub-hour
- * axis over a multi-day window repeats its labels and recharts' scale then
- * resolves none of them.
+ * chart's categorical x-axis. It carries the load-bearing part of the
+ * marker rail: the BUCKET INDEX. The renderer positions from that index
+ * rather than from the label, so a duplicated axis domain — which
+ * recharts answers by resolving no category at all — could never delete
+ * the overlay again. XAxisUtil now also keeps those labels distinct, so
+ * the index is the second of two independent guards rather than the only
+ * one.
  */
 
 function buildXAxis(start: Date, end: Date): XAxis {
@@ -168,16 +170,21 @@ describe("formatTimeReferenceLines", () => {
     ).toEqual([]);
   });
 
-  test("a repeated-label axis still resolves every marker", () => {
+  test("a multi-day window resolves every marker, on its own day", () => {
     /*
-     * The regression this whole change turns on. A 48h window repeats
-     * every clock label; markers used to be handed to recharts BY LABEL,
-     * and recharts resolves no label at all on a duplicated domain, so the
-     * entire overlay silently disappeared on any window of a day or more.
-     * Indices have no such failure mode.
+     * Markers used to be handed to recharts BY LABEL, and a 48h window
+     * repeated every clock reading — which recharts answers by resolving
+     * no category at all, so the entire overlay silently disappeared on
+     * any window of a day or more.
+     *
+     * Two independent things now stop that. Sub-hour labels carry their
+     * day (XAxis.test.ts holds that), so the domain no longer repeats; and
+     * markers resolve through the bucket INDEX rather than the label, so
+     * they would survive even if it did. This pins both: distinct labels,
+     * and every marker landing on the index whose label it reports.
      */
     const labels: Array<string> = axisLabels(LONG_AXIS);
-    expect(new Set(labels).size).toBeLessThan(labels.length);
+    expect(new Set(labels).size).toBe(labels.length);
 
     const formatted: Array<FormattedTimeReferenceLine> =
       TimeAnnotationUtil.formatTimeReferenceLines({
@@ -193,6 +200,15 @@ describe("formatTimeReferenceLines", () => {
     for (const resolved of formatted) {
       expect(labels[resolved.bucketIndex]).toBe(resolved.formattedX);
     }
+
+    // The day-two marker is on a day-two bucket, not folded onto day one.
+    const bucketIndexes: Array<number> = formatted.map(
+      (resolved: FormattedTimeReferenceLine): number => {
+        return resolved.bucketIndex;
+      },
+    );
+    expect(bucketIndexes[2]).toBeGreaterThan(bucketIndexes[1]!);
+    expect(labels[bucketIndexes[2]!]).toContain("Mar");
   });
 });
 
@@ -201,13 +217,13 @@ describe("markers sit with the data they describe", () => {
    * A marker's whole job is to say "this happened HERE on the series", so
    * it has to resolve to the row its own timestamp's data resolved to.
    *
-   * On a repeated-label axis both are wrong in the same direction:
-   * DataPointUtil places a row by first-match-on-label and the marker
-   * follows the identical rule, so a day-two event and day-two data land
-   * together on day one. That consistency is the property worth pinning —
-   * moving one side without the other would park markers over empty space.
-   * The real fix is XAxisUtil emitting a date on its sub-hour tiers, and it
-   * moves both sides at once; this test is what will catch a half-fix.
+   * Both sides key off the axis label — DataPointUtil places a row by
+   * first-match-on-label and the marker follows the identical rule — so
+   * they move together or not at all. They were once consistently WRONG
+   * (a repeated label folded day two onto day one on both sides at once);
+   * they are now consistently right. Either way this is the property
+   * worth pinning, because moving one side without the other would park
+   * markers over empty space.
    */
 
   type BucketOfFunction = (xAxis: XAxis, date: Date) => number;
@@ -430,7 +446,7 @@ describe("formatReferenceRegions", () => {
     ).toEqual([]);
   });
 
-  test("a repeated-label axis still resolves regions", () => {
+  test("a multi-day window resolves regions on their own days", () => {
     const labels: Array<string> = axisLabels(LONG_AXIS);
 
     const formatted: Array<FormattedReferenceRegion> =
