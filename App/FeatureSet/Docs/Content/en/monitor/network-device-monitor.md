@@ -149,9 +149,13 @@ Device-Specific Health OIDs. If both name the same OID it is collected once,
 with the device's name and description winning. Template entries keep their
 position, so device-specific additions can never displace them.
 
-**Limits.** A template holds up to 150 OIDs; a device may add up to 50 of its
-own, for at most 200 per device. Those numbers compose deliberately: going over
-either is a validation error when you save, not a silent truncation later.
+**Limits.** A device polls at most 200 health OIDs. A template holds up to 150,
+and a device linked to one may add up to 50 of its own — the two compose, so a
+linked device can never exceed the 200 it is allowed to poll, and going over is
+a validation error when you save rather than a silent truncation at poll time.
+A device with **no** template keeps the full 200 for its own list; the tighter
+50 is what linking costs, applied at the moment you link, so this never
+retroactively invalidates a device you already had.
 
 A template that devices are still linked to cannot be deleted — unlink them
 first (the **Clear OID Collection Template** bulk action does this), so a delete

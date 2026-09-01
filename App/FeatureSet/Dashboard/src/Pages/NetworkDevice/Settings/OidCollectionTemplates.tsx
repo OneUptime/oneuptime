@@ -57,7 +57,8 @@ Criteria alert on what is collected, and they are set on the monitor, not here. 
 ### Limits
 
 - Up to **${MAX_OIDS_PER_TEMPLATE} OIDs per template**.
-- Plus up to **${MAX_DEVICE_SPECIFIC_OIDS} device-specific OIDs per device**, on top of whatever its template carries.
+- Plus up to **${MAX_DEVICE_SPECIFIC_OIDS} device-specific OIDs** on a device linked to one. The two compose to the **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** a device may poll, so a linked device can never be silently truncated.
+- A device with no template keeps the full **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** for its own list. The tighter device-specific budget is what linking costs, and it applies from the moment you link.
 
 Both caps are enforced when you save, which is what keeps the effective list a device polls at or below ${MAX_EFFECTIVE_OIDS_PER_DEVICE} OIDs. Split a bigger inventory across templates by device role — core routers, access switches, firewalls — rather than trying to carry every platform in one list.
 

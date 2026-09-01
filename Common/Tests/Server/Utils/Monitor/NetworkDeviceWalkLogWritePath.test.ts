@@ -175,7 +175,7 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
    * ports), and a baseline that shrank with it would compute rates for the
    * pruned ports against nothing on the next poll.
    */
-  test("persists a deep JSON snapshot of the walk, stamped with the server receipt time", async () => {
+  test("persists a deep JSON snapshot of the INTERFACES, stamped with the server receipt time", async () => {
     mockWalkPipeline();
     const snmpResponse: SnmpMonitorResponse = buildSnmpResponse();
 
@@ -184,12 +184,41 @@ describe("NetworkDeviceWalkUtil — the lastWalkLog baseline write", () => {
     const walkLog: JSONObject = (hookFreeCallArgs()["data"] as JSONObject)[
       "lastWalkLog"
     ] as JSONObject;
+    const storedResponse: JSONObject = walkLog["snmpResponse"] as JSONObject;
 
-    expect(walkLog["snmpResponse"]).toEqual(
-      JSON.parse(JSON.stringify(snmpResponse)),
+    expect(storedResponse["interfaces"]).toEqual(
+      JSON.parse(JSON.stringify(snmpResponse.interfaces)),
     );
-    expect(walkLog["snmpResponse"]).not.toBe(snmpResponse);
+    expect(storedResponse["interfaces"]).not.toBe(snmpResponse.interfaces);
     expect(walkLog["monitoredAt"]).toEqual(NOW);
+  });
+
+  /*
+   * The column stores ONLY what reads it back.
+   *
+   * SnmpInterfaceRateUtil is the single reader and it touches
+   * snmpResponse.interfaces and nothing else, so every other field was dead
+   * weight in a jsonb column rewritten on every poll of every device. That
+   * became worth fixing when OID Collection Templates made long health-OID
+   * lists normal: oidResponses is the field that grows, and storing it here
+   * would have added tens of KB per device per poll of TOAST churn on the
+   * product's hottest table, for data nothing ever reads.
+   *
+   * If a future reader needs another field, add it here deliberately — do
+   * not go back to storing the whole response.
+   */
+  test("stores only the interfaces, not the rest of the walk", async () => {
+    mockWalkPipeline();
+
+    await runWalk(buildSnmpResponse());
+
+    const walkLog: JSONObject = (hookFreeCallArgs()["data"] as JSONObject)[
+      "lastWalkLog"
+    ] as JSONObject;
+
+    expect(Object.keys(walkLog["snmpResponse"] as JSONObject)).toEqual([
+      "interfaces",
+    ]);
   });
 
   /*

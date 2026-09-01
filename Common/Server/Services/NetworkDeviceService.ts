@@ -31,6 +31,7 @@ import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpOidListUtil, {
   MAX_DEVICE_SPECIFIC_OIDS,
+  MAX_EFFECTIVE_OIDS_PER_DEVICE,
 } from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { EntityManager } from "typeorm";
 import ModelPermission from "../Types/Database/Permissions/Index";
@@ -953,10 +954,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (createBy.data.snmpOids !== undefined) {
+      // Same budget rule as onBeforeUpdate: the tight cap is what linking costs.
       createBy.data.snmpOids = SnmpOidListUtil.validateOidList(
         createBy.data.snmpOids,
         {
-          max: MAX_DEVICE_SPECIFIC_OIDS,
+          max: createOidTemplateId
+            ? MAX_DEVICE_SPECIFIC_OIDS
+            : MAX_EFFECTIVE_OIDS_PER_DEVICE,
           label: "Device-Specific Health OIDs",
         },
       );
@@ -1183,8 +1187,34 @@ export class Service extends DatabaseService<Model> {
         return dataKeys.includes(column);
       },
     );
+    /*
+     * The OID writes have to get past this return too, and that is the whole
+     * reason they are named here.
+     *
+     * The early return exists so a write that changes neither site nor
+     * identity skips a read it does not need — but linking a template and
+     * editing snmpOids are EXACTLY such writes, so a guard placed below the
+     * return would be dead code on the only path it exists for. Both need the
+     * read: the tenancy check needs each matched device's projectId, and the
+     * OID cap needs to know whether the device is linked to a template.
+     *
+     * `!== undefined` rather than truthiness for the OID list: every poll
+     * writes device columns through this path (NetworkInventoryUtil), and an
+     * explicit empty array is a legitimate "collect nothing device-specific"
+     * edit.
+     */
+    const isOidTemplateChange: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      OID_TEMPLATE_KEYS,
+    );
+    const isDeviceOidsChange: boolean = updateBy.data.snmpOids !== undefined;
 
-    if (!isSiteChange && !isIdentityChange) {
+    if (
+      !isSiteChange &&
+      !isIdentityChange &&
+      !isOidTemplateChange &&
+      !isDeviceOidsChange
+    ) {
       return { updateBy, carryForward: null };
     }
 
@@ -1197,6 +1227,8 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         name: true,
         sysName: true,
+        // Decides which OID budget applies below.
+        oidTemplateId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -1257,16 +1289,33 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Every poll writes device columns through this path
-     * (NetworkInventoryUtil), so guard on the key being present rather than
-     * on truthiness - an explicit empty array is a legitimate "collect
-     * nothing device-specific" edit.
+     * How many OIDs a device may carry of its own.
+     *
+     * The tight budget is a consequence of ADOPTING a template, not a
+     * retroactive limit on every device that already exists. A device with no
+     * template collects only its own list, so its ceiling is the full
+     * per-device budget; the moment it links to one, template plus
+     * device-specific has to fit inside that same ceiling, and the
+     * device-specific half is what gives.
+     *
+     * Enforcing the tight budget unconditionally would have been hostile in
+     * exactly the wrong direction: a device that predates this feature, with a
+     * long hand-built list, could no longer save ANY polling setting — the
+     * fleet in issue #3507 being the likeliest example.
      */
-    if (updateBy.data.snmpOids !== undefined) {
+    if (isDeviceOidsChange) {
+      const becomesLinked: boolean = isOidTemplateChange
+        ? Boolean(newOidTemplateId)
+        : previousDevices.some((previousDevice: Model) => {
+            return Boolean(previousDevice.oidTemplateId);
+          });
+
       updateBy.data.snmpOids = SnmpOidListUtil.validateOidList(
         updateBy.data.snmpOids as Array<SnmpOid>,
         {
-          max: MAX_DEVICE_SPECIFIC_OIDS,
+          max: becomesLinked
+            ? MAX_DEVICE_SPECIFIC_OIDS
+            : MAX_EFFECTIVE_OIDS_PER_DEVICE,
           label: "Device-Specific Health OIDs",
         },
       );
