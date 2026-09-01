@@ -1520,6 +1520,13 @@ export default class SnmpMonitor {
 
       const oidResponses: Array<SnmpOidResponse> = [];
 
+      /*
+       * Whether this query is split at all decides whether the in-place retry
+       * below applies - see the comment there.
+       */
+      const isSplitAcrossChunks: boolean =
+        config.oids.length > SnmpMonitor.snmpGetChunkSize;
+
       for (
         let offset: number = 0;
         offset < config.oids.length;
@@ -1532,14 +1539,21 @@ export default class SnmpMonitor {
           });
 
         /*
-         * Retry the failing CHUNK once before giving up on the query.
+         * Retry the failing CHUNK once, but ONLY when the query is actually
+         * split.
          *
          * The session is created with retries: 0 because retries live at the
-         * whole-query level, which was fine when a query was one datagram.
+         * whole-query level, which was right when a query was one datagram.
          * Splitting a long list into ten sequential GETs multiplies the
          * per-attempt exposure to a single dropped UDP packet by ten, and the
-         * outer retry re-issues every chunk from scratch. One in-place retry
-         * puts the failure surface back roughly where it was.
+         * outer retry re-issues every chunk from scratch, so one in-place
+         * retry puts that back roughly where it was.
+         *
+         * None of that reasoning applies to a single-chunk query: there is no
+         * multiplication to compensate for, the outer loop already retries it,
+         * and retrying here would simply DOUBLE the time an unreachable device
+         * takes to be reported down - for every SNMP device in the product,
+         * including every one this feature never touches.
          */
         try {
           oidResponses.push(
@@ -1551,6 +1565,10 @@ export default class SnmpMonitor {
             })),
           );
         } catch (chunkError) {
+          if (!isSplitAcrossChunks) {
+            throw chunkError as Error;
+          }
+
           logger.debug(
             `SNMP GET chunk at offset ${offset} failed for ${config.hostname}, retrying once: ${chunkError}`,
           );
@@ -1558,7 +1576,10 @@ export default class SnmpMonitor {
           /*
            * A persistent chunk error still rejects the whole query, which
            * keeps today's isOnline contract exactly: a device whose health
-           * OIDs cannot be read is reported down, as it always was.
+           * OIDs cannot be read is reported down, as it always was. Note it
+           * rejects on the FIRST failing chunk rather than working through the
+           * rest, so a down device costs at most two round-trips here, not one
+           * per chunk.
            */
           oidResponses.push(
             ...(await SnmpMonitor.getOidChunk({

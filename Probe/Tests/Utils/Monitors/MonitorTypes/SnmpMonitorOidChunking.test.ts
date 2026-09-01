@@ -270,6 +270,47 @@ describe("SnmpMonitor OID GET chunking", () => {
     expect(closeCallCount).toBe(1);
   });
 
+  /*
+   * The retry compensates for a split query multiplying the exposure to one
+   * dropped datagram. A single-chunk query has no such multiplication and the
+   * outer retry loop already covers it, so retrying here would only DOUBLE
+   * how long an unreachable device takes to be reported down — for every SNMP
+   * device in the product, including every one this feature never touches.
+   */
+  test("does NOT retry a single-chunk query, so time-to-detect-offline is unchanged", async () => {
+    const snmp: { createSession: jest.Mock } = jest.requireMock("net-snmp") as {
+      createSession: jest.Mock;
+    };
+
+    snmp.createSession.mockImplementationOnce(() => {
+      return {
+        close: jest.fn(() => {
+          closeCallCount++;
+        }),
+        on: jest.fn(),
+        get: jest.fn(
+          (
+            oids: Array<string>,
+            callback: (error: Error | null, varbinds: Array<never>) => void,
+          ) => {
+            getCalls.push({ oids: oids });
+            setImmediate(() => {
+              callback(new Error("simulated request timed out"), []);
+            });
+          },
+        ),
+      };
+    });
+
+    await expect(Internal.executeSnmpQuery(buildConfig(5), {})).rejects.toThrow(
+      "simulated request timed out",
+    );
+
+    // One attempt, not two.
+    expect(getCalls).toHaveLength(1);
+    expect(closeCallCount).toBe(1);
+  });
+
   test("rejects an empty OID list without opening a session", async () => {
     await expect(Internal.executeSnmpQuery(buildConfig(0), {})).rejects.toThrow(
       "No OIDs configured",
