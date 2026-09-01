@@ -1889,6 +1889,13 @@
                             ],
                             "minimum": 1
                         },
+                        "snmpGetChunkSize": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        },
                         "key": {
                             "type": [
                                 "string",
