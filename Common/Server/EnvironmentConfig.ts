@@ -15,6 +15,7 @@ import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
+import LIMIT_MAX from "../Types/Database/LimitMax";
 import ObjectID from "../Types/ObjectID";
 import Port from "../Types/Port";
 import Hostname from "../Types/API/Hostname";
@@ -128,6 +129,20 @@ const parsePositiveIntegerFromEnv: (
   }
 
   return parsedValue;
+};
+
+/*
+ * parsePositiveIntegerFromEnv with a ceiling the rest of the system can
+ * actually honour. A configured value the app would silently fail to enforce
+ * is worse than a visibly clamped one -- so this clamps rather than trusting
+ * the operator, and every call site documents WHY its ceiling exists.
+ */
+const parseClampedIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+  ceiling: number,
+) => number = (envKey: string, fallback: number, ceiling: number): number => {
+  return Math.min(parsePositiveIntegerFromEnv(envKey, fallback), ceiling);
 };
 
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
@@ -862,6 +877,103 @@ export const OnCallCalendarFeedRateLimitPerIpPerWindow: number =
     "ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW",
     3000,
   );
+
+/*
+ * Source map ingestion and resolution limits.
+ *
+ * These were fixed constants, sized on the assumption that "a build rarely
+ * emits more than a few dozen chunks with maps". That assumption does not
+ * survive route-level code splitting: a Nuxt/Vite/Next app with a hundred
+ * routes emits hundreds of chunk .map files per release, and the maps that
+ * did not fit simply never resolved. They are operator knobs now, and the
+ * Helm chart exposes each one.
+ *
+ * The division of labour matters, because it is what makes raising the
+ * ceiling safe:
+ *
+ *   - SourceMapMaxMapsPerRelease is purely a WRITE gate. An upload past it is
+ *     rejected with a 400 that names the limit. It is no longer the
+ *     resolver's read limit, so raising it can never turn stored maps into
+ *     maps that store fine and then silently never resolve.
+ *   - SourceMapMaxBytesPerResolve is what bounds the READ path. Resolution
+ *     loads whole maps into memory, so a byte budget -- not a row count -- is
+ *     the invariant that actually protects the process.
+ */
+
+/*
+ * Distinct bundles one (project, service, release) may hold.
+ *
+ * Clamped to LIMIT_MAX because the gate reads the release's existing bundle
+ * paths with LIMIT_MAX; a configured value above that could not be enforced
+ * and would be a lie.
+ */
+export const SourceMapMaxMapsPerRelease: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_MAPS_PER_RELEASE",
+  1000,
+  LIMIT_MAX,
+);
+
+/*
+ * How long uploaded maps are kept. A map is only useful while exceptions from
+ * its release are still within telemetry retention, and the default
+ * comfortably exceeds it.
+ */
+export const SourceMapRetentionInDays: number = parsePositiveIntegerFromEnv(
+  "SOURCE_MAP_RETENTION_DAYS",
+  90,
+);
+
+/*
+ * Hard ceiling on ONE map, enforced on the raw upload and again on the
+ * decoded string.
+ *
+ * The ceiling is MAX_MULTIPART_FILE_BYTES from
+ * Common/Server/Middleware/MultipartFormData.ts, repeated as a literal
+ * because that module pulls in multer and express and has no business being
+ * imported by config. The two are pinned to each other by
+ * Common/Tests/Server/Utils/Telemetry/SourceMapLimits.test.ts. Configuring
+ * past it would not raise anything: multer aborts the request first, turning
+ * the 400 this ceiling is meant to give into a confusing 413.
+ */
+export const SourceMapMaxFileSizeInBytes: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_FILE_SIZE_BYTES",
+  50 * 1024 * 1024,
+  50 * 1024 * 1024,
+);
+
+/*
+ * Source map files accepted in ONE upload request.
+ *
+ * Separate from the per-release ceiling: a release may hold far more maps
+ * than any single request may carry, and CI splits the upload. Clamped to
+ * MAX_MULTIPART_FILES, which is the shared middleware default and runs
+ * BEFORE authentication on every route that mounts it -- so this knob only
+ * ever narrows the source map route, never widens the pre-auth surface that
+ * Pyroscope and inbound email sit behind.
+ */
+export const SourceMapMaxFilesPerRequest: number = parseClampedIntegerFromEnv(
+  "SOURCE_MAP_MAX_FILES_PER_REQUEST",
+  50,
+  50,
+);
+
+/*
+ * Total map bytes one resolve request may pull into memory.
+ *
+ * This is the bound that used to be implied by the per-release count, and it
+ * is a much tighter one: resolution materialises whole maps, each up to
+ * SourceMapMaxFileSizeInBytes, and the set it loads is chosen by a
+ * caller-supplied frames array. Maps that do not fit the budget are skipped
+ * in match-quality order and REPORTED on the response, so a skip is visible
+ * rather than looking like "no map was uploaded".
+ *
+ * 512 MiB is roughly ten maps at the per-file ceiling, or every map of a
+ * realistically sized release many times over.
+ */
+export const SourceMapMaxBytesPerResolve: number = parsePositiveIntegerFromEnv(
+  "SOURCE_MAP_MAX_BYTES_PER_RESOLVE",
+  512 * 1024 * 1024,
+);
 
 export const EnableProfiling: boolean =
   process.env["ENABLE_PROFILING"] === "true";

@@ -53,4 +53,12 @@ export interface ResolveStackTraceResult {
   resolvedCount: number;
   /** Number of source maps found for the (service, release) pair. */
   sourceMapCount: number;
+  /**
+   * Maps that a frame matched but that were not loaded, because loading them
+   * would have exceeded the resolver's per-request byte budget
+   * (SOURCE_MAP_MAX_BYTES_PER_RESOLVE). Non-zero means symbols are missing
+   * for a reason an operator can fix by raising the budget — as opposed to
+   * the maps simply never having been uploaded.
+   */
+  sourceMapsSkippedForSize: number;
 }

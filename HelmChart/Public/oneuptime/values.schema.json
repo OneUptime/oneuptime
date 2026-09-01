@@ -1744,6 +1744,35 @@
             },
             "additionalProperties": false
         },
+        "sourceMaps": {
+            "type": "object",
+            "properties": {
+                "maxMapsPerRelease": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                },
+                "maxFilesPerRequest": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                },
+                "maxFileSizeBytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 52428800
+                },
+                "maxBytesPerResolve": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "retentionDays": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "additionalProperties": false
+        },
         "updateCheck": {
             "type": "object",
             "properties": {

@@ -58,7 +58,18 @@ Details:
 - Each uploaded file's bundle path is its file name with the trailing `.map` stripped — `main.a8f1b2.js.map` becomes `main.a8f1b2.js`. If your map file name does not follow that convention, upload one file per request and pass an explicit `bundlePath` field.
 - Re-uploading the same bundle for the same service and version replaces the previous map, so CI retries are safe.
 - Files must be [source map v3](https://tc39.es/ecma426/) JSON (which is what every modern bundler emits — indexed maps with `sections` are supported too).
-- Limits: each `.map` file may be up to 50 MB, but the ingress also caps the **whole request body** at 50 MB — so upload large maps one per request. Up to 50 files are accepted per request, and one release (service + version) can hold at most 100 maps in total; an upload that would exceed that is rejected.
+- Limits: each `.map` file may be up to 50 MB, but the ingress also caps the **whole request body** at 50 MB — so upload large maps one per request. Up to 50 files are accepted per request, and one release (service + version) can hold at most 1,000 maps in total; an upload that would exceed that is rejected with a message naming the limit. A build that emits more maps than one request accepts should simply send several requests — uploads for the same release accumulate.
+- Self-hosted installations can change these. All five are ordinary environment variables, and the Helm chart exposes them under `sourceMaps` in `values.yaml`:
+
+  | `values.yaml` | Environment variable | Default |
+  | --- | --- | --- |
+  | `sourceMaps.maxMapsPerRelease` | `SOURCE_MAP_MAX_MAPS_PER_RELEASE` | `1000` |
+  | `sourceMaps.maxFilesPerRequest` | `SOURCE_MAP_MAX_FILES_PER_REQUEST` | `50` |
+  | `sourceMaps.maxFileSizeBytes` | `SOURCE_MAP_MAX_FILE_SIZE_BYTES` | `52428800` |
+  | `sourceMaps.maxBytesPerResolve` | `SOURCE_MAP_MAX_BYTES_PER_RESOLVE` | `536870912` |
+  | `sourceMaps.retentionDays` | `SOURCE_MAP_RETENTION_DAYS` | `90` |
+
+  `maxMapsPerRelease` is the one to raise if your build outgrows the default; it is a storage-shape limit and nothing more, because resolution is bounded by `maxBytesPerResolve` rather than by how many maps a release holds. `maxFilesPerRequest` and `maxFileSizeBytes` can only be **lowered** — the multipart body is parsed before the request is authenticated, so the shared ceilings above them are what an unauthenticated caller is held to, and a larger value is narrowed rather than applied.
 - Build with `sourcesContent` included (the default for most bundlers) to get original source snippets around each resolved frame in the dashboard.
 - If your self-hosted operator has disabled telemetry ingestion (`DISABLE_TELEMETRY_INGESTION`), uploads return an empty success response and nothing is stored — the same behavior every telemetry ingest endpoint has in that mode. A successful upload always returns a JSON body listing the stored maps, so CI can assert on that.
 

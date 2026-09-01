@@ -140,6 +140,16 @@ x-common-runtime-variables: &common-runtime-variables
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW:-}
   ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW: ${ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW:-}
 
+  # Browser source map upload / symbolication limits. Blank means "use the
+  # built-in default", so a config.env upgraded in place keeps today's
+  # behaviour. maxFilesPerRequest and maxFileSizeBytes can only be lowered --
+  # the multipart parser's shared, pre-auth ceilings sit above them.
+  SOURCE_MAP_MAX_MAPS_PER_RELEASE: ${SOURCE_MAP_MAX_MAPS_PER_RELEASE:-}
+  SOURCE_MAP_MAX_FILES_PER_REQUEST: ${SOURCE_MAP_MAX_FILES_PER_REQUEST:-}
+  SOURCE_MAP_MAX_FILE_SIZE_BYTES: ${SOURCE_MAP_MAX_FILE_SIZE_BYTES:-}
+  SOURCE_MAP_MAX_BYTES_PER_RESOLVE: ${SOURCE_MAP_MAX_BYTES_PER_RESOLVE:-}
+  SOURCE_MAP_RETENTION_DAYS: ${SOURCE_MAP_RETENTION_DAYS:-}
+
   # How many appending proxies of your own sit in front of the app. Decides
   # which X-Forwarded-For entry counts as the client for IP allowlists and rate
   # limits. Defaulted because an existing config.env upgraded in place will not

@@ -14,7 +14,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
-import SourceMapResolver from "../Utils/Telemetry/SourceMapResolver";
+import SourceMapResolver, {
+  MAX_FRAMES_PER_RESOLVE_REQUEST,
+} from "../Utils/Telemetry/SourceMapResolver";
 import {
   MinifiedStackFrame,
   ResolveStackTraceResult,
@@ -361,6 +363,24 @@ router.post(
           req,
           res,
           new BadDataException("frames must be an array of stack frames"),
+        );
+      }
+
+      /*
+       * Bound the array before sanitizing it. sanitizeMinifiedStackFrames
+       * never throws and never truncates, so without this the only limit on
+       * the work a caller can ask for is the body-size cap.
+       */
+      if (
+        (body["frames"] as Array<unknown>).length >
+        MAX_FRAMES_PER_RESOLVE_REQUEST
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `frames must contain at most ${MAX_FRAMES_PER_RESOLVE_REQUEST} stack frames.`,
+          ),
         );
       }
 
