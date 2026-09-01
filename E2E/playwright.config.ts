@@ -13,7 +13,20 @@ export default defineConfig({
   testDir: "./Tests",
   /* Maximum time one test can run for. */
   timeout: 240 * 1000,
-  //  globalTimeout: 600 * 1000,
+  /*
+   * Ceiling for the whole run. Without it a broken suite does not fail - it
+   * hangs until GitHub kills the job at its 6 hour limit, which reports
+   * "cancelled" and uploads nothing, so nobody learns what broke. That is not
+   * hypothetical: the 12.0.29 release run and the master run after it both
+   * died that way, six hours apart, having told us nothing.
+   *
+   * With workers=1 a single failing test costs timeout x (retries + 1), so a
+   * few dozen failures cannot fit in six hours no matter how long we wait.
+   * 90 minutes is roughly 2.5x a healthy run (~37 min), so a genuinely slow
+   * but working suite still finishes, while a broken one reports inside the
+   * hour with its artifacts intact.
+   */
+  globalTimeout: 90 * 60 * 1000,
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.
@@ -25,8 +38,12 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: Boolean(process.env["CI"]),
-  /* Retry on CI only */
-  retries: 3,
+  /*
+   * Three retries meant four attempts per test, and at workers=1 that is up to
+   * 16 minutes spent on one failing test before the run moves on. Two retries
+   * keeps genuine flakes covered while cutting the worst case by a quarter.
+   */
+  retries: 2,
   /* Opt out of parallel tests on CI. */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -38,8 +55,13 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on",
+    /*
+     * Trace every retry, not every test. "on" traced all 372 tests and built a
+     * ~1GB artifact each run - upload time and disk churn that buys nothing
+     * for the tests that passed. Anything that fails is retried, so failures
+     * still arrive with a full trace attached.
+     */
+    trace: "on-first-retry",
   },
 
   /* Configure projects for major browsers */
