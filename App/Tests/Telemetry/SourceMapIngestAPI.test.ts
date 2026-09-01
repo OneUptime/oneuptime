@@ -151,7 +151,9 @@ jest.mock("Common/Server/Middleware/MultipartFormData", () => {
       );
 
       const middleware: unknown =
-        clampedMaxFiles === MAX_MULTIPART_FILES ? multipartMiddleware : jest.fn();
+        clampedMaxFiles === MAX_MULTIPART_FILES
+          ? multipartMiddleware
+          : jest.fn();
 
       multipartMiddlewareBuilds.push({
         maxFiles: options.maxFiles,
