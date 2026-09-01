@@ -107,7 +107,9 @@ const RowAvatar: FunctionComponent<RowAvatarProps> = (
     return (
       <Image
         className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 bg-gray-100"
-        imageUrl={UserUtil.getProfilePictureRoute(new ObjectID(row.userId))}
+        imageUrl={UserUtil.getProfilePictureRoute(
+          new ObjectID(row.userId),
+        ).toString()}
         alt={row.name}
       />
     );

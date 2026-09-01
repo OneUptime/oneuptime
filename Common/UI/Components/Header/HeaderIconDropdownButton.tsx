@@ -9,7 +9,6 @@ import {
   KeyboardKeyUtil,
   KeyboardShortcutKey,
 } from "../KeyboardShortcut/KeyboardKey";
-import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
@@ -103,7 +102,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 props.onClick?.();
               }}
-              imageUrl={Route.fromString(`${props.iconImageUrl}`)}
+              imageUrl={props.iconImageUrl}
               alt={props.name}
             />
           )}

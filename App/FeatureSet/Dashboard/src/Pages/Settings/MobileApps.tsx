@@ -1,5 +1,4 @@
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Image from "Common/UI/Components/Image/Image";
@@ -177,7 +176,7 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <Image
-                imageUrl={Route.fromString(`${OneUptimeLogo}`)}
+                imageUrl={OneUptimeLogo}
                 alt="OneUptime"
                 className="h-6 w-auto"
               />

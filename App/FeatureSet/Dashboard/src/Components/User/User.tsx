@@ -1,5 +1,4 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "Common/Types/API/Route";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Image from "Common/UI/Components/Image/Image";
@@ -82,9 +81,9 @@ const UserElement: FunctionComponent<ComponentProps> = (
   };
 
   const userId: ObjectID | null = getUserId();
-  const profileImageRoute: Route = userId
-    ? UserUtil.getProfilePictureRoute(userId)
-    : Route.fromString(`${BlankProfilePic}`);
+  const profileImageUrl: string = userId
+    ? UserUtil.getProfilePictureRoute(userId).toString()
+    : BlankProfilePic;
 
   if (JSONFunctions.isEmptyObject(user)) {
     return (
@@ -92,7 +91,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
         <div>
           <Image
             className="h-8 w-8 rounded-full"
-            imageUrl={Route.fromString(`${BlankProfilePic}`)}
+            imageUrl={BlankProfilePic}
             alt={"Automation"}
           />
         </div>
@@ -136,7 +135,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
         <div>
           <Image
             className="h-8 w-8 rounded-full"
-            imageUrl={profileImageRoute}
+            imageUrl={profileImageUrl}
             alt={name || "User"}
           />
         </div>
