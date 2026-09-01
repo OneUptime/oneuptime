@@ -683,50 +683,58 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
     expect((outcome.error as Exception).message).toContain("LIMIT_FILE_SIZE");
   });
 
-  test("the shared size ceiling is exclusive, and a narrowed instance lands on the same byte", async () => {
+  test("the shared size ceiling is INCLUSIVE, and a narrowed instance lands on the same byte", async () => {
     /*
-     * busboy truncates a file the moment its byte count REACHES fileSize
-     * (`fileSize === fileSizeLimit`), so the largest body that survives is
-     * one byte under the constant, not the constant itself.
+     * busboy truncates a file the moment its byte count REACHES fileSize,
+     * so the middleware hands it MAX_MULTIPART_FILE_BYTES + 1 to make the
+     * constant itself an inclusive maximum.
      *
      * Worth pinning rather than glossing: EnvironmentConfig clamps
      * SOURCE_MAP_MAX_FILE_SIZE_BYTES to exactly MAX_MULTIPART_FILE_BYTES and
      * SourceMapIngestService rejects only what is STRICTLY over it, so a map
-     * of precisely that many bytes is one the service means to accept and the
-     * parser kills first. Whatever that boundary is, narrowing the file COUNT
-     * must not move it.
+     * of precisely that many bytes is one the service means to accept -- and
+     * before the +1 the parser killed it first, turning the 400 the endpoint
+     * documents into a 413 it never saw. Narrowing the file COUNT must not
+     * move that boundary either.
      */
-    const underCeiling: Outcome = await run(
-      [
-        {
-          name: "justunder",
-          value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES - 1),
-          filename: "justunder.bin",
-        },
-      ],
-      { middleware: narrow },
-    );
-
-    expect(underCeiling.error).toBeUndefined();
-    expect(files(underCeiling)[0]!.buffer.length).toBe(
-      MAX_MULTIPART_FILE_BYTES - 1,
-    );
+    // One allocation, driven through both instances - it is 50 MiB.
+    const atLimit: Buffer = Buffer.alloc(MAX_MULTIPART_FILE_BYTES);
 
     const atCeiling: Outcome = await run(
+      [{ name: "atlimit", value: atLimit, filename: "atlimit.bin" }],
+      { middleware: narrow },
+    );
+
+    expect(atCeiling.error).toBeUndefined();
+    expect(files(atCeiling)[0]!.buffer.length).toBe(MAX_MULTIPART_FILE_BYTES);
+
+    // The shared instance is the baseline the narrowed one must match.
+    const sharedAtCeiling: Outcome = await run([
+      { name: "atlimit", value: atLimit, filename: "atlimit.bin" },
+    ]);
+
+    expect(sharedAtCeiling.error).toBeUndefined();
+    expect(files(sharedAtCeiling)[0]!.buffer.length).toBe(
+      MAX_MULTIPART_FILE_BYTES,
+    );
+
+    const overCeiling: Outcome = await run(
       [
         {
-          name: "atlimit",
-          value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES),
-          filename: "atlimit.bin",
+          name: "overlimit",
+          value: Buffer.alloc(MAX_MULTIPART_FILE_BYTES + 1),
+          filename: "overlimit.bin",
         },
       ],
       { middleware: narrow },
     );
 
-    expect((atCeiling.error as Exception).code).toBe(
+    expect((overCeiling.error as Exception).code).toBe(
       ExceptionCode.PayloadTooLargeException,
     );
-    expect((atCeiling.error as Exception).message).toContain("LIMIT_FILE_SIZE");
+    expect((overCeiling.error as Exception).message).toContain(
+      "LIMIT_FILE_SIZE",
+    );
   });
 
   test("the shared field-value ceiling still applies", async () => {
@@ -787,19 +795,19 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
     expect(files(outcome)).toHaveLength(2);
   });
 
-  test("the maximal body trips the same parts off-by-one the default instance has", async () => {
+  test("the maximal body - the full file AND field allowance - is accepted", async () => {
     /*
      * busboy starts its part counter at -1 to account for the opening
      * boundary and then fires partsLimit when the counter REACHES the limit,
-     * so `parts: n` admits n - 1 real parts. A body carrying the file limit
-     * AND the field limit in full is therefore rejected with
-     * LIMIT_PART_COUNT even though neither of those two limits was breached.
+     * so a raw `parts: n` admits only n - 1. That used to reject a body
+     * carrying the file limit AND the field limit in full with
+     * LIMIT_PART_COUNT, though neither of those limits was breached -- the
+     * exact thing the comment on `parts` says must not happen. The
+     * middleware now converts it, so the maximal body parses.
      *
-     * This is inherited, not introduced: the same expression produced the
-     * same result before the per-route knob existed. It is pinned on BOTH
-     * instances so the narrowed one is provably no tighter than the shared
-     * one - a narrowing that also stole a part or two would show up here as
-     * the 199-field case above failing while this one still passed.
+     * Pinned on BOTH instances so the narrowed one is provably no tighter
+     * than the shared one: a narrowing that also stole a part would show up
+     * here rather than in production.
      */
     const fields: (count: number) => Array<MultipartPart> = (
       count: number,
@@ -817,17 +825,38 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
       { middleware: narrow },
     );
 
-    expect((narrowed.error as Exception).code).toBe(
-      ExceptionCode.PayloadTooLargeException,
-    );
-    expect((narrowed.error as Exception).message).toContain("LIMIT_PART_COUNT");
+    expect(narrowed.error).toBeUndefined();
+    expect(files(narrowed)).toHaveLength(2);
 
     const shared: Outcome = await run([
       ...fields(MAX_MULTIPART_FIELDS),
       ...tinyFiles(MAX_MULTIPART_FILES),
     ]);
 
-    expect((shared.error as Exception).message).toContain("LIMIT_PART_COUNT");
+    expect(shared.error).toBeUndefined();
+    expect(files(shared)).toHaveLength(MAX_MULTIPART_FILES);
+  });
+
+  test("one file past the maximal body is LIMIT_FILE_COUNT, not LIMIT_PART_COUNT", async () => {
+    /*
+     * The counts stay the limits that actually speak. Raising `parts` to
+     * admit the maximal body must not push the parts limit down onto a body
+     * that breaches the file allowance -- the caller needs to be told which
+     * allowance they exceeded.
+     */
+    const outcome: Outcome = await run(
+      Array.from(
+        { length: MAX_MULTIPART_FIELDS },
+        (_v: unknown, i: number): MultipartPart => {
+          return { name: `k${i}`, value: Buffer.from("v") };
+        },
+      ).concat(tinyFiles(MAX_MULTIPART_FILES + 1)),
+    );
+
+    expect((outcome.error as Exception).code).toBe(
+      ExceptionCode.PayloadTooLargeException,
+    );
+    expect((outcome.error as Exception).message).toContain("LIMIT_FILE_COUNT");
   });
 
   test("one field too many is still LIMIT_FIELD_COUNT, not LIMIT_PART_COUNT", async () => {

@@ -32,6 +32,29 @@ export const MAX_MULTIPART_FILES: number = 50;
 export const MAX_MULTIPART_FIELDS: number = 200;
 
 /*
+ * busboy's SIZE limits and its `parts` counter are EXCLUSIVE: each fires
+ * the moment the counter REACHES the limit, so handing it N admits only
+ * N-1. Its `files` and `fields` counters are INCLUSIVE -- N admits N.
+ *
+ * That asymmetry is undocumented and easy to lose, so the constants above
+ * stay the INCLUSIVE maxima this app documents and that callers
+ * range-check against (`file.buffer.length > MAX_SOURCE_MAP_SIZE_IN_BYTES`
+ * and friends), and only the three exclusive limits are converted here.
+ *
+ * Both halves of this were live bugs. A file of exactly 50 MiB -- a size
+ * the source map endpoint means to accept, and whose 400 message says it
+ * accepts -- was truncated by the parser into a 413 the endpoint never
+ * saw. And `parts`, whose whole job is to allow the file and field
+ * allowances in full, rejected a body carrying exactly both with
+ * LIMIT_PART_COUNT.
+ */
+const exclusive: (inclusiveMax: number) => number = (
+  inclusiveMax: number,
+): number => {
+  return inclusiveMax + 1;
+};
+
+/*
  * Configure multer for handling multipart/form-data
  * Uses memory storage to store files in memory as Buffer objects
  */
@@ -41,15 +64,15 @@ const buildUploadAny: (maxFiles: number) => RequestHandler = (
   const upload: multer.Multer = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: MAX_MULTIPART_FILE_BYTES,
-      fieldSize: MAX_MULTIPART_FIELD_BYTES,
+      fileSize: exclusive(MAX_MULTIPART_FILE_BYTES),
+      fieldSize: exclusive(MAX_MULTIPART_FIELD_BYTES),
       files: maxFiles,
       fields: MAX_MULTIPART_FIELDS,
       /*
        * Parts are files + fields, so this has to allow both in full or it
        * would be the effective limit and the two above would never fire.
        */
-      parts: maxFiles + MAX_MULTIPART_FIELDS,
+      parts: exclusive(maxFiles + MAX_MULTIPART_FIELDS),
     },
   });
 
