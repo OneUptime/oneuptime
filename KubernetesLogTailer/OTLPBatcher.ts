@@ -32,8 +32,24 @@ const severityTextToNumber: Record<string, number> = {
   PANIC: 21,
 };
 
+/*
+ * The keyword may be delimited by whitespace, brackets, parentheses, a dot or
+ * a double quote. The dot and the quote matter more than they look: without
+ * them the two most common structured log formats in the wild are both missed,
+ * and every line they produce falls through to the stream fallback below.
+ *   * PSR-3 / Monolog  -> "[2026-08-31 07:25:04] app.INFO: ..."
+ *   * Go zap, logrus   -> '{"level":"info","ts":...,"msg":"..."}'
+ * Not covered: klog's single-letter prefix ("I0831 07:25:04.123456"), which
+ * needs its own letter-to-level mapping.
+ *
+ * This must stay in step with the `severity-router` / `parse-severity-from-body`
+ * operators in HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml.
+ * The two log modes are meant to be behaviourally identical (see MIN_SEVERITY
+ * in Config.ts), and a keyword one mode recognises and the other does not is
+ * exactly the kind of divergence a preset would silently impose on a user.
+ */
 const SEVERITY_REGEX: RegExp =
-  /(?:^|[\s[(])(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERR(?:OR)?|CRIT(?:ICAL)?|FATAL|PANIC)(?:[\s\]:=,)])/i;
+  /(?:^|[\s.[("])(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERR(?:OR)?|CRIT(?:ICAL)?|FATAL|PANIC)(?:[\s\]:=,)"])/i;
 
 type Stream = "stdout" | "stderr";
 
@@ -95,7 +111,7 @@ const kv: (key: string, value: string) => OtlpKeyValue = (
  * preserve — a Python traceback or `npm ERR!` on stderr carries no severity
  * keyword and would look like INFO.
  */
-const deriveSeverity: (
+export const deriveSeverity: (
   body: string,
   stream: Stream,
 ) => { text: string; number: number; parsed: boolean } = (
