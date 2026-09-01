@@ -386,6 +386,25 @@ data:
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
             action: upsert
+          # Node identity. Every receiver in this collector reads
+          # node-local data — /proc and /sys for hostmetrics, this node's
+          # kubelet for kubeletstats and the cAdvisor scrape,
+          # /var/log/pods for filelog — so the node this pod is scheduled
+          # on owns all of it. kubeletstats stamps `k8s.node.name`
+          # itself, but hostmetrics and the Prometheus cAdvisor scrape do
+          # not, so without this every node's `system.*` series arrives
+          # with no node attribution at all and all of them collapse into
+          # one meaningless series. `insert` leaves a receiver-supplied
+          # (or k8sattributes-resolved) value alone.
+          #
+          # It has to be `k8s.node.name`, not `host.name`: OneUptime keys
+          # the k8s.node entity on k8s.cluster.name + k8s.node.name, and
+          # it suppresses Host identity on any resource that already
+          # carries a Kubernetes identity — so a `host.name` here would
+          # populate no entity at all.
+          - key: k8s.node.name
+            value: "${env:NODE_NAME}"
+            action: insert
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: upsert
