@@ -27,6 +27,7 @@ import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/Own
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
 import NetworkDeviceSettingsLinkRules from "../Pages/NetworkDevice/Settings/LinkRules";
 import NetworkDeviceSettingsAutoImportRules from "../Pages/NetworkDevice/Settings/AutoImportRules";
+import NetworkDeviceSettingsOidTemplates from "../Pages/NetworkDevice/Settings/OidCollectionTemplates";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 
@@ -112,6 +113,21 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES
                 ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsOidTemplates
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES] as Route
               }
             />
           }

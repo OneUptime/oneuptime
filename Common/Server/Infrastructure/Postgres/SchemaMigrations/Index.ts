@@ -565,6 +565,7 @@ import { AllowNullMonitorNameOnMonitorTemplate1790200000000 } from "./1790200000
 import { AddCertificateReissueRequestedAtToDomains1790300000000 } from "./1790300000000-AddCertificateReissueRequestedAtToDomains";
 import { AddOnCallCalendarFeeds1790400000000 } from "./1790400000000-AddOnCallCalendarFeeds";
 import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNetworkDeviceOidTemplate";
+import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
 
 export default [
   InitialMigration,
@@ -1134,4 +1135,5 @@ export default [
   AddCertificateReissueRequestedAtToDomains1790300000000,
   AddOnCallCalendarFeeds1790400000000,
   AddNetworkDeviceOidTemplate1790500000000,
+  AddAutoImportRuleOidTemplate1790600000000,
 ];

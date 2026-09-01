@@ -18,6 +18,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -109,6 +110,40 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         label: template.templateName || "Unnamed Network Device template",
       };
     });
+  };
+
+  const fetchOidCollectionTemplates: () => Promise<
+    Array<DropdownOption>
+  > = async (): Promise<Array<DropdownOption>> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return [];
+    }
+
+    const result: ListResult<NetworkDeviceOidTemplate> =
+      await ModelAPI.getList<NetworkDeviceOidTemplate>({
+        modelType: NetworkDeviceOidTemplate,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: { name: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    return result.data.map(
+      (template: NetworkDeviceOidTemplate): DropdownOption => {
+        return {
+          value: template.id?.toString() || "",
+          label: template.name || "Unnamed OID Collection Template",
+        };
+      },
+    );
   };
 
   // The rule a run is open for, by id, plus its name and which kind of run.
@@ -389,6 +424,25 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                   value === true,
                 ),
               );
+            },
+          },
+          {
+            field: { oidTemplate: true },
+            title: "OID Collection Template",
+            stepId: "behavior",
+            sectionTitle: "Optional Collection",
+            sectionDescription:
+              "What every device this rule imports collects. The Monitor Template below decides what those devices are ALERTED on; this decides what they COLLECT.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchOidCollectionTemplates,
+            required: false,
+            placeholder: "No template (device-specific OIDs only)",
+            description:
+              "Imported devices are LINKED to this template, not given a copy: editing the template later changes what every linked device collects on its next poll. Without one, an imported device starts with whatever the vendor fingerprint seeds and has to be configured by hand.",
+            showIf: (
+              values: FormValues<NetworkDeviceAutoImportRule>,
+            ): boolean => {
+              return !values.isExclusion;
             },
           },
           ...(canReadMonitorTemplate

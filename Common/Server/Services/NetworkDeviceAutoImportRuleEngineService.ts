@@ -399,6 +399,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           sysObjectIdPattern: true,
           includePingOnlyHosts: true,
           monitorTemplateId: true,
+          oidTemplateId: true,
         },
         props: { isRoot: true },
       });
@@ -695,6 +696,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             sysObjectIdPattern: true,
             includePingOnlyHosts: true,
             monitorTemplateId: true,
+            oidTemplateId: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,
@@ -1119,6 +1121,29 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         ),
       );
 
+      /*
+       * The OID Collection Template the imported device is LINKED to.
+       *
+       * A device carries at most one, so unlike the monitor templates above
+       * this is not a set: the first matching rule that names one wins, and
+       * rules are already in a deterministic order. Linking here is what
+       * makes the template a device TYPE rather than a shortcut - without it
+       * every scan would import devices that somebody has to go back and
+       * bulk-assign by hand, which is the chore issue #3507 is about.
+       */
+      const oidTemplateIdForHost: ObjectID | undefined = ((): ObjectID | undefined => {
+        for (const matchedRule of evaluation.matchedRules) {
+          const candidateId: string =
+            matchedRule.oidTemplateId?.toString() || "";
+
+          if (candidateId) {
+            return new ObjectID(candidateId);
+          }
+        }
+
+        return undefined;
+      })();
+
       let networkDevice: NetworkDevice | undefined = data.existingDevices.get(
         host.ipAddress,
       );
@@ -1168,6 +1193,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             host: host,
             scan: scan,
             autoApplyVendorHealthTemplate: true,
+            ...(oidTemplateIdForHost
+              ? { oidTemplateId: oidTemplateIdForHost }
+              : {}),
           });
           networkDevice.id = ObjectID.generate();
           data.existingDevices.set(host.ipAddress, networkDevice);
@@ -1182,6 +1210,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             existingDevices: data.existingDevices,
             result: result,
             attempts: data.attempts,
+            ...(oidTemplateIdForHost
+              ? { oidTemplateId: oidTemplateIdForHost }
+              : {}),
           });
 
           networkDevice = createResult.device || undefined;
@@ -1447,6 +1478,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * and one retry under the address-suffixed fallback name settles it.
    */
   private async createDeviceForHost(data: {
+    oidTemplateId?: ObjectID | undefined;
     projectId: ObjectID;
     scan: NetworkDeviceDiscoveryScan;
     host: DiscoveredNetworkDevice;
@@ -1471,6 +1503,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
          * OIDs instead (NetworkInventoryUtil).
          */
         autoApplyVendorHealthTemplate: true,
+        ...(data.oidTemplateId ? { oidTemplateId: data.oidTemplateId } : {}),
       });
 
       const created: NetworkDevice = await NetworkDeviceService.create({
