@@ -1,6 +1,13 @@
 // Set required env vars before importing modules that pull in Config.ts.
 process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
+/*
+ * Pin the chunk size the assertions below are written against. The probe
+ * reads PROBE_SNMP_GET_CHUNK_SIZE once at module load, so a developer or CI
+ * runner that happens to export it would silently change every expected chunk
+ * count in this file.
+ */
+process.env["PROBE_SNMP_GET_CHUNK_SIZE"] = "20";
 
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";

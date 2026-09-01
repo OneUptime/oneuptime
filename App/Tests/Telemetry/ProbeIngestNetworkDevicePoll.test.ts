@@ -794,23 +794,34 @@ describe("POST /probe/network-device/list", () => {
     });
 
     /*
-     * Claiming already advanced nextPollAt for the whole batch, so throwing
-     * here would silently skip 250 devices for a full interval with no retry.
-     * One cycle of device-local OIDs is the better failure.
+     * A failed template lookup must not poll a linked device with half its
+     * configuration. Every template OID would come back absent, and an
+     * "SNMP OID Exists / is False" criterion reads absent as BREACHING — so a
+     * transient database blip would raise a real incident on every linked
+     * device at once. Skipping the cycle is the cheaper failure, and claiming
+     * has already paid for it by advancing nextPollAt.
      */
-    test("falls back to device-specific OIDs when the template lookup fails", async () => {
-      const deviceId: ObjectID = ObjectID.generate();
+    test("skips template-linked devices when the template lookup fails", async () => {
+      const linkedDeviceId: ObjectID = ObjectID.generate();
+      const unlinkedDeviceId: ObjectID = ObjectID.generate();
 
       deviceService.claimDevicesForPolling.mockResolvedValue([
-        deviceId,
+        linkedDeviceId,
+        unlinkedDeviceId,
       ] as never);
       deviceService.findBy.mockResolvedValue([
         makeDevice({
-          id: deviceId,
+          id: linkedDeviceId,
           projectId: projectId,
           hostname: "10.0.0.1",
           oidTemplateId: templateId,
           snmpOids: [{ oid: "1.3.6.1.4.1.99.1", name: "local" }],
+        }),
+        makeDevice({
+          id: unlinkedDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.2",
+          snmpOids: [{ oid: "1.3.6.1.4.1.99.2", name: "other" }],
         }),
       ] as never);
       oidTemplateService.findBy.mockRejectedValue(
@@ -819,9 +830,16 @@ describe("POST /probe/network-device/list", () => {
 
       const { next } = await callListEndpoint(makeRequest({ probeId }));
 
+      // The batch is not dropped, and the request does not error...
       expect(next).not.toHaveBeenCalled();
-      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
-        { oid: "1.3.6.1.4.1.99.1", name: "local" },
+
+      const devices: Array<JSONObject> = respondedDevices();
+
+      // ...but only the UNLINKED device is handed out.
+      expect(devices).toHaveLength(1);
+      expect(devices[0]!["networkDeviceId"]).toBe(unlinkedDeviceId.toString());
+      expect(pollConfigOids(devices[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.99.2", name: "other" },
       ]);
     });
 

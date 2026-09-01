@@ -1,3 +1,4 @@
+import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import { Service as NetworkDeviceOidTemplateServiceType } from "../../../Server/Services/NetworkDeviceOidTemplateService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -209,12 +210,22 @@ describe("NetworkDeviceOidTemplateService delete guard", () => {
     mock: { calls: Array<Array<unknown>> };
   };
 
+  let ruleCountBySpy: {
+    mockResolvedValue: (value: never) => unknown;
+    mock: { calls: Array<Array<unknown>> };
+  };
+
   beforeEach(() => {
     jest.restoreAllMocks();
     countBySpy = jest.spyOn(
       NetworkDeviceService,
       "countBy",
     ) as unknown as typeof countBySpy;
+    ruleCountBySpy = jest.spyOn(
+      NetworkDeviceAutoImportRuleService,
+      "countBy",
+    ) as unknown as typeof ruleCountBySpy;
+    ruleCountBySpy.mockResolvedValue(new PositiveNumber(0) as never);
   });
 
   function templateBeingDeleted(): NetworkDeviceOidTemplate {
@@ -256,6 +267,27 @@ describe("NetworkDeviceOidTemplateService delete guard", () => {
 
     await expect(internals.onBeforeDelete(deleteBy())).rejects.toThrow(
       /Cisco Catalyst 9300/,
+    );
+  });
+
+  /*
+   * A rule can hold the LAST reference to a template with no devices linked
+   * yet — it was created ahead of the scan that will use it. That is exactly
+   * the case where the device count alone says the delete is safe, and
+   * deleting silently turns the rule into one that imports devices collecting
+   * nothing.
+   */
+  test("refuses the delete when only an auto-import rule still names it", async () => {
+    const { service, internals } = buildService();
+
+    jest
+      .spyOn(service, "findBy")
+      .mockResolvedValue([templateBeingDeleted()] as never);
+    countBySpy.mockResolvedValue(new PositiveNumber(0) as never);
+    ruleCountBySpy.mockResolvedValue(new PositiveNumber(2) as never);
+
+    await expect(internals.onBeforeDelete(deleteBy())).rejects.toThrow(
+      /still used by 2 auto-import rule\(s\)/,
     );
   });
 

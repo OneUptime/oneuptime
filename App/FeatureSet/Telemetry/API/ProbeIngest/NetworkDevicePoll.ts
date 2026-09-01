@@ -139,6 +139,7 @@ router.post(
       );
 
       const oidTemplatesById: Map<string, NetworkDeviceOidTemplate> = new Map();
+      let oidTemplateLookupFailed: boolean = false;
 
       if (templateIdsInBatch.length > 0) {
         /*
@@ -173,8 +174,23 @@ router.post(
             }
           }
         } catch (err) {
+          /*
+           * Skip the linked devices this cycle rather than polling them with
+           * half a configuration.
+           *
+           * Handing the probe only a linked device's device-specific OIDs
+           * would be worse than not polling it: every template OID would come
+           * back absent, and an "SNMP OID Exists / is False" criterion reads
+           * absent as BREACHING - so a transient database blip would raise a
+           * real incident on every linked device at once. Unlinked devices in
+           * the same batch are unaffected and still poll.
+           *
+           * The cost is one skipped cycle for those devices, which claiming
+           * has already paid for by advancing nextPollAt.
+           */
+          oidTemplateLookupFailed = true;
           logger.error(
-            `Could not load OID Collection Templates for probe ${probeId.toString()}'s poll batch; falling back to device-specific OIDs for this cycle.`,
+            `Could not load OID Collection Templates for probe ${probeId.toString()}'s poll batch; skipping its template-linked devices for this cycle rather than polling them with an incomplete OID list.`,
           );
           logger.error(err);
         }
@@ -184,6 +200,11 @@ router.post(
 
       for (const device of devices) {
         if (!device.id || !device.hostname) {
+          continue;
+        }
+
+        // See the catch above: an incomplete OID list is worse than no poll.
+        if (oidTemplateLookupFailed && device.oidTemplateId) {
           continue;
         }
 

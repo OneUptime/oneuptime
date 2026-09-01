@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -120,6 +121,34 @@ export class Service extends DatabaseService<Model> {
       if (linkedDeviceCount > 0) {
         throw new BadDataException(
           `${template.name || "This OID Collection Template"} is still used by ${linkedDeviceCount} network device(s). Move those devices to another template, or clear their template, before deleting it.`,
+        );
+      }
+
+      /*
+       * Auto-import rules count too, and for the same reason.
+       *
+       * The FK there is also ON DELETE SET NULL, so deleting a template a rule
+       * still names does not fail - it silently turns that rule back into one
+       * that imports devices collecting nothing, and the next discovery scan
+       * quietly produces a fleet nobody configured. A rule can hold the last
+       * reference to a template with zero devices linked yet (it was created
+       * ahead of the scan), which is exactly when the device count alone says
+       * the delete is safe.
+       */
+      const linkedRuleCount: PositiveNumber =
+        await NetworkDeviceAutoImportRuleService.countBy({
+          query: {
+            projectId: template.projectId,
+            oidTemplateId: template.id,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (linkedRuleCount.toNumber() > 0) {
+        throw new BadDataException(
+          `${template.name || "This OID Collection Template"} is still used by ${linkedRuleCount.toNumber()} auto-import rule(s). Clear it from those rules before deleting it, or devices they import will collect nothing.`,
         );
       }
     }

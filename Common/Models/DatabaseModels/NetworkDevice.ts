@@ -1718,7 +1718,7 @@ export default class NetworkDevice extends BaseModel {
     required: false,
     title: "Last Walk Log",
     description:
-      "The previous poll's raw walk response. Kept so interface rates (bandwidth, utilization, errors/sec) can be computed as counter deltas between polls. Managed by the server.",
+      "The previous poll's interface counters. Kept so interface rates (bandwidth, utilization, errors/sec) can be computed as counter deltas between polls, and stores nothing else - the rest of the walk response has no reader and this column is rewritten on every poll of every device. Managed by the server.",
   })
   @Column({
     type: ColumnType.JSON,

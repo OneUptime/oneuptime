@@ -1,8 +1,10 @@
 import DatabaseService from "./DatabaseService";
 import MonitorTemplateService from "./MonitorTemplateService";
+import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
+import NetworkDeviceOidTemplate from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -46,6 +48,16 @@ function readMonitorTemplateId(data: Record<string, unknown>): ObjectID | null {
   );
 }
 
+const OID_TEMPLATE_KEYS: Array<string> = ["oidTemplateId", "oidTemplate"];
+
+function readOidTemplateId(data: Record<string, unknown>): ObjectID | null {
+  return RelationIdUtil.readConsistent(
+    data,
+    OID_TEMPLATE_KEYS,
+    "OID Collection Template",
+  );
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -76,6 +88,18 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    const oidTemplateId: ObjectID | null = readOidTemplateId(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (oidTemplateId) {
+      await this.validateOidTemplateSelection({
+        oidTemplateId: oidTemplateId,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        props: createBy.props,
+      });
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -96,6 +120,31 @@ export class Service extends DatabaseService<Model> {
       dataKeys.includes("isExclusion") ||
       dataKeys.includes("includePingOnlyHosts") ||
       dataKeys.includes("isEnabled");
+
+    const isOidTemplateChange: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      OID_TEMPLATE_KEYS,
+    );
+
+    /*
+     * Validated before the early return and independently of the rest: an OID
+     * Collection Template is the collect half of the rule, so pointing at one
+     * is legitimate on its own and must not need a criteria or monitor change
+     * to be checked.
+     */
+    if (isOidTemplateChange) {
+      const writtenOidTemplateId: ObjectID | null = readOidTemplateId(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+      if (writtenOidTemplateId) {
+        await this.validateOidTemplateSelection({
+          oidTemplateId: writtenOidTemplateId,
+          projectId: updateBy.props.tenantId,
+          props: updateBy.props,
+        });
+      }
+    }
 
     if (!isCriteriaChange && !isMonitorProvisioningChange) {
       return { updateBy, carryForward: null };
@@ -203,6 +252,53 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A rule may only name an OID Collection Template from its own project.
+   *
+   * Without this, a rule could hold a cross-project reference: the read is
+   * tenant-scoped only at the ROOT query, so the rules list would render
+   * another project's template name, and every device the rule imported would
+   * be created pointing at it. NetworkDeviceService refuses that link, so the
+   * devices would simply come out unconfigured — a silent, confusing failure
+   * whose cause is one field on a rule nobody is looking at.
+   *
+   * The read carries the caller's own props, exactly as the monitor-template
+   * check does: selecting a template is also a read of it, so a user who
+   * cannot see it must not be able to attach it.
+   */
+  private async validateOidTemplateSelection(data: {
+    oidTemplateId: ObjectID;
+    projectId: ObjectID | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const oidTemplate: NetworkDeviceOidTemplate | null =
+      await NetworkDeviceOidTemplateService.findOneById({
+        id: data.oidTemplateId,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: data.props,
+      });
+
+    if (!oidTemplate) {
+      throw new BadDataException("OID Collection Template not found.");
+    }
+
+    if (
+      !oidTemplate.projectId ||
+      oidTemplate.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "OID Collection Template must belong to the same project.",
+      );
+    }
   }
 
   private async validateMonitorTemplateSelection(data: {

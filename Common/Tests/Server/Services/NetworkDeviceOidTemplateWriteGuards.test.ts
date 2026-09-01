@@ -353,6 +353,45 @@ describe("device-specific OID validation runs on the write that carries it", () 
     );
   });
 
+  /*
+   * Linking a device whose STORED list already exceeds the device-specific
+   * budget would push the merge over the effective ceiling, and truncation
+   * drops from the end — so the operator's own OIDs would silently stop being
+   * polled, on a write that never mentioned them. Refuse the link instead,
+   * and say how many to trim.
+   */
+  test("refuses to link a device whose existing list already exceeds the linked budget", async () => {
+    const { service, internals } = buildDeviceService();
+
+    const crowdedDevice: NetworkDevice = matchedDevice();
+    crowdedDevice.snmpOids = oidList(MAX_DEVICE_SPECIFIC_OIDS + 5);
+
+    jest.spyOn(service, "findBy").mockResolvedValue([crowdedDevice] as never);
+    jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(templateInProject(PROJECT_ID) as never);
+
+    await expect(
+      internals.onBeforeUpdate(templateOnlyUpdate("id")),
+    ).rejects.toThrow(/Remove 5 of them/);
+  });
+
+  test("allows the link when the existing list fits", async () => {
+    const { service, internals } = buildDeviceService();
+
+    const tidyDevice: NetworkDevice = matchedDevice();
+    tidyDevice.snmpOids = oidList(3);
+
+    jest.spyOn(service, "findBy").mockResolvedValue([tidyDevice] as never);
+    jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(templateInProject(PROJECT_ID) as never);
+
+    await expect(
+      internals.onBeforeUpdate(templateOnlyUpdate("id")),
+    ).resolves.toBeDefined();
+  });
+
   test("validates on create as well", async () => {
     const { internals } = buildDeviceService();
 

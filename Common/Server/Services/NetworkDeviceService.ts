@@ -124,7 +124,17 @@ const OID_TEMPLATE_KEYS: Array<string> = ["oidTemplateId", "oidTemplate"];
 function readOidTemplateIdFromData(
   data: Record<string, unknown>,
 ): ObjectID | null {
-  return RelationIdUtil.read(data, OID_TEMPLATE_KEYS);
+  /*
+   * readConsistent, not read: a payload that writes BOTH spellings with
+   * different ids would otherwise have one of them validated and the other
+   * persisted, which turns the cross-project guard below into something a
+   * caller can steer. It refuses the contradiction instead of picking.
+   */
+  return RelationIdUtil.readConsistent(
+    data,
+    OID_TEMPLATE_KEYS,
+    "OID Collection Template",
+  );
 }
 
 function readMonitorIdFromData(data: Record<string, unknown>): ObjectID | null {
@@ -1227,8 +1237,9 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         name: true,
         sysName: true,
-        // Decides which OID budget applies below.
+        // Decide which OID budget applies below, and whether a link would truncate.
         oidTemplateId: true,
+        snmpOids: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -1303,6 +1314,25 @@ export class Service extends DatabaseService<Model> {
      * long hand-built list, could no longer save ANY polling setting — the
      * fleet in issue #3507 being the likeliest example.
      */
+    /*
+     * Linking a device whose STORED list already exceeds the device-specific
+     * budget would leave the merge over the effective ceiling, and truncation
+     * drops from the end — so the operator's own OIDs would silently stop
+     * being polled, on a write that never mentioned them. Refuse the link and
+     * say what to trim, rather than accepting it and losing data at poll time.
+     */
+    if (isOidTemplateChange && newOidTemplateId && !isDeviceOidsChange) {
+      for (const previousDevice of previousDevices) {
+        const storedOidCount: number = (previousDevice.snmpOids || []).length;
+
+        if (storedOidCount > MAX_DEVICE_SPECIFIC_OIDS) {
+          throw new BadDataException(
+            `This device has ${storedOidCount} device-specific Health OIDs, and a device linked to an OID Collection Template may keep at most ${MAX_DEVICE_SPECIFIC_OIDS} of its own. Remove ${storedOidCount - MAX_DEVICE_SPECIFIC_OIDS} of them - or move them onto the template - before linking it.`,
+          );
+        }
+      }
+    }
+
     if (isDeviceOidsChange) {
       const becomesLinked: boolean = isOidTemplateChange
         ? Boolean(newOidTemplateId)

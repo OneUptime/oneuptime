@@ -123,7 +123,7 @@ Coming from Zabbix, the mapping is:
 | ------------------------------------------------------------- | ------------------------------------------------------------ |
 | Template                                                      | OID Collection Template                                      |
 | Item                                                          | An OID on that template                                      |
-| Discovery rule "Network interfaces by SNMP" + item prototypes | Built in and always on — nothing to author                   |
+| Discovery rule "Network interfaces by SNMP" + item prototypes | Built in and always on for the interface counters below — nothing to author |
 | Trigger                                                       | Monitor criteria                                             |
 | Trigger prototype (one per discovered interface)              | A criteria with **Interface** = `*`, which fans out per port |
 | Host group                                                    | Labels                                                       |
@@ -131,6 +131,16 @@ Coming from Zabbix, the mapping is:
 
 Note that the `*` wildcard applies to the three *interface* criteria only.
 There is no wildcard for OIDs today: an OID criteria names one OID.
+
+**What templates do not do.** A template is a fixed list of OIDs, applied as
+written. There is no per-instance expansion, so an OID naming one row of a
+table (`…ifSpeed.3`) collects that row only, and follows whatever port holds
+index 3 the day it is polled. That is why per-port data belongs to the
+interface walk rather than to a template. The walk covers operational status,
+in/out bits per second, utilization and a *combined* errors-per-second rate;
+per-direction errors, discards, admin status and link speed are collected into
+the device's interface inventory but are not yet time series, so they cannot be
+alerted on today.
 
 **Linking devices.** Three ways, and you will usually want the second:
 
@@ -155,7 +165,9 @@ linked device can never exceed the 200 it is allowed to poll, and going over is
 a validation error when you save rather than a silent truncation at poll time.
 A device with **no** template keeps the full 200 for its own list; the tighter
 50 is what linking costs, applied at the moment you link, so this never
-retroactively invalidates a device you already had.
+retroactively invalidates a device you already had. Linking a device that
+already carries more than 50 of its own is refused with a message saying how
+many to trim, rather than accepted and silently truncated later.
 
 A template that devices are still linked to cannot be deleted — unlink them
 first (the **Clear OID Collection Template** bulk action does this), so a delete
