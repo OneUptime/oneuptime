@@ -86,6 +86,13 @@ import PublicDashboardSloHistoryPolicy, {
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorStatusTimelineService from "../Services/MonitorStatusTimelineService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import PublicDashboardMonitorStateTimelinePolicy, {
+  MAX_PUBLIC_STATE_TIMELINE_ROWS,
+  PUBLIC_STATE_TIMELINE_SELECT,
+} from "../Utils/Dashboard/PublicDashboardMonitorStateTimelinePolicy";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 
 /*
@@ -122,6 +129,20 @@ const PUBLIC_DASHBOARD_SLO_RESOURCE: PublicDashboardResourceConfig = {
   },
 };
 
+/*
+ * Named rather than inlined below: the state-timeline route selects its
+ * widget through the same registry entry as the resource-list route, so both
+ * must agree on which stored widgets count as "a Monitor List on this
+ * dashboard".
+ */
+const PUBLIC_DASHBOARD_MONITOR_RESOURCE: PublicDashboardResourceConfig = {
+  modelType: Monitor,
+  service: MonitorService,
+  widgets: {
+    [DashboardComponentType.MonitorList]: null,
+  },
+};
+
 const PUBLIC_DASHBOARD_RESOURCES: Record<
   string,
   PublicDashboardResourceConfig
@@ -140,13 +161,7 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.AlertList]: null,
     },
   },
-  monitor: {
-    modelType: Monitor,
-    service: MonitorService,
-    widgets: {
-      [DashboardComponentType.MonitorList]: null,
-    },
-  },
+  monitor: PUBLIC_DASHBOARD_MONITOR_RESOURCE,
   "network-site": {
     modelType: NetworkSite,
     service: NetworkSiteService,
@@ -1446,6 +1461,184 @@ export default class DashboardAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
+      },
+    );
+
+    /*
+     * Public monitor status history for the Monitor List widget's State
+     * Timeline view.
+     *
+     * This is a dedicated route rather than another PUBLIC_DASHBOARD_RESOURCES
+     * entry because the timeline is a read ABOUT a set of monitors, and that
+     * set is a selector. The resource-list route rebuilds a widget's query
+     * server side precisely so a public caller never supplies one; letting the
+     * caller post monitor ids here would hand that back. So the monitor set is
+     * re-derived from the STORED Monitor List widget with the same policy the
+     * resource-list route uses, and the only caller-supplied input that
+     * survives is the time window — validated and length-capped by
+     * PublicDashboardMonitorStateTimelinePolicy.
+     *
+     * Authorization reuses DashboardService.hasReadAccess.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/monitor-status-timeline/:dashboardId`,
+      publicDashboardRateLimit,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = new ObjectID(
+            req.params["dashboardId"] as string,
+          );
+
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                projectId: true,
+                dashboardViewConfig: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard || !dashboard.projectId) {
+            throw new NotFoundException("Dashboard not found");
+          }
+
+          const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
+            dashboardViewConfig: dashboard.dashboardViewConfig,
+            config: PUBLIC_DASHBOARD_MONITOR_RESOURCE,
+            requestedComponentId: req.body
+              ? req.body["componentId"]
+              : undefined,
+          });
+
+          const window: InBetween<Date> =
+            PublicDashboardMonitorStateTimelinePolicy.resolveWindowFromBody(
+              req.body as JSONObject | undefined,
+            );
+
+          const policy: PublicDashboardResourceListPolicyResult =
+            PublicDashboardResourceListPolicy.build({
+              widget,
+              dashboardViewConfig: dashboard.dashboardViewConfig,
+              requestedVariables: req.body ? req.body["variables"] : undefined,
+              /*
+               * The Monitor List policy reads its whole query out of the
+               * stored widget, so there is nothing for a caller to contribute
+               * here — unlike the log and trace policies, which take their
+               * time window through this argument.
+               */
+              requestedQuery: {},
+            });
+
+          /*
+           * The same monitor set the widget's own list call resolves, in the
+           * same order and under the same row cap — so the lanes the browser
+           * draws and the history it gets back describe the same monitors.
+           */
+          const monitors: Array<Monitor> = (await MonitorService.findBy({
+            query: {
+              ...policy.query,
+              // Never redirect this root read to another project.
+              projectId: dashboard.projectId,
+            },
+            select: {
+              _id: true,
+            },
+            sort: policy.sort,
+            limit: policy.limit,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          })) as Array<Monitor>;
+
+          const monitorIds: Array<ObjectID> = monitors
+            .map((monitor: Monitor) => {
+              return monitor.id;
+            })
+            .filter((id: ObjectID | null): id is ObjectID => {
+              return id !== null;
+            });
+
+          if (monitorIds.length === 0) {
+            return Response.sendEntityArrayResponse(
+              req,
+              res,
+              [],
+              new PositiveNumber(0),
+              MonitorStatusTimeline,
+            );
+          }
+
+          const statusTimelines: Array<MonitorStatusTimeline> =
+            await MonitorStatusTimelineService.findBy({
+              query: {
+                projectId: dashboard.projectId,
+                monitorId: QueryHelper.any(monitorIds),
+                /*
+                 * Every row that OVERLAPS the window: it started on or before
+                 * the window ends, and it either ended on or after the window
+                 * started or is still open.
+                 *
+                 * The browser's own query says `endsAt > start` rather than
+                 * `>=`. The difference is a row that ends exactly at the
+                 * window start, which contributes a zero-length event that
+                 * UptimeUtil discards and a zero-width bar the renderer skips
+                 * — so the two paths draw the same timeline either way, and
+                 * the inclusive form here is the one the rest of the server
+                 * uses for this predicate.
+                 */
+                startsAt: QueryHelper.lessThanEqualTo(window.endValue),
+                endsAt: QueryHelper.greaterThanEqualToOrNull(window.startValue),
+              },
+              select: PUBLIC_STATE_TIMELINE_SELECT,
+              sort: {
+                startsAt: SortOrder.Ascending,
+              },
+              limit: MAX_PUBLIC_STATE_TIMELINE_ROWS,
+              skip: 0,
+              /*
+               * Run as root: authorization is already enforced by
+               * hasReadAccess above, the monitor set comes from the stored
+               * widget, and the project is pinned in the query.
+               */
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendEntityArrayResponse(
+            req,
+            res,
+            statusTimelines,
+            new PositiveNumber(statusTimelines.length),
+            MonitorStatusTimeline,
+          );
+        } catch (err) {
+          next(err);
+        }
+        return undefined;
       },
     );
 
