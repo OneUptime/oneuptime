@@ -13,6 +13,8 @@ import { Purple500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ProxmoxClusterOwnerRuleEngineServiceClass {
   /**
@@ -47,9 +49,15 @@ class ProxmoxClusterOwnerRuleEngineServiceClass {
             ownerUsers: { _id: true },
             ownerTeams: { _id: true },
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "ProxmoxClusterOwnerRule",
+        projectId: proxmoxCluster.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;

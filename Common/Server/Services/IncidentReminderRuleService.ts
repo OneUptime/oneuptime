@@ -15,6 +15,8 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -193,11 +195,17 @@ export class Service extends DatabaseService<Model> {
           _id: true,
         },
       },
-      limit: 100,
+      limit: MAX_RULES_EVALUATED_PER_PROJECT,
       skip: 0,
       props: {
         isRoot: true,
       },
+    });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentReminderRule",
+      projectId: data.projectId,
+      rulesRead: rules.length,
     });
 
     for (const rule of rules) {
