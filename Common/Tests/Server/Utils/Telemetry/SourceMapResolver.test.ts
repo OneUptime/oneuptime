@@ -540,3 +540,103 @@ describe("end to end: raw browser stack trace → parsed frames → resolved fra
     expect(resolved[1]!.originalLineNumber).toBe(2);
   });
 });
+
+/*
+ * The Firefox/Safari twin of the V8 case above, against the SAME bundle and
+ * the same expected original positions. This is the proof the issue asked
+ * for: a browser stack that previously parsed to zero frames — and so never
+ * reached this resolver at all — now converges on exactly the same resolved
+ * output as the Chromium stack for the same defect.
+ */
+describe("end to end: raw Firefox / Safari stack trace → parsed frames → resolved frames", () => {
+  test("a SpiderMonkey stack resolves to the same source positions as the V8 one", () => {
+    const rawStackTrace: string = [
+      "onSelect@https://app.example.com/assets/main.abc123.js:1:46",
+      "render@https://app.example.com/assets/main.abc123.js:1:21",
+    ].join("\n");
+
+    const parsed: ParsedStackTrace = StackTraceParser.parse(rawStackTrace);
+    expect(parsed.frames).toHaveLength(2);
+
+    const resolved: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      parsed.frames,
+      [FIXTURE_BUNDLE],
+    );
+
+    expect(resolved[0]!.resolved).toBe(true);
+    expect(resolved[0]!.originalFileName).toBe("src/greet.ts");
+    expect(resolved[0]!.originalLineNumber).toBe(6);
+    expect(resolved[0]!.originalFunctionName).toBe("onSelect");
+
+    expect(resolved[1]!.resolved).toBe(true);
+    expect(resolved[1]!.originalLineNumber).toBe(2);
+  });
+
+  test("an anonymous top-level Firefox frame resolves as well", () => {
+    const parsed: ParsedStackTrace = StackTraceParser.parse(
+      "@https://app.example.com/assets/main.abc123.js:1:46",
+    );
+
+    expect(parsed.frames[0]!.functionName).toBe("<anonymous>");
+
+    const resolved: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      parsed.frames,
+      [FIXTURE_BUNDLE],
+    );
+
+    expect(resolved[0]!.resolved).toBe(true);
+    expect(resolved[0]!.originalLineNumber).toBe(6);
+  });
+
+  test("a Safari [native code] frame passes through unresolved instead of misresolving", () => {
+    /*
+     * `[native code]` frames carry lineNumber 0, which resolveFrame rejects
+     * before it ever looks for a bundle. They must survive in the list — the
+     * dashboard overlay discards a length-mismatched response wholesale.
+     */
+    const parsed: ParsedStackTrace = StackTraceParser.parse(
+      [
+        "onSelect@https://app.example.com/assets/main.abc123.js:1:46",
+        "forEach@[native code]",
+      ].join("\n"),
+    );
+
+    const resolved: Array<ResolvedStackFrame> = SourceMapResolver.resolveFrames(
+      parsed.frames,
+      [FIXTURE_BUNDLE],
+    );
+
+    expect(resolved).toHaveLength(2);
+    expect(resolved[0]!.resolved).toBe(true);
+    expect(resolved[1]!.resolved).toBe(false);
+    expect(resolved[1]!.fileName).toBe("[native code]");
+  });
+
+  test("every fileName the browser parser emits still matches its own bundle", () => {
+    /*
+     * getMatchScore compares trailing path segments, so a fileName with junk
+     * glued to its last segment scores 0 and the frame silently never
+     * resolves. Each source below is a shape the parser accepts.
+     */
+    const sources: Array<string> = [
+      "https://app.example.com/assets/main.abc123.js",
+      "http://localhost:3000/assets/main.abc123.js",
+      "https://user:pw@cdn.example.com/assets/main.abc123.js",
+      "https://app.example.com/assets/main.abc123.js?v=2",
+    ];
+
+    for (const source of sources) {
+      const parsed: ParsedStackTrace = StackTraceParser.parse(
+        `boot@${source}:1:46`,
+      );
+
+      expect(parsed.frames).toHaveLength(1);
+      expect(
+        SourceMapResolver.getMatchScore(
+          parsed.frames[0]!.fileName,
+          FIXTURE_BUNDLE.bundlePath,
+        ),
+      ).toBeGreaterThan(0);
+    }
+  });
+});
