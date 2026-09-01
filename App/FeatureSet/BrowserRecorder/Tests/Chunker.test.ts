@@ -1,9 +1,12 @@
 import Chunker, {
   PendingChunk,
   SESSION_REPLAY_TRUNCATED_NOTICE,
-  splitByUtf8Bytes,
   utf8ByteLength,
 } from "../src/Chunker";
+import {
+  SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
+  SessionReplayFidelityNotice,
+} from "Common/Types/Rum/SessionReplay";
 import { BufferedEvent } from "../src/RollingBuffer";
 
 describe("Chunker", (): void => {
@@ -309,14 +312,26 @@ describe("Chunker", (): void => {
     expect(chunks).toHaveLength(0);
   });
 
-  describe("oversized snapshot splitting", (): void => {
-    /*
-     * A FullSnapshot is one indivisible rrweb event. It cannot be split across
-     * chunks and still parse, so the parts carry raw slices and only the LAST
-     * part claims hasFullSnapshot - otherwise a seek anchor would point into
-     * the middle of a snapshot and the player would rebuild a partial DOM.
-     */
-    it("splits one oversized event into parts, anchoring only the last", (): void => {
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * An oversized indivisible snapshot used to be CUT into raw slices of the
+   * array text, each posted as its own chunk index with snapshotPart
+   * {index, total}, on the stated understanding that the receiving side would
+   * concatenate them before parsing. Nothing ever did: the ingest worker
+   * JSON.parses every frame on its own, so every slice threw and was dropped,
+   * and the chunk indexes they had already consumed stayed missing forever.
+   *
+   * The user-visible result was a session list reporting "8 chunks missing",
+   * a scrubber drawing gaps, and a recording with no seek anchor - on every
+   * page whose DOM serialises to more than the flush threshold, which is any
+   * large enterprise page.
+   *
+   * Every test here is about ONE property: each chunk this class emits must
+   * be independently decodable, and the chunk sequence must stay contiguous.
+   */
+  describe("oversized indivisible events", (): void => {
+    it("emits ONE whole chunk, never fragments", (): void => {
       const chunker: Chunker = makeChunker(50);
       const big: string = `{"type":2,"data":"${"x".repeat(200)}"}`;
 
@@ -324,24 +339,190 @@ describe("Chunker", (): void => {
         event({ type: 2, json: big, bytes: big.length, isCheckout: true }),
       );
 
-      expect(chunks.length).toBeGreaterThan(1);
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.payload).toBe(`[${big}]`);
+      expect(chunks[0]?.eventCount).toBe(1);
+      expect(chunks[0]?.rawBytes).toBe(utf8ByteLength(`[${big}]`));
+    });
 
-      const total: number = chunks.length;
+    it("emits a payload that parses on its own, exactly as the worker parses it", (): void => {
+      const chunker: Chunker = makeChunker(50);
+      const big: string = `{"type":2,"data":"${"x".repeat(200)}"}`;
 
-      chunks.forEach((chunk: PendingChunk, index: number): void => {
-        expect(chunk.snapshotPart).toEqual({ index: index, total: total });
-        expect(chunk.hasFullSnapshot).toBe(index === total - 1);
-        expect(chunk.eventCount).toBe(index === total - 1 ? 1 : 0);
+      chunker.add(
+        event({ type: 2, json: big, bytes: big.length, isCheckout: true }),
+      );
+
+      for (const chunk of chunks) {
+        const parsed: unknown = JSON.parse(chunk.payload);
+
+        expect(Array.isArray(parsed)).toBe(true);
+      }
+
+      expect(JSON.parse(chunks[0]?.payload as string)).toEqual([
+        JSON.parse(big),
+      ]);
+    });
+
+    it("anchors the oversized snapshot, because nothing replayable precedes it", (): void => {
+      const chunker: Chunker = makeChunker(50);
+      const big: string = `{"type":2,"data":"${"x".repeat(200)}"}`;
+
+      chunker.add(
+        event({ type: 2, json: big, bytes: big.length, isCheckout: true }),
+      );
+
+      expect(chunks[0]?.hasFullSnapshot).toBe(true);
+    });
+
+    it("does not anchor an oversized event that is not a full snapshot", (): void => {
+      const chunker: Chunker = makeChunker(50);
+      const big: string = `{"type":3,"data":"${"x".repeat(200)}"}`;
+
+      chunker.add(event({ type: 3, json: big, bytes: big.length }));
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.hasFullSnapshot).toBe(false);
+    });
+
+    it("seals whatever was open first, so the snapshot is alone in its chunk", (): void => {
+      const chunker: Chunker = makeChunker(500);
+
+      chunker.add(event({ json: '{"type":3,"a":1}', bytes: 16 }));
+
+      const big: string = `{"type":2,"data":"${"x".repeat(600)}"}`;
+
+      chunker.add(
+        event({ type: 2, json: big, bytes: big.length, isCheckout: true }),
+      );
+
+      expect(chunks).toHaveLength(2);
+      expect(chunks[0]?.payload).toBe('[{"type":3,"a":1}]');
+      expect(chunks[0]?.hasFullSnapshot).toBe(false);
+      expect(chunks[1]?.payload).toBe(`[${big}]`);
+      expect(chunks[1]?.hasFullSnapshot).toBe(true);
+    });
+
+    /*
+     * A non-ASCII snapshot is what broke loudest under the old slicing: each
+     * part was UTF-8 encoded independently, so a surrogate pair cut in half
+     * became two U+FFFD. Emitting whole cannot corrupt anything, and this
+     * pins that.
+     */
+    it("keeps an emoji-bearing snapshot byte-identical", (): void => {
+      const chunker: Chunker = makeChunker(40);
+      const big: string = `{"type":2,"data":"${"😀".repeat(60)}"}`;
+
+      chunker.add({
+        json: big,
+        bytes: utf8ByteLength(big),
+        timestampMs: SESSION_START + 10,
+        isCheckout: true,
+        type: 2,
       });
 
-      /* Concatenating every part reproduces the exact JSON array. */
-      const rejoined: string = chunks
-        .map((chunk: PendingChunk): string => {
-          return chunk.payload;
-        })
-        .join("");
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.payload).toBe(`[${big}]`);
+      expect(chunks[0]?.payload).not.toContain("�");
+      expect(JSON.parse(chunks[0]?.payload as string)).toEqual([
+        JSON.parse(big),
+      ]);
+    });
 
-      expect(rejoined).toBe(`[${big}]`);
+    it("keeps the chunk sequence contiguous across a mixed stream", (): void => {
+      const chunker: Chunker = makeChunker(100);
+      const big: string = `{"type":2,"data":"${"x".repeat(400)}"}`;
+
+      chunker.add(event({ json: '{"type":3,"a":1}', bytes: 16 }));
+      chunker.add(
+        event({ type: 2, json: big, bytes: big.length, isCheckout: true }),
+      );
+      chunker.add(event({ json: '{"type":3,"a":2}', bytes: 16 }));
+      chunker.close(true);
+
+      /*
+       * One chunk index per emitted chunk, and every one of them decodable —
+       * which is what "no missing chunks" means on the other end.
+       */
+      expect(chunks).toHaveLength(3);
+
+      for (const chunk of chunks) {
+        expect(Array.isArray(JSON.parse(chunk.payload))).toBe(true);
+      }
+    });
+
+    /*
+     * Above the ceiling the ingest worker will actually inflate
+     * (SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES), posting the chunk would
+     * mint an index for something that can only ever be dropped at decode
+     * time — the exact shape of the bug. Dropping BEFORE the sink keeps the
+     * sequence contiguous, and the notice tells the viewer.
+     */
+    it("drops an event past the worker's ceiling, without minting a chunk index", (): void => {
+      const chunker: Chunker = makeChunker(50);
+      const huge: string = `{"type":2,"data":"${"x".repeat(
+        SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES + 10,
+      )}"}`;
+
+      chunker.add(
+        event({
+          type: 2,
+          json: huge,
+          bytes: utf8ByteLength(huge),
+          isCheckout: true,
+        }),
+      );
+
+      expect(chunks).toHaveLength(0);
+      expect(chunker.getDroppedEventCount()).toBe(1);
+    });
+
+    it("discloses the dropped snapshot on the next chunk that closes", (): void => {
+      const chunker: Chunker = makeChunker(50);
+      const huge: string = `{"type":2,"data":"${"x".repeat(
+        SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES + 10,
+      )}"}`;
+
+      chunker.add(
+        event({
+          type: 2,
+          json: huge,
+          bytes: utf8ByteLength(huge),
+          isCheckout: true,
+        }),
+      );
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.fidelityNotices).toContain(
+        SessionReplayFidelityNotice.SnapshotTooLarge,
+      );
+    });
+
+    it("still emits an event that sits exactly on the ceiling", (): void => {
+      const chunker: Chunker = makeChunker(50);
+
+      /* `[` + json + `]` must land on the ceiling exactly. */
+      const padding: number =
+        SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES -
+        utf8ByteLength('[{"type":2,"data":""}]');
+      const atCeiling: string = `{"type":2,"data":"${"x".repeat(padding)}"}`;
+
+      chunker.add(
+        event({
+          type: 2,
+          json: atCeiling,
+          bytes: utf8ByteLength(atCeiling),
+          isCheckout: true,
+        }),
+      );
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.rawBytes).toBe(
+        SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
+      );
+      expect(chunker.getDroppedEventCount()).toBe(0);
     });
   });
 
@@ -500,83 +681,5 @@ describe("utf8ByteLength", (): void => {
     const lone: string = "\ud83d";
 
     expect(utf8ByteLength(lone)).toBe(new TextEncoder().encode(lone).length);
-  });
-});
-
-describe("splitByUtf8Bytes", (): void => {
-  it("never cuts a surrogate pair in half", (): void => {
-    /* Ten ASCII, one emoji, ten ASCII - the exact shape that used to corrupt. */
-    const body: string = `${"x".repeat(10)}😀${"y".repeat(10)}`;
-
-    for (let limit: number = 4; limit <= 24; limit++) {
-      const parts: Array<string> = splitByUtf8Bytes(body, limit);
-
-      /* Round-tripping each part independently must reproduce the input. */
-      const decoder: TextDecoder = new TextDecoder();
-      const rejoined: string = parts
-        .map((part: string): string => {
-          return decoder.decode(new TextEncoder().encode(part));
-        })
-        .join("");
-
-      expect(rejoined).toBe(body);
-      expect(rejoined).not.toContain("�");
-    }
-  });
-
-  it("keeps every part inside the byte budget", (): void => {
-    const body: string = "日本語のページ".repeat(20);
-    const parts: Array<string> = splitByUtf8Bytes(body, 32);
-
-    for (const part of parts) {
-      expect(utf8ByteLength(part)).toBeLessThanOrEqual(32);
-    }
-
-    expect(parts.join("")).toBe(body);
-  });
-
-  it("returns one part when the whole string fits", (): void => {
-    expect(splitByUtf8Bytes("short", 1000)).toEqual(["short"]);
-    expect(splitByUtf8Bytes("", 1000)).toEqual([""]);
-  });
-});
-
-describe("Chunker oversized non-ASCII snapshot", (): void => {
-  const SESSION_START: number = 1_700_000_000_000;
-
-  it("splits an emoji-bearing snapshot without corrupting it", (): void => {
-    const chunks: Array<PendingChunk> = [];
-
-    const chunker: Chunker = new Chunker({
-      sessionStartUnixMs: SESSION_START,
-      sink: (chunk: PendingChunk): void => {
-        chunks.push(chunk);
-      },
-      maxPayloadBytes: 40,
-    });
-
-    const big: string = `{"type":2,"data":"${"😀".repeat(60)}"}`;
-
-    chunker.add({
-      json: big,
-      bytes: utf8ByteLength(big),
-      timestampMs: SESSION_START + 10,
-      isCheckout: true,
-      type: 2,
-    });
-
-    expect(chunks.length).toBeGreaterThan(1);
-
-    const decoder: TextDecoder = new TextDecoder();
-    const rejoined: string = chunks
-      .map((chunk: PendingChunk): string => {
-        /* Exactly what the wire does to each part: encode it on its own. */
-        return decoder.decode(new TextEncoder().encode(chunk.payload));
-      })
-      .join("");
-
-    expect(rejoined).toBe(`[${big}]`);
-    expect(rejoined).not.toContain("�");
-    expect(JSON.parse(rejoined)).toHaveLength(1);
   });
 });

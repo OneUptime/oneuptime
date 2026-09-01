@@ -165,6 +165,7 @@ jest.mock("Common/Server/Services/RumApplicationService", () => {
     __esModule: true,
     default: {
       markSessionReplayChunkReceived: jest.fn(),
+      updateLastSeen: jest.fn(),
       markSessionReplayBudgetExceeded: jest.fn(),
     },
   };
@@ -240,6 +241,7 @@ jest.mock("../../FeatureSet/BrowserRecorder/Manifest", () => {
 });
 
 import Response from "Common/Server/Utils/Response";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import SessionReplayGateCache from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 // Importing the router module registers the routes on the mocked router.
@@ -253,6 +255,8 @@ const consumeTargetMock: MockedFn =
   SessionReplayTargeting.consumeTarget as unknown as MockedFn;
 const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
+const updateLastSeenMock: MockedFn =
+  RumApplicationService.updateLastSeen as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
@@ -343,6 +347,69 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+  });
+
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * The config fetch is the ONLY request a healthy recorder makes under the
+   * shipped default policy - capture trigger OnErrorOrFrustration, sample
+   * percentage 0 - because nothing uploads until something goes wrong. So it
+   * is the only honest liveness signal replay has, and without it an
+   * application instrumented with the replay snippet alone sat on the
+   * Dashboard as "Disconnected" with a Last Seen days old while its recorders
+   * were fetching policy from this very route.
+   */
+  describe("RUM application liveness", () => {
+    test("an enabled application is kept connected by the policy fetch alone", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).toHaveBeenCalledTimes(1);
+      expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    });
+
+    /*
+     * A sample percentage of 0 is the SHIPPED DEFAULT, and it is what the
+     * reporter on #3527 was running. It must not make the application look
+     * dead: the recorder is running, it is just not uploading yet.
+     */
+    test("a 0% sample percentage still counts as alive", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ samplePercentage: 0 }) as never,
+      );
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    });
+
+    /*
+     * No policy means no application resolved at all, so there is nothing to
+     * mark alive - and nothing to auto-create from an unauthenticated-shaped
+     * identifier either.
+     */
+    test("a disabled or unknown application is not marked alive", async () => {
+      getPolicyMock.mockResolvedValue(null as never);
+
+      await callConfigRoute(buildRequest(), buildResponse());
+
+      expect(updateLastSeenMock).not.toHaveBeenCalled();
+    });
+
+    test("a failed liveness write still returns a usable config", async () => {
+      getPolicyMock.mockResolvedValue(buildPolicy() as never);
+      updateLastSeenMock.mockRejectedValue(new Error("postgres down") as never);
+
+      const body: JSONObject = await callConfigRoute(
+        buildRequest(),
+        buildResponse(),
+      );
+
+      expect(body["enabled"]).toBe(true);
+    });
   });
 
   test("the live config mirrors the correlation and performance policy verbatim", async () => {

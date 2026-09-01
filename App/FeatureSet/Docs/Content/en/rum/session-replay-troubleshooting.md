@@ -227,6 +227,22 @@ Work down this list; it is ordered by how often each one is the answer.
 3. **Is there no chunk `POST`?** Read the `recording` line. `uploading: false` under `OnErrorOrFrustration` is normal — call `OneUptimeReplay.captureSession()` to force one and confirm the path works.
 4. **Still nothing after `captureSession()`?** Look for `upload-blocked-consent` (call `grantConsent()`), `not-sampled`, or `transport-disabled`.
 
+## The session list says "N chunks missing", or the player draws gaps
+
+A recording is uploaded as a numbered sequence of chunks per tab. The finalizer reports any index that never arrived as a missing chunk, and the player draws a gap wherever the sequence skips — deliberately, because the alternative is playing mutations across a hole and rendering a DOM the user never saw.
+
+So the number is always telling the truth. What it means depends on where the hole is:
+
+- **A hole at the very end** is the usual, benign one: the browser was closed or navigated away mid-flush. Look for `final-chunk-too-large` in the console.
+- **A hole in the middle** is a chunk the server refused or never received. `chunk-refused`, `chunk-post-failed` and `chunk-not-recorded` in the console each name a different cause, and the `server-directive` line beside them carries the server's reason.
+- **The same gap in the same place on every session, on a page with a large DOM**, was a defect in recorders up to 12.0.x. An rrweb full-page snapshot bigger than the 256 KB flush threshold was cut into fragments the ingest worker could never parse, so the snapshot — and every chunk index it occupied — was dropped, on every page load. Nothing on the customer's page could work around it. Upgrade OneUptime; browsers pick up the new recorder within one config cache TTL (5 minutes). Recordings already taken stay as they are.
+
+## The RUM application says "Disconnected"
+
+The status pill and Last Seen on _Real User Monitoring → your application_ report when telemetry last arrived for that application. Session replay counts: both a recorder fetching its policy and an accepted chunk refresh it, so an application instrumented with the replay snippet alone stays Connected. In older versions only OpenTelemetry RUM telemetry did, so a replay-only application read "Disconnected" with a Last Seen days old while its recorders were working perfectly.
+
+"Connected" therefore means *something* is reporting — not that everything is. Page views, error rate, p95 duration and clients come from the OpenTelemetry browser SDK, which is a separate install; when those read zero while recordings are arriving, the application's Overview page says so directly.
+
 ## RUM telemetry is separate
 
 Session replay and RUM traces are two independent pipelines with two independent failure modes. A working recorder does not imply RUM telemetry is arriving, and a working RUM application is not a prerequisite for the recorder to load.
