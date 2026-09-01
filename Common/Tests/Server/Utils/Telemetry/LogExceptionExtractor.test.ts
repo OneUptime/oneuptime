@@ -211,3 +211,137 @@ describe("LogExceptionExtractor — Path B (raw body scan)", () => {
     }).not.toThrow();
   });
 });
+
+const FIREFOX_TRACE: string = [
+  "handleSubmit@https://app.example.com/_nuxt/entry.a1b2c3d4.js:1:98217",
+  "onClick/<@https://app.example.com/_nuxt/entry.a1b2c3d4.js:1:74102",
+  "@https://app.example.com/_nuxt/entry.a1b2c3d4.js:1:2211",
+].join("\n");
+
+const SAFARI_TRACE: string = [
+  "global code@https://app.example.com/build/main.js:1:1",
+  "forEach@[native code]",
+].join("\n");
+
+/*
+ * Firefox and Safari stacks reach the body path with no `at ` frame and,
+ * unless the app happened to log a `*Error`/`*Exception` token, no signature
+ * the gate recognised — so they were rejected before StackTraceParser ever
+ * ran. The gate now carries an `fn@url:line` alternative, which has to admit
+ * every real browser body while still keeping ordinary log prose out: the
+ * body path is the one place this change alters INGEST rather than display,
+ * and a body that newly yields frames creates a new exception group.
+ */
+describe("LogExceptionExtractor — Path B (Firefox / Safari bodies)", () => {
+  test("a bare Firefox stack with no error header is extracted", () => {
+    const result: ExtractedLogException | null = extract({
+      body: FIREFOX_TRACE,
+      severityNumber: ERROR,
+    });
+
+    expect(result).not.toBeNull();
+    expect(JSON.parse(result!.parsedFrames)).toHaveLength(3);
+  });
+
+  test("a Firefox stack under a typed error header keeps type and message", () => {
+    const result: ExtractedLogException | null = extract({
+      body: `TypeError: t is undefined\n${FIREFOX_TRACE}`,
+      severityNumber: ERROR,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.exceptionType).toBe("TypeError");
+    expect(result!.message).toBe("t is undefined");
+    expect(JSON.parse(result!.parsedFrames)).toHaveLength(3);
+  });
+
+  test("an indented Firefox body still passes the gate", () => {
+    const indented: string = FIREFOX_TRACE.split("\n")
+      .map((line: string) => {
+        return `    ${line}`;
+      })
+      .join("\n");
+
+    const result: ExtractedLogException | null = extract({
+      body: indented,
+      severityNumber: ERROR,
+    });
+
+    expect(result).not.toBeNull();
+    expect(JSON.parse(result!.parsedFrames)).toHaveLength(3);
+  });
+
+  test("a Safari body whose only located frame is `global code@` is extracted", () => {
+    const result: ExtractedLogException | null = extract({
+      body: SAFARI_TRACE,
+      severityNumber: ERROR,
+    });
+
+    expect(result).not.toBeNull();
+    expect(JSON.parse(result!.parsedFrames)).toHaveLength(2);
+  });
+
+  test("ordinary ERROR log prose containing an `@` is still not an exception", () => {
+    /*
+     * The widened gate is only a cheap pre-filter — extractFromBody still
+     * requires at least one parsed frame, and none of these produce one.
+     */
+    const bodies: Array<string> = [
+      "failed login for user@example.com:22:1 from 10.0.0.4",
+      "cannot clone git@github.com:OneUptime/oneuptime.git",
+      "ssh user@host:2222 timed out",
+      "pool exhausted for mongodb://svc@db.internal/app:1:1",
+    ];
+
+    for (const body of bodies) {
+      expect(extract({ body: body, severityNumber: ERROR })).toBeNull();
+    }
+  });
+
+  test("the severity and trace+span gates still apply to browser bodies", () => {
+    expect(extract({ body: FIREFOX_TRACE, severityNumber: INFO })).toBeNull();
+    expect(
+      extract({
+        body: FIREFOX_TRACE,
+        severityNumber: ERROR,
+        hasTraceAndSpan: true,
+      }),
+    ).toBeNull();
+  });
+
+  test("FATAL severity is covered too", () => {
+    expect(
+      extract({ body: FIREFOX_TRACE, severityNumber: FATAL }),
+    ).not.toBeNull();
+  });
+});
+
+describe("LogExceptionExtractor — Path A (Firefox / Safari stacktrace attribute)", () => {
+  test("exception.stacktrace from Firefox now yields parsed frames", () => {
+    /*
+     * This is the shape the issue reporter's SDK sends. It already emitted an
+     * exception record before the browser parser existed — but with
+     * parsedFrames "[]", which is what blocked source-map resolution.
+     */
+    const result: ExtractedLogException | null = extract({
+      attributes: {
+        "exception.type": "TypeError",
+        "exception.message": "t is undefined",
+        "exception.stacktrace": FIREFOX_TRACE,
+      },
+      severityNumber: ERROR,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.parsedFrames).not.toBe("[]");
+
+    const frames: Array<{ fileName: string; columnNumber?: number }> =
+      JSON.parse(result!.parsedFrames);
+
+    expect(frames).toHaveLength(3);
+    expect(frames[0]!.fileName).toBe(
+      "https://app.example.com/_nuxt/entry.a1b2c3d4.js",
+    );
+    expect(frames[0]!.columnNumber).toBe(98217);
+  });
+});
