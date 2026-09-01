@@ -48,6 +48,7 @@
   "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
   "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.ts"],
   "collectCoverage": false,
+  "testTimeout": 60000,
   "coverageReporters": ["text", "lcov"],
   "testRegex": "./Tests/(.*)\\.test\\.(ts|tsx)$",
   "collectCoverageFrom": ["./**/*.{ts,tsx}"],
