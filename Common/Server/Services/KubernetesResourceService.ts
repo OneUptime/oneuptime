@@ -946,7 +946,11 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Helper for the cleanup worker: snapshot-interval aware cutoff.
-   * 3× the 5-minute snapshot interval. Tune via CLEANUP_THRESHOLD_MINUTES.
+   * 3× the 5-minute snapshot interval by default. Tune via
+   * K8S_INVENTORY_STALE_MINUTES — a value below 5 is ignored and the
+   * 15-minute default applies, so it is not clamped to the floor. Keep the
+   * threshold above the agent's resourceSpecs interval: CleanupStaleResources
+   * hard-deletes inventory rows whose lastSeenAt is older than this cutoff.
    */
   public getStaleThresholdDate(nowOverride?: Date): Date {
     const minutes: number = this.getStaleThresholdMinutes();
