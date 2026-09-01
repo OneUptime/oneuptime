@@ -18,6 +18,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
@@ -50,6 +51,7 @@ import {
   fetchSessionReplayList,
   SessionReplayListResult,
 } from "../../../Components/SessionReplay/SessionReplayTable";
+import isReplayOnlyInstrumented from "../../../Components/SessionReplay/RumInstrumentation";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -119,6 +121,11 @@ const RumApplicationOverview: FunctionComponent<
           otelCollectorStatus: true,
           lastSeenAt: true,
           agentVersion: true,
+          /*
+           * Read for the instrumentation banner below, not for a tile. See
+           * isReplayOnlyInstrumented.
+           */
+          sessionReplayLastChunkReceivedAt: true,
           labels: { name: true, color: true },
         },
       });
@@ -413,8 +420,36 @@ const RumApplicationOverview: FunctionComponent<
     { label: "SDK Version", value: a.agentVersion },
   ];
 
+  /*
+   * Recordings are arriving but the OpenTelemetry browser SDK has never
+   * reported, so every tile on this page except "sessions recorded" is
+   * honestly zero. See RumInstrumentation for why the signal is the SDK
+   * metadata columns rather than "no spans in the selected range".
+   */
+  const showRumSdkMissingNotice: boolean = isReplayOnlyInstrumented(a);
+
   return (
     <Fragment>
+      {showRumSdkMissingNotice && (
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Session replay is reporting, the RUM SDK is not"
+          title={
+            <span>
+              Recordings are arriving for this application, so the replay
+              snippet and your ingestion key are working. Page views, error
+              rate, p95 duration and clients come from a different install — the
+              OpenTelemetry browser SDK — and nothing has reported through it
+              yet, which is why those tiles read zero. Add the SDK with{" "}
+              <code>service.name</code> set to{" "}
+              <code>{(a.appIdentifier as string) || ""}</code> to fill them in;
+              the steps are on this application&apos;s Documentation tab.
+              Session replay does not need it.
+            </span>
+          }
+        />
+      )}
+
       <ResourceOverview
         icon={IconProp.Globe}
         title={(a.name as string) || "RUM Application"}

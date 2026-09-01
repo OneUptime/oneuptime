@@ -271,6 +271,41 @@ function readCountryCode(req: ExpressRequest): string {
 }
 
 /*
+ * Session replay traffic is telemetry, so it keeps the application ALIVE.
+ *
+ * RumApplicationService.updateLastSeen used to be reachable only from the
+ * OTel path (OtelIngestBaseService), so an application instrumented with the
+ * replay snippet alone never had its lastSeenAt refreshed at all:
+ * markDisconnectedApplications flipped it to "disconnected" fifteen minutes
+ * after whatever OTel batch last touched it, and the Dashboard showed
+ * "Disconnected" with a Last Seen days old while recorders on the customer's
+ * site were talking to this very process. That is issue #3527's headline
+ * symptom, and it is not a cosmetic one: "Disconnected" is what somebody
+ * reads before concluding their install is broken and giving up.
+ *
+ * Called from BOTH replay entry points, and the config fetch is the
+ * load-bearing one. Under the shipped default policy - capture trigger
+ * OnErrorOrFrustration, sample percentage 0 - a perfectly healthy page makes
+ * exactly ONE request per page load and posts no chunk unless something goes
+ * wrong, so a chunk-only heartbeat would leave a working installation looking
+ * dead for as long as nothing went wrong.
+ *
+ * Fire-and-forget, and throttled to one Postgres write per application per
+ * minute inside ResourceHeartbeat. It must never delay or fail a response on
+ * either path.
+ */
+function markApplicationAlive(rumApplicationId: ObjectID): void {
+  RumApplicationService.updateLastSeen(rumApplicationId).catch(
+    (err: unknown) => {
+      logger.warn(
+        "Could not refresh RUM application liveness from session replay:",
+      );
+      logger.warn(err);
+    },
+  );
+}
+
+/*
  * Stamp a disabled config with WHY, and with the debug flag.
  *
  * A helper rather than five inline spreads so no future disabled branch can
@@ -563,6 +598,8 @@ router.post(
           logger.warn("Could not record replay chunk receipt:");
           logger.warn(err);
         });
+
+        markApplicationAlive(decision.policy.rumApplicationId);
       }
 
       sendChunkDirective(req, res, 202, decision);
@@ -723,6 +760,14 @@ router.get(
         );
         return;
       }
+
+      /*
+       * A recorder asked this application for its policy, so a recorder is
+       * running on it right now. See markApplicationAlive: for the default
+       * policy this is the ONLY request a healthy page makes, and therefore
+       * the only honest liveness signal replay has.
+       */
+      markApplicationAlive(policy.rumApplicationId);
 
       const config: SessionReplayConfigResponse = {
         enabled: true,

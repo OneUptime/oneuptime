@@ -1431,9 +1431,14 @@ export default class Recorder {
       flushFailures: this.transport.getFlushFailureCount(),
     };
 
-    if (chunk.snapshotPart) {
-      envelope.snapshotPart = chunk.snapshotPart;
-    }
+    /*
+     * snapshotPart is deliberately never set any more. The chunker no longer
+     * cuts an oversized snapshot into fragments, because nothing on the
+     * receiving side ever reassembled them - see Chunker.emitOversizedEvent.
+     * The wire field stays on SessionReplayChunkEnvelope so the server can
+     * still recognise, and refuse cleanly, a frame from a recorder built
+     * before this.
+     */
 
     if (chunk.traceIds.length > 0) {
       envelope.traceIds = chunk.traceIds;

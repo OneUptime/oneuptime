@@ -168,6 +168,7 @@ jest.mock("Common/Server/Services/RumApplicationService", () => {
     __esModule: true,
     default: {
       markSessionReplayChunkReceived: jest.fn(),
+      updateLastSeen: jest.fn(),
       markSessionReplayBudgetExceeded: jest.fn(),
     },
   };

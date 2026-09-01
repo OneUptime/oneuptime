@@ -21,6 +21,7 @@ import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerRea
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+  SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
@@ -92,11 +93,14 @@ const ACTIVE_SESSION_TTL_SECONDS: number = 6 * 60 * 60;
  * guard fires during inflation rather than after we have already allocated
  * the memory.
  *
- * 8 MiB is deliberately close to the recorder's actual behaviour (it flushes
- * at a 256 KB pre-compression threshold) rather than to what a Buffer can
- * hold, so a legitimate frame never comes near it.
+ * Imported from Common rather than declared here because the recorder's
+ * chunker enforces the SAME number as its ceiling for an indivisible event it
+ * posts whole. Two independently-maintained copies of that number is a chunk
+ * the recorder is willing to send and the worker refuses to inflate, which
+ * shows up as a permanent hole in a recording.
  */
-const MAX_DECOMPRESSED_FRAME_BYTES: number = 8 * 1024 * 1024;
+const MAX_DECOMPRESSED_FRAME_BYTES: number =
+  SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES;
 
 /*
  * Decompressed-payload ceiling for the WHOLE job, which is the number that
@@ -560,6 +564,42 @@ export default class SessionReplayIngestService {
 
     for (const frame of parsed.frames) {
       const envelope: SessionReplayChunkEnvelope = frame.envelope;
+
+      /*
+       * A FRAGMENT of a snapshot, from a recorder built before this file's
+       * sibling change.
+       *
+       * Recorders up to 12.0.x cut an oversized FullSnapshot into raw slices
+       * of the array text and posted each as its own chunk, tagged
+       * snapshotPart {index, total}, on the understanding that the receiving
+       * side would concatenate them before parsing. Nothing here ever did, so
+       * every part fell through decodePayload's JSON.parse and was dropped as
+       * "payload-undecodable" - a misleading label for a frame that is
+       * exactly as it was sent, and one that hid the real fault (every page
+       * with a DOM over the flush threshold lost its snapshot, and the chunk
+       * indexes with it) for as long as it existed.
+       *
+       * They cannot be accepted retroactively: the parts arrive in SEPARATE
+       * requests, so no single job ever holds the whole snapshot, and a
+       * fragment cannot be run through the scrubber - storing one would mean
+       * writing unscrubbed end-user content. So they are refused, by name, and
+       * the recorder that produced them is named in the log. Recorders are
+       * version-pinned by the config endpoint, so this drains within one
+       * config TTL of a deploy.
+       */
+      if (envelope.snapshotPart && envelope.snapshotPart.total > 1) {
+        this.recordDrop("snapshot-fragment-unsupported");
+        logger.warn(
+          `SessionReplayIngestService: refused snapshot fragment ${
+            envelope.snapshotPart.index + 1
+          }/${envelope.snapshotPart.total} of chunk ${
+            envelope.chunkIndex
+          } (session ${envelope.sessionId}, recorder ${
+            envelope.recorderVersion
+          }). Fragments are never reassembled; upgrade the recorder artifact.`,
+        );
+        continue;
+      }
 
       /*
        * Consent is asserted by the recorder and verified here, so a

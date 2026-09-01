@@ -704,6 +704,66 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     (isSessionErased as jest.Mock).mockResolvedValue(false as never);
   });
 
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * Recorders up to 12.0.x cut an oversized FullSnapshot into raw slices of
+   * the array text and posted each slice as its own chunk index, tagged
+   * snapshotPart {index, total}. Nothing here ever concatenated them, so every
+   * slice fell through decodePayload's JSON.parse and was dropped as
+   * "payload-undecodable" - a label that described the parse and hid the
+   * cause. The recorder no longer produces fragments at all (Chunker
+   * .emitOversizedEvent); these tests pin what happens to the ones still in
+   * flight from a cached bundle.
+   */
+  describe("legacy split-snapshot fragments", () => {
+    test("refuses a fragment rather than storing an unparseable slice", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 3, snapshotPart: { index: 0, total: 2 } }]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+    });
+
+    /*
+     * Only a MULTI-part tag means a fragment. total 1 is a whole event that a
+     * recorder happened to label, and refusing it would throw away a chunk
+     * that decodes perfectly well.
+     */
+    test("accepts a single-part chunk, which is not a fragment", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0, snapshotPart: { index: 0, total: 1 } }]),
+        ),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+    });
+
+    test("refuses the fragment WITHOUT losing the whole chunks beside it", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            { chunkIndex: 0 },
+            { chunkIndex: 1, snapshotPart: { index: 0, total: 2 } },
+            { chunkIndex: 2, snapshotPart: { index: 1, total: 2 } },
+            { chunkIndex: 3 },
+          ]),
+        ),
+      );
+
+      const rows: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+      expect(
+        rows.map((row: JSONObject): unknown => {
+          return row["chunkIndex"];
+        }),
+      ).toEqual([0, 3]);
+    });
+  });
+
   describe("erasure tombstone", () => {
     /*
      * A chunk can be staged in Redis, or sitting in the queue, at the moment

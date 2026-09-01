@@ -1,6 +1,7 @@
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_FLUSH_BYTES,
+  SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
   SessionReplayFidelityNotice,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
@@ -96,62 +97,15 @@ export function utf8ByteLength(value: string): number {
   return bytes;
 }
 
-/*
- * Cut a string into pieces of at most maxBytes UTF-8 bytes each, never
- * between the two halves of a surrogate pair.
- *
- * Slicing by code unit split emoji and other astral characters down the
- * middle, and because each part is UTF-8 encoded INDEPENDENTLY before it goes
- * on the wire, both halves of a broken pair became U+FFFD - so the server's
- * reassembled snapshot was silently corrupted rather than failing loudly.
- * Cutting on code-point boundaries keeps every part independently valid,
- * which makes the reassembly correct whether the server concatenates the
- * decoded strings or the raw bytes.
- */
-export function splitByUtf8Bytes(
-  value: string,
-  maxBytes: number,
-): Array<string> {
-  if (value.length === 0) {
-    return [""];
-  }
-
-  const parts: Array<string> = [];
-  let start: number = 0;
-  let bytes: number = 0;
-  let index: number = 0;
-
-  while (index < value.length) {
-    const code: number = value.charCodeAt(index);
-    const isHighSurrogate: boolean =
-      code >= 0xd800 && code <= 0xdbff && index + 1 < value.length;
-    const next: number = isHighSurrogate ? value.charCodeAt(index + 1) : 0;
-    const isPair: boolean = isHighSurrogate && next >= 0xdc00 && next <= 0xdfff;
-
-    const width: number = isPair ? 2 : 1;
-    const cost: number = utf8ByteLength(value.slice(index, index + width));
-
-    if (bytes + cost > maxBytes && index > start) {
-      parts.push(value.slice(start, index));
-      start = index;
-      bytes = 0;
-    }
-
-    bytes += cost;
-    index += width;
-  }
-
-  parts.push(value.slice(start));
-
-  return parts;
-}
-
 export interface PendingChunk {
   /*
-   * The chunk body before compression. Normally a complete JSON array of
-   * rrweb events. For a split snapshot (see below) it is a FRAGMENT of that
-   * array's text, and the receiving side must concatenate the parts by
-   * chunkIndex before parsing.
+   * The chunk body before compression: always a COMPLETE JSON array of rrweb
+   * events, so a chunk can be decoded on its own.
+   *
+   * It used to be allowed to be a raw fragment of that array's text, for the
+   * one case of an oversized indivisible snapshot, on the understanding that
+   * the receiving side would concatenate the parts by chunkIndex before
+   * parsing. Nothing ever did — see emitOversizedEvent.
    */
   payload: string;
 
@@ -163,11 +117,6 @@ export interface PendingChunk {
 
   hasFullSnapshot: boolean;
   isFinal: boolean;
-
-  snapshotPart?: {
-    index: number;
-    total: number;
-  };
 
   signals: SessionReplaySignalCounts;
   fidelityNotices: Array<string>;
@@ -280,16 +229,16 @@ export default class Chunker {
     }
 
     /*
-     * A FullSnapshot is ONE indivisible rrweb event: it cannot be split
-     * across chunks and still parse. On a large DOM it can exceed the flush
-     * threshold on its own, so it gets its own multi-part chunk sequence
-     * with hasFullSnapshot set on the final part only. Without this, a seek
-     * anchor would point at a chunk holding half a snapshot and the player
-     * would rebuild a partial DOM.
+     * A FullSnapshot is ONE indivisible rrweb event: it cannot be cut in half
+     * and still parse. On a large DOM it can exceed the flush threshold on its
+     * own, so it gets a chunk to ITSELF, over the threshold. The threshold is
+     * a flush cadence, not a wire limit — the wire limits are
+     * MAX_SESSION_REPLAY_CHUNK_BYTES post-compression and
+     * SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES raw, and the recorder gzips.
      */
     if (event.bytes + 2 > this.maxPayloadBytes) {
       this.close(false);
-      this.emitSplitEvent(event);
+      this.emitOversizedEvent(event);
       return;
     }
 
@@ -407,54 +356,75 @@ export default class Chunker {
   }
 
   /*
-   * Split one oversized event across as many chunks as it needs.
+   * Emit one indivisible event that is bigger than the flush threshold, whole,
+   * in a chunk of its own.
    *
-   * The parts carry raw slices of the array text, so only the concatenation
-   * of all parts is valid JSON. snapshotPart tells the receiving side how
-   * many to expect, and hasFullSnapshot is set only on the last one so no
-   * seek anchor ever points into the middle of a snapshot.
+   * This used to CUT the event into `maxPayloadBytes` slices of raw array
+   * text, tagged with snapshotPart {index, total}, on the stated
+   * understanding that "the receiving side must concatenate the parts by
+   * chunkIndex before parsing". Nothing on the receiving side ever did.
+   * SessionReplayIngestService.decodePayload JSON.parses every frame on its
+   * own, so each part threw and was dropped as an undecodable payload — and
+   * because the recorder had already minted a chunk index for each one, the
+   * indexes stayed missing forever. The dashboard reported them honestly ("8
+   * chunks missing", gaps on the scrubber) and the recording lost precisely
+   * the FullSnapshot it needed to be replayable, on every page whose DOM
+   * serialises to more than the flush threshold. Splitting could not be
+   * repaired in the recorder alone either: the parts arrive in separate
+   * requests, and a fragment cannot be scrubbed, so the server could not
+   * safely store one even if it did reassemble them.
+   *
+   * So: no fragments. A complete chunk over the flush threshold costs one
+   * larger POST and is decodable on its own. Past the ceiling the worker will
+   * actually inflate, the event is dropped WITH a disclosure — a snapshot the
+   * viewer is told about is strictly better than a hole nothing reports.
    */
-  private emitSplitEvent(event: BufferedEvent): void {
-    const body: string = `[${event.json}]`;
-    const slices: Array<string> = splitByUtf8Bytes(body, this.maxPayloadBytes);
-    const partCount: number = slices.length;
+  private emitOversizedEvent(event: BufferedEvent): void {
+    if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents++;
+      this.emitTruncationChunk();
+      return;
+    }
+
+    const payload: string = `[${event.json}]`;
+    const rawBytes: number = utf8ByteLength(payload);
+
+    if (rawBytes > SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES) {
+      /*
+       * No chunk index is minted here: add() has not called the sink, so the
+       * sequence stays contiguous and the session simply has one fewer seek
+       * anchor. The notice rides the next chunk that closes.
+       */
+      this.droppedEvents++;
+      this.addFidelityNotice(SessionReplayFidelityNotice.SnapshotTooLarge);
+      return;
+    }
+
     const offsetMs: number = this.getOffset(event.timestampMs);
 
-    for (let index: number = 0; index < partCount; index++) {
-      if (this.hasReachedSessionChunkCap()) {
-        this.droppedEvents++;
-        this.emitTruncationChunk();
-        return;
-      }
+    this.closedChunkCount++;
 
-      const slice: string = slices[index] as string;
+    this.sink({
+      payload: payload,
+      rawBytes: rawBytes,
+      eventCount: 1,
+      chunkStartOffsetMs: offsetMs,
+      chunkEndOffsetMs: offsetMs,
 
-      const isLastPart: boolean = index === partCount - 1;
+      /*
+       * The event is alone in this chunk, so nothing replayable precedes the
+       * snapshot and it is a valid seek anchor - the property the old
+       * last-part-only rule was reaching for.
+       */
+      hasFullSnapshot: event.type === EVENT_TYPE_FULL_SNAPSHOT,
+      isFinal: false,
+      signals: this.signals,
+      fidelityNotices: Array.from(this.fidelityNotices),
+      traceIds: Array.from(this.traceIds),
+      routes: Array.from(this.routes),
+    });
 
-      this.closedChunkCount++;
-
-      this.sink({
-        payload: slice,
-        rawBytes: utf8ByteLength(slice),
-
-        /*
-         * Only the last part reports the event, so summing eventCount over
-         * the session does not multiply-count one snapshot.
-         */
-        eventCount: isLastPart ? 1 : 0,
-        chunkStartOffsetMs: offsetMs,
-        chunkEndOffsetMs: offsetMs,
-        hasFullSnapshot: isLastPart && event.type === EVENT_TYPE_FULL_SNAPSHOT,
-        isFinal: false,
-        snapshotPart: { index: index, total: partCount },
-        signals: this.signals,
-        fidelityNotices: Array.from(this.fidelityNotices),
-        traceIds: Array.from(this.traceIds),
-        routes: Array.from(this.routes),
-      });
-
-      this.resetPerChunkCounters();
-    }
+    this.resetPerChunkCounters();
   }
 
   /*

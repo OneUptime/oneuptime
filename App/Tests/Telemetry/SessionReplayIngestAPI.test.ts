@@ -161,6 +161,7 @@ jest.mock("Common/Server/Services/RumApplicationService", () => {
     __esModule: true,
     default: {
       markSessionReplayChunkReceived: jest.fn(),
+      updateLastSeen: jest.fn(),
       markSessionReplayBudgetExceeded: jest.fn(),
     },
   };
@@ -225,6 +226,8 @@ const markChunkReceivedMock: MockedFn =
   RumApplicationService.markSessionReplayChunkReceived as unknown as MockedFn;
 const markBudgetExceededMock: MockedFn =
   RumApplicationService.markSessionReplayBudgetExceeded as unknown as MockedFn;
+const updateLastSeenMock: MockedFn =
+  RumApplicationService.updateLastSeen as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
@@ -404,6 +407,7 @@ describe("POST /session-replay/v1/chunk", () => {
     addJobMock.mockResolvedValue(undefined as never);
     markChunkReceivedMock.mockResolvedValue(undefined as never);
     markBudgetExceededMock.mockResolvedValue(undefined as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
     gateMock.mockResolvedValue({
       outcome: SessionReplayGateOutcome.Accepted,
       directive: "continue",
@@ -494,6 +498,66 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(markChunkReceivedMock).toHaveBeenCalledTimes(1);
     expect(markChunkReceivedMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
     expect(markBudgetExceededMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * REGRESSION: github.com/OneUptime/oneuptime/issues/3527.
+   *
+   * updateLastSeen used to be reachable only from the OTel ingest path, so an
+   * application instrumented with the replay snippet alone was flipped to
+   * "disconnected" by markDisconnectedApplications fifteen minutes after
+   * whatever OTel batch last touched it - while its recorders were posting
+   * chunks to this very route. The Dashboard showed "Disconnected" and a Last
+   * Seen days old, which is what somebody reads before concluding their
+   * install is broken.
+   */
+  test("an accepted chunk keeps the RUM application connected", async () => {
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(202);
+    expect(updateLastSeenMock).toHaveBeenCalledTimes(1);
+    expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+  });
+
+  /*
+   * Liveness is written AFTER the enqueue, for the same reason recording
+   * health is: a chunk that could not be staged did not land, and a 503 that
+   * still refreshed lastSeenAt would report a storage outage as health.
+   */
+  test("does not refresh liveness when staging failed", async () => {
+    addJobMock.mockRejectedValue(new Error("redis down") as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(503);
+    expect(updateLastSeenMock).not.toHaveBeenCalled();
+  });
+
+  test("a refused chunk does not refresh liveness", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Stop,
+      directive: "stop",
+      configEpoch: 7,
+      reason: "not-sampled",
+      policy: { samplePercentage: 0, rumApplicationId: RUM_APPLICATION_ID },
+    } as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(res.statusCode).toBe(204);
+    expect(updateLastSeenMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A liveness write that throws must never reach the response. It is
+   * bookkeeping; the chunk has already been staged.
+   */
+  test("a failed liveness write still answers 202", async () => {
+    updateLastSeenMock.mockRejectedValue(new Error("postgres down") as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(202);
   });
 
   test("records budget exhaustion on the application so the Dashboard can explain the silence", async () => {

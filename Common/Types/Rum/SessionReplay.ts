@@ -36,6 +36,27 @@ export const MAX_SESSION_REPLAY_CHUNK_BYTES: number = 2 * 1024 * 1024;
 export const MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST: number = 8;
 
 /*
+ * Largest DECOMPRESSED payload the ingest worker will inflate for one frame,
+ * and therefore the largest single indivisible rrweb event the recorder may
+ * put on the wire.
+ *
+ * The two numbers have to be the same number, which is why this lives in
+ * Common rather than in either side. A FullSnapshot is one rrweb event: it
+ * cannot be cut in half and still parse, so when it is bigger than the flush
+ * threshold the recorder posts it whole in a chunk of its own rather than
+ * cutting it. That is only safe while the recorder's ceiling is exactly the
+ * worker's — a recorder willing to send more than the worker will inflate
+ * produces a chunk that is accepted, queued, and then dropped at decode time,
+ * leaving a hole in the chunk sequence with nothing anywhere reporting it.
+ *
+ * Compression is what makes the number affordable: a snapshot this size gzips
+ * to a small fraction of MAX_SESSION_REPLAY_CHUNK_BYTES, which is the cap on
+ * the bytes actually posted.
+ */
+export const SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES: number =
+  8 * 1024 * 1024;
+
+/*
  * Hard stop per session. At the 15s flush cadence this is ~2 hours of
  * continuous recording, comfortably past the 4-hour session cap once
  * idle gaps are accounted for. Prevents one pathological tab from
