@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class RunbookLabelRuleEngineServiceClass {
   /**
@@ -39,6 +40,12 @@ class RunbookLabelRuleEngineServiceClass {
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "RunbookLabelRule",
+        projectId: runbook.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;

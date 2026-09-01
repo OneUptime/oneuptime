@@ -13,6 +13,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import MonitorService from "./MonitorService";
 import IncidentService from "./IncidentService";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -132,11 +134,17 @@ export class Service extends DatabaseService<Model> {
         incidentTitlePattern: true,
         incidentDescriptionPattern: true,
       },
-      limit: 100,
+      limit: MAX_RULES_EVALUATED_PER_PROJECT,
       skip: 0,
       props: {
         isRoot: true,
       },
+    });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentSlaRule",
+      projectId: data.projectId,
+      rulesRead: rules.length,
     });
 
     if (rules.length === 0) {

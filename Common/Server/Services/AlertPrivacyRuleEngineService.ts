@@ -12,6 +12,7 @@ import { Red500 } from "../../Types/BrandColors";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class AlertPrivacyRuleEngineServiceClass {
   /**
@@ -55,6 +56,12 @@ class AlertPrivacyRuleEngineServiceClass {
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "AlertPrivacyRule",
+        projectId: alert.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return false;

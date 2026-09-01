@@ -11,6 +11,7 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 /*
  * Bounds on one manual "Run now" of a label rule. The automatic path only
@@ -69,6 +70,12 @@ class NetworkDeviceLabelRuleEngineServiceClass {
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "NetworkDeviceLabelRule",
+        projectId: networkDevice.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;

@@ -36,6 +36,7 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -220,6 +221,12 @@ class AutoRemediationRuleEngineServiceClass {
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
       });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "AutoRemediationRule",
+      projectId: data.projectId,
+      rulesRead: rules.length,
+    });
 
     if (rules.length === 0) {
       return;

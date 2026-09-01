@@ -28,6 +28,8 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Green500 } from "../../Types/BrandColors";
+import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -127,9 +129,15 @@ class IncidentGroupingEngineServiceClass {
             },
             episodeMemberRoleAssignments: true,
           },
-          limit: 100,
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncidentGroupingRule",
+        projectId: incident.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         logger.debug(

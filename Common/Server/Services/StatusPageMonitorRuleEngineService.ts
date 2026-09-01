@@ -11,6 +11,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import MonitorService from "./MonitorService";
 import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 import StatusPageResourceService from "./StatusPageResourceService";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 /**
  * What a sync did, so callers (and tests) can assert on the outcome without
@@ -221,6 +222,12 @@ export class StatusPageMonitorRuleEngineServiceClass {
           isRoot: true,
         },
       });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "StatusPageMonitorRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
 
     const results: Array<StatusPageMonitorRuleSyncResult> = [];
 

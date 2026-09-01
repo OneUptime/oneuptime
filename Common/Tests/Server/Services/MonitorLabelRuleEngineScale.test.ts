@@ -7,6 +7,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../../Models/DatabaseModels/MonitorLabelRule";
 import ObjectID from "../../../Types/ObjectID";
+import logger from "../../../Server/Utils/Logger";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../Utils/Rules/RuleEngineLimits";
 import { describe, expect, it, afterEach } from "@jest/globals";
@@ -262,6 +263,67 @@ describe("MonitorLabelRuleEngineService - rule fetch is not capped at 100", () =
     await MonitorLabelRuleEngineService.applyRulesToMonitor(ruleTarget());
 
     expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The ceiling is only a ceiling if crossing it is audible. A read that
+   * comes back exactly full is indistinguishable from a truncated one, so it
+   * has to be reported - otherwise 10,000 is the old 100-rule cliff moved
+   * 100x further out, and the next #3506 arrives the same way this one did:
+   * as a customer noticing bare monitors, with nothing in the logs.
+   */
+  it("logs an error when the read comes back at the ceiling", async () => {
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+
+    mockRuleFetch(
+      projectWithRules({
+        ruleCount: MAX_RULES_EVALUATED_PER_PROJECT,
+        matchingIndex: 0,
+      }),
+    );
+    jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue(fakeMonitorDetails());
+    mockLabelAttach();
+    mockFeedItem();
+
+    await MonitorLabelRuleEngineService.applyRulesToMonitor(ruleTarget());
+
+    const truncationLogs: Array<unknown> = errorSpy.mock.calls.filter(
+      (call: Array<unknown>) => {
+        return (
+          typeof call[0] === "string" && call[0].includes("MonitorLabelRule")
+        );
+      },
+    );
+
+    expect(truncationLogs).toHaveLength(1);
+    expect(String(truncationLogs[0])).toContain("NOT being evaluated");
+  });
+
+  // ...and stays quiet for the project size that actually broke.
+  it("stays silent at the reporter's 1,243 rules", async () => {
+    const errorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+
+    mockRuleFetch(
+      projectWithRules({
+        ruleCount: RULES_IN_PROJECT,
+        matchingIndex: 1200,
+      }),
+    );
+    jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue(fakeMonitorDetails());
+    mockLabelAttach();
+    mockFeedItem();
+
+    await MonitorLabelRuleEngineService.applyRulesToMonitor(ruleTarget());
+
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   /*

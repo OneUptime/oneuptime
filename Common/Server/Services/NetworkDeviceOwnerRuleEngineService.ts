@@ -12,6 +12,7 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class NetworkDeviceOwnerRuleEngineServiceClass {
   /**
@@ -49,6 +50,12 @@ class NetworkDeviceOwnerRuleEngineServiceClass {
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "NetworkDeviceOwnerRule",
+        projectId: networkDevice.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;

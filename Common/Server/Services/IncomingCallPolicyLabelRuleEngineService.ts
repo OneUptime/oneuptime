@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class IncomingCallPolicyLabelRuleEngineServiceClass {
   @CaptureSpan()
@@ -36,6 +37,12 @@ class IncomingCallPolicyLabelRuleEngineServiceClass {
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,
         });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "IncomingCallPolicyLabelRule",
+        projectId: policy.projectId,
+        rulesRead: rules.length,
+      });
 
       if (rules.length === 0) {
         return;
