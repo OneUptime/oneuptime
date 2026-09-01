@@ -18,7 +18,8 @@ import ObjectID from "Common/Types/ObjectID";
  *      ingest maintenance fence TTL so healthy clusters never flap).
  *   2. For each CONNECTED cluster, hard-delete KubernetesResource
  *      rows whose last snapshot is older than the stale threshold
- *      (default 15 minutes = 3x snapshot interval).
+ *      (default 15 minutes = 3x snapshot interval; override with
+ *      K8S_INVENTORY_STALE_MINUTES, minimum 5).
  *
  * Skipping disconnected clusters is deliberate: during a transient
  * agent outage we want to preserve the last-known inventory rather
