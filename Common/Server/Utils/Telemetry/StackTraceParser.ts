@@ -1,6 +1,11 @@
 /**
  * Stack trace parser that transforms raw stack trace strings into structured frames.
  * Supports JavaScript/Node.js, Python, Java, Go, Ruby, C#/.NET, and PHP stack traces.
+ *
+ * JavaScript is covered twice, because the engines do not agree on a format:
+ * V8 (Chrome, Edge, Node) writes `at fn (file:line:col)`, while SpiderMonkey
+ * (Firefox) and JavaScriptCore (Safari) write `fn@source:line:col`. See
+ * parseJavaScript and parseJavaScriptBrowser respectively.
  */
 
 export interface StackFrame {
@@ -66,7 +71,159 @@ const LIBRARY_PATTERNS: Array<RegExp> = [
   // PHP
   /\/vendor\//,
   /^phar:\/\//,
+  /*
+   * Browser engines and extensions. Frames sourced from an extension, from a
+   * `resource:`/`chrome:` internal, from a WebAssembly module or from one of
+   * SpiderMonkey's / JavaScriptCore's pseudo-sources are never the page's own
+   * code, so they must not be highlighted as in-app.
+   */
+  /^moz-extension:/,
+  /^chrome-extension:/,
+  /^safari-web-extension:/,
+  /^safari-extension:/,
+  /^ms-browser-extension:/,
+  /^resource:/,
+  /^chrome:/,
+  /^about:/,
+  /^jar:/,
+  /^wasm:/,
+  /^self-hosted$/,
+  /^\[native code\]$/,
+  /^\[wasm code\]$/,
 ];
+
+/*
+ * ---------------------------------------------------------------------------
+ * Firefox (SpiderMonkey) / Safari (JavaScriptCore) frame grammar.
+ *
+ * Neither engine writes V8's `at fn (file:line:col)`. Both write
+ *
+ *     [asyncCause*]functionName@source:line[:column]
+ *
+ * with the function name optional (`@https://…` is every Firefox top-level
+ * frame) and the location sometimes absent entirely (`map@[native code]` in
+ * Safari). Because the source is a URL it carries colons of its own — the
+ * `https:`, a `:port`, a nested `blob:https:` — so the line and column are
+ * peeled off the RIGHT, never by splitting on the first colon.
+ *
+ * These constants are the grammar; parseBrowserFrame() composes them.
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * The longest source a browser reports is a data: URL. Longer lines are
+ * skipped rather than handed to the regex engine — exception.stacktrace is
+ * attacker-influenceable and reaches this parser on the ingest hot path.
+ */
+const BROWSER_MAX_FRAME_LINE_LENGTH: number = 4096;
+const BROWSER_MAX_FUNCTION_NAME_LENGTH: number = 256;
+
+/*
+ * A real frame has one `@`, but a URL may carry userinfo (`https://u:p@cdn/…`)
+ * and a name may be a quoted property key (`obj["a@b"]`), so the split point is
+ * found by trying each `@` left to right until one yields a valid source. The
+ * bound keeps a line of nothing but `@` off the retry loop.
+ */
+const BROWSER_MAX_AT_SPLITS: number = 8;
+
+// V8 frames belong to parseJavaScript. Never double-claim one.
+const V8_FRAME_PREFIX: RegExp = /^at\s/;
+
+/*
+ * Schemes a browser can legitimately name as a frame source. An allowlist on
+ * purpose: together with BROWSER_FUNCTION_NAME it is the clause that stops
+ * ordinary log prose from reading as a stack frame — `git@github.com:22:1`,
+ * `deploy@prod:8080:1` and `/app/node_modules/@scope/pkg/index.js:10:5` all
+ * fail here because what follows the `@` names no scheme. Extend it when a new
+ * engine or embedder scheme shows up in the wild.
+ */
+const BROWSER_SOURCE_SCHEME: RegExp =
+  /^(?:https?|file|blob|data|webpack(?:-internal)?|moz-extension|chrome-extension|safari-web-extension|safari-extension|ms-browser-extension|resource|chrome|about|jar|view-source|capacitor|ionic|wasm):/i;
+
+/*
+ * `scheme://authority` with no path left — what remains when a URL's `:port`
+ * is peeled as if it were a line number (`@http://127.0.0.1:8080`). A real
+ * frame always has a path after the host, so this shape is always a mis-peel.
+ */
+const BROWSER_BARE_AUTHORITY: RegExp =
+  /^[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/[^/]*$/;
+
+/*
+ * JavaScriptCore's native pseudo-source. A real frame, but it has no location
+ * and can never be matched to a bundle.
+ */
+const BROWSER_NATIVE_SOURCE: RegExp = /^\[(?:native|wasm) code\]$/;
+
+// SpiderMonkey's source for a self-hosted builtin: `next@self-hosted:1154:9`.
+const BROWSER_SELF_HOSTED_SOURCE: string = "self-hosted";
+
+/*
+ * Peel `:line:column` — or just `:line` — off the RIGHT of the source. `(.*)`
+ * is greedy, so it keeps every earlier colon (the `https:`, the `:port`, the
+ * colons inside a data: URL) and only the trailing numeric groups are taken.
+ * Both groups are digit-bounded, so neither can backtrack across the line.
+ */
+const BROWSER_LOCATION_WITH_COLUMN: RegExp = /^(.*):(\d{1,9}):(\d{1,9})$/;
+const BROWSER_LOCATION_LINE_ONLY: RegExp = /^(.*):(\d{1,9})$/;
+
+/*
+ * Firefox <= 29 and Safari <= 6 emitted `fn@url:line` with no column — which
+ * is also the shape of a logged URL that merely ends in a number
+ * (`notify@https://hooks.slack.com/services/T000:200`). Requiring the source
+ * to name a script is what tells the two apart.
+ */
+const BROWSER_SCRIPT_EXTENSION: RegExp =
+  /\.(?:m?js|cjs|jsx|m?ts|tsx|html?|vue|svelte|astro)(?:[?#]|$)/i;
+
+/*
+ * Firefox decorates the source of code introduced by another script:
+ * `<introducer> line <N> > <kind>`, nested for nested evals, e.g.
+ * `https://x/app.js line 12 > eval line 1 > eval`. The FIRST occurrence is the
+ * boundary: everything before it is the real file and its N is the line in
+ * that file, which is the only position a source map can resolve. A URL cannot
+ * contain a literal space, so this can never fire on an ordinary source.
+ */
+const BROWSER_EVAL_INTRODUCER: RegExp = / line (\d{1,9}) > /;
+
+/*
+ * The function-name field — everything before the `@`.
+ *
+ * Firefox prefixes an async frame with `<cause>*`, where the cause may contain
+ * spaces (`promise callback*fetchAll`, `setTimeout handler*poll`), and that
+ * prefix composes with any name — including an accessor, which is why the
+ * prefix is a separate optional group rather than its own alternative. A
+ * getter that registers a promise callback really does arrive as
+ * `promise callback*get profile@…`.
+ *
+ * The name itself is JavaScriptCore's `global code` family, an ES2015 accessor
+ * or bound name (`get fullName`, `bound save`), or any single whitespace-free
+ * token — which is what carries Firefox's composed display names
+ * (`Foo.prototype.render`, `initGrid/</<`, `[16]</Grid.prototype.draw/<`). It
+ * is optional so that an anonymous async frame (`async*@url:1:1`) still parses.
+ *
+ * No alternative admits a colon, and only the accessor, `… code` and async
+ * forms admit a space. Those two exclusions are load-bearing — they are what
+ * reject `notified on-call engineer jane@https://status.example.com/app.js:1:2`
+ * (spaces) and `Connection string: svc@https://db.example.com/app.js:1:1`
+ * (colon), both of which name a perfectly valid source.
+ */
+const BROWSER_FUNCTION_NAME: RegExp =
+  /^(?:[A-Za-z][A-Za-z0-9 ]{0,31}\*)?(?:(?:global|module|eval|function) code|(?:get|set|bound) [^\s:]{1,200}|[^\s:]{1,256})?$/;
+
+/**
+ * A parsed Firefox/Safari frame plus the evidence parseJavaScriptBrowser needs
+ * to decide whether the stack as a whole really is a browser stack.
+ */
+interface BrowserFrameCandidate {
+  frame: StackFrame;
+  /*
+   * True only for a frame that could not plausibly be anything else: an
+   * explicit `@`, a source with a real URL scheme, and a line number. A
+   * pseudo-source frame (`map@[native code]`) is not an anchor — it carries no
+   * URL and no digits, so on its own it is far too easy to forge.
+   */
+  isAnchor: boolean;
+}
 
 export default class StackTraceParser {
   /**
@@ -91,6 +248,13 @@ export default class StackTraceParser {
       StackTraceParser.parseRuby,
       StackTraceParser.parseCSharp,
       StackTraceParser.parsePHP,
+      /*
+       * Firefox/Safari must stay LAST. The election below keeps the first
+       * parser to reach a given frame count, so a parser at the end can only
+       * win by producing strictly more frames than every language before it —
+       * it can never take a tie away from the incumbent.
+       */
+      StackTraceParser.parseJavaScriptBrowser,
     ];
 
     let bestFrames: StackFrame[] = [];
@@ -419,5 +583,240 @@ export default class StackTraceParser {
     }
 
     return frames;
+  }
+  /**
+   * Parse Firefox (SpiderMonkey) / Safari (JavaScriptCore) stack traces.
+   * Format: `functionName@source:line:col`, `@source:line:col` (anonymous),
+   * `fn@[native code]` (Safari), `async*fn@source:line:col` (Firefox async).
+   *
+   * Registered LAST in parse()'s parsers array on purpose. That election keeps
+   * the first parser to reach a frame count, so a parser appended at the end
+   * can only win by producing strictly more frames than every language before
+   * it — it can never take a tie away from the incumbent. A Ruby stack with a
+   * couple of browser-shaped lines in it therefore stays Ruby.
+   *
+   * Deliberately NOT accepted, because each one is indistinguishable from
+   * ordinary log text and this parser is fed arbitrary ERROR log bodies:
+   *   - a bare `url:line:col` with no `@` (Safari <= 9 top-level frames), and
+   *     bare `[native code]` / `global code` lines carrying no `@` at all;
+   *   - a source naming no scheme, which is the shape of React Native's
+   *     JavaScriptCore bundles and of `//# sourceURL=` pragma names;
+   *   - a scheme outside BROWSER_SOURCE_SCHEME, such as Angular JIT's `ng:///`.
+   */
+  private static parseJavaScriptBrowser(lines: string[]): StackFrame[] {
+    const frames: StackFrame[] = [];
+    let anchorCount: number = 0;
+
+    for (const line of lines) {
+      if (line.length === 0 || line.length > BROWSER_MAX_FRAME_LINE_LENGTH) {
+        continue;
+      }
+
+      if (V8_FRAME_PREFIX.test(line)) {
+        continue;
+      }
+
+      const candidate: BrowserFrameCandidate | null =
+        StackTraceParser.parseBrowserFrame(line);
+
+      if (!candidate) {
+        continue;
+      }
+
+      if (candidate.isAnchor) {
+        anchorCount++;
+      }
+
+      frames.push(candidate.frame);
+    }
+
+    /*
+     * A pseudo-source frame carries no URL and no digits, so two forged
+     * `x@[native code]` lines must not be able to out-count and evict a real
+     * Ruby or Python stack in parse()'s election. Nothing is trusted until the
+     * stack has produced at least one unambiguous `name@<url>:line` frame.
+     */
+    if (anchorCount === 0) {
+      return [];
+    }
+
+    return frames;
+  }
+
+  /**
+   * Split one Firefox/Safari frame line at its `@` and parse the source.
+   *
+   * The split point is searched left to right rather than taken at the first
+   * or last `@`, because both sides may legitimately contain one: a URL may
+   * carry userinfo (`send@https://user:pw@cdn.example.com/sdk.js:1:9033`) and
+   * a name may be a quoted property key (`obj["a@b"]@https://x/app.js:3:11`).
+   * The first split whose right-hand side parses as a source wins.
+   */
+  private static parseBrowserFrame(line: string): BrowserFrameCandidate | null {
+    let searchFrom: number = 0;
+
+    for (let attempt: number = 0; attempt < BROWSER_MAX_AT_SPLITS; attempt++) {
+      const atIndex: number = line.indexOf("@", searchFrom);
+
+      if (atIndex < 0) {
+        return null;
+      }
+
+      searchFrom = atIndex + 1;
+
+      const functionName: string = line.substring(0, atIndex);
+      const source: string = line.substring(atIndex + 1);
+
+      if (functionName.length > BROWSER_MAX_FUNCTION_NAME_LENGTH) {
+        continue;
+      }
+
+      // An empty name is the anonymous/top-level frame Firefox emits as `@url`.
+      if (
+        functionName.length > 0 &&
+        !BROWSER_FUNCTION_NAME.test(functionName)
+      ) {
+        continue;
+      }
+
+      const candidate: BrowserFrameCandidate | null =
+        StackTraceParser.parseBrowserSource(functionName, source);
+
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Turn the right-hand side of a browser frame into a StackFrame, or return
+   * null when it does not name a location a browser could have reported.
+   */
+  private static parseBrowserSource(
+    functionName: string,
+    source: string,
+  ): BrowserFrameCandidate | null {
+    /*
+     * The async cause and the closure suffixes are kept verbatim
+     * (`async*loadUser`, `initGrid/<`): they are what distinguishes two
+     * otherwise identical rows in the frame viewer, they match the raw stack
+     * rendered beside it, and StackFrame has no field to move them to.
+     */
+    const displayName: string =
+      functionName.length > 0 ? functionName : "<anonymous>";
+
+    // Safari: `map@[native code]` — a real frame with no location at all.
+    if (BROWSER_NATIVE_SOURCE.test(source)) {
+      return {
+        frame: {
+          functionName: displayName,
+          fileName: source,
+          /*
+           * StackFrame.lineNumber is not optional, and 0 is already the
+           * file-less sentinel parseJava uses for `(Native Method)`.
+           * SourceMapResolver skips any frame with lineNumber < 1, so this
+           * frame renders but is never probed against a source map.
+           */
+          lineNumber: 0,
+          inApp: false,
+        },
+        isAnchor: false,
+      };
+    }
+
+    let fileName: string = "";
+    let lineNumber: number = 0;
+    let columnNumber: number | undefined = undefined;
+
+    const withColumn: RegExpMatchArray | null = source.match(
+      BROWSER_LOCATION_WITH_COLUMN,
+    );
+
+    if (withColumn) {
+      fileName = withColumn[1]!;
+      lineNumber = parseInt(withColumn[2]!, 10);
+      columnNumber = parseInt(withColumn[3]!, 10);
+    } else {
+      const lineOnly: RegExpMatchArray | null = source.match(
+        BROWSER_LOCATION_LINE_ONLY,
+      );
+
+      if (!lineOnly) {
+        return null;
+      }
+
+      fileName = lineOnly[1]!;
+      lineNumber = parseInt(lineOnly[2]!, 10);
+    }
+
+    /*
+     * Firefox: `https://x/app.js line 12 > eval:1:5`. The eval'd text has no
+     * URL and no source map of its own; the only resolvable position is the
+     * introducer's — app.js line 12. The inner column belongs to the eval'd
+     * text, so it is dropped rather than reported against the wrong file.
+     */
+    const introducer: RegExpMatchArray | null = fileName.match(
+      BROWSER_EVAL_INTRODUCER,
+    );
+    let fromEvalIntroducer: boolean = false;
+
+    if (introducer && introducer.index !== undefined) {
+      lineNumber = parseInt(introducer[1]!, 10);
+      columnNumber = undefined;
+      fileName = fileName.substring(0, introducer.index);
+      fromEvalIntroducer = true;
+    }
+
+    if (lineNumber < 1) {
+      return null;
+    }
+
+    // Firefox self-hosted builtins: `next@self-hosted:1154:9`.
+    if (fileName === BROWSER_SELF_HOSTED_SOURCE) {
+      return {
+        frame: {
+          functionName: displayName,
+          fileName: fileName,
+          lineNumber: lineNumber,
+          ...(columnNumber === undefined ? {} : { columnNumber: columnNumber }),
+          inApp: false,
+        },
+        isAnchor: false,
+      };
+    }
+
+    if (
+      !BROWSER_SOURCE_SCHEME.test(fileName) ||
+      BROWSER_BARE_AUTHORITY.test(fileName)
+    ) {
+      return null;
+    }
+
+    /*
+     * A column-less frame is either a Firefox <= 29 / Safari <= 6 frame or a
+     * URL that happens to end in a number, and only the source can tell them
+     * apart. The `line N >` decoration is already unmistakable, so a frame that
+     * lost its column to an eval introducer is exempt.
+     */
+    if (
+      columnNumber === undefined &&
+      !fromEvalIntroducer &&
+      !BROWSER_SCRIPT_EXTENSION.test(fileName)
+    ) {
+      return null;
+    }
+
+    return {
+      frame: {
+        functionName: displayName,
+        fileName: fileName,
+        lineNumber: lineNumber,
+        ...(columnNumber === undefined ? {} : { columnNumber: columnNumber }),
+        inApp: StackTraceParser.isAppCode(fileName),
+      },
+      isAnchor: true,
+    };
   }
 }
