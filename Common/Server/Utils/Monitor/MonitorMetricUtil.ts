@@ -21,6 +21,10 @@ import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import PortMonitorTimings from "../../../Types/Monitor/PortMonitor/PortMonitorTimings";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import {
+  MAX_INTERFACE_METRIC_SERIES,
+  MAX_OID_METRIC_SERIES,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -956,7 +960,7 @@ export default class MonitorMetricUtil {
        */
       const interfacesToEmit: Array<SnmpInterface> = snmpInterfaces.slice(
         0,
-        200,
+        MAX_INTERFACE_METRIC_SERIES,
       );
 
       if (interfacesToEmit.length < snmpInterfaces.length) {
@@ -1042,10 +1046,17 @@ export default class MonitorMetricUtil {
     ).snmpResponse?.oidResponses;
 
     if (snmpOidResponses && snmpOidResponses.length > 0) {
-      // Same unbounded-write cap rationale as the interface block above.
+      /*
+       * Same unbounded-write cap rationale as the interface block above.
+       *
+       * Shared with NetworkDeviceMetricUtil rather than repeated as a
+       * literal: this is the monitor-scoped copy of the same emit, and the
+       * two caps have to move together or a device charts a different number
+       * of OIDs than the monitors watching it.
+       */
       const oidResponsesToEmit: Array<SnmpOidResponse> = snmpOidResponses.slice(
         0,
-        50,
+        MAX_OID_METRIC_SERIES,
       );
 
       if (oidResponsesToEmit.length < snmpOidResponses.length) {

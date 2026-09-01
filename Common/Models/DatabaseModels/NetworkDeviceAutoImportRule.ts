@@ -1,4 +1,5 @@
 import MonitorTemplate from "./MonitorTemplate";
+import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -550,6 +551,93 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorTemplateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceOidTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  /*
+   * The collect half of the pair, sitting beside the alert half above.
+   *
+   * Without it a template is only reachable by hand: a discovery scan would
+   * import a device, the vendor auto-apply would write a two-to-six OID copy
+   * onto it, and somebody would have to go back and bulk-assign the real
+   * template - after every scan, forever. That is the same per-device chore
+   * issue #3507 is about, just moved one step later. This is the OneUptime
+   * shape of Zabbix's "link template on host discovery" action.
+   */
+  @TableColumn({
+    manyToOneRelationColumn: "oidTemplateId",
+    type: TableColumnType.Entity,
+    modelType: NetworkDeviceOidTemplate,
+    title: "OID Collection Template",
+    description:
+      "Optional OID Collection Template to link to devices imported by this rule. The Monitor Template decides what those devices are ALERTED on; this decides what they COLLECT.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDeviceOidTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({
+    name: "oidTemplateId",
+  })
+  public oidTemplate?: NetworkDeviceOidTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceOidTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "OID Collection Template ID",
+    description:
+      "ID of the optional OID Collection Template to link to devices imported by this rule",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public oidTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

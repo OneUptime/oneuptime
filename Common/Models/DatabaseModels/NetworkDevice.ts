@@ -1,6 +1,7 @@
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
+import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import NetworkSite from "./NetworkSite";
 import Probe from "./Probe";
 import Project from "./Project";
@@ -116,6 +117,18 @@ import {
  * free to maintain and the alternative is a full scan per rollup.
  */
 @Index(["projectId", "siteId"])
+/*
+ * "Which devices use this OID Collection Template?" - the count on the
+ * template page, the Template column's filter on the device list, and the
+ * FK's own ON DELETE SET NULL scan.
+ *
+ * Project-prefixed and composite, like every other index on this table and
+ * for the reason written at the top of this block: a bare column index on a
+ * nullable FK is one btree entry per row of the product's hottest table,
+ * paid on every poll, to serve queries that all carry a projectId anyway.
+ * This is the same shape siteId gets above, and deliberately so.
+ */
+@Index(["projectId", "oidTemplateId"])
 /*
  * The other half of the Overview's attention list: reachable devices with the
  * most dark ports.
@@ -587,6 +600,103 @@ export default class NetworkDevice extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public siteId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "oidTemplateId",
+    type: TableColumnType.Entity,
+    modelType: NetworkDeviceOidTemplate,
+    title: "OID Collection Template",
+    description:
+      "The OID Collection Template this device collects, on top of any device-specific Health OIDs below. The link is live: editing the template changes what this device collects on its next poll.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDeviceOidTemplate;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "oidTemplateId" })
+  public oidTemplate?: NetworkDeviceOidTemplate = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  /*
+   * No column-level index here on purpose - the composite
+   * (projectId, oidTemplateId) declared at the top of the class serves every
+   * reader. See the comment there.
+   */
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "OID Collection Template ID",
+    description: "ID of the OID Collection Template this device collects",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public oidTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1474,9 +1584,9 @@ export default class NetworkDevice extends BaseModel {
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
-    title: "Health OIDs",
+    title: "Device-Specific Health OIDs",
     description:
-      "SNMP OIDs (CPU, memory, temperature, or any custom OID) collected on each poll. Values are recorded as metrics and can be alerted on through monitor criteria.",
+      "SNMP OIDs collected on each poll for this device ALONE, on top of whatever its OID Collection Template collects. Values are recorded as metrics and can be alerted on through monitor criteria. If several devices need the same OID, put it on a template instead.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -1608,7 +1718,7 @@ export default class NetworkDevice extends BaseModel {
     required: false,
     title: "Last Walk Log",
     description:
-      "The previous poll's raw walk response. Kept so interface rates (bandwidth, utilization, errors/sec) can be computed as counter deltas between polls. Managed by the server.",
+      "The previous poll's interface counters. Kept so interface rates (bandwidth, utilization, errors/sec) can be computed as counter deltas between polls, and stores nothing else - the rest of the walk response has no reader and this column is rewritten on every poll of every device. Managed by the server.",
   })
   @Column({
     type: ColumnType.JSON,

@@ -1186,6 +1186,12 @@ probes:
     # NETWORK_DEVICE_POLL_FETCH_LIMIT for fleets of many hundreds of devices
     # — between them the two set how fast a fleet can be polled.
     networkDevicePollConcurrency:
+    # How many SNMP OIDs this probe asks for in one GET. Unset uses the probe's
+    # own default (20). Every configured OID used to go into a single UDP
+    # datagram, so a long health-OID list answered tooBig and the DEVICE was
+    # reported offline; lower this only for an agent with an unusually small
+    # maximum message size.
+    snmpGetChunkSize:
     key:
     replicaCount: 1
     # Probes do not call the Kubernetes API. Keep cluster credentials out of

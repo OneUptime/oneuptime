@@ -34,6 +34,12 @@ import ScanTargetUtil from "./ScanTargetUtil";
  */
 export interface AutoImportRuleCandidate {
   monitorTemplateId?: ObjectID | string | null | undefined;
+  /*
+   * The OID Collection Template imported devices are LINKED to. Purely
+   * carried through the matcher: it never affects whether a host matches,
+   * only what the resulting device collects.
+   */
+  oidTemplateId?: ObjectID | string | null | undefined;
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;

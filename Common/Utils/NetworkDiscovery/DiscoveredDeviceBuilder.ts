@@ -119,6 +119,12 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * and decides, which is the existing contract for hand-made devices.
    */
   autoApplyVendorHealthTemplate?: boolean | undefined;
+  /*
+   * The OID Collection Template an auto-import rule linked this device to.
+   * Set at create so the device collects its type's OIDs from its very first
+   * poll, with nobody having to touch it afterwards.
+   */
+  oidTemplateId?: ObjectID | undefined;
 }): NetworkDevice {
   const host: DiscoveredNetworkDevice = data.host;
 
@@ -143,6 +149,10 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
      */
     device.isPollingEnabled = false;
     return device;
+  }
+
+  if (data.oidTemplateId) {
+    device.oidTemplateId = data.oidTemplateId;
   }
 
   if (data.autoApplyVendorHealthTemplate) {

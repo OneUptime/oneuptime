@@ -68,7 +68,8 @@ Polling settings live on the device (Device → **Settings** → **Polling & Dat
 | Polling Interval (Minutes)  | How often the probe polls the device. Minimum 1 minute.                                                                                                                   | 5       |
 | Walk Interfaces             | Walk the interface tables (IF-MIB) on each poll — per-interface status, bandwidth, utilization, and errors — plus LLDP/CDP neighbors for the topology map.                | On      |
 | Collect Connected Endpoints | Also walk the device's ARP and bridge-forwarding tables to discover endpoints attached to it (POS terminals, printers, phones, laptops). Costs extra SNMP walks per poll. | Off     |
-| Health OIDs                 | SNMP OIDs (CPU, memory, temperature, or any custom OID) collected on each poll and recorded as device metrics.                                                            | None    |
+| OID Collection Template     | A reusable, named OID list this device collects. Editing the template changes every device linked to it on its next poll.                                                 | None    |
+| Device-Specific Health OIDs | Extra SNMP OIDs only this device collects, on top of its template. Recorded as device metrics.                                                                            | None    |
 
 ### Interface Walking
 
@@ -89,11 +90,93 @@ In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a
 - Ubiquiti EdgeOS / UniFi
 - Generic (Host Resources MIB)
 
-The template's OIDs are added to the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template.
+The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template.
+
+This is a one-shot copy and it forgets where it came from — editing nothing
+propagates afterwards. For anything beyond a single device, use an **OID
+Collection Template** below instead; the vendor profiles are offered as a
+starting point when you create one.
+
+### OID Collection Templates
+
+Configuring health OIDs one device at a time does not scale past a handful of
+devices. An **OID Collection Template** (Network → **Settings** → **OID
+Collection Templates**) is a named OID list — usually named after a device type,
+like "Cisco Catalyst 9300" or "MikroTik CCR" — that any number of devices link
+to.
+
+**The link is live, not a copy.** A device's OID list is assembled fresh on
+every poll, so editing a template changes what every linked device collects on
+its next poll. There is no sync step and no per-device rewrite; a template edit
+touches one row no matter how many devices use it.
+
+**Before you build one, check you need it.** Per-interface bits in/out,
+operational status, errors per second and utilization are already collected for
+every port on every poll, with no OIDs configured at all (see *Interface
+Walking* above), and they are already alertable per port. Templates are for the
+things that are **not** per-port: CPU, memory, temperature, fans, power
+supplies, BGP peers.
+
+Coming from Zabbix, the mapping is:
+
+| Zabbix                                                        | OneUptime                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------ |
+| Template                                                      | OID Collection Template                                      |
+| Item                                                          | An OID on that template                                      |
+| Discovery rule "Network interfaces by SNMP" + item prototypes | Built in and always on for the interface counters below — nothing to author |
+| Trigger                                                       | Monitor criteria                                             |
+| Trigger prototype (one per discovered interface)              | A criteria with **Interface** = `*`, which fans out per port |
+| Host group                                                    | Labels                                                       |
+| "Link template on host discovery" action                      | Auto Import Rule → **OID Collection Template**               |
+
+Note that the `*` wildcard applies to the three *interface* criteria only.
+There is no wildcard for OIDs today: an OID criteria names one OID.
+
+**What templates do not do.** A template is a fixed list of OIDs, applied as
+written. There is no per-instance expansion, so an OID naming one row of a
+table (`…ifSpeed.3`) collects that row only, and follows whatever port holds
+index 3 the day it is polled. That is why per-port data belongs to the
+interface walk rather than to a template. The walk covers operational status,
+in/out bits per second, utilization and a *combined* errors-per-second rate;
+per-direction errors, discards, admin status and link speed are collected into
+the device's interface inventory but are not yet time series, so they cannot be
+alerted on today.
+
+**Linking devices.** Three ways, and you will usually want the second:
+
+- One device at a time, from Device → **Settings** → **Polling & Data
+  Collection**.
+- In bulk, by selecting devices on the **Devices** list and using **Set OID
+  Collection Template**. The Devices list has a **Template** column and filter,
+  so you can select every device of a type and link them in one action.
+- Automatically, by setting an OID Collection Template on an **Auto Import
+  Rule**, so every device a discovery scan imports is linked the moment it is
+  created. On a fleet that is discovered continuously this is the one that
+  matters — without it, every scan leaves devices for somebody to link by hand.
+
+**Precedence.** A device collects its template's OIDs first, then its own
+Device-Specific Health OIDs. If both name the same OID it is collected once,
+with the device's name and description winning. Template entries keep their
+position, so device-specific additions can never displace them.
+
+**Limits.** A device polls at most 200 health OIDs. A template holds up to 150,
+and a device linked to one may add up to 50 of its own — the two compose, so a
+linked device can never exceed the 200 it is allowed to poll, and going over is
+a validation error when you save rather than a silent truncation at poll time.
+A device with **no** template keeps the full 200 for its own list; the tighter
+50 is what linking costs, applied at the moment you link, so this never
+retroactively invalidates a device you already had. Linking a device that
+already carries more than 50 of its own is refused with a message saying how
+many to trim, rather than accepted and silently truncated later.
+
+A template that devices are still linked to cannot be deleted — unlink them
+first (the **Clear OID Collection Template** bulk action does this), so a delete
+can never quietly stop collection across a fleet.
 
 ### Custom OIDs
 
-Add any OIDs you want collected on every poll. For each OID you can specify:
+Add any OIDs you want collected on every poll, either on a template or as
+device-specific additions. For each OID you can specify:
 
 | Field       | Description                                  | Required |
 | ----------- | -------------------------------------------- | -------- |
@@ -101,7 +184,15 @@ Add any OIDs you want collected on every poll. For each OID you can specify:
 | Name        | A friendly name for the OID (e.g., sysDescr) | No       |
 | Description | A description of what this OID represents    | No       |
 
-Collected values are charted on the device's **Metrics** tab and can be alerted on through monitor criteria (**SNMP OID Value**).
+Collected values are charted on the device's **Metrics** tab and can be alerted
+on through monitor criteria (**SNMP OID Value** and **SNMP OID Exists**). The
+OID picker on those criteria lists the OIDs the selected device actually
+collects — its template's plus its own — so there is nothing to type.
+
+Long OID lists are split across several SNMP GET requests so they fit inside a
+UDP datagram. A device configured with more OIDs than fit in one packet used to
+answer `tooBig` and be reported **offline**; if you are upgrading from an older
+release and had to keep your OID lists short for that reason, you no longer do.
 
 ### Device Identity
 

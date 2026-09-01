@@ -172,6 +172,10 @@ spec:
             - name: PROBE_NETWORK_DEVICE_POLL_CONCURRENCY
               value: {{ $val.networkDevicePollConcurrency | squote }}
             {{- end }}
+            {{- if $val.snmpGetChunkSize }}
+            - name: PROBE_SNMP_GET_CHUNK_SIZE
+              value: {{ $val.snmpGetChunkSize | squote }}
+            {{- end }}
             {{- if $val.disableTelemetryCollection }}
             - name: DISABLE_TELEMETRY
               value: {{ $val.disableTelemetryCollection | quote }}

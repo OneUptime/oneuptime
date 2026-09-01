@@ -248,11 +248,21 @@ describe("NetworkDeviceWalkUtil.processWalkResult — happy path", () => {
     const lastWalkLog: JSONObject = (updateArgs["data"] as JSONObject)[
       "lastWalkLog"
     ] as JSONObject;
-    // A plain-JSON snapshot of the walk, not the live object.
-    expect(lastWalkLog["snmpResponse"]).toEqual(
-      JSON.parse(JSON.stringify(snmpResponse)),
+    const storedResponse: JSONObject = lastWalkLog[
+      "snmpResponse"
+    ] as JSONObject;
+
+    /*
+     * A plain-JSON snapshot of the INTERFACES, not the live object and not
+     * the whole walk. SnmpInterfaceRateUtil is the only reader of this column
+     * and only ever looks at snmpResponse.interfaces; storing the rest was
+     * dead weight rewritten on every poll of every device.
+     */
+    expect(storedResponse["interfaces"]).toEqual(
+      JSON.parse(JSON.stringify(snmpResponse.interfaces)),
     );
-    expect(lastWalkLog["snmpResponse"]).not.toBe(snmpResponse);
+    expect(storedResponse["interfaces"]).not.toBe(snmpResponse.interfaces);
+    expect(Object.keys(storedResponse)).toEqual(["interfaces"]);
     expect(lastWalkLog["monitoredAt"]).toEqual(NOW);
   });
 

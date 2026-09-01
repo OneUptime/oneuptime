@@ -60,6 +60,7 @@ export default class NetworkInventoryUtil {
           // For the vendor-template auto-apply below.
           autoApplyVendorHealthTemplate: true,
           snmpOids: true,
+          oidTemplateId: true,
         },
         props: {
           isRoot: true,
@@ -169,9 +170,18 @@ export default class NetworkInventoryUtil {
        * leaves it alone (including after the operator empties it on purpose
        * AND turns the toggle off; with the toggle still on, an emptied list
        * re-seeds next poll, which is what "auto-apply" says on the tin).
+       *
+       * A device linked to an OID Collection Template is exempt outright.
+       * Its effective list already comes from the template, and its own
+       * snmpOids column is by design the small set of device-specific
+       * ADDITIONS — usually empty, which is exactly the condition below.
+       * Without this guard the first poll would write a vendor copy on top
+       * of the template and the device would silently collect the union of
+       * two sources, only one of which the operator can see or edit.
        */
       if (
         ownedDevice.autoApplyVendorHealthTemplate &&
+        !ownedDevice.oidTemplateId &&
         (ownedDevice.snmpOids || []).length === 0 &&
         systemInfo?.sysObjectId
       ) {

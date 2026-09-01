@@ -18,7 +18,7 @@ import {
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -34,6 +34,63 @@ import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
+/*
+ * One entry of a network device's EFFECTIVE health-OID list - the list the
+ * probe is actually handed on the next poll, which is the linked OID
+ * Collection Template's OIDs merged with the device's own (see
+ * SnmpOidListUtil.mergeOidLists).
+ *
+ * `templateName` is set only on the entries the template supplied, so an
+ * operator building a criteria can tell an OID shared by every device on that
+ * template from one that exists only on this device.
+ */
+export interface NetworkDeviceOidCatalogueEntry {
+  oid: string;
+  name?: string | undefined;
+  templateName?: string | undefined;
+}
+
+export interface NetworkDeviceCriteriaCatalogue {
+  oids: Array<NetworkDeviceOidCatalogueEntry>;
+  /*
+   * Names AND aliases of the monitored interfaces the device's last walk
+   * found. Both, because the server scopes a criteria by matching
+   * interfaceName against ifName or ifAlias, case-insensitively - see
+   * SnmpMonitorCriteria.scopeInterfaces.
+   */
+  interfaceNames: Array<string>;
+  /*
+   * False until the fetch for the currently selected device has actually come
+   * back. The pickers below tell an operator that a saved OID or interface is
+   * gone whenever they cannot find it in the catalogue - which is also true of
+   * a catalogue that is merely still loading, so an empty one must stay silent
+   * until this flips.
+   */
+  isLoaded: boolean;
+}
+
+export const EMPTY_NETWORK_DEVICE_CRITERIA_CATALOGUE: NetworkDeviceCriteriaCatalogue =
+  {
+    oids: [],
+    interfaceNames: [],
+    isLoaded: false,
+  };
+
+/*
+ * The catalogue is fetched once per monitor step (MonitorStep.tsx) and read
+ * here, three components down, by the OID and interface pickers.
+ *
+ * It travels the last hop by context because CriteriaFilters - the list
+ * wrapper between MonitorCriteriaInstance and this component - has no use for
+ * it at all. The provider sits in MonitorCriteriaInstance, which does take the
+ * catalogue as an ordinary prop, so every component that has an opinion about
+ * this data still receives it explicitly.
+ */
+export const NetworkDeviceCriteriaCatalogueContext: React.Context<NetworkDeviceCriteriaCatalogue> =
+  React.createContext<NetworkDeviceCriteriaCatalogue>(
+    EMPTY_NETWORK_DEVICE_CRITERIA_CATALOGUE,
+  );
+
 export interface ComponentProps {
   value: CriteriaFilter | undefined;
   onChange?: undefined | ((value: CriteriaFilter) => void);
@@ -46,6 +103,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const criteriaFilter: CriteriaFilter | undefined = props.value;
+
+  const networkDeviceCatalogue: NetworkDeviceCriteriaCatalogue =
+    React.useContext(NetworkDeviceCriteriaCatalogueContext);
 
   const [valuePlaceholder, setValuePlaceholder] = React.useState<string>("");
 
@@ -304,33 +364,82 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
             criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
           (() => {
-            const configuredOids: Array<SnmpOid> =
-              props.monitorStep.data?.snmpMonitor?.oids || [];
+            /*
+             * The options are the device's effective OID list, fetched once
+             * per step. This used to read monitorStep.data.snmpMonitor.oids -
+             * a field belonging to the retired standalone SNMP monitor type,
+             * which a Network Device step never populates. The dropdown was
+             * therefore empty for everyone, snmpMonitorOptions.oid was never
+             * set, and both OID criteria bailed out server-side with no OID
+             * to evaluate. Nobody could alert on a health OID at all.
+             */
+            const oidOptions: Array<DropdownOption> =
+              networkDeviceCatalogue.oids.map(
+                (entry: NetworkDeviceOidCatalogueEntry): DropdownOption => {
+                  const oidLabel: string = entry.name
+                    ? `${entry.name} (${entry.oid})`
+                    : entry.oid;
 
-            const oidOptions: Array<DropdownOption> = configuredOids.map(
-              (oid: SnmpOid) => {
-                return {
-                  value: oid.oid,
-                  label: oid.name ? `${oid.name} (${oid.oid})` : oid.oid,
-                };
+                  return {
+                    value: entry.oid,
+                    label: entry.templateName
+                      ? `${oidLabel} - from template ${entry.templateName}`
+                      : oidLabel,
+                  };
+                },
+              );
+
+            const savedOid: string = SnmpOidListUtil.normalizeOid(
+              criteriaFilter?.snmpMonitorOptions?.oid,
+            );
+
+            let selectedOidOption: DropdownOption | undefined = oidOptions.find(
+              (option: DropdownOption) => {
+                return (
+                  SnmpOidListUtil.normalizeOid(option.value.toString()) ===
+                  savedOid
+                );
               },
             );
 
-            const selectedOidOption: DropdownOption | undefined =
-              oidOptions.find((option: DropdownOption) => {
-                return option.value === criteriaFilter?.snmpMonitorOptions?.oid;
-              });
+            /*
+             * A saved OID that is no longer in the catalogue - a template
+             * dropped it, or this step was pointed at a different device -
+             * used to render a blank Dropdown while the stale value stayed in
+             * the criteria: the form claimed nothing was selected while the
+             * monitor still evaluated an OID nothing polls. Now it is listed,
+             * selected, and labelled with why it will never match.
+             *
+             * Only once the catalogue has loaded, though - an empty catalogue
+             * is also what the first render of a perfectly healthy monitor
+             * looks like, and accusing it of being broken for the length of a
+             * fetch is worse than saying nothing.
+             */
+            if (savedOid && !selectedOidOption) {
+              selectedOidOption = {
+                value: savedOid,
+                label: networkDeviceCatalogue.isLoaded
+                  ? `${savedOid} - no longer collected by this device`
+                  : savedOid,
+              };
+              oidOptions.push(selectedOidOption);
+            }
+
+            const isDeviceSelected: boolean = Boolean(
+              props.monitorStep.data?.networkDeviceMonitor?.networkDeviceId,
+            );
 
             return (
               <div className="mt-1">
                 <FieldLabelElement
                   title="OID"
-                  description="Which OID configured on this monitor should this criteria evaluate?"
+                  description="Which of the health OIDs this device collects should this criteria evaluate?"
                 />
                 {oidOptions.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    Add an OID to the monitor configuration above before
-                    creating this criteria.
+                    {isDeviceSelected
+                      ? "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here."
+                      : "Choose the network device for this monitor in the configuration above, and the health OIDs it collects are listed here."}
                   </p>
                 ) : (
                   <Dropdown
@@ -357,28 +466,109 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
             criteriaFilter?.checkOn ===
               CheckOn.SnmpInterfaceUtilizationPercent ||
-            criteriaFilter?.checkOn ===
-              CheckOn.SnmpInterfaceErrorsPerSecond) && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title="Interface (Optional)"
-                description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or enter * to evaluate every interface and raise a separate alert for each one."
-              />
-              <Input
-                value={criteriaFilter?.snmpMonitorOptions?.interfaceName || ""}
-                placeholder="* or Gi0/1"
-                onChange={(value: string) => {
-                  props.onChange?.({
-                    ...criteriaFilter,
-                    snmpMonitorOptions: {
-                      ...criteriaFilter?.snmpMonitorOptions,
-                      interfaceName: value || undefined,
-                    },
-                  });
-                }}
-              />
-            </div>
-          )}
+            criteriaFilter?.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) &&
+          (() => {
+            const savedInterfaceName: string =
+              criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
+
+            /*
+             * "*" first, then the names and aliases the device's last walk
+             * actually reported - the server accepts either, so the picker
+             * offers both.
+             *
+             * The free-text input below stays, and has to: "*" is
+             * not an interface, and a port that has not been walked yet - a
+             * device registered minutes ago, a line card about to go in - is
+             * a legitimate thing to write a criteria against before it shows
+             * up here.
+             */
+            const interfaceOptions: Array<DropdownOption> = [
+              {
+                value: "*",
+                label: "* - every monitored interface, alerting separately",
+              },
+              ...networkDeviceCatalogue.interfaceNames.map(
+                (interfaceName: string): DropdownOption => {
+                  return {
+                    value: interfaceName,
+                    label: interfaceName,
+                  };
+                },
+              ),
+            ];
+
+            /*
+             * The server matches interfaceName against name and alias
+             * case-insensitively, so the picker resolves the saved value the
+             * same way rather than showing "nothing selected" for a name that
+             * does in fact match.
+             */
+            let selectedInterfaceOption: DropdownOption | undefined =
+              interfaceOptions.find((option: DropdownOption) => {
+                return (
+                  option.value.toString().toLowerCase() ===
+                  savedInterfaceName.toLowerCase()
+                );
+              });
+
+            /*
+             * Same rule as the OID picker: never show an empty control next
+             * to a value that is saved. A port that has since dropped off the
+             * walk is shown as selected and said to be off the list - but,
+             * again like the OID picker, only once the catalogue has actually
+             * loaded. Before that the value stands on its own, unjudged.
+             */
+            if (savedInterfaceName && !selectedInterfaceOption) {
+              selectedInterfaceOption = {
+                value: savedInterfaceName,
+                label: networkDeviceCatalogue.isLoaded
+                  ? `${savedInterfaceName} - not on this device's last interface walk`
+                  : savedInterfaceName,
+              };
+            }
+
+            return (
+              <div className="mt-1">
+                <FieldLabelElement
+                  title="Interface (Optional)"
+                  description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or pick * to evaluate every interface and raise a separate alert for each one."
+                />
+                <Dropdown
+                  value={selectedInterfaceOption}
+                  options={interfaceOptions}
+                  placeholder="Every monitored interface (combined)"
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      snmpMonitorOptions: {
+                        ...criteriaFilter?.snmpMonitorOptions,
+                        interfaceName: value?.toString() || undefined,
+                      },
+                    });
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Or type a name or alias - for an interface this device has not
+                  walked yet.
+                </p>
+                <Input
+                  value={savedInterfaceName}
+                  placeholder="* or Gi0/1"
+                  onChange={(value: string) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      snmpMonitorOptions: {
+                        ...criteriaFilter?.snmpMonitorOptions,
+                        interfaceName: value || undefined,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })()}
 
         {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (

@@ -1,5 +1,7 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import NetworkDeviceOidTemplateService from "Common/Server/Services/NetworkDeviceOidTemplateService";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -60,6 +62,15 @@ jest.mock("Common/Server/Services/NetworkDeviceService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/NetworkDeviceOidTemplateService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findBy: jest.fn(),
+    },
+  };
+});
+
 jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
   return {
     __esModule: true,
@@ -100,6 +111,9 @@ const deviceService: {
   claimDevicesForPolling: jest.Mock;
   findBy: jest.Mock;
 };
+
+const oidTemplateService: { findBy: jest.Mock } =
+  NetworkDeviceOidTemplateService as unknown as { findBy: jest.Mock };
 
 const queueService: { addNetworkDeviceWalkJob: jest.Mock } =
   TelemetryQueueService as unknown as { addNetworkDeviceWalkJob: jest.Mock };
@@ -181,6 +195,7 @@ function makeDevice(data: {
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | undefined;
   snmpPort?: number | undefined;
+  oidTemplateId?: ObjectID | undefined;
 }): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice(data.id);
 
@@ -208,8 +223,38 @@ function makeDevice(data: {
   if (data.snmpPort !== undefined) {
     device.snmpPort = data.snmpPort;
   }
+  if (data.oidTemplateId !== undefined) {
+    device.oidTemplateId = data.oidTemplateId;
+  }
 
   return device;
+}
+
+function makeOidTemplate(data: {
+  id: ObjectID;
+  projectId: ObjectID;
+  name: string;
+  oids: Array<{ oid: string; name?: string | undefined }>;
+}): NetworkDeviceOidTemplate {
+  const template: NetworkDeviceOidTemplate = new NetworkDeviceOidTemplate(
+    data.id,
+  );
+  template.projectId = data.projectId;
+  template.name = data.name;
+  template.oids = data.oids;
+  return template;
+}
+
+function pollConfigOids(
+  config: JSONObject,
+): Array<{ oid: string; name?: string | undefined }> {
+  const snmpMonitor: MonitorStepSnmpMonitor = config[
+    "snmpMonitor"
+  ] as unknown as MonitorStepSnmpMonitor;
+  return snmpMonitor.oids as Array<{
+    oid: string;
+    name?: string | undefined;
+  }>;
 }
 
 function respondedDevices(): Array<JSONObject> {
@@ -227,6 +272,7 @@ describe("POST /probe/network-device/list", () => {
     jest.clearAllMocks();
     deviceService.claimDevicesForPolling.mockResolvedValue([] as never);
     deviceService.findBy.mockResolvedValue([] as never);
+    oidTemplateService.findBy.mockResolvedValue([] as never);
   });
 
   test("rejects a request with no authenticated probe", async () => {
@@ -544,6 +590,307 @@ describe("POST /probe/network-device/list", () => {
     const { next } = await callListEndpoint(makeRequest({ probeId }));
 
     expect(next).toHaveBeenCalledWith(boom);
+  });
+
+  /*
+   * OID Collection Templates (issue #3507).
+   *
+   * This handler is the ONLY place a template becomes real: nothing is ever
+   * copied onto a device, so what the probe is handed here is the entire
+   * propagation mechanism. If these break, editing a template stops changing
+   * what linked devices collect.
+   */
+  describe("OID Collection Template resolution", () => {
+    const templateId: ObjectID = ObjectID.generate();
+
+    test("hands the probe the template's OIDs for a device with none of its own", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: deviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          oidTemplateId: templateId,
+        }),
+      ] as never);
+      oidTemplateService.findBy.mockResolvedValue([
+        makeOidTemplate({
+          id: templateId,
+          projectId: projectId,
+          name: "Cisco Catalyst 9300",
+          oids: [
+            { oid: "1.3.6.1.4.1.9.1", name: "cpu" },
+            { oid: "1.3.6.1.4.1.9.2", name: "memory" },
+          ],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.9.1", name: "cpu" },
+        { oid: "1.3.6.1.4.1.9.2", name: "memory" },
+      ]);
+    });
+
+    /*
+     * Template first, device additions after, and a shared OID appearing once
+     * with the DEVICE's name at the TEMPLATE's position. Ordering is
+     * load-bearing: the effective cap truncates from the end, so the shared
+     * items a whole device type depends on must be the stable prefix.
+     */
+    test("merges template OIDs with the device's own, template first", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: deviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          oidTemplateId: templateId,
+          snmpOids: [
+            { oid: "1.3.6.1.4.1.9.1", name: "device-cpu" },
+            { oid: "1.3.6.1.4.1.99.1", name: "local-sensor" },
+          ],
+        }),
+      ] as never);
+      oidTemplateService.findBy.mockResolvedValue([
+        makeOidTemplate({
+          id: templateId,
+          projectId: projectId,
+          name: "Cisco Catalyst 9300",
+          oids: [
+            { oid: "1.3.6.1.4.1.9.1", name: "template-cpu" },
+            { oid: "1.3.6.1.4.1.9.2", name: "template-memory" },
+          ],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.9.1", name: "device-cpu" },
+        { oid: "1.3.6.1.4.1.9.2", name: "template-memory" },
+        { oid: "1.3.6.1.4.1.99.1", name: "local-sensor" },
+      ]);
+    });
+
+    test("looks templates up once per batch, however many devices share one", async () => {
+      const firstDeviceId: ObjectID = ObjectID.generate();
+      const secondDeviceId: ObjectID = ObjectID.generate();
+      const unlinkedDeviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        firstDeviceId,
+        secondDeviceId,
+        unlinkedDeviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: firstDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          oidTemplateId: templateId,
+        }),
+        makeDevice({
+          id: secondDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.2",
+          oidTemplateId: templateId,
+        }),
+        makeDevice({
+          id: unlinkedDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.3",
+        }),
+      ] as never);
+      oidTemplateService.findBy.mockResolvedValue([
+        makeOidTemplate({
+          id: templateId,
+          projectId: projectId,
+          name: "Branch Router",
+          oids: [{ oid: "1.3.6.1.4.1.9.1", name: "cpu" }],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(oidTemplateService.findBy).toHaveBeenCalledTimes(1);
+      const findArgs: JSONObject = oidTemplateService.findBy.mock
+        .calls[0]![0] as JSONObject;
+      expect(findArgs["limit"] as number).toBe(1);
+    });
+
+    /*
+     * The untouched path. A fleet with no templates must produce byte-identical
+     * poll payloads and must not pay for a query it does not need.
+     */
+    test("issues no template query at all when no device in the batch is linked", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: deviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          snmpOids: [{ oid: "1.3.6.1.4.1.9.1", name: "cpu" }],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(oidTemplateService.findBy).not.toHaveBeenCalled();
+      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.9.1", name: "cpu" },
+      ]);
+    });
+
+    /*
+     * The template query runs isRoot, which bypasses the tenant column. A
+     * device pointed at another project's template must contribute nothing —
+     * shipping those OIDs to this project's probe would be a cross-tenant
+     * leak, not merely wrong config.
+     */
+    test("ignores a template belonging to another project", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+      const otherProjectId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: deviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          oidTemplateId: templateId,
+          snmpOids: [{ oid: "1.3.6.1.4.1.99.1", name: "local" }],
+        }),
+      ] as never);
+      oidTemplateService.findBy.mockResolvedValue([
+        makeOidTemplate({
+          id: templateId,
+          projectId: otherProjectId,
+          name: "Someone else's template",
+          oids: [{ oid: "1.3.6.1.4.1.666.1", name: "leaked" }],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.99.1", name: "local" },
+      ]);
+    });
+
+    /*
+     * A failed template lookup must not poll a linked device with half its
+     * configuration. Every template OID would come back absent, and an
+     * "SNMP OID Exists / is False" criterion reads absent as BREACHING — so a
+     * transient database blip would raise a real incident on every linked
+     * device at once. Skipping the cycle is the cheaper failure, and claiming
+     * has already paid for it by advancing nextPollAt.
+     */
+    test("skips template-linked devices when the template lookup fails", async () => {
+      const linkedDeviceId: ObjectID = ObjectID.generate();
+      const unlinkedDeviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        linkedDeviceId,
+        unlinkedDeviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: linkedDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          oidTemplateId: templateId,
+          snmpOids: [{ oid: "1.3.6.1.4.1.99.1", name: "local" }],
+        }),
+        makeDevice({
+          id: unlinkedDeviceId,
+          projectId: projectId,
+          hostname: "10.0.0.2",
+          snmpOids: [{ oid: "1.3.6.1.4.1.99.2", name: "other" }],
+        }),
+      ] as never);
+      oidTemplateService.findBy.mockRejectedValue(
+        new Error("db down") as never,
+      );
+
+      const { next } = await callListEndpoint(makeRequest({ probeId }));
+
+      // The batch is not dropped, and the request does not error...
+      expect(next).not.toHaveBeenCalled();
+
+      const devices: Array<JSONObject> = respondedDevices();
+
+      // ...but only the UNLINKED device is handed out.
+      expect(devices).toHaveLength(1);
+      expect(devices[0]!["networkDeviceId"]).toBe(unlinkedDeviceId.toString());
+      expect(pollConfigOids(devices[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.99.2", name: "other" },
+      ]);
+    });
+
+    /*
+     * `description` is documentation for the operator and is never read by the
+     * probe. It is stripped because this list is serialized once per device:
+     * a shared template's prose would otherwise repeat 250 times in one
+     * response.
+     */
+    test("does not ship OID descriptions to the probe", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: deviceId,
+          projectId: projectId,
+          hostname: "10.0.0.1",
+          snmpOids: [
+            {
+              oid: "1.3.6.1.4.1.9.1",
+              name: "cpu",
+              description: "a long explanation nobody on the probe reads",
+            },
+          ],
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(pollConfigOids(respondedDevices()[0]!)).toEqual([
+        { oid: "1.3.6.1.4.1.9.1", name: "cpu" },
+      ]);
+    });
+
+    test("selects oidTemplateId so the link can be resolved at all", async () => {
+      const deviceId: ObjectID = ObjectID.generate();
+
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        deviceId,
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      const findArgs: JSONObject = deviceService.findBy.mock
+        .calls[0]![0] as JSONObject;
+      const select: JSONObject = findArgs["select"] as JSONObject;
+      expect(select["oidTemplateId"]).toBe(true);
+    });
   });
 });
 

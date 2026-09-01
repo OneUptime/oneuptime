@@ -15,9 +15,11 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -78,6 +80,19 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
     getReadableMonitorTemplateColumn();
   const canReadMonitorTemplate: boolean = Boolean(monitorTemplateColumn);
 
+  /*
+   * The same gate the monitor template beside it goes through, for the same
+   * reason (see getReadableMonitorTemplateColumn): a relation the user cannot
+   * read is not degraded to a blank value, it fails the WHOLE request — so
+   * offering this field to a granular rule-editor who lacks
+   * ReadNetworkDeviceOidTemplate would break the edit form rather than one
+   * dropdown. They keep an inventory-only page; only the field goes away.
+   */
+  const canReadOidTemplate: boolean = PermissionGate.canReadColumn(
+    new NetworkDeviceAutoImportRule(),
+    "oidTemplate",
+  );
+
   const fetchNetworkDeviceMonitorTemplates: () => Promise<
     Array<DropdownOption>
   > = async (): Promise<Array<DropdownOption>> => {
@@ -109,6 +124,40 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         label: template.templateName || "Unnamed Network Device template",
       };
     });
+  };
+
+  const fetchOidCollectionTemplates: () => Promise<
+    Array<DropdownOption>
+  > = async (): Promise<Array<DropdownOption>> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return [];
+    }
+
+    const result: ListResult<NetworkDeviceOidTemplate> =
+      await ModelAPI.getList<NetworkDeviceOidTemplate>({
+        modelType: NetworkDeviceOidTemplate,
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: { name: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    return result.data.map(
+      (template: NetworkDeviceOidTemplate): DropdownOption => {
+        return {
+          value: template.id?.toString() || "",
+          label: template.name || "Unnamed OID Collection Template",
+        };
+      },
+    );
   };
 
   // The rule a run is open for, by id, plus its name and which kind of run.
@@ -391,6 +440,29 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
               );
             },
           },
+          ...(canReadOidTemplate
+            ? [
+                {
+                  field: { oidTemplate: true },
+                  title: "OID Collection Template",
+                  stepId: "behavior",
+                  sectionTitle: "Optional Collection",
+                  sectionDescription:
+                    "What every device this rule imports collects. The Monitor Template below decides what those devices are ALERTED on; this decides what they COLLECT.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  fetchDropdownOptions: fetchOidCollectionTemplates,
+                  required: false,
+                  placeholder: "No template (device-specific OIDs only)",
+                  description:
+                    "Imported devices are LINKED to this template, not given a copy: editing the template later changes what every linked device collects on its next poll. Without one, an imported device starts with whatever the vendor fingerprint seeds and has to be configured by hand.",
+                  showIf: (
+                    values: FormValues<NetworkDeviceAutoImportRule>,
+                  ): boolean => {
+                    return !values.isExclusion;
+                  },
+                },
+              ]
+            : []),
           ...(canReadMonitorTemplate
             ? [
                 {

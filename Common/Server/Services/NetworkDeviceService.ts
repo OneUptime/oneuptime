@@ -26,6 +26,13 @@ import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
 import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import NetworkDeviceOidTemplate from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
+import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpOidListUtil, {
+  MAX_DEVICE_SPECIFIC_OIDS,
+  MAX_EFFECTIVE_OIDS_PER_DEVICE,
+} from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import { EntityManager } from "typeorm";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -105,6 +112,30 @@ function readSiteIdFromData(data: Record<string, unknown>): ObjectID | null {
 
 // Both spellings of "the monitor that reports this device's health".
 const MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
+
+/*
+ * Both spellings of "the OID Collection Template this device collects". The
+ * settings page posts the `oidTemplate` relation and the bulk action posts
+ * the `oidTemplateId` column, so a guard that watched only one of them would
+ * be trivially bypassable from the UI.
+ */
+const OID_TEMPLATE_KEYS: Array<string> = ["oidTemplateId", "oidTemplate"];
+
+function readOidTemplateIdFromData(
+  data: Record<string, unknown>,
+): ObjectID | null {
+  /*
+   * readConsistent, not read: a payload that writes BOTH spellings with
+   * different ids would otherwise have one of them validated and the other
+   * persisted, which turns the cross-project guard below into something a
+   * caller can steer. It refuses the contradiction instead of picking.
+   */
+  return RelationIdUtil.readConsistent(
+    data,
+    OID_TEMPLATE_KEYS,
+    "OID Collection Template",
+  );
+}
 
 function readMonitorIdFromData(data: Record<string, unknown>): ObjectID | null {
   return RelationIdUtil.read(data, MONITOR_KEYS);
@@ -839,6 +870,50 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Same hole as siteId, and it matters more here: the FK behind
+   * oidTemplateId only requires the row to exist, not that it belongs to the
+   * device's project. Tenant scoping is applied to the ROOT query only, so a
+   * device pointed at another project's template would leak that template's
+   * name and OID list through every nested `select: { oidTemplate: ... }` the
+   * dashboard makes - and the poll would ship those OIDs to this project's
+   * probe. Refuse the link at the point it is written, rather than auditing
+   * it afterwards at poll time.
+   */
+  private async assertOidTemplateBelongsToProject(data: {
+    oidTemplateId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const oidTemplate: NetworkDeviceOidTemplate | null =
+      await NetworkDeviceOidTemplateService.findOneById({
+        id: data.oidTemplateId,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!oidTemplate) {
+      throw new BadDataException("OID Collection Template not found.");
+    }
+
+    if (
+      oidTemplate.projectId &&
+      oidTemplate.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "OID Collection Template must belong to the same project.",
+      );
+    }
+  }
+
+  /*
    * onBeforeUpdate runs before DatabaseService permission-checks the query,
    * so reading the raw client query as root would hand the hook rows from
    * other projects. Re-apply the caller's tenant here.
@@ -875,6 +950,30 @@ export class Service extends DatabaseService<Model> {
         siteId: siteId,
         projectId: createBy.data.projectId,
       });
+    }
+
+    const createOidTemplateId: ObjectID | null = readOidTemplateIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (createOidTemplateId) {
+      await this.assertOidTemplateBelongsToProject({
+        oidTemplateId: createOidTemplateId,
+        projectId: createBy.data.projectId,
+      });
+    }
+
+    if (createBy.data.snmpOids !== undefined) {
+      // Same budget rule as onBeforeUpdate: the tight cap is what linking costs.
+      createBy.data.snmpOids = SnmpOidListUtil.validateOidList(
+        createBy.data.snmpOids,
+        {
+          max: createOidTemplateId
+            ? MAX_DEVICE_SPECIFIC_OIDS
+            : MAX_EFFECTIVE_OIDS_PER_DEVICE,
+          label: "Device-Specific Health OIDs",
+        },
+      );
     }
 
     if (
@@ -1098,8 +1197,34 @@ export class Service extends DatabaseService<Model> {
         return dataKeys.includes(column);
       },
     );
+    /*
+     * The OID writes have to get past this return too, and that is the whole
+     * reason they are named here.
+     *
+     * The early return exists so a write that changes neither site nor
+     * identity skips a read it does not need — but linking a template and
+     * editing snmpOids are EXACTLY such writes, so a guard placed below the
+     * return would be dead code on the only path it exists for. Both need the
+     * read: the tenancy check needs each matched device's projectId, and the
+     * OID cap needs to know whether the device is linked to a template.
+     *
+     * `!== undefined` rather than truthiness for the OID list: every poll
+     * writes device columns through this path (NetworkInventoryUtil), and an
+     * explicit empty array is a legitimate "collect nothing device-specific"
+     * edit.
+     */
+    const isOidTemplateChange: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      OID_TEMPLATE_KEYS,
+    );
+    const isDeviceOidsChange: boolean = updateBy.data.snmpOids !== undefined;
 
-    if (!isSiteChange && !isIdentityChange) {
+    if (
+      !isSiteChange &&
+      !isIdentityChange &&
+      !isOidTemplateChange &&
+      !isDeviceOidsChange
+    ) {
       return { updateBy, carryForward: null };
     }
 
@@ -1112,6 +1237,9 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         name: true,
         sysName: true,
+        // Decide which OID budget applies below, and whether a link would truncate.
+        oidTemplateId: true,
+        snmpOids: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -1141,6 +1269,86 @@ export class Service extends DatabaseService<Model> {
           projectId: previousDevice.projectId,
         });
       }
+    }
+
+    const newOidTemplateId: ObjectID | null = readOidTemplateIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * Same shape as the site guard above: one check per distinct project in
+     * the matched set, because a single updateBy can span devices from more
+     * than one project when a root caller issues it.
+     */
+    if (newOidTemplateId) {
+      const checkedTemplateProjectIds: Set<string> = new Set();
+
+      for (const previousDevice of previousDevices) {
+        if (
+          !previousDevice.projectId ||
+          checkedTemplateProjectIds.has(previousDevice.projectId.toString())
+        ) {
+          continue;
+        }
+        checkedTemplateProjectIds.add(previousDevice.projectId.toString());
+
+        await this.assertOidTemplateBelongsToProject({
+          oidTemplateId: newOidTemplateId,
+          projectId: previousDevice.projectId,
+        });
+      }
+    }
+
+    /*
+     * How many OIDs a device may carry of its own.
+     *
+     * The tight budget is a consequence of ADOPTING a template, not a
+     * retroactive limit on every device that already exists. A device with no
+     * template collects only its own list, so its ceiling is the full
+     * per-device budget; the moment it links to one, template plus
+     * device-specific has to fit inside that same ceiling, and the
+     * device-specific half is what gives.
+     *
+     * Enforcing the tight budget unconditionally would have been hostile in
+     * exactly the wrong direction: a device that predates this feature, with a
+     * long hand-built list, could no longer save ANY polling setting — the
+     * fleet in issue #3507 being the likeliest example.
+     */
+    /*
+     * Linking a device whose STORED list already exceeds the device-specific
+     * budget would leave the merge over the effective ceiling, and truncation
+     * drops from the end — so the operator's own OIDs would silently stop
+     * being polled, on a write that never mentioned them. Refuse the link and
+     * say what to trim, rather than accepting it and losing data at poll time.
+     */
+    if (isOidTemplateChange && newOidTemplateId && !isDeviceOidsChange) {
+      for (const previousDevice of previousDevices) {
+        const storedOidCount: number = (previousDevice.snmpOids || []).length;
+
+        if (storedOidCount > MAX_DEVICE_SPECIFIC_OIDS) {
+          throw new BadDataException(
+            `This device has ${storedOidCount} device-specific Health OIDs, and a device linked to an OID Collection Template may keep at most ${MAX_DEVICE_SPECIFIC_OIDS} of its own. Remove ${storedOidCount - MAX_DEVICE_SPECIFIC_OIDS} of them - or move them onto the template - before linking it.`,
+          );
+        }
+      }
+    }
+
+    if (isDeviceOidsChange) {
+      const becomesLinked: boolean = isOidTemplateChange
+        ? Boolean(newOidTemplateId)
+        : previousDevices.some((previousDevice: Model) => {
+            return Boolean(previousDevice.oidTemplateId);
+          });
+
+      updateBy.data.snmpOids = SnmpOidListUtil.validateOidList(
+        updateBy.data.snmpOids as Array<SnmpOid>,
+        {
+          max: becomesLinked
+            ? MAX_DEVICE_SPECIFIC_OIDS
+            : MAX_EFFECTIVE_OIDS_PER_DEVICE,
+          label: "Device-Specific Health OIDs",
+        },
+      );
     }
 
     return {

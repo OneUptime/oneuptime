@@ -1,6 +1,10 @@
 import logger from "../Logger";
 import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricService from "../../Services/MetricService";
+import {
+  MAX_INTERFACE_METRIC_SERIES,
+  MAX_OID_METRIC_SERIES,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
@@ -31,9 +35,18 @@ export default class NetworkDeviceMetricUtil {
   /*
    * Caps mirror MonitorMetricUtil: bound what a single walk can write —
    * large routers can expose thousands of subinterfaces.
+   *
+   * They now live in one shared constant instead of a named const here and a
+   * bare literal in MonitorMetricUtil. The OID cap was 50 while nothing
+   * capped how many OIDs a device could be CONFIGURED with, so a longer list
+   * silently charted its first 50 in jsonb array order. It is now equal to
+   * the per-device configuration ceiling, which is what makes "everything you
+   * configure is charted" true rather than aspirational — and both writers
+   * have to move together or the raise is only half applied.
    */
-  private static readonly maxInterfaceSeries: number = 200;
-  private static readonly maxOidSeries: number = 50;
+  private static readonly maxInterfaceSeries: number =
+    MAX_INTERFACE_METRIC_SERIES;
+  private static readonly maxOidSeries: number = MAX_OID_METRIC_SERIES;
 
   // Retention handling mirrors MonitorMetricUtil (shared GlobalConfig knob).
   private static readonly DEFAULT_RETENTION_DAYS: number = 30;

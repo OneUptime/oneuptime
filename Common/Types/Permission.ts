@@ -636,6 +636,11 @@ enum Permission {
   EditNetworkDeviceAutoImportRule = "EditNetworkDeviceAutoImportRule",
   ReadNetworkDeviceAutoImportRule = "ReadNetworkDeviceAutoImportRule",
 
+  CreateNetworkDeviceOidTemplate = "CreateNetworkDeviceOidTemplate",
+  DeleteNetworkDeviceOidTemplate = "DeleteNetworkDeviceOidTemplate",
+  EditNetworkDeviceOidTemplate = "EditNetworkDeviceOidTemplate",
+  ReadNetworkDeviceOidTemplate = "ReadNetworkDeviceOidTemplate",
+
   // Podman Host Label Rule Permissions
   CreatePodmanHostLabelRule = "CreatePodmanHostLabelRule",
   DeletePodmanHostLabelRule = "DeletePodmanHostLabelRule",
@@ -12384,6 +12389,48 @@ export class PermissionHelper {
         title: "Read Network Device Auto Import Rule",
         description:
           "This permission can read Network Device Auto Import Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // OID Collection Template Permissions
+      {
+        permission: Permission.CreateNetworkDeviceOidTemplate,
+        title: "Create OID Collection Template",
+        description:
+          "This permission can create OID Collection Templates in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceOidTemplate,
+        title: "Delete OID Collection Template",
+        description:
+          "This permission can delete OID Collection Templates of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditNetworkDeviceOidTemplate,
+        title: "Edit OID Collection Template",
+        description:
+          "This permission can edit OID Collection Templates of this project. Editing a template changes what every linked device collects on its next poll.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceOidTemplate,
+        title: "Read OID Collection Template",
+        description:
+          "This permission can read OID Collection Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
