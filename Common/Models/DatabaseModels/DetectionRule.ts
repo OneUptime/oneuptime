@@ -22,26 +22,35 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Part of the SIEM, so it reads and is administered through the Security
+ * tiers rather than the Telemetry ones it used to share a list with. A
+ * detection rule and a threat-intel subscription describe what a project is
+ * watching for and what it believes it is up against, which is security
+ * posture rather than observability configuration.
+ */
 const createPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
   Permission.CreateProjectDetectionRule,
 ];
 
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
+  Permission.SecurityViewer,
   Permission.ReadProjectDetectionRule,
 ];
 
 const updatePermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
+  Permission.SecurityAdmin,
+  Permission.SecurityMember,
   Permission.EditProjectDetectionRule,
 ];
 
@@ -84,6 +93,8 @@ const updatePermissions: Array<Permission> = [
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
     Permission.DeleteProjectDetectionRule,
   ],
   update: updatePermissions,

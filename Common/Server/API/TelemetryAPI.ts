@@ -214,10 +214,28 @@ const requireProfileReadAccess: Array<RequestHandler> =
 
 /*
  * Mirrors the read access control declared on the SecurityEvent analytics
- * model.
+ * model - which, unlike every other signal above, is NOT the telemetry list.
+ * Security events read through the Security tiers only, so this route cannot
+ * be built from createTelemetryReadAccessGuard: doing so would leave the
+ * attribute endpoints open to ProjectMember and the Telemetry tiers while the
+ * model-backed CRUD API refused them, and the attribute keys and values of a
+ * SIEM table are themselves the sensitive part - usernames, hostnames, source
+ * IPs, and every value seen for them.
  */
-const requireSecurityEventReadAccess: Array<RequestHandler> =
-  createTelemetryReadAccessGuard(Permission.ReadSecurityEvent);
+const requireSecurityEventReadAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+      Permission.ReadSecurityEvent,
+    ],
+  }),
+];
 
 router.post(
   "/telemetry/metrics/get-attributes",

@@ -47,6 +47,7 @@ const DOMAIN_PREFIXES: Array<[string, string]> = [
   ["Monitor", "Monitor"],
   ["Workflow", "Workflow"],
   ["Runbook", "Runbook"],
+  ["Security", "Security"],
 ];
 
 /*
@@ -63,6 +64,19 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
   LogSavedView: "Telemetry",
   MetricSavedView: "Telemetry",
   TraceSavedView: "Telemetry",
+
+  /*
+   * The whole SIEM, and not one table of it is named for its domain: a Sigma
+   * rule, a TAXII subscription and a Chronicle connector. They shipped reading
+   * through the Telemetry tiers because they arrived beside logs and traces in
+   * ClickHouse, which made "can read every log in the project" and "can read the
+   * security events" one decision. Splitting them is what the Security tiers are
+   * for, and naming the three models here is what keeps a fourth from quietly
+   * shipping back under Telemetry.
+   */
+  DetectionRule: "Security",
+  ThreatIntelFeed: "Security",
+  GoogleSecOpsConnection: "Security",
 };
 
 /*
