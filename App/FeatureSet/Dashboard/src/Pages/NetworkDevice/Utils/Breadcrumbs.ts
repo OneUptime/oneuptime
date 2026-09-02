@@ -111,6 +111,10 @@ export function getNetworkDeviceBreadcrumbs(
       PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
       ["Project", "Network", "OID Collection Templates"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
+      ["Project", "Network", "Device Roles"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

@@ -5,6 +5,7 @@ import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -17,9 +18,11 @@ import {
   isSnmpDevice,
 } from "../../Components/NetworkDevice/MonitoringMethodFormFields";
 import {
+  DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_PLACEHOLDER,
   DEVICE_ROLE_FIELD_TITLE,
-  DEVICE_ROLE_OPTIONS,
+  getDeviceRoleSettingsLink,
 } from "../../Components/NetworkDevice/DeviceRoleFormFields";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
@@ -67,6 +70,7 @@ import {
   DEVICE_LAST_SEEN_FACET_KEY,
   DEVICE_LAST_SEEN_FACET_OPERATORS,
   DEVICE_PROBE_FACET_KEY,
+  DEVICE_ROLE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
@@ -234,6 +238,87 @@ const NetworkDevices: FunctionComponent<
             return {
               value: site.id?.toString() || "",
               label: site.name?.toString() || "",
+            };
+          });
+        },
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildEntityFacetQuery(values, operator, true);
+        },
+      },
+      {
+        /*
+         * "is empty" is the useful half of this chip: an unassigned role means
+         * the device is classified from its SNMP identity, so the empty set is
+         * how an operator finds the ping-only devices that have nothing to
+         * classify and still need an answer.
+         */
+        key: DEVICE_ROLE_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.role,
+        label: "Role",
+        icon: IconProp.Identification,
+        isMultiSelect: true,
+        searchPlaceholder: "Search device roles...",
+        supportedOperators: ["is", "is_not", "is_empty", "is_not_empty"],
+        loadOptions: async (
+          projectId: ObjectID,
+          searchTerm: string,
+        ): Promise<Array<FilterChipDropdownOption>> => {
+          const query: Query<NetworkDeviceRole> = {
+            projectId: projectId,
+          } as Query<NetworkDeviceRole>;
+
+          if (searchTerm.trim()) {
+            (query as unknown as Record<string, unknown>)["name"] = new Search(
+              searchTerm.trim(),
+            );
+          }
+
+          const result: ListResult<NetworkDeviceRole> =
+            await ModelAPI.getList<NetworkDeviceRole>({
+              modelType: NetworkDeviceRole,
+              query: query,
+              limit: FACET_PICKER_PAGE_SIZE,
+              skip: 0,
+              select: { _id: true, name: true },
+              // The order the settings page and the map legend use.
+              sort: { order: SortOrder.Ascending },
+            });
+
+          return result.data.map((role: NetworkDeviceRole) => {
+            return {
+              value: role.id?.toString() || "",
+              label: role.name?.toString() || "",
+            };
+          });
+        },
+        resolveOptions: async (
+          projectId: ObjectID,
+          values: Array<string>,
+        ): Promise<Array<FilterChipDropdownOption>> => {
+          if (values.length === 0) {
+            return [];
+          }
+
+          const result: ListResult<NetworkDeviceRole> =
+            await ModelAPI.getList<NetworkDeviceRole>({
+              modelType: NetworkDeviceRole,
+              query: {
+                projectId: projectId,
+                _id: new Includes(values),
+              } as Query<NetworkDeviceRole>,
+              limit: values.length,
+              skip: 0,
+              select: { _id: true, name: true },
+              sort: {},
+            });
+
+          return result.data.map((role: NetworkDeviceRole) => {
+            return {
+              value: role.id?.toString() || "",
+              label: role.name?.toString() || "",
             };
           });
         },
@@ -517,15 +602,16 @@ const NetworkDevices: FunctionComponent<
           },
           {
             field: {
-              deviceRole: true,
+              networkDeviceRole: true,
             },
             title: DEVICE_ROLE_FIELD_TITLE,
             stepId: "device-details",
             description: DEVICE_ROLE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DEVICE_ROLE_OPTIONS,
+            dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
+            sideLink: getDeviceRoleSettingsLink(),
             required: false,
-            placeholder: "Worked out from the device (SNMP only)",
+            placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
           },
           {
             field: {
@@ -800,6 +886,45 @@ const NetworkDevices: FunctionComponent<
             selectedProperty: "name",
             getElement: (item: NetworkDevice): ReactElement => {
               return <OidTemplateElement oidTemplate={item["oidTemplate"]} />;
+            },
+          },
+          {
+            field: {
+              networkDeviceRole: {
+                name: true,
+              },
+            },
+            title: "Role",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            /*
+             * Same pair as the Template column above and for the same reason:
+             * `selectedProperty` keeps the CSV exporter (which never calls
+             * getElement) from writing the raw relation object.
+             */
+            selectedProperty: "name",
+            getElement: (item: NetworkDevice): ReactElement => {
+              if (!item.networkDeviceRole?.name) {
+                /*
+                 * Not "none": an unassigned role means the classifier works it
+                 * out from the device's SNMP identity, which is the intended
+                 * state for most devices rather than a gap to fill in.
+                 */
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="No role assigned — worked out from the device's SNMP identity."
+                  >
+                    Auto
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-900">
+                  {item.networkDeviceRole.name}
+                </span>
+              );
             },
           },
           {

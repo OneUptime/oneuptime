@@ -42,6 +42,9 @@ import NetworkDeviceLinkRuleUtil, {
   LinkRuleWarning,
 } from "Common/Utils/Monitor/NetworkDeviceLinkRuleUtil";
 import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTopologySuppressionService";
+import NetworkDeviceRoleService from "Common/Server/Services/NetworkDeviceRoleService";
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import { TopologyDeviceRoleInput } from "Common/Utils/Monitor/NetworkDeviceRoleCatalog";
 
 /*
  * Computes the LLDP+CDP-derived network topology graph for the requesting
@@ -296,7 +299,16 @@ export default class NetworkDeviceTopologyAPI {
                  * above. Load-bearing for devices nothing walks: with no
                  * sysDescr and no sysObjectId to read, this is the only
                  * evidence there is about what the box actually does.
+                 *
+                 * Both columns, deliberately. The relation is where an
+                 * assignment lives now; the deprecated string is read as a
+                 * fallback so a project the BackfillNetworkDeviceRoles data
+                 * migration has not reached yet keeps drawing the roles its
+                 * operators already set.
                  */
+                networkDeviceRole: {
+                  key: true,
+                },
                 deviceRole: true,
                 /*
                  * Not rendered either — read only by the neighbor matcher.
@@ -605,7 +617,7 @@ export default class NetworkDeviceTopologyAPI {
                 deviceModel: device.deviceModel,
                 sysDescr: device.sysDescr,
                 sysObjectId: device.sysObjectId,
-                deviceRole: device.deviceRole,
+                deviceRole: device.networkDeviceRole?.key || device.deviceRole,
                 serialNumber: device.serialNumber,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
                 macAddresses: macAddressesByDeviceId.get(device.id!.toString()),
@@ -785,6 +797,46 @@ export default class NetworkDeviceTopologyAPI {
               projectId: props.tenantId,
             });
 
+          /*
+           * The project's configured roles. Read as root and unfiltered on
+           * purpose: the map is one picture of the whole project, and a
+           * viewer without ReadNetworkDeviceRole would otherwise see a
+           * differently-shaped map from everyone else - the same reasoning as
+           * the suppression keys above.
+           */
+          const deviceRoleInput: Array<TopologyDeviceRoleInput> = (
+            await NetworkDeviceRoleService.findBy({
+              query: {
+                projectId: props.tenantId,
+              },
+              select: {
+                _id: true,
+                key: true,
+                name: true,
+                topologyShape: true,
+                isCoreLayer: true,
+                isSnmpWalkable: true,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              sort: {
+                order: SortOrder.Ascending,
+              },
+              props: {
+                isRoot: true,
+              },
+            })
+          ).map((role: NetworkDeviceRole): TopologyDeviceRoleInput => {
+            return {
+              id: role._id?.toString(),
+              key: role.key || "",
+              name: role.name || "",
+              topologyShape: role.topologyShape,
+              isCoreLayer: role.isCoreLayer,
+              isSnmpWalkable: role.isSnmpWalkable,
+            };
+          });
+
           const topology: TopologyBuildResult =
             NetworkTopologyUtil.buildTopology(
               topologyInput,
@@ -793,6 +845,7 @@ export default class NetworkDeviceTopologyAPI {
               endpointInput,
               manualLinkInput,
               suppressedNodeKeys,
+              deviceRoleInput,
             );
 
           /*

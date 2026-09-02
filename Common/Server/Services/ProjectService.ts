@@ -34,6 +34,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
+import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NotificationService from "./NotificationService";
 import PromoCodeService from "./PromoCodeService";
@@ -79,6 +80,11 @@ import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
 import DefaultNetworkSiteType from "../../Types/NetworkSite/DefaultNetworkSiteType";
+import NetworkDeviceRole from "../../Models/DatabaseModels/NetworkDeviceRole";
+import {
+  DEFAULT_NETWORK_DEVICE_ROLES,
+  DefaultNetworkDeviceRole,
+} from "../../Types/NetworkDevice/DefaultNetworkDeviceRole";
 import Model from "../../Models/DatabaseModels/Project";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
@@ -1444,6 +1450,7 @@ These are no longer recorded against the project and have to be cancelled by han
       this.addDefaultAlertState(createdItem),
       this.addDefaultIncidentRoles(createdItem),
       this.addDefaultNetworkSiteTypes(createdItem),
+      this.addDefaultNetworkDeviceRoles(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -1998,6 +2005,84 @@ These are no longer recorded against the project and have to be cancelled by han
 
       await NetworkSiteTypeService.create({
         data: networkSiteType,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return createdItem;
+  }
+
+  /**
+   * Seeds the per-project network device role lookup table.
+   *
+   * Device roles used to be a fixed union with the label, the silhouette and
+   * the "is this a core device?" flag hardcoded in three different modules.
+   * They are now a configurable per-project table, so a project can rename
+   * "Wireless AP" to "Access Point", draw firewalls as something else, or add
+   * a role of its own - which means every project needs its own seeded copy of
+   * the defaults.
+   *
+   * Public for the same reason addDefaultNetworkSiteTypes is: the
+   * BackfillNetworkDeviceRoles data migration calls it to seed roles into
+   * projects that existed before the table did, so the defaults are defined
+   * once and cannot drift between project creation and the backfill.
+   *
+   * The key is passed explicitly rather than derived from the name. It has to
+   * be exactly what the SNMP classifier emits - "wirelessAccessPoint", which
+   * no derivation from "Wireless AP" would produce - or a classified access
+   * point would match no row.
+   */
+  @CaptureSpan()
+  public async addDefaultNetworkDeviceRoles(
+    createdItem: Model,
+  ): Promise<Model> {
+    const projectId: ObjectID = createdItem.id!;
+
+    // Idempotent - see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(
+        NetworkDeviceRoleService,
+        projectId,
+      );
+
+    /*
+     * Also guarded on the key, not just the name: a project that renamed the
+     * seeded "Router" to "Edge Router" must not get a second row called
+     * "Router" the next time this runs, and the key is the identity that
+     * survives the rename.
+     */
+    const existingKeys: Set<string> =
+      await NetworkDeviceRoleService.getKeysInProject(projectId);
+
+    for (
+      let index: number = 0;
+      index < DEFAULT_NETWORK_DEVICE_ROLES.length;
+      index++
+    ) {
+      const defaultRole: DefaultNetworkDeviceRole =
+        DEFAULT_NETWORK_DEVICE_ROLES[index]!;
+
+      if (
+        existingNames.has(defaultRole.name) ||
+        existingKeys.has(defaultRole.key)
+      ) {
+        continue;
+      }
+
+      const networkDeviceRole: NetworkDeviceRole = new NetworkDeviceRole();
+      networkDeviceRole.name = defaultRole.name;
+      networkDeviceRole.key = defaultRole.key;
+      networkDeviceRole.description = defaultRole.description;
+      networkDeviceRole.topologyShape = defaultRole.topologyShape;
+      networkDeviceRole.isCoreLayer = defaultRole.isCoreLayer;
+      networkDeviceRole.isSnmpWalkable = defaultRole.isSnmpWalkable;
+      networkDeviceRole.projectId = projectId;
+      networkDeviceRole.order = index + 1;
+
+      await NetworkDeviceRoleService.create({
+        data: networkDeviceRole,
         props: {
           isRoot: true,
         },

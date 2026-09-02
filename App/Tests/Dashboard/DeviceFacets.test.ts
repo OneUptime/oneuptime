@@ -6,6 +6,7 @@ import {
   DEVICE_LAST_SEEN_FACET_KEY,
   DEVICE_LAST_SEEN_FACET_OPERATORS,
   DEVICE_PROBE_FACET_KEY,
+  DEVICE_ROLE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
@@ -98,6 +99,7 @@ const ALL_FACET_KEYS: Array<string> = [
   DEVICE_SITE_FACET_KEY,
   DEVICE_PROBE_FACET_KEY,
   DEVICE_LAST_SEEN_FACET_KEY,
+  DEVICE_ROLE_FACET_KEY,
 ];
 
 const ALL_QUERY_FIELDS: Array<string> = Object.values(
@@ -115,6 +117,7 @@ const FACET_KEY_BY_QUERY_FIELD_ROLE: Record<string, string> = {
   site: DEVICE_SITE_FACET_KEY,
   probe: DEVICE_PROBE_FACET_KEY,
   lastSeen: DEVICE_LAST_SEEN_FACET_KEY,
+  role: DEVICE_ROLE_FACET_KEY,
 };
 
 /*
@@ -221,6 +224,7 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
     expect(DEVICE_FACET_QUERY_FIELDS.site).toBe("siteId");
     expect(DEVICE_FACET_QUERY_FIELDS.probe).toBe("probeId");
     expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe("lastSeenAt");
+    expect(DEVICE_FACET_QUERY_FIELDS.role).toBe("networkDeviceRoleId");
   });
 
   /*
@@ -236,6 +240,14 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
     expect(DEVICE_FACET_QUERY_FIELDS.probe).not.toBe("probe");
     expect(DEVICE_FACET_QUERY_FIELDS.site.endsWith("Id")).toBe(true);
     expect(DEVICE_FACET_QUERY_FIELDS.probe.endsWith("Id")).toBe(true);
+    /*
+     * Role is the third of these, and the one where "is empty" earns its
+     * keep: an unassigned role means the device is classified from its SNMP
+     * identity, so the empty set is how an operator finds the ping-only
+     * devices that have nothing to classify and still need an answer.
+     */
+    expect(DEVICE_FACET_QUERY_FIELDS.role).not.toBe("networkDeviceRole");
+    expect(DEVICE_FACET_QUERY_FIELDS.role.endsWith("Id")).toBe(true);
   });
 
   test("names a column for every chip", () => {
