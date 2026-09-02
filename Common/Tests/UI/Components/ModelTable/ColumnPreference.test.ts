@@ -1675,4 +1675,93 @@ describe("a stored layout replayed against a changed column set", () => {
     expect(rendered).toHaveLength(4);
     expect(titlesOf(rendered)).toEqual(["Name", "Actions", "Actions", ""]);
   });
+
+  test("a layout saved against a column set missing a default-hidden column switches it back off", () => {
+    /*
+     * A column set changes between surfaces, not just between releases: the
+     * same table component is embedded on a detail page with one column
+     * spliced out (there is no point showing "Template" on the template's own
+     * page). If both surfaces persist under one storage key, the narrow one
+     * writes the layout for the wide one.
+     *
+     * buildColumnPreference records only what the picker was showing, so the
+     * spliced-out id lands in neither `order` nor `hidden` — and reading it
+     * back falls through to the column's DECLARED default.
+     *
+     * That fallback is why this stayed invisible until now, and why it is the
+     * hazard the moment a column ships hidden: a dropped column that defaults
+     * to visible is restored by accident, so nobody ever noticed the drop,
+     * while a dropped column that defaults to hidden silently un-picks the one
+     * choice the viewer made — and the picker is the only way back to it. A
+     * table embedded on a second surface must therefore key its stored layout
+     * per surface; this is the loss it is avoiding.
+     */
+    const fullColumns: Columns<Monitor> = [
+      makeColumn({
+        field: { name: true },
+        title: "Name",
+        isNotCustomizable: true,
+      }),
+      makeColumn({ field: { description: true }, title: "Description" }),
+      makeColumn({
+        field: { monitorTemplate: { _id: true, templateName: true } },
+        title: "Template",
+        isHiddenByDefault: true,
+      }),
+      makeColumn({ field: { labels: true }, title: "Labels" }),
+    ];
+
+    // The embedded surface drops the default-hidden column and one other.
+    const scopedColumns: Columns<Monitor> = fullColumns.filter(
+      (column: Column<Monitor>): boolean => {
+        return column.title !== "Template" && column.title !== "Labels";
+      },
+    );
+
+    // The viewer switches Template on from the full table and saves.
+    const preferenceA: ColumnPreference = buildColumnPreference<Monitor>(
+      getCustomizableColumns<Monitor>({
+        columns: fullColumns,
+        preference: {
+          order: ["description", "monitorTemplate", "labels"],
+          hidden: [],
+        },
+      }),
+    );
+
+    expect(
+      findEntry(
+        getCustomizableColumns<Monitor>({
+          columns: fullColumns,
+          preference: preferenceA,
+        }),
+        "monitorTemplate",
+      ).isVisible,
+    ).toBe(true);
+
+    /*
+     * Now the picker is saved from the embedded surface without the viewer
+     * changing anything there.
+     */
+    const preferenceB: ColumnPreference = buildColumnPreference<Monitor>(
+      getCustomizableColumns<Monitor>({
+        columns: scopedColumns,
+        preference: preferenceA,
+      }),
+    );
+
+    expect(preferenceB.order).not.toContain("monitorTemplate");
+    expect(preferenceB.hidden).not.toContain("monitorTemplate");
+
+    const replayed: Array<CustomizableColumn<Monitor>> =
+      getCustomizableColumns<Monitor>({
+        columns: fullColumns,
+        preference: preferenceB,
+      });
+
+    // The viewer's one opt-in is gone...
+    expect(findEntry(replayed, "monitorTemplate").isVisible).toBe(false);
+    // ...while a column dropped exactly the same way comes back unharmed.
+    expect(findEntry(replayed, "labels").isVisible).toBe(true);
+  });
 });

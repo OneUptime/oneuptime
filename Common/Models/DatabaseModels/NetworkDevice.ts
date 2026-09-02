@@ -2,6 +2,7 @@ import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
+import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkSite from "./NetworkSite";
 import Probe from "./Probe";
 import Project from "./Project";
@@ -845,13 +846,22 @@ export default class NetworkDevice extends BaseModel {
       Permission.EditNetworkDevice,
     ],
   })
+  /*
+   * DEPRECATED. Device roles used to be a fixed union stored inline as a
+   * string; they are now the per-project NetworkDeviceRole lookup table
+   * below, so a project can rename them, change what each is drawn as, or add
+   * roles of its own. This column is retained ONLY so the
+   * BackfillNetworkDeviceRoles data migration can read the old value and
+   * point networkDeviceRoleId at the matching role row. It is dropped in a
+   * follow-up PR - do not read or write it from new code.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Device Role",
+    title: "Device Role (Deprecated)",
     description:
-      "What this device does on the network — router, switch, access point and so on. Left empty, the role is worked out from the device's own SNMP identity. Set it when there is no SNMP to read: a ping-only device has no identity to classify, and the role decides both the shape it is drawn with and where it sits in the topology hierarchy.",
+      "Deprecated legacy device role key. Use the Network Device Role relation instead; this column exists only for the backfill migration and will be removed.",
     example: "switch",
   })
   @Column({
@@ -860,6 +870,115 @@ export default class NetworkDevice extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public deviceRole?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  /*
+   * The operator's own answer to what this device is, when they gave one.
+   *
+   * Empty is not "unknown": it means "no answer given", and the SNMP
+   * classifier is left to work the role out from the device's own identity.
+   * That is the better source when there IS an identity to read, which is
+   * why this is left empty on SNMP devices by default. On a device nothing
+   * walks - a ping-only device, a monitor-backed one - the classifier has
+   * only a hostname to go on, so this is the only statement about the role
+   * available at all, and it decides both the shape the device is drawn with
+   * and where it sits in the topology hierarchy.
+   *
+   * SET NULL on delete, deliberately: removing a role from the project's
+   * settings must not remove the devices that were using it. They simply go
+   * back to being classified from their SNMP identity.
+   */
+  @TableColumn({
+    manyToOneRelationColumn: "networkDeviceRoleId",
+    type: TableColumnType.Entity,
+    modelType: NetworkDeviceRole,
+    title: "Device Role",
+    description:
+      "What this device does on the network - Router, Switch, Wireless AP and so on. Configured per project in Network > Settings > Device Roles.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDeviceRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "networkDeviceRoleId" })
+  public networkDeviceRole?: NetworkDeviceRole = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "Device Role ID",
+    description: "ID of the Network Device Role this device is assigned.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkDeviceRoleId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

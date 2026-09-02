@@ -25,6 +25,7 @@ interface Row {
   hosts?: Array<{ name: string }> | undefined;
   services?: Array<{ name: string }> | undefined;
   monitors?: Array<{ name: string }> | undefined;
+  monitorTemplate?: { templateName?: string } | undefined;
 }
 
 /*
@@ -445,6 +446,35 @@ describe("TableColumnsToCsv", () => {
       ]);
 
       expect(result).toEqual([]);
+    });
+
+    test("keeps a column that is only hidden on mobile", () => {
+      /*
+       * hideOnMobile is a render-time decision taken by TableHeader / TableRow,
+       * and this utility never sees a viewport. The monitors list Template
+       * column sits at the intersection of the two different kinds of "hidden"
+       * a column can now have: a phone viewer who switched it on in Customize
+       * Columns gets it in their file, while a desktop viewer on the defaults
+       * does not - because the "which columns am I seeing" question is answered
+       * upstream in BaseModelTable, never here. Teaching the exporter about
+       * hideOnMobile would silently strip columns from the export of anyone on
+       * a narrow screen, and nobody would notice until a support ticket.
+       */
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Template",
+          type: FieldType.Entity,
+          key: "monitorTemplate",
+          hideOnMobile: true,
+        },
+      ]);
+
+      expect(
+        result.map((c: Column<Row>) => {
+          return c.title;
+        }),
+      ).toEqual(["Name", "Template"]);
     });
   });
 

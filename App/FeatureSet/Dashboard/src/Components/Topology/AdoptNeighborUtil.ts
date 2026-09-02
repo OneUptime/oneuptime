@@ -68,8 +68,20 @@ export interface NeighborAdoptionDraft {
   name: string;
   // "" when nothing worth pre-filling was discovered; the field is required.
   hostname: string;
-  // Omitted when the classifier committed to nothing; "unknown" is not a role.
+  /*
+   * The built-in role the classifier committed to, or omitted when it
+   * committed to nothing - "unknown" is not a role. This is the answer;
+   * `networkDeviceRoleId` below is the row that answer resolves to, and is
+   * what the form actually seeds.
+   */
   deviceRole?: NetworkTopologyDeviceRole | undefined;
+  /*
+   * The id of the project's NetworkDeviceRole row for that role, when the
+   * payload named one. This is what the create form actually preselects -
+   * the role is a relation now, and a form cannot resolve a key to a row.
+   * Omitted alongside `deviceRole` for the same reasons.
+   */
+  networkDeviceRoleId?: string | undefined;
   description: string;
   monitoringMethod: NetworkDeviceMonitoringMethod;
   links: Array<AdoptableNeighborLink>;
@@ -356,10 +368,20 @@ export function buildNeighborAdoptionDraft(data: {
   const role: NetworkTopologyDeviceRole | undefined = parseDeviceRoleOverride(
     node.role,
   );
-  const monitoringMethod: NetworkDeviceMonitoringMethod =
-    role && MONITOR_BACKED_ROLES.has(role)
-      ? NetworkDeviceMonitoringMethod.Monitor
-      : NetworkDeviceMonitoringMethod.Snmp;
+  /*
+   * The project's own answer wins. Roles are configurable rows now and each
+   * carries an isSnmpWalkable flag, so a project that decided its cameras DO
+   * speak SNMP - or that added a role of its own that does not - is obeyed
+   * instead of overruled by the built-in set below. Absent (an older payload,
+   * or a project with no row for this role) falls back to it unchanged.
+   */
+  const isSnmpWalkable: boolean =
+    node.isSnmpWalkableRole !== undefined
+      ? node.isSnmpWalkableRole
+      : !(role && MONITOR_BACKED_ROLES.has(role));
+  const monitoringMethod: NetworkDeviceMonitoringMethod = isSnmpWalkable
+    ? NetworkDeviceMonitoringMethod.Snmp
+    : NetworkDeviceMonitoringMethod.Monitor;
 
   const provenance: string = provenanceForLinks(links);
 
@@ -408,6 +430,10 @@ export function buildNeighborAdoptionDraft(data: {
     deviceRole:
       monitoringMethod === NetworkDeviceMonitoringMethod.Monitor
         ? role
+        : undefined,
+    networkDeviceRoleId:
+      monitoringMethod === NetworkDeviceMonitoringMethod.Monitor
+        ? node.roleId
         : undefined,
     description: description,
     monitoringMethod: monitoringMethod,

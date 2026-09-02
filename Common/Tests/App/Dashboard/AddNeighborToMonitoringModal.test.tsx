@@ -128,12 +128,26 @@ const SECOND_SWITCH_NODE: NetworkTopologyNode = {
   status: "up",
 };
 
+/*
+ * Carries the role stamp the topology builder puts on a node now that roles
+ * are per-project rows: `roleId` is the project's row for the classified role,
+ * and it is what the form can actually preselect - the role is a relation, and
+ * a form cannot resolve a key to a row.
+ */
+const PHONE_ROLE_ID: string = "b7a1a0f6-3a4b-4a0e-9c3f-4f1f7f2a91cd";
+
+const SWITCH_ROLE_ID: string = "0c2d5b41-9f22-4a3e-8f61-2d7c6a4e8b03";
+
 const PHONE_NODE: NetworkTopologyNode = {
   id: "unmanaged:sep6026aaf2b46b",
   name: "SEP6026AAF2B46B",
   isManaged: false,
   kind: "unmanaged",
   role: "phone",
+  roleKey: "phone",
+  roleLabel: "IP phone",
+  roleId: PHONE_ROLE_ID,
+  isSnmpWalkableRole: false,
   status: "unknown",
   deviceModel: "Cisco IP Phone 8811",
   ipAddress: "10.0.12.41",
@@ -227,7 +241,12 @@ describe("the Add to Monitoring dialog", () => {
   test("opens on the role the map classified the device as", async () => {
     const props: CapturedModalProps = await openDialog();
 
-    expect(props.initialValues["deviceRole"]).toBe("phone");
+    /*
+     * The row's id, not the classifier's key: the role is a relation to the
+     * project's own NetworkDeviceRole table, so this is what the picker binds
+     * to and what a rename or a custom role travels through.
+     */
+    expect(props.initialValues["networkDeviceRole"]).toBe(PHONE_ROLE_ID);
   });
 
   /*
@@ -297,7 +316,18 @@ describe("the Add to Monitoring dialog", () => {
   test("inherits a probe for a device that will be polled", async () => {
     const props: CapturedModalProps = await openDialog({
       ...PHONE_NODE,
+      /*
+       * The whole role stamp, not just `role`: the configured
+       * isSnmpWalkableRole is what decides the monitoring method now, and the
+       * phone fixture carries the handset's (false). Overriding only the
+       * built-in role would leave the flag saying "nothing will poll this",
+       * which is the opposite of what this test is about.
+       */
       role: "switch",
+      roleKey: "switch",
+      roleLabel: "Switch",
+      roleId: SWITCH_ROLE_ID,
+      isSnmpWalkableRole: true,
     });
 
     expect(props.initialValues["monitoringMethod"]).toBe("SNMP");

@@ -35,9 +35,10 @@ import {
   isSnmpDevice,
 } from "../NetworkDevice/MonitoringMethodFormFields";
 import {
+  DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_PLACEHOLDER,
   DEVICE_ROLE_FIELD_TITLE,
-  DEVICE_ROLE_OPTIONS,
 } from "../NetworkDevice/DeviceRoleFormFields";
 import { getSnmpConfigFormFields } from "../../Pages/NetworkDevice/SnmpConfigFormFields";
 import {
@@ -221,8 +222,14 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       monitoringMethod: draft.monitoringMethod,
     };
 
-    if (draft.deviceRole) {
-      values["deviceRole"] = draft.deviceRole;
+    /*
+     * The role is a relation, so the form is seeded with the ROW's id rather
+     * than the classifier's key. A payload from a project with no row for
+     * that role carries no id and the field simply opens empty - which is the
+     * honest state: there is nothing to assign.
+     */
+    if (draft.networkDeviceRoleId) {
+      values["networkDeviceRole"] = draft.networkDeviceRoleId;
     }
 
     /*
@@ -293,15 +300,15 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          deviceRole: true,
+          networkDeviceRole: true,
         },
         title: DEVICE_ROLE_FIELD_TITLE,
         stepId: "device-details",
         description: DEVICE_ROLE_FIELD_DESCRIPTION,
         fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: DEVICE_ROLE_OPTIONS,
+        dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
         required: false,
-        placeholder: "Worked out from the device (SNMP only)",
+        placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
       },
       {
         field: {

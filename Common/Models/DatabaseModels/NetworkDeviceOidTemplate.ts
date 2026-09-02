@@ -37,7 +37,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * The template's NAME is the device type. There is no NetworkDeviceType
  * model and every candidate matching key was defective: labels double as the
- * row-level ACL column, deviceRole is unconstrained free text, and
+ * row-level ACL column, deviceRole was unconstrained free text (it is
+ * the NetworkDeviceRole lookup now, but a role says what a device DOES, not
+ * which OIDs it answers), and
  * vendor/sysObjectId are probe-managed and NULL until the first successful
  * walk. Devices link by an explicit FK the operator sets, in bulk from the
  * device list.

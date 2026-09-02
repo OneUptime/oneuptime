@@ -11,9 +11,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * The one side menu for the whole Network area. Both the Network Devices
  * and Network Sites sections render this same component, so wherever the
- * user lands they see the entire product — fleet overview, device
- * inventory, site hierarchy, map, topology — as one coherent thing instead
- * of two disconnected page groups.
+ * user lands they see the entire product as one coherent thing instead of
+ * two disconnected page groups. Day-to-day inventory comes first, followed
+ * by topology, then the collapsed rule and definition sections.
  */
 const NetworkSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -48,28 +48,6 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.BuildingOffice,
         },
         {
-          /*
-           * Deliberately not the bare map route: the map keeps its drill
-           * position in the query string, and a link to the pathname the
-           * user is already on is swallowed by Navigation.navigate. See
-           * getNetworkMapRootRoute.
-           */
-          link: {
-            title: "Network Map",
-            to: getNetworkMapRootRoute(),
-          },
-          icon: IconProp.Map,
-        },
-        {
-          link: {
-            title: "Topology",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
-            ),
-          },
-          icon: IconProp.Graph,
-        },
-        {
           link: {
             title: "Endpoints",
             to: RouteUtil.populateRouteParams(
@@ -78,11 +56,53 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Squares,
         },
+        {
+          link: {
+            title: "Discovery Scans",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+            ),
+          },
+          icon: IconProp.Search,
+        },
+        {
+          link: {
+            title: "Archived Devices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {
-      title: "Analysis",
+      title: "Topology",
       items: [
+        {
+          /*
+           * `to` resets the map's query-backed drill state. `activeRoute`
+           * deliberately omits that query so the item still highlights on
+           * the map page and names itself in the mobile menu summary.
+           */
+          link: {
+            title: "Network Map",
+            to: getNetworkMapRootRoute(),
+          },
+          activeRoute: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.NETWORK_SITE_MAP] as Route,
+          ),
+          icon: IconProp.Map,
+        },
+        {
+          link: {
+            title: "Device Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
+            ),
+          },
+          icon: IconProp.Graph,
+        },
         {
           link: {
             title: "Latency Matrix",
@@ -113,27 +133,7 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      /*
-       * Site CSV import is not a menu entry: it is a bulk action on the
-       * Sites table (the ⋯ menu on Network > Sites), where every other bulk
-       * import in the product lives, so it sits next to the rows it creates
-       * instead of in a section of its own.
-       */
-      title: "Discovery",
-      items: [
-        {
-          link: {
-            title: "Discovery Scans",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
-            ),
-          },
-          icon: IconProp.Search,
-        },
-      ],
-    },
-    {
-      title: "Automation",
+      title: "Rules",
       defaultCollapsed: true,
       items: [
         {
@@ -190,24 +190,18 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Archive",
+      title: "Settings",
       defaultCollapsed: true,
       items: [
         {
           link: {
-            title: "Archived Devices",
+            title: "Device Roles",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_ARCHIVED] as Route,
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route,
             ),
           },
-          icon: IconProp.Archive,
+          icon: IconProp.Identification,
         },
-      ],
-    },
-    {
-      title: "Settings",
-      defaultCollapsed: true,
-      items: [
         {
           link: {
             title: "OID Collection Templates",

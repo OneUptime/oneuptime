@@ -33,14 +33,21 @@ const NetworkDeviceArchivedPage: FunctionComponent<
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        /*
+         * This is where a fleet clean-up ends up: archive the stale devices,
+         * check the list, then delete them for good. ModelTable supplies the
+         * bulk "Delete" itself; the warning is the part it cannot know.
+         */
         bulkActions={{
           buttons: [...unarchiveBulkActions],
+          deleteConfirmationWarning:
+            "Their interfaces, links, endpoints and any monitor OneUptime created for them - with that monitor's history - are deleted too. Unarchive them instead if you only want them back in the main list.",
         }}
         name="Archived Network Devices"
         cardProps={{
           title: "Archived Network Devices",
           description:
-            "Devices you have archived. They are hidden from the main list. Select devices to unarchive them.",
+            "Devices you have archived. They are hidden from the main list. Select devices to unarchive them, or to delete them for good.",
         }}
         showViewIdButton={true}
         noItemsMessage={"No archived devices."}

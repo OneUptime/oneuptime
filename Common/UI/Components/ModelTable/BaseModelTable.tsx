@@ -201,6 +201,13 @@ export enum ModalTableBulkDefaultActions {
 export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
   buttons: Array<BulkActionButtonSchema<T> | ModalTableBulkDefaultActions>;
   matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
+  /**
+   * Appended to the bulk Delete confirmation, for a surface where deleting the
+   * selected rows also removes records the user did not select, or where a
+   * reversible alternative exists. The default sentence only says the deletion
+   * cannot be undone - it cannot know what else goes with it.
+   */
+  deleteConfirmationWarning?: string | undefined;
 }
 
 export interface BaseTableProps<
@@ -2923,7 +2930,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             items.length === 1
               ? props.singularName || model.singularName || "item"
               : props.pluralName || model.pluralName || "items";
-          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.`;
+
+          const warning: string = props.bulkActions?.deleteConfirmationWarning
+            ? ` ${props.bulkActions.deleteConfirmationWarning}`
+            : "";
+
+          return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
           const itemLabel: string =
@@ -2946,26 +2958,41 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           const failedItems: Array<BulkActionFailed<TBaseModel>> = [];
 
           for (let i: number = 0; i < items.length; i++) {
-            try {
-              const item: TBaseModel = items[i]!;
-              // remove items from inProgressItems
-              inProgressItems.splice(inProgressItems.indexOf(item), 1);
+            const item: TBaseModel = items[i]!;
 
+            // remove items from inProgressItems
+            inProgressItems.splice(inProgressItems.indexOf(item), 1);
+
+            try {
               await props.callbacks.deleteItem(item);
               successItems.push(item);
-
-              onProgressInfo({
-                inProgressItems: inProgressItems,
-                successItems: successItems,
-                failed: failedItems,
-                totalItems: items,
-              });
             } catch (err) {
               failedItems.push({
-                item: items[i]!,
+                item: item,
                 failedMessage: API.getFriendlyMessage(err),
               });
             }
+
+            /*
+             * Reported after a failure as well as after a success. This used to
+             * sit inside the `try`, so a row that failed moved neither the
+             * progress bar nor the failure list until some later row succeeded
+             * - and a run whose trailing rows all failed (or one where every
+             * row failed, which is what a permission or constraint problem
+             * looks like) ended with the modal still showing the counts from
+             * before them. Deleting hundreds of rows at once is exactly where
+             * partial failure is expected, so it has to be visible.
+             *
+             * Copies, not the live arrays: the progress info goes into React
+             * state, and pushing into the same array reference leaves the
+             * previous render's snapshot mutated underneath it.
+             */
+            onProgressInfo({
+              inProgressItems: [...inProgressItems],
+              successItems: [...successItems],
+              failed: [...failedItems],
+              totalItems: items,
+            });
           }
 
           onBulkActionEnd();
@@ -3116,9 +3143,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             },
           );
 
+          /*
+           * On a table that already offers bulk actions the gate decides on
+           * its own, because there is no selection column left to grow: the
+           * row checkboxes are already there. That covers the locked case, and
+           * it also covers a master admin - allowed everything by the gate, but
+           * holding no project permission for `userCanDelete` to find, so the
+           * Delete they are entitled to used to be missing from a menu whose
+           * every other action worked (issue #3559).
+           */
           const canAutoInjectDelete: boolean =
-            userCanDelete ||
-            (bulkDeleteGate.disabled && sourceButtons.length > 0);
+            userCanDelete || (bulkDeleteGate.show && sourceButtons.length > 0);
 
           if (canAutoInjectDelete && !alreadyHasDeleteAction) {
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);

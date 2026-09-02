@@ -1,4 +1,5 @@
 import NetworkTopology, {
+  NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyLinkProtocol,
@@ -13,6 +14,13 @@ import {
   classifyEndpointRole,
   resolveDeviceRole,
 } from "./NetworkDeviceRoleUtil";
+import {
+  TopologyDeviceRoleInput,
+  applyRoleStamp,
+  buildDeviceRoleIndex,
+  roleKeyForNode,
+  stampForRoleKey,
+} from "./NetworkDeviceRoleCatalog";
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
@@ -45,11 +53,18 @@ export interface TopologyDeviceInput {
   sysDescr?: string | undefined;
   sysObjectId?: string | undefined;
   /*
-   * The operator's own answer to what this device is, when they gave one.
-   * Outranks the classifier below, because it is the only statement about
-   * the role that is not an inference — and on a device nothing walks it
-   * is the ONLY statement available at all, the classifier having nothing
-   * but a hostname to go on.
+   * The KEY of the role the operator assigned this device, when they
+   * assigned one. Outranks the classifier below, because it is the only
+   * statement about the role that is not an inference — and on a device
+   * nothing walks it is the ONLY statement available at all, the classifier
+   * having nothing but a hostname to go on.
+   *
+   * A key, not a name: roles are per-project rows an operator can rename, so
+   * the caller reads it off the assigned row (NetworkDevice.networkDeviceRole)
+   * rather than passing a label. It may be a key outside the built-in twelve
+   * — a role the project invented — in which case `role` on the node falls
+   * back to the classifier and the node's roleKey/roleLabel/roleShape carry
+   * the configured answer instead. See buildTopology's deviceRoles argument.
    */
   deviceRole?: string | undefined;
   /*
@@ -329,8 +344,18 @@ export default class NetworkTopologyUtil {
     endpoints: Array<TopologyEndpointInput> = [],
     manualLinks: Array<TopologyManualLinkInput> = [],
     suppressedNodeKeys: ReadonlySet<string> = new Set<string>(),
+    deviceRoles: ReadonlyArray<TopologyDeviceRoleInput> = [],
   ): TopologyBuildResult {
     const nodes: Array<NetworkTopologyNode> = [];
+
+    /*
+     * The project's configured roles, indexed by key. Passing none is a
+     * supported case - the nodes then carry no role stamp and every consumer
+     * falls back to the built-in labels, shapes and core set, which is exactly
+     * the map drawn before roles were configurable.
+     */
+    const roleIndex: Map<string, TopologyDeviceRoleInput> =
+      buildDeviceRoleIndex(deviceRoles);
 
     /*
      * Index managed devices by every identifier a neighbor entry could
@@ -384,26 +409,47 @@ export default class NetworkTopologyUtil {
         device.id,
         device.isNeighborDiscoveryEnabled,
       );
-      nodes.push({
-        id: device.id,
-        name: device.name,
-        isManaged: true,
-        kind: "device",
-        role: resolveDeviceRole(device.deviceRole, {
+      const deviceRole: NetworkTopologyDeviceRole = resolveDeviceRole(
+        device.deviceRole,
+        {
           sysDescr: device.sysDescr,
           sysObjectId: device.sysObjectId,
           vendor: device.vendor,
           deviceModel: device.deviceModel,
           name: device.name,
           sysName: device.sysName || device.hostname,
-        }),
+        },
+      );
+
+      const deviceNode: NetworkTopologyNode = {
+        id: device.id,
+        name: device.name,
+        isManaged: true,
+        kind: "device",
+        role: deviceRole,
         status: NetworkTopologyUtil.deviceStatus(device, now),
         interfacesUp: device.interfacesUp,
         interfacesDown: device.interfacesDown,
         sysName: device.sysName,
         vendor: device.vendor,
         deviceModel: device.deviceModel,
-      });
+      };
+
+      /*
+       * The configured role, when the project has one for this key. The
+       * assignment is looked up ahead of the classifier's answer, so a device
+       * an operator gave a CUSTOM role ("PoS Terminal") is drawn as that role
+       * even though `role` above can only ever be one of the built-in twelve.
+       */
+      applyRoleStamp(
+        deviceNode,
+        stampForRoleKey(
+          roleKeyForNode(device.deviceRole, deviceRole),
+          roleIndex,
+        ),
+      );
+
+      nodes.push(deviceNode);
     }
 
     const edgeByKey: Map<string, NetworkTopologyEdge> = new Map();
@@ -465,7 +511,11 @@ export default class NetworkTopologyUtil {
       NetworkTopologyUtil.propagateMatchesAcrossPeerGroups(resolvedClaims);
 
     const peerNodeIdByClaim: Map<ResolvedClaim, string> =
-      NetworkTopologyUtil.buildUnmanagedPeerNodes(settledClaims, nodes);
+      NetworkTopologyUtil.buildUnmanagedPeerNodes(
+        settledClaims,
+        nodes,
+        roleIndex,
+      );
 
     for (const resolved of settledClaims) {
       const device: TopologyDeviceInput = resolved.device;
@@ -780,16 +830,18 @@ export default class NetworkTopologyUtil {
         endpoint.vendor ||
         endpoint.ipAddress ||
         endpoint.macAddress;
-      nodes.push({
+      const endpointRole: NetworkTopologyDeviceRole = classifyEndpointRole({
+        classification: endpoint.classification,
+        vendor: endpoint.vendor,
+        name: endpointName,
+      });
+
+      const endpointNode: NetworkTopologyNode = {
         id: nodeId,
         name: endpointName,
         isManaged: false,
         kind: "endpoint",
-        role: classifyEndpointRole({
-          classification: endpoint.classification,
-          vendor: endpoint.vendor,
-          name: endpointName,
-        }),
+        role: endpointRole,
         status: NetworkTopologyUtil.statusFromLastSeen(
           endpoint.lastSeenAt,
           now,
@@ -799,7 +851,21 @@ export default class NetworkTopologyUtil {
         ipAddress: endpoint.ipAddress,
         classification: endpoint.classification,
         vlanId: endpoint.vlanId,
-      });
+      };
+
+      /*
+       * Endpoints are stamped too, so a project that renamed "IP phone" sees
+       * the new name on the handsets its switches learned. It cannot change
+       * where they sit: the layouts put every endpoint in its switch's group
+       * box before they ever look at a role, so isCoreLayerRole is inert here
+       * by construction rather than by omission.
+       */
+      applyRoleStamp(
+        endpointNode,
+        stampForRoleKey(roleKeyForNode(undefined, endpointRole), roleIndex),
+      );
+
+      nodes.push(endpointNode);
 
       // Port label + interface state on the switch end, when identifiable.
       let switchInterface: TopologyInterfaceInput | undefined = undefined;
@@ -1264,6 +1330,10 @@ export default class NetworkTopologyUtil {
   private static buildUnmanagedPeerNodes(
     resolvedClaims: Array<ResolvedClaim>,
     nodes: Array<NetworkTopologyNode>,
+    roleIndex: Map<string, TopologyDeviceRoleInput> = new Map<
+      string,
+      TopologyDeviceRoleInput
+    >(),
   ): Map<ResolvedClaim, string> {
     const unmanagedClaims: Array<ResolvedClaim> = resolvedClaims.filter(
       (resolved: ResolvedClaim) => {
@@ -1359,21 +1429,22 @@ export default class NetworkTopologyUtil {
       usedNodeIds.add(nodeId);
 
       const unmanagedName: string = displayName || "Unknown device";
-      nodes.push({
+      /*
+       * Classified from the whole group rather than from whichever
+       * report happened to be first: the platform string is usually the
+       * only real evidence about a peer, and it may well arrive on the
+       * second report of it.
+       */
+      const unmanagedRole: NetworkTopologyDeviceRole = classifyDeviceRole({
+        platform: platform,
+        name: unmanagedName,
+      });
+      const unmanagedNode: NetworkTopologyNode = {
         id: nodeId,
         name: unmanagedName,
         isManaged: false,
         kind: "unmanaged",
-        /*
-         * Classified from the whole group rather than from whichever
-         * report happened to be first: the platform string is usually the
-         * only real evidence about a peer, and it may well arrive on the
-         * second report of it.
-         */
-        role: classifyDeviceRole({
-          platform: platform,
-          name: unmanagedName,
-        }),
+        role: unmanagedRole,
         status: "unknown",
         deviceModel: platform,
         /*
@@ -1383,7 +1454,19 @@ export default class NetworkTopologyUtil {
          * they can only look at.
          */
         ipAddress: ipAddress,
-      });
+      };
+
+      /*
+       * Stamped for the adopt-a-neighbour flow above all: isSnmpWalkableRole
+       * is what decides whether adopting this peer opens on SNMP polling or on
+       * a monitor, and a peer is exactly the node an operator adopts.
+       */
+      applyRoleStamp(
+        unmanagedNode,
+        stampForRoleKey(roleKeyForNode(undefined, unmanagedRole), roleIndex),
+      );
+
+      nodes.push(unmanagedNode);
 
       for (const resolved of groupClaims) {
         nodeIdByClaim.set(resolved, nodeId);

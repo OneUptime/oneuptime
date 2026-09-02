@@ -185,7 +185,14 @@ describe("the adoption dialog", () => {
   test("reuses the shared field helpers rather than re-declaring them", () => {
     expect(MODAL).toContain('getSnmpConfigFormFields({ stepId: "snmp" })');
     expect(MODAL).toContain("MONITORING_METHOD_OPTIONS");
-    expect(MODAL).toContain("DEVICE_ROLE_OPTIONS");
+    /*
+     * Roles are a per-project table now, so the shared helper is the
+     * model-backed dropdown wiring rather than a static option list. Still one
+     * helper, still shared with the Devices create form.
+     */
+    expect(MODAL).toContain("DEVICE_ROLE_DROPDOWN_MODAL");
+    expect(MODAL).toContain("DEVICE_ROLE_FIELD_TITLE");
+    expect(MODAL).not.toContain("DEVICE_ROLE_OPTIONS");
     expect(MODAL).toContain("isSnmpDevice");
     expect(MODAL).toContain("isMonitorBackedDevice");
   });

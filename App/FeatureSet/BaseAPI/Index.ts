@@ -1641,6 +1641,12 @@ import NetworkDeviceAutoImportRuleService, {
   Service as NetworkDeviceAutoImportRuleServiceType,
 } from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
 
+// NetworkDeviceRole
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import NetworkDeviceRoleService, {
+  Service as NetworkDeviceRoleServiceType,
+} from "Common/Server/Services/NetworkDeviceRoleService";
+
 // NetworkDeviceOidTemplate
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceOidTemplateService, {
@@ -5178,6 +5184,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         NetworkDeviceAutoImportRule,
         NetworkDeviceAutoImportRuleService,
+      ).getRouter(),
+    );
+
+    // network device role
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceRole, NetworkDeviceRoleServiceType>(
+        NetworkDeviceRole,
+        NetworkDeviceRoleService,
       ).getRouter(),
     );
 

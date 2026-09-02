@@ -37,6 +37,7 @@ export const DEVICE_INTERFACES_FACET_KEY: string = "deviceInterfaces";
 export const DEVICE_SITE_FACET_KEY: string = "deviceSite";
 export const DEVICE_PROBE_FACET_KEY: string = "deviceProbe";
 export const DEVICE_LAST_SEEN_FACET_KEY: string = "deviceLastSeen";
+export const DEVICE_ROLE_FACET_KEY: string = "deviceRole";
 
 /*
  * The column each chip owns. A chip and the column-filter popup cannot both
@@ -56,6 +57,7 @@ export const DEVICE_FACET_QUERY_FIELDS: {
   site: string;
   probe: string;
   lastSeen: string;
+  role: string;
 } = {
   /*
    * The stored outcome of the last poll, not a window over `lastSeenAt`.
@@ -75,6 +77,13 @@ export const DEVICE_FACET_QUERY_FIELDS: {
   probe: "probeId",
   // "when did this device last answer", on its own column and its own chip.
   lastSeen: "lastSeenAt",
+  /*
+   * The foreign key, not the relation, for the same reason as `site`: "is
+   * empty" over the column is the only way to ask for devices with no role
+   * assigned - which is the majority of an SNMP fleet, and the honest way to
+   * find the ping-only devices that still need one.
+   */
+  role: "networkDeviceRoleId",
 };
 
 /**

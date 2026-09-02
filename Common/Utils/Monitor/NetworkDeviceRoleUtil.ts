@@ -538,7 +538,8 @@ export function labelForDeviceRole(
  * The classifier above is evidence-driven, and its evidence is SNMP: a
  * device nothing walks — a ping-only device imported by discovery, say —
  * offers it a hostname and nothing else, so it comes back "unknown" and
- * stays there forever. `NetworkDevice.deviceRole` is the operator saying
+ * stays there forever. The role an operator ASSIGNED the device
+ * (NetworkDevice.networkDeviceRole, whose key is what arrives here) is them saying
  * what the box actually is, and it is the only statement about a role that
  * is not an inference, so it outranks everything the classifier can find.
  *

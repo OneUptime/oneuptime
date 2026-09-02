@@ -4,7 +4,7 @@
  *
  * These fields are documented as case-insensitive regular expressions, but
  * the sibling Network Site assignment rules take '*' wildcard globs and the
- * two features sit next to each other under Network > Automation. A user who
+ * two features sit next to each other under Network > Rules. A user who
  * typed `*0664*` into a label rule got silence: `new RegExp("*0664*")` throws
  * "Nothing to repeat", the rule engine swallowed the SyntaxError, and the
  * rule matched nothing forever (OneUptime/oneuptime#2940).
