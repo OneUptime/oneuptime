@@ -1,13 +1,12 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
+import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useId,
-  useLayoutEffect,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -127,24 +126,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  /*
-   * A layout effect, not an ordinary one. Hiding the page scrollbar widens the
-   * viewport that `right: 0` resolves against, so a panel that painted before
-   * the lock landed would visibly jump sideways by the scrollbar's width on
-   * every platform that draws a classic scrollbar. Locking before paint means
-   * the panel is only ever drawn in its final position.
-   */
-  useLayoutEffect(() => {
-    if (props.disablePageScrollLock) {
-      return undefined;
-    }
-
-    lockPageScroll();
-
-    return () => {
-      unlockPageScroll();
-    };
-  }, [props.disablePageScrollLock]);
+  usePageScrollLock(!props.disablePageScrollLock);
 
   const sideOver: ReactElement = (
     /*
