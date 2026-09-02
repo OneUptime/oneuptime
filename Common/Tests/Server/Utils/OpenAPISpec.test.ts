@@ -79,7 +79,14 @@ describe("OpenAPI specification", () => {
         }
       }
     }
-  });
+    /*
+     * Generating the spec walks every database and analytics model in the
+     * product and took ~55s cold on a developer machine, against the 60s
+     * suite-wide testTimeout in jest.config.json. A CI runner is slower and
+     * colder than that, so this hook gets its own generous bound rather than
+     * sitting one bad minute away from failing the build.
+     */
+  }, 300000);
 
   describe("document shape", () => {
     it("declares an OpenAPI 3 version", () => {
