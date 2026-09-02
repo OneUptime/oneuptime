@@ -9,7 +9,6 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
-import { deriveDeviceRoleKey } from "Common/Utils/NetworkDevice/DeviceRoleKeyUtil";
 import { normalizeRoleKey } from "Common/Utils/Monitor/NetworkDeviceRoleCatalog";
 
 interface ProjectDeviceRoleIndex {
