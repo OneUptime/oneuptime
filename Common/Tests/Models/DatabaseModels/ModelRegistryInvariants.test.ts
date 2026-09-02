@@ -44,14 +44,49 @@ const MODEL_TYPES: Array<ModelType> = AllModelTypes as Array<ModelType>;
 const ANALYTICS_MODEL_TYPES: Array<AnalyticsModelType> =
   AllAnalyticsModelTypes as unknown as Array<AnalyticsModelType>;
 
+/*
+ * A flat snapshot of the declarations, NOT the model instances.
+ *
+ * The first version of this file kept all 416 constructed models alive for the
+ * lifetime of the file, which is a large object graph resident in a Jest
+ * worker whose heap ceiling is deliberately tight (see the note in
+ * .github/workflows/test.common.yaml: 2 workers x 4 GB, live set peaking near
+ * 3.5 GB). This file shares a shard with the isolated-vm SSRF suite, which
+ * needs CPU and memory of its own and reports starvation as a script timeout
+ * rather than as an out-of-memory.
+ *
+ * Every assertion below is about scalar declarations, so the instances exist
+ * only long enough to read those off and are collectable immediately after.
+ */
 interface RegisteredModel {
   className: string;
-  model: BaseModel;
+  tableName: string | null;
+  crudApiPath: string | null;
+  singularName: string | null;
+  pluralName: string | null;
+  enableDocumentation: boolean;
+  tableDescription: string | null;
+  slugifyColumn: string | null;
+  saveSlugToColumn: string | null;
+  columns: Array<string>;
 }
 
 const REGISTERED_MODELS: Array<RegisteredModel> = MODEL_TYPES.map(
   (ModelClass: ModelType): RegisteredModel => {
-    return { className: ModelClass.name, model: new ModelClass() };
+    const model: BaseModel = new ModelClass();
+
+    return {
+      className: ModelClass.name,
+      tableName: model.tableName,
+      crudApiPath: model.crudApiPath ? model.crudApiPath.toString() : null,
+      singularName: model.singularName,
+      pluralName: model.pluralName,
+      enableDocumentation: Boolean(model.enableDocumentation),
+      tableDescription: model.tableDescription,
+      slugifyColumn: model.slugifyColumn,
+      saveSlugToColumn: model.saveSlugToColumn,
+      columns: model.getTableColumns().columns,
+    };
   },
 );
 
@@ -98,7 +133,7 @@ describe("Database model registry", () => {
   it("gives every model a table name", () => {
     const missing: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return !entry.model.tableName;
+        return !entry.tableName;
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -113,7 +148,7 @@ describe("Database model registry", () => {
   it("gives every model its own table", () => {
     expect(
       groupBy((entry: RegisteredModel) => {
-        return entry.model.tableName;
+        return entry.tableName;
       }),
     ).toEqual([]);
   });
@@ -125,9 +160,7 @@ describe("Database model registry", () => {
   it("gives every model its own CRUD path", () => {
     expect(
       groupBy((entry: RegisteredModel) => {
-        return entry.model.crudApiPath
-          ? entry.model.crudApiPath.toString()
-          : null;
+        return entry.crudApiPath;
       }),
     ).toEqual([]);
   });
@@ -135,7 +168,7 @@ describe("Database model registry", () => {
   it("gives every model a singular and a plural display name", () => {
     const missing: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return !entry.model.singularName || !entry.model.pluralName;
+        return !entry.singularName || !entry.pluralName;
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -152,7 +185,7 @@ describe("Database model registry", () => {
   it("describes every model it publishes documentation for", () => {
     const undescribed: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return entry.model.enableDocumentation && !entry.model.tableDescription;
+        return entry.enableDocumentation && !entry.tableDescription;
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -169,7 +202,7 @@ describe("Database model registry", () => {
   it("gives every documented model a CRUD path to document", () => {
     const undocumentable: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return entry.model.enableDocumentation && !entry.model.crudApiPath;
+        return entry.enableDocumentation && !entry.crudApiPath;
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -245,10 +278,10 @@ describe("Database model registry", () => {
     const dangling: Array<string> = [];
 
     for (const entry of REGISTERED_MODELS) {
-      const columns: Array<string> = entry.model.getTableColumns().columns;
+      const columns: Array<string> = entry.columns;
 
-      const source: string | null = entry.model.slugifyColumn;
-      const destination: string | null = entry.model.saveSlugToColumn;
+      const source: string | null = entry.slugifyColumn;
+      const destination: string | null = entry.saveSlugToColumn;
 
       if (source && !columns.includes(source)) {
         dangling.push(`${entry.className}.slugifyColumn = ${source}`);
@@ -296,10 +329,7 @@ describe("Database model registry", () => {
   it("pairs a slug source with a slug destination", () => {
     const unpaired: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return (
-          Boolean(entry.model.slugifyColumn) !==
-          Boolean(entry.model.saveSlugToColumn)
-        );
+        return Boolean(entry.slugifyColumn) !== Boolean(entry.saveSlugToColumn);
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -311,7 +341,7 @@ describe("Database model registry", () => {
   it("declares at least one column on every model", () => {
     const empty: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        return entry.model.getTableColumns().columns.length === 0;
+        return entry.columns.length === 0;
       },
     ).map((entry: RegisteredModel) => {
       return entry.className;
@@ -323,9 +353,7 @@ describe("Database model registry", () => {
   it("starts every CRUD path with a slash", () => {
     const malformed: Array<string> = REGISTERED_MODELS.filter(
       (entry: RegisteredModel) => {
-        const path: string | null = entry.model.crudApiPath
-          ? entry.model.crudApiPath.toString()
-          : null;
+        const path: string | null = entry.crudApiPath;
 
         return path !== null && !path.startsWith("/");
       },
@@ -338,14 +366,24 @@ describe("Database model registry", () => {
 });
 
 describe("Analytics model registry", () => {
+  /* Flattened for the same reason as the database models above. */
   interface RegisteredAnalyticsModel {
     className: string;
-    model: AnalyticsBaseModel;
+    tableName: string | null;
+    crudApiPath: string | null;
+    columnCount: number;
   }
 
   const REGISTERED: Array<RegisteredAnalyticsModel> = ANALYTICS_MODEL_TYPES.map(
     (ModelClass: AnalyticsModelType): RegisteredAnalyticsModel => {
-      return { className: ModelClass.name, model: new ModelClass() };
+      const model: AnalyticsBaseModel = new ModelClass();
+
+      return {
+        className: ModelClass.name,
+        tableName: model.tableName,
+        crudApiPath: model.crudApiPath ? model.crudApiPath.toString() : null,
+        columnCount: (model.tableColumns || []).length,
+      };
     },
   );
 
@@ -356,7 +394,7 @@ describe("Analytics model registry", () => {
   it("gives every analytics model a table name", () => {
     const missing: Array<string> = REGISTERED.filter(
       (entry: RegisteredAnalyticsModel) => {
-        return !entry.model.tableName;
+        return !entry.tableName;
       },
     ).map((entry: RegisteredAnalyticsModel) => {
       return entry.className;
@@ -373,7 +411,7 @@ describe("Analytics model registry", () => {
     const claimants: Map<string, Array<string>> = new Map();
 
     for (const entry of REGISTERED) {
-      const key: string | null = entry.model.tableName;
+      const key: string | null = entry.tableName;
 
       if (!key) {
         continue;
@@ -397,9 +435,7 @@ describe("Analytics model registry", () => {
     const claimants: Map<string, Array<string>> = new Map();
 
     for (const entry of REGISTERED) {
-      const key: string | undefined = entry.model.crudApiPath
-        ? entry.model.crudApiPath.toString()
-        : undefined;
+      const key: string | null = entry.crudApiPath;
 
       if (!key) {
         continue;
@@ -422,7 +458,7 @@ describe("Analytics model registry", () => {
   it("declares at least one column on every analytics model", () => {
     const empty: Array<string> = REGISTERED.filter(
       (entry: RegisteredAnalyticsModel) => {
-        return (entry.model.tableColumns || []).length === 0;
+        return entry.columnCount === 0;
       },
     ).map((entry: RegisteredAnalyticsModel) => {
       return entry.className;
