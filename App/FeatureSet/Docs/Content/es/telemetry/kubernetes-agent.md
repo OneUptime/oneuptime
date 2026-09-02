@@ -162,7 +162,7 @@ Los eventos de Kubernetes no se pueden filtrar por espacio de nombres en el agen
 
 Acepta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserva WARN, ERROR y FATAL y descarta INFO, DEBUG y TRACE. El valor predeterminado (`""`) lo conserva todo. Se aplica en **ambos** modos de logs — en modo `daemonset` mediante el colector, en modo `api` dentro del propio lector de logs — por lo que los presets no pueden desactivártelo a tus espaldas.
 
-Los runtimes de contenedores no registran una severidad en la línea de log, por lo que el agente extrae una del propio texto del log (`[ERROR]`, `WARN:`, `level=info`, …).
+Los runtimes de contenedores no registran una severidad en la línea de log, por lo que el agente extrae una del propio texto del log (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Los eventos de Kubernetes y las especificaciones de recursos nunca se filtran con esto.** Llegan desde la API de Kubernetes sin una severidad propia, por lo que un umbral eliminaría el feed entero en lugar de adelgazarlo — incluidos los avisos de `FailedScheduling`, `BackOff` y `OOMKilling` que más te interesan. Son de bajo volumen y alto valor, así que el agente siempre los envía. Para adelgazarlos, usa en su lugar los **Registros → Ajustes → Filtros de Descarte** del lado del servidor en el panel.
 

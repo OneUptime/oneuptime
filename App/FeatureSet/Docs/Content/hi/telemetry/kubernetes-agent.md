@@ -162,7 +162,7 @@ Kubernetes इवेंट को एजेंट में नेमस्प�
 
 `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL` स्वीकार करता है। `WARN` WARN, ERROR, और FATAL रखता है और INFO, DEBUG, और TRACE गिरा देता है। डिफ़ॉल्ट (`""`) सब कुछ रखता है। यह **दोनों** log modes में लागू होता है — `daemonset` mode में collector के माध्यम से, `api` mode में log tailer के अंदर ही — इसलिए presets इसे आपके नीचे से बंद नहीं कर सकते।
 
-Container runtimes log line पर कोई गंभीरता दर्ज नहीं करते, इसलिए एजेंट log टेक्स्ट (`[ERROR]`, `WARN:`, `level=info`, …) से स्वयं एक निकाल लेता है।
+Container runtimes log line पर कोई गंभीरता दर्ज नहीं करते, इसलिए एजेंट log टेक्स्ट (`[ERROR]`, `WARN:`, `"level":"info"`, …) से स्वयं एक निकाल लेता है।
 
 > **Kubernetes events और resource specs को इससे कभी फ़िल्टर नहीं किया जाता।** वे Kubernetes API से अपनी कोई गंभीरता लिए बिना आते हैं, इसलिए एक सीमा उन्हें छाँटने के बजाय पूरी feed को हटा देगी — उन `FailedScheduling`, `BackOff`, और `OOMKilling` चेतावनियों सहित जो आप सबसे अधिक चाहते हैं। वे कम-volume और उच्च-मूल्य वाले हैं, इसलिए एजेंट उन्हें हमेशा शिप करता है। उन्हें छाँटने के लिए, इसके बजाय डैशबोर्ड के सर्वर-साइड **लॉग्स → सेटिंग्स → ड्रॉप फ़िल्टर** का उपयोग करें।
 

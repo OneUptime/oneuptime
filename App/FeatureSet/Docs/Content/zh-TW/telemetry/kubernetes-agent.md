@@ -162,7 +162,7 @@ podLogs 與 ebpfDiscovery 規則會在來源端篩選：被排除的日誌檔案
 
 接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。`WARN` 會保留 WARN、ERROR 與 FATAL，並捨棄 INFO、DEBUG 與 TRACE。預設值（`""`）會保留所有內容。它在**兩種**日誌模式下都適用——在 `daemonset` 模式下透過 collector，在 `api` 模式下則在日誌追蹤器本身內部——因此 preset 無法在您不知情的情況下將它關閉。
 
-容器執行階段並不會在日誌行上記錄嚴重性，因此 agent 會自行從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`level=info` 等）。
+容器執行階段並不會在日誌行上記錄嚴重性，因此 agent 會自行從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`"level":"info"` 等）。
 
 > **Kubernetes 事件與資源規格絕不會被它篩選。** 它們來自 Kubernetes API，本身不帶任何嚴重性，因此設定門檻會刪除整個資料流，而不是將它變稀疏——包括您最想看到的 `FailedScheduling`、`BackOff` 與 `OOMKilling` 警告。它們資料量低而價值高，因此 agent 一律會傳送它們。若要精簡它們，請改用儀表板中伺服器端的 **日誌 → 設定 → 捨棄過濾器**。
 
