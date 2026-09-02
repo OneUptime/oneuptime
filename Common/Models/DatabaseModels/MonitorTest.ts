@@ -10,7 +10,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -70,7 +69,6 @@ import Monitor from "./Monitor";
   read: true,
 })
 @CrudApiEndpoint(new Route("/monitor-test"))
-@SlugifyColumn("name", "slug")
 @OwnedThrough("monitorId", Monitor)
 @Entity({
   name: "MonitorTest",

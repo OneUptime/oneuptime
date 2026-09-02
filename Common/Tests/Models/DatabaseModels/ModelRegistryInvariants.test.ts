@@ -217,62 +217,47 @@ describe("Database model registry", () => {
    * than through the schema -- so a name that matches no declared column is a
    * silent misfire rather than an error.
    *
-   * Both halves misfire differently and both are live today:
+   * Both halves misfire differently:
    *
    *  - A source that does not exist reads `undefined`, and Slug.getSlug(null)
    *    answers with a slug built from Faker.generateName(). The row still gets
    *    a unique, non-null slug, so nothing fails -- the slug is simply a
-   *    random pair of words instead of the object's own name. Incident is the
-   *    clearest case: it slugifies "name" while its title column is `title`,
+   *    random pair of words instead of the object's own name. Incident was the
+   *    clearest case: it slugified "name" while its title column is `title`,
    *    and its own slug column documents the example
    *    "database-connection-failure-in-production", which is a slugified
-   *    TITLE. Every incident URL in the product is a random name instead.
+   *    TITLE. Every incident created before the fix carries a random name.
    *
    *  - A destination that does not exist has the slug assigned to a property
    *    the table has no column for, and TypeORM drops it on insert. The whole
    *    decorator is dead configuration.
    *
-   * The fourteen below are pre-existing and are recorded as a baseline rather
-   * than fixed here, because each needs its own judgement: the four that mean
-   * `title` are a rename, but the nine with no slug column at all are either a
-   * missing column (which needs a migration) or a decorator that should be
-   * deleted, and picking wrong is a schema change made on a guess.
+   * Fourteen models were recorded here as a baseline and have all since been
+   * fixed, so the list is empty. It is kept, rather than deleted along with
+   * its last entry, because the pair of tests below it is the ratchet: the
+   * first fails on a new misfire, the second fails on an entry left behind
+   * after a fix.
+   *
+   * Where each of the fourteen went, and why:
+   *
+   *  - The four event models (Incident, ScheduledMaintenance and the two
+   *    templates) had a real slug column and a source naming a column they do
+   *    not have, so the slug landed and was random. Their intended sources
+   *    are pinned in EXPECTED_SLUG_SOURCES below and asserted behaviourally
+   *    in Tests/Server/Services/DatabaseServiceGenerateSlug.test.ts.
+   *
+   *  - Domain, likewise, but its identity is the `domain` column.
+   *
+   *  - The nine with no slug column had their decorator deleted rather than a
+   *    column added. Nothing in the product reads any of these slugs -- the
+   *    only slug consumed anywhere is Monitor's, as a template variable --
+   *    and the alternative was adding a NOT NULL column to a live table with
+   *    a backfill, for a value with no reader.
    *
    * THIS LIST MUST ONLY EVER SHRINK. A new entry means a new misfire; a stale
    * entry means somebody fixed one and this test says so.
    */
-  const KNOWN_SLUG_MISFIRES: Array<string> = [
-    /*
-     * Source should almost certainly be `title` -- each of these has a title
-     * column and a real slug column, so the slug lands but is random.
-     */
-    "Incident.slugifyColumn = name",
-    "IncidentTemplate.slugifyColumn = name",
-    "ScheduledMaintenance.slugifyColumn = name",
-    "ScheduledMaintenanceTemplate.slugifyColumn = name",
-
-    /* No name column and no title column; the slug source is `domain`. */
-    "Domain.slugifyColumn = name",
-
-    /* Has the source column, but no slug column to write to. */
-    "AlertState.saveSlugToColumn = slug",
-    "MetricType.saveSlugToColumn = slug",
-    "StatusPageAnnouncementTemplate.saveSlugToColumn = slug",
-
-    /* Neither column exists: the decorator does nothing at all. */
-    "MonitorStatusTimeline.slugifyColumn = name",
-    "MonitorStatusTimeline.saveSlugToColumn = slug",
-    "MonitorTest.slugifyColumn = name",
-    "MonitorTest.saveSlugToColumn = slug",
-    "StatusPageAnnouncement.slugifyColumn = name",
-    "StatusPageAnnouncement.saveSlugToColumn = slug",
-    "StatusPagePrivateUser.slugifyColumn = name",
-    "StatusPagePrivateUser.saveSlugToColumn = slug",
-    "StatusPageResource.slugifyColumn = name",
-    "StatusPageResource.saveSlugToColumn = slug",
-    "StatusPageSubscriber.slugifyColumn = name",
-    "StatusPageSubscriber.saveSlugToColumn = slug",
-  ];
+  const KNOWN_SLUG_MISFIRES: Array<string> = [];
 
   const findSlugMisfires: () => Array<string> = (): Array<string> => {
     const dangling: Array<string> = [];
@@ -319,6 +304,95 @@ describe("Database model registry", () => {
     );
 
     expect(stale).toEqual([]);
+  });
+
+  /*
+   * The sweep above only proves a slug source names a column that EXISTS. It
+   * cannot see the other half of the same mistake: a decorator naming a real
+   * column that is not the one the model means. Incident, before the fix,
+   * would have passed such a sweep the moment "name" were changed to
+   * "description".
+   *
+   * So the models whose source was corrected are pinned by name, with the
+   * evidence for each choice. Behaviour is asserted separately in
+   * Tests/Server/Services/DatabaseServiceGenerateSlug.test.ts; this is the
+   * declaration.
+   */
+  const EXPECTED_SLUG_SOURCES: Record<string, string> = {
+    /*
+     * The slug column's documented example is
+     * "database-connection-failure-in-production" -- the title column's
+     * example, slugified.
+     */
+    Incident: "title",
+    ScheduledMaintenance: "title",
+
+    /*
+     * Both template models carry a title AND a templateName, so this is a
+     * choice between two real columns rather than the only one available.
+     * They mean templateName: each documents a slug example that is its
+     * templateName example slugified ("Server Outage Template" ->
+     * "server-outage-template", "Database Upgrade Template" ->
+     * "database-upgrade-template"), and the title is the incident or event
+     * the template produces rather than anything unique to the template.
+     */
+    IncidentTemplate: "templateName",
+    ScheduledMaintenanceTemplate: "templateName",
+
+    /* Domain has neither a name nor a title; the domain is its identity. */
+    Domain: "domain",
+  };
+
+  it("slugifies the column each model actually means", () => {
+    const declared: Record<string, string | null> = {};
+
+    for (const className of Object.keys(EXPECTED_SLUG_SOURCES)) {
+      const entry: RegisteredModel | undefined = REGISTERED_MODELS.find(
+        (candidate: RegisteredModel) => {
+          return candidate.className === className;
+        },
+      );
+
+      /*
+       * A renamed or unregistered model shows up as a null rather than as a
+       * silently skipped expectation.
+       */
+      declared[className] = entry ? entry.slugifyColumn : null;
+    }
+
+    expect(declared).toEqual(EXPECTED_SLUG_SOURCES);
+  });
+
+  /*
+   * The nine models whose decorator named columns they do not have at all.
+   * Deleting the decorator is what fixed them, so a copy-paste that puts one
+   * back has to fail here as well as in the sweep above.
+   */
+  const MODELS_WITH_NO_SLUG: Array<string> = [
+    "AlertState",
+    "MetricType",
+    "MonitorStatusTimeline",
+    "MonitorTest",
+    "StatusPageAnnouncement",
+    "StatusPageAnnouncementTemplate",
+    "StatusPagePrivateUser",
+    "StatusPageResource",
+    "StatusPageSubscriber",
+  ];
+
+  it("leaves the models with no slug column unslugified", () => {
+    const configured: Array<string> = REGISTERED_MODELS.filter(
+      (entry: RegisteredModel) => {
+        return (
+          MODELS_WITH_NO_SLUG.includes(entry.className) &&
+          Boolean(entry.slugifyColumn || entry.saveSlugToColumn)
+        );
+      },
+    ).map((entry: RegisteredModel) => {
+      return entry.className;
+    });
+
+    expect(configured).toEqual([]);
   });
 
   /*
