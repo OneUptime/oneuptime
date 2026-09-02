@@ -25,6 +25,7 @@ import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
 import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
 import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
+import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
@@ -48,6 +49,9 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResponse";
+import DatabaseMonitorResponse, {
+  DatabaseMetricGroupStatus,
+} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../../Types/Date";
@@ -883,6 +887,38 @@ ${contextBlock}
         };
       }
 
+      if (input.monitor.monitorType === MonitorType.Database) {
+        const databaseResponse: DatabaseMonitorResponse | undefined = (
+          input.dataToProcess as ProbeMonitorResponse
+        ).databaseMonitorResponse;
+
+        /*
+         * metrics is exposed raw, keyed by series name, so an expression can
+         * read any of the catalog's series without a variable per metric:
+         * {{metrics['oneuptime.monitor.database.connections.used.percent']}} > 90
+         *
+         * Connection details are deliberately absent - host, username and
+         * password never travel into an expression sandbox.
+         */
+        storageMap = {
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+          engineVersion: databaseResponse?.engineVersion,
+          connectionError: databaseResponse?.connectionError,
+          collectedGroups: databaseResponse?.collectedGroups,
+          unavailableGroups: (databaseResponse?.unavailableGroups || []).map(
+            (status: DatabaseMetricGroupStatus): JSONObject => {
+              return {
+                group: status.group,
+                reason: status.reason,
+                message: status.message,
+                remediation: status.remediation,
+              };
+            },
+          ),
+          metrics: databaseResponse?.metrics,
+        };
+      }
+
       let expression: string = input.criteriaFilter.value as string;
       expression = VMUtil.replaceValueInPlace(storageMap, expression, false);
 
@@ -1170,6 +1206,19 @@ ${contextBlock}
 
       if (sqlMonitorResult) {
         return sqlMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.Database) {
+      const databaseMonitorResult: string | null =
+        await DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (databaseMonitorResult) {
+        return databaseMonitorResult;
       }
     }
 

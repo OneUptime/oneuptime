@@ -24,6 +24,9 @@ import DnsMonitorResponse, {
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import DatabaseMonitorResponse, {
+  DatabaseMetricGroupStatus,
+} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
@@ -461,6 +464,46 @@ export default class MonitorTemplateUtil {
           dnskeyCount: dnssecResponse?.dnskeys?.length,
           dsRecordCount: dnssecResponse?.parentDsRecords?.length,
           rrsigCount: dnssecResponse?.rrsigs?.length,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.Database) {
+        const databaseResponse: DatabaseMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).databaseMonitorResponse;
+
+        const unavailableGroups: Array<DatabaseMetricGroupStatus> =
+          databaseResponse?.unavailableGroups || [];
+
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: databaseResponse?.responseTimeInMs,
+          failureCause: databaseResponse?.failureCause,
+          connectionError: databaseResponse?.connectionError,
+          engineVersion: databaseResponse?.engineVersion,
+          collectedGroups: databaseResponse?.collectedGroups || [],
+          unavailableGroups: unavailableGroups.map(
+            (status: DatabaseMetricGroupStatus) => {
+              return {
+                group: status.group,
+                reason: status.reason,
+                message: status.message,
+                remediation: status.remediation,
+              };
+            },
+          ),
+          /*
+           * Partial collection is the normal state of this monitor, so the
+           * ready-made sentence matters more here than the array does - an
+           * incident title has room for one line, not a loop.
+           */
+          collectionIssueSummary: unavailableGroups
+            .map((status: DatabaseMetricGroupStatus) => {
+              return `${status.group}: ${status.message}`;
+            })
+            .join("; "),
+          // A metric absent from this map was not collected on this check.
+          metrics: databaseResponse?.metrics || {},
         } as JSONObject;
       }
 

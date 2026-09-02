@@ -568,6 +568,40 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.Database) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * Online means one thing only: the probe connected and collected. It
+       * deliberately does NOT assert anything about the metrics. A database
+       * with a 97% cache hit ratio is not "down", and a monitor that treats
+       * every threshold as an outage teaches its operators to ignore it.
+       * Metric thresholds ship as templates the user opts into instead.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.DatabaseIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} is online`,
+        description: `This criteria checks if ${arg.monitorName} is reachable and its health metrics were collected`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.Domain) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -799,6 +833,48 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} DNS resolution is failing`,
       };
+    }
+
+    if (arg.monitorType === MonitorType.Database) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.DatabaseIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is not reachable, or the health check could not connect.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} is offline`,
+            description: `${arg.monitorName} is not reachable, or the health check could not connect.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} is offline`,
+        description: `This criteria checks if ${arg.monitorName} is offline`,
+      };
+
+      return monitorCriteriaInstance;
     }
 
     if (arg.monitorType === MonitorType.SQLQuery) {

@@ -26,6 +26,9 @@ import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMoni
 import SqlMonitor from "./MonitorTypes/SqlMonitor";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
+import DatabaseMonitor from "./MonitorTypes/DatabaseMonitor";
+import DatabaseMonitorResponse from "Common/Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
+import MonitorStepDatabaseMonitor from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -972,6 +975,40 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.sqlQueryMonitorResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
+    if (monitorType === MonitorType.Database) {
+      if (!monitorStep.data?.databaseMonitor) {
+        result.failureCause = "Database monitor configuration not specified";
+        return result;
+      }
+
+      const databaseConfig: MonitorStepDatabaseMonitor =
+        monitorStep.data.databaseMonitor;
+
+      if (!databaseConfig.host) {
+        result.failureCause = "Database host not specified";
+        return result;
+      }
+
+      const response: DatabaseMonitorResponse | null =
+        await DatabaseMonitor.execute(databaseConfig, {
+          retry: retryCount,
+          monitorId: monitorId,
+          timeout: requestTimeoutInMs,
+        });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.databaseMonitorResponse = response;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
     }

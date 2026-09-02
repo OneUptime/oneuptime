@@ -538,6 +538,50 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.Database:
+        return {
+          title: "Database Health",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the database accepted the connection.",
+            },
+            {
+              key: "responseTimeInMs",
+              description: "Time to connect and run the baseline query.",
+            },
+            { key: "failureCause", description: "Failure reason." },
+            {
+              key: "connectionError",
+              description:
+                "Connection error, when the database was unreachable.",
+            },
+            {
+              key: "engineVersion",
+              description: "Version string the database server reported.",
+            },
+            {
+              key: "collectedGroups",
+              description: "Metric groups that produced values on this check.",
+            },
+            {
+              key: "unavailableGroups",
+              description:
+                "Array of {group, reason, message, remediation} for groups that produced nothing.",
+            },
+            {
+              key: "collectionIssueSummary",
+              description:
+                "One-line summary of the unavailable groups - empty when everything was collected.",
+            },
+            {
+              key: "metrics",
+              description:
+                "Collected values keyed by metric name. A metric that was not collected is absent.",
+            },
+          ],
+        };
+
       case MonitorType.ExternalStatusPage:
         return {
           title: "External Status Page",

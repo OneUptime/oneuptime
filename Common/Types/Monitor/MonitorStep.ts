@@ -50,6 +50,9 @@ import MonitorStepDnssecMonitor, {
 import MonitorStepSqlMonitor, {
   MonitorStepSqlMonitorUtil,
 } from "./MonitorStepSqlMonitor";
+import MonitorStepDatabaseMonitor, {
+  MonitorStepDatabaseMonitorUtil,
+} from "./MonitorStepDatabaseMonitor";
 import SqlDatabaseType from "./SqlDatabaseType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
@@ -204,6 +207,9 @@ export interface MonitorStepType {
   // SQL Query monitor
   sqlMonitor?: MonitorStepSqlMonitor | undefined;
 
+  // Database Health monitor (built-in catalog metrics, no user query)
+  databaseMonitor?: MonitorStepDatabaseMonitor | undefined;
+
   // External Status Page monitor
   externalStatusPageMonitor?: MonitorStepExternalStatusPageMonitor | undefined;
 
@@ -269,6 +275,7 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       dnssecMonitor: undefined,
       sqlMonitor: undefined,
+      databaseMonitor: undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
@@ -345,6 +352,16 @@ export default class MonitorStep extends DatabaseProperty {
       domainMonitor: undefined,
       dnssecMonitor: undefined,
       sqlMonitor: undefined,
+      /*
+       * Seeded, unlike sqlMonitor. The SQL form always writes its config
+       * because the query field is required; a Database Health step has no
+       * required field, so an untouched step would reach the probe with no
+       * connection details at all and the monitor would never run.
+       */
+      databaseMonitor:
+        arg.monitorType === MonitorType.Database
+          ? MonitorStepDatabaseMonitorUtil.getDefault()
+          : undefined,
       externalStatusPageMonitor: undefined,
       kubernetesMonitor: undefined,
       dockerMonitor: undefined,
@@ -620,6 +637,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setDatabaseMonitor(
+    databaseMonitor: MonitorStepDatabaseMonitor,
+  ): MonitorStep {
+    this.data!.databaseMonitor = databaseMonitor;
+    return this;
+  }
+
   public setExternalStatusPageMonitor(
     externalStatusPageMonitor: MonitorStepExternalStatusPageMonitor,
   ): MonitorStep {
@@ -876,6 +900,42 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.Database) {
+      if (!value.data.databaseMonitor) {
+        return "Database monitor configuration is required";
+      }
+
+      if (!value.data.databaseMonitor.host) {
+        return "Database host is required";
+      }
+
+      if (!value.data.databaseMonitor.databaseName) {
+        return "Database name is required";
+      }
+
+      /*
+       * Deliberately no query check - that is the difference between this
+       * monitor and the SQL Query monitor. Nor is a metric group required:
+       * an empty list is normalized back to every group rather than
+       * rejected, so a step can never be saved in a state that silently
+       * collects nothing.
+       */
+      if (
+        value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        value.data.databaseMonitor.databaseType !==
+          SqlDatabaseType.MicrosoftSqlServer
+      ) {
+        return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
+      }
+
+      if (
+        !value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
+        !value.data.databaseMonitor.username
+      ) {
+        return "Database username is required";
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       if (!value.data.externalStatusPageMonitor) {
         return "External status page configuration is required";
@@ -1048,6 +1108,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           sqlMonitor: this.data.sqlMonitor
             ? MonitorStepSqlMonitorUtil.toJSON(this.data.sqlMonitor)
+            : undefined,
+          databaseMonitor: this.data.databaseMonitor
+            ? MonitorStepDatabaseMonitorUtil.toJSON(this.data.databaseMonitor)
             : undefined,
           externalStatusPageMonitor: this.data.externalStatusPageMonitor
             ? MonitorStepExternalStatusPageMonitorUtil.toJSON(
@@ -1250,6 +1313,18 @@ export default class MonitorStep extends DatabaseProperty {
       sqlMonitor: json["sqlMonitor"]
         ? (json["sqlMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalized on the way in, like metricMonitor above: the group list
+       * and the timeouts are clamped here so no consumer downstream has to
+       * defend against a step written by an older build or by hand.
+       */
+      databaseMonitor: json["databaseMonitor"]
+        ? MonitorStepDatabaseMonitorUtil.toJSON(
+            MonitorStepDatabaseMonitorUtil.fromJSON(
+              json["databaseMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)
         : undefined,
@@ -1315,6 +1390,7 @@ export default class MonitorStep extends DatabaseProperty {
         domainMonitor: Zod.any().optional(),
         dnssecMonitor: Zod.any().optional(),
         sqlMonitor: Zod.any().optional(),
+        databaseMonitor: Zod.any().optional(),
         externalStatusPageMonitor: Zod.any().optional(),
         kubernetesMonitor: Zod.any().optional(),
         dockerMonitor: Zod.any().optional(),

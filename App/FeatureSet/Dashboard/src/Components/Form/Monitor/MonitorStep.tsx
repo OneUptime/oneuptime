@@ -131,6 +131,10 @@ import SqlMonitorStepForm from "./SqlMonitor/SqlMonitorStepForm";
 import MonitorStepSqlMonitor, {
   MonitorStepSqlMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepSqlMonitor";
+import DatabaseMonitorStepForm from "./DatabaseMonitor/DatabaseMonitorStepForm";
+import MonitorStepDatabaseMonitor, {
+  MonitorStepDatabaseMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
 import DomainMonitorStepForm from "./DomainMonitor/DomainMonitorStepForm";
 import MonitorStepDomainMonitor, {
   MonitorStepDomainMonitorUtil,
@@ -1785,6 +1789,24 @@ return {
             }
             onChange={(value: MonitorStepSqlMonitor) => {
               monitorStep.setSqlMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.Database && (
+        <Card
+          title="Database Health Monitor Configuration"
+          description="Configure the database connection and the statistics this monitor collects. This monitor requires a probe with network access to your database."
+        >
+          <DatabaseMonitorStepForm
+            monitorStepDatabaseMonitor={
+              monitorStep.data?.databaseMonitor ||
+              MonitorStepDatabaseMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepDatabaseMonitor) => {
+              monitorStep.setDatabaseMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

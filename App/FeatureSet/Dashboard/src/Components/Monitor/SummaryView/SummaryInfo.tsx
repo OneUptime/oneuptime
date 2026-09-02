@@ -10,6 +10,7 @@ import WebsiteMonitorSummaryView from "./WebsiteMonitorView";
 import SnmpMonitorView from "./SnmpMonitorView";
 import DnsMonitorView from "./DnsMonitorView";
 import SqlMonitorView from "./SqlMonitorView";
+import DatabaseMonitorView from "./DatabaseMonitorView";
 import DomainMonitorView from "./DomainMonitorView";
 import DnssecMonitorView from "./DnssecMonitorView";
 import ExternalStatusPageMonitorView from "./ExternalStatusPageMonitorView";
@@ -175,6 +176,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (props.monitorType === MonitorType.SQLQuery) {
       summaryComponent = (
         <SqlMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.Database) {
+      summaryComponent = (
+        <DatabaseMonitorView
           probeMonitorResponse={probeMonitorResponse}
           probeName={props.probeName}
         />

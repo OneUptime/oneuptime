@@ -75,6 +75,14 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "onetimecode",
   "logincode",
   "resetcode",
+  /*
+   * A DSN carries the password inline, so the key name is the only signal
+   * we get before the value is already in the log line.
+   */
+  "connectionstring",
+  "connectionuri",
+  "dsn",
+  "sslkey",
 ];
 
 /*
