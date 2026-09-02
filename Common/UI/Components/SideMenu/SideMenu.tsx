@@ -20,6 +20,8 @@ import { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 
 export interface SideMenuItemProps {
   link: Link;
+  // Use a different route for selection when the link target also changes query state.
+  activeRoute?: Link["to"] | undefined;
   showAlert?: boolean;
   showWarning?: boolean;
   badge?: number;
@@ -106,7 +108,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     if (props.sections) {
       for (const section of props.sections) {
         for (const item of section.items) {
-          if (Navigation.isOnThisPage(item.link.to)) {
+          if (Navigation.isOnThisPage(item.activeRoute || item.link.to)) {
             const result: {
               sectionTitle: string;
               itemTitle: string;
@@ -127,7 +129,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     // Check direct items
     if (props.items) {
       for (const item of props.items) {
-        if (Navigation.isOnThisPage(item.link.to)) {
+        if (Navigation.isOnThisPage(item.activeRoute || item.link.to)) {
           const result: {
             itemTitle: string;
             icon?: IconProp;
@@ -184,9 +186,13 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             icon?: IconProp;
             defaultCollapsed?: boolean;
             collapsible?: boolean;
+            isActive: boolean;
           } = {
             key: `section-${sectionIndex}`,
             title: section.title,
+            isActive: section.items.some((item: SideMenuItemProps): boolean => {
+              return Navigation.isOnThisPage(item.activeRoute || item.link.to);
+            }),
           };
 
           if (section.icon) {
@@ -209,6 +215,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       <CountModelSideMenuItem
                         key={`section-${sectionIndex}-count-item-${itemIndex}`}
                         link={item.link}
+                        activeRoute={item.activeRoute}
                         badgeType={item.badgeType}
                         modelType={item.modelType as any}
                         countQuery={item.countQuery as any}
@@ -225,6 +232,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     <SideMenuItem
                       key={`section-${sectionIndex}-item-${itemIndex}`}
                       link={item.link}
+                      activeRoute={item.activeRoute}
                       showAlert={item.showAlert}
                       showWarning={item.showWarning}
                       badge={item.badge}
@@ -252,6 +260,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <CountModelSideMenuItem
               key={`count-item-${itemIndex}`}
               link={item.link}
+              activeRoute={item.activeRoute}
               badgeType={item.badgeType}
               modelType={item.modelType as any}
               countQuery={item.countQuery as any}
@@ -267,6 +276,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <SideMenuItem
               key={`item-${itemIndex}`}
               link={item.link}
+              activeRoute={item.activeRoute}
               showAlert={item.showAlert}
               showWarning={item.showWarning}
               badge={item.badge}
