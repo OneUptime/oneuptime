@@ -3,10 +3,13 @@ import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
+import MailService from "../../../Server/Services/MailService";
+import UserEmailService from "../../../Server/Services/UserEmailService";
 import logger from "../../../Server/Utils/Logger";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
+import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
@@ -60,6 +63,8 @@ const TEAMS_USER_ID: string = "entra-object-id-1";
 
 const EVENT_TYPE: NotificationSettingEventType =
   NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
+const MONITOR_STATUS_CHANGE_EVENT: NotificationSettingEventType =
+  NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
 
 type SendUserNotificationData = Parameters<
   typeof UserNotificationSettingService.sendUserNotification
@@ -114,6 +119,8 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
   let findSettings: jest.SpyInstance;
   let findSlacks: jest.SpyInstance;
   let findTeams: jest.SpyInstance;
+  let findEmails: jest.SpyInstance;
+  let sendMail: jest.SpyInstance;
   let sendDm: jest.SpyInstance;
   let loggerError: jest.SpyInstance;
 
@@ -131,6 +138,16 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
 
     jest
       .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
+      .mockResolvedValue(undefined as never);
+
+    findEmails = jest.spyOn(UserEmailService, "findBy").mockResolvedValue([
+      {
+        email: "user@example.com",
+      } as unknown as UserEmail,
+    ] as never);
+
+    sendMail = jest
+      .spyOn(MailService, "sendMail")
       .mockResolvedValue(undefined as never);
 
     findSlacks = jest.spyOn(UserSlackService, "findBy").mockResolvedValue([
@@ -251,13 +268,37 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       expect(findTeams).not.toHaveBeenCalled();
     });
 
-    test("no settings row at all sends nothing", async () => {
+    test("no monitor status-change setting sends nothing on any channel", async () => {
       findSettings.mockResolvedValue(null as never);
 
       await UserNotificationSettingService.sendUserNotification(
-        notificationData(),
+        notificationData({ eventType: MONITOR_STATUS_CHANGE_EVENT }),
       );
 
+      expect(findEmails).not.toHaveBeenCalled();
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(
+        ProjectCallSMSConfigService.getProjectDefaultTwilioConfig,
+      ).not.toHaveBeenCalled();
+      expect(findSlacks).not.toHaveBeenCalled();
+      expect(findTeams).not.toHaveBeenCalled();
+      expect(sendDm).not.toHaveBeenCalled();
+    });
+
+    test("an explicit monitor status-change email opt-in still delivers", async () => {
+      findSettings.mockResolvedValue(
+        settingsRow({ alertByEmail: true }) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData({ eventType: MONITOR_STATUS_CHANGE_EVENT }),
+      );
+
+      expect(findEmails).toHaveBeenCalledTimes(1);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendMail.mock.calls[0]?.[0]).toMatchObject({
+        toEmail: "user@example.com",
+      });
       expect(sendDm).not.toHaveBeenCalled();
     });
   });
