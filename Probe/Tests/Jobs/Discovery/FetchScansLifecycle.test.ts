@@ -21,6 +21,7 @@ import SubnetScanner, {
   SubnetScanSnmpConfig,
 } from "../../../Utils/Discovery/SubnetScanner";
 import { fetchAndRunScans, runScan } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * The probe's half of the discovery-scan lifecycle:
@@ -126,6 +127,15 @@ function fetchCalls(): Array<FetchCall> {
     };
   });
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("fetchAndRunScans — fetching the probe's pending scans", () => {
   test("asks the probe-ingest list endpoint, authenticated as this probe", async () => {

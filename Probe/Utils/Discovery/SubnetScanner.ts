@@ -210,10 +210,14 @@ export interface SubnetScanResult {
    * How many discovered hosts came back with a usable reverse-DNS name
    * (OneUptime issue #3529).
    *
-   * OPTIONAL, and absent is not zero: a result built before this field
-   * existed says nothing about reverse DNS, whereas zero says the lookups ran
-   * and named nobody. Nothing branches on it — it is here so the probe log
-   * can report what the enrichment achieved without re-walking the hosts.
+   * NOT set by scan(). The reverse-DNS pass deliberately runs OUTSIDE the
+   * sweep — see attachReverseDnsHostnames and FetchScans.scanWithDeadline —
+   * so this is stamped onto the result afterwards by whoever ran that pass.
+   *
+   * Absent therefore means "the enrichment has not run on this result", which
+   * is a different statement from zero ("it ran and named nobody"). Nothing
+   * branches on it; it is here so the probe log can report what the pass
+   * achieved without re-walking the hosts.
    */
   reverseDnsResolvedCount?: number | undefined;
 }
@@ -394,21 +398,12 @@ export default class SubnetScanner {
         });
 
       /*
-       * The ICMP-only sweep is the case issue #3529 was actually reported
-       * against: every host it finds is by definition without a system group,
-       * so before this the Review dialog could only ever list bare addresses.
-       */
-      const icmpOnlyReverseDnsResolvedCount: number =
-        await SubnetScanner.attachReverseDnsHostnames(pingOnlyHosts);
-
-      /*
        * Already in ascending order: `hosts` comes out of expandTarget sorted
        * and this filter preserves that, unlike the SNMP path below where
        * hosts are appended in completion order and have to be sorted.
        */
       return {
         discoveredHosts: pingOnlyHosts,
-        reverseDnsResolvedCount: icmpOnlyReverseDnsResolvedCount,
         scannedHostCount: hosts.length,
         // No port was dialled, and an empty list is the only honest answer.
         scannedPorts: [],
@@ -602,19 +597,8 @@ export default class SubnetScanner {
       );
     });
 
-    /*
-     * After the sweep and after the sort, so the lookups are paid for once
-     * per discovered address and never for a dead one. SNMP responders get a
-     * name too: a device whose sysName is a factory default ("Switch") is
-     * common, and the PTR record is often the only place the estate's real
-     * name for it is written down.
-     */
-    const reverseDnsResolvedCount: number =
-      await SubnetScanner.attachReverseDnsHostnames(discoveredHosts);
-
     return {
       discoveredHosts: discoveredHosts,
-      reverseDnsResolvedCount: reverseDnsResolvedCount,
       // Full sweep size — hosts skipped by the ICMP gate still count as scanned.
       scannedHostCount: hosts.length,
       scannedPorts: SubnetScanner.getScannedPorts(snmpConfigs),
@@ -895,17 +879,30 @@ export default class SubnetScanner {
    * Stamps `dnsHostname` onto every host that has a usable PTR record, in
    * place, and answers how many got one (OneUptime issue #3529).
    *
-   * Mutates rather than returning a new list because it is called on the
-   * exact array each return path is about to hand back, after that array is
-   * final — there is no ordering, filtering or counting decision left for it
-   * to disturb.
+   * DELIBERATELY NOT CALLED BY scan(), and that is the whole point of it
+   * being a separate public method.
    *
-   * NEVER throws and never fails a scan. A sweep that found twelve hosts
-   * found twelve hosts whether or not any of them can be named, and a broken
-   * resolver in the probe container must not turn that into a failed scan.
-   * The one visible consequence of a total failure is a warning in the probe
-   * log (ReverseDnsResolver) and hosts named by address, which is exactly the
-   * behaviour that predates this method.
+   * The sweep runs inside a deadline race (FetchScans.scanWithDeadline): if
+   * scan() has not SETTLED by PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS, the race
+   * rejects and runScan reports the scan Failed with no hosts at all. An
+   * enrichment inside scan() spends that same budget, so a sweep that had
+   * already found forty hosts could be thrown away entirely because looking
+   * up their names took the run past the line — the enrichment destroying the
+   * very result it was meant to improve. The 60s cap on the pass bounds how
+   * much it can add; it cannot stop that addition being the straw.
+   *
+   * So the lookups happen AFTER the race has settled, on a result that is
+   * already final and already safe. Nothing this method does can be
+   * cancelled, discarded or blamed on the sweep.
+   *
+   * Mutates rather than returning a new list because it is handed the exact
+   * array the caller already holds, after ordering, filtering and every count
+   * are decided — there is nothing left for it to disturb.
+   *
+   * NEVER throws. A sweep that found twelve hosts found twelve hosts whether
+   * or not any of them can be named; the only visible consequence of total
+   * failure is a warning in the probe log (ReverseDnsResolver) and hosts
+   * named by address, which is exactly the behaviour that predates this.
    */
   public static async attachReverseDnsHostnames(
     hosts: Array<DiscoveredHost>,

@@ -43,11 +43,24 @@ export const DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS: number = 2000;
 export const DEFAULT_REVERSE_DNS_CONCURRENCY: number = 32;
 
 /*
- * How many infrastructure failures are tolerated before the rest of the sweep
- * is skipped. See `isReverseDnsAvailable` below for why this counts only
- * while nothing has resolved.
+ * How many infrastructure failures are tolerated before the rest of the pass
+ * is skipped — and only while NOT ONE lookup has come back, NXDOMAIN included.
+ * See isReverseDnsUnusable in resolveHostnames.
+ *
+ * It is a FLOOR rather than a cap, because the decision is taken at a wave
+ * boundary: at the shipped concurrency of 32 the pass gives up after the first
+ * whole wave in which the budget is exceeded, so a probe with no resolver at
+ * all costs two waves — about four seconds — instead of the sixty the
+ * wall-clock budget would otherwise allow.
+ *
+ * Two waves rather than one on purpose. A single all-failing wave is not proof
+ * of a broken probe: 32 consecutive addresses can share one reverse zone whose
+ * nameserver is down while the rest of the estate resolves perfectly, and
+ * giving up there would reproduce the exact symptom this feature exists to
+ * fix. Sixty-four consecutive addresses answering nothing at all is a
+ * different claim.
  */
-export const DEFAULT_REVERSE_DNS_FAILURE_BUDGET: number = 10;
+export const DEFAULT_REVERSE_DNS_FAILURE_BUDGET: number = 64;
 
 /*
  * Wall-clock ceiling on the WHOLE pass, independent of the per-address one.
@@ -68,20 +81,36 @@ export const DEFAULT_REVERSE_DNS_FAILURE_BUDGET: number = 10;
 export const DEFAULT_REVERSE_DNS_TOTAL_BUDGET_IN_MS: number = 60 * 1000;
 
 /*
- * c-ares codes that mean "asked, answered, no PTR here". This is the ORDINARY
- * outcome — most addresses on most networks have no reverse record — so it
- * must never count against the failure budget, or one normal subnet would
- * disable the feature for the rest of its own scan.
+ * Codes that mean "this address has no name", as opposed to "this probe
+ * cannot resolve". This is the ORDINARY outcome — most addresses on most
+ * networks have no reverse record — so it must never count against the
+ * failure budget, or one normal subnet would disable the feature for the rest
+ * of its own scan.
  *
- * EBADNAME/EBADSTR are lumped in with them: they mean the address could not
- * be turned into a query, which is a fact about that one address and not
- * evidence about the resolver.
+ * ENOTFOUND (NXDOMAIN) and ENODATA (the name exists, no PTR record) are what
+ * Node's Resolver#reverse actually rejects with for the two ordinary cases.
+ *
+ * EINVAL is here because reverse() rejects with it when the argument is not a
+ * parseable IP address — " 1.2.3.4 ", an IPv6 form it will not take, anything
+ * a future caller of the public attachReverseDnsHostnames might hand it. That
+ * is a fact about that one address and carries no information about the
+ * resolver, so counting it would let a handful of malformed inputs convict a
+ * working probe of having no DNS and skip every remaining host.
+ *
+ * EBADNAME/EBADSTR/NOTFOUND/NODATA are kept for the same reason and cost
+ * nothing: they are the spellings other c-ares entry points use, and this set
+ * should not depend on which one a future change routes through.
+ *
+ * Everything NOT here — ESERVFAIL, EREFUSED, ECONNREFUSED, ETIMEOUT,
+ * ENOTIMP, and the race guard's own bare timeout Error — is evidence the
+ * probe could not get an answer at all, which is what the budget is for.
  */
 const NO_RECORD_ERROR_CODES: Set<string> = new Set<string>([
   "ENOTFOUND",
   "ENODATA",
   "NOTFOUND",
   "NODATA",
+  "EINVAL",
   "EBADNAME",
   "EBADSTR",
 ]);
@@ -95,12 +124,13 @@ export interface ReverseDnsResolution {
   hostnameByIpAddress: Map<string, string>;
   /*
    * False when the failure budget ran out and the remaining addresses were
-   * skipped. The names already resolved (there are none, by construction —
-   * see the budget rule) are still returned.
+   * skipped: not one lookup came back, NXDOMAIN included, so this probe cannot
+   * resolve at all. No names will have been found, by construction.
    *
-   * Distinct from `isTimeBudgetExhausted`: this one says the resolver does
-   * not work from here, which is a probe-configuration fact, while that one
-   * says the pass was simply too big to finish.
+   * Distinct from `isTimeBudgetExhausted`: this one says the resolver does not
+   * work from here, which is a probe-configuration fact, while that one says
+   * the pass was simply too big to finish. They are independent, and a pass
+   * can end with neither, either or both.
    */
   isReverseDnsAvailable: boolean;
   /*
@@ -109,10 +139,14 @@ export interface ReverseDnsResolution {
    */
   isTimeBudgetExhausted: boolean;
   /*
-   * The first infrastructure failure, verbatim-ish, for the log line that
-   * explains why a scan came back with addresses instead of names. Truncated
-   * the way SubnetScanner truncates SNMP errors — resolver errors can carry a
-   * whole server list.
+   * The FIRST infrastructure failure seen, verbatim-ish and truncated the way
+   * SubnetScanner truncates SNMP errors.
+   *
+   * "Seen", not "fatal". A single stale delegation in an otherwise healthy
+   * estate sets this on a pass that named every other host and returns
+   * `isReverseDnsAvailable: true`, so a caller that logs it unconditionally
+   * would report a resolver problem for a pass that worked. Read it together
+   * with `isReverseDnsAvailable`, never on its own.
    */
   failureReason?: string | undefined;
 }
@@ -120,10 +154,21 @@ export interface ReverseDnsResolution {
 // Long enough to name the failure, short enough for one log line.
 const FAILURE_REASON_EXCERPT_LENGTH: number = 200;
 
-function describeError(error: unknown): string {
+function describeError(error: unknown): string | undefined {
   const message: string = (
     (error as Error | undefined)?.message || String(error ?? "")
   ).trim();
+
+  /*
+   * UNDEFINED, not "", when there is nothing to say. A thrown `undefined` or a
+   * bare `new Error()` produces an empty message, and returning that left
+   * `failureReason` typed `string | undefined` holding a present-but-empty
+   * string — so a caller asking `failureReason !== undefined` was told there
+   * was a reason and then shown nothing.
+   */
+  if (!message) {
+    return undefined;
+  }
 
   return message.length > FAILURE_REASON_EXCERPT_LENGTH
     ? message.substring(0, FAILURE_REASON_EXCERPT_LENGTH)
@@ -143,18 +188,60 @@ function getErrorCode(error: unknown): string {
  * guard is the one that matters in practice — it is the same belt-and-braces
  * DnsResolutionCache uses, for the same reason.
  */
-function buildDefaultLookup(timeoutInMs: number): ReverseDnsLookupFunction {
+/*
+ * How a resolver is obtained, injectable ONLY so that the timeout arm below
+ * can be tested.
+ *
+ * Without a seam here, three things in this function are unreachable from any
+ * test: the race's timeout branch, the `resolver.cancel()` inside it, and the
+ * `finally` that clears the timer. The cancel is load-bearing — on a
+ * black-holing forwarder every timed-out address would otherwise leave an
+ * outstanding query and a retry timer behind for a resolver object the sweep
+ * no longer holds — and deleting it broke no test, which is exactly the state
+ * a piece of cleanup code should never be in.
+ */
+export interface ReverseDnsResolverLike {
+  reverse(ipAddress: string): Promise<Array<string>>;
+  cancel(): void;
+}
+
+export type ReverseDnsResolverFactory = (
+  timeoutInMs: number,
+) => ReverseDnsResolverLike;
+
+const defaultResolverFactory: ReverseDnsResolverFactory = (
+  timeoutInMs: number,
+): ReverseDnsResolverLike => {
+  return new dns.promises.Resolver({
+    timeout: timeoutInMs,
+    tries: 1,
+  });
+};
+
+export function buildDefaultLookup(
+  timeoutInMs: number,
+  createResolver: ReverseDnsResolverFactory = defaultResolverFactory,
+): ReverseDnsLookupFunction {
   return async (ipAddress: string): Promise<Array<string>> => {
-    const resolver: dns.promises.Resolver = new dns.promises.Resolver({
-      timeout: timeoutInMs,
-      tries: 1,
-    });
+    const resolver: ReverseDnsResolverLike = createResolver(timeoutInMs);
 
     const lookup: Promise<Array<string>> = resolver.reverse(ipAddress);
 
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
     const timeout: Promise<never> = new Promise<never>(
       (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
-        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        timer = setTimeout(() => {
+          /*
+           * Tell c-ares to stop as well as stopping waiting for it. Without
+           * this the abandoned query stays outstanding on a resolver object
+           * the sweep no longer holds, and on a black-holing forwarder every
+           * timed-out address leaves one behind — up to a whole sweep's worth
+           * of sockets and retry timers the probe is still paying for while
+           * the pass moves on. Losing the race is not the same as the query
+           * being over.
+           */
+          resolver.cancel();
           reject(new Error(`Reverse DNS lookup for ${ipAddress} timed out`));
         }, timeoutInMs);
         // Never keep the probe alive just for this timer.
@@ -162,7 +249,20 @@ function buildDefaultLookup(timeoutInMs: number): ReverseDnsLookupFunction {
       },
     );
 
-    return await Promise.race([lookup, timeout]);
+    try {
+      return await Promise.race([lookup, timeout]);
+    } finally {
+      /*
+       * Clear it on the WINNING path too. Promise.race leaves the loser
+       * pending, so an un-cleared two-second timer would otherwise outlive
+       * every fast lookup — thousands of them on a large sweep — and each
+       * would still call resolver.cancel() long after that resolver's answer
+       * was already in the map.
+       */
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
   };
 }
 
@@ -242,128 +342,192 @@ export default class ReverseDnsResolver {
      */
     const state: {
       resolvedCount: number;
+      /*
+       * Lookups that came BACK, whether or not any answer survived
+       * normalisation. This — not `resolvedCount` — is what disarms the
+       * failure budget.
+       *
+       * The distinction is not academic. A resolver that answers every query
+       * with a name that normalises away (a wildcard zone echoing
+       * in-addr.arpa, a zone full of names with spaces in them) is a WORKING
+       * resolver; counting only usable names would let a run of unusable
+       * answers sit alongside a handful of unrelated timeouts and convict the
+       * probe of having no resolver at all, skipping the addresses further
+       * down the list that do have good names.
+       */
+      successfulLookupCount: number;
       infrastructureFailureCount: number;
       failureReason?: string | undefined;
-      isAvailable: boolean;
       isTimeBudgetExhausted: boolean;
     } = {
       resolvedCount: 0,
+      successfulLookupCount: 0,
       infrastructureFailureCount: 0,
-      isAvailable: true,
       isTimeBudgetExhausted: false,
     };
 
-    await this.runConcurrently(
-      uniqueAddresses,
-      async (ipAddress: string): Promise<void> => {
-        if (!state.isAvailable) {
-          return;
-        }
+    /*
+     * The failure budget, asked only where the answer cannot be a lie: BETWEEN
+     * waves, when every lookup started so far has settled.
+     *
+     * Two designs failed before this one, and both failures are worth keeping
+     * written down because each looked correct.
+     *
+     * The first was a one-way latch set inside the failure branch. At the
+     * shipped concurrency of 32, thirty-two lookups start together; if the
+     * first ten to come back are infrastructure failures the latch flipped,
+     * and it STAYED flipped as the other twenty-two returned perfectly good
+     * names a moment later. A subnet whose first addresses sit in a reverse
+     * zone delegated to a dead nameserver — the commonest way this happens —
+     * was named entirely by IP.
+     *
+     * The second was this same predicate, asked fresh on every address so the
+     * breaker could un-trip itself. That is worse, not better, and the reason
+     * is scheduling rather than logic: when a worker pool sees the breaker
+     * tripped, its workers return WITHOUT AWAITING ANYTHING, so the whole
+     * remaining queue drains through the skip path in microtasks. A success
+     * settling one macrotask later — that is to say, every real DNS answer —
+     * always lost that race. Sixty-eight of a hundred addresses were skipped
+     * and the pass then reported `isReverseDnsAvailable: true`, because by the
+     * time anyone asked, the breaker had un-tripped. Silently skipping two
+     * thirds of the work while reporting success is the worst of the three.
+     *
+     * So the decision is made where there is nothing in flight to race: at a
+     * wave boundary, on fully-settled counters. Nothing un-trips because
+     * nothing trips early.
+     */
+    const isReverseDnsUnusable: () => boolean = (): boolean => {
+      return (
+        state.successfulLookupCount === 0 &&
+        state.infrastructureFailureCount >= this.failureBudget
+      );
+    };
+
+    /*
+     * One address, start to finish. NEVER rejects: every outcome is recorded
+     * on `state` and the caller awaits a wave of these with Promise.all, which
+     * would abandon the whole wave on a single rejection.
+     */
+    const lookupOne: (ipAddress: string) => Promise<void> = async (
+      ipAddress: string,
+    ): Promise<void> => {
+      try {
+        const answers: unknown = await this.lookup(ipAddress);
 
         /*
-         * Checked before STARTING a lookup, never in the middle of one: a
-         * lookup already in flight is bounded by its own timeout, and
-         * abandoning its result would waste a query that has already been
-         * sent. The pass therefore overruns the budget by at most one
-         * per-address timeout.
+         * The lookup RETURNED, so the resolver is alive. Counted before the
+         * answers are inspected, because whether any of them survives
+         * normalisation says nothing about whether DNS works here.
          */
-        if (this.now() >= deadline) {
-          if (!state.isTimeBudgetExhausted) {
-            state.isTimeBudgetExhausted = true;
-            logger.warn(
-              `Discovery reverse DNS lookups exceeded their ${this.totalBudgetInMs}ms budget after naming ${state.resolvedCount} host(s); the remaining discovered hosts will be named by IP address. The sweep itself is unaffected.`,
-            );
-          }
+        state.successfulLookupCount++;
 
+        /*
+         * Defended rather than assumed. `for...of` over a non-iterable throws,
+         * and that throw would land in the catch below and be counted as an
+         * INFRASTRUCTURE failure — so a lookup that returned null would not
+         * merely fail to name one host, it would spend the budget. A lookup
+         * that answers with something that is not a list of names has told us
+         * there is no name here, and nothing more.
+         */
+        const usableAnswers: Array<unknown> = Array.isArray(answers)
+          ? answers
+          : [];
+
+        /*
+         * FIRST usable answer wins. An address with several PTR records is
+         * unusual but legal, and the alternative — refusing to name a host
+         * whose owner published two names for it — is worse than picking one
+         * deterministically. Answers that normalise away (an in-addr.arpa
+         * echo, a name with a space in it) are skipped rather than ending the
+         * search, so a junk first record cannot hide a good second one.
+         */
+        for (const answer of usableAnswers) {
+          const name: string | undefined = normalizeReverseDnsName(answer);
+
+          if (name) {
+            hostnameByIpAddress.set(ipAddress, name);
+            state.resolvedCount++;
+            return;
+          }
+        }
+      } catch (err) {
+        if (NO_RECORD_ERROR_CODES.has(getErrorCode(err))) {
+          /*
+           * The ordinary "this address has no PTR record". Not a failure —
+           * and, just as importantly, a SUCCESS for the budget's purposes.
+           *
+           * NXDOMAIN is an answer. A resolver that returns it is reachable,
+           * configured and working; the only thing it has told us is that this
+           * particular address has no name. Counting it as neither would leave
+           * a sparse subnet — five addresses with no record and a handful of
+           * unrelated timeouts — looking exactly like a probe with no resolver
+           * at all, and the budget would skip every remaining host on the
+           * strength of it.
+           */
+          state.successfulLookupCount++;
           return;
         }
 
-        try {
-          const answers: Array<string> = await this.lookup(ipAddress);
-
-          /*
-           * FIRST usable answer wins. An address with several PTR records is
-           * unusual but legal, and the alternative — refusing to name a host
-           * whose owner published two names for it — is worse than picking
-           * one deterministically. Answers that normalise away (an
-           * in-addr.arpa echo, a name with a space in it) are skipped rather
-           * than ending the search, so a junk first record cannot hide a good
-           * second one.
-           */
-          for (const answer of answers) {
-            const name: string | undefined = normalizeReverseDnsName(answer);
-
-            if (name) {
-              hostnameByIpAddress.set(ipAddress, name);
-              state.resolvedCount++;
-              break;
-            }
-          }
-        } catch (err) {
-          if (NO_RECORD_ERROR_CODES.has(getErrorCode(err))) {
-            // The ordinary "this address has no PTR record". Not a failure.
-            return;
-          }
-
-          state.infrastructureFailureCount++;
-          state.failureReason = state.failureReason || describeError(err);
-
-          /*
-           * The budget only bites while NOTHING has resolved.
-           *
-           * A resolver that has already answered for some address is present
-           * and working, so a later timeout is about that address (a stale
-           * delegation, a reverse zone whose nameserver is down) and skipping
-           * the rest of the sweep over it would throw away names that would
-           * have resolved fine. It is the probe container with no resolver at
-           * all, or one that refuses every query, that this exists for — and
-           * there, by definition, nothing ever resolves.
-           */
-          if (
-            state.resolvedCount === 0 &&
-            state.infrastructureFailureCount >= this.failureBudget
-          ) {
-            state.isAvailable = false;
-            logger.warn(
-              `Discovery reverse DNS lookups are not usable from this probe: ${state.infrastructureFailureCount} of the first ${uniqueAddresses.length} discovered address(es) failed to resolve and none succeeded, so the rest were skipped and those hosts will be named by IP address. Reverse DNS is best-effort and this does not fail the scan. Resolver reported: ${state.failureReason || "unknown error"}`,
-            );
-          }
-        }
-      },
-    );
-
-    return {
-      hostnameByIpAddress: hostnameByIpAddress,
-      isReverseDnsAvailable: state.isAvailable,
-      isTimeBudgetExhausted: state.isTimeBudgetExhausted,
-      failureReason: state.failureReason,
-    };
-  }
-
-  /*
-   * At most `concurrency` lookups in flight. Same worker-pool shape as
-   * SubnetScanner.runConcurrently — duplicated rather than shared so this
-   * class stays testable on its own, which is the whole reason it is a class
-   * and not three functions inside the scanner.
-   */
-  private async runConcurrently(
-    items: Array<string>,
-    work: (item: string) => Promise<void>,
-  ): Promise<void> {
-    let cursor: number = 0;
-
-    const worker: () => Promise<void> = async (): Promise<void> => {
-      while (cursor < items.length) {
-        await work(items[cursor++]!);
+        state.infrastructureFailureCount++;
+        state.failureReason = state.failureReason || describeError(err);
       }
     };
 
-    const workers: Array<Promise<void>> = [];
+    /*
+     * WAVES, not a work-stealing pool.
+     *
+     * A pool would finish a mixed batch marginally sooner, and it is what this
+     * used to be. It is given up because the breaker has to be evaluated
+     * somewhere, and inside a pool there is no moment at which the counters
+     * are complete — see the note on isReverseDnsUnusable above, where asking
+     * mid-flight silently skipped two thirds of a sweep and reported success.
+     *
+     * At a wave boundary every lookup that has started has finished, so the
+     * counters mean exactly what they say. The cost is that a wave takes as
+     * long as its slowest address, which is bounded by the per-address budget
+     * (2s) — and DNS is the one protocol where that variance is small, because
+     * an address either answers in milliseconds or times out.
+     */
+    for (
+      let start: number = 0;
+      start < uniqueAddresses.length;
+      start += this.concurrency
+    ) {
+      /*
+       * Checked before STARTING a wave, never in the middle of one: lookups
+       * already in flight are bounded by their own timeout, and abandoning
+       * their results would waste queries already on the wire. The pass
+       * therefore overruns its budget by at most one wave.
+       */
+      if (this.now() >= deadline) {
+        state.isTimeBudgetExhausted = true;
+        logger.warn(
+          `Discovery reverse DNS lookups exceeded their ${this.totalBudgetInMs}ms budget after naming ${state.resolvedCount} host(s); the remaining discovered hosts will be named by IP address. The sweep itself is unaffected.`,
+        );
+        break;
+      }
 
-    for (let i: number = 0; i < Math.min(this.concurrency, items.length); i++) {
-      workers.push(worker());
+      if (isReverseDnsUnusable()) {
+        logger.warn(
+          `Discovery reverse DNS lookups are not usable from this probe: ${state.infrastructureFailureCount} address(es) of ${uniqueAddresses.length} failed to resolve and not one answered, so the rest were skipped and those hosts will be named by IP address. Reverse DNS is best-effort and this does not fail the scan. Resolver reported: ${state.failureReason || "unknown error"}`,
+        );
+        break;
+      }
+
+      await Promise.all(
+        uniqueAddresses
+          .slice(start, start + this.concurrency)
+          .map((ipAddress: string) => {
+            return lookupOne(ipAddress);
+          }),
+      );
     }
 
-    await Promise.all(workers);
+    return {
+      hostnameByIpAddress: hostnameByIpAddress,
+      isReverseDnsAvailable: !isReverseDnsUnusable(),
+      isTimeBudgetExhausted: state.isTimeBudgetExhausted,
+      failureReason: state.failureReason,
+    };
   }
 }

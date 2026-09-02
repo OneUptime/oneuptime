@@ -18,7 +18,10 @@ import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol"
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
-import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
+import {
+  installReverseDnsStub,
+  stubReverseDnsAsResolvingNothing,
+} from "../../TestingUtils/StubReverseDns";
 
 /*
  * A discovery scan carries an ORDERED LIST of SNMP credential sets, not one.
@@ -505,7 +508,17 @@ describe("SubnetScanner multi-config sweep — errors are counted per host", () 
         snmpConfigs: ALL_THREE,
       });
 
+      /*
+       * This helper runs TWICE in the test below, and the restore wipes every
+       * spy in the file — the file-level reverse-DNS stub included. Without
+       * re-installing it, the second invocation's sweep queried the machine's
+       * real resolver for 10.0.0.1 and 10.0.0.2: silent, because the
+       * assertions here read only the SNMP error tallies, but it made the
+       * suite depend on the host's DNS and pay two real timeouts when there
+       * is none.
+       */
       jest.restoreAllMocks();
+      installReverseDnsStub();
 
       return result;
     };
