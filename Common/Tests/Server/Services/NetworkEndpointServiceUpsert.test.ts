@@ -1,6 +1,7 @@
 import NetworkEndpointService from "../../../Server/Services/NetworkEndpointService";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import ObjectID from "../../../Types/ObjectID";
+import NetworkEndpointAttachmentSource from "../../../Types/NetworkDevice/NetworkEndpointAttachmentSource";
 
 /*
  * Wiring tests for upsertDiscoveredEndpoints: the precedence DECISIONS live
@@ -39,8 +40,8 @@ const TEN_MINUTES_AGO: Date = new Date("2026-07-22T11:50:00Z");
 // A MAC whose OUI is in the bundled registry slice (Cisco 00:00:0c).
 const CISCO_MAC: string = "00:00:0c:aa:bb:01";
 
-const INSERT_PARAMS_PER_ROW: number = 12;
-const UPDATE_PARAMS_PER_ROW: number = 9;
+const INSERT_PARAMS_PER_ROW: number = 15;
+const UPDATE_PARAMS_PER_ROW: number = 12;
 
 type QueryCall = [string, Array<unknown>];
 
@@ -90,6 +91,13 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     siteId?: ObjectID | undefined;
     firstSeenAt?: Date | undefined;
     lastSeenAt?: Date | undefined;
+    /*
+     * Defaults to FDB — a stored row an FDB walk wrote is what almost every
+     * fixture here means. Pass null explicitly for a row that predates the
+     * column, which is a real state with its own behaviour (one backfill
+     * write) and has its own test.
+     */
+    attachmentSource?: string | null | undefined;
   }) => NetworkEndpoint = (data: {
     macAddress: string;
     attachedNetworkDeviceId?: ObjectID | undefined;
@@ -100,6 +108,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     siteId?: ObjectID | undefined;
     firstSeenAt?: Date | undefined;
     lastSeenAt?: Date | undefined;
+    attachmentSource?: string | null | undefined;
   }): NetworkEndpoint => {
     const row: NetworkEndpoint = new NetworkEndpoint();
     row.id = ROW_ID;
@@ -127,6 +136,13 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     }
     if (data.lastSeenAt) {
       row.lastSeenAt = data.lastSeenAt;
+    }
+    const attachmentSource: string | null | undefined =
+      data.attachmentSource === undefined
+        ? NetworkEndpointAttachmentSource.Fdb
+        : data.attachmentSource;
+    if (attachmentSource) {
+      row.attachmentSource = attachmentSource;
     }
     return row;
   };
@@ -175,6 +191,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       SWITCH_ID.toString(),
       7,
       "Gi0/7",
+      "FDB", // attachmentSource — a switch's forwarding database
+      NOW, // attachmentLastSeenAt
+      null, // ipAddressLastSeenAt — no address was observed
       12,
       SITE_ID.toString(),
       NOW, // firstSeenAt
@@ -208,6 +227,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       SWITCH_ID.toString(),
       3, // the router's own interface
       null, // no port name
+      "ARP", // attachmentSource — an ARP table, not a forwarding database
+      NOW, // attachmentLastSeenAt
+      NOW, // ipAddressLastSeenAt
       null, // no vlan
       null, // no deviceSiteId passed — none stamped
       NOW,
@@ -303,6 +325,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       SWITCH_ID.toString(),
       7,
       "Gi0/7",
+      "FDB", // attachmentSource
+      NOW, // attachmentLastSeenAt
+      null, // ipAddressLastSeenAt — no address observed
       12,
       SITE_ID.toString(),
       null, // no IP observed
@@ -354,6 +379,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       null, // deviceId not written
       null,
       null,
+      null, // attachmentSource not rewritten either
+      null, // attachmentLastSeenAt — the attachment was not re-confirmed
+      NOW, // ipAddressLastSeenAt — but the address was
       null,
       null, // siteId not written either
       "10.0.0.99", // but the IP still refreshes
@@ -387,7 +415,116 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
      * firstSeenAt still forces the write.
      */
     expect(updateCalls()).toHaveLength(1);
-    expect(updateCalls()[0]![1][9]).toBe(NOW);
+    // Slot 12 is lastSeenAt in the per-row VALUES tuple.
+    expect(updateCalls()[0]![1][12]).toBe(NOW);
+  });
+
+  it("carries provenance and per-signal freshness through both statements", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: OTHER_SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        firstSeenAt: EARLIER,
+        lastSeenAt: ONE_MINUTE_AGO,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      deviceSiteId: SITE_ID,
+      attachments: [
+        // Known, and it moved -> the UPDATE statement.
+        { macAddress: CISCO_MAC, attachedInterfaceIndex: 7 },
+        // Brand new -> the INSERT statement.
+        { macAddress: "aa:bb:cc:dd:ee:01", attachedInterfaceIndex: 8 },
+      ],
+      ipBindings: [],
+      now: NOW,
+    });
+
+    expect(insertCalls()).toHaveLength(1);
+    expect(updateCalls()).toHaveLength(1);
+
+    const insertSql: string = insertCalls()[0]![0];
+    expect(insertSql).toContain('"attachmentSource"');
+    expect(insertSql).toContain('"attachmentLastSeenAt"');
+    expect(insertSql).toContain('"ipAddressLastSeenAt"');
+    /*
+     * Provenance is overwritten in the conflict branch rather than
+     * COALESCEd: a row a concurrent ARP walk just created must not keep
+     * an FDB label the new observation does not support.
+     */
+    expect(insertSql.split("DO UPDATE SET")[1]).toContain(
+      '"attachmentSource" = EXCLUDED."attachmentSource"',
+    );
+
+    const updateSql: string = updateCalls()[0]![0];
+    expect(updateSql).toContain(
+      '"attachmentSource" = CASE WHEN v."setAttachment" THEN v."attachmentSource" ELSE e."attachmentSource" END',
+    );
+    /*
+     * The two freshness stamps ride OUTSIDE the setAttachment CASE: each
+     * one is NULL when this walk did not re-confirm that signal, and
+     * COALESCE then keeps whatever was stored.
+     */
+    expect(updateSql).toContain(
+      '"attachmentLastSeenAt" = COALESCE(v."attachmentLastSeenAt", e."attachmentLastSeenAt")',
+    );
+    expect(updateSql).toContain(
+      '"ipAddressLastSeenAt" = COALESCE(v."ipAddressLastSeenAt", e."ipAddressLastSeenAt")',
+    );
+    /*
+     * The VALUES tuple is positional, so this alias list is the only
+     * thing mapping each row's 6th, 7th and 8th parameter to the three
+     * new columns. Its order is the contract the params above assert.
+     */
+    expect(updateSql).toContain(
+      'AS v("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "attachmentSource", "attachmentLastSeenAt", "ipAddressLastSeenAt", "vlanId", "siteId", "ipAddress", "lastSeenAt")',
+    );
+  });
+
+  it("refreshes the address's freshness without touching the attachment's", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: "aa:bb:cc:dd:ee:01",
+        // A switch owns the port, so ARP may not claim the attachment.
+        attachedNetworkDeviceId: OTHER_SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        ipAddress: "10.0.0.99",
+        firstSeenAt: EARLIER,
+        // Stale, so the row is written for the timestamps alone.
+        lastSeenAt: TEN_MINUTES_AGO,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      deviceSiteId: SITE_ID,
+      attachments: [],
+      ipBindings: [
+        {
+          macAddress: "aa:bb:cc:dd:ee:01",
+          ipAddress: "10.0.0.99",
+          routerInterfaceIndex: 3,
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(updateCalls()).toHaveLength(1);
+    const params: Array<unknown> = updateCalls()[0]![1];
+    /*
+     * Slot 7 is attachmentLastSeenAt: this walk never re-confirmed which
+     * port the endpoint hangs off, so the attachment's age must keep
+     * running. Stamping it here is how a cable that was unplugged last
+     * week goes on being drawn.
+     */
+    expect(params[7]).toBeNull();
+    // Slot 8 is ipAddressLastSeenAt: the address WAS re-confirmed.
+    expect(params[8]).toBe(NOW);
   });
 
   describe("unchanged-since-last-poll short circuit", () => {
@@ -442,7 +579,41 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       await stableWalk(NOW);
 
       expect(updateCalls()).toHaveLength(1);
-      expect(updateCalls()[0]![1][9]).toBe(NOW);
+      expect(updateCalls()[0]![1][12]).toBe(NOW);
+    });
+
+    it("writes exactly one provenance backfill for a row that predates the column", async () => {
+      findBySpy.mockResolvedValue([
+        makeExistingRow({
+          macAddress: CISCO_MAC,
+          attachedNetworkDeviceId: SWITCH_ID,
+          attachedInterfaceIndex: 7,
+          attachedPortName: "Gi0/7",
+          vlanId: 12,
+          siteId: SITE_ID,
+          firstSeenAt: EARLIER,
+          lastSeenAt: ONE_MINUTE_AGO,
+          // Written before the column existed.
+          attachmentSource: null,
+        }),
+      ]);
+
+      await stableWalk(NOW);
+
+      /*
+       * Nothing moved and lastSeenAt is fresh, but an unlabelled row is
+       * one nothing may draw a cable from — the label is the news.
+       */
+      expect(updateCalls()).toHaveLength(1);
+      expect(updateCalls()[0]![1][6]).toBe(NetworkEndpointAttachmentSource.Fdb);
+
+      // Stamped now: the next identical poll costs one SELECT and nothing.
+      querySpy.mockClear();
+      findBySpy.mockResolvedValue([stableRow()]);
+
+      await stableWalk(NOW);
+
+      expect(querySpy).not.toHaveBeenCalled();
     });
 
     it("writes when the endpoint moves to a different port", async () => {
@@ -520,7 +691,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       });
 
       expect(updateCalls()).toHaveLength(1);
-      expect(updateCalls()[0]![1][8]).toBe("10.0.0.6");
+      expect(updateCalls()[0]![1][11]).toBe("10.0.0.6");
     });
 
     it("writes when the device moved to a different site", async () => {
@@ -543,7 +714,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       });
 
       expect(updateCalls()).toHaveLength(1);
-      expect(updateCalls()[0]![1][7]).toBe(OTHER_SWITCH_ID.toString());
+      expect(updateCalls()[0]![1][10]).toBe(OTHER_SWITCH_ID.toString());
     });
   });
 

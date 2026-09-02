@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
+  NetworkTopologyLinkProtocol,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
@@ -9,6 +10,7 @@ import {
   LINK_STATE_COLORS,
   TOPOLOGY_LEGEND,
   TopologyLegendEntry,
+  accessibleLabelForEdge,
   accessibleLabelForNode,
   buildTopologyLegend,
   describeEndpoint,
@@ -541,6 +543,190 @@ describe("nodeMatchesSearch — by role", () => {
   });
 });
 
+describe("nodeMatchesSearch — by MAC and address", () => {
+  /*
+   * Issue #3489. These used to be reachable by accident: an unclassified
+   * endpoint leaf was NAMED after its address, so searching the address
+   * found the name. Endpoint inference replaces that leaf with the device's
+   * own name, and the address an operator is holding on a ticket would
+   * otherwise stop finding anything at all.
+   */
+  const till: NetworkTopologyNode = deviceNode({
+    id: "device-till-01",
+    name: "till-01",
+    macAddress: "aa:bb:cc:dd:ee:ff",
+    ipAddress: "10.14.3.22",
+  });
+
+  test("the MAC from the forwarding database is searchable", () => {
+    expect(nodeMatchesSearch(till, "aa:bb:cc:dd:ee:ff")).toBe(true);
+    // Partially, because nobody types a whole MAC to find one device.
+    expect(nodeMatchesSearch(till, "dd:ee:ff")).toBe(true);
+  });
+
+  test("the MAC search is case-insensitive, because vendors disagree", () => {
+    expect(nodeMatchesSearch(till, "AA:BB:CC:DD:EE:FF")).toBe(true);
+    expect(
+      nodeMatchesSearch(
+        deviceNode({ macAddress: "AA:BB:CC:DD:EE:FF" }),
+        "aa:bb",
+      ),
+    ).toBe(true);
+  });
+
+  test("the ARP-joined address is searchable", () => {
+    expect(nodeMatchesSearch(till, "10.14.3.22")).toBe(true);
+    expect(nodeMatchesSearch(till, "10.14.3.")).toBe(true);
+  });
+
+  test("a device carrying neither does not answer to somebody else's address", () => {
+    expect(nodeMatchesSearch(deviceNode(), "10.14.3.22")).toBe(false);
+    expect(nodeMatchesSearch(till, "10.14.3.23")).toBe(false);
+    expect(nodeMatchesSearch(till, "aa:bb:cc:dd:ee:00")).toBe(false);
+  });
+
+  test("an endpoint leaf is still found the same way", () => {
+    // The old leaf and the new device node answer to the same query.
+    expect(
+      nodeMatchesSearch(
+        {
+          id: "endpoint:aabbccddeeff",
+          name: "10.14.3.22",
+          isManaged: false,
+          status: "unknown",
+          kind: "endpoint",
+          macAddress: "aa:bb:cc:dd:ee:ff",
+          ipAddress: "10.14.3.22",
+        },
+        "10.14.3.22",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("accessibleLabelForEdge — inferred uplinks", () => {
+  function uplink(protocols: Array<NetworkTopologyLinkProtocol>): string {
+    return accessibleLabelForEdge(
+      { fromNodeId: "d1", toNodeId: "d2", protocols: protocols },
+      "core-1",
+      "till-01",
+    );
+  }
+
+  test("an inferred link never says 'reported by' — nothing reported it", () => {
+    /*
+     * Issue #3489, and the one verb that must not be used here: a keyboard
+     * user gets this string and nothing else, so "reported by FDB" would
+     * present a join across two SNMP tables as a device's own testimony.
+     */
+    const label: string = uplink(["fdb", "inferred"]);
+    expect(label).not.toContain("reported by");
+    expect(label).toBe(
+      "Link from core-1 to till-01, no operational data, inferred from the forwarding database",
+    );
+  });
+
+  test("the evidence protocol is folded into the clause, not listed beside it", () => {
+    // "reported by FDB and INFERRED" is the sentence this avoids.
+    expect(uplink(["fdb", "inferred"])).not.toContain("INFERRED");
+    expect(uplink(["fdb", "inferred"])).not.toContain("FDB");
+  });
+
+  test("a hand-drawn link an inference later agreed with still reports the manual part", () => {
+    /*
+     * An operator who drew this cable must still hear that they drew it —
+     * the inference riding along does not un-declare it.
+     */
+    expect(uplink(["manual", "fdb", "inferred"])).toBe(
+      "Link from core-1 to till-01, no operational data, reported by MANUAL, inferred from the forwarding database",
+    );
+  });
+
+  test("a plain FDB attachment is still reported, because it was", () => {
+    // "fdb" is only swallowed when it is the inference's own evidence.
+    expect(uplink(["fdb"])).toBe(
+      "Link from core-1 to till-01, no operational data, reported by FDB",
+    );
+  });
+
+  test("discovery-protocol links are untouched", () => {
+    /*
+     * The conjunction is uppercased along with the protocol names, which
+     * predates issue #3489 — the clause is built by uppercasing the joined
+     * string. A screen reader says "and" either way, so it is pinned as it
+     * is rather than quietly changed under a feature that does not own it.
+     */
+    expect(uplink(["lldp", "cdp"])).toBe(
+      "Link from core-1 to till-01, no operational data, reported by LLDP AND CDP",
+    );
+    expect(uplink(["lldp", "cdp"])).not.toContain("inferred");
+  });
+
+  test("an inferred link that is measurably down says so before saying it was inferred", () => {
+    /*
+     * State leads, because "an end is down" is the thing being listened
+     * for. Provenance is the qualifier on it.
+     */
+    expect(
+      accessibleLabelForEdge(
+        {
+          fromNodeId: "d1",
+          toNodeId: "d2",
+          protocols: ["fdb", "inferred"],
+          fromInterface: { isOperationallyUp: false, utilizationPercent: 12 },
+        },
+        "core-1",
+        "till-01",
+      ),
+    ).toBe(
+      "Link from core-1 to till-01, an end is down, 12% utilization, inferred from the forwarding database",
+    );
+  });
+
+  test("falls back to node ids when the map has no names for the ends", () => {
+    expect(
+      accessibleLabelForEdge(
+        { fromNodeId: "d1", toNodeId: "d2", protocols: ["fdb", "inferred"] },
+        undefined,
+        undefined,
+      ),
+    ).toBe(
+      "Link from d1 to d2, no operational data, inferred from the forwarding database",
+    );
+  });
+
+  test("a legacy edge with no protocols at all announces no provenance", () => {
+    expect(
+      accessibleLabelForEdge(
+        { fromNodeId: "d1", toNodeId: "d2" },
+        "core-1",
+        "till-01",
+      ),
+    ).toBe("Link from core-1 to till-01, no operational data");
+  });
+
+  test("'inferred' on its own reads the same, not as an empty 'reported by'", () => {
+    /*
+     * The evidence protocol is the inference's own doing, so an edge that
+     * arrives carrying only "inferred" must not produce a dangling
+     * "reported by " with nothing after it.
+     */
+    expect(uplink(["inferred"])).toBe(
+      "Link from core-1 to till-01, no operational data, inferred from the forwarding database",
+    );
+  });
+
+  test("an LLDP link an inference agreed with still credits LLDP", () => {
+    /*
+     * Only "fdb" is swallowed, and only because it is the evidence. A
+     * protocol that genuinely reported the cable keeps its credit.
+     */
+    expect(uplink(["lldp", "inferred"])).toBe(
+      "Link from core-1 to till-01, no operational data, reported by LLDP, inferred from the forwarding database",
+    );
+  });
+});
+
 describe("accessibleLabelForNode — roles", () => {
   test("the role is announced, because the shape cannot be", () => {
     expect(
@@ -668,6 +854,41 @@ describe("buildTopologyLegend", () => {
     ]);
     expect(legend.slice(0, TOPOLOGY_LEGEND.length)).toEqual(TOPOLOGY_LEGEND);
     expect(labelsOf(legend, "Status")).toEqual(["Up", "Down", "Unknown"]);
+  });
+
+  test("the inferred uplink is its own key entry, drawn unlike the FDB one", () => {
+    /*
+     * Issue #3489. Both lines come out of the forwarding database, but one
+     * runs to an anonymous MAC on a port and the other is a cable between
+     * two devices the project manages — and the canvas already draws them
+     * with different strokes. Two key rows sharing a swatch and a colour
+     * under two labels would be a key that cannot be read.
+     */
+    const link: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode(),
+    ]).filter((entry: TopologyLegendEntry) => {
+      return entry.group === "Link";
+    });
+
+    expect(
+      link.map((entry: TopologyLegendEntry) => {
+        return entry.label;
+      }),
+    ).toContain("Inferred uplink");
+
+    const inferred: TopologyLegendEntry = link.find(
+      (entry: TopologyLegendEntry) => {
+        return entry.label === "Inferred uplink";
+      },
+    )!;
+    const learned: TopologyLegendEntry = link.find(
+      (entry: TopologyLegendEntry) => {
+        return entry.label === "Learned from FDB";
+      },
+    )!;
+
+    expect(inferred.swatch).toBe("dotted-line");
+    expect(inferred.swatch).not.toBe(learned.swatch);
   });
 
   test("endpoints without a role are listed as hosts", () => {

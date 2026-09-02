@@ -3,8 +3,10 @@ import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
+  NetworkTopologyEdgeInference,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   LINK_STATE_COLORS,
@@ -163,6 +165,27 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
   const childName: string | null =
     parentName === null ? null : parentName === fromName ? toName : fromName;
 
+  const inference: NetworkTopologyEdgeInference | undefined = edge.inferredFrom;
+
+  const inferenceRows: Array<{ label: string; value: string }> = [];
+  if (inference) {
+    inferenceRows.push({ label: "MAC address", value: inference.macAddress });
+    if (inference.ipAddress) {
+      inferenceRows.push({ label: "IP address", value: inference.ipAddress });
+    }
+    if (typeof inference.vlanId === "number") {
+      inferenceRows.push({ label: "VLAN", value: String(inference.vlanId) });
+    }
+    if (inference.lastSeenAt) {
+      inferenceRows.push({
+        label: "Last seen on this port",
+        value: OneUptimeDate.getDateAsLocalFormattedString(
+          OneUptimeDate.fromString(inference.lastSeenAt),
+        ),
+      });
+    }
+  }
+
   return (
     <SideOver
       title={`${fromName} ↔ ${toName}`}
@@ -196,21 +219,64 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
         </div>
 
         {/*
-         * Shown only when somebody declared a direction. Absent is not
-         * "these are peers", it is "nobody said" — and stating the
-         * inference as though it were a fact is exactly the confusion this
-         * whole field exists to end. So there is no "hierarchy: inferred"
-         * row; there is simply nothing here until there is something to
-         * say.
+         * Shown only when the direction is known. Absent is not "these are
+         * peers", it is "nobody said" — and stating a guess as though it
+         * were a fact is exactly the confusion this field exists to end.
+         *
+         * There are now two ways to know, and they are not the same
+         * strength of claim, so they are not worded the same. A declared
+         * parent is somebody's statement. An inferred one is read off a
+         * switch's forwarding database, which is evidence rather than
+         * testimony — good evidence, but the operator is entitled to know
+         * which of the two they are being shown before they act on it.
          */}
         {parentName && childName ? (
           <div className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
             <span className="font-medium text-gray-900">{parentName}</span>
             {" is the parent of "}
             <span className="font-medium text-gray-900">{childName}</span>
-            {" — declared, not inferred. The Parent-Child view draws "}
+            {inference
+              ? " — worked out from the forwarding database, not declared. The Parent-Child view draws "
+              : " — declared, not inferred. The Parent-Child view draws "}
             {childName}
             {" beneath it."}
+          </div>
+        ) : null}
+
+        {/*
+         * The receipt for an inferred cable.
+         *
+         * Nothing reported this link: it exists because a MAC in the
+         * switch's table was recognised as a device we already manage. An
+         * operator asked to trust that — and to stop drawing links by hand
+         * because of it — should be able to see the evidence and go and
+         * check it, rather than being told a cable is there.
+         */}
+        {inference ? (
+          <div className="rounded-md border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600">
+            <div className="font-medium text-gray-900">
+              {translateString("Discovered from the MAC address table") ||
+                "Discovered from the MAC address table"}
+            </div>
+            <div className="mt-1">
+              {inference.matchedOn === "mac"
+                ? "Matched on MAC address"
+                : "Matched on IP address, joined through the router's ARP table"}
+            </div>
+            <dl className="mt-2 space-y-1">
+              {inferenceRows.map(
+                (row: { label: string; value: string }): ReactElement => {
+                  return (
+                    <div className="flex justify-between gap-4" key={row.label}>
+                      <dt className="text-gray-500">
+                        {translateString(row.label) || row.label}
+                      </dt>
+                      <dd className="font-medium text-gray-900">{row.value}</dd>
+                    </div>
+                  );
+                },
+              )}
+            </dl>
           </div>
         ) : null}
 

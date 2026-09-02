@@ -16,6 +16,11 @@ import {
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
+import EndpointUplinkInferenceUtil, {
+  InferredUplink,
+  UplinkInferenceResult,
+  UplinkRefusal,
+} from "./EndpointUplinkInferenceUtil";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -81,6 +86,26 @@ export interface TopologyDeviceInput {
   macAddresses?: Array<string> | undefined;
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
+  /*
+   * The site this device belongs to. Not rendered — it exists so endpoint
+   * uplink inference can refuse to match an address across two sites, every
+   * branch of an estate having its own 10.0.0.x.
+   */
+  siteId?: string | undefined;
+  /*
+   * How the device's health is established (NetworkDeviceMonitoringMethod,
+   * free text — read it through the util, never compare the raw value).
+   * Not rendered either: it decides which devices are eligible to be placed
+   * by a switch's forwarding database, which is only ever the ones nothing
+   * walks.
+   */
+  monitoringMethod?: string | undefined;
+  /*
+   * Whether this device's walk reads ARP/FDB tables. Not rendered: it is
+   * what lets an unplaced device be told "nothing in this site reads MAC
+   * tables" rather than the far less useful "not found in any MAC table".
+   */
+  collectEndpoints?: boolean | undefined;
 }
 
 /*
@@ -115,6 +140,21 @@ export interface TopologyEndpointInput {
   attachedNetworkDeviceId?: string | undefined;
   attachedInterfaceIndex?: number | undefined;
   attachedPortName?: string | undefined;
+  /*
+   * Which walk placed the row: a switch's forwarding database, or a
+   * router's ARP table. Only the former names a physical port, so only the
+   * former may become a cable. NULL/absent on rows written before the
+   * column existed, and those refuse.
+   */
+  attachmentSource?: string | undefined;
+  /*
+   * When a walk last CONFIRMED the attachment, and when a router last
+   * confirmed the address. Distinct from `lastSeenAt`, which ANY sighting
+   * of the MAC refreshes — so a row can be seconds fresh while naming a
+   * port the device left months ago. Only inference reads them.
+   */
+  attachmentLastSeenAt?: Date | undefined;
+  ipAddressLastSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
 }
 
@@ -158,6 +198,14 @@ export interface TopologyBuildResult extends NetworkTopology {
    * counts.
    */
   suppressedNodeCount?: number | undefined;
+  /*
+   * Monitor-backed devices that could NOT be placed by endpoint inference,
+   * with the reason. Reported so "no cable was drawn" can be turned into a
+   * sentence an operator can act on — every cause here is something they
+   * can fix, and on a map that just stays silent they are indistinguishable
+   * from each other and from a device that is genuinely unplugged.
+   */
+  uplinkInferenceRefusals?: Array<UplinkRefusal> | undefined;
 }
 
 /*
@@ -329,6 +377,15 @@ export default class NetworkTopologyUtil {
     endpoints: Array<TopologyEndpointInput> = [],
     manualLinks: Array<TopologyManualLinkInput> = [],
     suppressedNodeKeys: ReadonlySet<string> = new Set<string>(),
+    /*
+     * True when the caller's endpoint query hit its own cap, so `endpoints`
+     * is a page rather than the whole set. Endpoint LEAVES survive that
+     * happily — a partial set of leaves is still a set of true leaves — but
+     * uplink inference cannot: both of its count-based guards undercount on
+     * a sample, and undercounting makes each of them accept what it exists
+     * to refuse. So it declines entirely, and says so.
+     */
+    isEndpointListTruncated: boolean = false,
   ): TopologyBuildResult {
     const nodes: Array<NetworkTopologyNode> = [];
 
@@ -666,6 +723,244 @@ export default class NetworkTopologyUtil {
       existing.parentNodeId = existing.parentNodeId || declaredParentId;
     }
 
+    /*
+     * --- Inferred uplinks for devices nothing walks ---
+     *
+     * A monitor-backed device is invisible to LLDP and CDP: it reports no
+     * neighbours and none of its neighbours report it, so until somebody
+     * drew a link by hand it floated on the map. But a switch in the same
+     * site HAS seen it — its MAC is sitting in that switch's forwarding
+     * database against the port it is plugged into — and once the device is
+     * recognised in that table, the cable is a lookup rather than a guess.
+     * That is OneUptime issue #3489: thirty or forty tills per site, each
+     * previously needing a hand-drawn link that went stale the moment
+     * anybody re-patched it.
+     *
+     * Placed HERE, after the declared links and before the edge map is
+     * drained, for two reasons. It must write through `edgeByKey` so an
+     * inferred cable on a pair that already has one merges into that line
+     * instead of doubling it. And it must run after the declared links so
+     * it can see a parent somebody stated and decline to overwrite it.
+     *
+     * The devices collected first are the ones that already have a line on
+     * the map. Passed in so inference does not report a device somebody has
+     * already linked by hand as a problem: it is not missing a cable, and a
+     * warning banner that nags about the ones already dealt with is a banner
+     * people stop reading.
+     */
+    const alreadyLinkedDeviceIds: Set<string> = new Set<string>();
+    for (const edge of edgeByKey.values()) {
+      alreadyLinkedDeviceIds.add(edge.fromNodeId);
+      alreadyLinkedDeviceIds.add(edge.toNodeId);
+    }
+
+    const rawInference: UplinkInferenceResult =
+      EndpointUplinkInferenceUtil.infer({
+        devices: devices.map((device: TopologyDeviceInput) => {
+          return {
+            id: device.id,
+            hostname: device.hostname,
+            siteId: device.siteId,
+            monitoringMethod: device.monitoringMethod,
+            macAddresses: device.macAddresses,
+            collectEndpoints: device.collectEndpoints,
+            pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+          };
+        }),
+        endpoints: endpoints.map((endpoint: TopologyEndpointInput) => {
+          return {
+            id: endpoint.id,
+            macAddress: endpoint.macAddress,
+            ipAddress: endpoint.ipAddress,
+            vlanId: endpoint.vlanId,
+            attachedNetworkDeviceId: endpoint.attachedNetworkDeviceId,
+            attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
+            attachedPortName: endpoint.attachedPortName,
+            attachmentSource: endpoint.attachmentSource,
+            attachmentLastSeenAt: endpoint.attachmentLastSeenAt,
+            ipAddressLastSeenAt: endpoint.ipAddressLastSeenAt,
+            lastSeenAt: endpoint.lastSeenAt,
+          };
+        }),
+        now: now,
+        isEndpointListTruncated: isEndpointListTruncated,
+        alreadyLinkedDeviceIds: alreadyLinkedDeviceIds,
+      });
+
+    /*
+     * An endpoint the project has HIDDEN is not promoted.
+     *
+     * Suppression rows are keyed on the node id, so hiding a leaf stores
+     * `endpoint:<row id>`. Promoting that row anyway would silently undo
+     * the operator's choice — the box reappears, now as a cable — and
+     * leave the suppression row pointing at a node that no longer exists,
+     * so they could never un-hide it either.
+     *
+     * Filtered on the OUTPUT rather than the input on purpose: a hidden row
+     * still counts towards the transit-port occupancy and the
+     * two-rows-claim-one-address guard, and removing it from those would
+     * trade a display fix for a correctness regression.
+     */
+    const inference: UplinkInferenceResult =
+      suppressedNodeKeys.size === 0
+        ? rawInference
+        : (() => {
+            const kept: Array<InferredUplink> = rawInference.uplinks.filter(
+              (uplink: InferredUplink) => {
+                return !suppressedNodeKeys.has(`endpoint:${uplink.endpointId}`);
+              },
+            );
+            return {
+              uplinks: kept,
+              refusals: rawInference.refusals,
+              promotedEndpointIds: new Set<string>(
+                kept.map((uplink: InferredUplink) => {
+                  return uplink.endpointId;
+                }),
+              ),
+            };
+          })();
+
+    for (const uplink of inference.uplinks) {
+      if (
+        !deviceNodeIds.has(uplink.deviceId) ||
+        !deviceNodeIds.has(uplink.switchDeviceId)
+      ) {
+        continue;
+      }
+
+      // Port label + interface state on the SWITCH end, when identifiable.
+      const switchInterface: TopologyInterfaceInput | undefined =
+        interfaceByDeviceAndIndex.get(
+          `${uplink.switchDeviceId}::${uplink.switchInterfaceIndex}`,
+        );
+      /*
+       * The interface row wins over the stored port name, which is the
+       * reverse of the endpoint-leaf rule below and deliberate. When an
+       * endpoint moves between switches, `attachedPortName` is COALESCEd on
+       * write and can survive from the PREVIOUS switch while
+       * `attachedNetworkDeviceId` moves — harmless on a leaf label, but on a
+       * cable it would send somebody to a port on the right switch that has
+       * nothing to do with this device. The NetworkInterface row is keyed on
+       * (this switch, this ifIndex) and cannot be stale in that way.
+       */
+      const switchPort: string =
+        switchInterface?.name ||
+        uplink.switchPortName ||
+        `if${uplink.switchInterfaceIndex}`;
+      const switchEndpoint: NetworkTopologyEdgeEndpoint | undefined =
+        switchInterface
+          ? {
+              interfaceIndex: switchInterface.interfaceIndex,
+              interfaceName: switchInterface.name,
+              isOperationallyUp: switchInterface.isOperationallyUp,
+              isAdministrativelyUp: switchInterface.isAdministrativelyUp,
+              utilizationPercent: switchInterface.utilizationPercent,
+              inRateMbps: switchInterface.inRateMbps,
+              outRateMbps: switchInterface.outRateMbps,
+              errorsPerSecond: switchInterface.errorsPerSecond,
+            }
+          : undefined;
+
+      const edgeKey: string = [uplink.switchDeviceId, uplink.deviceId]
+        .sort()
+        .join("::");
+      const existing: NetworkTopologyEdge | undefined = edgeByKey.get(edgeKey);
+
+      if (!existing) {
+        edgeByKey.set(edgeKey, {
+          fromNodeId: uplink.switchDeviceId,
+          toNodeId: uplink.deviceId,
+          fromPort: switchPort,
+          protocols: ["fdb", "inferred"],
+          fromInterface: switchEndpoint,
+          /*
+           * The switch is the parent. Unlike a neighbour report, a
+           * forwarding-database entry is one-directional evidence: the
+           * switch learned the device, not the other way round.
+           */
+          parentNodeId: uplink.switchDeviceId,
+          inferredFrom: {
+            macAddress: uplink.macAddress,
+            ipAddress: uplink.ipAddress,
+            vlanId: uplink.vlanId,
+            lastSeenAt: uplink.lastSeenAt,
+            matchedOn: uplink.matchedOn,
+          },
+        });
+        continue;
+      }
+
+      /*
+       * Merging onto a line that already exists. The protocols union grows
+       * and the receipt is attached, but nothing measured or declared is
+       * overwritten: an LLDP report of the same cable knows the ports
+       * better, and a parent somebody stated outranks one deduced from a
+       * MAC table.
+       */
+      if (existing.protocols) {
+        for (const protocol of ["fdb", "inferred"] as const) {
+          if (!existing.protocols.includes(protocol)) {
+            existing.protocols.push(protocol);
+          }
+        }
+      } else {
+        existing.protocols = ["fdb", "inferred"];
+      }
+
+      if (existing.fromNodeId === uplink.switchDeviceId) {
+        existing.fromPort = existing.fromPort || switchPort;
+        existing.fromInterface = NetworkTopologyUtil.mergeEndpoints(
+          existing.fromInterface,
+          switchEndpoint,
+        );
+      } else {
+        existing.toPort = existing.toPort || switchPort;
+        existing.toInterface = NetworkTopologyUtil.mergeEndpoints(
+          existing.toInterface,
+          switchEndpoint,
+        );
+      }
+
+      existing.parentNodeId = existing.parentNodeId || uplink.switchDeviceId;
+      existing.inferredFrom = existing.inferredFrom || {
+        macAddress: uplink.macAddress,
+        ipAddress: uplink.ipAddress,
+        vlanId: uplink.vlanId,
+        lastSeenAt: uplink.lastSeenAt,
+        matchedOn: uplink.matchedOn,
+      };
+    }
+
+    /*
+     * The identity the endpoint row carried, moved onto the device node it
+     * turned out to be. The leaf that used to hold it is no longer drawn,
+     * and without this the VLAN filter would quietly lose every promoted
+     * device and the detail panel would stop showing the MAC that placed it.
+     */
+    const nodeById: Map<string, NetworkTopologyNode> = new Map<
+      string,
+      NetworkTopologyNode
+    >();
+    for (const node of nodes) {
+      if (!nodeById.has(node.id)) {
+        nodeById.set(node.id, node);
+      }
+    }
+    for (const uplink of inference.uplinks) {
+      const node: NetworkTopologyNode | undefined = nodeById.get(
+        uplink.deviceId,
+      );
+      if (!node) {
+        continue;
+      }
+      node.macAddress = node.macAddress || uplink.macAddress;
+      node.ipAddress = node.ipAddress || uplink.ipAddress;
+      if (node.vlanId === undefined) {
+        node.vlanId = uplink.vlanId;
+      }
+    }
+
     const edges: Array<NetworkTopologyEdge> = Array.from(edgeByKey.values());
 
     /*
@@ -768,6 +1063,16 @@ export default class NetworkTopologyUtil {
         continue;
       }
 
+      /*
+       * Already on the map as the device it turned out to be. Drawing the
+       * leaf as well would put the same physical box on the graph twice,
+       * which is the duplicate this inference exists to remove — and NOT
+       * as a drop, because nothing was lost: the row became an edge.
+       */
+      if (inference.promotedEndpointIds.has(endpoint.id)) {
+        continue;
+      }
+
       if (renderedEndpointCount >= ENDPOINT_RENDER_CAP) {
         endpointsTruncated = true;
         continue;
@@ -850,6 +1155,7 @@ export default class NetworkTopologyUtil {
         droppedEndpointCount,
         endpointsTruncated,
         suppressedNodeCount: 0,
+        uplinkInferenceRefusals: inference.refusals,
       };
     }
 
@@ -875,6 +1181,7 @@ export default class NetworkTopologyUtil {
       droppedEndpointCount,
       endpointsTruncated,
       suppressedNodeCount: nodes.length - visibleNodes.length,
+      uplinkInferenceRefusals: inference.refusals,
     };
   }
 

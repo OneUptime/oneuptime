@@ -11,6 +11,7 @@ import {
   endpointTooltipForNode,
   isEndpointNode,
   isFdbEdge,
+  isInferredEdge,
 } from "../NetworkDevice/EndpointNodeUtil";
 import {
   ENDPOINT_NODE_FILL,
@@ -373,7 +374,13 @@ export const buildTopologyViewModel: (
        * reads as learned rather than cabled.
        */
       strokeDashArray:
-        state === "down" ? "6 4" : isFdbEdge(edge) ? "3 3" : undefined,
+        state === "down"
+          ? "6 4"
+          : isInferredEdge(edge)
+            ? "1 4"
+            : isFdbEdge(edge)
+              ? "3 3"
+              : undefined,
       isDimmed:
         dimmedNodeIds.has(edge.fromNodeId) || dimmedNodeIds.has(edge.toNodeId),
       isSelected: input.selectedEdgeKey === key,

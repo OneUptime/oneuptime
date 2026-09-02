@@ -31,6 +31,22 @@ export function isFdbEdge(edge: NetworkTopologyEdge): boolean {
 }
 
 /**
+ * True when the edge was worked out by recognising a device in a switch's
+ * forwarding database, rather than reported by anything (issue #3489).
+ *
+ * Such an edge carries "fdb" TOO, and deliberately: the forwarding database
+ * genuinely is where the evidence came from, and the tier heuristics that
+ * read isFdbEdge draw a better map for it — a ping-monitored till with an
+ * unknown role belongs one level under the core, which is exactly where an
+ * FDB edge puts it. What isFdbEdge cannot say is that BOTH ends of this one
+ * are managed devices, so anything that styles or describes an edge as "a
+ * MAC learned on a port" needs to ask this instead.
+ */
+export function isInferredEdge(edge: NetworkTopologyEdge): boolean {
+  return Boolean(edge.protocols && edge.protocols.includes("inferred"));
+}
+
+/**
  * Tooltip line for an endpoint node: name plus whatever identity the
  * ARP/FDB join produced, e.g.
  * "pos-2 (endpoint) — aa:bb:cc:dd:ee:ff · 10.0.0.12 · Zebra · printer · VLAN 12".

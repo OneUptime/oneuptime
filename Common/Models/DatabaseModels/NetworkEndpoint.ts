@@ -450,6 +450,92 @@ export default class NetworkEndpoint extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Attachment Source",
+    description:
+      "Which walk placed this endpoint: FDB (a switch learned the MAC on a physical port) or ARP (a router answered for it on an L3 interface). NULL on rows written before this was recorded. Managed by the server.",
+    example: "FDB",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public attachmentSource?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkEndpoint,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Attachment Last Seen At",
+    description:
+      "When a walk last CONFIRMED this endpoint on its current device and interface. Distinct from Last Seen At, which any sighting refreshes — including a router ARP sighting that says nothing about the port. Managed by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public attachmentLastSeenAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkEndpoint,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "IP Address Last Seen At",
+    description:
+      "When a router's ARP table last CONFIRMED this endpoint's IP address. The address itself is never cleared once learned, so this is the only thing that says whether it is still true. Managed by the server.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public ipAddressLastSeenAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkEndpoint,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "VLAN ID",

@@ -15,7 +15,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 
 /*
- * Rows written per statement. Endpoint rows are narrow (12 params each),
+ * Rows written per statement. Endpoint rows are narrow (15 params each),
  * so 500 keeps a chunk well under Postgres' parameter ceiling while
  * turning a 4096-MAC switch into 9 round trips instead of 4096.
  */
@@ -42,6 +42,9 @@ const INSERT_COLUMNS: Array<string> = [
   "attachedNetworkDeviceId",
   "attachedInterfaceIndex",
   "attachedPortName",
+  "attachmentSource",
+  "attachmentLastSeenAt",
+  "ipAddressLastSeenAt",
   "vlanId",
   "siteId",
   "firstSeenAt",
@@ -168,6 +171,7 @@ export class Service extends DatabaseService<Model> {
         attachedNetworkDeviceId: true,
         attachedInterfaceIndex: true,
         attachedPortName: true,
+        attachmentSource: true,
         vlanId: true,
         ipAddress: true,
         siteId: true,
@@ -210,6 +214,7 @@ export class Service extends DatabaseService<Model> {
                   existing.attachedNetworkDeviceId?.toString(),
                 attachedInterfaceIndex: existing.attachedInterfaceIndex,
                 attachedPortName: existing.attachedPortName,
+                attachmentSource: existing.attachmentSource,
                 vlanId: existing.vlanId,
                 ipAddress: existing.ipAddress,
                 siteId: existing.siteId?.toString(),
@@ -297,6 +302,9 @@ export class Service extends DatabaseService<Model> {
           data.deviceId.toString(),
           row.decision.attachedInterfaceIndex ?? null,
           row.decision.attachedPortName ?? null,
+          row.decision.attachmentSource ?? null,
+          row.decision.setAttachment ? data.now : null,
+          row.decision.setIpAddress && row.decision.ipAddress ? data.now : null,
           row.decision.vlanId ?? null,
           data.deviceSiteId?.toString() ?? null,
           data.now,
@@ -309,7 +317,8 @@ export class Service extends DatabaseService<Model> {
         INSERT INTO "NetworkEndpoint" (
           "projectId", "macAddress", "ipAddress", "vendor",
           "attachedNetworkDeviceId", "attachedInterfaceIndex",
-          "attachedPortName", "vlanId", "siteId",
+          "attachedPortName", "attachmentSource",
+          "attachmentLastSeenAt", "ipAddressLastSeenAt", "vlanId", "siteId",
           "firstSeenAt", "lastSeenAt", "version"
         )
         VALUES ${valueFragments.join(", ")}
@@ -318,6 +327,9 @@ export class Service extends DatabaseService<Model> {
           "attachedNetworkDeviceId" = EXCLUDED."attachedNetworkDeviceId",
           "attachedInterfaceIndex" = COALESCE(EXCLUDED."attachedInterfaceIndex", "NetworkEndpoint"."attachedInterfaceIndex"),
           "attachedPortName" = COALESCE(EXCLUDED."attachedPortName", "NetworkEndpoint"."attachedPortName"),
+          "attachmentSource" = EXCLUDED."attachmentSource",
+          "attachmentLastSeenAt" = COALESCE(EXCLUDED."attachmentLastSeenAt", "NetworkEndpoint"."attachmentLastSeenAt"),
+          "ipAddressLastSeenAt" = COALESCE(EXCLUDED."ipAddressLastSeenAt", "NetworkEndpoint"."ipAddressLastSeenAt"),
           "vlanId" = COALESCE(EXCLUDED."vlanId", "NetworkEndpoint"."vlanId"),
           "siteId" = COALESCE(EXCLUDED."siteId", "NetworkEndpoint"."siteId"),
           "ipAddress" = COALESCE(EXCLUDED."ipAddress", "NetworkEndpoint"."ipAddress"),
@@ -362,7 +374,7 @@ export class Service extends DatabaseService<Model> {
 
       for (const row of chunk) {
         valueFragments.push(
-          `($${paramIndex++}::character varying, $${paramIndex++}::boolean, $${paramIndex++}::uuid, $${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::integer, $${paramIndex++}::uuid, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz)`,
+          `($${paramIndex++}::character varying, $${paramIndex++}::boolean, $${paramIndex++}::uuid, $${paramIndex++}::integer, $${paramIndex++}::character varying, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz, $${paramIndex++}::timestamptz, $${paramIndex++}::integer, $${paramIndex++}::uuid, $${paramIndex++}::character varying, $${paramIndex++}::timestamptz)`,
         );
 
         params.push(
@@ -375,6 +387,11 @@ export class Service extends DatabaseService<Model> {
           row.decision.setAttachment
             ? row.decision.attachedPortName ?? null
             : null,
+          row.decision.setAttachment
+            ? row.decision.attachmentSource ?? null
+            : null,
+          row.decision.setAttachment ? data.now : null,
+          row.decision.setIpAddress && row.decision.ipAddress ? data.now : null,
           row.decision.setAttachment ? row.decision.vlanId ?? null : null,
           row.decision.setAttachment
             ? data.deviceSiteId?.toString() ?? null
@@ -392,6 +409,9 @@ export class Service extends DatabaseService<Model> {
           "attachedNetworkDeviceId" = CASE WHEN v."setAttachment" THEN v."deviceId" ELSE e."attachedNetworkDeviceId" END,
           "attachedInterfaceIndex" = CASE WHEN v."setAttachment" THEN COALESCE(v."attachedInterfaceIndex", e."attachedInterfaceIndex") ELSE e."attachedInterfaceIndex" END,
           "attachedPortName" = CASE WHEN v."setAttachment" THEN COALESCE(v."attachedPortName", e."attachedPortName") ELSE e."attachedPortName" END,
+          "attachmentSource" = CASE WHEN v."setAttachment" THEN v."attachmentSource" ELSE e."attachmentSource" END,
+          "attachmentLastSeenAt" = COALESCE(v."attachmentLastSeenAt", e."attachmentLastSeenAt"),
+          "ipAddressLastSeenAt" = COALESCE(v."ipAddressLastSeenAt", e."ipAddressLastSeenAt"),
           "vlanId" = CASE WHEN v."setAttachment" THEN COALESCE(v."vlanId", e."vlanId") ELSE e."vlanId" END,
           "siteId" = CASE WHEN v."setAttachment" THEN COALESCE(v."siteId", e."siteId") ELSE e."siteId" END,
           "ipAddress" = COALESCE(v."ipAddress", e."ipAddress"),
@@ -399,7 +419,7 @@ export class Service extends DatabaseService<Model> {
           "lastSeenAt" = v."lastSeenAt",
           "updatedAt" = now()
         FROM (VALUES ${valueFragments.join(", ")})
-          AS v("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "vlanId", "siteId", "ipAddress", "lastSeenAt")
+          AS v("macAddress", "setAttachment", "deviceId", "attachedInterfaceIndex", "attachedPortName", "attachmentSource", "attachmentLastSeenAt", "ipAddressLastSeenAt", "vlanId", "siteId", "ipAddress", "lastSeenAt")
         WHERE
           e."projectId" = $1
           AND e."macAddress" = v."macAddress"

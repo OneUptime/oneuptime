@@ -287,7 +287,23 @@ const renderLegendSwatch: (entry: TopologyLegendEntry) => ReactElement = (
   const cx: number = LEGEND_SWATCH_WIDTH / 2;
   const cy: number = LEGEND_SWATCH_HEIGHT / 2;
 
-  if (entry.swatch === "line" || entry.swatch === "dashed-line") {
+  if (
+    entry.swatch === "line" ||
+    entry.swatch === "dashed-line" ||
+    entry.swatch === "dotted-line"
+  ) {
+    /*
+     * The dotted stroke is the key's copy of the one an inferred uplink is
+     * drawn with on the canvas; sharing "dashed-line" with a learned FDB
+     * attachment would put two identical swatches in the key under two
+     * different labels, which is not a key at all.
+     */
+    const dash: string | undefined =
+      entry.swatch === "dashed-line"
+        ? "3 2"
+        : entry.swatch === "dotted-line"
+          ? "1 3"
+          : undefined;
     return (
       <line
         x1={0}
@@ -296,7 +312,7 @@ const renderLegendSwatch: (entry: TopologyLegendEntry) => ReactElement = (
         y2={cy}
         stroke={entry.color}
         strokeWidth={2}
-        strokeDasharray={entry.swatch === "dashed-line" ? "3 2" : undefined}
+        strokeDasharray={dash}
       />
     );
   }

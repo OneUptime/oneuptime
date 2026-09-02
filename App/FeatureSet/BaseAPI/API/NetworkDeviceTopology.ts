@@ -36,6 +36,9 @@ import NetworkDeviceLink from "Common/Models/DatabaseModels/NetworkDeviceLink";
 import NetworkDeviceLinkRuleService from "Common/Server/Services/NetworkDeviceLinkRuleService";
 import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
 import Label from "Common/Models/DatabaseModels/Label";
+import EndpointUplinkWarningUtil, {
+  UplinkInferenceWarning,
+} from "Common/Utils/Monitor/EndpointUplinkWarningUtil";
 import NetworkDeviceLinkRuleUtil, {
   LinkRuleDeviceInput,
   LinkRuleOutcome,
@@ -299,6 +302,14 @@ export default class NetworkDeviceTopologyAPI {
                  */
                 deviceRole: true,
                 /*
+                 * Not rendered — read only by endpoint uplink inference,
+                 * which places ONLY the devices nothing walks. An SNMP
+                 * device already has LLDP/CDP speaking for it, so letting a
+                 * switch's forwarding database claim one too would add a
+                 * weaker second opinion about a cable that is measured.
+                 */
+                monitoringMethod: true,
+                /*
                  * Not rendered either — read only by the neighbor matcher.
                  * An LLDP chassis id is a serial as often as it is a name,
                  * and without this the device it names is drawn as an
@@ -332,6 +343,14 @@ export default class NetworkDeviceTopologyAPI {
                  * guess why it is floating.
                  */
                 walkInterfaces: true,
+                /*
+                 * Not rendered — read only by endpoint uplink inference, so
+                 * a device it could not place can be told "nothing in this
+                 * site reads MAC tables" (the setting is per-device and
+                 * defaults to off) instead of the far less actionable "not
+                 * found in any MAC table".
+                 */
+                collectEndpoints: true,
                 lldpNeighbors: true,
                 cdpNeighbors: true,
               },
@@ -460,6 +479,21 @@ export default class NetworkDeviceTopologyAPI {
                 attachedNetworkDeviceId: true,
                 attachedInterfaceIndex: true,
                 attachedPortName: true,
+                /*
+                 * Which walk placed the row. Only a switch's forwarding
+                 * database names a physical port, so only that provenance
+                 * may become a cable between two managed devices — a
+                 * router's ARP row names its own SVI, and drawing from one
+                 * would assert a till is plugged into a VLAN interface.
+                 */
+                attachmentSource: true,
+                /*
+                 * Read only by inference, and load-bearing there: any
+                 * sighting of the MAC refreshes lastSeenAt, so it cannot
+                 * say whether the PORT or the ADDRESS is still current.
+                 */
+                attachmentLastSeenAt: true,
+                ipAddressLastSeenAt: true,
                 lastSeenAt: true,
               },
               sort: {
@@ -487,6 +521,9 @@ export default class NetworkDeviceTopologyAPI {
                 endpoint.attachedNetworkDeviceId?.toString(),
               attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
               attachedPortName: endpoint.attachedPortName,
+              attachmentSource: endpoint.attachmentSource,
+              attachmentLastSeenAt: endpoint.attachmentLastSeenAt,
+              ipAddressLastSeenAt: endpoint.ipAddressLastSeenAt,
               lastSeenAt: endpoint.lastSeenAt,
             });
           }
@@ -607,6 +644,15 @@ export default class NetworkDeviceTopologyAPI {
                 sysObjectId: device.sysObjectId,
                 deviceRole: device.deviceRole,
                 serialNumber: device.serialNumber,
+                /*
+                 * Both read only by endpoint uplink inference: the method
+                 * decides whether the device is eligible to be placed at
+                 * all, and the site is what stops an address matching
+                 * across two branches that both use 10.0.0.0/24.
+                 */
+                monitoringMethod: device.monitoringMethod,
+                siteId: device.siteId?.toString(),
+                collectEndpoints: device.collectEndpoints,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
                 macAddresses: macAddressesByDeviceId.get(device.id!.toString()),
                 lldpNeighbors: device.lldpNeighbors,
@@ -785,6 +831,14 @@ export default class NetworkDeviceTopologyAPI {
               projectId: props.tenantId,
             });
 
+          /*
+           * Whether the endpoint fetch below its cap returned everything.
+           * Computed before the build because the builder needs it: leaves
+           * survive a partial set, uplink inference cannot.
+           */
+          const isEndpointListTruncated: boolean =
+            endpointRows.length >= MAX_TOPOLOGY_ENDPOINTS;
+
           const topology: TopologyBuildResult =
             NetworkTopologyUtil.buildTopology(
               topologyInput,
@@ -793,6 +847,7 @@ export default class NetworkDeviceTopologyAPI {
               endpointInput,
               manualLinkInput,
               suppressedNodeKeys,
+              isEndpointListTruncated,
             );
 
           /*
@@ -810,7 +865,7 @@ export default class NetworkDeviceTopologyAPI {
            * The builder reports endpoints it dropped internally; OR in
            * the query-level cap so either source of loss is visible.
            */
-          if (endpointRows.length >= MAX_TOPOLOGY_ENDPOINTS) {
+          if (isEndpointListTruncated) {
             topology.endpointsTruncated = true;
           }
 
@@ -818,9 +873,51 @@ export default class NetworkDeviceTopologyAPI {
            * Not part of TopologyBuildResult — it describes the query, not
            * the graph — so it is attached to the response payload directly.
            */
-          const responseBody: JSONObject = {
+          /*
+           * Why devices nothing walks were left floating. Same argument as
+           * linkRuleWarnings below: inference refusing is the normal case
+           * and every refusal has a cause the operator can fix, but on a
+           * map that only shows what it managed to draw they are all just
+           * "no line", which is also what a genuinely unplugged device
+           * looks like.
+           *
+           * The truncation caveat is real here and is admitted rather than
+           * hidden: on a map whose endpoint fetch hit its cap, "not found
+           * in any MAC address table" may mean "not found in the 2000 rows
+           * we read", and telling somebody to go and enable a setting that
+           * is already on is worse than saying nothing.
+           */
+          const uplinkInferenceWarnings: Array<UplinkInferenceWarning> =
+            EndpointUplinkWarningUtil.getWarnings(
+              topology.uplinkInferenceRefusals || [],
+              new Map<string, string>(
+                devices.map((device: NetworkDevice) => {
+                  return [
+                    device.id!.toString(),
+                    device.name || device.hostname || "",
+                  ];
+                }),
+              ),
+            );
+
+          /*
+           * The raw per-device refusals are the INPUT to the grouping above
+           * and do not go on the wire. There is one per unplaced device, the
+           * map refreshes every sixty seconds, and a project can hold tens of
+           * thousands of ping-monitored devices — while the grouped warnings
+           * are at most one bullet per cause with three names each. Nothing
+           * on the client reads the raw form.
+           */
+          const topologyForWire: JSONObject = {
             ...(topology as unknown as JSONObject),
+          };
+          delete topologyForWire["uplinkInferenceRefusals"];
+
+          const responseBody: JSONObject = {
+            ...topologyForWire,
             interfacesTruncated: interfaceRows.length >= LIMIT_PER_PROJECT,
+            uplinkInferenceWarnings:
+              uplinkInferenceWarnings as unknown as JSONObject[],
             /*
              * Only the rules with something to explain — at most one line
              * each. A rule doing its job needs no explanation, but one that

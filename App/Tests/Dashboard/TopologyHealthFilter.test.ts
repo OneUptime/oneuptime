@@ -601,6 +601,273 @@ describe("resolveHealthVisibility", () => {
   });
 });
 
+/*
+ * Issue #3489 — the same fan, by another name.
+ *
+ * The endpoint rule above keeps a down access switch from dragging two
+ * hundred learned hosts back onto a filtered map. A device placed by
+ * endpoint inference is drawn as the DEVICE it is, not as an endpoint, so
+ * that rule no longer catches it — and forty ping-monitored tills under one
+ * switch is exactly the same problem.
+ *
+ * The distinction that saves it is one the edge already carries: an
+ * inferred edge names the switch as the parent, which no LLDP edge ever
+ * does. So the rule is ASYMMETRIC on purpose, and both halves are pinned
+ * here — dropping either one breaks a different map.
+ */
+describe("resolveHealthVisibility — inferred uplinks", () => {
+  const inferredEdge: MakeEdgeFunction = (
+    switchId: string,
+    leafId: string,
+    overrides?: Partial<NetworkTopologyEdge>,
+  ): NetworkTopologyEdge => {
+    return makeEdge(switchId, leafId, {
+      protocols: ["fdb", "inferred"],
+      parentNodeId: switchId,
+      ...overrides,
+    });
+  };
+
+  /*
+   *          sw-1 (a switch, with three ping-monitored tills under it)
+   *        /   |   \
+   * till-1  till-2  till-3        every link inferred, sw-1 the parent
+   */
+  const nodes: Array<NetworkTopologyNode> = [
+    makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+    makeDevice("till-1", { status: "up" }),
+    makeDevice("till-2", { status: "up" }),
+    makeDevice("till-3", { status: "up" }),
+  ];
+  const edges: Array<NetworkTopologyEdge> = [
+    inferredEdge("sw-1", "till-1"),
+    inferredEdge("sw-1", "till-2"),
+    inferredEdge("sw-1", "till-3"),
+  ];
+
+  test("a matched switch does not drag its inferred leaves back onto the map", () => {
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: nodes,
+      edges: edges,
+      mode: "attention",
+    });
+
+    // The switch is degraded by its dark port; the tills are all healthy.
+    expect(Array.from(visibility.matchedNodeIds)).toEqual(["sw-1"]);
+    expect(visibility.contextNodeIds.size).toBe(0);
+    expect(Array.from(visibility.visibleNodeIds)).toEqual(["sw-1"]);
+  });
+
+  test("a matched leaf keeps the switch that places it", () => {
+    /*
+     * The single most useful thing this feature adds to the health filter:
+     * a till that stops answering is meaningless without the switch it
+     * hangs off, because the switch is the thing an engineer walks to.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up" }),
+        makeDevice("till-1", { status: "down" }),
+        makeDevice("till-2", { status: "up" }),
+      ],
+      edges: [inferredEdge("sw-1", "till-1"), inferredEdge("sw-1", "till-2")],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.matchedNodeIds)).toEqual(["till-1"]);
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["sw-1"]);
+    // ...and only that switch. The sibling till is still not context.
+    expect(visibility.visibleNodeIds.has("till-2")).toBe(false);
+  });
+
+  test("the leaf is read from either end of the edge", () => {
+    /*
+     * Nothing guarantees the switch is the `from` end — only that it is the
+     * `parentNodeId`. An implementation that compared against fromNodeId
+     * would pass the tests above and fail here.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [
+        makeEdge("till-1", "sw-1", {
+          protocols: ["fdb", "inferred"],
+          parentNodeId: "sw-1",
+        }),
+      ],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.matchedNodeIds)).toEqual(["sw-1"]);
+    expect(visibility.contextNodeIds.size).toBe(0);
+  });
+
+  test("an inferred leaf still matches in its own right", () => {
+    // The rule withholds CONTEXT. It must never hide a device that is down.
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up" }),
+        makeDevice("till-1", { status: "down" }),
+        makeDevice("till-2", { status: "down" }),
+      ],
+      edges: [inferredEdge("sw-1", "till-1"), inferredEdge("sw-1", "till-2")],
+      mode: "down",
+    });
+
+    expect(Array.from(visibility.matchedNodeIds).sort()).toEqual([
+      "till-1",
+      "till-2",
+    ]);
+  });
+
+  test("an ordinary link to the same pair is still context", () => {
+    /*
+     * The control for the first test: what the switch withholds is its
+     * INFERRED leaves, not every neighbour it happens to have. A real
+     * cable to the same box comes back as context as it always did.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [makeEdge("sw-1", "till-1", { protocols: ["lldp"] })],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["till-1"]);
+  });
+
+  test("a plain FDB edge between two devices is still context", () => {
+    /*
+     * "fdb" alone is not an inference — it rides on inferred edges too, so
+     * a rule keyed on it rather than on "inferred" would withhold links
+     * this filter is supposed to keep.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [
+        makeEdge("sw-1", "till-1", {
+          protocols: ["fdb"],
+          parentNodeId: "sw-1",
+        }),
+      ],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["till-1"]);
+  });
+
+  test("both switches of a matched leaf come back, and neither drags its own fan", () => {
+    /*
+     * A till recognised in two switches' tables at once is refused by the
+     * inference, but a leaf can legitimately sit under one switch while a
+     * SECOND till under that switch is matched too. What must not happen
+     * is a matched till pulling in its switch and the switch then pulling
+     * in the other thirty-nine.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up" }),
+        makeDevice("till-1", { status: "down" }),
+        makeDevice("till-2", { status: "up" }),
+        makeDevice("till-3", { status: "up" }),
+      ],
+      edges: [
+        inferredEdge("sw-1", "till-1"),
+        inferredEdge("sw-1", "till-2"),
+        inferredEdge("sw-1", "till-3"),
+      ],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.visibleNodeIds).sort()).toEqual([
+      "sw-1",
+      "till-1",
+    ]);
+  });
+
+  test("a kind filter still outranks the leaf's claim on its switch", () => {
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up" }),
+        makeDevice("till-1", { status: "down" }),
+      ],
+      edges: [inferredEdge("sw-1", "till-1")],
+      mode: "attention",
+      eligibleNodeIds: new Set<string>(["till-1"]),
+    });
+
+    expect(visibility.contextNodeIds.has("sw-1")).toBe(false);
+    expect(Array.from(visibility.visibleNodeIds)).toEqual(["till-1"]);
+  });
+
+  test("an inferred edge naming no parent is treated as an ordinary link", () => {
+    /*
+     * The parent is what makes the rule asymmetric, so an edge that
+     * arrives without one has nothing to be asymmetric about. Withholding
+     * on "inferred" alone would drop context in the direction the feature
+     * exists to keep, so the fallback is the old behaviour.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [makeEdge("sw-1", "till-1", { protocols: ["fdb", "inferred"] })],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["till-1"]);
+  });
+
+  test("a parent naming some third node withholds nothing either", () => {
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [
+        makeEdge("sw-1", "till-1", {
+          protocols: ["fdb", "inferred"],
+          parentNodeId: "core-1",
+        }),
+      ],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["till-1"]);
+  });
+
+  test("the rule withholds one edge, it does not blacklist the leaf", () => {
+    /*
+     * A till the switch will not vouch for can still be somebody else's
+     * neighbour — a real cable to a matched core brings it back. The skip
+     * has to be per-edge, or an inferred uplink anywhere would erase the
+     * device from every other node's context.
+     */
+    const visibility: TopologyHealthVisibility = resolveHealthVisibility({
+      nodes: [
+        makeDevice("sw-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("core-1", { status: "up", interfacesDown: 1 }),
+        makeDevice("till-1", { status: "up" }),
+      ],
+      edges: [
+        inferredEdge("sw-1", "till-1"),
+        makeEdge("core-1", "till-1", { protocols: ["lldp"] }),
+      ],
+      mode: "attention",
+    });
+
+    expect(Array.from(visibility.contextNodeIds)).toEqual(["till-1"]);
+  });
+});
+
 describe("buildHealthFilterOptions", () => {
   const summary: TopologyHealthSummary = {
     total: 12,

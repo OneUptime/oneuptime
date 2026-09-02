@@ -8,6 +8,7 @@ import EndpointAttachmentUtil, {
   EndpointUpsertDecision,
   normalizeMac,
 } from "../../../Utils/Monitor/EndpointAttachmentUtil";
+import NetworkEndpointAttachmentSource from "../../../Types/NetworkDevice/NetworkEndpointAttachmentSource";
 import FdbEntry from "../../../Types/Monitor/SnmpMonitor/FdbEntry";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
 
@@ -302,13 +303,18 @@ describe("EndpointAttachmentUtil.computeEndpointAttachments", () => {
     ]);
   });
 
-  it("drops invalid ARP rows and collapses per-MAC ARP duplicates to the smallest IP", () => {
+  it("drops invalid ARP rows and collapses one MAC's repeated IP to one binding", () => {
     const result: EndpointAttachmentResult =
       EndpointAttachmentUtil.computeEndpointAttachments({
         ...baseSnapshot,
         arpEntries: [
+          /*
+           * One address answered for on two of the router's interfaces is
+           * still ONE claim about one endpoint, so it still binds — the
+           * lowest ifIndex wins so repeated walks agree.
+           */
           {
-            ipAddress: "10.0.0.7",
+            ipAddress: "10.0.0.3",
             macAddress: "aa:bb:cc:dd:ee:01",
             interfaceIndex: 2,
             entryType: "dynamic",
@@ -332,6 +338,135 @@ describe("EndpointAttachmentUtil.computeEndpointAttachments", () => {
       {
         macAddress: "aa:bb:cc:dd:ee:01",
         ipAddress: "10.0.0.3",
+        routerInterfaceIndex: 1,
+      },
+    ]);
+  });
+
+  it("binds a MAC that answers for exactly one address", () => {
+    const result: EndpointAttachmentResult =
+      EndpointAttachmentUtil.computeEndpointAttachments({
+        ...baseSnapshot,
+        arpEntries: [
+          {
+            ipAddress: "10.0.0.42",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 2,
+          },
+        ],
+      });
+
+    expect(result.ipBindings).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:01",
+        ipAddress: "10.0.0.42",
+        routerInterfaceIndex: 2,
+      },
+    ]);
+  });
+
+  /*
+   * A MAC that answers for MORE THAN ONE address is proxy ARP or a
+   * firewall speaking for a whole segment, not an endpoint's address.
+   * Storing the smallest of those addresses was harmless while it only
+   * labelled a leaf node; it stops being harmless now the address is a
+   * JOIN KEY, because a managed device found at it would be cabled to
+   * whichever port the FIREWALL sits on (issue #3489). This is the last
+   * place the ambiguity is still visible.
+   */
+  it("emits no IP binding for a MAC that answers for more than one address", () => {
+    const result: EndpointAttachmentResult =
+      EndpointAttachmentUtil.computeEndpointAttachments({
+        ...baseSnapshot,
+        fdbEntries: [
+          { macAddress: "aa:bb:cc:dd:ee:01", bridgePort: 1, interfaceIndex: 1 },
+        ],
+        arpEntries: [
+          {
+            ipAddress: "10.0.0.7",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+          },
+          {
+            ipAddress: "10.0.0.8",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+          },
+        ],
+      });
+
+    expect(result.ipBindings).toEqual([]);
+    /*
+     * The port is never in doubt — a MAC still has exactly one of those —
+     * so the attachment survives the refusal untouched.
+     */
+    expect(result.attachments).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:01",
+        attachedInterfaceIndex: 1,
+        attachedPortName: "Gi0/1",
+        vlanId: undefined,
+      },
+    ]);
+  });
+
+  it("refuses only the ambiguous MAC, not the rest of the ARP table", () => {
+    const result: EndpointAttachmentResult =
+      EndpointAttachmentUtil.computeEndpointAttachments({
+        ...baseSnapshot,
+        arpEntries: [
+          {
+            ipAddress: "10.0.0.7",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+          },
+          {
+            ipAddress: "10.0.0.8",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+          },
+          {
+            ipAddress: "10.0.0.9",
+            macAddress: "aa:bb:cc:dd:ee:02",
+            interfaceIndex: 1,
+          },
+        ],
+      });
+
+    expect(result.ipBindings).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:02",
+        ipAddress: "10.0.0.9",
+        routerInterfaceIndex: 1,
+      },
+    ]);
+  });
+
+  it("counts only valid ARP rows when deciding a MAC is ambiguous", () => {
+    // The invalid row is dropped BEFORE the count, so one address remains.
+    const result: EndpointAttachmentResult =
+      EndpointAttachmentUtil.computeEndpointAttachments({
+        ...baseSnapshot,
+        arpEntries: [
+          {
+            ipAddress: "10.0.0.7",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+            entryType: "dynamic",
+          },
+          {
+            ipAddress: "10.0.0.8",
+            macAddress: "aa:bb:cc:dd:ee:01",
+            interfaceIndex: 1,
+            entryType: "invalid",
+          },
+        ],
+      });
+
+    expect(result.ipBindings).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:01",
+        ipAddress: "10.0.0.7",
         routerInterfaceIndex: 1,
       },
     ]);
@@ -449,6 +584,7 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
       attachedInterfaceIndex: 7,
       attachedPortName: "Gi0/7",
       vlanId: 12,
+      attachmentSource: NetworkEndpointAttachmentSource.Fdb,
       setIpAddress: false,
     });
   });
@@ -466,6 +602,7 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
     expect(decision.attachedInterfaceIndex).toBe(3);
     expect(decision.attachedPortName).toBeUndefined();
     expect(decision.vlanId).toBeUndefined();
+    expect(decision.attachmentSource).toBe(NetworkEndpointAttachmentSource.Arp);
     expect(decision.setIpAddress).toBe(true);
     expect(decision.ipAddress).toBe("10.1.2.3");
   });
@@ -482,6 +619,8 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
     expect(decision.action).toBe("create");
     expect(decision.setAttachment).toBe(true);
     expect(decision.attachedInterfaceIndex).toBe(7);
+    // The FDB wins the attachment, so the provenance is the FDB's too.
+    expect(decision.attachmentSource).toBe(NetworkEndpointAttachmentSource.Fdb);
     expect(decision.setIpAddress).toBe(true);
     expect(decision.ipAddress).toBe("10.1.2.3");
   });
@@ -552,6 +691,52 @@ describe("EndpointAttachmentUtil.decideUpsert", () => {
     expect(decision.attachedInterfaceIndex).toBe(3);
   });
 
+  it("relabels a row this device's FDB wrote as ARP when only ARP saw it", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        {
+          attachedNetworkDeviceId: "l3-switch-1",
+          attachedInterfaceIndex: 7,
+          attachedPortName: "Gi0/7",
+          attachmentSource: NetworkEndpointAttachmentSource.Fdb,
+        },
+        {
+          macAddress: mac,
+          deviceId: "l3-switch-1",
+          ipBinding,
+        },
+      );
+
+    /*
+     * The interface index just became the router's own L3 interface, so
+     * keeping the FDB label would claim a physical port for an SVI — the
+     * one mislabelling that turns into a drawn cable that does not exist.
+     */
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachedInterfaceIndex).toBe(3);
+    expect(decision.attachmentSource).toBe(NetworkEndpointAttachmentSource.Arp);
+  });
+
+  it("leaves the provenance unset when the observation cannot claim the attachment", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        {
+          attachedNetworkDeviceId: "switch-1",
+          attachmentSource: NetworkEndpointAttachmentSource.Fdb,
+        },
+        {
+          macAddress: mac,
+          deviceId: "router-1",
+          ipBinding,
+        },
+      );
+
+    // Nothing is written, so nothing relabels the switch's answer either.
+    expect(decision.setAttachment).toBe(false);
+    expect(decision.attachmentSource).toBeUndefined();
+  });
+
   it("leaves port/vlan undefined when the FDB knew neither", () => {
     const decision: EndpointUpsertDecision =
       EndpointAttachmentUtil.decideUpsert(
@@ -594,6 +779,7 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
     attachedInterfaceIndex: 7,
     attachedPortName: "Gi0/7",
     vlanId: 12,
+    attachmentSource: NetworkEndpointAttachmentSource.Fdb,
     firstSeenAt: LONG_AGO,
     lastSeenAt: ONE_MINUTE_AGO,
   };
@@ -825,6 +1011,48 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
       );
 
     expect(decision.action).toBe("none");
+  });
+
+  it("writes once to backfill a row whose provenance was never recorded", () => {
+    /*
+     * Rows written before the column existed hold NULL, and NULL is not
+     * FDB: nothing is allowed to draw a cable from an unlabelled row, so
+     * the label itself is news even when every other field matches and
+     * lastSeenAt is fresh. Each such row costs exactly one extra write
+     * and then converges.
+     */
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, attachmentSource: undefined },
+        stableSighting,
+        context,
+      );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachmentSource).toBe(NetworkEndpointAttachmentSource.Fdb);
+  });
+
+  it("stays quiet once the stored provenance matches what the walk writes", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(stableRow, stableSighting, context);
+
+    expect(stableRow.attachmentSource).toBe(
+      NetworkEndpointAttachmentSource.Fdb,
+    );
+    expect(decision.action).toBe("none");
+  });
+
+  it("writes when an FDB walk lands on a row ARP had labelled", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stableRow, attachmentSource: NetworkEndpointAttachmentSource.Arp },
+        stableSighting,
+        context,
+      );
+
+    expect(decision.action).toBe("update");
+    expect(decision.attachmentSource).toBe(NetworkEndpointAttachmentSource.Fdb);
   });
 
   it("never suppresses a create", () => {

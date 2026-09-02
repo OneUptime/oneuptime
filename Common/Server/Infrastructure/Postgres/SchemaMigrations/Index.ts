@@ -566,6 +566,7 @@ import { AddCertificateReissueRequestedAtToDomains1790300000000 } from "./179030
 import { AddOnCallCalendarFeeds1790400000000 } from "./1790400000000-AddOnCallCalendarFeeds";
 import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNetworkDeviceOidTemplate";
 import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
+import { AddNetworkEndpointAttachmentSource1790700000000 } from "./1790700000000-AddNetworkEndpointAttachmentSource";
 
 export default [
   InitialMigration,
@@ -1136,4 +1137,5 @@ export default [
   AddOnCallCalendarFeeds1790400000000,
   AddNetworkDeviceOidTemplate1790500000000,
   AddAutoImportRuleOidTemplate1790600000000,
+  AddNetworkEndpointAttachmentSource1790700000000,
 ];

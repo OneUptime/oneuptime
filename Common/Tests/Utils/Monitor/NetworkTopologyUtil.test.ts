@@ -8,6 +8,8 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "../../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import NetworkEndpointAttachmentSource from "../../../Types/NetworkDevice/NetworkEndpointAttachmentSource";
+import { UplinkRefusal } from "../../../Utils/Monitor/EndpointUplinkInferenceUtil";
 
 describe("NetworkTopologyUtil.buildTopology", () => {
   const now: Date = new Date("2026-07-22T12:00:00Z");
@@ -63,6 +65,28 @@ describe("NetworkTopologyUtil.buildTopology", () => {
   ): NetworkTopologyNode | undefined => {
     return result.nodes.find((node: NetworkTopologyNode) => {
       return node.id === id;
+    });
+  };
+
+  /*
+   * Edges are undirected as far as identity goes — which end landed in
+   * fromNodeId depends on which pass drew the line first — so they are
+   * looked up by the unordered pair, exactly the way the builder keys them.
+   * Returns every match rather than the first, because "there is only one
+   * line between these two boxes" is itself a thing worth asserting.
+   */
+  const edgesBetween: (
+    result: TopologyBuildResult,
+    a: string,
+    b: string,
+  ) => Array<NetworkTopologyEdge> = (
+    result: TopologyBuildResult,
+    a: string,
+    b: string,
+  ): Array<NetworkTopologyEdge> => {
+    const wanted: string = [a, b].sort().join("::");
+    return result.edges.filter((edge: NetworkTopologyEdge) => {
+      return [edge.fromNodeId, edge.toNodeId].sort().join("::") === wanted;
     });
   };
 
@@ -1756,6 +1780,407 @@ describe("NetworkTopologyUtil.buildTopology", () => {
           return node.id;
         });
       expect(endpointIds).toEqual(["endpoint:ep-a", "endpoint:ep-b"]);
+    });
+  });
+
+  /*
+   * Issue #3489: a till watched by a Ping monitor alone reports no
+   * neighbours and none of its neighbours report it, so it floated on the
+   * map until somebody hand-drew a cable to its switch. But the switch's
+   * forwarding database already names the port it is plugged into, and that
+   * row is already collected as a NetworkEndpoint — so the cable is a
+   * lookup. These exercise the wiring through buildTopology: that the
+   * derived edge lands in the SAME edge map everything else writes to, that
+   * it never overwrites something measured or declared, and that the leaf
+   * the row used to draw goes away rather than doubling the box.
+   *
+   * The rest of the suite is untouched by all of this: makeDevice never
+   * sets monitoringMethod, so no device above is ever a candidate.
+   */
+  describe("inferred uplinks for monitor-backed devices (#3489)", () => {
+    const SWITCH_ID: string = "sw-1";
+    const TILL_ID: string = "till-1";
+    const TILL_MAC: string = "aa:bb:cc:dd:ee:01";
+    const TILL_IP: string = "10.18.166.51";
+    const ENDPOINT_ID: string = "ep-till";
+
+    // The switch doing the placing: walked, and reading MAC tables.
+    const makeSwitch: (
+      overrides?: Partial<TopologyDeviceInput>,
+    ) => TopologyDeviceInput = (
+      overrides?: Partial<TopologyDeviceInput>,
+    ): TopologyDeviceInput => {
+      return makeDevice(SWITCH_ID, "switch-03", {
+        siteId: "site-a",
+        collectEndpoints: true,
+        ...overrides,
+      });
+    };
+
+    /*
+     * The device being placed. Nothing walks it, so it has no lastSeenAt at
+     * all — its colour comes from the bound Monitor — and its hostname is
+     * its address, which is exactly what a subnet-sweep import writes and
+     * the only key the ARP join has to work with.
+     */
+    const makeTill: (
+      overrides?: Partial<TopologyDeviceInput>,
+    ) => TopologyDeviceInput = (
+      overrides?: Partial<TopologyDeviceInput>,
+    ): TopologyDeviceInput => {
+      return makeDevice(TILL_ID, "till-01", {
+        siteId: "site-a",
+        monitoringMethod: "Monitor",
+        hostname: TILL_IP,
+        monitorStatus: "up",
+        lastSeenAt: undefined,
+        ...overrides,
+      });
+    };
+
+    // The FDB row that recognises it: fresh, provenanced, on a real port.
+    const makeFdbEndpoint: (
+      overrides?: Partial<TopologyEndpointInput>,
+    ) => TopologyEndpointInput = (
+      overrides?: Partial<TopologyEndpointInput>,
+    ): TopologyEndpointInput => {
+      return makeEndpoint(ENDPOINT_ID, TILL_MAC, {
+        ipAddress: TILL_IP,
+        vlanId: 40,
+        attachedNetworkDeviceId: SWITCH_ID,
+        attachedInterfaceIndex: 12,
+        attachedPortName: "Gi1/0/12",
+        attachmentSource: NetworkEndpointAttachmentSource.Fdb,
+        attachmentLastSeenAt: fresh,
+        ipAddressLastSeenAt: fresh,
+        ...overrides,
+      });
+    };
+
+    it("draws one edge from the switch to the device its FDB recognised", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      const edges: Array<NetworkTopologyEdge> = edgesBetween(
+        result,
+        SWITCH_ID,
+        TILL_ID,
+      );
+      expect(edges).toHaveLength(1);
+
+      const edge: NetworkTopologyEdge = edges[0]!;
+      expect(edge.fromNodeId).toBe(SWITCH_ID);
+      expect(edge.toNodeId).toBe(TILL_ID);
+      expect(edge.protocols).toEqual(["fdb", "inferred"]);
+      expect(edge.fromPort).toBe("Gi1/0/12");
+      /*
+       * The switch is the parent: a forwarding-database entry is
+       * one-directional evidence, unlike a neighbour report.
+       */
+      expect(edge.parentNodeId).toBe(SWITCH_ID);
+      // The receipt, so a line that looks wrong can be checked.
+      expect(edge.inferredFrom).toEqual({
+        macAddress: TILL_MAC,
+        ipAddress: TILL_IP,
+        vlanId: 40,
+        lastSeenAt: fresh,
+        matchedOn: "ip",
+      });
+    });
+
+    it("stops drawing the promoted row as a leaf, without counting it dropped", () => {
+      /*
+       * The box is on the map as the device it actually is, so drawing the
+       * endpoint node as well would put one physical thing on the graph
+       * twice — and nothing was lost, so it is not a drop either.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+      );
+
+      expect(nodeById(result, `endpoint:${ENDPOINT_ID}`)).toBeUndefined();
+      expect(result.nodes).toHaveLength(2);
+      expect(result.droppedEndpointCount).toBe(0);
+      expect(result.endpointsTruncated).toBe(false);
+    });
+
+    it("still draws an endpoint that matches no device exactly as before", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [
+          makeFdbEndpoint(),
+          makeEndpoint("ep-camera", "aa:bb:cc:dd:ee:99", {
+            ipAddress: "10.18.166.99",
+            attachedNetworkDeviceId: SWITCH_ID,
+            attachedInterfaceIndex: 13,
+            attachedPortName: "Gi1/0/13",
+            attachmentSource: NetworkEndpointAttachmentSource.Fdb,
+            attachmentLastSeenAt: fresh,
+          }),
+        ],
+      );
+
+      const leaf: NetworkTopologyNode | undefined = nodeById(
+        result,
+        "endpoint:ep-camera",
+      );
+      expect(leaf).toBeDefined();
+      expect(leaf!.kind).toBe("endpoint");
+
+      const leafEdges: Array<NetworkTopologyEdge> = edgesBetween(
+        result,
+        SWITCH_ID,
+        "endpoint:ep-camera",
+      );
+      expect(leafEdges).toHaveLength(1);
+      expect(leafEdges[0]!.protocols).toEqual(["fdb"]);
+      expect(leafEdges[0]!.fromPort).toBe("Gi1/0/13");
+
+      // ...while the recognised one is still promoted rather than drawn.
+      expect(nodeById(result, `endpoint:${ENDPOINT_ID}`)).toBeUndefined();
+      expect(result.edges).toHaveLength(2);
+      expect(result.droppedEndpointCount).toBe(0);
+    });
+
+    it("merges into an operator's declared link instead of doubling the line", () => {
+      /*
+       * Two lines between one pair of boxes reads as two physical cables.
+       * A hand-drawn link the inference later confirms has to cost nothing.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+        [{ fromDeviceId: TILL_ID, toDeviceId: SWITCH_ID, name: "hand drawn" }],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(edgesBetween(result, SWITCH_ID, TILL_ID)).toHaveLength(1);
+
+      const edge: NetworkTopologyEdge = result.edges[0]!;
+      expect(edge.protocols).toEqual(["manual", "fdb", "inferred"]);
+      expect(edge.name).toBe("hand drawn");
+      // The declared link put the till first, so the switch end is `to`.
+      expect(edge.toNodeId).toBe(SWITCH_ID);
+      expect(edge.toPort).toBe("Gi1/0/12");
+      expect(edge.inferredFrom?.macAddress).toBe(TILL_MAC);
+    });
+
+    it("keeps a declared parent even when it is the opposite end", () => {
+      /*
+       * The guard that stops an operator's hierarchy being destroyed by a
+       * guess: a layout handed two different parents for one child discards
+       * both, so the declaration wins outright rather than being merged.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+        [
+          {
+            fromDeviceId: TILL_ID,
+            toDeviceId: SWITCH_ID,
+            parentDeviceId: TILL_ID,
+          },
+        ],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.parentNodeId).toBe(TILL_ID);
+      expect(result.edges[0]!.protocols).toContain("inferred");
+    });
+
+    it("never overwrites a measured LLDP port with the forwarding-database one", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeSwitch({
+            sysName: "switch-03",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 24,
+                remoteSysName: "till-01-lldp",
+                remotePortId: "eth0",
+              },
+            ],
+          }),
+          makeTill({ sysName: "till-01-lldp" }),
+        ],
+        now,
+        [
+          {
+            networkDeviceId: SWITCH_ID,
+            interfaceIndex: 24,
+            name: "GigabitEthernet1/0/24",
+            isOperationallyUp: true,
+            utilizationPercent: 3,
+          },
+        ],
+        [makeFdbEndpoint()],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      const edge: NetworkTopologyEdge = result.edges[0]!;
+      expect(edge.protocols).toEqual(["lldp", "fdb", "inferred"]);
+      // Measured on both counts — the FDB row named port 12, and lost.
+      expect(edge.fromPort).toBe("GigabitEthernet1/0/24");
+      expect(edge.fromInterface?.interfaceIndex).toBe(24);
+      expect(edge.fromInterface?.utilizationPercent).toBe(3);
+      expect(edge.toPort).toBe("eth0");
+      // The receipt still rides along, and LLDP stated no parent.
+      expect(edge.inferredFrom?.macAddress).toBe(TILL_MAC);
+      expect(edge.parentNodeId).toBe(SWITCH_ID);
+    });
+
+    it("labels the port from the switch's interface row, not the stored name", () => {
+      /*
+       * `attachedPortName` is COALESCEd on write, so it can survive from the
+       * PREVIOUS switch when an endpoint moves. Harmless on a leaf label; on
+       * a cable it would send somebody to the wrong socket of the right
+       * switch. The NetworkInterface row is keyed on (this switch, this
+       * ifIndex) and cannot go stale that way, so it wins.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [
+          {
+            networkDeviceId: SWITCH_ID,
+            interfaceIndex: 12,
+            name: "GigabitEthernet1/0/12",
+            isOperationallyUp: true,
+            utilizationPercent: 4,
+          },
+        ],
+        [makeFdbEndpoint({ attachedPortName: "Fa0/3-on-the-old-switch" })],
+      );
+
+      const edge: NetworkTopologyEdge = edgesBetween(
+        result,
+        SWITCH_ID,
+        TILL_ID,
+      )[0]!;
+      expect(edge.fromPort).toBe("GigabitEthernet1/0/12");
+      expect(edge.fromInterface?.interfaceIndex).toBe(12);
+      expect(edge.fromInterface?.isOperationallyUp).toBe(true);
+      expect(edge.fromInterface?.utilizationPercent).toBe(4);
+    });
+
+    it("does not promote an endpoint the project has hidden", () => {
+      /*
+       * Promoting a hidden row would silently undo the operator's choice —
+       * the box comes back, now as a cable — and leave the suppression row
+       * pointing at a node that no longer exists, so they could never
+       * un-hide it either.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+        [],
+        new Set<string>([`endpoint:${ENDPOINT_ID}`]),
+      );
+
+      expect(edgesBetween(result, SWITCH_ID, TILL_ID)).toHaveLength(0);
+      expect(result.edges).toHaveLength(0);
+      expect(nodeById(result, `endpoint:${ENDPOINT_ID}`)).toBeUndefined();
+      expect(result.suppressedNodeCount).toBe(1);
+      expect(result.uplinkInferenceRefusals).toEqual([]);
+    });
+
+    it("infers nothing at all from a capped endpoint page, and says so", () => {
+      /*
+       * Both count-based guards — transit-port occupancy, and two rows
+       * claiming one address — undercount on a sample, and undercounting
+       * makes each of them ACCEPT what it exists to refuse.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+        [],
+        new Set<string>(),
+        true,
+      );
+
+      expect(edgesBetween(result, SWITCH_ID, TILL_ID)).toHaveLength(0);
+      expect(
+        result.edges.some((edge: NetworkTopologyEdge) => {
+          return (edge.protocols || []).includes("inferred");
+        }),
+      ).toBe(false);
+      // Nothing was promoted, so the row is an ordinary leaf again.
+      expect(nodeById(result, `endpoint:${ENDPOINT_ID}`)).toBeDefined();
+      expect(result.uplinkInferenceRefusals).toEqual([
+        { deviceId: TILL_ID, reason: "endpointListTruncated" },
+      ]);
+    });
+
+    it("moves the endpoint's identity onto the device node it turned out to be", () => {
+      /*
+       * The leaf that used to hold the MAC, the address and the VLAN is no
+       * longer drawn, so without this the VLAN filter quietly loses every
+       * promoted device and the search stops finding it by address.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeSwitch(), makeTill()],
+        now,
+        [],
+        [makeFdbEndpoint()],
+      );
+
+      const node: NetworkTopologyNode = nodeById(result, TILL_ID)!;
+      expect(node.kind).toBe("device");
+      expect(node.macAddress).toBe(TILL_MAC);
+      expect(node.ipAddress).toBe(TILL_IP);
+      expect(node.vlanId).toBe(40);
+    });
+
+    it("reports uplink refusals on both return paths", () => {
+      /*
+       * "No cable was drawn" has to become a sentence somebody can act on,
+       * and the suppression path returns from a different statement — so it
+       * is the one that would silently lose the warnings.
+       */
+      const devices: Array<TopologyDeviceInput> = [
+        makeSwitch({ collectEndpoints: false }),
+        makeTill(),
+      ];
+      const expected: Array<UplinkRefusal> = [
+        { deviceId: TILL_ID, reason: "endpointCollectionOff" },
+      ];
+
+      const plain: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        devices,
+        now,
+        [],
+        [],
+      );
+      const suppressed: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        devices,
+        now,
+        [],
+        [],
+        [],
+        new Set<string>([SWITCH_ID]),
+      );
+
+      expect(plain.uplinkInferenceRefusals).toEqual(expected);
+      expect(suppressed.uplinkInferenceRefusals).toEqual(expected);
+      expect(suppressed.suppressedNodeCount).toBe(1);
     });
   });
 });

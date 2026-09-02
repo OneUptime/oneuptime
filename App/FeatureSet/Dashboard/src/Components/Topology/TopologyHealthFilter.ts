@@ -2,7 +2,10 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
-import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
+import {
+  isEndpointNode,
+  isInferredEdge,
+} from "../NetworkDevice/EndpointNodeUtil";
 import {
   LINK_STATE_COLORS,
   NODE_STATUS_COLORS,
@@ -284,6 +287,14 @@ export interface TopologyHealthVisibility {
  * switch can have two hundred learned hosts hanging off it, and dragging
  * that fan back onto a map whose entire purpose was to be short would
  * undo the filter at the first switch it matched.
+ *
+ * A device placed by endpoint inference (issue #3489) is drawn as the
+ * DEVICE it is, not as an endpoint, so that rule no longer catches it — and
+ * forty tills is the same fan by another name. The distinction that saves it
+ * is one the edge already carries: an inferred edge names the switch as the
+ * parent. Matched till pulls in its switch, which is the single most useful
+ * thing this feature adds here; matched switch does not pull in its forty
+ * tills.
  */
 export function resolveHealthVisibility(
   input: TopologyHealthVisibilityInput,
@@ -343,6 +354,15 @@ export function resolveHealthVisibility(
       }
       const neighbor: NetworkTopologyNode | undefined = nodeById.get(otherEnd);
       if (!neighbor || isEndpointNode(neighbor)) {
+        continue;
+      }
+      /*
+       * The matched end is the switch of an inferred uplink, so the other
+       * end is a leaf that was only placed BY that switch. Same fan, same
+       * reason to leave it out — and asymmetric, so the reverse direction
+       * (a matched leaf keeping the switch that places it) still works.
+       */
+      if (isInferredEdge(edge) && edge.parentNodeId === matchedEnd) {
         continue;
       }
       contextNodeIds.add(otherEnd);

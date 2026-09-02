@@ -138,10 +138,10 @@ export function edgeKeyForEdge(edge: NetworkTopologyEdge): string {
 /**
  * True when the node matches the search text.
  *
- * Name, sysName and vendor are the identity fields; the ROLE is matched
- * too, so typing "firewall" lights up every firewall on the map even
- * though no device is called one. An unclassified node deliberately does
- * not answer to "unknown type" — that would make a search for a role
+ * Name, sysName, vendor, MAC and IP address are the identity fields; the
+ * ROLE is matched too, so typing "firewall" lights up every firewall on the
+ * map even though no device is called one. An unclassified node deliberately
+ * does not answer to "unknown type" — that would make a search for a role
  * highlight everything we failed to classify.
  */
 export function nodeMatchesSearch(
@@ -155,11 +155,23 @@ export function nodeMatchesSearch(
   const role: NetworkTopologyDeviceRole = roleOfNode(node);
   const roleText: string | undefined =
     role === "unknown" ? undefined : labelForDeviceRole(role);
-  return [node.name, node.sysName, node.vendor, roleText].some(
-    (value: string | undefined) => {
-      return Boolean(value && value.toLowerCase().includes(lower));
-    },
-  );
+  /*
+   * The MAC and the address are searched too. They used to be reachable
+   * because an unclassified endpoint leaf was NAMED after its address; a
+   * device placed by endpoint inference (issue #3489) replaces that leaf
+   * with the device's own name, and the address an operator is holding on
+   * a ticket would otherwise stop finding anything at all.
+   */
+  return [
+    node.name,
+    node.sysName,
+    node.vendor,
+    node.macAddress,
+    node.ipAddress,
+    roleText,
+  ].some((value: string | undefined) => {
+    return Boolean(value && value.toLowerCase().includes(lower));
+  });
 }
 
 /**
@@ -265,9 +277,18 @@ export interface TopologyLegendEntry {
   label: string;
   /**
    * How the swatch is drawn: a filled dot, an outline, a line, or — for
-   * the "Type" group — the node silhouette the role is drawn with.
+   * the "Type" group — the node silhouette the role is drawn with. The
+   * line swatches mirror the strokes the graph actually draws: solid,
+   * dashed for a learned attachment, dotted for an inferred uplink.
    */
-  swatch: "dot" | "hollow-dot" | "square" | "line" | "dashed-line" | "shape";
+  swatch:
+    | "dot"
+    | "hollow-dot"
+    | "square"
+    | "line"
+    | "dashed-line"
+    | "dotted-line"
+    | "shape";
   color: string;
   /** Set only on "shape" swatches: which silhouette to draw. */
   shape?: TopologyNodeShape | undefined;
@@ -327,6 +348,19 @@ export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
     group: "Link",
     label: "Learned from FDB",
     swatch: "dashed-line",
+    color: LINK_STATE_COLORS.unknown,
+  },
+  /*
+   * Its own entry rather than sharing "Learned from FDB": both come from the
+   * forwarding database, but one runs to an anonymous MAC on a port and the
+   * other is a cable between two devices the project manages, worked out by
+   * recognising one of them in that table. An operator deciding whether to
+   * trust a line needs to know which they are looking at.
+   */
+  {
+    group: "Link",
+    label: "Inferred uplink",
+    swatch: "dotted-line",
     color: LINK_STATE_COLORS.unknown,
   },
 ];
@@ -455,8 +489,26 @@ export function accessibleLabelForEdge(
   if (utilization !== undefined) {
     parts.push(`${formatUtilization(utilization)} utilization`);
   }
-  if (edge.protocols && edge.protocols.length > 0) {
-    parts.push(`reported by ${edge.protocols.join(" and ").toUpperCase()}`);
+  /*
+   * "Reported by" is the one verb that must not be used about an inferred
+   * link: nothing reported it, and a keyboard user gets this string and
+   * nothing else. Its evidence protocol ("fdb") is folded into the same
+   * clause rather than listed beside it, which would otherwise read as
+   * "reported by FDB AND INFERRED".
+   */
+  const inferred: boolean = Boolean(
+    edge.protocols && edge.protocols.includes("inferred"),
+  );
+  const reported: Array<string> = (edge.protocols || []).filter(
+    (protocol: string) => {
+      return !inferred || (protocol !== "inferred" && protocol !== "fdb");
+    },
+  );
+  if (reported.length > 0) {
+    parts.push(`reported by ${reported.join(" and ").toUpperCase()}`);
+  }
+  if (inferred) {
+    parts.push("inferred from the forwarding database");
   }
   return parts.join(", ");
 }

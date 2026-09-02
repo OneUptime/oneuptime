@@ -128,6 +128,14 @@ const PROTOCOL_LABELS: Record<NetworkTopologyLinkProtocol, string> = {
   cdp: "CDP",
   fdb: "the forwarding database",
   manual: "a declared link",
+  /*
+   * Unreachable in practice — an inferred edge runs between two MANAGED
+   * devices, and this map only describes the cables of an UNMANAGED peer
+   * being adopted. Present because the Record is exhaustive over the union,
+   * and worded so that if the two features ever meet it still reads as a
+   * sentence.
+   */
+  inferred: "a match against the forwarding database",
 };
 
 function truncate(value: string, maxLength: number): string {

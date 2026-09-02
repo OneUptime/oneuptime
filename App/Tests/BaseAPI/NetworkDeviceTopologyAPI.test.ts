@@ -1384,3 +1384,478 @@ describe("POST /network-device/topology — link rules past the device row cap",
     expect(warnings[0]!["siteCount"]).toBeUndefined();
   });
 });
+
+/*
+ * --- Endpoint uplink inference wiring (issue #3489) ---
+ *
+ * A NetworkDevice watched only by a Ping monitor reports no LLDP or CDP
+ * neighbours, so it floated on the map until somebody hand-drew a cable to
+ * its switch. Inference recognises it inside a switch's own ARP/FDB rows —
+ * already collected as NetworkEndpoint — and derives the uplink on every
+ * build.
+ *
+ * All of that is a pure function over what this endpoint hands it, and
+ * every input is silently load-bearing. Leave monitoringMethod out of the
+ * device select and no device is a candidate, so inference draws nothing at
+ * all. Leave siteId out and every site collapses into one partition, so an
+ * estate that reuses 10.0.0.x in every branch refuses on ambiguity. Leave
+ * attachmentSource out of the endpoint select and every row reads as
+ * unknown provenance and is refused; leave attachmentLastSeenAt out and
+ * every row reads stale.
+ *
+ * Not one of those failures throws, logs or changes the shape of the
+ * response. They all look exactly like a map with nothing to infer, which
+ * is also the normal case — so the columns and the arguments carrying them
+ * are pinned here rather than trusted to a green graph.
+ */
+
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import NetworkEndpointAttachmentSource from "Common/Types/NetworkDevice/NetworkEndpointAttachmentSource";
+import NetworkTopologyUtil, {
+  TopologyDeviceInput,
+  TopologyEndpointInput,
+} from "Common/Utils/Monitor/NetworkTopologyUtil";
+
+/*
+ * A pass-through spy, never a stub: these tests want the real graph AND the
+ * arguments it was built from. jest.clearAllMocks() — which both of this
+ * file's reset paths call — clears a spy's call log and leaves its
+ * implementation alone, so this needs no wiring into either of them. The
+ * other side of that same fact is that nothing here may replace the
+ * implementation, since neither reset path would ever put it back.
+ */
+const buildTopologySpy: jest.Mock = jest.spyOn(
+  NetworkTopologyUtil,
+  "buildTopology",
+) as unknown as jest.Mock;
+
+/*
+ * buildTopology takes its inputs positionally, and the three this block is
+ * about sit at three different offsets: devices first, endpoints fourth,
+ * and isEndpointListTruncated seventh — the parameter #3489 added. Read
+ * once here so no assertion below has to restate an index.
+ */
+interface BuildTopologyArguments {
+  devices: Array<TopologyDeviceInput>;
+  endpoints: Array<TopologyEndpointInput>;
+  isEndpointListTruncated: boolean;
+}
+
+function buildTopologyArguments(): BuildTopologyArguments {
+  expect(buildTopologySpy).toHaveBeenCalledTimes(1);
+  const call: Array<unknown> = buildTopologySpy.mock.calls[0] as Array<unknown>;
+  return {
+    devices: call[0] as Array<TopologyDeviceInput>,
+    endpoints: call[3] as Array<TopologyEndpointInput>,
+    isEndpointListTruncated: call[6] as boolean,
+  };
+}
+
+function deviceInputFor(
+  args: BuildTopologyArguments,
+  device: NetworkDevice,
+): TopologyDeviceInput {
+  const input: TopologyDeviceInput | undefined = args.devices.find(
+    (candidate: TopologyDeviceInput) => {
+      return candidate.id === device.id!.toString();
+    },
+  );
+  expect(input).toBeDefined();
+  return input!;
+}
+
+/*
+ * The device this feature exists to place: watched by a Ping monitor, so
+ * nothing ever walks it and neither discovery protocol will ever mention
+ * it. `hostname` rather than `name` carries the address on purpose — a name
+ * is an operator's label, and inference reads only the hostname.
+ */
+function makeTill(
+  name: string,
+  hostname: string,
+  site: NetworkSite | null,
+): NetworkDevice {
+  const device: NetworkDevice = makeDevice(name);
+  device.hostname = hostname;
+  device.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+  if (site) {
+    device.siteId = site.id!;
+    device.site = site;
+  }
+  return device;
+}
+
+// The switch doing the placing: walked over SNMP, and reading MAC tables.
+function makeCollectingSwitch(
+  name: string,
+  site: NetworkSite | null,
+): NetworkDevice {
+  const device: NetworkDevice = makeDevice(name);
+  device.monitoringMethod = NetworkDeviceMonitoringMethod.Snmp;
+  device.collectEndpoints = true;
+  if (site) {
+    device.siteId = site.id!;
+    device.site = site;
+  }
+  return device;
+}
+
+/*
+ * One row a switch's forwarding database wrote, with a router's ARP binding
+ * for the address behind it. Both attachment timestamps are set explicitly
+ * because their absence is exactly what "stale" means to inference, and the
+ * row's own lastSeenAt cannot stand in for either of them.
+ */
+function makeFdbEndpoint(data: {
+  macAddress: string;
+  ipAddress: string;
+  attachedTo: NetworkDevice;
+  interfaceIndex: number;
+  seenAt: Date;
+}): NetworkEndpoint {
+  const endpoint: NetworkEndpoint = new NetworkEndpoint(ObjectID.generate());
+  endpoint.macAddress = data.macAddress;
+  endpoint.ipAddress = data.ipAddress;
+  endpoint.attachedNetworkDeviceId = data.attachedTo.id!;
+  endpoint.attachedInterfaceIndex = data.interfaceIndex;
+  endpoint.attachedPortName = `Gi1/0/${data.interfaceIndex}`;
+  endpoint.attachmentSource = NetworkEndpointAttachmentSource.Fdb;
+  endpoint.attachmentLastSeenAt = data.seenAt;
+  endpoint.ipAddressLastSeenAt = data.seenAt;
+  endpoint.lastSeenAt = data.seenAt;
+  return endpoint;
+}
+
+function macForIndex(index: number): string {
+  const hex: string = index.toString(16).padStart(4, "0");
+  return `aa:bb:cc:00:${hex.slice(0, 2)}:${hex.slice(2)}`;
+}
+
+function uplinkWarningsIn(body: JSONObject): Array<JSONObject> {
+  return body["uplinkInferenceWarnings"] as Array<JSONObject>;
+}
+
+describe("POST /network-device/topology — endpoint uplink inference wiring", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+  });
+
+  test("asks the device query for the three columns inference cannot run without", async () => {
+    await callTopology({});
+
+    const select: JSONObject = (
+      deviceService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+
+    /*
+     * Unselected, every row arrives undefined, which parses to SNMP — the
+     * right default for a column that did not always exist, and the reason
+     * dropping it here would not throw. No device would be a candidate and
+     * inference would return an empty result on every map in the product.
+     */
+    expect(select["monitoringMethod"]).toBe(true);
+    /*
+     * Unselected, every device falls into the one "no site" partition, so
+     * the two branches that both use 10.0.0.7 contest the address and
+     * neither till is placed.
+     */
+    expect(select["siteId"]).toBe(true);
+    /*
+     * Unselected, no site ever looks like it collects endpoints, so every
+     * refusal is reported as "turn on Collect Endpoints for the switches in
+     * that site" — including for the sites where it is already on.
+     */
+    expect(select["collectEndpoints"]).toBe(true);
+  });
+
+  test("asks the endpoint query for provenance and both freshness columns", async () => {
+    deviceService.findBy.mockResolvedValue([makeDevice("store-sw1")] as never);
+
+    await callTopology({});
+
+    const select: JSONObject = (
+      endpointService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+
+    /*
+     * Absent, a row reads as "we do not know which walk wrote this", which
+     * is refused rather than assumed to be an FDB entry — so every row on
+     * the map would be refused.
+     */
+    expect(select["attachmentSource"]).toBe(true);
+    /*
+     * Absent, every attachment reads stale. `lastSeenAt` cannot stand in:
+     * ANY sighting of the MAC refreshes it, so it is fresh on a row still
+     * naming a port the device left months ago.
+     */
+    expect(select["attachmentLastSeenAt"]).toBe(true);
+    expect(select["ipAddressLastSeenAt"]).toBe(true);
+  });
+
+  test("hands the builder monitoringMethod, siteId as a string, and collectEndpoints", async () => {
+    const site: NetworkSite = makeSite("Store 42");
+    const till: NetworkDevice = makeTill("Till 07", "10.0.0.7", site);
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", site);
+
+    deviceService.findBy.mockResolvedValue([till, accessSwitch] as never);
+
+    await callTopology({});
+
+    const args: BuildTopologyArguments = buildTopologyArguments();
+    const tillInput: TopologyDeviceInput = deviceInputFor(args, till);
+
+    expect(tillInput.monitoringMethod).toBe(
+      NetworkDeviceMonitoringMethod.Monitor,
+    );
+    expect(tillInput.siteId).toBe(site.id!.toString());
+    /*
+     * A string, not the ObjectID that came off the row. Inference keys its
+     * site partitions on this value, and it is typed as a string for the
+     * same reason the link-rule resolver's is: an object compared by
+     * identity would put every device in a partition of its own.
+     */
+    expect(typeof tillInput.siteId).toBe("string");
+
+    /*
+     * Read off the SWITCH, not off the device being placed: it is what
+     * decides whether a site reads MAC tables at all, and so whether an
+     * unplaced device is told to turn the setting on or told something
+     * else entirely.
+     */
+    expect(deviceInputFor(args, accessSwitch).collectEndpoints).toBe(true);
+    expect(deviceInputFor(args, accessSwitch).monitoringMethod).toBe(
+      NetworkDeviceMonitoringMethod.Snmp,
+    );
+  });
+
+  test("hands the builder the endpoint's provenance and both timestamps", async () => {
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", null);
+    const attachedAt: Date = new Date("2026-01-02T03:04:05.000Z");
+    const addressConfirmedAt: Date = new Date("2026-01-02T03:09:05.000Z");
+    const macSeenAt: Date = new Date("2026-01-02T03:14:05.000Z");
+
+    const endpoint: NetworkEndpoint = makeFdbEndpoint({
+      macAddress: "aa:bb:cc:00:00:01",
+      ipAddress: "10.0.0.7",
+      attachedTo: accessSwitch,
+      interfaceIndex: 12,
+      seenAt: attachedAt,
+    });
+    endpoint.ipAddressLastSeenAt = addressConfirmedAt;
+    endpoint.lastSeenAt = macSeenAt;
+
+    deviceService.findBy.mockResolvedValue([accessSwitch] as never);
+    endpointService.findBy.mockResolvedValue([endpoint] as never);
+
+    await callTopology({});
+
+    const endpoints: Array<TopologyEndpointInput> =
+      buildTopologyArguments().endpoints;
+    expect(endpoints.length).toBe(1);
+
+    expect(endpoints[0]!.attachmentSource).toBe(
+      NetworkEndpointAttachmentSource.Fdb,
+    );
+    /*
+     * Three distinct instants, carried separately. Collapsing any two of
+     * them is the bug the columns exist to prevent: a row whose MAC was
+     * seen a minute ago can be naming a port the device left in March.
+     */
+    expect(endpoints[0]!.attachmentLastSeenAt).toBe(attachedAt);
+    expect(endpoints[0]!.ipAddressLastSeenAt).toBe(addressConfirmedAt);
+    expect(endpoints[0]!.lastSeenAt).toBe(macSeenAt);
+  });
+
+  test("tells the builder the endpoint list was truncated when the fetch came back full", async () => {
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", null);
+    deviceService.findBy.mockResolvedValue([accessSwitch] as never);
+
+    /*
+     * Exactly as many rows as the query's own cap allows, read back off the
+     * query rather than restated here — a page that came back full is the
+     * only evidence there is that rows were left behind.
+     */
+    endpointService.findBy.mockImplementation(((
+      findBy: JSONObject,
+    ): Promise<Array<NetworkEndpoint>> => {
+      const rows: Array<NetworkEndpoint> = [];
+      const cap: number = findBy["limit"] as number;
+      for (let index: number = 0; index < cap; index++) {
+        rows.push(
+          makeFdbEndpoint({
+            macAddress: macForIndex(index),
+            ipAddress: `10.0.${Math.floor(index / 256)}.${index % 256}`,
+            attachedTo: accessSwitch,
+            interfaceIndex: 12,
+            seenAt: new Date(),
+          }),
+        );
+      }
+      return Promise.resolve(rows);
+    }) as never);
+
+    await callTopology({});
+
+    /*
+     * Inference declines outright on a partial list rather than drawing
+     * from it: both of its count-based guards — how many MACs are on this
+     * port, how many rows claim this address — undercount on a sample, and
+     * undercounting makes each of them accept what it exists to refuse.
+     */
+    expect(buildTopologyArguments().isEndpointListTruncated).toBe(true);
+    // The client is told the endpoint list is partial as well.
+    expect(lastResponseBody()["endpointsTruncated"]).toBe(true);
+  });
+
+  test("tells the builder the endpoint list is complete when the fetch came back short", async () => {
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", null);
+
+    deviceService.findBy.mockResolvedValue([accessSwitch] as never);
+    endpointService.findBy.mockResolvedValue([
+      makeFdbEndpoint({
+        macAddress: "aa:bb:cc:00:00:01",
+        ipAddress: "10.0.0.7",
+        attachedTo: accessSwitch,
+        interfaceIndex: 12,
+        seenAt: new Date(),
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    /*
+     * The flag is not "this map is large" — a truncated DEVICE list says
+     * nothing about the endpoint rows, and hedging here would switch
+     * inference off on every big estate, which is where it earns its keep.
+     */
+    expect(buildTopologyArguments().isEndpointListTruncated).toBe(false);
+  });
+
+  /*
+   * The feature end to end, through the real builder: two branches that
+   * both use 10.0.0.7, each with its own switch. Every field pinned above
+   * is load-bearing here — the tills are candidates because of
+   * monitoringMethod, the two identical addresses do not contest each other
+   * because of siteId, and the rows may become cables at all because of
+   * attachmentSource and attachmentLastSeenAt.
+   */
+  test("cables each site's ICMP-only device to the switch that learned it", async () => {
+    const storeA: NetworkSite = makeSite("Store 42");
+    const storeB: NetworkSite = makeSite("Store 43");
+    const tillA: NetworkDevice = makeTill("Till A", "10.0.0.7", storeA);
+    const tillB: NetworkDevice = makeTill("Till B", "10.0.0.7", storeB);
+    const switchA: NetworkDevice = makeCollectingSwitch("store-42-sw1", storeA);
+    const switchB: NetworkDevice = makeCollectingSwitch("store-43-sw1", storeB);
+    const seenAt: Date = new Date();
+
+    deviceService.findBy.mockResolvedValue([
+      tillA,
+      tillB,
+      switchA,
+      switchB,
+    ] as never);
+    endpointService.findBy.mockResolvedValue([
+      makeFdbEndpoint({
+        macAddress: "aa:bb:cc:00:00:01",
+        ipAddress: "10.0.0.7",
+        attachedTo: switchA,
+        interfaceIndex: 12,
+        seenAt: seenAt,
+      }),
+      makeFdbEndpoint({
+        macAddress: "aa:bb:cc:00:00:02",
+        ipAddress: "10.0.0.7",
+        attachedTo: switchB,
+        interfaceIndex: 24,
+        seenAt: seenAt,
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    const body: JSONObject = lastResponseBody();
+
+    /*
+     * Exactly these two, and the equality is the point: a cross-site pair
+     * would be an extra edge and would fail it.
+     */
+    expect(edgePairs(body)).toEqual(
+      [
+        `${switchA.id!.toString()}->${tillA.id!.toString()}`,
+        `${switchB.id!.toString()}->${tillB.id!.toString()}`,
+      ].sort(),
+    );
+
+    for (const edge of body["edges"] as Array<JSONObject>) {
+      /*
+       * Marked as derived rather than measured, and parented on the switch:
+       * a forwarding-database entry is one-directional evidence, the switch
+       * learned the device and not the other way round.
+       */
+      expect(edge["protocols"]).toEqual(["fdb", "inferred"]);
+      expect(edge["parentNodeId"]).toBe(edge["fromNodeId"]);
+    }
+
+    // Both tills were placed, so neither is reported as a problem.
+    expect(uplinkWarningsIn(body)).toEqual([]);
+  });
+
+  test("the response carries the grouped warnings and never the raw refusals", async () => {
+    const site: NetworkSite = makeSite("Store 42");
+    const till: NetworkDevice = makeTill(
+      "Till 07",
+      "till-07.store.local",
+      site,
+    );
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", site);
+
+    deviceService.findBy.mockResolvedValue([till, accessSwitch] as never);
+
+    await callTopology({});
+
+    const body: JSONObject = lastResponseBody();
+    expect(uplinkWarningsIn(body).length).toBe(1);
+
+    /*
+     * The raw refusals are the INPUT to that grouping and are stripped from
+     * the wire: one row per unplaced device, on a payload that refreshes
+     * every sixty seconds, for a project that can hold tens of thousands of
+     * ping-monitored devices. Nothing on the client reads them, and the
+     * grouped form is at most one bullet per cause.
+     */
+    expect(Object.keys(body)).not.toContain("uplinkInferenceRefusals");
+    expect(body["uplinkInferenceRefusals"]).toBeUndefined();
+  });
+
+  test("a refusal is grouped into a warning that names the device by its name", async () => {
+    const site: NetworkSite = makeSite("Store 42");
+    const till: NetworkDevice = makeTill(
+      "Till 07",
+      "till-07.store.local",
+      site,
+    );
+    const accessSwitch: NetworkDevice = makeCollectingSwitch("store-sw1", site);
+
+    deviceService.findBy.mockResolvedValue([till, accessSwitch] as never);
+
+    await callTopology({});
+
+    const warnings: Array<JSONObject> = uplinkWarningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["reason"]).toBe("noMatchableAddress");
+    expect(warnings[0]!["deviceCount"]).toBe(1);
+    expect(warnings[0]!["deviceIds"]).toEqual([till.id!.toString()]);
+
+    /*
+     * Named by the operator's own label, which is what they will search the
+     * device list for — not by the hostname the refusal is actually about,
+     * and not by the device id the refusal carries. That name map is built
+     * in this handler, from the same rows the map is drawn from, so it is
+     * pinned here rather than in the grouping util's own tests.
+     */
+    expect(warnings[0]!["message"]).toContain("(Till 07)");
+    expect(warnings[0]!["message"]).not.toContain("till-07.store.local");
+    expect(warnings[0]!["message"]).not.toContain(till.id!.toString());
+  });
+});

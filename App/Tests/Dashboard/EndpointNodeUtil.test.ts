@@ -7,6 +7,7 @@ import {
   endpointTooltipForNode,
   isEndpointNode,
   isFdbEdge,
+  isInferredEdge,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/EndpointNodeUtil";
 
 describe("isEndpointNode", () => {
@@ -62,6 +63,57 @@ describe("isFdbEdge", () => {
     expect(isFdbEdge({ ...base, protocols: [] })).toBe(false);
     // Legacy payloads carry no protocols at all.
     expect(isFdbEdge(base)).toBe(false);
+  });
+
+  test("STILL true for an inferred uplink — deliberately, do not 'fix' this", () => {
+    /*
+     * Issue #3489. An inferred edge carries "fdb" too, because the
+     * forwarding database genuinely is where its evidence came from, and
+     * the tier heuristics that read isFdbEdge draw a BETTER map for it: a
+     * ping-monitored till with an unknown role belongs one level under the
+     * core, which is exactly where an FDB edge puts it.
+     *
+     * Narrowing this to "fdb without inferred" would silently move every
+     * inferred uplink up a tier, so it is pinned here rather than left to
+     * somebody's reading of the word "fdb".
+     */
+    expect(isFdbEdge({ ...base, protocols: ["fdb", "inferred"] })).toBe(true);
+    expect(
+      isFdbEdge({ ...base, protocols: ["manual", "fdb", "inferred"] }),
+    ).toBe(true);
+  });
+});
+
+describe("isInferredEdge", () => {
+  const base: NetworkTopologyEdge = { fromNodeId: "a", toNodeId: "b" };
+
+  test("true when protocols include 'inferred'", () => {
+    expect(isInferredEdge({ ...base, protocols: ["fdb", "inferred"] })).toBe(
+      true,
+    );
+    expect(
+      isInferredEdge({ ...base, protocols: ["manual", "fdb", "inferred"] }),
+    ).toBe(true);
+  });
+
+  test("false for a plain FDB attachment", () => {
+    /*
+     * The distinction this function exists for: an "fdb" edge on its own
+     * runs to an anonymous MAC on a port, while an inferred one runs
+     * between two managed devices. Anything that styles or describes an
+     * edge as "a MAC learned on a port" has to ask this, not isFdbEdge.
+     */
+    expect(isInferredEdge({ ...base, protocols: ["fdb"] })).toBe(false);
+  });
+
+  test("false for discovery-protocol, manual and legacy edges", () => {
+    expect(isInferredEdge({ ...base, protocols: ["lldp"] })).toBe(false);
+    expect(isInferredEdge({ ...base, protocols: ["lldp", "cdp"] })).toBe(false);
+    expect(isInferredEdge({ ...base, protocols: ["manual"] })).toBe(false);
+    expect(isInferredEdge({ ...base, protocols: [] })).toBe(false);
+    // Legacy payloads carry no protocols at all.
+    expect(isInferredEdge(base)).toBe(false);
+    expect(isInferredEdge({ ...base, protocols: undefined })).toBe(false);
   });
 });
 

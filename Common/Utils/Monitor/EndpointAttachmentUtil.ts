@@ -2,6 +2,7 @@ import ArpEntry from "../../Types/Monitor/SnmpMonitor/ArpEntry";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import FdbEntry from "../../Types/Monitor/SnmpMonitor/FdbEntry";
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
+import NetworkEndpointAttachmentSource from "../../Types/NetworkDevice/NetworkEndpointAttachmentSource";
 
 /*
  * Pure helpers that turn ONE device's ARP/FDB walk snapshot into endpoint
@@ -96,6 +97,12 @@ export interface EndpointExistingRowSnapshot {
   siteId?: string | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
+  /*
+   * Raw column value, not a parsed enum: rows written before the column
+   * existed hold NULL, and the comparison below has to be able to tell
+   * that apart from a stored "ARP".
+   */
+  attachmentSource?: string | undefined;
 }
 
 /*
@@ -130,13 +137,23 @@ export interface EndpointUpsertDecision {
   action: "create" | "update" | "none";
   /*
    * When true, write attachedNetworkDeviceId (the observing device),
-   * attachedInterfaceIndex, and — when defined — attachedPortName / vlanId.
-   * Undefined port/vlan never clear previously stored values.
+   * attachedInterfaceIndex, attachmentSource, and — when defined —
+   * attachedPortName / vlanId. Undefined port/vlan never clear previously
+   * stored values.
    */
   setAttachment: boolean;
   attachedInterfaceIndex?: number | undefined;
   attachedPortName?: string | undefined;
   vlanId?: number | undefined;
+  /*
+   * Which walk is claiming the attachment, set whenever setAttachment is.
+   * Written UNCONDITIONALLY alongside attachedNetworkDeviceId rather than
+   * COALESCEd like the port and VLAN: it describes the attachment being
+   * written, so keeping a previous walk's answer would label an ARP
+   * sighting with a switch's FDB provenance — the one mislabelling that
+   * turns into a drawn cable that does not exist.
+   */
+  attachmentSource?: NetworkEndpointAttachmentSource | undefined;
   setIpAddress: boolean;
   ipAddress?: string | undefined;
 }
@@ -323,6 +340,36 @@ export default class EndpointAttachmentUtil {
     const ipBindings: Array<EndpointIpBinding> = [];
     for (const mac of Array.from(bindingsByMac.keys()).sort()) {
       const rows: Array<ArpEntry> = bindingsByMac.get(mac)!;
+
+      /*
+       * A MAC that answers for MORE THAN ONE address is not an endpoint's
+       * address binding at all, and must not be reduced to one as though it
+       * were.
+       *
+       * Cisco `ip proxy-arp` is on by default and a firewall's inside
+       * interface routinely answers for a whole segment, so one MAC picking
+       * up a dozen ARP rows is ordinary rather than exotic. Storing the
+       * lexicographically smallest of them used to be harmless — it only
+       * decided which address an anonymous leaf node was labelled with — but
+       * it stops being harmless once that address is a JOIN KEY: a managed
+       * device at that address would be recognised in this row and cabled to
+       * whichever port the FIREWALL sits on (issue #3489). Refusing here is
+       * the only place the ambiguity is still visible; by the time the row
+       * is written, the other rows are gone.
+       *
+       * The attachment is unaffected — a MAC still has exactly one port —
+       * so nothing stops being drawn except an address we cannot stand
+       * behind.
+       */
+      const distinctIps: Set<string> = new Set<string>(
+        rows.map((entry: ArpEntry) => {
+          return entry.ipAddress;
+        }),
+      );
+      if (distinctIps.size > 1) {
+        continue;
+      }
+
       rows.sort((a: ArpEntry, b: ArpEntry) => {
         if (a.ipAddress !== b.ipAddress) {
           return a.ipAddress < b.ipAddress ? -1 : 1;
@@ -396,6 +443,7 @@ export default class EndpointAttachmentUtil {
       decision.attachedInterfaceIndex = incoming.attachment.interfaceIndex;
       decision.attachedPortName = incoming.attachment.portName;
       decision.vlanId = incoming.attachment.vlanId;
+      decision.attachmentSource = NetworkEndpointAttachmentSource.Fdb;
     } else {
       // ARP-only from here on — incoming.ipBinding is set (guard above).
       const attachedElsewhere: boolean = Boolean(
@@ -406,6 +454,13 @@ export default class EndpointAttachmentUtil {
         decision.setAttachment = true;
         decision.attachedInterfaceIndex =
           incoming.ipBinding!.routerInterfaceIndex;
+        /*
+         * ARP, even when the row it lands on was previously written by an
+         * FDB walk on this same device. The interface index just became
+         * the router's L3 interface, so calling the result FDB-sourced
+         * would be a lie about the very field that changed.
+         */
+        decision.attachmentSource = NetworkEndpointAttachmentSource.Arp;
       }
     }
 
@@ -466,6 +521,17 @@ export default class EndpointAttachmentUtil {
 
     if (decision.setAttachment) {
       if (existing.attachedNetworkDeviceId !== incomingDeviceId) {
+        return false;
+      }
+      /*
+       * A changed — or never-recorded — provenance is a real change even
+       * when every other field matches. Rows written before the column
+       * existed hold NULL, so they each cost exactly one extra write and
+       * then converge; suppressing that instead would leave them
+       * permanently unlabelled, and an unlabelled row is one nothing is
+       * allowed to draw a cable from.
+       */
+      if (decision.attachmentSource !== existing.attachmentSource) {
         return false;
       }
       if (

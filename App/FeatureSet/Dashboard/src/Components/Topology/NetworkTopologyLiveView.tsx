@@ -43,6 +43,10 @@ import {
   hiddenSiteCount,
   parseLinkRuleWarnings,
 } from "./LinkRuleWarningUtil";
+import {
+  TopologyUplinkWarning,
+  parseUplinkWarnings,
+} from "./UplinkWarningUtil";
 import NetworkTopology, {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -118,6 +122,13 @@ interface TopologyViewData extends NetworkTopology {
    * fourteenth.
    */
   linkRuleWarnings?: Array<TopologyLinkRuleWarning> | undefined;
+  /*
+   * Ping-monitored devices that endpoint inference could not place, grouped
+   * by cause — at most one line each. Every cause here is something the
+   * operator can fix, and without them a device left floating is
+   * indistinguishable from one that is genuinely unplugged.
+   */
+  uplinkInferenceWarnings?: Array<TopologyUplinkWarning> | undefined;
 }
 
 const EMPTY_TOPOLOGY: TopologyViewData = { nodes: [], edges: [] };
@@ -168,6 +179,9 @@ const parseTopologyResponse: (
   const linkRuleWarnings: Array<TopologyLinkRuleWarning> =
     parseLinkRuleWarnings(data?.["linkRuleWarnings"]);
 
+  const uplinkInferenceWarnings: Array<TopologyUplinkWarning> =
+    parseUplinkWarnings(data?.["uplinkInferenceWarnings"]);
+
   return {
     nodes,
     edges,
@@ -184,6 +198,7 @@ const parseTopologyResponse: (
         ? suppressedNodeCountRaw
         : undefined,
     linkRuleWarnings: linkRuleWarnings,
+    uplinkInferenceWarnings: uplinkInferenceWarnings,
   };
 };
 
@@ -387,14 +402,24 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }, [fetchTopology]);
 
   /*
-   * VLAN filter options: the distinct VLANs the current payload's endpoint
-   * nodes carry, plus the "All VLANs" default. Device and unmanaged nodes
-   * never contribute — only discovered endpoints know their VLAN.
+   * VLAN filter options: every distinct VLAN the current payload knows,
+   * plus the "All VLANs" default.
+   *
+   * Read from ANY node carrying one, not only endpoint nodes. A device
+   * placed by endpoint inference (issue #3489) is drawn as the device it
+   * is, and the VLAN its endpoint row carried moves onto it — so scoping
+   * this to endpoint nodes would make a site's VLANs vanish from the
+   * dropdown precisely as inference started working, which reads as the
+   * filter breaking.
+   *
+   * The FILTER itself is unchanged and still hides only endpoint nodes:
+   * a managed device stays on the map whichever VLAN is selected, so the
+   * physical fabric remains visible for context.
    */
   const vlanOptions: Array<DropdownOption> = useMemo(() => {
     const vlanIds: Set<number> = new Set<number>();
     for (const node of topology.nodes) {
-      if (isEndpointNode(node) && typeof node.vlanId === "number") {
+      if (typeof node.vlanId === "number") {
         vlanIds.add(node.vlanId);
       }
     }
@@ -969,6 +994,27 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
        * rule list, which is exactly where somebody would go looking and find
        * a rule that appears perfectly configured.
        */}
+      {/*
+       * Ping-monitored devices that could not be placed automatically, one
+       * line per cause. Deliberately on the map rather than only on the
+       * device pages: this is the screen where somebody notices a till has
+       * no cable, and it is where the answer to "why not" belongs.
+       */}
+      {topology.uplinkInferenceWarnings &&
+      topology.uplinkInferenceWarnings.length > 0 ? (
+        <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-800">
+          <ul className="list-disc space-y-1 pl-4">
+            {topology.uplinkInferenceWarnings.map(
+              (warning: TopologyUplinkWarning, index: number): ReactElement => {
+                return <li key={index}>{warning.message}</li>;
+              },
+            )}
+          </ul>
+        </div>
+      ) : (
+        <></>
+      )}
+
       {topology.linkRuleWarnings && topology.linkRuleWarnings.length > 0 ? (
         <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           <ul className="list-disc space-y-1 pl-4">
