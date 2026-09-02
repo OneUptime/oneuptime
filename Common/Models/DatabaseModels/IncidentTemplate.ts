@@ -88,7 +88,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   ],
 })
 @CrudApiEndpoint(new Route("/incident-templates"))
-@SlugifyColumn("name", "slug")
+@SlugifyColumn("templateName", "slug")
 @Entity({
   name: "IncidentTemplate",
 })

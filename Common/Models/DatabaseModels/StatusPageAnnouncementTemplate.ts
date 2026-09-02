@@ -14,7 +14,6 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -84,7 +83,6 @@ import {
   read: true,
 })
 @CrudApiEndpoint(new Route("/status-page-announcement-template"))
-@SlugifyColumn("templateName", "slug")
 @TableMetadata({
   tableName: "StatusPageAnnouncementTemplate",
   singularName: "Status Page Announcement Template",
