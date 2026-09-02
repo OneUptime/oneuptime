@@ -1931,6 +1931,24 @@
                                 "null"
                             ]
                         },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "passwordKey": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "replicaCount": {
                             "type": "integer"
                         },
@@ -3866,6 +3884,24 @@
                         "string",
                         "null"
                     ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "passwordKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",

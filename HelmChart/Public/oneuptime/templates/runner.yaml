@@ -90,6 +90,11 @@ spec:
             - name: ONEUPTIME_RUNNER_KEY
               {{- if $.Values.runner.key }}
               value: {{ $.Values.runner.key }}
+              {{- else if (($.Values.runner.existingSecret).name) }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ ($.Values.runner.existingSecret).name }}
+                  key: {{ ($.Values.runner.existingSecret).passwordKey }}
               {{- else }}
               valueFrom:
                 secretKeyRef:

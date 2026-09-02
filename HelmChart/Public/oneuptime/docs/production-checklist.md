@@ -169,6 +169,12 @@ Work through this list to make your OneUptime installation production-ready.
 - [ ] **Set `oneuptimeSecret` and `encryptionSecret`** (or configure the
   `externalSecrets` section) to long random strings. Use a password generator.
 - [ ] **Set `probes.<key>.key`** to a long random string to secure your probes.
+- [ ] **Pin probe and Runner identity keys** if you deploy with Argo CD, Flux, or
+  anything else built on `helm template`. Set `probes.<key>.key` / `runner.key`, or
+  point `probes.<key>.existingSecret` / `runner.existingSecret` at Secrets you manage.
+  A chart-generated identity key is re-randomised on every render, which silently
+  re-registers the probe and leaves its monitors pointing at an orphan. See
+  [Configuration](configuration.md#probe-and-runner-identity-keys).
 
 ## Stay current
 

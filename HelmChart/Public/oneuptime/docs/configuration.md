@@ -90,6 +90,46 @@ externalSecrets:
       passwordKey: register-probe-key
 ```
 
+### Probe and Runner identity keys
+
+`PROBE_KEY` and `ONEUPTIME_RUNNER_KEY` are not shared application secrets — each
+one is the *identity* of a single probe or of the Runner. The server registers a
+brand-new probe (or Runner) the first time it sees a key it does not recognise.
+They are configured per component rather than in `externalSecrets`, and follow
+the same three-way precedence:
+
+| Parameter                                    | Description                                                        | Default |
+|----------------------------------------------|--------------------------------------------------------------------|---------|
+| `probes.<key>.existingSecret.name`           | Name of an existing Secret holding this probe's `PROBE_KEY`.        | `nil`   |
+| `probes.<key>.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
+| `runner.existingSecret.name`                 | Name of an existing Secret holding `ONEUPTIME_RUNNER_KEY`.          | `nil`   |
+| `runner.existingSecret.passwordKey`          | Key inside that Secret.                                             | `nil`   |
+
+An inline `probes.<key>.key` / `runner.key` still wins; with neither set, the
+chart generates the value into `<release>-secrets` as before. As with
+`externalSecrets`, a key you serve yourself is not written into the chart-managed
+Secret at all.
+
+**Why this matters for GitOps.** `helm template` — what Argo CD and Flux render
+with — always takes the chart's install branch, so a chart-generated key is a new
+random value on every reconcile. For an identity key that means a new probe is
+registered each time and the previous one is orphaned. Because a monitor's probe
+list is fixed when the monitor is created and never back-filled, the monitor keeps
+pointing at a probe that no longer runs and **monitoring stops with no error
+anywhere**. Point these at Secrets you own to pin the identities.
+
+```yaml
+probes:
+  one:
+    existingSecret:
+      name: oneuptime-identities
+      passwordKey: probe-one-key
+runner:
+  existingSecret:
+    name: oneuptime-identities
+    passwordKey: runner-key
+```
+
 ## Networking & ingress
 
 | Parameter                    | Description                                                          | Default        |
@@ -135,6 +175,8 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.name`                               | Probe name.                                                            | `<key>` |
 | `probes.<key>.description`                         | Probe description.                                                     | `nil`   |
 | `probes.<key>.key`                                | Probe key. Set to a long random string to secure your probes.         | `nil`   |
+| `probes.<key>.existingSecret.name`                | Read this probe's `PROBE_KEY` from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil`   |
+| `probes.<key>.existingSecret.passwordKey`         | Key inside that Secret.                                               | `nil`   |
 | `probes.<key>.monitoringWorkers`                  | Number of parallel processes used to monitor resources.               | `3`     |
 | `probes.<key>.monitorFetchLimit`                  | Number of resources monitored in parallel.                            | `10`    |
 | `probes.<key>.automountServiceAccountToken`       | Mount a Kubernetes service-account token into Probe pods. Disabled by default because Probes do not require Kubernetes API credentials. | `false` |

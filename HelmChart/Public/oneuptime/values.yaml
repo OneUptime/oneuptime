@@ -1229,6 +1229,19 @@ probes:
     # maximum message size.
     snmpGetChunkSize:
     key:
+    # Reference a Secret you manage for this probe's PROBE_KEY, instead of the
+    # value the chart generates into `<release>-secrets`. PROBE_KEY is the probe's
+    # identity: the server registers a brand-new probe whenever it sees a key it
+    # does not recognise. `helm template` (Argo CD, Flux) always takes the chart's
+    # install-mode randAlphaNum branch, so the rendered key changes on every
+    # reconcile and orphans the previous probe — and because a monitor's probe list
+    # is fixed when the monitor is created and never back-filled, the monitor keeps
+    # pointing at the dead probe and monitoring silently stops. Ignored when `key`
+    # is set. Serving the key this way also stops the chart writing a copy of it
+    # into `<release>-secrets`, so `helm diff` no longer reports it as rotating.
+    existingSecret:
+      name:
+      passwordKey:
     replicaCount: 1
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
@@ -2025,6 +2038,16 @@ runner:
   # Runner Key (optional — auto-generated and stored in the release
   # secrets when not provided)
   key:
+  # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
+  # the chart generates into `<release>-secrets`. The key is the Runner's identity
+  # — the server registers a brand-new Runner whenever it sees a key it does not
+  # recognise — and `helm template` (Argo CD, Flux) regenerates it on every render.
+  # Ignored when `key` is set. Serving the key this way also stops the chart
+  # writing a copy of it into `<release>-secrets`. The per-probe equivalent is
+  # `probes.<name>.existingSecret`.
+  existingSecret:
+    name:
+    passwordKey:
   ports:
     http: 3875
   resources:
