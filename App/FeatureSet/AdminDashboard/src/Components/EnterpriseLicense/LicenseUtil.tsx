@@ -1,8 +1,57 @@
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
+import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import EnterpriseLicenseUsageUtil, {
+  EnterpriseLicenseInstanceUsage,
+} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
 import React, { FunctionComponent, ReactElement } from "react";
+
+export const EnterpriseLicenseUsageRefreshIntervalInMilliseconds: number =
+  60 * 1000;
+export const EnterpriseLicenseUsageMinimumRefreshDelayInMilliseconds: number = 1000;
+
+export const isEnterpriseLicenseUsageRequestCurrent = (
+  requestId: number,
+  latestRequestId: number,
+): boolean => {
+  return requestId === latestRequestId;
+};
+
+export const getEnterpriseLicenseUsageBoundaryRefreshDelay = (
+  snapshot: EnterpriseLicenseUsageSnapshot,
+  elapsedSinceRequestStartedInMilliseconds: number = 0,
+): number | null => {
+  if (!snapshot.nextInstanceStatusChangeAt) {
+    return null;
+  }
+
+  const nextChangeAt: number = new Date(
+    snapshot.nextInstanceStatusChangeAt,
+  ).getTime();
+  const calculatedAt: number = new Date(snapshot.calculatedAt).getTime();
+
+  if (!Number.isFinite(nextChangeAt) || !Number.isFinite(calculatedAt)) {
+    return null;
+  }
+
+  const elapsedRequestTime: number = Number.isFinite(
+    elapsedSinceRequestStartedInMilliseconds,
+  )
+    ? Math.max(0, elapsedSinceRequestStartedInMilliseconds)
+    : 0;
+
+  /*
+   * Both timestamps come from the server. Using the browser clock here can
+   * turn clock skew into a zero-delay refresh loop while the server still
+   * considers the instance active. The timer starts only after the response,
+   * so subtract monotonic time elapsed since the request began as well.
+   */
+  return Math.max(
+    EnterpriseLicenseUsageMinimumRefreshDelayInMilliseconds,
+    nextChangeAt - calculatedAt - elapsedRequestTime,
+  );
+};
 
 export type LicenseLifecycleState = "active" | "expiring-soon" | "expired";
 
@@ -109,6 +158,49 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   }
 
   return <Pill text="Active" color={Green} size={PillSize.Small} />;
+};
+
+export interface EnterpriseLicenseInstanceStatusPillProps {
+  instance: EnterpriseLicenseInstanceUsage;
+  isActive?: boolean | undefined;
+  now?: Date | undefined;
+}
+
+/*
+ * Activity is derived from the communication timestamp instead of stored as a
+ * second piece of state that could drift. The same predicate drives this badge
+ * and the seat aggregation.
+ */
+export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
+  EnterpriseLicenseInstanceStatusPillProps
+> = (props: EnterpriseLicenseInstanceStatusPillProps): ReactElement => {
+  const isActive: boolean =
+    typeof props.isActive === "boolean"
+      ? props.isActive
+      : EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
+          props.instance,
+          props.now || OneUptimeDate.getCurrentDate(),
+        );
+
+  if (isActive) {
+    return (
+      <Pill
+        text="Active"
+        color={Green}
+        size={PillSize.Small}
+        tooltip={`Registered or sent a usage report within the past ${EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days and is included in seat usage.`}
+      />
+    );
+  }
+
+  return (
+    <Pill
+      text="Inactive"
+      color={Gray500}
+      size={PillSize.Small}
+      tooltip={`Has not registered or sent a usage report for ${EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days and is not included in seat usage.`}
+    />
+  );
 };
 
 export interface SeatUsageMeterProps {

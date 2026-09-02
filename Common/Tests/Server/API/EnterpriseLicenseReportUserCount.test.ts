@@ -13,6 +13,10 @@ import { JSONObject } from "../../../Types/JSON";
 import EnterpriseLicenseSyncUtil, {
   EnterpriseLicenseSyncResult,
 } from "../../../Utils/EnterpriseLicense/EnterpriseLicenseSync";
+import EnterpriseLicenseUsageUtil from "../../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import EnterpriseLicenseUserCountSource from "../../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
+import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -117,6 +121,8 @@ jest.mock("../../../Server/Services/EnterpriseLicenseInstanceService");
 
 const REPORT_ROUTE: string = "/enterprise-license/report-user-count";
 const VALIDATE_ROUTE: string = "/enterprise-license/validate";
+const ACTIVE_USAGE_ROUTE: string =
+  "/enterprise-license/:enterpriseLicenseId/active-usage";
 
 const LICENSE_ID: ObjectID = ObjectID.generate();
 const LICENSE_KEY: string = "acme-license-key";
@@ -159,6 +165,12 @@ const makeLicense: MakeLicenseFunction = (
 type MakeInstanceFunction = (
   overrides?: Record<string, unknown>,
 ) => EnterpriseLicenseInstance;
+
+interface LicenseUsageReportResultForTest {
+  reportedAt: Date;
+  instances: Array<EnterpriseLicenseInstance>;
+  currentUserCount: number;
+}
 
 const makeInstance: MakeInstanceFunction = (
   overrides?: Record<string, unknown>,
@@ -217,6 +229,13 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
     EnterpriseLicenseService.updateOneById = jest
       .fn()
       .mockResolvedValue(undefined);
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          return await data.fn();
+        },
+      );
 
     EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([]);
     EnterpriseLicenseInstanceService.findOneBy = jest
@@ -468,6 +487,146 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
           }),
         }),
       );
+      expect(
+        EnterpriseLicenseService.runWithUsageAggregationLock,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          licenseId: LICENSE_ID,
+          fn: expect.any(Function),
+        }),
+      );
+    });
+
+    it("serializes concurrent reports so an older partial snapshot cannot win", async () => {
+      const instanceRows: Array<EnterpriseLicenseInstance> = [];
+      const events: Array<string> = [];
+      let lockTail: Promise<void> = Promise.resolve();
+
+      EnterpriseLicenseService.runWithUsageAggregationLock = jest
+        .fn()
+        .mockImplementation(
+          async (data: {
+            fn: () => Promise<LicenseUsageReportResultForTest>;
+          }): Promise<LicenseUsageReportResultForTest> => {
+            const predecessor: Promise<void> = lockTail;
+            let releaseLock: () => void = (): void => {};
+            lockTail = new Promise<void>((resolve: () => void) => {
+              releaseLock = resolve;
+            });
+
+            await predecessor;
+            try {
+              return await data.fn();
+            } finally {
+              releaseLock();
+            }
+          },
+        );
+      EnterpriseLicenseInstanceService.findOneBy = jest
+        .fn()
+        .mockImplementation(
+          async (args: {
+            query: { instanceId: string };
+          }): Promise<EnterpriseLicenseInstance | null> => {
+            return (
+              instanceRows.find(
+                (instance: EnterpriseLicenseInstance): boolean => {
+                  return instance.instanceId === args.query.instanceId;
+                },
+              ) || null
+            );
+          },
+        );
+      EnterpriseLicenseInstanceService.create = jest
+        .fn()
+        .mockImplementation(
+          async (args: {
+            data: EnterpriseLicenseInstance;
+          }): Promise<EnterpriseLicenseInstance> => {
+            instanceRows.push(args.data);
+            events.push(`upsert:${args.data.instanceId}`);
+            await Promise.resolve();
+            return args.data;
+          },
+        );
+      EnterpriseLicenseInstanceService.findBy = jest
+        .fn()
+        .mockImplementation(
+          async (): Promise<Array<EnterpriseLicenseInstance>> => {
+            events.push(
+              `read:${instanceRows
+                .map((instance: EnterpriseLicenseInstance): string => {
+                  return instance.instanceId || "";
+                })
+                .join(",")}`,
+            );
+            await Promise.resolve();
+            return [...instanceRows];
+          },
+        );
+      EnterpriseLicenseService.updateOneById = jest
+        .fn()
+        .mockImplementation(
+          async (args: {
+            data: { currentUserCount: number };
+          }): Promise<number> => {
+            events.push(`write:${args.data.currentUserCount}`);
+            await Promise.resolve();
+            return 1;
+          },
+        );
+
+      const makeConcurrentRequest: (
+        instanceId: string,
+        hash: string,
+      ) => OneUptimeRequest = (
+        instanceId: string,
+        hash: string,
+      ): OneUptimeRequest => {
+        return {
+          body: {
+            licenseKey: LICENSE_KEY,
+            userCount: 1,
+            instanceId,
+            userEmailHashes: [hash],
+          },
+        } as unknown as OneUptimeRequest;
+      };
+      const firstNext: NextFunction = jest.fn();
+      const secondNext: NextFunction = jest.fn();
+      const route = mockRouter.match("post", REPORT_ROUTE);
+
+      await Promise.all([
+        route.handlerFunction(
+          makeConcurrentRequest("instance-a", hashOf("a")),
+          mockResponse,
+          firstNext,
+        ),
+        route.handlerFunction(
+          makeConcurrentRequest("instance-b", hashOf("b")),
+          mockResponse,
+          secondNext,
+        ),
+      ]);
+
+      expect(firstNext).not.toHaveBeenCalled();
+      expect(secondNext).not.toHaveBeenCalled();
+      expect(events).toEqual([
+        "upsert:instance-a",
+        "read:instance-a",
+        "write:1",
+        "upsert:instance-b",
+        "read:instance-a,instance-b",
+        "write:2",
+      ]);
+      expect(
+        (
+          EnterpriseLicenseService.updateOneById as unknown as jest.Mock
+        ).mock.calls.map((call: Array<unknown>): number => {
+          return (call[0] as { data: { currentUserCount: number } }).data
+            .currentUserCount;
+        }),
+      ).toEqual([1, 2]);
     });
 
     it("counts a user on two instances once", async () => {
@@ -521,23 +680,36 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
       expect(Object.keys(updateCall["data"] as JSONObject)).toEqual([
         "currentUserCount",
         "userCountUpdatedAt",
+        "userCountSource",
       ]);
+      expect((updateCall["data"] as JSONObject)["userCountSource"]).toBe(
+        EnterpriseLicenseUserCountSource.Instance,
+      );
     });
 
-    it("leaves a decommissioned instance out of the seat count but still lists it", async () => {
+    it("marks a week-silent instance inactive, excludes its users, and still lists it", async () => {
+      const reportedAt: Date = new Date("2026-09-02T12:00:00.000Z");
+
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(reportedAt);
+
       EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
         makeInstance({
           instanceId: "live",
           userCount: 1,
           userEmailHashes: [hashOf("1")],
+          lastReportedAt: reportedAt,
         }),
         makeInstance({
-          instanceId: "retired",
+          instanceId: "inactive",
           userCount: 2,
           userEmailHashes: [hashOf("2"), hashOf("3")],
-          lastReportedAt: OneUptimeDate.addRemoveDays(
-            OneUptimeDate.getCurrentDate(),
-            -400,
+          lastReportedAt: new Date(
+            reportedAt.getTime() -
+              EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays *
+                24 *
+                60 *
+                60 *
+                1000,
           ),
         }),
       ]);
@@ -548,6 +720,25 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
 
       expect(body["currentUserCount"]).toBe(1);
       expect(body["instances"]).toHaveLength(2);
+      expect(body["instances"]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            instanceId: "live",
+            isCountedTowardsUsage: true,
+          }),
+          expect.objectContaining({
+            instanceId: "inactive",
+            userCount: 2,
+            isCountedTowardsUsage: false,
+          }),
+        ]),
+      );
+      expect(EnterpriseLicenseService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: LICENSE_ID,
+          data: expect.objectContaining({ currentUserCount: 1 }),
+        }),
+      );
     });
 
     it("counts users an instance could not send hashes for, so a huge install is not undercounted", async () => {
@@ -569,7 +760,7 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
       expect(getResponseBody()["currentUserCount"]).toBe(10);
     });
 
-    it("does not let a legacy report with no instance id stomp the deduplicated count", async () => {
+    it("retains a legacy heartbeat without letting it stomp the active modern count", async () => {
       mockRequest.body["instanceId"] = undefined;
       mockRequest.body["userCount"] = 99;
 
@@ -580,8 +771,541 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
       await callRoute();
 
       expect(getResponseBody()["currentUserCount"]).toBe(2);
-      expect(EnterpriseLicenseService.updateOneById).not.toHaveBeenCalled();
+      expect(EnterpriseLicenseService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: LICENSE_ID,
+          data: {
+            legacyUserCount: 99,
+            legacyUserCountUpdatedAt: expect.any(Date),
+          },
+        }),
+      );
     });
+
+    it("accepts a live legacy report after every modern instance becomes inactive", async () => {
+      const reportedAt: Date = new Date("2026-09-02T12:00:00.000Z");
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(reportedAt);
+      mockRequest.body["instanceId"] = undefined;
+      mockRequest.body["userCount"] = 19;
+
+      EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+        makeInstance({
+          lastReportedAt: OneUptimeDate.addRemoveDays(reportedAt, -7),
+          userCount: 50,
+        }),
+      ]);
+
+      await callRoute();
+
+      expect(getResponseBody()["currentUserCount"]).toBe(19);
+      expect(EnterpriseLicenseService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currentUserCount: 19,
+            legacyUserCount: 19,
+            legacyUserCountUpdatedAt: reportedAt,
+            userCountSource: EnterpriseLicenseUserCountSource.Legacy,
+          }),
+        }),
+      );
+    });
+
+    it("accepts a legacy report while the only tracked instance has registered but not reported usage", async () => {
+      mockRequest.body["instanceId"] = undefined;
+      mockRequest.body["userCount"] = 19;
+
+      EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+        makeInstance({
+          createdAt: OneUptimeDate.addRemoveDays(
+            OneUptimeDate.getCurrentDate(),
+            -1,
+          ),
+          lastReportedAt: undefined,
+          userCount: undefined,
+          userEmailHashes: undefined,
+        }),
+      ]);
+
+      await callRoute();
+
+      expect(getResponseBody()["currentUserCount"]).toBe(19);
+      expect(EnterpriseLicenseService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: LICENSE_ID,
+          data: expect.objectContaining({ currentUserCount: 19 }),
+        }),
+      );
+    });
+  });
+});
+
+describe("EnterpriseLicenseAPI GET active usage snapshot", () => {
+  let mockRequest: OneUptimeRequest;
+  let mockResponse: OneUptimeResponse;
+  let nextFunction: NextFunction;
+  const calculatedAt: Date = new Date("2026-09-02T12:00:00.000Z");
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    new EnterpriseLicenseAPI();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(calculatedAt);
+
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockResolvedValue(makeLicense({ userCountUpdatedAt: calculatedAt }));
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          return await data.fn();
+        },
+      );
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([]);
+
+    mockRequest = {
+      params: {
+        enterpriseLicenseId: LICENSE_ID.toString(),
+      },
+    } as unknown as OneUptimeRequest;
+    mockResponse = {
+      send: jest.fn(),
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    } as unknown as OneUptimeResponse;
+    nextFunction = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const callRoute: () => Promise<void> = async (): Promise<void> => {
+    await mockRouter
+      .match("get", ACTIVE_USAGE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
+  };
+
+  it("is restricted to authenticated master admins", () => {
+    expect(mockRouter.match("get", ACTIVE_USAGE_ROUTE).middleware).toBe(
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+    );
+  });
+
+  it("returns one cutoff-aligned count and active-instance list without hashes", async () => {
+    const active: EnterpriseLicenseInstance = makeInstance({
+      lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+      userEmailHashes: [hashOf("1"), hashOf("2")],
+      masterAdminEmails: [" Admin@Acme.com "],
+    });
+    const newlyRegistered: EnterpriseLicenseInstance = makeInstance({
+      lastReportedAt: undefined,
+      createdAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+      userCount: undefined,
+      userEmailHashes: undefined,
+      masterAdminEmails: ["admin@acme.com", "owner@acme.com"],
+    });
+    const inactive: EnterpriseLicenseInstance = makeInstance({
+      lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -7),
+      userCount: 2,
+      userEmailHashes: [hashOf("2"), hashOf("3")],
+    });
+
+    EnterpriseLicenseInstanceService.findBy = jest
+      .fn()
+      .mockResolvedValue([active, newlyRegistered, inactive]);
+
+    await callRoute();
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    expect(getResponseBody()).toEqual({
+      currentUserCount: 2,
+      activeInstanceIds: [
+        active.id!.toString(),
+        newlyRegistered.id!.toString(),
+      ],
+      masterAdminEmails: ["admin@acme.com", "owner@acme.com"],
+      calculatedAt: calculatedAt.toISOString(),
+      lastUsageReportedAt: calculatedAt.toISOString(),
+      nextInstanceStatusChangeAt: OneUptimeDate.addRemoveDays(
+        calculatedAt,
+        6,
+      ).toISOString(),
+    });
+    expect(JSON.stringify(getResponseBody())).not.toContain(hashOf("1"));
+  });
+
+  it("returns zero when every tracked instance is inactive", async () => {
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+      makeInstance({
+        lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -8),
+        userCount: 50,
+      }),
+    ]);
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 0,
+        activeInstanceIds: [],
+        nextInstanceStatusChangeAt: null,
+      }),
+    );
+  });
+
+  it("uses a fresh legacy count after every modern instance becomes inactive", async () => {
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 17,
+        userCountUpdatedAt: OneUptimeDate.addRemoveDays(calculatedAt, -7),
+        legacyUserCount: 17,
+        legacyUserCountUpdatedAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+      }),
+    );
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+      makeInstance({
+        lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -7),
+        userCount: 50,
+      }),
+    ]);
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 17,
+        activeInstanceIds: [],
+      }),
+    );
+  });
+
+  it("does not preserve an inactive modern aggregate because another instance registered later", async () => {
+    const inactiveAt: Date = OneUptimeDate.addRemoveDays(calculatedAt, -7);
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 50,
+        userCountUpdatedAt: inactiveAt,
+      }),
+    );
+    const newlyRegistered: EnterpriseLicenseInstance = makeInstance({
+      createdAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+      lastReportedAt: undefined,
+      userCount: undefined,
+      userEmailHashes: undefined,
+    });
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+      makeInstance({
+        lastReportedAt: inactiveAt,
+        userCount: 50,
+      }),
+      newlyRegistered,
+    ]);
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 0,
+        activeInstanceIds: [newlyRegistered.id!.toString()],
+      }),
+    );
+  });
+
+  it("schedules an exact refresh when a legacy-only heartbeat expires", async () => {
+    const legacyReportedAt: Date = OneUptimeDate.addRemoveDays(
+      calculatedAt,
+      -1,
+    );
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 17,
+        userCountUpdatedAt: legacyReportedAt,
+        legacyUserCount: 17,
+        legacyUserCountUpdatedAt: legacyReportedAt,
+      }),
+    );
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 17,
+        activeInstanceIds: [],
+        nextInstanceStatusChangeAt: OneUptimeDate.addRemoveDays(
+          calculatedAt,
+          6,
+        ).toISOString(),
+      }),
+    );
+  });
+
+  it("preserves a legacy stored count when no instance rows exist", async () => {
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockResolvedValue(makeLicense({ currentUserCount: 17 }));
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 17,
+        activeInstanceIds: [],
+        nextInstanceStatusChangeAt: OneUptimeDate.addRemoveDays(
+          calculatedAt,
+          7,
+        ).toISOString(),
+      }),
+    );
+  });
+
+  it("preserves a legacy stored count when an instance has registered but not reported usage", async () => {
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 17,
+        userCountUpdatedAt: OneUptimeDate.addRemoveDays(calculatedAt, -8),
+      }),
+    );
+    const registeredInstance: EnterpriseLicenseInstance = makeInstance({
+      createdAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+      lastReportedAt: undefined,
+      userCount: undefined,
+      userEmailHashes: undefined,
+    });
+    EnterpriseLicenseInstanceService.findBy = jest
+      .fn()
+      .mockResolvedValue([registeredInstance]);
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 17,
+        activeInstanceIds: [registeredInstance.id!.toString()],
+      }),
+    );
+  });
+
+  it("drops a legacy count when its report and every registration reach one week old", async () => {
+    const inactiveAt: Date = OneUptimeDate.addRemoveDays(calculatedAt, -7);
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 17,
+        userCountUpdatedAt: inactiveAt,
+      }),
+    );
+    EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([
+      makeInstance({
+        createdAt: inactiveAt,
+        lastReportedAt: undefined,
+        userCount: undefined,
+        userEmailHashes: undefined,
+      }),
+    ]);
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 0,
+        activeInstanceIds: [],
+        nextInstanceStatusChangeAt: null,
+      }),
+    );
+  });
+
+  it("does not extend an expired dedicated legacy heartbeat with a newer modern timestamp", async () => {
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 17,
+        userCountUpdatedAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+        userCountSource: EnterpriseLicenseUserCountSource.Legacy,
+        legacyUserCount: 17,
+        legacyUserCountUpdatedAt: OneUptimeDate.addRemoveDays(calculatedAt, -7),
+      }),
+    );
+
+    await callRoute();
+
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 0,
+        activeInstanceIds: [],
+        nextInstanceStatusChangeAt: null,
+      }),
+    );
+  });
+
+  it("selects the legacy report timestamp needed for the bounded fallback", async () => {
+    await callRoute();
+
+    expect(EnterpriseLicenseService.findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          currentUserCount: true,
+          userCountUpdatedAt: true,
+          userCountSource: true,
+          legacyUserCount: true,
+          legacyUserCountUpdatedAt: true,
+        }),
+      }),
+    );
+  });
+
+  it("serializes the license and instance reads with usage reports", async () => {
+    await callRoute();
+
+    expect(
+      EnterpriseLicenseService.runWithUsageAggregationLock,
+    ).toHaveBeenCalledWith({
+      licenseId: LICENSE_ID,
+      fn: expect.any(Function),
+    });
+    expect(
+      (EnterpriseLicenseService.findOneById as unknown as jest.Mock).mock
+        .invocationCallOrder[0],
+    ).toBeGreaterThan(
+      (
+        EnterpriseLicenseService.runWithUsageAggregationLock as unknown as jest.Mock
+      ).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it("cannot expose a reported instance with the previous license timestamp", async () => {
+    const previousReportAt: Date = OneUptimeDate.addRemoveDays(
+      calculatedAt,
+      -8,
+    );
+    const licenseState: EnterpriseLicense = makeLicense({
+      currentUserCount: 50,
+      userCountUpdatedAt: previousReportAt,
+    });
+    const instanceState: EnterpriseLicenseInstance = makeInstance({
+      lastReportedAt: previousReportAt,
+      userCount: 50,
+    });
+    let lockTail: Promise<void> = Promise.resolve();
+    let releaseInstanceUpdate: () => void = (): void => {};
+    let markInstanceUpdateStarted: () => void = (): void => {};
+    const instanceUpdateStarted: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        markInstanceUpdateStarted = resolve;
+      },
+    );
+    const instanceUpdateGate: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseInstanceUpdate = resolve;
+      },
+    );
+
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          const predecessor: Promise<void> = lockTail;
+          let releaseLock: () => void = (): void => {};
+          lockTail = new Promise<void>((resolve: () => void) => {
+            releaseLock = resolve;
+          });
+
+          await predecessor;
+          try {
+            return await data.fn();
+          } finally {
+            releaseLock();
+          }
+        },
+      );
+    EnterpriseLicenseService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(licenseState);
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockImplementation(async (): Promise<EnterpriseLicense> => {
+        return licenseState;
+      });
+    EnterpriseLicenseService.updateOneById = jest
+      .fn()
+      .mockImplementation(
+        async (args: { data: Partial<EnterpriseLicense> }): Promise<number> => {
+          Object.assign(licenseState, args.data);
+          return 1;
+        },
+      );
+    EnterpriseLicenseInstanceService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(instanceState);
+    EnterpriseLicenseInstanceService.updateOneById = jest
+      .fn()
+      .mockImplementation(
+        async (args: {
+          data: Partial<EnterpriseLicenseInstance>;
+        }): Promise<number> => {
+          Object.assign(instanceState, args.data);
+          markInstanceUpdateStarted();
+          await instanceUpdateGate;
+          return 1;
+        },
+      );
+    EnterpriseLicenseInstanceService.findBy = jest
+      .fn()
+      .mockImplementation(
+        async (): Promise<Array<EnterpriseLicenseInstance>> => {
+          return [instanceState];
+        },
+      );
+
+    const reportRequest: OneUptimeRequest = {
+      body: {
+        licenseKey: LICENSE_KEY,
+        userCount: 2,
+        instanceId: "instance-1",
+        userEmailHashes: [hashOf("1"), hashOf("2")],
+      },
+    } as unknown as OneUptimeRequest;
+    const reportPromise: Promise<void> = Promise.resolve(
+      mockRouter
+        .match("post", REPORT_ROUTE)
+        .handlerFunction(reportRequest, mockResponse, nextFunction),
+    );
+
+    await instanceUpdateStarted;
+
+    const snapshotPromise: Promise<void> = callRoute();
+
+    releaseInstanceUpdate();
+    await Promise.all([reportPromise, snapshotPromise]);
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    const responseBodies: Array<JSONObject> = (
+      Response.sendJsonObjectResponse as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return call[2] as JSONObject;
+    });
+    const snapshotBody: JSONObject = responseBodies.find(
+      (body: JSONObject): boolean => {
+        return Array.isArray(body["activeInstanceIds"]);
+      },
+    )!;
+
+    expect(snapshotBody["currentUserCount"]).toBe(2);
+    expect(snapshotBody["activeInstanceIds"]).toEqual([
+      instanceState.id!.toString(),
+    ]);
+    expect(snapshotBody["lastUsageReportedAt"]).toBe(
+      calculatedAt.toISOString(),
+    );
+  });
+
+  it("does not disclose whether an unknown license has instance usage", async () => {
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(null);
+
+    await callRoute();
+
+    expect(nextFunction).toHaveBeenCalledWith(
+      new BadDataException("Enterprise license not found"),
+    );
+    expect(EnterpriseLicenseInstanceService.findBy).not.toHaveBeenCalled();
   });
 });
 
@@ -598,11 +1322,24 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
     EnterpriseLicenseService.findOneBy = jest
       .fn()
       .mockResolvedValue(makeLicense());
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockResolvedValue(makeLicense());
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          return await data.fn();
+        },
+      );
     EnterpriseLicenseInstanceService.findBy = jest.fn().mockResolvedValue([]);
     EnterpriseLicenseInstanceService.findOneBy = jest
       .fn()
       .mockResolvedValue(null);
     EnterpriseLicenseInstanceService.create = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    EnterpriseLicenseInstanceService.updateOneById = jest
       .fn()
       .mockResolvedValue(undefined);
     EnterpriseLicenseInstanceService.countBy = jest
@@ -656,6 +1393,122 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
     expect(body["token"]).toBe("signed.jwt.token");
   });
 
+  it("serializes registration and re-reads usage inside the aggregation lock", async () => {
+    const events: Array<string> = [];
+    let isInsideUsageLock: boolean = false;
+
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          events.push("lock");
+          isInsideUsageLock = true;
+
+          try {
+            return await data.fn();
+          } finally {
+            isInsideUsageLock = false;
+          }
+        },
+      );
+    EnterpriseLicenseInstanceService.create = jest
+      .fn()
+      .mockImplementation(async (): Promise<void> => {
+        expect(isInsideUsageLock).toBe(true);
+        events.push("register");
+      });
+    EnterpriseLicenseInstanceService.findBy = jest
+      .fn()
+      .mockImplementation(
+        async (): Promise<Array<EnterpriseLicenseInstance>> => {
+          expect(isInsideUsageLock).toBe(true);
+          events.push("instances");
+          return [];
+        },
+      );
+    EnterpriseLicenseService.findOneById = jest
+      .fn()
+      .mockImplementation(async (): Promise<EnterpriseLicense> => {
+        expect(isInsideUsageLock).toBe(true);
+        events.push("license");
+        return makeLicense({
+          currentUserCount: 17,
+          userCountUpdatedAt: new Date("2026-09-01T12:00:00.000Z"),
+        });
+      });
+
+    await mockRouter
+      .match("post", VALIDATE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    expect(events).toEqual(["lock", "register", "instances", "license"]);
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 17,
+        userCountUpdatedAt: "2026-09-01T12:00:00.000Z",
+      }),
+    );
+    expect(
+      EnterpriseLicenseService.runWithUsageAggregationLock,
+    ).toHaveBeenCalledWith({
+      licenseId: LICENSE_ID,
+      fn: expect.any(Function),
+    });
+  });
+
+  it("returns an active-only aggregate with matching per-instance provenance", async () => {
+    const calculatedAt: Date = new Date("2026-09-02T12:00:00.000Z");
+    const inactiveInstance: EnterpriseLicenseInstance = makeInstance({
+      instanceId: "instance-1",
+      userCount: 80,
+      lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -7),
+    });
+    const activeInstance: EnterpriseLicenseInstance = makeInstance({
+      instanceId: "instance-2",
+      userCount: 100,
+      lastReportedAt: OneUptimeDate.addRemoveDays(calculatedAt, -1),
+    });
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(calculatedAt);
+    EnterpriseLicenseInstanceService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(inactiveInstance);
+    EnterpriseLicenseInstanceService.findBy = jest
+      .fn()
+      .mockResolvedValue([inactiveInstance, activeInstance]);
+    EnterpriseLicenseService.findOneById = jest.fn().mockResolvedValue(
+      makeLicense({
+        currentUserCount: 180,
+        userCountUpdatedAt: calculatedAt,
+        userCountSource: EnterpriseLicenseUserCountSource.Instance,
+      }),
+    );
+
+    await mockRouter
+      .match("post", VALIDATE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    expect(getResponseBody()).toEqual(
+      expect.objectContaining({
+        currentUserCount: 100,
+        instances: expect.arrayContaining([
+          expect.objectContaining({
+            instanceId: "instance-1",
+            userCount: 80,
+            isCountedTowardsUsage: false,
+          }),
+          expect.objectContaining({
+            instanceId: "instance-2",
+            userCount: 100,
+            isCountedTowardsUsage: true,
+          }),
+        ]),
+      }),
+    );
+  });
+
   it("keeps rejecting an expired license, unlike the report route", async () => {
     EnterpriseLicenseService.findOneBy = jest.fn().mockResolvedValue(
       makeLicense({
@@ -690,6 +1543,13 @@ describe("the contract between the two halves of the sync", () => {
     EnterpriseLicenseService.updateOneById = jest
       .fn()
       .mockResolvedValue(undefined);
+    EnterpriseLicenseService.runWithUsageAggregationLock = jest
+      .fn()
+      .mockImplementation(
+        async (data: { fn: () => Promise<unknown> }): Promise<unknown> => {
+          return await data.fn();
+        },
+      );
     EnterpriseLicenseInstanceService.findBy = jest
       .fn()
       .mockResolvedValue([makeInstance()]);
@@ -754,6 +1614,13 @@ describe("the contract between the two halves of the sync", () => {
     expect(result.updateData.enterpriseLicenseToken).toBe("signed.jwt.token");
     expect(result.updateData.enterpriseLicenseExpiresAt).toBeInstanceOf(Date);
     expect(result.updateData.enterpriseLicenseInstances).toHaveLength(1);
+    expect(
+      (
+        result.updateData.enterpriseLicenseInstances as
+          | Array<EnterpriseLicenseInstanceSummary>
+          | undefined
+      )?.[0]?.isCountedTowardsUsage,
+    ).toBe(true);
 
     // The installation never adopts a key handed to it by a response.
     expect(Object.keys(result.updateData)).not.toContain(
