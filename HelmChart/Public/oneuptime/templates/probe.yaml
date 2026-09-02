@@ -160,6 +160,11 @@ spec:
             - name: PROBE_KEY
               {{- if $val.key }}
               value: {{ $val.key }}
+              {{- else if (($val.existingSecret).name) }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $val.existingSecret.name }}
+                  key: {{ $val.existingSecret.passwordKey }}
               {{- else }}
               valueFrom:
                 secretKeyRef:

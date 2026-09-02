@@ -61,6 +61,17 @@ externalSecrets:
     existingSecret:
       name:
       passwordKey:
+  # Reference an existing Secret for the Runner's ONEUPTIME_RUNNER_KEY instead of
+  # the chart-generated `{release}-secrets`. `helm template` (e.g. Argo CD) always
+  # takes the chart's install-mode randAlphaNum branch, regenerating the key on
+  # every render; because the key is the Runner's identity, each render registers a
+  # new Runner. Point this at a Secret you own to keep that identity stable.
+  # Ignored when `runner.key` is set. (Per-probe PROBE_KEY has the equivalent option
+  # at `probes.<name>.existingSecret`.)
+  runnerKey:
+    existingSecret:
+      name:
+      passwordKey:
 
 deployment:
   # When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.
@@ -1229,6 +1240,16 @@ probes:
     # maximum message size.
     snmpGetChunkSize:
     key:
+    # Reference an existing Secret for this probe's PROBE_KEY instead of the
+    # chart-generated `{release}-secrets`. `helm template` (e.g. Argo CD) always
+    # takes the chart's install-mode randAlphaNum branch, regenerating the key on
+    # every render; because PROBE_KEY is the probe's identity, each render registers
+    # a new probe and the old one is orphaned (a monitor's probe list is fixed at
+    # creation and never back-filled, so monitoring silently stops). Point this at a
+    # Secret you own to keep the probe's identity stable. Ignored when `key` is set.
+    existingSecret:
+      name:
+      passwordKey:
     replicaCount: 1
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
