@@ -130,17 +130,31 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
       const childProps: {
         link?: Link | undefined;
+        activeRoute?: Link["to"] | undefined;
         icon?: IconProp | undefined;
         title?: string | undefined;
         children?: ReactElement | Array<ReactElement> | undefined;
       } = child.props as {
         link?: Link | undefined;
+        activeRoute?: Link["to"] | undefined;
         icon?: IconProp | undefined;
         title?: string | undefined;
         children?: ReactElement | Array<ReactElement> | undefined;
       };
 
-      if (childProps.link?.to && Navigation.isOnThisPage(childProps.link.to)) {
+      /*
+       * `activeRoute` first, matching the two loops above: an entry whose link
+       * carries query state points somewhere the current URL never equals, and
+       * declares the route that decides selection separately.
+       */
+      const matchRoute: Link["to"] | undefined =
+        childProps.activeRoute || childProps.link?.to;
+
+      if (
+        childProps.link &&
+        matchRoute &&
+        Navigation.isOnThisPage(matchRoute)
+      ) {
         const result: ActiveMenuItem = { itemTitle: childProps.link.title };
 
         if (sectionTitle) {

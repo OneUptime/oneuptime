@@ -260,7 +260,16 @@ function expectActiveLink(title: string): void {
 
   expect(anchor).toHaveClass("text-indigo-700");
   expect(anchor).not.toHaveClass("text-gray-600");
-  expect(anchor.querySelector(".h-5.bg-indigo-600")).not.toBeNull();
+  /*
+   * The rail beside an active row. Matched on its colour and its non-zero
+   * height rather than on an exact height class: the point of the assertion is
+   * that the rail is drawn at all, and pinning "h-5" made a restyle of the
+   * shared menu fail here rather than in the side-menu suite that owns it.
+   */
+  const rail: Element | null = anchor.querySelector(".bg-indigo-600");
+
+  expect(rail).not.toBeNull();
+  expect(rail?.className).not.toContain("h-0");
 }
 
 function expectCompleteMenu(): void {
