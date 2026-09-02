@@ -191,7 +191,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
       {!props.hideConversations && props.conversations.length > 0 && (
         <div className="min-h-0 flex-1">
           <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-            Recent conversations
+            Your recent conversations
           </div>
           <div className="space-y-px">
             {props.conversations.map((conversation: AIConversation) => {

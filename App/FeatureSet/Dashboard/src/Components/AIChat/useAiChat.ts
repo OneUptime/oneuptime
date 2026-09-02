@@ -252,6 +252,14 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       }
     }, []);
 
+  /*
+   * The list is deliberately sent with an EMPTY query. Conversations are
+   * personal, and the scoping is enforced server-side: AIConversationService
+   * pins every non-root read to createdByUserId = <requesting user>, so a
+   * client-side filter here would be decoration that hides where the
+   * guarantee actually lives. Common/Tests/Server/Services/AIChatPrivacyPin
+   * holds that pin in place.
+   */
   const fetchConversations: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       try {
