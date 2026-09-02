@@ -1396,6 +1396,80 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
     expect(body["token"]).toBe("signed.jwt.token");
   });
 
+  it("registers a new instance without treating validation as a usage heartbeat", async () => {
+    await mockRouter
+      .match("post", VALIDATE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    expect(
+      EnterpriseLicenseInstanceService.updateOneById,
+    ).not.toHaveBeenCalled();
+
+    const createArguments: {
+      data: EnterpriseLicenseInstance;
+    } = (EnterpriseLicenseInstanceService.create as unknown as jest.Mock).mock
+      .calls[0]![0] as {
+      data: EnterpriseLicenseInstance;
+    };
+
+    expect(createArguments.data).toEqual(
+      expect.objectContaining({
+        enterpriseLicenseId: LICENSE_ID,
+        instanceId: "instance-1",
+        host: "oneuptime.acme.internal",
+        oneuptimeVersion: "12.0.19",
+      }),
+    );
+    expect(createArguments.data.lastReportedAt).toBeUndefined();
+    expect(createArguments.data.createdAt).toBeUndefined();
+  });
+
+  it("updates instance metadata without refreshing its activity timestamps", async () => {
+    const registeredAt: Date = new Date("2026-08-01T12:00:00.000Z");
+    const lastReportedAt: Date = new Date("2026-08-20T12:00:00.000Z");
+    const existingInstance: EnterpriseLicenseInstance = makeInstance({
+      createdAt: registeredAt,
+      lastReportedAt,
+    });
+
+    EnterpriseLicenseInstanceService.findOneBy = jest
+      .fn()
+      .mockResolvedValue(existingInstance);
+
+    await mockRouter
+      .match("post", VALIDATE_ROUTE)
+      .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+    expect(nextFunction).not.toHaveBeenCalled();
+    expect(EnterpriseLicenseInstanceService.create).not.toHaveBeenCalled();
+
+    const updateArguments: {
+      data: Partial<EnterpriseLicenseInstance>;
+    } = (EnterpriseLicenseInstanceService.updateOneById as unknown as jest.Mock)
+      .mock.calls[0]![0] as {
+      data: Partial<EnterpriseLicenseInstance>;
+    };
+
+    expect(updateArguments.data).toEqual(
+      expect.objectContaining({
+        host: "oneuptime.acme.internal",
+        oneuptimeVersion: "12.0.19",
+      }),
+    );
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        updateArguments.data,
+        "lastReportedAt",
+      ),
+    ).toBe(false);
+    expect(
+      Object.prototype.hasOwnProperty.call(updateArguments.data, "createdAt"),
+    ).toBe(false);
+    expect(existingInstance.lastReportedAt).toBe(lastReportedAt);
+    expect(existingInstance.createdAt).toBe(registeredAt);
+  });
+
   it("serializes registration and re-reads usage inside the aggregation lock", async () => {
     const events: Array<string> = [];
     let isInsideUsageLock: boolean = false;
