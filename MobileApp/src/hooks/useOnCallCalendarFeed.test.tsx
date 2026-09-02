@@ -141,8 +141,33 @@ describe("useOnCallCalendarFeed", () => {
     expect(fetchSpy()).not.toHaveBeenCalled();
   });
 
+  /*
+   * The fetch is held open by the test rather than pre-resolved, because the
+   * loading assertion below is otherwise a race that this test lost about one
+   * run in six.
+   *
+   * `mockResolvedValue` hands back an ALREADY-resolved promise, so between
+   * mounting the hook and reading `isLoading` there is a window in which that
+   * promise, react-query's state update and the re-render can all land. The
+   * `await` on renderHook is what opens it -- and it cannot simply be dropped,
+   * because renderHook is async here and `result` would be undefined. Whether
+   * the chain finishes inside that window comes down to how many microtask
+   * ticks it happens to need, which is why this failed intermittently rather
+   * than never or always.
+   *
+   * Holding the promise open removes the timing question instead of narrowing
+   * it: no number of ticks can move the hook off `isLoading` until the test
+   * resolves it, so the assertion is about the hook rather than about the
+   * scheduler.
+   */
   test("loads the feed for the given project", async () => {
-    fetchSpy().mockResolvedValue(status() as never);
+    let resolveFetch: (value: OnCallCalendarFeedStatus) => void = () => {};
+
+    fetchSpy().mockReturnValue(
+      new Promise((resolve: (value: OnCallCalendarFeedStatus) => void) => {
+        resolveFetch = resolve;
+      }) as never,
+    );
 
     const { result } = await renderHook(
       (): UseOnCallCalendarFeedResult => {
@@ -153,10 +178,15 @@ describe("useOnCallCalendarFeed", () => {
 
     expect(result.current.isLoading).toBe(true);
 
+    await act(async () => {
+      resolveFetch(status());
+    });
+
     await waitFor(() => {
       expect(result.current.status?.exists).toBe(true);
     });
 
+    expect(result.current.isLoading).toBe(false);
     expect(fetchSpy()).toHaveBeenCalledWith("project-1");
     expect(result.current.isError).toBe(false);
     expect(result.current.isUnsupported).toBe(false);
