@@ -143,30 +143,6 @@
                         }
                     },
                     "additionalProperties": false
-                },
-                "runnerKey": {
-                    "type": "object",
-                    "properties": {
-                        "existingSecret": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
-                                },
-                                "passwordKey": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
-                                }
-                            },
-                            "additionalProperties": false
-                        }
-                    },
-                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -1955,6 +1931,24 @@
                                 "null"
                             ]
                         },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "passwordKey": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
                         "replicaCount": {
                             "type": "integer"
                         },
@@ -2176,24 +2170,6 @@
                                 "array",
                                 "null"
                             ]
-                        },
-                        "existingSecret": {
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
-                                },
-                                "passwordKey": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ]
-                                }
-                            },
-                            "additionalProperties": false
                         }
                     },
                     "additionalProperties": false
@@ -3908,6 +3884,24 @@
                         "string",
                         "null"
                     ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "passwordKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
