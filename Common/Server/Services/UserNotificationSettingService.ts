@@ -803,12 +803,6 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addNotificationSettingIfNotExists(
       userId,
       projectId,
-      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-    );
-
-    await this.addNotificationSettingIfNotExists(
-      userId,
-      projectId,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
     );
 
