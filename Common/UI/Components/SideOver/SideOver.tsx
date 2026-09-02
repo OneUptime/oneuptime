@@ -26,6 +26,23 @@ export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
   submitButtonDisabled?: boolean | undefined;
   submitButtonText?: string | undefined;
+  /*
+   * Spinner on the submit button, and a disable that comes with it — the same
+   * affordance Modal has always forwarded to its footer. Without it a panel
+   * whose submit kicks off a long job has to hand-roll a "Creating..." label
+   * and remember to disable itself, which is what every such panel here did.
+   */
+  submitButtonIsLoading?: boolean | undefined;
+  /*
+   * Disables the footer's Close button. Only worth setting while the panel is
+   * running something it cannot abandon: the alternative every caller reached
+   * for was to no-op inside `onClose`, which leaves a live-looking button that
+   * does nothing when pressed.
+   *
+   * Note this does NOT disable the header's × — that one stays available so a
+   * panel can never trap the user.
+   */
+  closeButtonDisabled?: boolean | undefined;
   leftFooterElement?: ReactElement | undefined;
   size?: SideOverSize | undefined;
   /*
@@ -246,6 +263,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
               <div className="flex justify-end space-x-3">
                 <Button
                   title="Close"
+                  disabled={props.closeButtonDisabled}
                   onClick={() => {
                     props.onClose();
                   }}
@@ -256,6 +274,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                   <Button
                     title={props.submitButtonText || "Save"}
                     disabled={props.submitButtonDisabled}
+                    isLoading={props.submitButtonIsLoading}
                     onClick={() => {
                       props.onSubmit!();
                     }}

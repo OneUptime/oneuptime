@@ -19,6 +19,16 @@ export interface ComponentProps {
   subItemIcon?: undefined | IconProp;
 }
 
+/*
+ * One navigation row.
+ *
+ * The icon is drawn bare rather than inside a filled chip. A chip per row
+ * turns a fifteen-entry menu into a column of grey squares that all read the
+ * same, and it costs ~28px of the 208px the menu had — which is why titles
+ * like "Scheduled Maintenance" and "Recommendations" were being truncated to
+ * "Scheduled Mainte..." next to a badge. The icon still carries the active and
+ * hover colour; it just does it without a box around it.
+ */
 const SideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
@@ -40,13 +50,13 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         className={`
           ${props.className || ""}
           group relative flex items-center justify-between
-          px-2 py-1.5 rounded-lg
-          text-sm font-medium
-          transition-all duration-200 ease-out
+          pl-3 pr-2 py-1.5 rounded-md
+          text-sm
+          transition-colors duration-150 ease-out
           ${
             isActive
-              ? "bg-gradient-to-r from-indigo-50 to-indigo-50/50 text-indigo-700 shadow-sm"
-              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              ? "bg-indigo-50 text-indigo-700 font-semibold"
+              : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
           }
         `}
         to={props.link.to}
@@ -54,43 +64,45 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       >
-        {/* Active Indicator Bar */}
+        {/*
+         * The active rail. It sits inside the row's left padding rather than
+         * outside it, so the row's background and the rail share one edge —
+         * an accent bar floating in the gutter reads as a rendering artefact
+         * once the row behind it is tinted.
+         */}
         <div
           className={`
-            absolute left-0 top-1/2 -translate-y-1/2
+            absolute left-1 top-1/2 -translate-y-1/2
             w-0.5 rounded-full
-            transition-all duration-200 ease-out
-            ${isActive ? "h-5 bg-indigo-600" : "h-0 bg-transparent"}
+            transition-all duration-150 ease-out
+            ${isActive ? "h-4 bg-indigo-600" : "h-0 bg-transparent"}
           `}
         />
 
         {/* Content Container */}
-        <div className="flex items-center min-w-0 gap-2">
-          {/* Icon with background on active */}
+        <div className="flex items-center min-w-0 gap-2.5">
           {props.icon && (
-            <div
+            <Icon
+              icon={props.icon}
               className={`
-                flex items-center justify-center
-                w-6 h-6 rounded-md
-                transition-all duration-200
+                h-4 w-4 flex-shrink-0
+                transition-colors duration-150
                 ${
                   isActive
-                    ? "bg-indigo-100 text-indigo-600"
-                    : "bg-gray-100 text-gray-500 group-hover:bg-gray-200 group-hover:text-gray-700"
+                    ? "text-indigo-600"
+                    : "text-gray-400 group-hover:text-gray-600"
                 }
               `}
-            >
-              <Icon icon={props.icon} className="h-3.5 w-3.5" />
-            </div>
+            />
           )}
 
-          {/* Title */}
-          <span
-            className={`
-              truncate transition-colors duration-200
-              ${isActive ? "font-semibold" : ""}
-            `}
-          >
+          {/*
+           * `truncate` is load-bearing beyond the ellipsis: the side-menu test
+           * harness reads a row's title from `span.truncate`, and without it
+           * falls back to the anchor's full textContent — which would fold the
+           * badge digits into every title it reads.
+           */}
+          <span className="truncate transition-colors duration-150">
             {translatedTitle}
           </span>
         </div>
@@ -104,72 +116,52 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
               <Badge badgeCount={props.badge} badgeType={props.badgeType} />
             )}
             {props.showAlert && (
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-red-50 to-red-100 ring-1 ring-inset ring-red-200/60 shadow-sm">
-                <Icon icon={IconProp.Error} className="text-red-600 h-3 w-3" />
-              </div>
+              <Icon icon={IconProp.Error} className="text-red-500 h-4 w-4" />
             )}
             {props.showWarning && (
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-inset ring-amber-200/60 shadow-sm">
-                <Icon
-                  icon={IconProp.Alert}
-                  className="text-amber-600 h-3 w-3"
-                />
-              </div>
+              <Icon icon={IconProp.Alert} className="text-amber-500 h-4 w-4" />
             )}
           </div>
         )}
-
-        {/* Hover indicator */}
-        <div
-          className={`
-            absolute inset-0 rounded-lg
-            border-2 border-transparent
-            transition-all duration-200
-            ${!isActive ? "group-hover:border-gray-200" : ""}
-            pointer-events-none
-          `}
-        />
       </UILink>
 
       {/* Sub Item */}
       {props.subItemLink && (
-        <UILink
-          className={`
-            ${props.className || ""}
-            group relative flex items-center justify-between
-            ml-8 px-2 py-1.5 rounded-lg
-            text-sm font-medium
-            transition-all duration-200 ease-out
-            ${
-              isSubItemActive
-                ? "bg-indigo-50/70 text-indigo-700"
-                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-            }
-          `}
-          to={props.subItemLink.to}
-          onClick={() => {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        >
-          {/* Connector Line */}
-          <div className="absolute -left-3 top-1/2 w-2 h-px bg-gray-200" />
-
-          {/* Sub Item Icon */}
-          <div className="flex items-center min-w-0 gap-2">
-            <Icon
-              icon={props.subItemIcon || IconProp.MinusSmall}
-              className={`
-                h-4 w-4 transition-colors duration-200
-                ${
-                  isSubItemActive
-                    ? "text-indigo-500"
-                    : "text-gray-400 group-hover:text-gray-600"
-                }
-              `}
-            />
-            <span className="truncate">{translatedSubItemTitle}</span>
-          </div>
-        </UILink>
+        <div className="ml-5 border-l border-gray-200 pl-2">
+          <UILink
+            className={`
+              ${props.className || ""}
+              group relative flex items-center justify-between
+              px-2 py-1.5 rounded-md
+              text-sm font-medium
+              transition-colors duration-150 ease-out
+              ${
+                isSubItemActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+              }
+            `}
+            to={props.subItemLink.to}
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <div className="flex items-center min-w-0 gap-2.5">
+              <Icon
+                icon={props.subItemIcon || IconProp.MinusSmall}
+                className={`
+                  h-4 w-4 flex-shrink-0 transition-colors duration-150
+                  ${
+                    isSubItemActive
+                      ? "text-indigo-600"
+                      : "text-gray-400 group-hover:text-gray-600"
+                  }
+                `}
+              />
+              <span className="truncate">{translatedSubItemTitle}</span>
+            </div>
+          </UILink>
+        </div>
       )}
     </>
   );
