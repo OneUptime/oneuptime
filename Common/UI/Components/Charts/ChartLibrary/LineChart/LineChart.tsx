@@ -41,6 +41,7 @@ import useChartAnnotations, {
   UseChartAnnotationsResult,
 } from "../Annotations/UseChartAnnotations";
 import { cx } from "../Utils/Cx";
+import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "../Utils/DoubleClick";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 import {
@@ -644,6 +645,15 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   /**
+   * Double-click on the plot surface: the counterpart to drag-to-select,
+   * for undoing the zoom it produced. Supplying it makes single clicks
+   * wait DOUBLE_CLICK_DISAMBIGUATION_MS before they act, so a double-click
+   * cannot also fire the bucket-click path twice on its way past — hosts
+   * that have nothing to reset should leave it undefined and keep clicks
+   * instant.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
+  /**
    * Plain click on a time bucket (the plot background — dot/legend clicks
    * and drag-selections never reach this). [bucketStart, bucketEnd) uses
    * the same adjacent-row width derivation as drag-to-select. Fires only
@@ -702,6 +712,7 @@ const LineChart: React.ForwardRefExoticComponent<
       formattedTimeReferenceLines,
       formattedReferenceRegions,
       onTimeRangeSelect,
+      onTimeRangeReset,
       onBucketClick,
       ghostCategories,
       ...other
@@ -732,8 +743,25 @@ const LineChart: React.ForwardRefExoticComponent<
       React.useRef<number | null>(null);
     const suppressNextClickRef: React.MutableRefObject<boolean> =
       React.useRef<boolean>(false);
+    const hasOnTimeRangeReset: boolean = Boolean(onTimeRangeReset);
+    /*
+     * A pending single-click, held open long enough for a second click to
+     * cancel it. Only armed when onTimeRangeReset is supplied.
+     */
+    const pendingClickTimeoutRef: React.MutableRefObject<ReturnType<
+      typeof setTimeout
+    > | null> = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+
+    React.useEffect(() => {
+      return () => {
+        if (pendingClickTimeoutRef.current !== null) {
+          clearTimeout(pendingClickTimeoutRef.current);
+          pendingClickTimeoutRef.current = null;
+        }
+      };
+    }, []);
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -978,6 +1006,51 @@ const LineChart: React.ForwardRefExoticComponent<
       onTimeRangeSelect(startDate, endDate);
     }
 
+    /*
+     * The plain-click path, split out so it can either run inline (no
+     * reset handler) or be deferred behind the double-click window.
+     */
+    function handleChartClick(chartState: RangeSelectionChartState): void {
+      /*
+       * A click while a legend/dot selection is active keeps its
+       * long-standing meaning — clear the selection — and never
+       * also pins a bucket.
+       */
+      if (hasOnValueChange && (activeLegend || activeDot)) {
+        setActiveDot(undefined);
+        setActiveLegend(undefined);
+        onValueChange?.(null);
+        return;
+      }
+      if (!onBucketClick) {
+        return;
+      }
+      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
+      if (!bucketStart) {
+        return;
+      }
+      /*
+       * Cover the full bucket: width from adjacent row dates, the
+       * same derivation drag-to-select uses.
+       */
+      const adjacentBucketDate: Date | null =
+        rowIndex > 0
+          ? getBucketDateAtIndex(rowIndex - 1)
+          : getBucketDateAtIndex(rowIndex + 1);
+      const clickedBucketWidthInMs: number = adjacentBucketDate
+        ? Math.abs(bucketStart.getTime() - adjacentBucketDate.getTime())
+        : 0;
+      onBucketClick(
+        bucketStart,
+        new Date(bucketStart.getTime() + clickedBucketWidthInMs),
+        (data[rowIndex] || {}) as Record<string, number | string>,
+      );
+    }
+
     return (
       <div
         ref={ref}
@@ -1016,46 +1089,35 @@ const LineChart: React.ForwardRefExoticComponent<
                 if (suppressNextClickRef.current) {
                   return;
                 }
-                /*
-                 * A click while a legend/dot selection is active keeps its
-                 * long-standing meaning — clear the selection — and never
-                 * also pins a bucket.
-                 */
-                if (hasOnValueChange && (activeLegend || activeDot)) {
-                  setActiveDot(undefined);
-                  setActiveLegend(undefined);
-                  onValueChange?.(null);
-                  return;
-                }
-                if (!onBucketClick) {
-                  return;
-                }
-                const rowIndex: number | null =
-                  getRowIndexFromChartState(chartState);
-                if (rowIndex === null) {
-                  return;
-                }
-                const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
-                if (!bucketStart) {
+                if (!hasOnTimeRangeReset) {
+                  handleChartClick(chartState);
                   return;
                 }
                 /*
-                 * Cover the full bucket: width from adjacent row dates, the
-                 * same derivation drag-to-select uses.
+                 * Reset is on, so hold the click open: both clicks of a
+                 * double-click arrive before dblclick does, and neither
+                 * may pin a bucket. The second click re-arms the timer,
+                 * dblclick clears it.
                  */
-                const adjacentDate: Date | null =
-                  rowIndex > 0
-                    ? getBucketDateAtIndex(rowIndex - 1)
-                    : getBucketDateAtIndex(rowIndex + 1);
-                const bucketWidthInMs: number = adjacentDate
-                  ? Math.abs(bucketStart.getTime() - adjacentDate.getTime())
-                  : 0;
-                onBucketClick(
-                  bucketStart,
-                  new Date(bucketStart.getTime() + bucketWidthInMs),
-                  (data[rowIndex] || {}) as Record<string, number | string>,
-                );
+                if (pendingClickTimeoutRef.current !== null) {
+                  clearTimeout(pendingClickTimeoutRef.current);
+                }
+                pendingClickTimeoutRef.current = setTimeout(() => {
+                  pendingClickTimeoutRef.current = null;
+                  handleChartClick(chartState);
+                }, DOUBLE_CLICK_DISAMBIGUATION_MS);
               }}
+              {...(hasOnTimeRangeReset
+                ? {
+                    onDoubleClick: () => {
+                      if (pendingClickTimeoutRef.current !== null) {
+                        clearTimeout(pendingClickTimeoutRef.current);
+                        pendingClickTimeoutRef.current = null;
+                      }
+                      onTimeRangeReset?.();
+                    },
+                  }
+                : {})}
               margin={{
                 /*
                  * Tick labels are 10px font with a translate(0, 6) — they

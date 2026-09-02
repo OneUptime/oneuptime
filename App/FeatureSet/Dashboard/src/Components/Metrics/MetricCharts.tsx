@@ -132,6 +132,13 @@ export interface ComponentProps {
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   /*
+   * Double-click-to-reset: the way back out of a zoom. Supplied only while
+   * a reset is actually possible — the chart library slows single clicks
+   * down to tell them apart from a double-click, so an always-on handler
+   * would tax every bucket click on the page for nothing.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
+  /*
    * Time-anchored annotations rendered on EVERY panel (query and formula
    * charts alike): vertical event markers (e.g. incident/alert created)
    * and shaded regions (e.g. incident open windows).
@@ -2926,6 +2933,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onTimeRangeReset: props.onTimeRangeReset,
           onBucketClick: showSeriesActions
             ? (
                 bucketStart: Date,
@@ -3219,6 +3227,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? formulaReferenceLines
               : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onTimeRangeReset: props.onTimeRangeReset,
           onBucketClick: showSeriesActions
             ? (
                 bucketStart: Date,

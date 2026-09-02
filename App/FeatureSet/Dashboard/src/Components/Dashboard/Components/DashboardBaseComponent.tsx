@@ -89,6 +89,26 @@ export interface DashboardBaseComponentProps {
    */
   chartSyncId?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
+  /*
+   * Drag-to-zoom on a time-series widget retimes the WHOLE dashboard —
+   * a spike is investigated across every panel at once, the way Traces
+   * and Logs already work. The shell owns the range, so the widget hands
+   * the selected window up rather than narrowing itself.
+   */
+  onDashboardTimeRangeSelect?:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined;
+  /*
+   * Double-click on a time-series widget: undo the zoom and put the
+   * dashboard back on the range it had before the first drag.
+   */
+  onDashboardTimeRangeReset?: (() => void) | undefined;
+  /*
+   * True while a drag-selection is narrowing the board. Widgets use it to
+   * decide whether a reset gesture has anything to undo — see the chart
+   * library's onTimeRangeReset for why an idle handler is not free.
+   */
+  isDashboardTimeRangeZoomed?: boolean | undefined;
 }
 
 export interface ComponentProps extends DashboardBaseComponentProps {

@@ -44,6 +44,17 @@ export interface ComponentProps {
   refreshTick?: number | undefined;
   chartSyncId?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
+  /*
+   * Board-wide drag-to-zoom, owned by the dashboard shell above this
+   * canvas: a time-series widget hands up the window the user dragged,
+   * and a double-click on any of them hands up the undo. Both must be
+   * identity-stable — widgets below are React.memo'd.
+   */
+  onDashboardTimeRangeSelect?:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined;
+  onDashboardTimeRangeReset?: (() => void) | undefined;
+  isDashboardTimeRangeZoomed?: boolean | undefined;
 }
 
 /** Extra empty rows kept below the lowest widget while editing. */
@@ -264,6 +275,9 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           refreshTick={props.refreshTick}
           chartSyncId={props.chartSyncId}
           variables={props.variables}
+          onDashboardTimeRangeSelect={props.onDashboardTimeRangeSelect}
+          onDashboardTimeRangeReset={props.onDashboardTimeRangeReset}
+          isDashboardTimeRangeZoomed={props.isDashboardTimeRangeZoomed}
           onClick={() => {
             props.onComponentSelected(componentId);
           }}

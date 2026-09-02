@@ -692,6 +692,12 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
   formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
+  /**
+   * Double-click on the plot surface. Bar charts have no drag-to-select of
+   * their own, but they sit on the same dashboards as line/area panels and
+   * must offer the same way out of a board-wide zoom.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -735,6 +741,7 @@ const BarChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      onTimeRangeReset,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
@@ -875,6 +882,13 @@ const BarChart: React.ForwardRefExoticComponent<
               {...(hasOnValueChange && (activeLegend || activeBar)
                 ? {
                     onClick: handleChartClick,
+                  }
+                : {})}
+              {...(onTimeRangeReset
+                ? {
+                    onDoubleClick: () => {
+                      onTimeRangeReset();
+                    },
                   }
                 : {})}
               margin={{

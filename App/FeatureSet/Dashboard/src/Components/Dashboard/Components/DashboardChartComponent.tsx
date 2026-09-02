@@ -120,13 +120,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
   /*
-   * Drag-to-zoom: a widget-local window narrowed by drag-selecting a
-   * range on the chart. It overrides the dashboard's window for THIS
-   * widget only (spike investigation shouldn't retime every other
-   * widget), survives auto-refresh ticks (the user is mid-investigation;
-   * a rolling re-anchor would yank the window away), and clears when the
-   * dashboard's own time range changes — an explicit range pick is a
-   * statement about what the user wants to see everywhere.
+   * Drag-to-zoom FALLBACK: a widget-local window, used only when the host
+   * did not hand down onDashboardTimeRangeSelect. On a real dashboard the
+   * gesture retimes the whole board (that is the point — a spike is read
+   * across every panel at once), so this path only runs where the widget
+   * is mounted standalone. It survives auto-refresh ticks (the user is
+   * mid-investigation; a rolling re-anchor would yank the window away)
+   * and clears when the dashboard's own time range changes — an explicit
+   * range pick is a statement about what the user wants to see.
    */
   const [zoomWindow, setZoomWindow] = useState<InBetween<Date> | null>(null);
 
@@ -322,13 +323,50 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    * Drag-to-zoom is a view-mode affordance: in edit mode the drag gesture
    * belongs to widget move/resize, and mid-edit navigation state (the
    * zoom bar's explorer link) would invite losing unsaved changes.
+   *
+   * The selected window goes to the DASHBOARD when the shell offers to
+   * take it, so every panel re-queries the same range; the widget-local
+   * zoom is only the standalone fallback.
    */
+  const onDashboardTimeRangeSelect:
+    | ((startTime: Date, endTime: Date) => void)
+    | undefined = props.onDashboardTimeRangeSelect;
+  const onDashboardTimeRangeReset: (() => void) | undefined =
+    props.onDashboardTimeRangeReset;
+
   const handleChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
-    useCallback((startTime: Date, endTime: Date): void => {
-      setZoomWindow(new InBetween<Date>(startTime, endTime));
-    }, []);
+    useCallback(
+      (startTime: Date, endTime: Date): void => {
+        if (onDashboardTimeRangeSelect) {
+          onDashboardTimeRangeSelect(startTime, endTime);
+          return;
+        }
+        setZoomWindow(new InBetween<Date>(startTime, endTime));
+      },
+      [onDashboardTimeRangeSelect],
+    );
+
+  const handleChartTimeRangeReset: () => void = useCallback((): void => {
+    if (onDashboardTimeRangeReset) {
+      onDashboardTimeRangeReset();
+      return;
+    }
+    setZoomWindow(null);
+  }, [onDashboardTimeRangeReset]);
 
   const enableChartZoom: boolean = !props.isEditMode;
+
+  /*
+   * Only offer double-click-to-reset while there is a zoom to undo. The
+   * chart library delays single clicks to tell them apart from a
+   * double-click, so an always-on handler would tax every bucket click
+   * for a gesture that could not do anything.
+   */
+  const canResetChartZoom: boolean =
+    enableChartZoom &&
+    (onDashboardTimeRangeReset
+      ? Boolean(props.isDashboardTimeRangeZoomed)
+      : Boolean(zoomWindow));
 
   /*
    * Series investigate menus navigate to explorer/telemetry pages, so
@@ -411,21 +449,46 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             )}
           </div>
           {/*
-           * Icon-only control: text-gray-500 idle (>= 3:1 contrast on the
+           * Icon-only controls: text-gray-500 idle (>= 3:1 contrast on the
            * white widget surface per WCAG 1.4.11 — gray-300/400 fail),
            * aria-label for the accessible name, and the focus-visible
            * ring shared by the branch's other icon-only buttons.
            */}
           {showOpenInExplorer && (
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Open in Metric Explorer"
-              aria-label="Open in Metric Explorer"
-              onClick={handleOpenInExplorer}
-            >
-              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex flex-shrink-0 items-center gap-0.5">
+              {/*
+               * Investigate lives in the header, not in the zoom pill: a
+               * drag-selection now retimes the whole dashboard, so the
+               * pill only ever renders for the standalone fallback and an
+               * Investigate button inside it would be unreachable on a
+               * real board. It always investigates the window the widget
+               * is actually charting.
+               */}
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Investigate this window — logs, traces, exceptions"
+                aria-label="Investigate this time window in a side panel"
+                onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
+                  event.stopPropagation();
+                  setInvestigationWindow(effectiveStartAndEndDate);
+                }}
+              >
+                <Icon
+                  icon={IconProp.MagnifyingGlassPlus}
+                  className="h-3.5 w-3.5"
+                />
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Open in Metric Explorer"
+                aria-label="Open in Metric Explorer"
+                onClick={handleOpenInExplorer}
+              >
+                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -499,6 +562,9 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           onTimeRangeSelect={
             enableChartZoom ? handleChartTimeRangeSelect : undefined
           }
+          onTimeRangeReset={
+            canResetChartZoom ? handleChartTimeRangeReset : undefined
+          }
         />
       </div>
     </div>
@@ -518,6 +584,20 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    Boolean(prev.isDashboardTimeRangeZoomed) !==
+      Boolean(next.isDashboardTimeRangeZoomed) ||
+    /*
+     * Only whether the shell offers the gesture, not the identity of the
+     * handler: the dashboard hands down identity-stable callbacks (see
+     * useDashboardTimeRangeZoom), and comparing references here would
+     * re-render every chart on every parent tick if one ever came through
+     * as an inline lambda — the exact cost this comparator exists to
+     * avoid.
+     */
+    Boolean(prev.onDashboardTimeRangeSelect) !==
+      Boolean(next.onDashboardTimeRangeSelect) ||
+    Boolean(prev.onDashboardTimeRangeReset) !==
+      Boolean(next.onDashboardTimeRangeReset) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {
