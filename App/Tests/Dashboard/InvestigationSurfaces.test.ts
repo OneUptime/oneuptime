@@ -38,6 +38,18 @@ describe("investigation drawer wiring", () => {
     );
     expect(widget).toContain("<InvestigationDrawer");
     expect(widget).toContain("setInvestigationWindow(zoomWindow)");
+    /*
+     * The zoom pill only renders in the widget's standalone fallback now
+     * that a drag retimes the whole dashboard (#3530), so the entry point a
+     * real board actually reaches is the header button — on whatever
+     * window the widget is charting.
+     */
+    expect(widget).toContain(
+      "setInvestigationWindow(effectiveStartAndEndDate)",
+    );
+    expect(widget).toContain(
+      'aria-label="Investigate this time window in a side panel"',
+    );
 
     const explorer: string = readSquashed(
       "App/FeatureSet/Dashboard/src/Components/Metrics/MetricExplorer.tsx",

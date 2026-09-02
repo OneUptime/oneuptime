@@ -63,6 +63,12 @@ export interface ComponentProps {
    * buckets calls back with the [start, end) of the selected time range.
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Double-click on the plot: undoes whatever drag-to-select produced.
+   * Supply it only when a reset is actually possible — see ChartLibrary
+   * onTimeRangeReset for why an idle handler costs click latency.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
   // Plain click on a bucket — see ChartLibrary onBucketClick.
   onBucketClick?:
     | ((
@@ -241,6 +247,7 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         }
         onExemplarClick={props.onExemplarClick}
         onTimeRangeSelect={props.onTimeRangeSelect}
+        onTimeRangeReset={props.onTimeRangeReset}
         onBucketClick={props.onBucketClick}
         ghostCategories={props.ghostSeriesNames}
         anomalyBandLowerKey={bandLower}

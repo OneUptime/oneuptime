@@ -58,6 +58,11 @@ export interface ComponentProps {
    * indexed by series position (index % length), matching the default palette.
    */
   colors?: Array<ChartColorValue> | undefined;
+  /*
+   * Double-click on the plot: undoes a board-wide zoom. Bar panels have no
+   * drag-to-select of their own but share the dashboard's time range.
+   */
+  onTimeRangeReset?: (() => void) | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -152,6 +157,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
             ? formattedReferenceRegions
             : undefined
         }
+        onTimeRangeReset={props.onTimeRangeReset}
       />
       {hasNoData && <NoDataMessage />}
     </div>

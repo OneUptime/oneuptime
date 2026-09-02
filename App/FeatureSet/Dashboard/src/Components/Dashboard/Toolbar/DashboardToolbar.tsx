@@ -39,6 +39,14 @@ export interface ComponentProps {
   dashboardDescription?: string | undefined;
   startAndEndDate: RangeStartAndEndDateTime;
   onStartAndEndDateChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
+  /*
+   * A drag-selection on a time-series widget has narrowed the whole board.
+   * The picker then reads "Custom", which says nothing about there being a
+   * way back — so the toolbar spells one out next to it, alongside the
+   * double-click gesture on the panels themselves.
+   */
+  isTimeRangeZoomed?: boolean | undefined;
+  onResetTimeRangeZoom?: (() => void) | undefined;
   dashboardViewConfig: DashboardViewConfig;
   autoRefreshInterval: AutoRefreshInterval;
   onAutoRefreshIntervalChange: (interval: AutoRefreshInterval) => void;
@@ -353,6 +361,24 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     props.onStartAndEndDateChange(startAndEndDate);
                   }}
                 />
+
+                {props.isTimeRangeZoomed && props.onResetTimeRangeZoom && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    title="Reset the dashboard to the time range it had before the zoom"
+                    aria-label="Reset zoom"
+                    onClick={() => {
+                      props.onResetTimeRangeZoom?.();
+                    }}
+                  >
+                    <Icon
+                      icon={IconProp.MagnifyingGlassMinus}
+                      className="h-3.5 w-3.5"
+                    />
+                    Reset zoom
+                  </button>
+                )}
 
                 {/* Auto-refresh section */}
                 <AutoRefreshDropdown
