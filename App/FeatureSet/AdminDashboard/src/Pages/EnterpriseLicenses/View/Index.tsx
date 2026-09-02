@@ -45,7 +45,9 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 
-const fetchEnterpriseLicenseUsageSnapshot = async (
+const fetchEnterpriseLicenseUsageSnapshot: (
+  modelId: string,
+) => Promise<EnterpriseLicenseUsageSnapshot> = async (
   modelId: string,
 ): Promise<EnterpriseLicenseUsageSnapshot> => {
   const usageResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -688,11 +690,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 }
 
                 const isInactive: boolean = usageSnapshot
-                  ? !Boolean(
+                  ? !(
                       item.id &&
-                        usageSnapshot.activeInstanceIds.includes(
-                          item.id.toString(),
-                        ),
+                      usageSnapshot.activeInstanceIds.includes(
+                        item.id.toString(),
+                      )
                     )
                   : !EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage(
                       item,

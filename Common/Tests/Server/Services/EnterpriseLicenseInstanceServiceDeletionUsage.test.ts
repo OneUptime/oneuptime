@@ -66,7 +66,7 @@ type MakeInstanceFunction = (
 ) => EnterpriseLicenseInstance;
 
 const makeInstance: MakeInstanceFunction = (
-  data,
+  data: Parameters<MakeInstanceFunction>[0],
 ): EnterpriseLicenseInstance => {
   return {
     id: ObjectID.generate(),
@@ -88,7 +88,9 @@ type MakeLicenseFunction = (
   }>,
 ) => EnterpriseLicense;
 
-const makeLicense: MakeLicenseFunction = (data): EnterpriseLicense => {
+const makeLicense: MakeLicenseFunction = (
+  data: Parameters<MakeLicenseFunction>[0],
+): EnterpriseLicense => {
   return {
     id: LICENSE_ID,
     currentUserCount: data?.currentUserCount,

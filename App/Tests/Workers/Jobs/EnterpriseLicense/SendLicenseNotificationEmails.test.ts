@@ -16,16 +16,24 @@ interface CapturedJob {
 type AsyncMockFunction = (...args: Array<unknown>) => Promise<unknown>;
 
 const mockCapturedJobs: Record<string, CapturedJob> = {};
-const mockEnterpriseLicenseService = {
+const mockEnterpriseLicenseService: {
+  findBy: ReturnType<typeof jest.fn<AsyncMockFunction>>;
+} = {
   findBy: jest.fn<AsyncMockFunction>(),
 };
-const mockEnterpriseLicenseInstanceService = {
+const mockEnterpriseLicenseInstanceService: {
+  findBy: ReturnType<typeof jest.fn<AsyncMockFunction>>;
+} = {
   findBy: jest.fn<AsyncMockFunction>(),
 };
-const mockGlobalConfigService = {
+const mockGlobalConfigService: {
+  findOneById: ReturnType<typeof jest.fn<AsyncMockFunction>>;
+} = {
   findOneById: jest.fn<AsyncMockFunction>(),
 };
-const mockMailService = {
+const mockMailService: {
+  sendMail: ReturnType<typeof jest.fn<AsyncMockFunction>>;
+} = {
   sendMail: jest.fn<AsyncMockFunction>(),
 };
 
@@ -117,16 +125,24 @@ const runTick: CronHandler = async (): Promise<void> => {
   await job.handler();
 };
 
-const makeLicense: (data: {
+interface MakeLicenseData {
   currentUserCount: number;
   userLimit: number;
   userCountUpdatedAt?: Date | undefined;
   userCountSource?: EnterpriseLicenseUserCountSource | undefined;
   legacyUserCount?: number | undefined;
   legacyUserCountUpdatedAt?: Date | undefined;
-}) => EnterpriseLicense = (data): EnterpriseLicense => {
+}
+
+const makeLicense: (data: MakeLicenseData) => EnterpriseLicense = (
+  data: MakeLicenseData,
+): EnterpriseLicense => {
   return {
-    id: { toString: (): string => "license-id" },
+    id: {
+      toString: (): string => {
+        return "license-id";
+      },
+    },
     companyName: "Acme Inc",
     licenseKey: "abcd-license-wxyz",
     currentUserCount: data.currentUserCount,
@@ -138,11 +154,15 @@ const makeLicense: (data: {
   } as unknown as EnterpriseLicense;
 };
 
-const makeInstance: (data: {
+interface MakeInstanceData {
   createdAt?: Date | undefined;
   lastReportedAt?: Date | undefined;
   userCount?: number | undefined;
-}) => EnterpriseLicenseInstance = (data): EnterpriseLicenseInstance => {
+}
+
+const makeInstance: (data: MakeInstanceData) => EnterpriseLicenseInstance = (
+  data: MakeInstanceData,
+): EnterpriseLicenseInstance => {
   return {
     createdAt: data.createdAt || OneUptimeDate.addRemoveDays(NOW, -1),
     lastReportedAt: data.lastReportedAt,
@@ -158,7 +178,9 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails usage source", () => {
 
     mockGlobalConfigService.findOneById.mockResolvedValue({});
     mockMailService.sendMail.mockResolvedValue({
-      isSuccess: (): boolean => true,
+      isSuccess: (): boolean => {
+        return true;
+      },
     });
   });
 
@@ -296,9 +318,9 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails usage source", () => {
     const afterBoundary: Date = new Date("2026-09-02T12:00:01.000Z");
     let currentTime: Date = beforeBoundary;
 
-    jest
-      .spyOn(OneUptimeDate, "getCurrentDate")
-      .mockImplementation((): Date => currentTime);
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+      return currentTime;
+    });
     mockEnterpriseLicenseService.findBy.mockResolvedValue([
       makeLicense({ currentUserCount: 12, userLimit: 10 }),
       makeLicense({
@@ -325,7 +347,9 @@ describe("EnterpriseLicense:SendLicenseNotificationEmails usage source", () => {
         /* The first license's serial email send crosses the next boundary. */
         currentTime = afterBoundary;
         return {
-          isSuccess: (): boolean => true,
+          isSuccess: (): boolean => {
+            return true;
+          },
         };
       },
     );

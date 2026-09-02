@@ -594,7 +594,10 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/report-user-count", () =
       };
       const firstNext: NextFunction = jest.fn();
       const secondNext: NextFunction = jest.fn();
-      const route = mockRouter.match("post", REPORT_ROUTE);
+      const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+        "post",
+        REPORT_ROUTE,
+      );
 
       await Promise.all([
         route.handlerFunction(

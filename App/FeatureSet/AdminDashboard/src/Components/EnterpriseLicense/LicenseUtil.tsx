@@ -11,14 +11,17 @@ export const EnterpriseLicenseUsageRefreshIntervalInMilliseconds: number =
   60 * 1000;
 export const EnterpriseLicenseUsageMinimumRefreshDelayInMilliseconds: number = 1000;
 
-export const isEnterpriseLicenseUsageRequestCurrent = (
+export const isEnterpriseLicenseUsageRequestCurrent: (
   requestId: number,
   latestRequestId: number,
-): boolean => {
+) => boolean = (requestId: number, latestRequestId: number): boolean => {
   return requestId === latestRequestId;
 };
 
-export const getEnterpriseLicenseUsageBoundaryRefreshDelay = (
+export const getEnterpriseLicenseUsageBoundaryRefreshDelay: (
+  snapshot: EnterpriseLicenseUsageSnapshot,
+  elapsedSinceRequestStartedInMilliseconds?: number,
+) => number | null = (
   snapshot: EnterpriseLicenseUsageSnapshot,
   elapsedSinceRequestStartedInMilliseconds: number = 0,
 ): number | null => {

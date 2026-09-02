@@ -156,20 +156,24 @@ interface CompareAndSetArgs {
   expectedData: Record<string, unknown>;
 }
 
-type MakeLicenseFunction = (data?: {
+interface MakeLicenseData {
   currentUserCount?: number | undefined;
   userCountUpdatedAt?: Date | undefined;
   userCountSource?: EnterpriseLicenseUserCountSource | undefined;
   legacyUserCount?: number | undefined;
   legacyUserCountUpdatedAt?: Date | undefined;
-}) => EnterpriseLicense;
+}
+
+type MakeLicenseFunction = (data?: MakeLicenseData) => EnterpriseLicense;
 
 const licensesById: Map<string, EnterpriseLicense> = new Map<
   string,
   EnterpriseLicense
 >();
 
-const makeLicense: MakeLicenseFunction = (data): EnterpriseLicense => {
+const makeLicense: MakeLicenseFunction = (
+  data?: MakeLicenseData,
+): EnterpriseLicense => {
   const license: EnterpriseLicense = new EnterpriseLicense(ObjectID.generate());
 
   if (data?.currentUserCount !== undefined) {
@@ -197,16 +201,20 @@ const makeLicense: MakeLicenseFunction = (data): EnterpriseLicense => {
   return license;
 };
 
-type MakeInstanceFunction = (data: {
+interface MakeInstanceData {
   createdAt?: Date | undefined;
   daysSinceReport?: number | undefined;
   lastReportedAt?: Date | undefined;
   userCount?: number | undefined;
   userEmailHashes?: Array<string> | undefined;
-}) => EnterpriseLicenseInstance;
+}
+
+type MakeInstanceFunction = (
+  data: MakeInstanceData,
+) => EnterpriseLicenseInstance;
 
 const makeInstance: MakeInstanceFunction = (
-  data,
+  data: MakeInstanceData,
 ): EnterpriseLicenseInstance => {
   const instance: EnterpriseLicenseInstance = new EnterpriseLicenseInstance();
 
@@ -856,7 +864,9 @@ describe("EnterpriseLicense:ReconcileInstanceUsage", () => {
       3,
     );
     expect(
-      compareAndSetCalls().map((call: CompareAndSetArgs) => call.id),
+      compareAndSetCalls().map((call: CompareAndSetArgs) => {
+        return call.id;
+      }),
     ).toEqual([writeFailure.id, healthy.id]);
     expect(logger.error).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalledWith(

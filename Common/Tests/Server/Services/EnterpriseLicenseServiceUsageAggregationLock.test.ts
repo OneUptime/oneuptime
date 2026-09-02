@@ -162,7 +162,9 @@ describe("EnterpriseLicenseService usage aggregation lock", () => {
     const result: { users: number } =
       await EnterpriseLicenseService.runWithUsageAggregationLock({
         licenseId: ObjectID.generate(),
-        fn: async (): Promise<{ users: number }> => ({ users: 17 }),
+        fn: async (): Promise<{ users: number }> => {
+          return { users: 17 };
+        },
       });
 
     expect(result).toEqual({ users: 17 });
@@ -190,10 +192,11 @@ describe("EnterpriseLicenseService usage aggregation lock", () => {
 
     await firstStarted.promise;
 
-    const secondCallback = jest.fn(async (): Promise<string> => {
-      events.push("second:start");
-      return "second";
-    });
+    const secondCallback: ReturnType<typeof jest.fn<() => Promise<string>>> =
+      jest.fn(async (): Promise<string> => {
+        events.push("second:start");
+        return "second";
+      });
     const second: Promise<string> =
       EnterpriseLicenseService.runWithUsageAggregationLock({
         licenseId,
@@ -270,7 +273,9 @@ describe("EnterpriseLicenseService usage aggregation lock", () => {
 
   test("fails closed without invoking or releasing when acquisition fails", async () => {
     const acquireError: Error = new Error("Redis unavailable");
-    const callback = jest.fn(async (): Promise<void> => {});
+    const callback: ReturnType<typeof jest.fn<() => Promise<void>>> = jest.fn(
+      async (): Promise<void> => {},
+    );
     lockMock.mockRejectedValue(acquireError);
 
     await expect(
@@ -292,7 +297,9 @@ describe("EnterpriseLicenseService usage aggregation lock", () => {
     await expect(
       EnterpriseLicenseService.runWithUsageAggregationLock({
         licenseId,
-        fn: async (): Promise<string> => "complete",
+        fn: async (): Promise<string> => {
+          return "complete";
+        },
       }),
     ).resolves.toBe("complete");
 
