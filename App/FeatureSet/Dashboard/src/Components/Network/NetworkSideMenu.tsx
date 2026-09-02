@@ -210,6 +210,15 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
+            title: "Device Roles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES] as Route,
+            ),
+          },
+          icon: IconProp.Identification,
+        },
+        {
+          link: {
             title: "OID Collection Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES] as Route,

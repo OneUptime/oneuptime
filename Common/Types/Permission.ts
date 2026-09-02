@@ -1393,6 +1393,11 @@ enum Permission {
   EditNetworkSiteType = "EditNetworkSiteType",
   ReadNetworkSiteType = "ReadNetworkSiteType",
 
+  CreateNetworkDeviceRole = "CreateNetworkDeviceRole",
+  DeleteNetworkDeviceRole = "DeleteNetworkDeviceRole",
+  EditNetworkDeviceRole = "EditNetworkDeviceRole",
+  ReadNetworkDeviceRole = "ReadNetworkDeviceRole",
+
   CreateRecommendationDismissal = "CreateRecommendationDismissal",
   DeleteRecommendationDismissal = "DeleteRecommendationDismissal",
   EditRecommendationDismissal = "EditRecommendationDismissal",
@@ -8567,6 +8572,46 @@ export class PermissionHelper {
         title: "Read Network Site Type",
         description:
           "This permission can read Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceRole,
+        title: "Create Network Device Role",
+        description:
+          "This permission can create Network Device Role in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceRole,
+        title: "Delete Network Device Role",
+        description:
+          "This permission can delete Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceRole,
+        title: "Edit Network Device Role",
+        description:
+          "This permission can edit Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceRole,
+        title: "Read Network Device Role",
+        description:
+          "This permission can read Network Device Role of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

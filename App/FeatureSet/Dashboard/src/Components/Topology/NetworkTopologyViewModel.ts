@@ -4,6 +4,7 @@ import {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
+  isUnclassifiedNode,
   roleLabelForNode,
   roleOfNode,
 } from "../NetworkDevice/TopologyNodeShape";
@@ -190,9 +191,8 @@ const tooltipForNode: (node: NetworkTopologyNode) => string = (
    * reader is trying to confirm when they hover. An unclassified node
    * simply omits it and reads exactly as it always did.
    */
-  const role: NetworkTopologyDeviceRole = roleOfNode(node);
   const descriptor: string = [
-    role === "unknown" ? undefined : roleLabelForNode(node),
+    isUnclassifiedNode(node) ? undefined : roleLabelForNode(node),
     node.status,
     node.isManaged ? undefined : "unmanaged",
   ]

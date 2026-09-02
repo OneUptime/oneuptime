@@ -15,9 +15,11 @@ import {
   isSnmpDevice,
 } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import {
+  DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_PLACEHOLDER,
   DEVICE_ROLE_FIELD_TITLE,
-  DEVICE_ROLE_OPTIONS,
+  getDeviceRoleSettingsLink,
 } from "../../../Components/NetworkDevice/DeviceRoleFormFields";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -259,15 +261,16 @@ const NetworkDeviceSettings: FunctionComponent<
           },
           {
             field: {
-              deviceRole: true,
+              networkDeviceRole: true,
             },
             title: DEVICE_ROLE_FIELD_TITLE,
             stepId: "device-details",
             description: DEVICE_ROLE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DEVICE_ROLE_OPTIONS,
+            dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
+            sideLink: getDeviceRoleSettingsLink(),
             required: false,
-            placeholder: "Worked out from the device (SNMP only)",
+            placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
           },
           {
             field: {
@@ -335,11 +338,32 @@ const NetworkDeviceSettings: FunctionComponent<
               fieldType: FieldType.Text,
             },
             {
+              /*
+               * The role's NAME, not its key. The old string column rendered
+               * the raw stored value here, so a device assigned the wireless
+               * access point role read "wirelessAccessPoint".
+               */
               field: {
-                deviceRole: true,
+                networkDeviceRole: {
+                  name: true,
+                },
               },
               title: DEVICE_ROLE_FIELD_TITLE,
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.networkDeviceRole?.name) {
+                  return (
+                    <span className="text-sm text-gray-400">
+                      Worked out from SNMP
+                    </span>
+                  );
+                }
+                return (
+                  <span className="text-sm text-gray-900">
+                    {item.networkDeviceRole.name}
+                  </span>
+                );
+              },
             },
           ],
         }}

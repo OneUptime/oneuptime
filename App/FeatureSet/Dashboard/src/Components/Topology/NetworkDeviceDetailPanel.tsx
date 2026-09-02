@@ -24,8 +24,8 @@ import {
   linkStateForEdge,
 } from "./NetworkTopologyMeta";
 import {
+  isUnclassifiedNode,
   roleLabelForNode,
-  roleOfNode,
 } from "../NetworkDevice/TopologyNodeShape";
 
 /*
@@ -88,7 +88,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
    * drawer is where somebody comes to check that claim. Omitted when the
    * evidence named no role — "Unknown type" is not worth a row.
    */
-  if (roleOfNode(node) !== "unknown") {
+  if (!isUnclassifiedNode(node)) {
     detailRows.push({
       label: translateString("Type") || "Type",
       value: roleLabelForNode(node),

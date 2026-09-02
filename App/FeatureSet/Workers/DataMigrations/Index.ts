@@ -99,6 +99,7 @@ import AddShipmentColumnsToKubernetesCostAllocation from "./AddShipmentColumnsTo
 import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingColumnsToKubernetesCostAllocation";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
+import BackfillNetworkDeviceRoles from "./BackfillNetworkDeviceRoles";
 import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
 import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaintenanceTemplateOwnerPermissions";
 import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
@@ -363,6 +364,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * never fire. Idempotent count-then-create per (user, project, event).
    */
   new AddShiftReminderNotificationSettingsForUsers(),
+  /*
+   * Device roles became a per-project lookup table (NetworkDeviceRole) instead
+   * of a fixed union with the label, the shape and the core-layer flag
+   * hardcoded in three modules. Seeds the default roles into every existing
+   * project and points each device's networkDeviceRoleId at the role matching
+   * its legacy deviceRole string (creating a role for any key the project has
+   * no match for). This is the only code that reads the deprecated
+   * NetworkDevice.deviceRole column, which a follow-up PR drops. Idempotent:
+   * only devices still missing a networkDeviceRoleId are touched, and an empty
+   * legacy value is skipped because it never meant a role in the first place.
+   */
+  new BackfillNetworkDeviceRoles(),
 ];
 
 export default DataMigrations;

@@ -13,6 +13,7 @@ import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
 import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceAutoImportRule from "./NetworkDeviceAutoImportRule";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
+import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
@@ -880,6 +881,7 @@ const AllModelTypes: Array<{
   NetworkDeviceLabelRule,
   NetworkDeviceAutoImportRule,
   NetworkDeviceOidTemplate,
+  NetworkDeviceRole,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
   NetworkSite,

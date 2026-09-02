@@ -145,6 +145,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: `settings/link-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES]: `settings/auto-import-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: `settings/oid-collection-templates`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: `settings/device-roles`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
@@ -2741,6 +2742,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]
     }`,
   ),
 

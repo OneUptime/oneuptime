@@ -204,6 +204,19 @@ export const tierForNode: (
   if (!node.isManaged) {
     return 1;
   }
+  /*
+   * The project's own answer, when it has one. Roles are configurable rows
+   * now and each carries an isCoreLayer flag, which is the only thing that can
+   * place a CUSTOM role - "SD-WAN Edge" is not in the set below and never
+   * could be. It also honours a project that decided its switches ARE core.
+   *
+   * It is checked before node.role for the same reason node.role is checked
+   * before the FDB heuristic: it is a statement, not an inference. A node
+   * carrying it is classified by definition, so the heuristic is skipped.
+   */
+  if (node.isCoreLayerRole !== undefined) {
+    return node.isCoreLayerRole ? 0 : 1;
+  }
   if (node.role && node.role !== "unknown") {
     return CORE_DEVICE_ROLES.has(node.role) ? 0 : 1;
   }
