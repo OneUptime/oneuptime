@@ -66,11 +66,11 @@ export interface ComponentProps {
     link: URL;
   };
   /*
-   * When true, the document-level Cmd/Ctrl+K shortcut that toggles the
-   * products menu is not registered — for apps where another surface (e.g. a
-   * command palette) owns that shortcut. The menu itself stays fully usable
-   * via its trigger button. Defaults to false: existing consumers keep the
-   * shortcut.
+   * When true, Cmd/Ctrl+K never opens or toggles the products menu — for apps
+   * where another surface (e.g. a command palette) owns that shortcut. The
+   * menu itself stays usable via its trigger button; if it is already open,
+   * the owner's chord dismisses it without consuming the event. Defaults to
+   * false so existing consumers keep the products shortcut.
    */
   disableCommandKShortcut?: boolean | undefined;
   className?: string;
@@ -85,6 +85,22 @@ export interface ComponentProps {
 const MOBILE_MENU_BOTTOM_GAP_IN_PX: number = 16;
 const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
 
+/*
+ * Keep the products-menu shortcut and the dashboard command palette on the
+ * same definition of Cmd/Ctrl+K. In particular, modified chords such as
+ * Cmd+Shift+K must be left alone for the browser or another feature.
+ */
+const isCommandKShortcut: (event: KeyboardEvent) => boolean = (
+  event: KeyboardEvent,
+): boolean => {
+  return (
+    (event.metaKey || event.ctrlKey) &&
+    !event.shiftKey &&
+    !event.altKey &&
+    event.key.toLowerCase() === "k"
+  );
+};
+
 const Navbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -96,6 +112,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const [mobileMenuMaxHeight, setMobileMenuMaxHeight] = useState<
     number | undefined
   >(undefined);
+  const hasMoreMenu: boolean = Boolean(
+    !props.children && props.moreMenuItems && props.moreMenuItems.length > 0,
+  );
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -173,27 +192,56 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
   // Open/close the products menu with Cmd/Ctrl + K from anywhere.
   useEffect(() => {
-    if (props.disableCommandKShortcut) {
-      // Another surface (e.g. a command palette) owns Cmd/Ctrl+K.
+    if (props.disableCommandKShortcut || !hasMoreMenu) {
+      // Another surface owns Cmd/Ctrl+K, or there is no products menu to open.
       return;
     }
 
     const handleGlobalKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setIsMoreMenuVisible((visible: boolean) => {
-          return !visible;
-        });
+      if (!isCommandKShortcut(event) || event.defaultPrevented) {
+        return;
       }
+
+      event.preventDefault();
+      setIsMoreMenuVisible((visible: boolean) => {
+        return !visible;
+      });
     };
 
     document.addEventListener("keydown", handleGlobalKeyDown);
     return () => {
       document.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [props.disableCommandKShortcut]);
+  }, [hasMoreMenu, props.disableCommandKShortcut]);
+
+  /*
+   * When the dashboard has surrendered Cmd/Ctrl+K to its command palette, an
+   * already-open products modal must get out of the way before the palette
+   * opens. This close-only listener deliberately does not prevent or stop the
+   * event: the real shortcut owner still needs to receive the same keydown.
+   * It also ignores defaultPrevented so the result is deterministic regardless
+   * of which document listener React registered first.
+   */
+  useEffect(() => {
+    if (!props.disableCommandKShortcut || !hasMoreMenu || !isMoreMenuVisible) {
+      return;
+    }
+
+    const closeProductsOnCommandK: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (isCommandKShortcut(event)) {
+        setIsMoreMenuVisible(false);
+      }
+    };
+
+    document.addEventListener("keydown", closeProductsOnCommandK);
+    return () => {
+      document.removeEventListener("keydown", closeProductsOnCommandK);
+    };
+  }, [hasMoreMenu, isMoreMenuVisible, props.disableCommandKShortcut]);
 
   // More menu open/close.
   const openMoreMenu: () => void = (): void => {
@@ -488,6 +536,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             noResultsText={props.moreMenuNoResultsText}
+            showCommandKShortcutHint={!props.disableCommandKShortcut}
             keyboardHint={props.moreMenuKeyboardHint}
             recentLabel={props.moreMenuRecentLabel}
             onClose={closeMoreMenu}
