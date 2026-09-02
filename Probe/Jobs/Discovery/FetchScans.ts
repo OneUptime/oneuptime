@@ -537,7 +537,46 @@ export async function scanWithDeadline(
   );
 
   try {
-    return await Promise.race([SubnetScanner.scan(config), deadline]);
+    const result: SubnetScanResult = await Promise.race([
+      SubnetScanner.scan(config),
+      deadline,
+    ]);
+
+    /*
+     * Reverse DNS (OneUptime issue #3529) runs HERE — after the race has
+     * settled — and not inside scan().
+     *
+     * The race is winner-takes-all: if the sweep has not settled by the
+     * deadline, this function rejects and runScan reports the scan Failed
+     * with no hosts at all. Naming hosts inside scan() would spend that same
+     * budget, so a sweep that had already found every host on the subnet
+     * could be discarded wholesale because looking up their names took the
+     * run past the line. An enrichment must not be able to destroy the result
+     * it exists to improve, and the pass's own 60s cap bounds how much it
+     * adds without stopping it being the straw that breaks the deadline.
+     *
+     * Past this line the sweep has WON its race. `result` is final, the
+     * deadline can no longer discard it, and attachReverseDnsHostnames never
+     * throws — so the worst case is hosts named by address, exactly as they
+     * were before this feature existed.
+     *
+     * The timer is disarmed FIRST rather than left to the finally. It is
+     * still armed at this point, and the enrichment can take up to a minute:
+     * leaving it running would let it fire mid-lookup and write
+     * "did not settle ... Abandoning this sweep" to the probe log at ERROR
+     * level about a sweep that finished cleanly and whose result is on its
+     * way back. The log line would be a pure fabrication, and it is the line
+     * an operator would be reading to explain a failure that never happened.
+     */
+    if (deadlineTimer) {
+      clearTimeout(deadlineTimer);
+      deadlineTimer = undefined;
+    }
+
+    result.reverseDnsResolvedCount =
+      await SubnetScanner.attachReverseDnsHostnames(result.discoveredHosts);
+
+    return result;
   } finally {
     /*
      * Always clear it: an un-cleared timer holds the event loop open after an
@@ -776,10 +815,26 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       return;
     }
 
+    /*
+     * The reverse-DNS tally rides on the same line rather than getting one of
+     * its own, and is omitted entirely when the pass did not run (undefined,
+     * which is a different statement from zero — see reverseDnsResolvedCount).
+     *
+     * It is the only place an operator can tell "this subnet publishes no PTR
+     * records" apart from "this probe cannot resolve", without reading the
+     * warning ReverseDnsResolver emits only in the second case. A scan whose
+     * Review dialog is all bare addresses is otherwise indistinguishable
+     * between the two.
+     */
+    const namedSuffix: string =
+      scanResult.reverseDnsResolvedCount === undefined
+        ? ""
+        : `, ${scanResult.reverseDnsResolvedCount} named by reverse DNS`;
+
     logger.debug(
       scanResult.isIcmpOnlySweep
-        ? `Discovery scan ${scan.id?.toString()} found ${scanResult.discoveredHosts.length} host(s) answering ICMP (SNMP checking is off)`
-        : `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
+        ? `Discovery scan ${scan.id?.toString()} found ${scanResult.discoveredHosts.length} host(s) answering ICMP (SNMP checking is off)${namedSuffix}`
+        : `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)${namedSuffix}`,
     );
   } catch (uploadErr) {
     logger.error(

@@ -33,6 +33,7 @@ import {
   buildSnmpV3Auth,
   runScan,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * A discovery scan carries an ORDERED LIST of SNMP credential sets, and the
@@ -231,6 +232,15 @@ function messageFrom(work: () => unknown): string {
 
   throw new Error("Expected the call to throw, but it returned normally.");
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("buildProbeSnmpConfigs — a scan configured the old way", () => {
   /*

@@ -59,8 +59,26 @@ function truncate(value: string, maxLength: number): string {
  *
  * Split out of `buildDeviceName` so the dashboard row and the device it
  * creates cannot disagree: the operator ticks a box next to a name, and that
- * is the name the device gets. Returned UNTRUNCATED — the display has its own
- * ellipsis and the 80-character ceiling exists for the slug, not the eye.
+ * is the name the device gets. Returned UNTRUNCATED, so a caller that wants
+ * the full name can have it; the Review dialog and the import both go through
+ * `buildDeviceName`, which clamps, so that what is shown is what is created.
+ *
+ * TWO CONSEQUENCES OF NAMING A DEVICE BY DNS, both accepted deliberately:
+ *
+ *   - Anything that matches on `NetworkDevice.name` now sees a name the
+ *     SCANNED NETWORK chose. NetworkSiteAssignmentRule and the label/owner
+ *     rule engines are the live examples: a rule written against a naming
+ *     convention will match differently for a host that used to be called
+ *     "10.18.166.51" and is now called "core-gw.corp.example.com". That is
+ *     inherent to the feature — the alternative is not naming devices by DNS —
+ *     and it is why the name is put through ReverseDnsNameUtil rather than
+ *     trusted. Rules keyed on `hostname` are unaffected: that stays the IP.
+ *   - Names stop being unique per host. Addresses were; PTR names are not, and
+ *     a wildcard reverse zone over a DHCP range gives every host in it the
+ *     same answer. `buildFallbackDeviceName` is the answer to that, and BOTH
+ *     import paths must use it — the rule engine does, and the dashboard's
+ *     Review-dialog import does since the same wildcard case made collisions
+ *     ordinary rather than rare.
  */
 export function getDiscoveredHostDisplayName(
   host: DiscoveredNetworkDevice,
@@ -74,10 +92,23 @@ export function getDiscoveredHostDisplayName(
    * point before the value becomes a rendered line and a slugified device
    * name, so it is the right place to be sure. See ReverseDnsNameUtil.
    */
+  /*
+   * `sysName` is read through a typeof guard rather than trusted, for the
+   * same reason `dnsHostname` is normalised: both come out of the same
+   * verbatim jsonb blob, where the declared TypeScript type is a description
+   * of what the probe SHOULD send rather than a guarantee about what is
+   * stored. `(42).trim()` is a TypeError, and since this function became the
+   * dashboard's name line that TypeError would be thrown during render —
+   * taking out the whole Review dialog rather than one row, which is
+   * precisely the failure normalizeDiscoveredHosts was written to end.
+   */
+  const sysName: string =
+    typeof host.sysName === "string" ? host.sysName.trim() : "";
+
   return (
-    (host.sysName || "").trim() ||
+    sysName ||
     normalizeReverseDnsName(host.dnsHostname) ||
-    host.ipAddress
+    String(host.ipAddress ?? "")
   );
 }
 
@@ -96,12 +127,42 @@ export function buildDeviceName(host: DiscoveredNetworkDevice): string {
  * ceiling.
  */
 export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
-  const suffix: string = ` (${host.ipAddress})`;
+  /*
+   * The address is read through the SAME coercion the display path uses, not
+   * straight out of the jsonb.
+   *
+   * A raw template read turned a missing address into the literal
+   * " (undefined)" and an object one into " ([object Object])" — and those
+   * tokens are IDENTICAL for every such host, so the fallback produced the
+   * same name again and the retry failed on the very duplicate it was
+   * retrying. This function exists to break a name collision; a suffix that
+   * collides is worse than useless.
+   */
+  const address: string = String(host.ipAddress ?? "").trim();
+
+  /*
+   * An address-less host gets no suffix at all rather than an empty pair of
+   * brackets. There is nothing to tell it apart BY, so the honest outcome is
+   * the base name unchanged — the caller's create then fails on the duplicate,
+   * which is the truth, instead of succeeding under a name that pretends to
+   * carry an address.
+   */
+  const suffix: string = address ? ` (${address})` : "";
+
   const baseName: string = buildDeviceName(host);
 
-  return (
+  /*
+   * Clamped as a whole, not just the base. `Math.max(1, ...)` keeps a
+   * character of the base name however long the suffix is, so an absurd
+   * address — the field is never validated on this path, it is whatever the
+   * probe wrote — could compose a name past the ceiling and fail the create on
+   * the slug's own length, which is the exact overflow the ceiling exists to
+   * prevent.
+   */
+  return truncate(
     truncate(baseName, Math.max(1, MAX_DEVICE_NAME_LENGTH - suffix.length)) +
-    suffix
+      suffix,
+    MAX_DEVICE_NAME_LENGTH,
   );
 }
 
@@ -183,8 +244,16 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * would make a device stop polling the day its reverse zone changed, and
    * would make the same host import twice — once by address, once by name.
    * The PTR record names the device; it does not address it.
+   *
+   * COERCED, because the dedup key has to be a string. The value comes out of
+   * jsonb, and `getRegisteredHostnames` matches it with `Set.has()` against
+   * hostnames read back from the database — and `Set.has` does not coerce, so
+   * a numeric address stored raw would never match its own registered device
+   * and the host would import again on every review. The dashboard path is
+   * already covered by normalizeDiscoveredHosts; this makes the builder safe
+   * for the rule engine and for any future caller that holds a raw row.
    */
-  device.hostname = host.ipAddress;
+  device.hostname = String(host.ipAddress ?? "").trim();
 
   if (host.sysDescr) {
     device.description = truncate(host.sysDescr, MAX_DEVICE_DESCRIPTION_LENGTH);

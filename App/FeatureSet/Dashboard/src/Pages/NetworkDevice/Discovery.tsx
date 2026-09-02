@@ -56,9 +56,11 @@ import ScanModeUtil, {
   ScanMethodLabel,
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import {
+  buildDeviceName,
+  buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
-  getDiscoveredHostDisplayName,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
 import {
   buildPingMonitorForDiscoveredHost,
   MonitorCriteriaSeedIds,
@@ -872,10 +874,35 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * which is exactly the behaviour of an import with the option off.
            */
           if (pingMonitorSeedIds && isPingOnlyDiscoveredHost(entry)) {
+            /*
+             * The monitor is named after the HOST, which means the address has
+             * to be in it whenever the device name is not the address itself.
+             *
+             * Before issue #3529 that was automatic: a ping-only host WAS
+             * named by its address, so "Ping 10.18.166.51" identified exactly
+             * one thing. Now the device carries a PTR name, and PTR names are
+             * not unique — a DHCP range published under one wildcard record
+             * gives every host in it the same one. Importing that range with
+             * "Create a Ping monitor" ticked produced N monitors all called
+             * "Ping dhcp-pool.corp.example.com", bound to N correctly
+             * distinguished devices. Nothing failed; Monitor.name has no
+             * unique constraint and its slug carries random digits. The
+             * monitor list simply stopped being navigable.
+             *
+             * Qualifying with the address restores the property the address
+             * used to provide for free, and buildFallbackDeviceName is reused
+             * rather than re-composed so the monitor and the collision-retry
+             * device end up spelling the same host the same way.
+             */
+            const monitorSubjectName: string =
+              device.name && device.name !== entry.ipAddress
+                ? buildFallbackDeviceName(entry)
+                : device.name || entry.ipAddress;
+
             try {
               provisionedMonitorId = await createPingMonitorForHost({
                 host: entry,
-                deviceName: device.name || entry.ipAddress,
+                deviceName: monitorSubjectName,
                 scan: scanToReview,
                 seedIds: pingMonitorSeedIds,
               });
@@ -888,10 +915,45 @@ const NetworkDeviceDiscovery: FunctionComponent<
             }
           }
 
-          await ModelAPI.create<NetworkDevice>({
-            model: device,
-            modelType: NetworkDevice,
-          });
+          try {
+            await ModelAPI.create<NetworkDevice>({
+              model: device,
+              modelType: NetworkDevice,
+            });
+          } catch (createErr) {
+            /*
+             * One retry under the address-qualified name, exactly as the
+             * server-side auto-import rule engine does it
+             * (NetworkDeviceAutoImportRuleEngineService). Device names are
+             * unique per project, and this batch can now contain hosts that
+             * genuinely share one.
+             *
+             * Reverse DNS (issue #3529) is what made that ordinary. Ping-only
+             * hosts used to be named by their addresses, so two of them could
+             * never collide with each other; now a single wildcard PTR record
+             * — `*.166.18.10.in-addr.arpa IN PTR dhcp-pool.corp.example.com`,
+             * which is how a DHCP range is routinely published — gives every
+             * host in the range the same name. Without this retry the first
+             * host imported and the other 199 failed with "Network Device
+             * with the same name already exists", turning the feature into a
+             * regression for exactly the estates it was built for.
+             *
+             * The fallback appends ` (<address>)`, which is unique per host
+             * by construction. If THAT also fails the error is real and is
+             * reported against this host; the first error is the one worth
+             * showing, since the second is usually a consequence of it.
+             */
+            device.name = buildFallbackDeviceName(entry);
+
+            try {
+              await ModelAPI.create<NetworkDevice>({
+                model: device,
+                modelType: NetworkDevice,
+              });
+            } catch {
+              throw createErr;
+            }
+          }
 
           importedNow.push(entry.ipAddress);
         } catch (err) {
@@ -1729,24 +1791,41 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 const isChecked: boolean =
                   isSelectable && Boolean(selectedIps[entry.ipAddress]);
                 /*
-                 * The SAME recipe the import uses, so the operator ticks a
-                 * box next to a name and gets a device with that name — see
-                 * getDiscoveredHostDisplayName. Since issue #3529 that
-                 * includes the host's reverse-DNS name, which is what a
-                 * ping-only host is called now that it is no longer
-                 * necessarily its own address.
+                 * `buildDeviceName`, not the unclamped display name: this row
+                 * shows the name the device will ACTUALLY be created with,
+                 * character for character.
+                 *
+                 * Since issue #3529 a name can be a 253-character FQDN where
+                 * it used to be a 15-character address, and the builder clamps
+                 * at 80 for the slug's sake. Rendering the unclamped value
+                 * meant the operator ticked a box next to one name and got a
+                 * device with a shorter, different one — a WYSIWYG break that
+                 * only ever showed up on the longest, least memorable names.
+                 * The full PTR name is not lost: when it differs from what is
+                 * shown here it appears on the line below.
                  */
-                const displayName: string = getDiscoveredHostDisplayName(entry);
+                const displayName: string = buildDeviceName(entry);
                 /*
                  * Shown BESIDE the address when it is not already the line
                  * above: an SNMP device whose sysName and PTR record disagree
                  * is worth surfacing rather than hiding — it is either two
                  * teams naming one box, or a stale reverse zone, and both are
                  * things an operator wants to see while deciding to import.
+                 * It is also where a PTR name too long to be a device name
+                 * remains readable.
+                 *
+                 * Re-normalised rather than read raw. Every path that feeds
+                 * this modal goes through normalizeDiscoveredHosts today, so
+                 * the value is already clean — but this is the one place the
+                 * attacker-chosen bytes would be rendered verbatim if that
+                 * ever stopped being true, and the guarantee is cheap enough
+                 * not to rest on a caller.
                  */
+                const normalizedDnsHostname: string | undefined =
+                  normalizeReverseDnsName(entry.dnsHostname);
                 const secondaryDnsHostname: string | undefined =
-                  entry.dnsHostname && entry.dnsHostname !== displayName
-                    ? entry.dnsHostname
+                  normalizedDnsHostname && normalizedDnsHostname !== displayName
+                    ? normalizedDnsHostname
                     : undefined;
                 return (
                   <div
@@ -1795,10 +1874,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         }}
                       />
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div
+                          className="truncate text-sm font-medium text-gray-900"
+                          title={displayName}
+                        >
                           {displayName}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="truncate text-sm text-gray-500">
                           {entry.ipAddress}
                           {secondaryDnsHostname && (
                             <span className="text-gray-400">

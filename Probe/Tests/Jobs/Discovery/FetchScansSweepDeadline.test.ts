@@ -51,6 +51,7 @@ import InitJob, {
   scanWithDeadline,
   resetDiscoveryRunInProgress,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * A sweep that never settles must not stop discovery forever.
@@ -154,6 +155,15 @@ function loggedErrors(): string {
     })
     .join("\n");
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("scanWithDeadline — a sweep that finishes", () => {
   test("returns the sweep's own result untouched", async () => {

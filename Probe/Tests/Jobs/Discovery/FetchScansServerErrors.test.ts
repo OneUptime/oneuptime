@@ -27,6 +27,7 @@ import {
   runScan,
   resetDiscoveryRunInProgress,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * What the probe does when the SERVER says no.
@@ -132,6 +133,15 @@ function loggedErrors(): string {
     })
     .join("\n");
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("getRejectionReason", () => {
   test("an accepted request produces no reason at all", () => {

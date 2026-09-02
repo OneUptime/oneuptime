@@ -47,6 +47,7 @@ import InitJob, {
   runScan,
   resetDiscoveryRunInProgress,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * The request-contract half of this job is covered by
@@ -122,6 +123,15 @@ function fetchCalls(): Array<FetchCall> {
     };
   });
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("request deadlines — no discovery request may hang forever", () => {
   test("the pending-scan list fetch carries the 45s deadline", async () => {

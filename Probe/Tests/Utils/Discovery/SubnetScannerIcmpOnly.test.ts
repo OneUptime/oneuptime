@@ -23,7 +23,10 @@ import {
   jest,
 } from "@jest/globals";
 
-import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
+import {
+  installReverseDnsStub,
+  stubReverseDnsAsResolvingNothing,
+} from "../../TestingUtils/StubReverseDns";
 
 /*
  * github.com/OneUptime/oneuptime/issues/3445 — "SNMP Version is marked
@@ -1170,7 +1173,18 @@ describe("SubnetScanner — an absent isSnmpEnabled means SNMP", () => {
       isSnmpEnabled: false,
     });
 
+    /*
+     * A mid-test restore wipes EVERY spy in the file, including the
+     * file-level reverse-DNS stub — so the second sweep below used to run
+     * against the machine's real resolver. On a resolver that answers for
+     * RFC1918 space that put a dnsHostname on withSnmp's hosts and none on
+     * icmpOnly's, failing the toEqual below for a reason that has nothing to
+     * do with the SNMP toggle this test is about. Re-installed explicitly
+     * rather than by narrowing the restore, because the restore is what makes
+     * the second sweep's spies clean.
+     */
     jest.restoreAllMocks();
+    installReverseDnsStub();
     mockPingAlive(["10.0.0.2"]);
     recordSnmpProbes([]);
 

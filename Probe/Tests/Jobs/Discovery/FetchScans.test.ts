@@ -14,6 +14,7 @@ import {
   buildProbeSnmpConfigs,
   buildSnmpV3Auth,
 } from "../../../Jobs/Discovery/FetchScans";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * Discovery builds each credential set ONCE per scan and reuses it for every
@@ -104,6 +105,15 @@ function messageFrom(work: () => unknown): string {
 
   throw new Error("Expected the call to throw, but it returned normally.");
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("FetchScans.buildSnmpV3Auth — configs without v3 credentials", () => {
   test("a config with no v3 username carries no v3 config at all", () => {

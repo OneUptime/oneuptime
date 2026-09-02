@@ -1,5 +1,6 @@
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { normalizeDiscoveredHosts } from "../../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import { getDiscoveredHostDisplayName } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -344,5 +345,115 @@ describe("normalizeDiscoveredHosts — the reverse-DNS name (issue #3529)", () =
     expect(normalized?.sysDescr).toBe("Cisco IOS");
     expect(normalized?.snmpReachable).toBe(true);
     expect(normalized?.snmpConfigId).toBe("config-2");
+  });
+});
+
+/*
+ * `sysName` joined the list of fields this function coerces when reverse DNS
+ * (issue #3529) turned the naming expression into a RENDER path.
+ *
+ * Before that, `(host.sysName || "").trim()` ran only inside the import loop,
+ * where a per-host try/catch turned a bad row into one failed import. The
+ * Review dialog's own name line was `entry.sysName || entry.ipAddress`, which
+ * coerces a number harmlessly. Routing the row through the shared naming
+ * function put `.trim()` on the render path, where a numeric sysName in the
+ * jsonb throws a TypeError inside the modal body and takes out the whole
+ * dialog — the operator can no longer review or import ANY host in that scan.
+ *
+ * That is the same failure the null-row case at the top of this file is about,
+ * and it gets the same answer: coerce once, here, so no reader can be handed a
+ * value its type says is impossible.
+ */
+describe("normalizeDiscoveredHosts — a non-string sysName (issue #3529)", () => {
+  test("a non-string sysName is blanked, never stringified", () => {
+    /*
+     * BLANKED, not `String(value)`. This is the one place the treatment
+     * deliberately differs from the address above, and the reason is that
+     * every stringification of junk is TRUTHY: `String(null)` is "null" and
+     * `String({})` is "[object Object]". A truthy sysName wins the naming
+     * contest outright, so stringifying would not merely fail to name the
+     * host — it would create a device called "null" while a perfectly good
+     * PTR record sat unused on the very same row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = [
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: null as unknown as string }),
+      host({ ipAddress: "10.0.0.3", sysName: {} as unknown as string }),
+      host({ ipAddress: "10.0.0.4", sysName: ["gw"] as unknown as string }),
+      host({ ipAddress: "10.0.0.5", sysName: true as unknown as string }),
+    ];
+
+    for (const row of normalizeDiscoveredHosts(rows)) {
+      expect(row.sysName).toBe("");
+    }
+  });
+
+  test("a blanked sysName lets the PTR name name the host", () => {
+    /*
+     * The consequence that matters, stated end to end: the row is not merely
+     * safe, it produces the RIGHT name. This is what would have regressed if
+     * the junk had been stringified.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({
+        sysName: null as unknown as string,
+        dnsHostname: "core-gw.corp.example.com",
+      }),
+    ]);
+
+    expect(getDiscoveredHostDisplayName(normalized!)).toBe(
+      "core-gw.corp.example.com",
+    );
+  });
+
+  test("naming a host with a junk sysName never throws", () => {
+    /*
+     * The failure this whole block exists for: `(42).trim()` is a TypeError,
+     * and since the dashboard row started calling the shared naming function
+     * that TypeError is thrown during render — inside the modal body, taking
+     * out the entire Review dialog rather than one row.
+     */
+    const rows: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string }),
+      host({ ipAddress: "10.0.0.2", sysName: {} as unknown as string }),
+    ]);
+
+    for (const row of rows) {
+      expect(() => {
+        return getDiscoveredHostDisplayName(row);
+      }).not.toThrow();
+    }
+  });
+
+  test("a string sysName is passed through untouched, including its whitespace", () => {
+    /*
+     * Only NON-strings are rewritten. Trimming here would be a second opinion
+     * on a decision getDiscoveredHostDisplayName already makes, and the two
+     * could drift.
+     */
+    const [normalized] = normalizeDiscoveredHosts([
+      host({ sysName: "  core-switch-01  " }),
+    ]);
+
+    expect(normalized?.sysName).toBe("  core-switch-01  ");
+  });
+
+  test("a host with no sysName does not gain the key", () => {
+    /*
+     * `sysName` is optional, and `"sysName" in host` is a question other code
+     * is entitled to ask. Coercing an absent field into an empty string would
+     * change that answer for every ping-only host in every scan.
+     */
+    const [normalized] = normalizeDiscoveredHosts([host({})]);
+
+    expect(normalized).not.toHaveProperty("sysName");
+  });
+
+  test("coercion survives a second pass unchanged", () => {
+    const once: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      host({ sysName: 42 as unknown as string, dnsHostname: "gw.example.com" }),
+    ]);
+
+    expect(normalizeDiscoveredHosts(once)).toEqual(once);
   });
 });

@@ -27,16 +27,48 @@ import { beforeEach, jest } from "@jest/globals";
  * files still describes what it always described. Suites that ARE about
  * naming (SubnetScannerReverseDns.test.ts) install their own spy instead.
  */
+
+/**
+ * Installs the stub RIGHT NOW, for the rest of the current test.
+ *
+ * Exported because a per-file `beforeEach` is not enough on its own. Two
+ * suites call `jest.restoreAllMocks()` in the MIDDLE of a test — to run a
+ * second sweep against freshly-configured spies — and that wipes every spy in
+ * the file, this one included. The second sweep then ran against the real
+ * resolver: on a machine whose DNS answers for RFC1918 space (a corporate
+ * resolver with 10.in-addr.arpa delegated, or any NXDOMAIN-hijacking ISP
+ * resolver) the sweep came back with `dnsHostname` set on hosts the first
+ * sweep had none for, and on a machine with no reachable resolver it paid the
+ * full two-second per-address budget inside a unit test.
+ *
+ * Neither failure is visible in the assertion that breaks, which is what makes
+ * it worth its own exported function rather than an inline spy: every
+ * mid-test restore in a file that stubs reverse DNS has to be followed by a
+ * call to this, and ReverseDnsStubIntegrity.test.ts fails the build if one
+ * is not.
+ */
+export function installReverseDnsStub(): void {
+  jest
+    .spyOn(SubnetScanner, "resolveReverseDnsHostnames")
+    .mockImplementation(async (): Promise<ReverseDnsResolution> => {
+      return {
+        hostnameByIpAddress: new Map<string, string>(),
+        isReverseDnsAvailable: true,
+        isTimeBudgetExhausted: false,
+      };
+    });
+}
+
+/**
+ * Installs the stub before every test in the calling file.
+ *
+ * Root-level hooks run before the hooks of any nested describe and apply to
+ * every test in the file regardless of where this is called textually, so one
+ * call at module scope covers the whole suite — EXCEPT across a mid-test
+ * `jest.restoreAllMocks()`, which is what `installReverseDnsStub` above is for.
+ */
 export function stubReverseDnsAsResolvingNothing(): void {
   beforeEach(() => {
-    jest
-      .spyOn(SubnetScanner, "resolveReverseDnsHostnames")
-      .mockImplementation(async (): Promise<ReverseDnsResolution> => {
-        return {
-          hostnameByIpAddress: new Map<string, string>(),
-          isReverseDnsAvailable: true,
-          isTimeBudgetExhausted: false,
-        };
-      });
+    installReverseDnsStub();
   });
 }

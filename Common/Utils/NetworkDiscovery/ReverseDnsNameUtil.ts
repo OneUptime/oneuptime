@@ -53,10 +53,7 @@ const LABEL_PATTERN: RegExp = /^[A-Za-z0-9_](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?$/;
  * "51.166.18.10.in-addr.arpa", which passes every other rule here and is a
  * strictly worse device name than the address it was derived from.
  */
-const REVERSE_LOOKUP_ZONE_SUFFIXES: Array<string> = [
-  ".in-addr.arpa",
-  ".ip6.arpa",
-];
+const REVERSE_LOOKUP_ZONES: Array<string> = ["in-addr.arpa", "ip6.arpa"];
 
 /*
  * True when every label is digits — "10.18.166.51", but also "51" and "1.2".
@@ -120,8 +117,14 @@ export function normalizeReverseDnsName(value: unknown): string | undefined {
 
   const lowerCased: string = withoutRootLabel.toLowerCase();
 
-  for (const suffix of REVERSE_LOOKUP_ZONE_SUFFIXES) {
-    if (lowerCased.endsWith(suffix)) {
+  for (const zone of REVERSE_LOOKUP_ZONES) {
+    /*
+     * The apex is checked as well as the suffix. `in-addr.arpa` on its own is
+     * a legal hostname string that passes every other rule here, and it is
+     * what a resolver echoing a truncated query name hands back — a strictly
+     * worse label for a device than the address it was derived from.
+     */
+    if (lowerCased === zone || lowerCased.endsWith(`.${zone}`)) {
       return undefined;
     }
   }

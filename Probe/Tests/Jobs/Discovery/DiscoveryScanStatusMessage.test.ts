@@ -10,6 +10,7 @@ import {
 } from "../../../Utils/Discovery/SubnetScanner";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import { describe, expect, test } from "@jest/globals";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 
 /*
  * The scan's status message is the entire diagnosis surface for a discovery
@@ -112,6 +113,15 @@ function makeSnmpConfig(
     ...overrides,
   } as SubnetScanSnmpConfig;
 }
+
+/*
+ * Reverse DNS (issue #3529) runs at the end of scanWithDeadline, on whatever
+ * hosts the sweep returned — including the hosts a MOCKED SubnetScanner.scan
+ * hands back. Stubbed for this whole file so no test here queries the
+ * machine's real resolver; ReverseDnsStubIntegrity.test.ts fails the build if
+ * a file that drives this path forgets.
+ */
+stubReverseDnsAsResolvingNothing();
 
 describe("buildScanStatusMessage — the headline", () => {
   test("reports the ICMP and SNMP tallies when the pre-sweep ran", () => {

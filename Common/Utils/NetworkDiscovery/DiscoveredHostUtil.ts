@@ -75,6 +75,30 @@ export function normalizeDiscoveredHosts(
     };
 
     /*
+     * `sysName` is read straight out of the jsonb, its declared type is not
+     * enforced by anything, and every reader calls a string method on it. A
+     * numeric sysName reached getDiscoveredHostDisplayName and threw inside
+     * the Review dialog's render, taking out the whole modal rather than one
+     * row — the same failure the null-row case above is about.
+     *
+     * A non-string is blanked rather than STRINGIFIED, which is where this
+     * differs from the address above. `String(null)` is "null" and
+     * `String({})` is "[object Object]", and both are truthy — so stringifying
+     * would not merely fail to name the host, it would win the naming contest
+     * outright and create a device called "null", beating a perfectly good PTR
+     * record on the very same row. An empty string is falsy, so naming falls
+     * through to `dnsHostname` and then to the address, which is exactly what
+     * a host with no readable system name deserves.
+     *
+     * Only rewritten when it is NOT already a string, so a host that never had
+     * the key does not gain an empty one — `sysName` is optional and
+     * `"sysName" in host` is a question other code is entitled to ask.
+     */
+    if (host.sysName !== undefined && typeof host.sysName !== "string") {
+      normalized.sysName = "";
+    }
+
+    /*
      * The PTR name gets the same treatment, for a sharper version of the same
      * reason (OneUptime issue #3529): unlike every other field here, its
      * value was chosen by whoever runs DNS for the scanned subnet — routinely
