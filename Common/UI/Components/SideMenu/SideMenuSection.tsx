@@ -1,7 +1,12 @@
 import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 export interface ComponentProps {
   title: string;
@@ -9,6 +14,7 @@ export interface ComponentProps {
   defaultCollapsed?: boolean;
   collapsible?: boolean;
   icon?: IconProp;
+  isActive?: boolean;
 }
 
 const SideMenuSection: FunctionComponent<ComponentProps> = (
@@ -16,11 +22,17 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
 ) => {
   const { translateString } = useTranslateValue();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    props.defaultCollapsed || false,
+    Boolean(props.defaultCollapsed && !props.isActive),
   );
   const translatedTitle: string = translateString(props.title) || props.title;
 
   const isCollapsible: boolean = props.collapsible ?? true;
+
+  useEffect(() => {
+    if (props.isActive) {
+      setIsCollapsed(false);
+    }
+  }, [props.isActive]);
 
   const handleToggle: () => void = (): void => {
     if (isCollapsible) {

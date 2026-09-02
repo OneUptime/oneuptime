@@ -135,6 +135,36 @@ describe("Side Menu Item", () => {
     expect(mainLink).toHaveClass(highlightClassList);
   });
 
+  it("Should use activeRoute for highlighting without changing the link target", () => {
+    const linkTarget: Route = new Route("/network/map?site=");
+    const activeRoute: Route = new Route("/network/map");
+
+    Navigation.default.isOnThisPage = getJestMockFunction().mockImplementation(
+      (route: Route): boolean => {
+        return route === activeRoute;
+      },
+    );
+
+    render(
+      <SideMenuItem
+        link={{ title: "Network Map", to: linkTarget }}
+        activeRoute={activeRoute}
+      />,
+    );
+
+    const mainLink: HTMLAnchorElement = screen
+      .getByText("Network Map")
+      .closest("a") as HTMLAnchorElement;
+
+    expect(Navigation.default.isOnThisPage).toHaveBeenCalledWith(activeRoute);
+    expect(mainLink).toHaveClass(highlightClassList);
+    expect(mainLink).toHaveAttribute("href", linkTarget.toString());
+
+    fireEvent.click(mainLink);
+
+    expect(Navigation.default.navigate).toHaveBeenCalledWith(linkTarget);
+  });
+
   it("Should highlights sub item link when on the same page", () => {
     const subLink: {
       title: string;

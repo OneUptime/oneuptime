@@ -9,6 +9,7 @@ import React, { FunctionComponent } from "react";
 
 export interface ComponentProps {
   link: Link;
+  activeRoute?: Link["to"] | undefined;
   showAlert?: undefined | boolean;
   showWarning?: undefined | boolean;
   badge?: undefined | number;
@@ -23,7 +24,9 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const { translateString } = useTranslateValue();
-  const isActive: boolean = Navigation.isOnThisPage(props.link.to);
+  const isActive: boolean = Navigation.isOnThisPage(
+    props.activeRoute || props.link.to,
+  );
   const isSubItemActive: boolean = props.subItemLink
     ? Navigation.isOnThisPage(props.subItemLink.to)
     : false;
