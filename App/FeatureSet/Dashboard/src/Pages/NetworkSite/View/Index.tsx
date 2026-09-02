@@ -1,17 +1,22 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
+import {
+  fetchAllNetworkSiteTypeOptions,
+  fetchParentNetworkSiteOptions,
+  isParentSiteRequired,
+} from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -60,11 +65,40 @@ const NetworkSiteView: FunctionComponent<
             id: "site-details",
           },
           {
+            title: "Hierarchy",
+            id: "hierarchy",
+          },
+          {
             title: "Location",
             id: "location",
           },
         ]}
         formFields={[
+          {
+            field: {
+              networkSiteType: true,
+            },
+            title: "Site Type",
+            stepId: "site-details",
+            description:
+              "Choose this first. The type's configured parent determines which parent sites are available on the next step.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
+            onChange: (
+              _value: unknown,
+              currentFormValues: FormValues<NetworkSite>,
+              setNewFormValues: (
+                currentFormValues: FormValues<NetworkSite>,
+              ) => void,
+            ): void => {
+              setNewFormValues({
+                ...currentFormValues,
+                parentSite: null,
+              });
+            },
+            required: true,
+            placeholder: "Select Site Type",
+          },
           {
             field: {
               name: true,
@@ -87,35 +121,21 @@ const NetworkSiteView: FunctionComponent<
           },
           {
             field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSiteType,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Select Site Type",
-          },
-          {
-            field: {
               parentSite: true,
             },
             title: "Parent Site",
-            stepId: "site-details",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Only sites whose type is the configured parent of the selected site type are shown.",
             description:
-              "The site this one is nested under. Leave empty for a root site.",
+              "Top-level site types do not have a parent site. A child site type requires one of the matching sites below.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
+            fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
+              return fetchParentNetworkSiteOptions(values, modelId);
             },
-            required: false,
-            placeholder: "Select Parent Site (optional)",
+            required: isParentSiteRequired,
+            placeholder: "No parent site (top level)",
           },
           {
             field: {

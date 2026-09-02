@@ -566,6 +566,7 @@ import { AddCertificateReissueRequestedAtToDomains1790300000000 } from "./179030
 import { AddOnCallCalendarFeeds1790400000000 } from "./1790400000000-AddOnCallCalendarFeeds";
 import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNetworkDeviceOidTemplate";
 import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
+import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-AddNetworkSiteTypeParentHierarchy";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
 
 export default [
@@ -1137,5 +1138,6 @@ export default [
   AddOnCallCalendarFeeds1790400000000,
   AddNetworkDeviceOidTemplate1790500000000,
   AddAutoImportRuleOidTemplate1790600000000,
+  AddNetworkSiteTypeParentHierarchy1790700000000,
   AddNetworkDeviceRoleTable1790800000000,
 ];

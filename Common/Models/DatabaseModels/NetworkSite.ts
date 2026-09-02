@@ -414,7 +414,13 @@ export default class NetworkSite extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      /*
+       * NO ACTION still protects a type while any referencing site survives,
+       * but performs the check at the end of the statement. That distinction
+       * lets deleting a Project cascade through its Network Sites and Network
+       * Site Types together without the sibling cascades blocking each other.
+       */
+      onDelete: "NO ACTION",
       orphanedRowAction: "nullify",
     },
   )
@@ -507,7 +513,11 @@ export default class NetworkSite extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      /*
+       * Checked at statement end so a single bulk delete may remove a whole
+       * subtree; surviving children are rejected by NetworkSiteService.
+       */
+      onDelete: "NO ACTION",
       orphanedRowAction: "nullify",
     },
   )
