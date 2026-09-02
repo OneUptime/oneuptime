@@ -616,19 +616,49 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     throw PostgresErrorTranslator.translateException(error);
   }
 
+  /*
+   * Both halves of @SlugifyColumn are resolved BY NAME off the object rather
+   * than through the schema, so a name matching no declared column misfires
+   * silently: a missing source reads `undefined` and Slug.getSlug answers with
+   * a random Faker name, and a missing destination is assigned to a property
+   * TypeORM drops on insert. ModelRegistryInvariants sweeps every model for
+   * both, so the pairing is guaranteed by a test rather than by this code.
+   *
+   * The ceiling comes from the DESTINATION column, not from Slug: getSlug
+   * appends a dash and ten random digits, and checkMaxLengthOfFields -- which
+   * runs later in the same create -- THROWS on overflow rather than
+   * truncating. Sources are routinely wider than the slug they feed
+   * (Incident.title is varchar(500) against a varchar(100) slug), so without
+   * this a long title would be a failed insert rather than a long slug.
+   */
   private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
-    if (createBy.data.getSlugifyColumn()) {
-      (createBy.data as any)[createBy.data.getSaveSlugToColumn() as string] =
-        Slug.getSlug(
-          (createBy.data as any)[createBy.data.getSlugifyColumn() as string]
-            ? ((createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
-              ] as string)
-            : null,
-        );
+    const slugifyColumn: string | null = createBy.data.getSlugifyColumn();
+    const saveSlugToColumn: string | null = createBy.data.getSaveSlugToColumn();
+
+    if (!slugifyColumn || !saveSlugToColumn) {
+      return createBy;
     }
 
+    const source: JSONValue = (createBy.data as any)[slugifyColumn];
+
+    (createBy.data as any)[saveSlugToColumn] = Slug.getSlug(
+      source ? String(source) : null,
+      this.getMaxLengthOfColumn(saveSlugToColumn),
+    );
+
     return createBy;
+  }
+
+  /*
+   * The declared width of a column, or undefined for a column that declares
+   * none -- including a name that is not a column at all, which is what
+   * getTableColumnMetadata answers for.
+   */
+  private getMaxLengthOfColumn(columnName: string): number | undefined {
+    const columnType: TableColumnType | undefined =
+      this.model.getTableColumnMetadata(columnName)?.type;
+
+    return columnType ? getMaxLengthFromTableColumnType(columnType) : undefined;
   }
 
   private async sanitizeCreateOrUpdate(

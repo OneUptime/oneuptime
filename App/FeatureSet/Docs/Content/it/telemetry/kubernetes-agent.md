@@ -162,7 +162,7 @@ Gli eventi Kubernetes non possono essere filtrati per namespace nell'agente. Arr
 
 Accetta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` mantiene WARN, ERROR e FATAL ed elimina INFO, DEBUG e TRACE. Il valore predefinito (`""`) mantiene tutto. Si applica in **entrambe** le modalità di log — in modalità `daemonset` tramite il collector, in modalità `api` all'interno del tailer dei log stesso — quindi i preset non possono disattivarlo alle tue spalle.
 
-I runtime dei container non registrano una severità sulla riga di log, quindi l'agent ne ricava una dal testo del log stesso (`[ERROR]`, `WARN:`, `level=info`, …).
+I runtime dei container non registrano una severità sulla riga di log, quindi l'agent ne ricava una dal testo del log stesso (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questo.** Arrivano dall'API Kubernetes senza una severità propria, quindi una soglia eliminerebbe l'intero flusso invece di ridurlo — inclusi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti interessano. Sono a basso volume e ad alto valore, quindi l'agent li invia sempre. Per ridurli, usa invece i **Log → Impostazioni → Filtri di scarto** lato server della dashboard.
 

@@ -101,7 +101,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   ],
 })
 @CrudApiEndpoint(new Route("/incident"))
-@SlugifyColumn("name", "slug")
+@SlugifyColumn("title", "slug")
 @Entity({
   name: "Incident",
 })

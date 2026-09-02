@@ -162,7 +162,7 @@ O `filters.logs.minSeverity` descarta registros de **log de pods** abaixo de uma
 
 Aceita `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. O `WARN` mantém WARN, ERROR e FATAL e descarta INFO, DEBUG e TRACE. O padrão (`""`) mantém tudo. Aplica-se em **ambos** os modos de log — no modo `daemonset` por meio do coletor, no modo `api` dentro do próprio coletor de logs — de modo que os presets não podem desativá-lo sem você perceber.
 
-Os runtimes de contêiner não registram uma severidade na linha de log, então o próprio agente extrai uma do texto do log (`[ERROR]`, `WARN:`, `level=info`, …).
+Os runtimes de contêiner não registram uma severidade na linha de log, então o próprio agente extrai uma do texto do log (`[ERROR]`, `WARN:`, `"level":"info"`, …).
 
 > **Os eventos do Kubernetes e as especificações de recursos nunca são filtrados por isso.** Eles chegam da API do Kubernetes sem severidade própria, então um limiar apagaria o feed inteiro em vez de afiná-lo — incluindo os avisos `FailedScheduling`, `BackOff` e `OOMKilling` que você mais quer. Eles são de baixo volume e alto valor, então o agente sempre os envia. Para reduzi-los, use os **Registros → Configurações → Filtros de descarte** do lado do servidor no dashboard.
 

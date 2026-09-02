@@ -90,7 +90,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   ],
 })
 @CrudApiEndpoint(new Route("/scheduled-maintenance-template"))
-@SlugifyColumn("name", "slug")
+@SlugifyColumn("templateName", "slug")
 @Entity({
   name: "ScheduledMaintenanceTemplate",
 })

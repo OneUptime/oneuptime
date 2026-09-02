@@ -32,6 +32,7 @@ RunCron(
           title: true,
           description: true,
           startsAt: true,
+          endsAt: true,
           projectId: true,
           monitors: {
             _id: true,

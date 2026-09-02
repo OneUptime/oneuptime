@@ -20,13 +20,23 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Drag-to-zoom on a dashboard chart widget is the "investigate this
- * spike" entry point: selecting a window must narrow THIS widget only
- * (never the dashboard-wide range), refetch for the narrowed window, and
- * offer a way back (Reset) and a way deeper (Open in Explorer, carrying
- * the zoomed window). Edit mode must not zoom — the drag gesture belongs
- * to widget move/resize there, and series pivots would navigate away from
- * unsaved dashboard changes.
+ * The chart widget's STANDALONE fallback: what drag-to-zoom does when the
+ * host hands down no onDashboardTimeRangeSelect — the edit-mode settings
+ * preview, and any future surface that mounts the widget without owning a
+ * time range. Selecting a window narrows THIS widget, refetches for the
+ * narrowed window, and offers a way back (Reset) and a way deeper (Open in
+ * Explorer, carrying the zoomed window).
+ *
+ * On a real dashboard the shell DOES take the drag and the whole board
+ * retimes (issue #3530) — that contract lives in
+ * DashboardWideChartZoom.test.tsx. Both paths are pinned because the
+ * widget picks between them purely on whether the callback prop is
+ * present, and a host that forgets to pass it should degrade to this
+ * rather than lose the gesture.
+ *
+ * Edit mode must not zoom either way — the drag gesture belongs to widget
+ * move/resize there, and series pivots would navigate away from unsaved
+ * dashboard changes.
  */
 
 const fetchResultsMock: MockFunction = getJestMockFunction();
@@ -215,7 +225,24 @@ afterEach(() => {
   cleanup();
 });
 
-describe("dashboard chart widget drag-to-zoom", () => {
+describe("dashboard chart widget drag-to-zoom (standalone fallback)", () => {
+  test("the fallback is what runs when the host offers no dashboard-wide zoom", async () => {
+    renderWidget();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+
+    /*
+     * Guards the branch this whole suite depends on: these props are the
+     * switch between narrowing this widget and retiming the board, and
+     * buildBaseProps deliberately leaves them off.
+     */
+    const baseProps: DashboardBaseComponentProps = buildBaseProps();
+    expect(baseProps.onDashboardTimeRangeSelect).toBeUndefined();
+    expect(baseProps.onDashboardTimeRangeReset).toBeUndefined();
+  });
+
   test("drag-selecting a window refetches THIS widget for that window and shows the zoom bar", async () => {
     renderWidget();
 

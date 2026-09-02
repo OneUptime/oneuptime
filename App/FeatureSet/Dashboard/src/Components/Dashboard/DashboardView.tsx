@@ -78,6 +78,9 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import useDashboardTimeRangeZoom, {
+  DashboardTimeRangeZoom,
+} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
@@ -94,10 +97,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     DashboardMode.View,
   );
 
-  const [startAndEndDate, setStartAndEndDate] =
-    useState<RangeStartAndEndDateTime>({
-      range: TimeRange.PAST_ONE_HOUR,
-    });
+  /*
+   * The board's one time range, plus the undo that makes drag-to-zoom on a
+   * panel reversible. A drag-selection on any time-series widget retimes
+   * every widget; a double-click on one puts them all back.
+   */
+  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+  const startAndEndDate: RangeStartAndEndDateTime =
+    timeRangeZoom.startAndEndDate;
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -462,14 +471,23 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onStartAndEndDateChange={(
           newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
-          setStartAndEndDate(newStartAndEndDate);
+          timeRangeZoom.setStartAndEndDate(newStartAndEndDate);
         }}
+        isTimeRangeZoomed={timeRangeZoom.isZoomed}
+        onResetTimeRangeZoom={timeRangeZoom.resetZoom}
         onCancelEditClick={async () => {
           // load the dashboard view config again
           setDashboardMode(DashboardMode.View);
           await fetchDashboardViewConfig();
         }}
         onEditClick={() => {
+          /*
+           * Editing hides the time-range picker and the reset button, so a
+           * board left zoomed would be stranded on a Custom window with no
+           * way out until the user leaves edit mode. Drop the zoom on the
+           * way in.
+           */
+          timeRangeZoom.resetZoom();
           /*
            * Heal any layout corruption (overlapping or out-of-bounds
            * widgets saved by older builds) before editing starts, so
@@ -833,6 +851,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           refreshTick={refreshTick}
           variables={dashboardVariables}
           chartSyncId={props.dashboardId.toString()}
+          onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
+          onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
+          isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
         />
       </div>
     </div>

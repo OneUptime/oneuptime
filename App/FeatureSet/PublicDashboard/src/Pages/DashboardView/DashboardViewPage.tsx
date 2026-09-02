@@ -25,6 +25,9 @@ import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import useDashboardTimeRangeZoom, {
+  DashboardTimeRangeZoom,
+} from "Common/UI/Utils/UseDashboardTimeRangeZoom";
 import TimeRange from "Common/Types/Time/TimeRange";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
@@ -46,19 +49,22 @@ export interface ComponentProps {
 const DashboardViewPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [startAndEndDate, setStartAndEndDate] =
-    useState<RangeStartAndEndDateTime>({
-      range: TimeRange.PAST_ONE_HOUR,
-    });
+  /*
+   * The board's one time range plus the undo behind drag-to-zoom, shared
+   * with the authenticated dashboard so a panel gesture means the same
+   * thing on both surfaces.
+   */
+  const timeRangeZoom: DashboardTimeRangeZoom = useDashboardTimeRangeZoom({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
+  const startAndEndDate: RangeStartAndEndDateTime =
+    timeRangeZoom.startAndEndDate;
 
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(AutoRefreshInterval.OFF);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [dashboardVariables, setDashboardVariables] = useState<
     Array<DashboardVariable>
-  >([]);
-  const [timeRangeStack, setTimeRangeStack] = useState<
-    Array<RangeStartAndEndDateTime>
   >([]);
   const autoRefreshTimerRef: React.MutableRefObject<ReturnType<
     typeof setInterval
@@ -313,20 +319,15 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                   </span>
                 )}
 
-              {timeRangeStack.length > 0 && (
+              {timeRangeZoom.isZoomed && (
                 <Button
-                  icon={IconProp.Refresh}
+                  icon={IconProp.MagnifyingGlassMinus}
                   title="Reset Zoom"
                   buttonStyle={ButtonStyleType.HOVER_PRIMARY_OUTLINE}
                   onClick={() => {
-                    const previousRange: RangeStartAndEndDateTime | undefined =
-                      timeRangeStack[0];
-                    if (previousRange) {
-                      setStartAndEndDate(previousRange);
-                      setTimeRangeStack([]);
-                    }
+                    timeRangeZoom.resetZoom();
                   }}
-                  tooltip="Reset to original time range"
+                  tooltip="Reset to the time range before the zoom"
                 />
               )}
 
@@ -382,8 +383,12 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                 <RangeStartAndEndDateView
                   dashboardStartAndEndDate={startAndEndDate}
                   onChange={(newRange: RangeStartAndEndDateTime) => {
-                    setTimeRangeStack([...timeRangeStack, startAndEndDate]);
-                    setStartAndEndDate(newRange);
+                    /*
+                     * An explicit pick is a new baseline, not a zoom — it
+                     * retires the "reset" affordance instead of offering
+                     * to jump back to a range the user just left.
+                     */
+                    timeRangeZoom.setStartAndEndDate(newRange);
                   }}
                 />
               </div>
@@ -447,6 +452,9 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
           }}
           refreshTick={refreshTick}
           variables={dashboardVariables}
+          onDashboardTimeRangeSelect={timeRangeZoom.zoomToTimeRange}
+          onDashboardTimeRangeReset={timeRangeZoom.resetZoom}
+          isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
         />
       </div>
 
