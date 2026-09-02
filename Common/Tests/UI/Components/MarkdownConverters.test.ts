@@ -321,7 +321,7 @@ describe("markdownToHtml", () => {
      */
     it("does not treat a bare pipe line as a table", () => {
       expect(markdownToHtml("a | b\nplain text")).toBe(
-        "<p>a | b\nplain text</p>".replace("\n", "<br>"),
+        "<p>a | b<br>plain text</p>",
       );
     });
 
