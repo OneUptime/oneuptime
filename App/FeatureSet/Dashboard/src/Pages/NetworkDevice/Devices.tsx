@@ -13,10 +13,25 @@ import NetworkDeviceMonitoringMethod, {
   NetworkDeviceMonitoringMethodUtil,
 } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
+  HOSTNAME_FIELD_DESCRIPTION,
+  MONITORING_METHOD_FIELD_DESCRIPTION,
+  MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER,
   MONITORING_METHOD_OPTIONS,
+  MONITOR_BINDING_FIELD_DESCRIPTION,
+  MONITOR_BINDING_FIELD_PLACEHOLDER,
   isMonitorBackedDevice,
   isSnmpDevice,
 } from "../../Components/NetworkDevice/MonitoringMethodFormFields";
+import {
+  pingMonitorProvisionedMessage,
+  provisionPingMonitorForDevice,
+  ProvisionedPingMonitor,
+} from "../../Components/NetworkDevice/PingMonitorProvisioning";
+import { PingMonitorOrigin } from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { JSONObject } from "Common/Types/JSON";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import {
   DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
@@ -28,15 +43,18 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
+import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCreatePingMonitors";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -59,9 +77,13 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
 import DeviceStatusUtil, {
+  BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NO_MONITOR_QUALIFIER,
   NetworkDeviceStatus,
+  UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  isUnboundMonitorBackedDevice,
 } from "../../Components/NetworkDevice/DeviceStatusUtil";
 import {
   DEVICE_FACET_QUERY_FIELDS,
@@ -104,12 +126,112 @@ const BASE_DEVICE_QUERY: Query<NetworkDevice> = {
 // How many rows an option picker asks for per search.
 const FACET_PICKER_PAGE_SIZE: number = 50;
 
+/*
+ * The create form's "Create a Ping monitor for this device" opt-in.
+ *
+ * A monitor-backed device with nothing bound reads Pending / "No monitor"
+ * until somebody creates a Ping monitor on its address and binds it — two
+ * more screens for something the form already knows everything about. This
+ * is the same opt-in the discovery import's Review dialog offers, for the
+ * device an operator is registering by hand.
+ *
+ * Neither field is a NetworkDevice column: they ride to the server in the
+ * form's miscDataProps (overrideFieldKey), which NetworkDeviceService ignores,
+ * and are acted on HERE after the device exists. The monitor is created
+ * second on purpose — the device is the thing being registered, and a plan
+ * limit or a permission gap on the monitor must not cost the operator the
+ * device. A monitor whose bind then fails is deleted again by the shared
+ * helper, so a failure never leaves a billable orphan behind.
+ *
+ * OFF by default, like the discovery opt-in: monitors are billable and
+ * plan-limited, and a create form must not spend the operator's quota on a
+ * box they did not tick. (A hidden checkbox that defaulted on would also be
+ * forwarded — BasicForm seeds defaultValue with no showIf check.)
+ */
+export const CREATE_PING_MONITOR_FIELD_KEY: string = "createPingMonitor";
+export const PING_PROBES_FIELD_KEY: string = "pingProbes";
+
+/*
+ * What onBeforeCreate saw, kept for onCreateSuccess. ModelTable does not
+ * hand miscDataProps to onCreateSuccess, and a create is single-flight (the
+ * modal is modal), so a ref is the honest place for it.
+ */
+interface PendingPingMonitorRequest {
+  wantsPingMonitor: boolean;
+  monitoringMethod: string | undefined;
+  selectedMonitorId: string | undefined;
+  probeIds: Array<string>;
+  deviceName: string;
+  hostname: string;
+}
+
+/*
+ * A multi-select's value as either the ids or the {label, value} options —
+ * the dropdown emits ids, but a hand-set initial value could carry options,
+ * and a wrong guess here would attach no probe at all.
+ */
+function readProbeIds(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry: unknown): string => {
+      if (typeof entry === "string") {
+        return entry.trim();
+      }
+
+      if (entry && typeof entry === "object" && "value" in entry) {
+        return String((entry as { value: unknown }).value || "").trim();
+      }
+
+      return "";
+    })
+    .filter((probeId: string): boolean => {
+      return probeId.length > 0;
+    });
+}
+
+/*
+ * The opt-in only makes sense for a monitor-backed device with no monitor
+ * picked, and only for someone allowed to create a monitor — otherwise the
+ * device would be created and the monitor would fail a moment later with a
+ * message about permissions the operator never saw a box for.
+ */
+export function shouldOfferPingMonitor(
+  values: FormValues<NetworkDevice>,
+): boolean {
+  if (!isMonitorBackedDevice(values)) {
+    return false;
+  }
+
+  if ((values as Record<string, unknown>)["monitor"]) {
+    return false;
+  }
+
+  return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
+}
+
 const NetworkDevices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Bumped after a Ping monitor is created (or fails) for a device the form
+   * just created: ModelTable refetches BEFORE onCreateSuccess runs, so the
+   * new row would otherwise show "No monitor" until the next refresh even
+   * though its monitor was bound a moment later.
+   */
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+  const [pingMonitorNotice, setPingMonitorNotice] = useState<{
+    type: AlertType;
+    message: string;
+  } | null>(null);
+  const pendingPingMonitorRequest: MutableRefObject<PendingPingMonitorRequest | null> =
+    useRef<PendingPingMonitorRequest | null>(null);
 
   /*
    * The chips above the table. Rebuilt only when the probes land, so the array
@@ -408,6 +530,19 @@ const NetworkDevices: FunctionComponent<
     modals: oidTemplateBulkActionModals,
   } = useBulkOidTemplateActions();
 
+  /*
+   * The fleet-wide fix for devices imported (or created) monitor-backed with
+   * nothing bound: one Ping monitor per selected device, created on its
+   * address and bound to it. Discovery import's "create Ping monitors" is
+   * off by default, so a large estate can easily hold hundreds of devices
+   * reading "No monitor" — and fixing them one Overview page at a time is
+   * not a real option.
+   */
+  const {
+    bulkActions: createPingMonitorBulkActions,
+    modals: createPingMonitorBulkActionModals,
+  } = useBulkCreatePingMonitors();
+
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -435,6 +570,16 @@ const NetworkDevices: FunctionComponent<
 
   return (
     <Fragment>
+      {pingMonitorNotice && (
+        <Alert
+          dataTestId="network-device-ping-monitor-notice"
+          type={pingMonitorNotice.type}
+          title={pingMonitorNotice.message}
+          onClose={() => {
+            setPingMonitorNotice(null);
+          }}
+        />
+      )}
       <DeviceSummaryCards
         facetSelections={facetSelections}
         facetOperators={facetOperators}
@@ -444,6 +589,7 @@ const NetworkDevices: FunctionComponent<
         modelType={NetworkDevice}
         id={NETWORK_DEVICES_TABLE_ID}
         userPreferencesKey={NETWORK_DEVICES_TABLE_ID}
+        refreshToggle={refreshToggle}
         query={mergeFiltersIntoQuery(BASE_DEVICE_QUERY)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
@@ -483,6 +629,7 @@ const NetworkDevices: FunctionComponent<
           buttons: [
             ...labelBulkActions,
             ...oidTemplateBulkActions,
+            ...createPingMonitorBulkActions,
             ...archiveBulkActions,
           ],
           deleteConfirmationWarning:
@@ -551,6 +698,93 @@ const NetworkDevices: FunctionComponent<
             "Switches, routers, firewalls, and any other gear on your network. SNMP devices are polled by the probe you assign; devices without SNMP are reported on by the monitor you bind to them.",
         }}
         showViewIdButton={true}
+        onBeforeCreate={async (
+          item: NetworkDevice,
+          miscDataProps: JSONObject,
+        ): Promise<NetworkDevice> => {
+          /*
+           * ModelForm turns the Monitor entity dropdown into a model with
+           * only `_id`, and a server-side caller would post the column, so
+           * both spellings are read. Only a TRUTHY checkbox reaches
+           * miscDataProps (ModelForm drops false), which is exactly the
+           * "off unless ticked" this needs.
+           */
+          pendingPingMonitorRequest.current = {
+            wantsPingMonitor: Boolean(
+              miscDataProps[CREATE_PING_MONITOR_FIELD_KEY],
+            ),
+            monitoringMethod: item.monitoringMethod,
+            selectedMonitorId:
+              item.monitor?._id?.toString() ||
+              item.monitorId?.toString() ||
+              undefined,
+            probeIds: readProbeIds(miscDataProps[PING_PROBES_FIELD_KEY]),
+            deviceName: item.name || "",
+            hostname: item.hostname || "",
+          };
+
+          return item;
+        }}
+        onCreateSuccess={async (
+          createdDevice: NetworkDevice,
+        ): Promise<NetworkDevice> => {
+          const request: PendingPingMonitorRequest | null =
+            pendingPingMonitorRequest.current;
+          pendingPingMonitorRequest.current = null;
+
+          /*
+           * Every guard restated here rather than trusted from the form:
+           * the checkbox is hidden for an SNMP device or once a monitor is
+           * picked, but a hidden field's value is still submitted, and a
+           * Ping monitor on an SNMP device — or a second one on a device
+           * that already has one bound — is exactly the kind of quiet
+           * surprise this must never produce.
+           */
+          if (
+            !request ||
+            !request.wantsPingMonitor ||
+            request.selectedMonitorId ||
+            !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+              request.monitoringMethod,
+            ) ||
+            !createdDevice.id
+          ) {
+            return createdDevice;
+          }
+
+          const deviceName: string = createdDevice.name || request.deviceName;
+
+          try {
+            const provisioned: ProvisionedPingMonitor =
+              await provisionPingMonitorForDevice({
+                deviceId: createdDevice.id,
+                deviceName: deviceName,
+                address: createdDevice.hostname || request.hostname,
+                probeIds: request.probeIds,
+                origin: PingMonitorOrigin.DeviceCreateForm,
+              });
+
+            setPingMonitorNotice({
+              type: AlertType.SUCCESS,
+              message: pingMonitorProvisionedMessage(provisioned.monitorName),
+            });
+          } catch (err) {
+            /*
+             * The device exists and stays — that is the whole point of
+             * creating it first. Say so, and say how to finish the job.
+             */
+            setPingMonitorNotice({
+              type: AlertType.DANGER,
+              message: `${deviceName} was created, but its Ping monitor was not: ${API.getFriendlyMessage(
+                err,
+              )} The device reads "No monitor" until one is bound — open it and use Create Ping Monitor, or bind an existing monitor under its Settings.`,
+            });
+          }
+
+          setRefreshToggle(ObjectID.generate().toString());
+
+          return createdDevice;
+        }}
         formSteps={[
           {
             title: "Monitoring",
@@ -582,8 +816,14 @@ const NetworkDevices: FunctionComponent<
             },
             title: "How is this device monitored?",
             stepId: "monitoring-method",
-            description:
-              "SNMP devices are polled by a probe you assign, on their own schedule. Pick Monitor for gear that cannot be walked — a switch with SNMP disabled, a consumer access point, a PDU — and bind it to an existing Ping or IP monitor instead. Either way the device belongs to a site, carries labels, and appears on the network topology map.",
+            /*
+             * Promise the Ping monitor only to an operator who will actually
+             * be offered the box (see shouldOfferPingMonitor).
+             */
+            description: PermissionGate.check(new Monitor(), ModelAction.Create)
+              .isAllowed
+              ? MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER
+              : MONITORING_METHOD_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: MONITORING_METHOD_OPTIONS,
             required: true,
@@ -632,8 +872,7 @@ const NetworkDevices: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description:
-              "The device's address. SNMP devices are polled here; for monitor-backed devices it is how the device is identified and matched to SNMP traps.",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
           {
             field: {
@@ -642,8 +881,7 @@ const NetworkDevices: FunctionComponent<
             title: "Monitor",
             stepId: "probe-and-site",
             showIf: isMonitorBackedDevice,
-            description:
-              "The monitor whose status IS this device's status. A Ping or IP monitor on the device's address is the usual choice. Its status drives the device's status pill, its site's health rollup, and the colour it is drawn in on the topology map.",
+            description: MONITOR_BINDING_FIELD_DESCRIPTION,
             sideLink: {
               text: "Create a monitor",
               url: RouteUtil.populateRouteParams(
@@ -657,8 +895,81 @@ const NetworkDevices: FunctionComponent<
               labelField: "name",
               valueField: "_id",
             },
-            required: isMonitorBackedDevice,
-            placeholder: "Select Monitor",
+            /*
+             * Never required. A monitor-backed device is a real part of the
+             * network whether or not anything reports its health yet: it
+             * belongs to a site, carries labels and appears on the topology
+             * map, and its status reads "No monitor" until one is bound. The
+             * Settings edit form, the topology map's "Add to Monitoring"
+             * dialog, discovery import and the server all treat the binding
+             * as optional, and this form was the one place that did not —
+             * so an operator recording a device before its monitor existed
+             * was blocked here and nowhere else.
+             */
+            required: false,
+            placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER,
+          },
+          {
+            /*
+             * Not a NetworkDevice column — see CREATE_PING_MONITOR_FIELD_KEY.
+             * overrideField keeps it out of the device payload and
+             * showEvenIfPermissionDoesNotExist is required because there is
+             * no column to derive field permissions from (the same shape as
+             * the monitor create form's `probes` field).
+             */
+            overrideField: {
+              [CREATE_PING_MONITOR_FIELD_KEY]: true,
+            },
+            overrideFieldKey: CREATE_PING_MONITOR_FIELD_KEY,
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Create a Ping monitor for this device",
+            stepId: "probe-and-site",
+            showIf: shouldOfferPingMonitor,
+            description:
+              'Creates a Ping monitor on the hostname above and binds it to this device when you save, so the device has a status from the start. The monitor counts towards your plan. Incidents are off on it by default; turn them on from the monitor\'s page. Leave this unticked to bind a monitor later — until then the device reads Pending, tagged "No monitor".',
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+          },
+          {
+            overrideField: {
+              [PING_PROBES_FIELD_KEY]: true,
+            },
+            overrideFieldKey: PING_PROBES_FIELD_KEY,
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Ping from probes",
+            stepId: "probe-and-site",
+            /*
+             * Only once the opt-in is ticked, and only when there is a probe
+             * to offer. Global probes sit on the public internet and cannot
+             * reach an RFC1918 address, so an operator on a private network
+             * needs to be able to name the probe that can.
+             */
+            showIf: (values: FormValues<NetworkDevice>): boolean => {
+              return (
+                shouldOfferPingMonitor(values) &&
+                Boolean(
+                  (values as Record<string, unknown>)[
+                    CREATE_PING_MONITOR_FIELD_KEY
+                  ],
+                ) &&
+                probes.length > 0
+              );
+            },
+            description:
+              "The probes the new Ping monitor checks from. They have to be able to reach the device's network — a probe on the public internet cannot ping a private address. Leave it empty to use the project's default probes.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownOptions: probes.map((probe: Probe) => {
+              if (!probe.name || !probe._id) {
+                throw new BadDataException(`Probe name or id is missing`);
+              }
+
+              return {
+                label: probe.name,
+                value: probe._id,
+              };
+            }),
+            required: false,
+            placeholder: "Project default probes",
           },
           {
             field: {
@@ -734,12 +1045,37 @@ const NetworkDevices: FunctionComponent<
                 )
               ) {
                 if (!item.currentMonitorStatus?.name) {
+                  /*
+                   * Pending is the verdict; "No monitor" is the qualifier
+                   * that says whether it will ever change on its own. A
+                   * second pill and not a fourth verdict — see
+                   * NO_MONITOR_QUALIFIER.
+                   */
+                  if (isUnboundMonitorBackedDevice(item)) {
+                    return (
+                      <div className="flex items-center gap-1.5">
+                        <Pill
+                          text="Pending"
+                          color={Gray500}
+                          size={PillSize.Small}
+                          tooltip={UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP}
+                        />
+                        <Pill
+                          text={NO_MONITOR_QUALIFIER.text}
+                          color={Gray500}
+                          size={PillSize.Small}
+                          tooltip={NO_MONITOR_QUALIFIER.tooltip}
+                        />
+                      </div>
+                    );
+                  }
+
                   return (
                     <Pill
                       text="Pending"
                       color={Gray500}
                       size={PillSize.Small}
-                      tooltip="No monitor is bound to this device yet, or the one that is has not reported a status."
+                      tooltip={BOUND_MONITOR_PENDING_TOOLTIP}
                     />
                   );
                 }
@@ -1118,6 +1454,8 @@ const NetworkDevices: FunctionComponent<
            * one of them stuck on "Pending".
            */
           ...DEVICE_STATUS_SELECT,
+          // For the "No monitor" qualifier beside a monitor-backed Pending.
+          monitorId: true,
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
@@ -1137,6 +1475,7 @@ const NetworkDevices: FunctionComponent<
       />
       {labelBulkActionModals}
       {oidTemplateBulkActionModals}
+      {createPingMonitorBulkActionModals}
     </Fragment>
   );
 };

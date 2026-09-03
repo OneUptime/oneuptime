@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
+import { fetchChildNetworkSiteTypeOptions } from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
@@ -74,6 +75,21 @@ const NetworkSiteChildSites: FunctionComponent<
         formFields={[
           {
             field: {
+              networkSiteType: true,
+            },
+            title: "Site Type",
+            stepId: "site-details",
+            description:
+              "Only types configured directly beneath this site's type are available.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: () => {
+              return fetchChildNetworkSiteTypeOptions(modelId);
+            },
+            required: true,
+            placeholder: "Select Child Site Type",
+          },
+          {
+            field: {
               name: true,
             },
             title: "Name",
@@ -81,23 +97,6 @@ const NetworkSiteChildSites: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Unit 1042 - Springfield",
-          },
-          {
-            field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            description:
-              "Level of this site in the hierarchy. Unit-level types are leaf sites — the network map opens their device topology. Manage the list in Network Settings.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSiteType,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Select Site Type",
           },
           {
             field: {

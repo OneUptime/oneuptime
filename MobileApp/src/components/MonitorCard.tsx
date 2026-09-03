@@ -29,6 +29,7 @@ function getMonitorTypeLabel(monitorType?: string): string {
     Domain: "Domain",
     Server: "Server",
     IncomingRequest: "Incoming",
+    Database: "Database",
     SyntheticMonitor: "Synthetic",
     CustomJavaScriptCode: "Custom",
     Logs: "Logs",

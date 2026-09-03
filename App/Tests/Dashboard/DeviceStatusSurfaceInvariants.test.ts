@@ -276,6 +276,39 @@ describe("every device-status surface selects the whole rule", () => {
   );
 
   /*
+   * The "No monitor" qualifier beside a monitor-backed Pending is decided
+   * from `monitorId`, which is deliberately NOT part of DEVICE_STATUS_SELECT
+   * (the rule does not read it, and DeviceStatusUtil.test.ts asserts that
+   * set whole). So each surface that prints the qualifier has to ask for the
+   * column itself, after the spread — and a surface that forgets would
+   * silently print a bare Pending for a device that will never leave it.
+   */
+  test.each([
+    {
+      name: "the device list",
+      parts: ["Pages", "NetworkDevice", "Devices.tsx"],
+    },
+    {
+      name: "the device Overview hero",
+      parts: ["Components", "NetworkDevice", "DeviceStatusHero.tsx"],
+    },
+    {
+      name: "a site's Devices tab",
+      parts: ["Pages", "NetworkSite", "View", "Devices.tsx"],
+    },
+  ])(
+    "$name selects monitorId after the spread, for the No monitor qualifier",
+    ({ parts }: { parts: Array<string> }) => {
+      const select: string = deviceSelectLiteral(...parts);
+
+      expect(select).toContain("monitorId: true");
+      expect(select.indexOf("monitorId: true")).toBeGreaterThan(
+        select.indexOf("...DEVICE_STATUS_SELECT"),
+      );
+    },
+  );
+
+  /*
    * The regression in one assertion: the select the surfaces share has to
    * carry the monitor columns, not just the poll ones. Without these two a
    * correctly bound ping-only device reads "Pending" on every screen above.

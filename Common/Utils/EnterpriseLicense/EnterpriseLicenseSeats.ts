@@ -222,6 +222,22 @@ export default class EnterpriseLicenseSeatsUtil {
       return null;
     }
 
+    /*
+     * The active-only aggregate contains none of this installation's stale
+     * reported users. Subtracting that old count would remove users belonging
+     * to active instances and under-enforce the license. Treat the complete
+     * aggregate as other-instance usage. We also cannot add the two counts:
+     * the same users may exist on both this installation and active ones.
+     * Return null to use the existing uncertainty fallback, which takes the
+     * larger complete-or-live total without subtracting or double-counting.
+     *
+     * Undefined retains the legacy behavior for responses from older license
+     * servers that did not send activity provenance.
+     */
+    if (thisInstance.isCountedTowardsUsage === false) {
+      return null;
+    }
+
     const ownReportedCount: number | null = this.parseCount(
       thisInstance.userCount,
     );

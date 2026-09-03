@@ -20,7 +20,7 @@ import { describe, expect, it, afterEach } from "@jest/globals";
  * the write-time validation in front of them.
  *
  * The pattern criteria are documented as case-insensitive regexes, but the
- * assignment rules right next to them in Network > Automation take '*'
+ * assignment rules right next to them in Network > Rules take '*'
  * wildcard globs. A rule written with the glob syntax - `*0664*` - used to
  * throw inside `new RegExp`, get swallowed, and silently label nothing
  * (OneUptime/oneuptime#2940). Both engines now accept either syntax, and a

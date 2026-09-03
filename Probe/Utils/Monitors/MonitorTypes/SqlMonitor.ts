@@ -4,6 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import { JSONObject } from "Common/Types/JSON";
+import SqlConnectionConfig from "Common/Types/Monitor/SqlConnectionConfig";
 import MonitorStepSqlMonitor, {
   clampSqlConnectionTimeoutInMs,
   clampSqlMaxRows,
@@ -284,13 +285,19 @@ export type SqlServerDriverLoader = (moduleId: string) => unknown;
  * the normal Tedious driver, while a trusted connection has only an ODBC
  * connection string and cannot accidentally forward a saved username/password.
  */
+/*
+ * Takes SqlConnectionConfig rather than MonitorStepSqlMonitor so the Database
+ * Health monitor can reuse it: the integrated-authentication path has to
+ * detect the host's ODBC driver and hand-build a connection string, and a
+ * second copy of that would drift from this one.
+ */
 export const buildMicrosoftSqlServerPoolConfig: (input: {
-  config: MonitorStepSqlMonitor;
+  config: SqlConnectionConfig;
   statementTimeoutInMs: number;
   connectionTimeoutInMs: number;
   odbcDriver?: string | undefined;
 }) => MicrosoftSqlServerPoolConfig = (input: {
-  config: MonitorStepSqlMonitor;
+  config: SqlConnectionConfig;
   statementTimeoutInMs: number;
   connectionTimeoutInMs: number;
   odbcDriver?: string | undefined;

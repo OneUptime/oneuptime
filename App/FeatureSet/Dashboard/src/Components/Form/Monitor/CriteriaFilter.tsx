@@ -15,10 +15,20 @@ import {
   FilterType,
   NoDataPolicy,
 } from "Common/Types/Monitor/CriteriaFilter";
+import {
+  DatabaseMetricCategory,
+  DatabaseMetricDefinition,
+  getAllDatabaseMetrics,
+  getDatabaseMetricByMetricType,
+  getDatabaseMetricCategoryOrder,
+  getDatabaseMetricsForEngine,
+} from "Common/Types/Monitor/DatabaseMetricCatalog";
+import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -566,6 +576,127 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     });
                   }}
                 />
+              </div>
+            );
+          })()}
+
+        {criteriaFilter?.checkOn === CheckOn.DatabaseMetric &&
+          (() => {
+            const databaseType: SqlDatabaseType | undefined =
+              props.monitorStep?.data?.databaseMonitor?.databaseType;
+
+            /*
+             * Offer only what the connected engine can actually produce.
+             * Stock MySQL has no deadlock counter and SQL Server has no
+             * fixed connection ceiling, so a threshold on either would sit
+             * permanently unmet - a rule that looks like coverage and is
+             * not. Before an engine has been chosen the whole catalog is
+             * the honest answer; the note below says so.
+             */
+            const metrics: Array<DatabaseMetricDefinition> = databaseType
+              ? getDatabaseMetricsForEngine(databaseType)
+              : getAllDatabaseMetrics();
+
+            const categoryOrder: Array<DatabaseMetricCategory> =
+              getDatabaseMetricCategoryOrder();
+
+            const metricOptions: Array<DropdownOption> = [...metrics]
+              .sort(
+                (
+                  a: DatabaseMetricDefinition,
+                  b: DatabaseMetricDefinition,
+                ): number => {
+                  const categoryDifference: number =
+                    categoryOrder.indexOf(a.category) -
+                    categoryOrder.indexOf(b.category);
+
+                  if (categoryDifference !== 0) {
+                    return categoryDifference;
+                  }
+
+                  return a.friendlyName.localeCompare(b.friendlyName);
+                },
+              )
+              .map((metric: DatabaseMetricDefinition): DropdownOption => {
+                return {
+                  value: metric.metricType,
+                  label: metric.unit
+                    ? `${metric.friendlyName} (${metric.unit})`
+                    : metric.friendlyName,
+                };
+              });
+
+            const savedMetricType: MonitorMetricType | undefined =
+              criteriaFilter?.databaseMonitorOptions?.metricType;
+
+            let selectedMetricOption: DropdownOption | undefined =
+              metricOptions.find((option: DropdownOption) => {
+                return option.value === savedMetricType;
+              });
+
+            /*
+             * Same rule as the OID picker above: never draw an empty
+             * control over a value that is saved. Switching the engine on
+             * the step below leaves criteria naming series the new engine
+             * never writes, and a blank dropdown would claim nothing was
+             * chosen while the monitor still evaluated that series.
+             */
+            if (savedMetricType && !selectedMetricOption) {
+              const staleMetric: DatabaseMetricDefinition | null =
+                getDatabaseMetricByMetricType(savedMetricType);
+
+              selectedMetricOption = {
+                value: savedMetricType,
+                label: staleMetric
+                  ? `${staleMetric.friendlyName} - not collected by ${databaseType}`
+                  : savedMetricType.toString(),
+              };
+
+              metricOptions.push(selectedMetricOption);
+            }
+
+            const selectedMetric: DatabaseMetricDefinition | null =
+              savedMetricType
+                ? getDatabaseMetricByMetricType(savedMetricType)
+                : null;
+
+            return (
+              <div className="mt-1">
+                <FieldLabelElement
+                  title="Metric"
+                  description="Which of the health metrics the probe collects should this criteria compare against?"
+                />
+                <Dropdown
+                  value={selectedMetricOption}
+                  options={metricOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      databaseMonitorOptions: {
+                        ...criteriaFilter?.databaseMonitorOptions,
+                        metricType: value?.toString() as MonitorMetricType,
+                      },
+                    });
+                  }}
+                />
+                {selectedMetric ? (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {selectedMetric.description}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {!databaseType ? (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Choose a database engine on the Monitor Details step first -
+                    every metric in the catalogue is listed until then,
+                    including ones your engine cannot report.
+                  </p>
+                ) : (
+                  <></>
+                )}
               </div>
             );
           })()}

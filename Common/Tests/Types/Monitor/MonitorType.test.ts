@@ -124,6 +124,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.ExternalStatusPage,
+      MonitorType.Database,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isProbableMonitor(monitorType)).toBe(true);
     });

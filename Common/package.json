@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "12.0.31",
+  "version": "12.0.32",
   "description": "",
   "repository": {
     "type": "git",
@@ -112,7 +112,7 @@
     "i18next": "^23.16.8",
     "ioredis": "^5.3.2",
     "isolated-vm": "^7.0.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.3.2",
     "json2csv": "^5.0.7",
     "json5": "^2.2.3",
     "jsonwebtoken": "^9.0.0",

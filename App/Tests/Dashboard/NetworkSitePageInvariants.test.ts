@@ -134,6 +134,37 @@ describe("Import Sites modal disarms a stale parse", () => {
       ),
     );
   });
+
+  test("the bundled example follows the complete default type hierarchy", () => {
+    const accountIndex: number = source.indexOf("Acme Account");
+    const regionIndex: number = source.indexOf("East Region");
+    const franchiseeIndex: number = source.indexOf("Franchise East");
+    const marketIndex: number = source.indexOf("Springfield Market");
+    const unitIndex: number = source.indexOf("Unit 1042");
+
+    expect(accountIndex).toBeGreaterThan(-1);
+    expect(accountIndex).toBeLessThan(regionIndex);
+    expect(regionIndex).toBeLessThan(franchiseeIndex);
+    expect(franchiseeIndex).toBeLessThan(marketIndex);
+    expect(marketIndex).toBeLessThan(unitIndex);
+    expect(source).toContain('"East Region",Region,"Acme Account"');
+    expect(source).toContain('"Franchise East",Franchisee,"East Region"');
+    expect(source).toContain('"Springfield Market",Market,"Franchise East"');
+    expect(source).toContain('"Unit 1042","Unit","Springfield Market"');
+  });
+
+  test("loads type metadata for existing-parent compatibility preflight", () => {
+    expect(source).toContain("parentNetworkSiteTypeId: true");
+    expect(source).toContain("networkSiteTypeId: true");
+    expect(source).toContain("existingSiteTypeIdByName");
+  });
+
+  test("loads every page of site types and existing parent sites", () => {
+    expect(source).toContain("allSiteTypes.push(...result.data)");
+    expect(source).toContain("skip += result.data.length");
+    expect(source).toContain("existingSites.push(...result.data)");
+    expect(source).toContain("existingSiteSkip += result.data.length");
+  });
 });
 
 /*

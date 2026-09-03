@@ -404,6 +404,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getDnssecRows(data);
       case MonitorType.SQLQuery:
         return MonitorStepViewModel.getSqlRows(data);
+      case MonitorType.Database:
+        return MonitorStepViewModel.getDatabaseRows(data);
       case MonitorType.ExternalStatusPage:
         return MonitorStepViewModel.getExternalStatusPageRows(data);
       case MonitorType.Logs:
@@ -895,6 +897,94 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.Number,
         value: sqlMonitor?.maxRows,
         placeholder: "Default",
+      }),
+    ]);
+  }
+
+  /*
+   * The password is deliberately absent, here and everywhere else this step
+   * is rendered. It is often a {{monitorSecrets.name}} reference rather than
+   * a literal, but naming the secret is still naming a credential, and this
+   * page is visible to anyone who can read the monitor.
+   */
+  private static getDatabaseRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const databaseMonitor: MonitorStepType["databaseMonitor"] =
+      data.databaseMonitor;
+
+    const database: string | undefined = databaseMonitor?.host
+      ? `${databaseMonitor.databaseType} · ${databaseMonitor.host}:${databaseMonitor.port}/${databaseMonitor.databaseName}`
+      : undefined;
+
+    return compact([
+      {
+        key: "databaseConnection",
+        title: "Database",
+        description: "The database server this monitor collects health from.",
+        valueType: MonitorStepViewValueType.Text,
+        value: database,
+        placeholder: "No data entered",
+      },
+      optional({
+        key: "databaseUsername",
+        title: "Username",
+        description: "The database user this monitor connects as.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(databaseMonitor?.username),
+        placeholder: "No data entered",
+      }),
+      optional({
+        key: "databaseWindowsAuthentication",
+        title: "Windows Integrated Authentication",
+        description:
+          "When set, the probe authenticates as the identity it runs under instead of using a username and password.",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: databaseMonitor?.useWindowsIntegratedAuthentication,
+        placeholder: "No",
+      }),
+      optional({
+        key: "databaseUseSsl",
+        title: "Use SSL",
+        description: "Whether the connection to the database is encrypted.",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: databaseMonitor?.useSsl,
+        placeholder: "No",
+      }),
+      optional({
+        key: "databaseRejectUnauthorizedSsl",
+        title: "Verify Server Certificate",
+        description:
+          "Whether the database's TLS certificate must be signed by a trusted authority.",
+        valueType: MonitorStepViewValueType.Boolean,
+        value: databaseMonitor?.rejectUnauthorizedSsl,
+        placeholder: "No",
+      }),
+      optional({
+        key: "databaseConnectionTimeoutInMs",
+        title: "Connection Timeout",
+        description: "How long the probe waits to establish a connection.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(databaseMonitor?.connectionTimeoutInMs),
+        placeholder: "Default",
+      }),
+      optional({
+        key: "databaseStatementTimeoutInMs",
+        title: "Statement Timeout",
+        description:
+          "How long one statistics query may run before that group is abandoned.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toMilliseconds(databaseMonitor?.statementTimeoutInMs),
+        placeholder: "Default",
+      }),
+      optional({
+        key: "databaseMetricGroups",
+        title: "Collected Metric Groups",
+        description:
+          "The groups of statistics this monitor collects. A group whose grant is missing is reported as unavailable, not as an outage.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: databaseMonitor?.enabledMetricGroups,
+        placeholder: "All groups",
       }),
     ]);
   }

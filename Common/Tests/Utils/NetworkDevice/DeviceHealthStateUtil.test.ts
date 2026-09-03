@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import OneUptimeDate from "../../../Types/Date";
 import {
   DeviceHealthCounts,
+  DeviceHealthStateInput,
   NetworkDeviceHealthState,
   addDeviceHealth,
   deviceAttentionCount,
@@ -223,6 +224,36 @@ describe("deviceHealthState — reachability, when nothing is stamped", () => {
     expect(deviceHealthState({ lastPolledAt: minutesAgo(30) }, NOW)).toBe(
       "down",
     );
+  });
+
+  /*
+   * Issue #3562. A monitor-backed device is never polled, so whatever its
+   * poll columns hold is either NULL or what a probe last found before it
+   * stopped asking — a device switched over from SNMP keeps a lastSeenAt
+   * from months ago. With nothing stamped yet the only honest answer is
+   * "unknown", which is also what the device list says about the same row;
+   * letting the legacy freshness branch read that timestamp would put the
+   * site card at odds with the pill under it.
+   */
+  test("a monitor-backed device nothing has reported on is unknown, whatever its leftover poll columns say", () => {
+    const leftovers: DeviceHealthStateInput = {
+      isReachable: null,
+      lastSeenAt: minutesAgo(60 * 24 * 30),
+      pollingIntervalInMinutes: 5,
+    };
+
+    // The legacy branch, for a device that IS polled: staleness decides.
+    expect(deviceHealthState(leftovers, NOW)).toBe("down");
+    expect(
+      deviceHealthState({ ...leftovers, monitoringMethod: "Monitor" }, NOW),
+    ).toBe("unknown");
+    // ...and a mirrored outcome without a stamp is not a verdict either.
+    expect(
+      deviceHealthState(
+        { ...leftovers, isReachable: true, monitoringMethod: "Monitor" },
+        NOW,
+      ),
+    ).toBe("unknown");
   });
 });
 

@@ -34,7 +34,9 @@ import {
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import NetworkDeviceMonitoringMethod, {
+  NetworkDeviceMonitoringMethodUtil,
+} from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * Fleet-wide numbers for the Network area, counted in Postgres.
@@ -396,6 +398,15 @@ async function getDevicesNeedingAttention(data: {
           : null,
         interfacesDown: device.interfacesDown || 0,
         isDown: classify(device) === NetworkDeviceReachability.Down,
+        /*
+         * So the Overview can word the row for what actually judged it: a
+         * monitor-backed device has no "last SNMP poll" and no lastSeenAt,
+         * and "Never answered" is the wrong thing to print beside a Ping
+         * monitor that just reported it offline.
+         */
+        isMonitorBacked: NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+          device.monitoringMethod,
+        ),
       };
     });
 }

@@ -8,7 +8,10 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
  * Resolves the four project-scoped ids a monitor's default criteria are seeded
- * with, for the discovery import's "create a Ping monitor" option.
+ * with, for every surface that provisions a Ping monitor: the discovery
+ * import's "create a Ping monitor" option, the device create form, the device
+ * page's "Create Ping Monitor" button and the device list's bulk action. The
+ * messages below say "try again" rather than naming any one of them.
  *
  * These are properties of the PROJECT, not of any one host, so the import loop
  * resolves them ONCE and reuses the set for every device — a 14-host import
@@ -94,19 +97,19 @@ export default class PingMonitorSeedIds {
 
     if (!onlineMonitorStatus?.id || !offlineMonitorStatus?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then import again.",
+        "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
       );
     }
 
     if (!incidentSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then import again.",
+        "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.",
       );
     }
 
     if (!alertSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then import again.",
+        "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.",
       );
     }
 

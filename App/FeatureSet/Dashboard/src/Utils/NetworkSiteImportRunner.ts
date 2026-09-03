@@ -64,6 +64,12 @@ export interface RunSiteImportOptions {
    * works on its own copy.
    */
   existingSiteIdByName: Map<string, string>;
+  /*
+   * The existing sites' type ids, loaded alongside their ids. When supplied,
+   * the planner rejects a child whose named existing parent has the wrong type
+   * before createSite is called for any row.
+   */
+  existingSiteTypeIdByName?: Map<string, string | null> | undefined;
   createSite: CreateSiteFunction;
   // Called after the skip pass and after every attempted row.
   onProgress?: ((progress: SiteImportProgress) => void) | undefined;
@@ -117,6 +123,7 @@ export async function runSiteImport(
   const plan: SiteImportPlan = planSiteImport(
     options.rows,
     Array.from(siteIdByName.keys()),
+    options.existingSiteTypeIdByName,
   );
 
   const results: Array<SiteImportRowResult> = [];
