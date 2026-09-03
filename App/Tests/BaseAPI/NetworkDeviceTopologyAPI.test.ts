@@ -11,6 +11,7 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
+import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -1390,5 +1391,66 @@ describe("POST /network-device/topology — link rules past the device row cap",
     expect(warnings.length).toBe(1);
     expect(warnings[0]!["sites"]).toBeUndefined();
     expect(warnings[0]!["siteCount"]).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #3562 — a monitor-backed device is never polled, so its poll columns
+ * are either NULL or the last thing a probe found before it was switched
+ * over from SNMP. The graph's shared rule reads `monitoringMethod` to know
+ * which, and this endpoint is the one place that copies a device ROW into
+ * the graph's input by hand: forgetting the column in the select, or in the
+ * mapping, leaves the field undefined — which parses as SNMP and draws the
+ * device red off a months-old lastSeenAt while the device list beside the
+ * map reads Pending. Neither omission fails to compile.
+ */
+describe("POST /network-device/topology — monitor-backed devices", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+    deviceRoleService.findBy.mockResolvedValue([] as never);
+  });
+
+  test("asks the device query for the monitoring method beside the poll columns", async () => {
+    await callTopology({});
+
+    const select: JSONObject = (
+      deviceService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+    expect(select["monitoringMethod"]).toBe(true);
+    // The facts it qualifies still have to come back with it.
+    expect(select["isReachable"]).toBe(true);
+    expect(select["lastSeenAt"]).toBe(true);
+    expect(select["currentMonitorStatusId"]).toBe(true);
+  });
+
+  test("an unbound monitor-backed device with leftover poll columns is unknown, not down", async () => {
+    // Long past any staleness window the default interval can produce.
+    const monthsAgo: Date = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    const switchedOver: NetworkDevice = makeDevice("ping-only-ap");
+    switchedOver.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+    // No poll outcome at all (exactOptionalPropertyTypes forbids `= undefined`).
+    delete switchedOver.isReachable;
+    switchedOver.lastSeenAt = monthsAgo;
+
+    // The same columns on a device that IS polled: the legacy freshness branch.
+    const stillWalked: NetworkDevice = makeDevice("walked-sw");
+    delete stillWalked.isReachable;
+    stillWalked.lastSeenAt = monthsAgo;
+
+    deviceService.findBy.mockResolvedValue([
+      switchedOver,
+      stillWalked,
+    ] as never);
+
+    await callTopology({});
+
+    const statusByName: Map<string, string> = new Map<string, string>();
+    for (const node of lastResponseBody()["nodes"] as Array<JSONObject>) {
+      statusByName.set(node["name"] as string, node["status"] as string);
+    }
+
+    expect(statusByName.get("ping-only-ap")).toBe("unknown");
+    expect(statusByName.get("walked-sw")).toBe("down");
   });
 });

@@ -12,6 +12,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -137,8 +138,58 @@ function readOidTemplateIdFromData(
   );
 }
 
+/*
+ * readConsistent for the same reason as the OID template above: the create
+ * and update guards validate the id this returns, and TypeORM's precedence
+ * between `monitorId` and `monitor` is not a security boundary. A payload
+ * that writes both spellings with different ids would have one of them
+ * validated and the other persisted, so the contradiction is refused
+ * instead of picked from.
+ */
 function readMonitorIdFromData(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, MONITOR_KEYS);
+  return RelationIdUtil.readConsistent(data, MONITOR_KEYS, "Monitor");
+}
+
+/*
+ * The poll columns an SNMP walk writes and nothing else ever should. On a
+ * device switched to monitor-backed they are residue — the last thing a
+ * probe found before it stopped asking — and left in place they keep
+ * describing a device nothing polls: DeviceReachabilityUtil's legacy branch
+ * judges a row with `lastSeenAt` and no `isReachable` by freshness, and the
+ * network summary's "degraded" query is `isReachable = true AND
+ * interfacesDown > 0`. Cleared on the SNMP -> Monitor transition
+ * (onUpdateSuccess) and once on upgrade
+ * (BackfillMonitorBackedDeviceReachability), as a root write in both places:
+ * these columns are updatable by fewer roles than `monitoringMethod` is, so
+ * putting them on the caller's own payload would refuse a project member's
+ * legitimate switch.
+ */
+function pollResidueReset(): PartialEntity<Model> {
+  return {
+    lastSeenAt: null,
+    lastPolledAt: null,
+    isReachable: null,
+    interfacesUp: null,
+    interfacesDown: null,
+  };
+}
+
+/*
+ * What onBeforeUpdate hands onUpdateSuccess.
+ *
+ * `previousDevices` is the pre-write snapshot of every matched device, for
+ * the site and identity maintenance. `wasMonitorBackedByDeviceId` is only
+ * present on a write that carries `monitoringMethod`, and records which of
+ * those devices were monitor-backed BEFORE the write. By the time
+ * onUpdateSuccess runs only the NEW method is on the row, and the payload
+ * alone cannot tell a real Monitor -> SNMP transition from the Settings form
+ * re-sending "SNMP" on an SNMP device — which it does on every save, and
+ * which used to wipe the stamp that device's Network Device monitor had put
+ * there.
+ */
+interface DeviceUpdateCarryForward {
+  previousDevices: Array<Model>;
+  wasMonitorBackedByDeviceId?: Record<string, boolean>;
 }
 
 /*
@@ -976,30 +1027,39 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const monitorId: ObjectID | null = readMonitorIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * The monitor is NOT required. Discovery import is why: a subnet sweep
+     * finds ping-only hosts in bulk and there is no monitor to bind them to
+     * yet. Such a device is still worth recording — it belongs to a site,
+     * carries labels, and appears on the topology map — and its status reads
+     * Pending, tagged "No monitor", which is exactly true until somebody
+     * points a monitor at it.
+     *
+     * But any binding that IS supplied is tenant-checked, whatever the
+     * monitoring method. This guard used to sit inside the monitor-backed
+     * branch below, which left an SNMP-method create (or one with the method
+     * omitted) free to persist another project's monitor FK: the FK only
+     * proves the Monitor row exists, an SNMP device may legitimately carry a
+     * monitorId (NetworkSiteService.onMonitorStatusChanged stamps from it),
+     * and a nested select through the relation reads that monitor's
+     * configuration. The update path runs the same check.
+     */
+    if (monitorId) {
+      await this.assertMonitorBelongsToProject({
+        monitorId: monitorId,
+        projectId: createBy.data.projectId,
+      });
+    }
+
     if (
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
         createBy.data.monitoringMethod,
       )
     ) {
-      const monitorId: ObjectID | null = readMonitorIdFromData(
-        createBy.data as unknown as Record<string, unknown>,
-      );
-
-      /*
-       * The monitor is NOT required here, though the create form asks for
-       * one. Discovery import is why: a subnet sweep finds ping-only hosts
-       * in bulk and there is no monitor to bind them to yet. Such a device
-       * is still worth recording — it belongs to a site, carries labels, and
-       * appears on the topology map — and its status reads "pending", which
-       * is exactly true until somebody points a monitor at it.
-       */
-      if (monitorId) {
-        await this.assertMonitorBelongsToProject({
-          monitorId: monitorId,
-          projectId: createBy.data.projectId,
-        });
-      }
-
       /*
        * Not a preference: a monitor-backed device has no probe and no
        * credentials, so leaving polling on would queue a walk that can only
@@ -1116,9 +1176,13 @@ export class Service extends DatabaseService<Model> {
   /*
    * Capture the previous state of every matched device when an update
    * touches siteId (so onUpdateSuccess can refresh the OLD site's rollup as
-   * well as the new one) or touches one of the columns site assignment rules
+   * well as the new one), touches one of the columns site assignment rules
    * match on (so onUpdateSuccess can tell a real rename from the identical
-   * sysName the SNMP walk rewrites on every poll).
+   * sysName the SNMP walk rewrites on every poll), or touches
+   * monitoringMethod (so onUpdateSuccess can tell a real Monitor -> SNMP
+   * transition from a form re-sending the method the device already has).
+   * The same read feeds the tenancy guards on the site, monitor and OID
+   * template references.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -1148,6 +1212,16 @@ export class Service extends DatabaseService<Model> {
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(writtenMethod);
 
     if (becomesMonitorBacked) {
+      /*
+       * Only the polling flag is forced onto the payload, deliberately. The
+       * poll residue the device carries over from its SNMP days has to go
+       * too, but the column-permission check runs on this payload AFTER the
+       * hook, and those columns are updatable by fewer roles than
+       * monitoringMethod is — so adding them here would turn a project
+       * member's legitimate switch into a permission failure.
+       * onUpdateSuccess clears them as root once the transition has
+       * committed; see pollResidueReset.
+       */
       updateBy.data.isPollingEnabled = false;
     }
 
@@ -1159,37 +1233,21 @@ export class Service extends DatabaseService<Model> {
      * nothing ever polled it. Only checked when the payload actually asks
      * for it, so the ordinary update path costs no extra query.
      */
-    if (
+    const isPollingTurnOn: boolean =
       !becomesMonitorBacked &&
       dataKeys.includes("isPollingEnabled") &&
-      updateBy.data.isPollingEnabled === true
-    ) {
-      const targets: Array<Model> = await this.findBy({
-        query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-        select: {
-          _id: true,
-          monitoringMethod: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      updateBy.data.isPollingEnabled === true;
 
-      const isTargetMonitorBacked: boolean = targets.some((target: Model) => {
-        return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-          target.monitoringMethod,
-        );
-      });
-
-      // Unless the same write is moving it back to SNMP, which is allowed.
-      if (isTargetMonitorBacked && !(isMethodWrite && !becomesMonitorBacked)) {
-        throw new BadDataException(
-          "This device is monitor-backed, so there is nothing to poll — it has no probe and no SNMP credentials. Switch its monitoring method to SNMP first.",
-        );
-      }
-    }
+    /*
+     * Read — and, for conflicting spellings, refused — before the early
+     * return below, so a payload that points `monitorId` and `monitor` at
+     * different rows is rejected on every write shape rather than only on
+     * the ones that happen to need the snapshot. Null means the write
+     * unbinds the monitor, or does not mention it; neither needs a lookup.
+     */
+    const newMonitorId: ObjectID | null = readMonitorIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     const isSiteChange: boolean = isSiteWrite(dataKeys);
     const isIdentityChange: boolean = SITE_RULE_IDENTITY_COLUMNS.some(
@@ -1219,7 +1277,18 @@ export class Service extends DatabaseService<Model> {
     );
     const isDeviceOidsChange: boolean = updateBy.data.snmpOids !== undefined;
 
+    /*
+     * One snapshot read serves every guard and carry-forward below, and the
+     * SNMP walk's per-poll column writes — the hot path through here — need
+     * none of them. Binding a monitor is on the list for the same reason the
+     * OID template is: it is exactly the write shape that changes neither
+     * site nor identity, so a tenancy guard placed below a narrower return
+     * would never run on the only write it exists for.
+     */
     if (
+      !isMethodWrite &&
+      !isPollingTurnOn &&
+      !newMonitorId &&
       !isSiteChange &&
       !isIdentityChange &&
       !isOidTemplateChange &&
@@ -1240,6 +1309,8 @@ export class Service extends DatabaseService<Model> {
         // Decide which OID budget applies below, and whether a link would truncate.
         oidTemplateId: true,
         snmpOids: true,
+        // The polling guard and the method transition both need the OLD method.
+        monitoringMethod: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -1247,6 +1318,47 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    if (isPollingTurnOn) {
+      const isTargetMonitorBacked: boolean = previousDevices.some(
+        (target: Model) => {
+          return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            target.monitoringMethod,
+          );
+        },
+      );
+
+      // Unless the same write is moving it back to SNMP, which is allowed.
+      if (isTargetMonitorBacked && !(isMethodWrite && !becomesMonitorBacked)) {
+        throw new BadDataException(
+          "This device is monitor-backed, so there is nothing to poll — it has no probe and no SNMP credentials. Switch its monitoring method to SNMP first.",
+        );
+      }
+    }
+
+    /*
+     * Which of the matched devices were monitor-backed BEFORE this write.
+     * Only recorded on a method write, because only a method write can be a
+     * transition; see DeviceUpdateCarryForward for what onUpdateSuccess does
+     * with it and why the payload alone is not enough.
+     */
+    let wasMonitorBackedByDeviceId: Record<string, boolean> | undefined =
+      undefined;
+
+    if (isMethodWrite) {
+      wasMonitorBackedByDeviceId = {};
+
+      for (const previousDevice of previousDevices) {
+        if (!previousDevice.id) {
+          continue;
+        }
+
+        wasMonitorBackedByDeviceId[previousDevice.id.toString()] =
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            previousDevice.monitoringMethod,
+          );
+      }
+    }
 
     const newSiteId: ObjectID | null = readSiteIdFromData(
       updateBy.data as unknown as Record<string, unknown>,
@@ -1266,6 +1378,34 @@ export class Service extends DatabaseService<Model> {
 
         await this.assertSiteBelongsToProject({
           siteId: newSiteId,
+          projectId: previousDevice.projectId,
+        });
+      }
+    }
+
+    /*
+     * The monitor guard on the UPDATE path. Until this existed only
+     * onBeforeCreate checked the binding, so a device could be created
+     * clean and then re-pointed at another project's monitor with a plain
+     * update — and read that monitor's status through the device, since
+     * refreshStampedMonitorStatus stamps whatever `monitorId` names. One
+     * check per distinct project in the matched set, like the site guard
+     * above. An unbind (null) has nothing to check.
+     */
+    if (newMonitorId) {
+      const checkedMonitorProjectIds: Set<string> = new Set();
+
+      for (const previousDevice of previousDevices) {
+        if (
+          !previousDevice.projectId ||
+          checkedMonitorProjectIds.has(previousDevice.projectId.toString())
+        ) {
+          continue;
+        }
+        checkedMonitorProjectIds.add(previousDevice.projectId.toString());
+
+        await this.assertMonitorBelongsToProject({
+          monitorId: newMonitorId,
           projectId: previousDevice.projectId,
         });
       }
@@ -1351,17 +1491,24 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const carryForward: DeviceUpdateCarryForward = {
+      previousDevices: previousDevices,
+    };
+
+    if (wasMonitorBackedByDeviceId) {
+      carryForward.wasMonitorBackedByDeviceId = wasMonitorBackedByDeviceId;
+    }
+
     return {
       updateBy,
-      carryForward: {
-        previousDevices: previousDevices,
-      },
+      carryForward: carryForward,
     };
   }
 
   /*
-   * Re-derives one device's stamped `currentMonitorStatusId` from its
-   * binding, and refreshes its site chain if the stamp moved.
+   * Re-derives one device's stamped `currentMonitorStatusId` — and, for a
+   * monitor-backed device, its `isReachable` — from its binding, and
+   * refreshes its site chain if either moved.
    *
    * The stamp is what every monitor-backed surface reads — the device list
    * pill, the site rollup, the topology node — and until this existed the
@@ -1373,14 +1520,33 @@ export class Service extends DatabaseService<Model> {
    * OneUptime/oneuptime#3392. Binding is itself an event that decides the
    * device's status, so it stamps here.
    *
+   * `isReachable` rides along because the device list's summary tiles and
+   * its Status facet count and filter in SQL, over that column alone — they
+   * cannot evaluate the stamp's ladder per row — so a monitor-backed device
+   * whose stamp said Operational still counted as "Pending" there. The
+   * value written is `!MonitorStatus.isOfflineState`: the OFFLINE end of the
+   * ladder, not the operational one, because that is exactly what
+   * DeviceReachabilityUtil reads for the pill (a "Degraded" row is neither
+   * operational nor offline, and reads as reachable on both). NULL when
+   * nothing is bound or the monitor has no status, which is the honest
+   * "Pending" the util renders for `undefined`. For an SNMP device the walk
+   * owns `isReachable`, and this method never touches it.
+   *
    * `clearWhenNotMonitorBacked` is for the write that moves a device OFF
    * monitor-backed: the ping monitor's verdict must not outlive the binding
    * (DeviceHealthStateUtil lets a stamped status beat reachability, so a
    * stale one would poison the site rollup of a device that is now walked).
    * It is deliberately NOT set when a write only touches the monitor
-   * binding of an SNMP device, because an SNMP device's stamp comes from
-   * the Network Device monitor that watches it, and that binding lives in
-   * the monitor's step data rather than in this column.
+   * binding of an SNMP device, nor when a form re-sends "SNMP" on a device
+   * that already is one, because an SNMP device's stamp comes from the
+   * Network Device monitor that watches it, and that binding lives in the
+   * monitor's step data rather than in this column. onBeforeUpdate records
+   * the old method so onUpdateSuccess can tell the two apart.
+   *
+   * Idempotent: everything is re-derived from the binding, nothing from what
+   * a previous call wrote, and nothing is written when the row already
+   * agrees — which is what makes it safe from every save, from monitor
+   * deletion, and from a backfill running twice concurrently.
    */
   @CaptureSpan()
   public async refreshStampedMonitorStatus(data: {
@@ -1396,6 +1562,7 @@ export class Service extends DatabaseService<Model> {
         monitoringMethod: true,
         monitorId: true,
         currentMonitorStatusId: true,
+        isReachable: true,
       },
       props: {
         isRoot: true,
@@ -1411,13 +1578,54 @@ export class Service extends DatabaseService<Model> {
         device.monitoringMethod,
       );
 
-    if (!isMonitorBacked && !data.clearWhenNotMonitorBacked) {
+    if (!isMonitorBacked) {
+      if (!data.clearWhenNotMonitorBacked) {
+        return;
+      }
+
+      /*
+       * The device has just left monitor-backed. While it was monitor-backed
+       * its `isReachable` could only ever be the bound monitor's mirror: the
+       * walk's value was NULLed on the way in (pollResidueReset), and
+       * NetworkInventoryUtil never writes it for a monitor-backed row. So the
+       * mirror goes with the stamp — otherwise a device switched back to SNMP
+       * would read "Down — the last SNMP poll could not reach it" (or Up) on
+       * every surface, from the verdict of a monitor that no longer governs
+       * it, until a walk happens to land. NULL is the honest answer: Pending
+       * until the first poll decides.
+       *
+       * Nothing to clear means nothing to write — a null-over-null write
+       * would still recompute the site chain for nothing.
+       */
+      const hasStamp: boolean = Boolean(device.currentMonitorStatusId);
+      const hasMirroredReachability: boolean =
+        typeof device.isReachable === "boolean";
+
+      if (!hasStamp && !hasMirroredReachability) {
+        return;
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: data.deviceId,
+        data: {
+          currentMonitorStatusId: null,
+          isReachable: null,
+        },
+      });
+
+      if (device.siteId) {
+        await NetworkSiteService.recomputeRollupForSiteAndAncestors(
+          device.siteId,
+        );
+      }
+
       return;
     }
 
     let monitorStatusId: ObjectID | null = null;
+    let nextReachable: boolean | null = null;
 
-    if (isMonitorBacked && device.monitorId) {
+    if (device.monitorId) {
       /*
        * Scoped to the device's project on the read as well as on the write
        * path in onBeforeCreate/onBeforeUpdate: a monitor from another
@@ -1431,6 +1639,9 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           currentMonitorStatusId: true,
+          currentMonitorStatus: {
+            isOfflineState: true,
+          },
         },
         props: {
           isRoot: true,
@@ -1438,20 +1649,34 @@ export class Service extends DatabaseService<Model> {
       });
 
       monitorStatusId = monitor?.currentMonitorStatusId || null;
+
+      if (monitorStatusId) {
+        nextReachable = monitor?.currentMonitorStatus?.isOfflineState !== true;
+      }
     }
 
     const currentStampId: string | null =
       device.currentMonitorStatusId?.toString() || null;
     const nextStampId: string | null = monitorStatusId?.toString() || null;
 
-    if (currentStampId === nextStampId) {
+    /*
+     * A NULL column reads back as undefined on the model; both mean "no
+     * verdict", and comparing them as one keeps a device that already
+     * agrees from being rewritten on every save.
+     */
+    const currentReachable: boolean | null =
+      typeof device.isReachable === "boolean" ? device.isReachable : null;
+
+    if (currentStampId === nextStampId && currentReachable === nextReachable) {
       return;
     }
 
+    // One write, so the two columns can never be seen disagreeing.
     await this.updateColumnsByIdWithoutHooks({
       id: data.deviceId,
       data: {
         currentMonitorStatusId: monitorStatusId,
+        isReachable: nextReachable,
       },
     });
 
@@ -1485,10 +1710,68 @@ export class Service extends DatabaseService<Model> {
       );
 
       if (isMethodWrite || isMonitorWrite) {
+        // Same parse as onBeforeUpdate: only a plain string is a method.
+        const writtenMethod: unknown = (
+          onUpdate.updateBy.data as unknown as Record<string, unknown>
+        )["monitoringMethod"];
+        const becomesMonitorBacked: boolean =
+          isMethodWrite &&
+          typeof writtenMethod === "string" &&
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(writtenMethod);
+
+        /*
+         * Recorded by onBeforeUpdate on every method write. Absent on a
+         * binding-only write, where nothing can have transitioned.
+         */
+        const wasMonitorBackedByDeviceId: Record<string, boolean> =
+          (onUpdate.carryForward as DeviceUpdateCarryForward | null)
+            ?.wasMonitorBackedByDeviceId || {};
+
         for (const deviceId of updatedItemIds) {
+          const wasMonitorBacked: boolean | undefined =
+            wasMonitorBackedByDeviceId[deviceId.toString()];
+
+          /*
+           * SNMP -> Monitor: the probe's last findings are now residue on a
+           * device nothing polls, and they would keep feeding the legacy
+           * staleness rule and the "degraded" query. Cleared as root here
+           * rather than on the caller's payload (see onBeforeUpdate for the
+           * permission reason), and BEFORE the re-stamp, so a device bound
+           * in the same write ends up with its monitor's verdict rather
+           * than the walk's. A device the snapshot did not record is
+           * cleared too: the write is idempotent, and "unknown" must not
+           * mean "keep the residue".
+           */
+          if (becomesMonitorBacked && wasMonitorBacked !== true) {
+            try {
+              await this.updateColumnsByIdWithoutHooks({
+                id: deviceId,
+                data: pollResidueReset(),
+              });
+            } catch (error) {
+              /*
+               * Bookkeeping, and separable from the re-stamp: the monitor's
+               * verdict below still lands, and a set isReachable keeps the
+               * legacy freshness branch out of play even with the dates
+               * left behind.
+               */
+              logger.error(
+                `Error in NetworkDeviceService.onUpdateSuccess poll residue reset for device ${deviceId.toString()}: ${error}`,
+              );
+            }
+          }
+
+          /*
+           * Only a device that WAS monitor-backed and now is not may have
+           * its stamp cleared. The Settings form re-sends monitoringMethod
+           * on every save, so "the payload says SNMP" is not a transition —
+           * treating it as one wiped the stamp a Network Device monitor had
+           * put on every SNMP device that was ever saved.
+           */
           await this.refreshStampedMonitorStatus({
             deviceId: deviceId,
-            clearWhenNotMonitorBacked: isMethodWrite,
+            clearWhenNotMonitorBacked:
+              wasMonitorBacked === true && !becomesMonitorBacked,
           });
         }
       }

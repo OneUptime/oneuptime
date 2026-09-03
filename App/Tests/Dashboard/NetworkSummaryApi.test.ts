@@ -3,7 +3,7 @@ import Dictionary from "Common/Types/Dictionary";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
  * NetworkSummaryApi is the seam where an HTTP body becomes the typed numbers
@@ -649,6 +649,34 @@ describe("fetchNetworkOverview", () => {
     };
   }
 
+  /*
+   * The Overview words a down row for what judged it: "Monitor reports
+   * offline" for a monitor-backed device, "Last seen …" / "Never answered"
+   * for a polled one. Anything but a literal `true` reads as polled, so an
+   * older server that never sent the flag keeps the SNMP wording it always
+   * had.
+   */
+  test.each([
+    [true, true],
+    ["true", false],
+    [1, false],
+    [undefined, false],
+  ])(
+    "reads isMonitorBacked %p on an attention row as %p",
+    async (raw: unknown, expected: boolean) => {
+      const overview: JSONObject = wellFormedOverview();
+      const rows: Array<JSONObject> = overview[
+        "attentionDevices"
+      ] as Array<JSONObject>;
+      (rows[0] as JSONObject)["isMonitorBacked"] = raw as JSONValue;
+      respondWith(overview);
+
+      const parsed: NetworkOverviewSummary = await fetchNetworkOverview();
+
+      expect(parsed.attentionDevices[0]!.isMonitorBacked).toBe(expected);
+    },
+  );
+
   test("reads a well-formed overview", async () => {
     respondWith(wellFormedOverview());
 
@@ -675,6 +703,8 @@ describe("fetchNetworkOverview", () => {
         lastSeenAt: "2026-08-20T10:00:00.000Z",
         interfacesDown: 0,
         isDown: true,
+        // Absent from an older server's row reads as "judged by a poll".
+        isMonitorBacked: false,
       },
     ]);
     expect(overview.attentionSites).toEqual([
@@ -1059,6 +1089,7 @@ describe("fetchNetworkOverview", () => {
         lastSeenAt: null,
         interfacesDown: 3,
         isDown: false,
+        isMonitorBacked: false,
       },
     ]);
   });
@@ -1167,6 +1198,7 @@ describe("fetchNetworkOverview", () => {
       "id",
       "interfacesDown",
       "isDown",
+      "isMonitorBacked",
       "lastSeenAt",
       "name",
     ]);

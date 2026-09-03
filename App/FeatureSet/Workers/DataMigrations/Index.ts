@@ -106,6 +106,7 @@ import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRu
 import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStatus";
 import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNotificationSettingsForUsers";
 import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
+import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -384,6 +385,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Conflicting legacy layouts are logged and left for explicit admin choice.
    */
   new BackfillNetworkSiteTypeParents(),
+  /*
+   * Keeps `isReachable` on monitor-backed network devices in line with the
+   * bound monitor (the device list's summary tiles and Status facet count
+   * and filter on that column alone, so those devices read "Pending" there
+   * whatever their monitor said) and clears the poll residue a device
+   * switched over from SNMP still carried. Walks every monitor-backed
+   * device, bound or not, in id-ordered pages. Idempotent: the reset writes
+   * NULLs and the re-stamp is re-derived from the binding.
+   */
+  new BackfillMonitorBackedDeviceReachability(),
 ];
 
 export default DataMigrations;

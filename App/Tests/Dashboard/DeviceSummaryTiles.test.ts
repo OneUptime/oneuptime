@@ -209,6 +209,27 @@ describe("DEVICE_SUMMARY_TILES", () => {
   });
 
   /*
+   * The counts now include monitor-backed devices — the server keeps
+   * `isReachable` in step with the bound monitor's status — so a caption
+   * that credits every verdict to "the last SNMP poll" describes half the
+   * fleet. The poll may still be named, but only beside the monitor.
+   */
+  test("the Up and Down captions credit the bound monitor as well as the poll", () => {
+    for (const key of ["devices-up", "devices-down"]) {
+      const caption: string = tileByKey(key).caption;
+
+      expect(caption).toContain("bound monitor");
+      expect(caption).toContain("SNMP poll");
+    }
+  });
+
+  test("the Pending caption names a missing monitor as one way to be pending", () => {
+    expect(tileByKey("devices-pending").caption.toLowerCase()).toContain(
+      "no monitor bound",
+    );
+  });
+
+  /*
    * Unlike the Sites strip — where the total clears the bar and Unassigned
    * Devices leaves the page — every device tile narrows this page's own list. A
    * null facetKey here would mean the tile clears the bar instead, so the click

@@ -47,6 +47,8 @@ const NOW: Date = OneUptimeDate.fromString("2026-08-27T12:00:00.000Z");
 /** A device row as it exists in Postgres, before any grouping. */
 interface DeviceRow {
   monitorStatusIsOffline: boolean | undefined;
+  // Raw column value: null for rows written before it existed.
+  monitoringMethod: string | null;
   isReachable: boolean | null;
   lastPolledAt: Date | null;
   lastSeenAt: Date | null;
@@ -94,7 +96,7 @@ function bucketFor(
     // The bucket key stands for the status; the flag is passed alongside it.
     monitorStatusId:
       device.monitorStatusIsOffline === undefined ? null : "status-id",
-    monitoringMethod: null,
+    monitoringMethod: device.monitoringMethod,
     isReachable: device.isReachable,
     hasBeenPolled: device.lastPolledAt !== null,
     hasBeenSeen: device.lastSeenAt !== null,
@@ -116,6 +118,7 @@ function toClassifierInput(device: DeviceRow): DeviceHealthStateInput {
     lastPolledAt: device.lastPolledAt,
     lastSeenAt: device.lastSeenAt,
     pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+    monitoringMethod: device.monitoringMethod,
     interfacesDown: device.interfacesDown,
   };
 }
@@ -156,6 +159,7 @@ function everyDistinguishableDevice(): Array<DeviceRow> {
             for (const interfacesDown of interfaceCounts) {
               rows.push({
                 monitorStatusIsOffline: monitorStatusIsOffline,
+                monitoringMethod: null,
                 isReachable: isReachable,
                 lastPolledAt: lastPolledAt,
                 lastSeenAt: lastSeenAt,
@@ -169,15 +173,32 @@ function everyDistinguishableDevice(): Array<DeviceRow> {
     }
   }
 
-  return rows;
+  /*
+   * Doubled across the monitoring method last, so every combination above
+   * exists once as an SNMP row and once as a monitor-backed row holding the
+   * SAME poll columns — which is exactly the shape a device switched from
+   * SNMP to Monitor has, and the shape that must classify differently.
+   */
+  const monitoringMethods: Array<string | null> = [null, "Monitor"];
+
+  return monitoringMethods.flatMap(
+    (monitoringMethod: string | null): Array<DeviceRow> => {
+      return rows.map((row: DeviceRow): DeviceRow => {
+        return { ...row, monitoringMethod: monitoringMethod };
+      });
+    },
+  );
 }
 
 describe("bucketing a device loses nothing the classifier reads", () => {
   const devices: Array<DeviceRow> = everyDistinguishableDevice();
 
   test("the matrix is big enough to be worth calling exhaustive", () => {
-    // 3 monitor states x 3 reachability x 4 x 4 timestamps x 3 intervals x 2.
-    expect(devices).toHaveLength(3 * 3 * 4 * 4 * 3 * 2);
+    /*
+     * 3 monitor states x 3 reachability x 4 x 4 timestamps x 3 intervals x
+     * 2 interface counts x 2 monitoring methods.
+     */
+    expect(devices).toHaveLength(3 * 3 * 4 * 4 * 3 * 2 * 2);
   });
 
   test("every device classifies the same through its bucket as directly", () => {
@@ -316,6 +337,7 @@ describe("bucketing a device loses nothing the classifier reads", () => {
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        monitoringMethod: device.monitoringMethod,
       };
 
       const direct: string | null = SiteStatusRollupUtil.worstStatus({
@@ -431,12 +453,16 @@ describe("bucketing a device loses nothing the classifier reads", () => {
   });
 
   /*
-   * `deviceHealthState` must not start reading the monitoring method: it does
-   * not today, and a bucket that carried it into the input would change every
-   * monitor-backed device's verdict on the site cards without touching a
-   * single line of the classifier.
+   * The bucket carries the monitoring method INTO the classifier input, and
+   * the classifier reads it (issue #3562). An earlier revision pinned the
+   * opposite — that carrying it changed nothing — which held only while a
+   * monitor-backed row had NULL in every poll column. The server now mirrors
+   * the bound monitor into `isReachable`, and a device switched over from
+   * SNMP keeps its old lastSeenAt until the switch-over clears it; a
+   * classifier that ignored the method would read either as a poll verdict
+   * and disagree with the device list under the card.
    */
-  test("carrying the monitoring method does not change the health verdict", () => {
+  test("the monitoring method is carried into the input and decides an unstamped bucket", () => {
     const base: DeviceHealthGroup = {
       siteId: null,
       monitorStatusId: null,
@@ -456,16 +482,114 @@ describe("bucketing a device loses nothing the classifier reads", () => {
     };
 
     expect(
-      deviceHealthState(
-        deviceHealthInputForGroup({ group: withMethod, now: NOW }),
-        NOW,
-      ),
-    ).toBe(
+      deviceHealthInputForGroup({ group: base, now: NOW }).monitoringMethod,
+    ).toBeNull();
+    expect(
+      deviceHealthInputForGroup({ group: withMethod, now: NOW })
+        .monitoringMethod,
+    ).toBe("Monitor");
+
+    // A mirrored, unstamped outcome on an SNMP row is a poll verdict...
+    expect(
       deviceHealthState(
         deviceHealthInputForGroup({ group: base, now: NOW }),
         NOW,
       ),
-    );
+    ).toBe("healthy");
+    // ...and on a monitor-backed row it is not a verdict at all.
+    expect(
+      deviceHealthState(
+        deviceHealthInputForGroup({ group: withMethod, now: NOW }),
+        NOW,
+      ),
+    ).toBe("unknown");
+    // A stamp is, on either.
+    expect(
+      deviceHealthState(
+        deviceHealthInputForGroup({
+          group: withMethod,
+          monitorStatusIsOffline: false,
+          now: NOW,
+        }),
+        NOW,
+      ),
+    ).toBe("healthy");
+    expect(
+      deviceHealthState(
+        deviceHealthInputForGroup({
+          group: withMethod,
+          monitorStatusIsOffline: true,
+          now: NOW,
+        }),
+        NOW,
+      ),
+    ).toBe("down");
+  });
+
+  /*
+   * The rollup reads the same buckets through its own builder, and the site
+   * it colours is the card the tally above prints on — so the two builders
+   * have to carry the method identically or the card's counts and its
+   * colour describe different fleets.
+   */
+  test("the rollup state carries the monitoring method the same way", () => {
+    const leftovers: DeviceHealthGroup = {
+      siteId: null,
+      monitorStatusId: null,
+      monitoringMethod: null,
+      isReachable: null,
+      hasBeenPolled: false,
+      hasBeenSeen: true,
+      isStale: true,
+      hasDownInterfaces: false,
+      deviceCount: 1,
+      interfacesDownTotal: 0,
+    };
+    const operational: { monitorStatusId: string; priority: number } = {
+      monitorStatusId: "operational",
+      priority: 1,
+    };
+    const offline: { monitorStatusId: string; priority: number } = {
+      monitorStatusId: "offline",
+      priority: 3,
+    };
+
+    expect(
+      deviceRollupStateForGroup({ group: leftovers, now: NOW })
+        .monitoringMethod,
+    ).toBeNull();
+    expect(
+      deviceRollupStateForGroup({
+        group: { ...leftovers, monitoringMethod: "Monitor" },
+        now: NOW,
+      }).monitoringMethod,
+    ).toBe("Monitor");
+
+    // Stale leftovers on an SNMP row vote offline (the legacy branch)...
+    expect(
+      SiteStatusRollupUtil.worstStatus({
+        deviceStates: [
+          deviceRollupStateForGroup({ group: leftovers, now: NOW }),
+        ],
+        operationalStatus: operational,
+        offlineStatus: offline,
+        now: NOW,
+      }),
+    ).toBe("offline");
+    // ...and on a monitor-backed row they are not a vote at all.
+    expect(
+      SiteStatusRollupUtil.worstStatus({
+        deviceStates: [
+          deviceRollupStateForGroup({
+            group: { ...leftovers, monitoringMethod: "Monitor" },
+            now: NOW,
+          }),
+        ],
+        operationalStatus: operational,
+        offlineStatus: offline,
+        now: NOW,
+      }),
+    ).toBeNull();
   });
 });
 

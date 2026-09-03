@@ -216,15 +216,16 @@ describe("the adoption dialog", () => {
   });
 
   /*
-   * The create form on the Devices list requires a monitor for a
-   * monitor-backed device. Here it must not: an operator adopting a phone
-   * from the map has no Ping monitor for it yet, and the server has always
-   * allowed the pair to be bound later — the same contract the discovery
-   * import already relies on.
+   * An operator adopting a phone from the map has no Ping monitor for it
+   * yet, and the server has always allowed the pair to be bound later — the
+   * same contract the discovery import relies on. The binding is optional on
+   * EVERY NetworkDevice form now (MonitorBindingNeverRequired.test.ts pins
+   * that); what this pins is that this dialog says so with the shared
+   * placeholder rather than a private one that could drift.
    */
   test("lets a monitor-backed device be recorded before a monitor exists", () => {
     expect(MODAL).toMatch(
-      /showIf: isMonitorBackedDevice,[\s\S]*?required: false,[\s\S]*?placeholder: "Select Monitor \(optional\)"/,
+      /showIf: isMonitorBackedDevice,[\s\S]*?required: false,[\s\S]*?placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER/,
     );
   });
 

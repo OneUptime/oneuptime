@@ -68,7 +68,7 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
         <div className="text-center py-10">
           <p className="text-sm text-gray-500">
             {props.isMonitorBacked
-              ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled over SNMP, and its status stays "Pending" until a monitor is bound. Create a Ping or IP monitor for its address, then bind it under Settings → Device Details → Monitor.`
+              ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled over SNMP, and its status stays "Pending" until a monitor is bound. The button below creates a Ping monitor on this device's address and binds it to the device for you. To use a monitor that already exists instead, bind it under Settings → Monitor.`
               : `No monitors are alerting on this device yet. The device is still polled and inventoried by its assigned probe — create a Network Device monitor to get incidents and alerts for reachability, interface problems, health-OID thresholds, and traps.`}
           </p>
           <div className="mt-4 flex justify-center">

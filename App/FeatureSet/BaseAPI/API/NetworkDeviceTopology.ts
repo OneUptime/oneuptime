@@ -283,6 +283,16 @@ export default class NetworkDeviceTopologyAPI {
                  * permanently unknown.
                  */
                 currentMonitorStatusId: true,
+                /*
+                 * ...and which of the two rules applies. The graph reads it
+                 * only when no status is stamped: a monitor-backed device
+                 * with nothing bound yet is "unknown", not whatever its
+                 * leftover poll columns say. On a device switched over from
+                 * SNMP those hold the last thing the probe found, and
+                 * without this the map would draw it red while the device
+                 * list beside it reads Pending.
+                 */
+                monitoringMethod: true,
                 interfacesUp: true,
                 interfacesDown: true,
                 vendor: true,
@@ -606,6 +616,7 @@ export default class NetworkDeviceTopologyAPI {
                 lastPolledAt: device.lastPolledAt,
                 lastSeenAt: device.lastSeenAt,
                 pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+                monitoringMethod: device.monitoringMethod,
                 monitorStatus: device.currentMonitorStatusId
                   ? nodeStatusByMonitorStatusId.get(
                       device.currentMonitorStatusId.toString(),

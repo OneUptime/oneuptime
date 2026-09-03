@@ -10,7 +10,10 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
+  HOSTNAME_FIELD_DESCRIPTION,
   MONITORING_METHOD_OPTIONS,
+  MONITOR_BINDING_FIELD_DESCRIPTION,
+  MONITOR_BINDING_FIELD_PLACEHOLDER,
   isMonitorBackedDevice,
   isSnmpDevice,
 } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
@@ -248,16 +251,16 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Monitor",
             stepId: "device-details",
             showIf: isMonitorBackedDevice,
-            description:
-              "The monitor whose status IS this device's status. Usually a Ping or IP monitor on the device's address.",
+            description: MONITOR_BINDING_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Monitor,
               labelField: "name",
               valueField: "_id",
             },
+            // Optional here, on the create form and in every other path.
             required: false,
-            placeholder: "Select Monitor",
+            placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER,
           },
           {
             field: {
@@ -291,7 +294,7 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: "IP address or hostname the probe will poll via SNMP.",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
           ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
