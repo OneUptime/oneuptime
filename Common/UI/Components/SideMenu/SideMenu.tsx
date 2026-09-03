@@ -94,6 +94,94 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   };
 
+  /*
+   * Walks the JSX children of a `<SideMenu>` written in the hand-rolled form
+   * and returns whichever entry points at the current page.
+   *
+   * It matches on the shape of the props rather than on component identity —
+   * an element with a `link` is a menu entry, an element with a `title` and
+   * children is a section — so it keeps working for the components built on
+   * top of SideMenuItem, and simply finds nothing for anything else (a
+   * fragment, a comment, a caller's own wrapper div) rather than throwing.
+   */
+  type ActiveMenuItem = {
+    sectionTitle?: string;
+    itemTitle?: string;
+    icon?: IconProp;
+  };
+
+  type FindActiveInChildrenFunction = (
+    children: ReactElement | Array<ReactElement> | undefined,
+    sectionTitle?: string | undefined,
+  ) => ActiveMenuItem;
+
+  const findActiveInChildren: FindActiveInChildrenFunction = (
+    children: ReactElement | Array<ReactElement> | undefined,
+    sectionTitle?: string | undefined,
+  ): ActiveMenuItem => {
+    if (!children) {
+      return {};
+    }
+
+    for (const child of React.Children.toArray(children)) {
+      if (!React.isValidElement(child)) {
+        continue;
+      }
+
+      const childProps: {
+        link?: Link | undefined;
+        activeRoute?: Link["to"] | undefined;
+        icon?: IconProp | undefined;
+        title?: string | undefined;
+        children?: ReactElement | Array<ReactElement> | undefined;
+      } = child.props as {
+        link?: Link | undefined;
+        activeRoute?: Link["to"] | undefined;
+        icon?: IconProp | undefined;
+        title?: string | undefined;
+        children?: ReactElement | Array<ReactElement> | undefined;
+      };
+
+      /*
+       * `activeRoute` first, matching the two loops above: an entry whose link
+       * carries query state points somewhere the current URL never equals, and
+       * declares the route that decides selection separately.
+       */
+      const matchRoute: Link["to"] | undefined =
+        childProps.activeRoute || childProps.link?.to;
+
+      if (
+        childProps.link &&
+        matchRoute &&
+        Navigation.isOnThisPage(matchRoute)
+      ) {
+        const result: ActiveMenuItem = { itemTitle: childProps.link.title };
+
+        if (sectionTitle) {
+          result.sectionTitle = sectionTitle;
+        }
+        if (childProps.icon) {
+          result.icon = childProps.icon;
+        }
+
+        return result;
+      }
+
+      if (childProps.children) {
+        const nested: ActiveMenuItem = findActiveInChildren(
+          childProps.children,
+          childProps.title || sectionTitle,
+        );
+
+        if (nested.itemTitle) {
+          return nested;
+        }
+      }
+    }
+
+    return {};
+  };
+
   // Function to find the active menu item and section - much simpler now!
   const findActiveMenuItem: () => {
     sectionTitle?: string;
@@ -144,7 +232,23 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       }
     }
 
-    return {};
+    /*
+     * ...and finally the hand-written JSX form.
+     *
+     * Roughly half the menus in the product are written as
+     * `<SideMenu><SideMenuSection>…<SideMenuItem/>…` rather than as a
+     * `sections` array — including every resource View menu. Neither loop
+     * above can see those, so on a phone all of them labelled their toggle
+     * with the fallback word "Navigation" instead of the page the user is
+     * actually on. The summary is the ONLY thing naming the current page
+     * while the menu is closed, which is most of the time on a phone.
+     *
+     * This reads the same two props off the elements the caller wrote, so it
+     * covers SideMenuItem, CountModelSideMenuItem and the per-feature items
+     * built on top of them (RecommendationsSideMenuItem) without knowing
+     * anything about their types.
+     */
+    return findActiveInChildren(props.children);
   };
 
   const activeItem: {
@@ -421,7 +525,15 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   // Desktop view
   return (
     <aside
-      className={`hidden md:block w-52 lg:w-60 flex-shrink-0 mb-10 ${props.className || ""}`}
+      /*
+       * w-56 rather than w-52. Page.tsx lays the menu out beside a
+       * `flex-1 min-w-0` content column, so this class is the only thing
+       * setting the sidebar's width — and at 208px the longest shipped titles
+       * ("Scheduled Maintenance", "Recommendations" beside a badge) were
+       * ellipsised on every page that has them. 16px buys those back without
+       * taking a visible bite out of the content column.
+       */
+      className={`hidden md:block w-56 lg:w-64 flex-shrink-0 mb-10 ${props.className || ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
@@ -436,11 +548,17 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         className="sticky"
         style={{ top: "calc(var(--app-header-height, 0px) + 1.5rem)" }}
       >
+        {/*
+         * rounded-xl and a plain border-gray-200, matching Card and InfoCard.
+         * The menu sits directly beside those, and it was the only page-level
+         * surface in the product with a 1rem radius and a translucent border —
+         * which read as a slightly different shade of white next to them.
+         */}
         <div
           className={`
             flex flex-col
-            bg-white rounded-2xl
-            border border-gray-200/80
+            bg-white rounded-xl
+            border border-gray-200
             shadow-sm
             overflow-hidden
           `}
@@ -463,7 +581,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
           {/* Menu Content */}
           <nav className="p-2 min-h-0 overflow-y-auto">
-            <div className="space-y-0.5">{renderMenuContent()}</div>
+            <div className="space-y-1">{renderMenuContent()}</div>
           </nav>
 
           {/* Optional Footer */}

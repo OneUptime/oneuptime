@@ -61,6 +61,9 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
             return viewModel.status === RecommendationStatus.Available;
           });
 
+        const handledInGroup: number =
+          group.recommendations.length - availableInGroup.length;
+
         const areAllSelected: boolean =
           availableInGroup.length > 0 &&
           availableInGroup.every((viewModel: RecommendationViewModel) => {
@@ -71,27 +74,42 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
 
         return (
           <div key={group.category}>
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-baseline gap-2">
-                <h4 className="text-sm font-semibold text-gray-700">
+            {/*
+             * The heading carries the category, then the two numbers that
+             * decide whether it is worth reading: how much is left to do here,
+             * and how much has already been handled. They used to run together
+             * in one grey sentence a shade lighter than the cards' own body
+             * text; the counts are chips now, so the heading row scans as a
+             * heading rather than as more prose.
+             */}
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <h4 className="truncate text-sm font-semibold text-gray-900">
                   {group.category}
                 </h4>
-                <span className="text-xs text-gray-400">
-                  {availableInGroup.length > 0
-                    ? `${availableInGroup.length} to set up`
-                    : "nothing to set up"}
-                  {group.recommendations.length !== availableInGroup.length
-                    ? ` · ${
-                        group.recommendations.length - availableInGroup.length
-                      } handled`
-                    : ""}
-                </span>
+                {availableInGroup.length > 0 ? (
+                  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200/80">
+                    {availableInGroup.length} to set up
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/80">
+                    All handled
+                  </span>
+                )}
+                {handledInGroup > 0 && availableInGroup.length > 0 ? (
+                  <span className="hidden text-xs text-gray-400 sm:inline">
+                    {handledInGroup} handled
+                  </span>
+                ) : (
+                  <></>
+                )}
               </div>
 
               {availableInGroup.length > 0 && !props.isDisabled ? (
                 <button
                   type="button"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-shrink-0 rounded text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  data-testid={`recommendation-group-select-all-${group.category}`}
                   onClick={() => {
                     props.onSelectionChange(
                       RecommendationFilterUtil.toggleSelectionForGroup({
@@ -102,7 +120,9 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                     );
                   }}
                 >
-                  {areAllSelected ? "Clear all" : "Select all"}
+                  {areAllSelected
+                    ? "Clear all"
+                    : `Select all ${availableInGroup.length}`}
                 </button>
               ) : (
                 <></>
