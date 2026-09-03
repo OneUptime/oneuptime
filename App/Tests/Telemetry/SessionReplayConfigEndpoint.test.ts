@@ -56,6 +56,9 @@ jest.mock("Common/Server/Middleware/TelemetryIngest", () => {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: jest.fn(),
+      forSurface: jest.fn(() => {
+        return jest.fn();
+      }),
     },
   };
 });
@@ -155,7 +158,9 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
     default: {
+      getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
+      markUsed: jest.fn(),
     },
   };
 });

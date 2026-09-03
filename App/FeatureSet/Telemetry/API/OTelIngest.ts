@@ -1,5 +1,6 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -18,15 +19,16 @@ import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import { JSONObject } from "Common/Types/JSON";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import StatusCode from "Common/Types/API/StatusCode";
-import ObjectID from "Common/Types/ObjectID";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 
 const router: ExpressRouter = Express.getRouter();
 
 /**
  * Records a signal-tagged ingest metric (count + duration + payload bytes).
  * Stacks below the parseBody/getProductType middlewares so payload size is
- * available, and runs before isAuthorizedServiceMiddleware so that auth
- * failures still get counted as "rejected".
+ * available, and runs before the ingestion-key guard so that auth failures
+ * still get counted as "rejected".
  */
 const ingestMetricsMiddleware: (
   signal: "traces" | "metrics" | "logs" | "profiles",
@@ -102,7 +104,7 @@ router.post(
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelTraces),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -118,7 +120,7 @@ router.post(
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelMetrics),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -134,7 +136,7 @@ router.post(
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -150,7 +152,7 @@ router.post(
   OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelProfiles),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -171,8 +173,28 @@ router.post(
  *
  * This endpoint exists so an agent, install script, or human can ask "is my
  * token actually accepted?" and get a REAL answer:
- *   200 { valid: true,  projectId }  — token resolves to a project
- *   401 { valid: false }             — token missing / malformed / unknown / revoked
+ *   200 { valid: true,  projectId, keyType, isEnabled, isExpired }
+ *        — the token resolves to a project AND ingest would accept it
+ *   401 { valid: false, keyType?, isEnabled?, isExpired? }
+ *        — missing / malformed / unknown / revoked / switched off / expired
+ *
+ * `valid` answers the question the caller actually asked - "will my telemetry
+ * land?" - so a key that resolves but is disabled or expired is reported
+ * false, not true. Reporting it true would send an install script away
+ * satisfied and leave the customer wondering why every export 401s. Nothing
+ * changes for keys that exist today: they are all enabled and none has an
+ * expiry, so they keep answering exactly as before.
+ *
+ * The three added fields are the minimum needed to turn "invalid" into an
+ * actionable sentence, and the ONLY key configuration disclosed. In
+ * particular allowedOrigins, pinnedServiceName, requestsPerMinuteLimit and
+ * the expiry timestamp are deliberately withheld: this endpoint is
+ * unauthenticated apart from possession of the token, and possession is
+ * exactly the condition of an attacker holding a scraped key. Those four are
+ * the shape of a project's defences - the origin list in particular tells a
+ * thief where a stolen browser key still works - and none of them is needed
+ * to diagnose the failures this endpoint is asked about. They are one click
+ * away in the dashboard for the people entitled to see them.
  *
  * It performs no ingestion and writes nothing. The token is read only from a
  * header (never a query string) so it can't leak into access logs. Ingestion
@@ -206,12 +228,12 @@ router.get(
         );
       }
 
-      const projectId: ObjectID | null =
-        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+      const policy: TelemetryIngestionKeyPolicy | null =
+        await TelemetryIngestionKeyService.getPolicyFromSecretKey(
           token.toString(),
         );
 
-      if (!projectId) {
+      if (!policy) {
         return Response.sendJsonObjectResponse(
           req,
           res,
@@ -225,11 +247,64 @@ router.get(
         );
       }
 
+      const isExpired: boolean = Boolean(
+        policy.expiresAt && policy.expiresAt.getTime() <= Date.now(),
+      );
+
+      const isBrowserKey: boolean =
+        policy.keyType === TelemetryIngestionKeyType.Browser;
+
+      /*
+       * Reported on every resolved token, valid or not, because "which of
+       * these three is wrong?" is the entire diagnostic value of the
+       * endpoint. A script can branch on them without parsing prose.
+       */
+      const keyDiagnostics: JSONObject = {
+        keyType: policy.keyType,
+        isEnabled: policy.isEnabled,
+        isExpired: isExpired,
+      };
+
+      if (policy.isEnabled === false || isExpired) {
+        /*
+         * projectId is deliberately NOT echoed on this branch, unlike the
+         * success one. A key gets switched off precisely because it leaked,
+         * so the caller of a disabled key is as likely to be the thief as
+         * the owner - and the owner already knows which project the key they
+         * just created belongs to. There is no diagnostic loss and one less
+         * identifier handed to whoever is holding a dead credential.
+         */
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            ...keyDiagnostics,
+            message:
+              policy.isEnabled === false
+                ? "This ingestion key has been disabled. Re-enable it, or create a new key, in Project Settings > Telemetry Ingestion Keys."
+                : "This ingestion key has expired. Extend its expiry, or create a new key, in Project Settings > Telemetry Ingestion Keys.",
+          },
+          { statusCode: new StatusCode(401) },
+        );
+      }
+
       return Response.sendJsonObjectResponse(req, res, {
         tokenProvided: true,
         valid: true,
-        projectId: projectId.toString(),
-        message: "Ingestion token is valid.",
+        projectId: policy.projectId.toString(),
+        ...keyDiagnostics,
+        /*
+         * A browser key IS valid - it just is not valid for the caller who
+         * most often runs this check. An install script pointing a collector
+         * or an agent at OneUptime gets told, in one sentence, that it has
+         * been handed the public page credential instead of the server one,
+         * which is otherwise a silent 403 per export batch much later on.
+         */
+        message: isBrowserKey
+          ? "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics and session replay. Use a server ingestion key in a collector, an agent, or any backend service."
+          : "Ingestion token is valid.",
       });
     } catch (err) {
       return next(err);

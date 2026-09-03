@@ -6,6 +6,7 @@ import logger from "Common/Server/Utils/Logger";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import {
   OtelPayloadEncoding,
   OtelPayloadFormat,
@@ -157,6 +158,27 @@ export interface TelemetryIngestJobData {
   bodyEncoding?: OtelPayloadEncoding;
   productType?: ProductType;
   requestHeaders?: Record<string, string>;
+  /*
+   * The `pinnedServiceName` of the TelemetryIngestionKey that admitted this
+   * request, when it has one. Carried ON THE JOB because the OTLP payload is
+   * decoded in the WORKER, not here: the HTTP layer only ever sees the raw
+   * (usually gzipped protobuf) bytes it stores via TelemetryBodyStore, so the
+   * earliest point at which a `service.name` can be rewritten is after the
+   * decode in ProcessTelemetry. See applyPinnedServiceName there.
+   *
+   * Absent on the overwhelming majority of jobs, and deliberately so: only a
+   * key that actually has a pin configured (in practice a Browser key) sets
+   * it, and an omitted field costs less in the per-job Redis payload than a
+   * null on every single export.
+   *
+   * Safe to store here, unlike the ingestion token that is deliberately
+   * projected OUT of `requestHeaders` below: this is not a credential.
+   * It is a label the customer typed into the key's settings, and it is
+   * stamped onto every resource that key writes — so it is already visible on
+   * the ingested telemetry itself. Nothing can be authenticated with it, and
+   * seeing it in a failed-job listing grants no access.
+   */
+  pinnedServiceName?: string;
   ingestionTimestamp: Date;
   // ProbeIngest-specific
   probeIngest?: ProbeIngestJobData;
@@ -408,6 +430,45 @@ export default class TelemetryQueueService {
       const isRawBuffer: boolean =
         Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
       const isOtelType: boolean = OTEL_TELEMETRY_TYPES.includes(type);
+
+      /*
+       * Read through Partial<> rather than straight off `req`, because the
+       * policy can genuinely be absent at runtime even though the type says
+       * it is always there: the gRPC (GrpcServer.buildTelemetryRequest) and
+       * MQTT (MqttServer) producers assemble a TelemetryRequest by hand after
+       * authenticating the token themselves, so they never run the ingest
+       * middleware that resolves and attaches a policy. The HTTP producers
+       * (the four OTel routes, Syslog, Fluent, security events, and the
+       * Pyroscope conversion path, which all forward the real Express
+       * request) do carry one.
+       */
+      const ingestionKeyPolicy: TelemetryIngestionKeyPolicy | undefined = (
+        req as Partial<TelemetryRequest>
+      ).ingestionKeyPolicy;
+
+      /*
+       * Trimmed here as well as in PinServiceName: the worker trims before
+       * stamping regardless, so normalizing at enqueue keeps the value in the
+       * job payload byte-identical to the one that ends up on the telemetry,
+       * and makes the "is there anything to pin" test below the same question
+       * the worker will ask.
+       */
+      const pinnedServiceName: string = (
+        ingestionKeyPolicy?.pinnedServiceName ?? ""
+      ).trim();
+
+      /*
+       * Only the OTel signals carry the field. They are the only payloads
+       * with a `service.name` to rewrite — PinServiceName walks resourceSpans
+       * / resourceLogs / resourceMetrics — while Syslog and Fluent bodies are
+       * not OTLP resource-shaped, and a Browser key cannot reach those
+       * surfaces in the first place (BROWSER_ALLOWED_INGEST_SURFACES). Adding
+       * it to those jobs would be dead weight in Redis AND would imply an
+       * enforcement that does not happen in their worker cases.
+       */
+      if (isOtelType && pinnedServiceName) {
+        jobData.pinnedServiceName = pinnedServiceName;
+      }
 
       if (isRawBuffer) {
         /*

@@ -38,11 +38,20 @@ jest.mock("Common/Server/Utils/Express", () => {
 
 const authMiddleware: unknown = jest.fn();
 
+/*
+ * forSurface returns the SAME sentinel the route table used to get from
+ * isAuthorizedServiceMiddleware, so the mount and ordering assertions below
+ * keep measuring what they always measured. Which surface each route names is
+ * pinned separately, by TelemetryIngestSurfaceWiring.test.ts.
+ */
 jest.mock("Common/Server/Middleware/TelemetryIngest", () => {
   return {
     __esModule: true,
     default: {
       isAuthorizedServiceMiddleware: authMiddleware,
+      forSurface: jest.fn(() => {
+        return authMiddleware;
+      }),
     },
   };
 });

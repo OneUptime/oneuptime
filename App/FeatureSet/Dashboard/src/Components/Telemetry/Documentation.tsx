@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -619,6 +620,8 @@ provider.addSpanProcessor(
   new BatchSpanProcessor(
     new OTLPTraceExporter({
       url: '<YOUR_ONEUPTIME_URL>/v1/traces',
+      // This file is served to your users, so this token is public.
+      // It must be a Browser ingestion key, never a Server one.
       headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
     })
   )
@@ -669,6 +672,8 @@ provider.addSpanProcessor(
   new BatchSpanProcessor(
     new OTLPTraceExporter({
       url: '<YOUR_ONEUPTIME_URL>/v1/traces',
+      // This file is served to your users, so this token is public.
+      // It must be a Browser ingestion key, never a Server one.
       headers: { 'x-oneuptime-token': '<YOUR_ONEUPTIME_TOKEN>' },
     })
   )
@@ -1118,6 +1123,21 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const showLogCollectors: boolean = telemetryType === "logs";
   const isProfiles: boolean = telemetryType === "profiles";
 
+  /*
+   * The two languages whose snippet is compiled into a bundle and served to
+   * end users. Everything else on this page runs on infrastructure the
+   * customer controls, where a Server key is the right answer.
+   *
+   * The method and profiles checks are not redundant: selectedLanguage is
+   * remembered across method switches, and FluentBit / Fluentd / Alloy render
+   * no language selector at all, so without them a stale "react" selection
+   * would tell someone configuring a log shipper to go and make a browser key.
+   */
+  const isBrowserSdkGuide: boolean =
+    selectedMethod === "opentelemetry" &&
+    !isProfiles &&
+    (selectedLanguage === "react" || selectedLanguage === "angular");
+
   // Compute OTLP URL and host
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
@@ -1349,8 +1369,50 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ? "Use this as the Pyroscope server address. SDKs and Grafana Alloy append the ingest path to it automatically."
             : undefined
         }
+        /*
+         * On a browser guide the picker is narrowed to Browser keys so a
+         * server secret is never offered for pasting into a page. Every
+         * other guide passes undefined and keeps the picker exactly as it
+         * has always behaved.
+         */
+        keyTypeFilter={
+          isBrowserSdkGuide ? TelemetryIngestionKeyType.Browser : undefined
+        }
         onSelectedKeyChange={setSelectedKey}
       />
+    );
+  };
+
+  /*
+   * Repeated immediately above the snippet that carries the token, not just
+   * on the key-picking step. The two are separated by the install step, and
+   * the moment the mistake actually happens is the copy-paste - so the
+   * warning belongs where the token is on screen.
+   */
+  const renderBrowserKeyWarning: () => ReactElement = (): ReactElement => {
+    if (!isBrowserSdkGuide) {
+      return <></>;
+    }
+
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-3">
+        <div className="flex items-start gap-3">
+          <Icon
+            icon={IconProp.Alert}
+            className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"
+          />
+          <p className="text-sm text-amber-800 leading-relaxed">
+            This file is bundled and served to your users, so the token in it is
+            public — anyone who views source can read it. Use a{" "}
+            <span className="font-semibold">Browser</span> ingestion key here,
+            with the origins your site is served from listed on it. Never paste
+            a <span className="font-semibold">Server</span> ingestion key into
+            browser code: it has full ingest access from anywhere, so whoever
+            finds it can write forged telemetry into this project until you
+            notice and rotate it.
+          </p>
+        </div>
+      </div>
     );
   };
 
@@ -1516,7 +1578,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           {renderStep(
             1,
             "Get Your Ingestion Credentials",
-            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            isBrowserSdkGuide
+              ? "Pick a browser ingestion key, or create one. Only browser keys are listed here — they are the ones safe to publish in a page, because the server accepts them only from the origins you list on them."
+              : "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
             renderTokenStepContent(),
           )}
 
@@ -1546,16 +1610,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             isProfiles
               ? "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent."
               : "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
-            <CodeBlock
-              code={replacePlaceholders(
-                configSnippet.code,
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
-              )}
-              language={configSnippet.language}
-            />,
+            <div>
+              {renderBrowserKeyWarning()}
+              <CodeBlock
+                code={replacePlaceholders(
+                  configSnippet.code,
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                )}
+                language={configSnippet.language}
+              />
+            </div>,
           )}
 
           {isProfiles &&

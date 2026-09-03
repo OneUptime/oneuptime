@@ -7,15 +7,19 @@ import React, {
   useState,
 } from "react";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Query from "Common/Types/BaseDatabase/Query";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -39,6 +43,19 @@ export interface ComponentProps {
   endpointHint?: string | undefined;
 
   /*
+   * Restrict the picker to one class of key, and pin new keys created from
+   * here to it.
+   *
+   * Optional, and undefined keeps exactly the behaviour this component has
+   * always had: every key in the project, and a create form that defaults to
+   * Server. A guide whose snippet ends up in a page the public can read
+   * (a browser SDK, a session replay tag) passes Browser, so the list cannot
+   * offer a server secret for pasting into a page in the first place - the
+   * warning below the token is the second line of defence, not the first.
+   */
+  keyTypeFilter?: TelemetryIngestionKeyType | undefined;
+
+  /*
    * Fires with the key the snippets should be rendered with, and with
    * null while none is selectable (still loading, load failed, or the
    * project has no keys yet) so callers fall back to their placeholder
@@ -58,16 +75,26 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [keyError, setKeyError] = useState<string>("");
 
+  const isBrowserKeyOnly: boolean =
+    props.keyTypeFilter === TelemetryIngestionKeyType.Browser;
+
   const loadIngestionKeys: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoadingKeys(true);
       setKeyError("");
+
+      const query: Query<TelemetryIngestionKey> = {
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      };
+
+      if (props.keyTypeFilter) {
+        query.keyType = props.keyTypeFilter;
+      }
+
       const result: ListResult<TelemetryIngestionKey> =
         await ModelAPI.getList<TelemetryIngestionKey>({
           modelType: TelemetryIngestionKey,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
+          query: query,
           limit: 50,
           skip: 0,
           select: {
@@ -75,6 +102,13 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             name: true,
             secretKey: true,
             description: true,
+            /*
+             * Not shown as a column anywhere - it decides which caution the
+             * token panel prints. Rendering a secret without saying which
+             * kind of secret it is is how a server key ends up in a page.
+             */
+            keyType: true,
+            allowedOrigins: true,
           },
           sort: {},
         });
@@ -92,10 +126,14 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // Fetch ingestion keys on mount
+  /*
+   * Fetch on mount, and again if the caller narrows to a different key type -
+   * the filter is part of the query, so a stale list would offer keys the
+   * guide has just said it does not want.
+   */
   useEffect(() => {
     loadIngestionKeys().catch(() => {});
-  }, []);
+  }, [props.keyTypeFilter]);
 
   const selectedKey: TelemetryIngestionKey | undefined = useMemo(() => {
     return ingestionKeys.find((k: TelemetryIngestionKey) => {
@@ -117,6 +155,52 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     onSelectedKeyChangeRef.current(selectedKey || null);
   }, [selectedKey]);
+
+  /*
+   * Printed directly under the token, every time, on every guide that uses
+   * this component. A token on screen is a token about to be pasted
+   * somewhere, and the one thing the reader cannot tell by looking at it is
+   * whether the place they are about to paste it is safe.
+   */
+  const renderSelectedKeyCaution: (
+    key: TelemetryIngestionKey,
+  ) => ReactElement = (key: TelemetryIngestionKey): ReactElement => {
+    if (key.keyType === TelemetryIngestionKeyType.Browser) {
+      /*
+       * A browser key with no origins is refused on every request, so
+       * handing someone a snippet built around one only produces a
+       * confusing 403 later. Say so here, while they are still on the page
+       * that can fix it.
+       */
+      if (!key.allowedOrigins || key.allowedOrigins.length === 0) {
+        return (
+          <div className="text-xs text-red-600 mt-2 leading-relaxed">
+            This browser key has no allowed origins, so every request made with
+            it is refused. Add the origins your site is served from in Settings
+            &gt; Telemetry Ingestion Keys before using this snippet.
+          </div>
+        );
+      }
+
+      return (
+        <div className="text-xs text-gray-500 mt-2 leading-relaxed">
+          Browser key — safe to publish in your page. It is accepted only from{" "}
+          {key.allowedOrigins.join(", ")}, and only for trace, log, metric and
+          session replay ingest.
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-xs text-amber-700 mt-2 leading-relaxed">
+        Server key — treat it as a secret. It can write every kind of telemetry
+        into this project from anywhere, so it belongs in server environment
+        variables and collector config only. Never paste it into browser
+        JavaScript, a mobile app bundle, or anything else your users can read:
+        use a Browser ingestion key there.
+      </div>
+    );
+  };
 
   const renderContent: () => ReactElement = (): ReactElement => {
     if (isLoadingKeys) {
@@ -153,10 +237,14 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Key} className="w-5 h-5 text-indigo-600" />
           </div>
           <p className="text-sm font-medium text-gray-900 mb-1">
-            No ingestion keys yet
+            {isBrowserKeyOnly
+              ? "No browser ingestion keys yet"
+              : "No ingestion keys yet"}
           </p>
           <p className="text-xs text-gray-500 mb-4">
-            Create an ingestion key to authenticate your telemetry data.
+            {isBrowserKeyOnly
+              ? "A browser key is the one safe to publish in a page: it is accepted only from the origins you list, and it can only write browser telemetry."
+              : "Create an ingestion key to authenticate your telemetry data."}
           </p>
           <button
             type="button"
@@ -260,6 +348,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
                     {selectedKey.secretKey?.toString() || "—"}
                   </div>
+                  {renderSelectedKeyCaution(selectedKey)}
                 </div>
               </div>
             </div>
@@ -267,6 +356,109 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         )}
       </div>
     );
+  };
+
+  /*
+   * True when the key about to be created is a Browser key - either because
+   * the caller pinned the type, or because the user picked Browser in the
+   * dropdown below. The origin allowlist and the pinned service name are
+   * ignored on a Server key, so they are only offered when they will
+   * actually do something.
+   */
+  const isBrowserKeyBeingCreated: (
+    item: FormValues<TelemetryIngestionKey>,
+  ) => boolean = (item: FormValues<TelemetryIngestionKey>): boolean => {
+    if (props.keyTypeFilter) {
+      return props.keyTypeFilter === TelemetryIngestionKeyType.Browser;
+    }
+
+    return item.keyType === TelemetryIngestionKeyType.Browser;
+  };
+
+  const getCreateKeyFormFields: () => Array<
+    ModelField<TelemetryIngestionKey>
+  > = (): Array<ModelField<TelemetryIngestionKey>> => {
+    const fields: Array<ModelField<TelemetryIngestionKey>> = [
+      /*
+       * The same pay-as-you-go notice and acknowledgement the settings
+       * page shows. This is the second door onto creating a key, and a
+       * gate with a way around it is not a gate.
+       */
+      ...getTelemetryPayAsYouGoFormFields(),
+      {
+        field: {
+          name: true,
+        },
+        title: "Name",
+        fieldType: FormFieldSchemaType.Text,
+        required: true,
+        placeholder: "e.g. Production Key",
+        validation: {
+          minLength: 2,
+        },
+      },
+      {
+        field: {
+          description: true,
+        },
+        title: "Description",
+        fieldType: FormFieldSchemaType.LongText,
+        required: false,
+        placeholder: "Optional description for this key",
+      },
+    ];
+
+    /*
+     * A pinned type is applied in onBeforeCreate rather than shown as a
+     * disabled dropdown: the guide has already decided which kind of key its
+     * snippet needs, and offering the choice back only invites picking the
+     * wrong one for the code on screen.
+     */
+    if (!props.keyTypeFilter) {
+      fields.push({
+        field: {
+          keyType: true,
+        },
+        title: "Key Type",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions:
+          DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
+            TelemetryIngestionKeyType,
+          ),
+        required: true,
+        defaultValue: TelemetryIngestionKeyType.Server,
+        description:
+          "A Server key is a secret and belongs in your servers, containers and collectors - never in browser JavaScript or anywhere else your users can read it. A Browser key is safe to publish in a page: it is accepted only from the origins you list and can write only traces, logs, metrics and session replays. The type cannot be changed later.",
+      });
+    }
+
+    fields.push({
+      field: {
+        allowedOrigins: true,
+      },
+      title: "Allowed Origins",
+      fieldType: FormFieldSchemaType.JSON,
+      showIf: isBrowserKeyBeingCreated,
+      required: isBrowserKeyBeingCreated,
+      placeholder: '["https://app.example.com"]',
+      description:
+        'JSON array of the origins this key may be used from. Required on a browser key and enforced on the server for every request: telemetry from an origin that is not listed, or with no Origin header at all, is refused. One leading "*." host wildcard is allowed.',
+    });
+
+    fields.push({
+      field: {
+        pinnedServiceName: true,
+      },
+      title: "Pinned Service Name",
+      fieldType: FormFieldSchemaType.Text,
+      showIf: isBrowserKeyBeingCreated,
+      required: false,
+      placeholder: "storefront-web",
+      description:
+        "Forces service.name to this value on everything the key writes. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
+    });
+
+    return fields;
   };
 
   return (
@@ -278,8 +470,16 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         <ModelFormModal<TelemetryIngestionKey>
           modelType={TelemetryIngestionKey}
           name="Create Ingestion Key"
-          title="Create Ingestion Key"
-          description="Create a new telemetry ingestion key for sending data to OneUptime."
+          title={
+            isBrowserKeyOnly
+              ? "Create Browser Ingestion Key"
+              : "Create Ingestion Key"
+          }
+          description={
+            isBrowserKeyOnly
+              ? "Create a browser telemetry ingestion key. It is safe to publish in your page, and is accepted only from the origins you list below."
+              : "Create a new telemetry ingestion key for sending data to OneUptime."
+          }
           onClose={() => {
             setShowCreateModal(false);
           }}
@@ -299,41 +499,18 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             name: "Create Ingestion Key",
             modelType: TelemetryIngestionKey,
             id: "create-ingestion-key",
-            fields: [
-              /*
-               * The same pay-as-you-go notice and acknowledgement the settings
-               * page shows. This is the second door onto creating a key, and a
-               * gate with a way around it is not a gate.
-               */
-              ...getTelemetryPayAsYouGoFormFields(),
-              {
-                field: {
-                  name: true,
-                },
-                title: "Name",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "e.g. Production Key",
-                validation: {
-                  minLength: 2,
-                },
-              },
-              {
-                field: {
-                  description: true,
-                },
-                title: "Description",
-                fieldType: FormFieldSchemaType.LongText,
-                required: false,
-                placeholder: "Optional description for this key",
-              },
-            ],
+            fields: getCreateKeyFormFields(),
             formType: FormType.Create,
           }}
           onBeforeCreate={(
             item: TelemetryIngestionKey,
           ): Promise<TelemetryIngestionKey> => {
             item.projectId = ProjectUtil.getCurrentProjectId()!;
+
+            if (props.keyTypeFilter) {
+              item.keyType = props.keyTypeFilter;
+            }
+
             return Promise.resolve(item);
           }}
         />
