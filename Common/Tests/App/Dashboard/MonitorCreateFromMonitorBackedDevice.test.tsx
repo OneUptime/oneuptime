@@ -220,6 +220,9 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import NetworkDeviceMonitoringMethod, {
+  LEGACY_SNMP_MONITORING_METHOD,
+} from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -553,24 +556,44 @@ describe("the monitor create page opened from a network device", () => {
     });
   });
 
-  describe("an SNMP device", () => {
+  /*
+   * The other half of the deep link. Seeding a Ping monitor and binding it is
+   * a MONITOR-BACKED device's answer to "nothing reports on this device" — a
+   * probe-polled one is already pinged by its probe on its own schedule, so
+   * the link opens the ordinary Network Device shape and leaves the device's
+   * own polling alone. Binding here would be worse than useless: it would
+   * override a working poll with a second opinion.
+   *
+   * Run for both spellings the column can hold. `Probe` is what is written
+   * now; `"SNMP"` is the legacy string on every row created before the method
+   * enum lost that member, and it parses to Probe rather than to a third kind
+   * of device — so a row nobody has rewritten must take this path too.
+   */
+  describe.each([
+    ["Probe", NetworkDeviceMonitoringMethod.Probe],
+    ["the legacy SNMP string", LEGACY_SNMP_MONITORING_METHOD],
+  ])("a probe-polled device (%s)", (_label: string, method: string) => {
     beforeEach(() => {
       deviceRow = networkDevice({
-        monitoringMethod: "SNMP",
+        monitoringMethod: method,
         probeId: DEVICE_PROBE_ID,
       });
     });
 
-    test("still opens on the Network Device shape", async () => {
+    test("opens on the Network Device shape", async () => {
       const form: CapturedFormProps = await openForm();
 
       expect(form.initialValues["monitorType"]).toBe(MonitorType.NetworkDevice);
       expect(form.initialValues["name"]).toBe("Lobby AP Monitor");
-      // The probe pin is a Ping-monitor concern; the SNMP shape keeps defaults.
+      /*
+       * Pinning the device's own probe is a Ping-monitor concern — it is what
+       * makes the seeded ping leave from something that can reach the address.
+       * The Network Device shape keeps the project's default probes.
+       */
       expect(form.initialValues["probes"]).toEqual([GLOBAL_PROBE_ID]);
     });
 
-    test("still lands on the monitor, and binds nothing", async () => {
+    test("lands on the monitor, and binds nothing", async () => {
       const form: CapturedFormProps = await openForm();
 
       act(() => {

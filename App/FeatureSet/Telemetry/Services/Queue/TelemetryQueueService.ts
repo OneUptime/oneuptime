@@ -67,7 +67,15 @@ export interface ProbeIngestJobData {
   snmpTrap?: JSONObject | undefined;
   /*
    * For network-device-walk: the raw request body
-   * ({ probeId, networkDeviceId, snmpResponse, monitoredAt })
+   * ({ probeId, networkDeviceId, isOnline?, pollMode?, pingResponse?,
+   *    snmpResponse?, monitoredAt }).
+   *
+   * Two probe generations write this. A ping-first probe sends `isOnline`
+   * (device reachability: ping OR walk), `pollMode` ("ping" | "snmp"),
+   * `pingResponse`, and `snmpResponse` only when a walk actually ran. An
+   * older probe sends only `snmpResponse`. The processor derives what is
+   * missing (pollMode "snmp", isOnline from the walk), so at least one of
+   * `isOnline` / `snmpResponse` is always present here.
    */
   networkDeviceWalk?: JSONObject | undefined;
 }

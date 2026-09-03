@@ -1398,6 +1398,16 @@ enum Permission {
   EditNetworkDeviceRole = "EditNetworkDeviceRole",
   ReadNetworkDeviceRole = "ReadNetworkDeviceRole",
 
+  CreateNetworkAlertPolicy = "CreateNetworkAlertPolicy",
+  DeleteNetworkAlertPolicy = "DeleteNetworkAlertPolicy",
+  EditNetworkAlertPolicy = "EditNetworkAlertPolicy",
+  ReadNetworkAlertPolicy = "ReadNetworkAlertPolicy",
+
+  CreateNetworkSnmpCredentialProfile = "CreateNetworkSnmpCredentialProfile",
+  DeleteNetworkSnmpCredentialProfile = "DeleteNetworkSnmpCredentialProfile",
+  EditNetworkSnmpCredentialProfile = "EditNetworkSnmpCredentialProfile",
+  ReadNetworkSnmpCredentialProfile = "ReadNetworkSnmpCredentialProfile",
+
   CreateRecommendationDismissal = "CreateRecommendationDismissal",
   DeleteRecommendationDismissal = "DeleteRecommendationDismissal",
   EditRecommendationDismissal = "EditRecommendationDismissal",
@@ -8612,6 +8622,86 @@ export class PermissionHelper {
         title: "Read Network Device Role",
         description:
           "This permission can read Network Device Role of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSnmpCredentialProfile,
+        title: "Create SNMP Credential Profile",
+        description:
+          "This permission can create SNMP Credential Profile in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSnmpCredentialProfile,
+        title: "Delete SNMP Credential Profile",
+        description:
+          "This permission can delete SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSnmpCredentialProfile,
+        title: "Edit SNMP Credential Profile",
+        description:
+          "This permission can edit SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSnmpCredentialProfile,
+        title: "Read SNMP Credential Profile",
+        description:
+          "This permission can read SNMP Credential Profile of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkAlertPolicy,
+        title: "Create Network Alert Policy",
+        description:
+          "This permission can create Network Alert Policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkAlertPolicy,
+        title: "Delete Network Alert Policy",
+        description:
+          "This permission can delete Network Alert Policy of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkAlertPolicy,
+        title: "Edit Network Alert Policy",
+        description:
+          "This permission can edit Network Alert Policy of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkAlertPolicy,
+        title: "Read Network Alert Policy",
+        description:
+          "This permission can read Network Alert Policy of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

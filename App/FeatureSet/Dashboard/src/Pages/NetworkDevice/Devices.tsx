@@ -8,19 +8,13 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import NetworkDeviceMonitoringMethod, {
-  NetworkDeviceMonitoringMethodUtil,
-} from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   HOSTNAME_FIELD_DESCRIPTION,
-  MONITORING_METHOD_FIELD_DESCRIPTION,
-  MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER,
-  MONITORING_METHOD_OPTIONS,
-  MONITOR_BINDING_FIELD_DESCRIPTION,
-  MONITOR_BINDING_FIELD_PLACEHOLDER,
-  isMonitorBackedDevice,
-  isSnmpDevice,
+  PROBE_FIELD_DESCRIPTION,
+  SNMP_STEP_DESCRIPTION,
 } from "../../Components/NetworkDevice/MonitoringMethodFormFields";
 import {
   pingMonitorProvisionedMessage,
@@ -55,6 +49,9 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
 import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCreatePingMonitors";
+import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
+import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
+import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -80,10 +77,20 @@ import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NEVER_POLLED_PENDING_TOOLTIP,
   NO_MONITOR_QUALIFIER,
+  NO_PROBE_QUALIFIER,
+  NO_SNMP_INTERFACES_LABEL,
   NetworkDeviceStatus,
+  PROBE_POLLED_DOWN_TOOLTIP,
+  PROBE_POLLED_UP_TOOLTIP,
+  SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getStaleTooltip,
+  hasNoSnmpInventory,
+  isSnmpFailing,
   isUnboundMonitorBackedDevice,
+  isUnpolledProbeDevice,
 } from "../../Components/NetworkDevice/DeviceStatusUtil";
 import {
   DEVICE_FACET_QUERY_FIELDS,
@@ -94,11 +101,15 @@ import {
   DEVICE_PROBE_FACET_KEY,
   DEVICE_ROLE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
+  DEVICE_SNMP_FACET_KEY,
+  DEVICE_SNMP_FACET_OPTIONS,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
   NETWORK_DEVICES_TABLE_ID,
+  PENDING_DEVICES_FACET_SELECTION,
   buildDeviceInterfacesFacetQuery,
   buildDeviceLastSeenFacetQuery,
+  buildDeviceSnmpFacetQuery,
   buildDeviceStatusFacetQuery,
 } from "../../Components/NetworkDevice/DeviceFacets";
 import { DeviceSummaryTile } from "../../Components/NetworkDevice/DeviceSummaryTiles";
@@ -127,13 +138,15 @@ const BASE_DEVICE_QUERY: Query<NetworkDevice> = {
 const FACET_PICKER_PAGE_SIZE: number = 50;
 
 /*
- * The create form's "Create a Ping monitor for this device" opt-in.
+ * The create form's "Also create a Ping monitor for incidents" opt-in.
  *
- * A monitor-backed device with nothing bound reads Pending / "No monitor"
- * until somebody creates a Ping monitor on its address and binds it — two
- * more screens for something the form already knows everything about. This
- * is the same opt-in the discovery import's Review dialog offers, for the
- * device an operator is registering by hand.
+ * Every device registered here is probe-polled: the probe assigned on the
+ * step below pings it on its schedule, so it has a real status from its
+ * first poll and needs no monitor to read Up or Down. What a monitor adds is
+ * ALERTING — criteria, incidents, on-call — and until alert policies land,
+ * a Ping monitor created on the device's address and bound to it is the only
+ * one-click way to get that. This is the same opt-in the discovery import's
+ * Review dialog offers, for the device an operator is registering by hand.
  *
  * Neither field is a NetworkDevice column: they ride to the server in the
  * form's miscDataProps (overrideFieldKey), which NetworkDeviceService ignores,
@@ -158,8 +171,6 @@ export const PING_PROBES_FIELD_KEY: string = "pingProbes";
  */
 interface PendingPingMonitorRequest {
   wantsPingMonitor: boolean;
-  monitoringMethod: string | undefined;
-  selectedMonitorId: string | undefined;
   probeIds: Array<string>;
   deviceName: string;
   hostname: string;
@@ -193,22 +204,19 @@ function readProbeIds(value: unknown): Array<string> {
 }
 
 /*
- * The opt-in only makes sense for a monitor-backed device with no monitor
- * picked, and only for someone allowed to create a monitor — otherwise the
- * device would be created and the monitor would fail a moment later with a
- * message about permissions the operator never saw a box for.
+ * Whether to offer the opt-in at all.
+ *
+ * It no longer asks anything about the device: this form registers only
+ * probe-polled devices, and a Ping monitor is useful on every one of them
+ * (it is what raises the incident when the pings stop). What is left is the
+ * permission check — offering a box the operator cannot act on would create
+ * the device and then fail a moment later with a message about a permission
+ * they were never shown a box for.
+ *
+ * Takes no form values, which a `showIf` may do: BasicForm passes them and a
+ * callback is free to ignore them.
  */
-export function shouldOfferPingMonitor(
-  values: FormValues<NetworkDevice>,
-): boolean {
-  if (!isMonitorBackedDevice(values)) {
-    return false;
-  }
-
-  if ((values as Record<string, unknown>)["monitor"]) {
-    return false;
-  }
-
+export function shouldOfferPingMonitor(): boolean {
   return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
 }
 
@@ -232,6 +240,27 @@ const NetworkDevices: FunctionComponent<
   } | null>(null);
   const pendingPingMonitorRequest: MutableRefObject<PendingPingMonitorRequest | null> =
     useRef<PendingPingMonitorRequest | null>(null);
+
+  /*
+   * Every site's default probe that this page has already looked up, keyed by
+   * site id. A site's probe is one column on one row, so it is fetched with a
+   * single getItem the first time that site is picked and remembered for the
+   * life of the page: re-opening the create form, or switching back and forth
+   * between two sites, must not put a request on the wire per click. An empty
+   * string is a real answer ("this site has no default probe") and is cached
+   * as such, so a site without one is asked about once too.
+   */
+  const siteProbeIds: MutableRefObject<Map<string, string>> = useRef<
+    Map<string, string>
+  >(new Map<string, string>());
+
+  /*
+   * The last probe this page filled in for the operator. Read only to decide
+   * whether the Probe box still holds a DEFAULT (which a newly picked site is
+   * free to replace) or a probe the operator chose themselves (which it is
+   * not) — see onSiteSelected.
+   */
+  const lastAutoFilledProbeId: MutableRefObject<string> = useRef<string>("");
 
   /*
    * The chips above the table. Rebuilt only when the probes land, so the array
@@ -294,6 +323,28 @@ const NetworkDevices: FunctionComponent<
           operator: FilterOperator,
         ): unknown => {
           return buildDeviceInterfacesFacetQuery(values, operator);
+        },
+      },
+      {
+        /*
+         * The walk's own outcome, separate from Status: "Failing" is how an
+         * operator finds the devices that answer ping but not SNMP — the
+         * rows wearing the "SNMP failing" pill — and "Not configured" the
+         * pinged-only ones that still need credentials. Same "is"-only,
+         * single-select shape as Status, for the same partition reason.
+         */
+        key: DEVICE_SNMP_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.snmp,
+        label: "SNMP",
+        icon: IconProp.Key,
+        isMultiSelect: false,
+        supportedOperators: ["is"],
+        options: DEVICE_SNMP_FACET_OPTIONS,
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildDeviceSnmpFacetQuery(values, operator);
         },
       },
       {
@@ -512,6 +563,24 @@ const NetworkDevices: FunctionComponent<
     });
   };
 
+  type OnShowUnboundDevicesFunction = () => void;
+
+  /*
+   * The banner's way in: the same chip the Pending tile sets. No chip owns
+   * `monitorId`, so "monitor-backed with nothing bound" is not expressible
+   * on the bar; Pending is the honest superset, and each unbound device in
+   * it wears its "No monitor" pill.
+   */
+  const onShowUnboundDevices: OnShowUnboundDevicesFunction = (): void => {
+    applyFacetTileSelection({
+      selection: PENDING_DEVICES_FACET_SELECTION,
+      facetSelections: facetSelections,
+      facetOperators: facetOperators,
+      setFacetSelection: setFacetSelection,
+      clearAllFacets: clearAllFacets,
+    });
+  };
+
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<NetworkDevice>({ modelType: NetworkDevice });
 
@@ -542,6 +611,166 @@ const NetworkDevices: FunctionComponent<
     bulkActions: createPingMonitorBulkActions,
     modals: createPingMonitorBulkActionModals,
   } = useBulkCreatePingMonitors();
+
+  /*
+   * The other way out of "No monitor", and the better one for most of the
+   * fleet: switch the device to probe polling, so the probe pings it — no
+   * monitor, nothing billable. There is no migration doing this (only an
+   * operator knows which probe can reach a device), so this is where the
+   * banner above the list sends them.
+   */
+  const {
+    bulkActions: switchToProbePollingBulkActions,
+    modals: switchToProbePollingBulkActionModals,
+  } = useBulkSwitchToProbePolling();
+
+  /*
+   * Credentials for an EXISTING fleet. A device registered without a
+   * community string is pinged and nothing more, and the devices that need
+   * one were imported long before anybody wrote the profile down — so the
+   * profile has to be attachable to a selection, not just to the next device
+   * somebody creates. Beside "Switch to probe polling" because they are the
+   * same job at two depths: that one gets a device polled at all, this one
+   * gets it walked.
+   */
+  const {
+    bulkActions: snmpCredentialProfileBulkActions,
+    modals: snmpCredentialProfileBulkActionModals,
+  } = useBulkSnmpCredentialProfileActions();
+
+  /*
+   * The probe the create form starts on before a site is picked.
+   *
+   * A probe is REQUIRED to register a device — nothing polls one without it —
+   * and most projects run exactly one custom probe, so making the operator
+   * find it in a dropdown is a question with one possible answer. Global
+   * probes are excluded: they sit on the public internet and cannot reach an
+   * RFC1918 address, so pre-selecting one would hand the operator a device
+   * that is guaranteed to read Down. Ambiguity is left to the operator: with
+   * two custom probes there is no "the" probe, and with none the box stays
+   * empty and the form asks for one.
+   */
+  const defaultProbeId: string = useMemo(() => {
+    const customProbes: Array<Probe> = probes.filter(
+      (probe: Probe): boolean => {
+        return probe.isGlobalProbe !== true;
+      },
+    );
+
+    if (customProbes.length !== 1) {
+      return "";
+    }
+
+    return customProbes[0]?._id?.toString() || "";
+  }, [probes]);
+
+  type ResolveSiteProbeIdFunction = (siteId: string) => Promise<string>;
+
+  /** The site's own default probe, fetched at most once per site id. */
+  const resolveSiteProbeId: ResolveSiteProbeIdFunction = async (
+    siteId: string,
+  ): Promise<string> => {
+    const cached: string | undefined = siteProbeIds.current.get(siteId);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const site: NetworkSite | null = await ModelAPI.getItem<NetworkSite>({
+      modelType: NetworkSite,
+      id: new ObjectID(siteId),
+      select: {
+        probeId: true,
+      },
+    });
+
+    const siteProbeId: string = site?.probeId?.toString() || "";
+
+    siteProbeIds.current.set(siteId, siteProbeId);
+
+    return siteProbeId;
+  };
+
+  type OnSiteSelectedFunction = (
+    value: unknown,
+    currentFormValues: FormValues<NetworkDevice>,
+    setNewFormValues: (currentFormValues: FormValues<NetworkDevice>) => void,
+  ) => void;
+
+  /*
+   * Picking a site fills in the site's default probe.
+   *
+   * A site carries the probe deployed on its network precisely so that every
+   * device registered into it does not have to be told again, and the probe
+   * is a required field here — so the site's answer is filled in where the
+   * operator can see and change it, rather than left blank for them to guess
+   * at.
+   *
+   * It never overwrites a probe the operator picked themselves: the box is
+   * refilled only while it still holds a value this form put there (the
+   * single-custom-probe default, or the probe filled in for a previously
+   * chosen site).
+   *
+   * The values written are the snapshot taken when the site changed, plus the
+   * site and the probe — an edit made on this step during the one request
+   * this costs would be rolled back with it. That is the whole exposure, it
+   * is one round trip wide, and it is visible when it happens.
+   */
+  const onSiteSelected: OnSiteSelectedFunction = (
+    value: unknown,
+    currentFormValues: FormValues<NetworkDevice>,
+    setNewFormValues: (currentFormValues: FormValues<NetworkDevice>) => void,
+  ): void => {
+    const siteId: string = String(value || "").trim();
+
+    // Clearing the site says nothing about which probe can reach the device.
+    if (!siteId) {
+      return;
+    }
+
+    const currentProbeId: string = String(
+      (currentFormValues as Record<string, unknown>)["probe"] || "",
+    ).trim();
+
+    const isOperatorsOwnChoice: boolean =
+      currentProbeId.length > 0 &&
+      currentProbeId !== defaultProbeId &&
+      currentProbeId !== lastAutoFilledProbeId.current;
+
+    if (isOperatorsOwnChoice) {
+      return;
+    }
+
+    resolveSiteProbeId(siteId)
+      .then((siteProbeId: string): void => {
+        // A site with no default probe leaves whatever is in the box.
+        if (!siteProbeId || siteProbeId === currentProbeId) {
+          return;
+        }
+
+        lastAutoFilledProbeId.current = siteProbeId;
+
+        /*
+         * The site is written back beside the probe on purpose: this write
+         * lands after the dropdown's own setFieldValue, over values that were
+         * snapshot before it, so a write carrying only the probe would undo
+         * the very selection that triggered it.
+         */
+        setNewFormValues({
+          ...currentFormValues,
+          site: siteId,
+          probe: siteProbeId,
+        });
+      })
+      .catch(() => {
+        /*
+         * Non-fatal on purpose, and NOT cached: the probe field is required
+         * and visible, so a site whose probe could not be read costs the
+         * operator one pick rather than the form, and the next site change
+         * asks again instead of remembering a failure as an answer.
+         */
+      });
+  };
 
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -580,6 +809,7 @@ const NetworkDevices: FunctionComponent<
           }}
         />
       )}
+      <UnboundDevicesBanner onShowUnboundDevices={onShowUnboundDevices} />
       <DeviceSummaryCards
         facetSelections={facetSelections}
         facetOperators={facetOperators}
@@ -629,6 +859,8 @@ const NetworkDevices: FunctionComponent<
           buttons: [
             ...labelBulkActions,
             ...oidTemplateBulkActions,
+            ...snmpCredentialProfileBulkActions,
+            ...switchToProbePollingBulkActions,
             ...createPingMonitorBulkActions,
             ...archiveBulkActions,
           ],
@@ -695,7 +927,7 @@ const NetworkDevices: FunctionComponent<
         cardProps={{
           title: "Network Devices",
           description:
-            "Switches, routers, firewalls, and any other gear on your network. SNMP devices are polled by the probe you assign; devices without SNMP are reported on by the monitor you bind to them.",
+            "Switches, routers, firewalls, and any other gear on your network. Each device is pinged by the probe you assign, and walked over SNMP as well once it has credentials; a device with a bound monitor is reported on by that monitor instead.",
         }}
         showViewIdButton={true}
         onBeforeCreate={async (
@@ -703,21 +935,13 @@ const NetworkDevices: FunctionComponent<
           miscDataProps: JSONObject,
         ): Promise<NetworkDevice> => {
           /*
-           * ModelForm turns the Monitor entity dropdown into a model with
-           * only `_id`, and a server-side caller would post the column, so
-           * both spellings are read. Only a TRUTHY checkbox reaches
-           * miscDataProps (ModelForm drops false), which is exactly the
-           * "off unless ticked" this needs.
+           * Only a TRUTHY checkbox reaches miscDataProps (ModelForm drops
+           * false), which is exactly the "off unless ticked" this needs.
            */
           pendingPingMonitorRequest.current = {
             wantsPingMonitor: Boolean(
               miscDataProps[CREATE_PING_MONITOR_FIELD_KEY],
             ),
-            monitoringMethod: item.monitoringMethod,
-            selectedMonitorId:
-              item.monitor?._id?.toString() ||
-              item.monitorId?.toString() ||
-              undefined,
             probeIds: readProbeIds(miscDataProps[PING_PROBES_FIELD_KEY]),
             deviceName: item.name || "",
             hostname: item.hostname || "",
@@ -733,22 +957,14 @@ const NetworkDevices: FunctionComponent<
           pendingPingMonitorRequest.current = null;
 
           /*
-           * Every guard restated here rather than trusted from the form:
-           * the checkbox is hidden for an SNMP device or once a monitor is
-           * picked, but a hidden field's value is still submitted, and a
-           * Ping monitor on an SNMP device — or a second one on a device
-           * that already has one bound — is exactly the kind of quiet
-           * surprise this must never produce.
+           * The ticked box is the whole condition now. It used to be one of
+           * four, because the opt-in only applied to a monitor-backed device
+           * with nothing bound; this form registers probe-polled devices
+           * only, and a Ping monitor is a fair thing to want on any of them.
+           * What has not changed is that a request is consumed once (the ref
+           * is cleared above), so a second create cannot reuse it.
            */
-          if (
-            !request ||
-            !request.wantsPingMonitor ||
-            request.selectedMonitorId ||
-            !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-              request.monitoringMethod,
-            ) ||
-            !createdDevice.id
-          ) {
+          if (!request || !request.wantsPingMonitor || !createdDevice.id) {
             return createdDevice;
           }
 
@@ -771,13 +987,14 @@ const NetworkDevices: FunctionComponent<
           } catch (err) {
             /*
              * The device exists and stays — that is the whole point of
-             * creating it first. Say so, and say how to finish the job.
+             * creating it first. Say so, say what the device still does
+             * (its probe polls it either way), and say what it does not.
              */
             setPingMonitorNotice({
               type: AlertType.DANGER,
-              message: `${deviceName} was created, but its Ping monitor was not: ${API.getFriendlyMessage(
+              message: `${deviceName} was created and its probe polls it as usual, but its Ping monitor was not created: ${API.getFriendlyMessage(
                 err,
-              )} The device reads "No monitor" until one is bound — open it and use Create Ping Monitor, or bind an existing monitor under its Settings.`,
+              )} Nothing raises an incident for this device yet — open it and use Create Ping Monitor to try again.`,
             });
           }
 
@@ -785,11 +1002,16 @@ const NetworkDevices: FunctionComponent<
 
           return createdDevice;
         }}
+        /*
+         * Three steps, and no "how is this device monitored?" question among
+         * them. Registering a device is a statement about the device — what
+         * it is called, where it lives, which probe can reach it — and every
+         * device registered here is probe-polled. The bound-monitor override
+         * is a rare answer to "this one thing cannot be polled", and it lives
+         * on the device's Settings page where the operator meets it already
+         * knowing what their device is.
+         */
         formSteps={[
-          {
-            title: "Monitoring",
-            id: "monitoring-method",
-          },
           {
             title: "Device Details",
             id: "device-details",
@@ -800,36 +1022,16 @@ const NetworkDevices: FunctionComponent<
           },
           {
             /*
-             * Hidden wholesale for a monitor-backed device: it is never
-             * polled, so there is nothing for a community string or a v3
-             * credential to be used for.
+             * Shown for every device and required by none of them: with no
+             * credentials the probe pings the device and it has a status from
+             * its first poll; with them it is walked as well. The step's own
+             * heading (on the first field below) is where that is said.
              */
-            title: "SNMP Credentials",
+            title: "SNMP (Optional)",
             id: "snmp",
-            showIf: isSnmpDevice,
           },
         ]}
         formFields={[
-          {
-            field: {
-              monitoringMethod: true,
-            },
-            title: "How is this device monitored?",
-            stepId: "monitoring-method",
-            /*
-             * Promise the Ping monitor only to an operator who will actually
-             * be offered the box (see shouldOfferPingMonitor).
-             */
-            description: PermissionGate.check(new Monitor(), ModelAction.Create)
-              .isAllowed
-              ? MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER
-              : MONITORING_METHOD_FIELD_DESCRIPTION,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: MONITORING_METHOD_OPTIONS,
-            required: true,
-            defaultValue: NetworkDeviceMonitoringMethod.Snmp,
-            placeholder: "Monitoring method",
-          },
           {
             field: {
               name: true,
@@ -875,39 +1077,65 @@ const NetworkDevices: FunctionComponent<
             description: HOSTNAME_FIELD_DESCRIPTION,
           },
           {
+            /*
+             * Asked BEFORE the probe, because it answers it: a site carries
+             * the probe deployed on its network, and picking one fills the
+             * probe box in below (onSiteSelected).
+             */
             field: {
-              monitor: true,
+              site: true,
             },
-            title: "Monitor",
+            title: "Site",
             stepId: "probe-and-site",
-            showIf: isMonitorBackedDevice,
-            description: MONITOR_BINDING_FIELD_DESCRIPTION,
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices, and the site's default probe is filled in below when you pick one. Assignment rules can also set this automatically.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            onChange: onSiteSelected,
+            required: false,
+            placeholder: "Select Site (optional)",
+          },
+          {
+            field: {
+              probe: true,
+            },
+            title: "Probe",
+            stepId: "probe-and-site",
+            /*
+             * Required, for every device this form creates. A probe-polled
+             * device with no probe is nothing at all: nothing pings it,
+             * nothing walks it, and it sits on Pending wearing "No probe"
+             * until somebody notices. The old form only asked SNMP devices
+             * for one because a monitor-backed device is not polled — and
+             * this form no longer creates those.
+             */
+            description: PROBE_FIELD_DESCRIPTION,
             sideLink: {
-              text: "Create a monitor",
+              text: "Create a custom probe",
               url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS] as Route,
+                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
               ),
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Monitor,
-              labelField: "name",
-              valueField: "_id",
-            },
-            /*
-             * Never required. A monitor-backed device is a real part of the
-             * network whether or not anything reports its health yet: it
-             * belongs to a site, carries labels and appears on the topology
-             * map, and its status reads "No monitor" until one is bound. The
-             * Settings edit form, the topology map's "Add to Monitoring"
-             * dialog, discovery import and the server all treat the binding
-             * as optional, and this form was the one place that did not —
-             * so an operator recording a device before its monitor existed
-             * was blocked here and nowhere else.
-             */
-            required: false,
-            placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER,
+            dropdownOptions: probes.map((probe: Probe) => {
+              if (!probe.name || !probe._id) {
+                throw new BadDataException(`Probe name or id is missing`);
+              }
+
+              return {
+                label: probe.name,
+                value: probe._id,
+              };
+            }),
+            required: true,
+            // "" when the project has no single obvious probe — see above.
+            defaultValue: defaultProbeId,
+            placeholder: "Probe",
           },
           {
             /*
@@ -922,11 +1150,11 @@ const NetworkDevices: FunctionComponent<
             },
             overrideFieldKey: CREATE_PING_MONITOR_FIELD_KEY,
             showEvenIfPermissionDoesNotExist: true,
-            title: "Create a Ping monitor for this device",
+            title: "Also create a Ping monitor for incidents (optional)",
             stepId: "probe-and-site",
             showIf: shouldOfferPingMonitor,
             description:
-              'Creates a Ping monitor on the hostname above and binds it to this device when you save, so the device has a status from the start. The monitor counts towards your plan. Incidents are off on it by default; turn them on from the monitor\'s page. Leave this unticked to bind a monitor later — until then the device reads Pending, tagged "No monitor".',
+              "The probe above already pings this device and gives it a status, so it needs no monitor to read Up or Down. A monitor is what turns those failed pings into an incident: tick this and a Ping monitor is created on the hostname above and bound to this device when you save. It counts towards your plan, and incidents are off on it until you turn them on from the monitor's page.",
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
           },
@@ -946,7 +1174,7 @@ const NetworkDevices: FunctionComponent<
              */
             showIf: (values: FormValues<NetworkDevice>): boolean => {
               return (
-                shouldOfferPingMonitor(values) &&
+                shouldOfferPingMonitor() &&
                 Boolean(
                   (values as Record<string, unknown>)[
                     CREATE_PING_MONITOR_FIELD_KEY
@@ -972,56 +1200,40 @@ const NetworkDevices: FunctionComponent<
             placeholder: "Project default probes",
           },
           {
-            field: {
-              probe: true,
-            },
-            title: "Probe",
-            stepId: "probe-and-site",
-            showIf: isSnmpDevice,
             /*
-             * Same constraint as the discovery scan: the probe has to be able
-             * to reach the device, so the operator needs to know how to get a
-             * probe onto that network from here.
+             * The same either/or the Settings page offers, worded the same
+             * way: a profile is the credential set a fleet shares, the
+             * fields below are this one device's own, and the device's own
+             * win when both are set. First on the step, so it carries the
+             * step's heading — which is where an operator learns that
+             * leaving all of it empty is a valid answer.
              */
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "SNMP Credential Profile",
+            stepId: "snmp",
+            sectionTitle: "SNMP",
+            sectionDescription: SNMP_STEP_DESCRIPTION,
             description:
-              "The probe that polls this device on its schedule, and receives its SNMP traps, syslog, and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — if you have none there yet, create a custom probe and run it there. Polling starts as soon as the device is created — no monitor needed.",
+              "A reusable credential set shared by devices of one kind. The device's own credentials below win when both are set; leave those empty to use the profile. The device's site can carry a default profile too, which applies when neither of these is set.",
             sideLink: {
-              text: "Create a custom probe",
+              text: "Manage credential profiles",
               url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+                ] as Route,
               ),
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
-            }),
-            required: true,
-            placeholder: "Probe",
-          },
-          {
-            field: {
-              site: true,
-            },
-            title: "Site",
-            stepId: "probe-and-site",
-            description:
-              "The network site this device belongs to. Site health rolls up from its devices. Assignment rules can also set this automatically.",
-            fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
-              type: NetworkSite,
+              type: NetworkSnmpCredentialProfile,
               labelField: "name",
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Site (optional)",
+            placeholder: "No profile — use the credentials below",
           },
           ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
@@ -1094,58 +1306,94 @@ const NetworkDevices: FunctionComponent<
                 DeviceStatusUtil.getReachability(item);
 
               /*
-               * Stale qualifies the verdict, it does not replace it — so it
-               * rides along as an amber "Stale" pill next to the real one
-               * rather than repainting an answering device red. The row
-               * still says what the last poll found; the second pill says
-               * nothing has checked since.
+               * The qualifiers ride along as second pills beside the
+               * verdict rather than replacing it — see the qualifier notes
+               * in DeviceStatusUtil. "No probe" is the Pending that never
+               * resolves on its own for a probe-polled device; "SNMP
+               * failing" qualifies an Up whose walk is not keeping up (the
+               * device answers ping, its interfaces and inventory are
+               * frozen); "Stale" says nothing has polled the device lately.
+               * The row still says what the last poll found; the second
+               * pill says what to do about it.
                */
-              const stalePill: ReactElement = reachability.isStale ? (
-                <Pill
-                  text="Stale"
-                  color={Yellow500}
-                  size={PillSize.Small}
-                  tooltip={`No SNMP poll has been attempted in the last ${reachability.staleWindowInMinutes} minutes, so this verdict may be out of date — check this device's probe.`}
-                />
-              ) : (
-                <></>
-              );
+              const qualifierPills: Array<ReactElement> = [];
 
-              if (reachability.status === NetworkDeviceStatus.Up) {
-                return (
-                  <div className="flex items-center gap-1.5">
-                    <Pill
-                      text="Up"
-                      color={Green}
-                      size={PillSize.Small}
-                      tooltip="The last SNMP poll reached this device."
-                    />
-                    {stalePill}
-                  </div>
+              if (isUnpolledProbeDevice(item)) {
+                qualifierPills.push(
+                  <Pill
+                    key="no-probe"
+                    text={NO_PROBE_QUALIFIER.text}
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={NO_PROBE_QUALIFIER.tooltip}
+                  />,
                 );
               }
 
-              if (reachability.status === NetworkDeviceStatus.Down) {
-                return (
-                  <div className="flex items-center gap-1.5">
-                    <Pill
-                      text="Down"
-                      color={Red500}
-                      size={PillSize.Small}
-                      tooltip="The last SNMP poll could not reach this device."
-                    />
-                    {stalePill}
-                  </div>
+              if (isSnmpFailing(item)) {
+                qualifierPills.push(
+                  <Pill
+                    key="snmp-failing"
+                    text={SNMP_FAILING_QUALIFIER.text}
+                    color={Yellow500}
+                    size={PillSize.Small}
+                    tooltip={SNMP_FAILING_QUALIFIER.tooltip}
+                  />,
                 );
+              }
+
+              if (reachability.isStale) {
+                qualifierPills.push(
+                  <Pill
+                    key="stale"
+                    text="Stale"
+                    color={Yellow500}
+                    size={PillSize.Small}
+                    tooltip={getStaleTooltip(reachability.staleWindowInMinutes)}
+                  />,
+                );
+              }
+
+              let verdictPill: ReactElement;
+
+              if (reachability.status === NetworkDeviceStatus.Up) {
+                verdictPill = (
+                  <Pill
+                    text="Up"
+                    color={Green}
+                    size={PillSize.Small}
+                    tooltip={PROBE_POLLED_UP_TOOLTIP}
+                  />
+                );
+              } else if (reachability.status === NetworkDeviceStatus.Down) {
+                verdictPill = (
+                  <Pill
+                    text="Down"
+                    color={Red500}
+                    size={PillSize.Small}
+                    tooltip={PROBE_POLLED_DOWN_TOOLTIP}
+                  />
+                );
+              } else {
+                verdictPill = (
+                  <Pill
+                    text="Pending"
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={NEVER_POLLED_PENDING_TOOLTIP}
+                  />
+                );
+              }
+
+              if (qualifierPills.length === 0) {
+                return verdictPill;
               }
 
               return (
-                <Pill
-                  text="Pending"
-                  color={Gray500}
-                  size={PillSize.Small}
-                  tooltip="This device has not been polled yet."
-                />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {verdictPill}
+                  {qualifierPills}
+                </div>
               );
             },
           },
@@ -1371,6 +1619,35 @@ const NetworkDevices: FunctionComponent<
                 );
               }
 
+              /*
+               * The same claim on a probe-polled device that is pinged and
+               * never walked: it has no credentials, so nothing has ever
+               * collected its interfaces. "No SNMP" says what is missing;
+               * a device that has not been polled at all gets "—", because
+               * before the first poll nothing is known either way.
+               */
+              if (hasNoSnmpInventory(item)) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title={NO_SNMP_INTERFACES_LABEL.tooltip}
+                  >
+                    {NO_SNMP_INTERFACES_LABEL.text}
+                  </span>
+                );
+              }
+
+              if (!item.lastPolledAt) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Interfaces are collected by the first successful SNMP walk. This device has not been polled yet."
+                  >
+                    —
+                  </span>
+                );
+              }
+
               const up: number = (item.interfacesUp as number) || 0;
               const down: number = (item.interfacesDown as number) || 0;
               return (
@@ -1392,11 +1669,11 @@ const NetworkDevices: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
               /*
-               * `lastSeenAt` only ever moves on a successful SNMP walk, so a
-               * monitor-backed device's is NULL for life. "Never" reads as
-               * "this device has not been reachable once", which is exactly
-               * the wrong thing to tell an operator whose ping monitor says
-               * it is up (#3447).
+               * `lastSeenAt` only ever moves when a probe's poll reaches
+               * the device (ping or SNMP), so a monitor-backed device's is
+               * NULL for life. "Never" reads as "this device has not been
+               * reachable once", which is exactly the wrong thing to tell
+               * an operator whose ping monitor says it is up (#3447).
                */
               if (
                 !item.lastSeenAt &&
@@ -1407,7 +1684,7 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <span
                     className="text-sm text-gray-400"
-                    title="Last contact is stamped by an SNMP walk, which does not run on a monitor-backed device. Its status comes from the monitor bound to it."
+                    title="Last contact is stamped by a probe's poll, which does not run on a monitor-backed device. Its status comes from the monitor bound to it."
                   >
                     —
                   </span>
@@ -1449,9 +1726,11 @@ const NetworkDevices: FunctionComponent<
           /*
            * Carries `monitoringMethod` and `currentMonitorStatus` as well as
            * the poll columns: the status pill reads a monitor-backed
-           * device's health from its monitor, not from an SNMP walk —
-           * nothing polls those, so the poll columns alone would leave every
-           * one of them stuck on "Pending".
+           * device's health from its monitor, not from a poll — nothing
+           * polls those, so the poll columns alone would leave every one of
+           * them stuck on "Pending". It also carries `isSnmpReachable`,
+           * `probeId` and `isPollingEnabled`, which the "SNMP failing" and
+           * "No probe" qualifier pills are decided from.
            */
           ...DEVICE_STATUS_SELECT,
           // For the "No monitor" qualifier beside a monitor-backed Pending.
@@ -1475,6 +1754,8 @@ const NetworkDevices: FunctionComponent<
       />
       {labelBulkActionModals}
       {oidTemplateBulkActionModals}
+      {snmpCredentialProfileBulkActionModals}
+      {switchToProbePollingBulkActionModals}
       {createPingMonitorBulkActionModals}
     </Fragment>
   );

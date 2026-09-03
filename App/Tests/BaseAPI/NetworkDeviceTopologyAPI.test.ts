@@ -11,7 +11,10 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import NetworkDeviceMonitoringMethod, {
+  LEGACY_SNMP_MONITORING_METHOD,
+} from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -1452,5 +1455,201 @@ describe("POST /network-device/topology — monitor-backed devices", () => {
 
     expect(statusByName.get("ping-only-ap")).toBe("unknown");
     expect(statusByName.get("walked-sw")).toBe("down");
+  });
+});
+
+/*
+ * Issue #3562, health precedence. A stamped MonitorStatus is the device's
+ * verdict ONLY for a monitor-backed device. A probe-polled device is judged
+ * by its own poll, and the stamp on it is informational.
+ *
+ * The distinction is not academic here. A Network Device monitor watching a
+ * switch stamps that switch's status, and a perfectly ordinary criterion —
+ * "interface down → Offline" — stamps Offline on a switch that answers every
+ * single ping. Before the gate below, the map took that stamp as the verdict
+ * and drew the switch red while its own row in the device list, the summary
+ * tiles and the Status chip (all read from `isReachable`) said Up. One dark
+ * access port turned a healthy site red on the map.
+ *
+ * The gate has to live in THIS file and not in the graph: buildTopology
+ * takes `monitorStatus` as the verdict whenever it is present
+ * (NetworkTopologyUtil.deviceStatus), so the only place that can decide
+ * whether a stamp is evidence is the code that copies the device row into
+ * the graph's input. Nothing about dropping the check fails to compile, and
+ * with `monitorStatusService.findBy` mocked empty — as every other block in
+ * this file leaves it — nothing else here would notice either.
+ */
+describe("POST /network-device/topology — a stamp decides only for a monitor-backed device", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+    deviceRoleService.findBy.mockResolvedValue([] as never);
+  });
+
+  function makeStatus(isOfflineState: boolean): MonitorStatus {
+    const status: MonitorStatus = new MonitorStatus(ObjectID.generate());
+    status.name = isOfflineState ? "Offline" : "Operational";
+    status.isOfflineState = isOfflineState;
+    status.isOperationalState = !isOfflineState;
+    return status;
+  }
+
+  /*
+   * A device with a poll that landed just now, so freshness plays no part in
+   * the verdict and the assertions below are about `isReachable` and the
+   * stamp alone.
+   */
+  function makePolledDevice(data: {
+    name: string;
+    isReachable: boolean;
+    monitoringMethod?: NetworkDeviceMonitoringMethod | undefined;
+    stampedStatusId?: ObjectID | undefined;
+  }): NetworkDevice {
+    const device: NetworkDevice = makeDevice(data.name);
+    device.isReachable = data.isReachable;
+    device.lastPolledAt = new Date();
+    device.lastSeenAt = new Date();
+    device.pollingIntervalInMinutes = 5;
+
+    if (data.monitoringMethod) {
+      device.monitoringMethod = data.monitoringMethod;
+    }
+
+    if (data.stampedStatusId) {
+      device.currentMonitorStatusId = data.stampedStatusId;
+    }
+
+    return device;
+  }
+
+  type StatusByNameFunction = () => Map<string, string>;
+
+  const statusByName: StatusByNameFunction = (): Map<string, string> => {
+    const byName: Map<string, string> = new Map<string, string>();
+    for (const node of lastResponseBody()["nodes"] as Array<JSONObject>) {
+      byName.set(node["name"] as string, node["status"] as string);
+    }
+    return byName;
+  };
+
+  test("one Offline stamp, two devices: it is the verdict for the bound one and informational for the polled one", async () => {
+    const offline: MonitorStatus = makeStatus(true);
+
+    /*
+     * The switch from the report: answering its probe, and stamped Offline
+     * by an "interface down" criterion on the monitor watching it.
+     */
+    const polled: NetworkDevice = makePolledDevice({
+      name: "core-sw1",
+      isReachable: true,
+      monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+      stampedStatusId: offline.id!,
+    });
+
+    /*
+     * The same stamp on a device nothing polls. Its poll columns are the
+     * leftovers of whatever it was before it was bound, so the stamp is the
+     * only honest source of health it has.
+     */
+    const bound: NetworkDevice = makePolledDevice({
+      name: "bound-ap",
+      isReachable: true,
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+      stampedStatusId: offline.id!,
+    });
+
+    deviceService.findBy.mockResolvedValue([polled, bound] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callTopology({});
+
+    const byName: Map<string, string> = statusByName();
+    expect(byName.get("core-sw1")).toBe("up");
+    expect(byName.get("bound-ap")).toBe("down");
+  });
+
+  /*
+   * The gate is one-directional on purpose. Ignoring the stamp for a
+   * probe-polled device must not turn into "a probe-polled device is
+   * whatever its stamp is not" — the poll decides, and a device that stopped
+   * answering is down however green the monitor watching it happens to be.
+   */
+  test("an Operational stamp cannot mask a probe-polled device that stopped answering", async () => {
+    const operational: MonitorStatus = makeStatus(false);
+
+    const polled: NetworkDevice = makePolledDevice({
+      name: "branch-rtr1",
+      isReachable: false,
+      monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+      stampedStatusId: operational.id!,
+    });
+
+    deviceService.findBy.mockResolvedValue([polled] as never);
+    monitorStatusService.findBy.mockResolvedValue([operational] as never);
+
+    await callTopology({});
+
+    expect(statusByName().get("branch-rtr1")).toBe("down");
+  });
+
+  /*
+   * Rows written before ping-first polling carry "SNMP" or NULL in the
+   * column, and both parse to Probe — they were probe-polled all along. A
+   * gate that compared the raw string to "Probe" instead of going through
+   * NetworkDeviceMonitoringMethodUtil would hand every one of those devices'
+   * stamps back to the graph, which is the whole fleet of an upgraded
+   * install.
+   */
+  test('a legacy row — "SNMP", or no method at all — is probe-polled, so its stamp stays informational', async () => {
+    const offline: MonitorStatus = makeStatus(true);
+
+    const legacySnmp: NetworkDevice = makePolledDevice({
+      name: "legacy-sw",
+      isReachable: true,
+      stampedStatusId: offline.id!,
+    });
+    legacySnmp.monitoringMethod =
+      LEGACY_SNMP_MONITORING_METHOD as NetworkDeviceMonitoringMethod;
+
+    // Never written: the column did not exist when this row was created.
+    const noMethod: NetworkDevice = makePolledDevice({
+      name: "unmigrated-sw",
+      isReachable: true,
+      stampedStatusId: offline.id!,
+    });
+
+    deviceService.findBy.mockResolvedValue([legacySnmp, noMethod] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callTopology({});
+
+    const byName: Map<string, string> = statusByName();
+    expect(byName.get("legacy-sw")).toBe("up");
+    expect(byName.get("unmigrated-sw")).toBe("up");
+  });
+
+  /*
+   * And the monitor-backed half still reads the ladder at its OFFLINE end
+   * rather than at its operational one: MonitorStatus is a ladder, and a
+   * Degraded device is reachable. Drawing it red would say the link is dead,
+   * which is a louder claim than the status is making.
+   */
+  test("a monitor-backed device stamped with a non-offline status is drawn up, not red", async () => {
+    const degraded: MonitorStatus = makeStatus(false);
+    degraded.name = "Degraded";
+    degraded.isOperationalState = false;
+
+    const bound: NetworkDevice = makePolledDevice({
+      name: "degraded-ap",
+      isReachable: false,
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+      stampedStatusId: degraded.id!,
+    });
+
+    deviceService.findBy.mockResolvedValue([bound] as never);
+    monitorStatusService.findBy.mockResolvedValue([degraded] as never);
+
+    await callTopology({});
+
+    expect(statusByName().get("degraded-ap")).toBe("up");
   });
 });

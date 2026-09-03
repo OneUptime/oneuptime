@@ -7,6 +7,8 @@ import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
+import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
+import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -16,6 +18,7 @@ import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
+import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -87,6 +90,24 @@ const NETWORK_SITE_TYPE_KEYS: Array<string> = [
 ];
 
 const PROJECT_KEYS: Array<string> = ["projectId", "project"];
+
+/*
+ * Both spellings of the site's two monitoring defaults: the probe that polls
+ * devices here, and the SNMP credentials they are walked with.
+ *
+ * Both are references that a device INHERITS - the probe copied onto the
+ * device at write (see NetworkDeviceService), the credentials read live at
+ * poll time (see NetworkDeviceHydrationUtil.resolveSnmpCredentials). So a
+ * cross-project value here is not a cosmetic error on one row: it reaches
+ * every device in the subtree. Watching only the FK spelling would leave the
+ * dashboard's site form - which posts the relation - unguarded, which is the
+ * bug RelationIdUtil exists to document.
+ */
+const PROBE_KEYS: Array<string> = ["probeId", "probe"];
+const SNMP_CREDENTIAL_PROFILE_KEYS: Array<string> = [
+  "snmpCredentialProfileId",
+  "snmpCredentialProfile",
+];
 
 const MATERIALIZED_HIERARCHY_KEYS: Array<string> = [
   "materializedPath",
@@ -920,6 +941,179 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The FK behind `probeId` only requires the Probe row to exist. It does
+   * NOT require it to belong to this project, and probe ids reach the server
+   * from the browser (the site form's dropdown posts one), so without this
+   * check an operator could name another project's probe as this site's
+   * default - and NetworkDeviceService would then copy it onto every device
+   * created into the site, handing that project's probe a target list inside
+   * this one.
+   *
+   * A GLOBAL probe has no project and is attachable anywhere, which is why
+   * this delegates to ProbeService rather than comparing projectIds: the
+   * same predicate that decides which probes a monitor may use decides which
+   * probe a site may default to.
+   */
+  private async assertProbeIsAttachableToProject(data: {
+    probeId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const isAttachable: boolean = await ProbeService.isProbeAttachableToProject(
+      {
+        probeId: data.probeId,
+        projectId: data.projectId,
+      },
+    );
+
+    if (!isAttachable) {
+      throw new BadDataException(
+        "Probe not found or it does not belong to this project.",
+      );
+    }
+  }
+
+  /*
+   * Same hole as the probe above, and the consequence is worse: a site's
+   * credential profile is read LIVE at poll time for every device in the
+   * site that has no credentials of its own
+   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a cross-project
+   * reference here would put another project's community string on this
+   * project's probe's wire. The resolver drops such a reference as a
+   * backstop; this is the half that stops it being written at all.
+   */
+  private async assertSnmpCredentialProfileBelongsToProject(data: {
+    snmpCredentialProfileId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const profile: NetworkSnmpCredentialProfile | null =
+      await NetworkSnmpCredentialProfileService.findOneById({
+        id: data.snmpCredentialProfileId,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!profile) {
+      throw new BadDataException("SNMP Credential Profile not found.");
+    }
+
+    if (profile.projectId && !sameId(profile.projectId, data.projectId)) {
+      throw new BadDataException(
+        "SNMP Credential Profile must belong to the same project.",
+      );
+    }
+  }
+
+  /*
+   * The site's default probe, inherited: this site's own `probeId`, or the
+   * nearest ancestor that has one.
+   *
+   * Copy-at-write, not read-through — NetworkDeviceService calls this once,
+   * when a device is created into or moved to a site with no probe of its
+   * own, and stamps the answer on the device. That is what makes editing a
+   * site's default a decision about FUTURE devices only: nothing re-reads
+   * this, so no site edit can silently re-point a fleet that is already
+   * polling.
+   *
+   * Nearest ancestor wins, so a Region's probe covers every Market under it
+   * while a Market that names its own overrides it for its own subtree.
+   * `getAncestorIds` returns root-first, hence the reverse walk.
+   */
+  @CaptureSpan()
+  public async resolveDefaultProbeIdForSite(
+    siteId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const site: Model | null = await this.findOneById({
+      id: siteId,
+      select: {
+        _id: true,
+        probeId: true,
+        parentSiteId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!site) {
+      return null;
+    }
+
+    if (site.probeId) {
+      return site.probeId;
+    }
+
+    /*
+     * A root site has no ancestors, so there is nothing above it to inherit
+     * from. Short-circuited here rather than left to getAncestorIds because
+     * that call is not free: it resolves — and, for a row whose path is
+     * missing or stale, REBUILDS AND PERSISTS — the materialized path. This
+     * runs on the device create path, where most sites are roots and no
+     * device write should be paying for hierarchy maintenance it cannot use.
+     */
+    if (!site.parentSiteId) {
+      return null;
+    }
+
+    const ancestorIds: Array<ObjectID> = await this.getAncestorIds(siteId);
+
+    if (ancestorIds.length === 0) {
+      return null;
+    }
+
+    const ancestors: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(
+          ancestorIds.map((ancestorId: ObjectID) => {
+            return ancestorId.toString();
+          }),
+        ),
+      },
+      select: {
+        _id: true,
+        probeId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const probeIdBySiteId: Map<string, ObjectID> = new Map();
+
+    for (const ancestor of ancestors) {
+      if (ancestor.id && ancestor.probeId) {
+        probeIdBySiteId.set(ancestor.id.toString(), ancestor.probeId);
+      }
+    }
+
+    for (let index: number = ancestorIds.length - 1; index >= 0; index--) {
+      const probeId: ObjectID | undefined = probeIdBySiteId.get(
+        ancestorIds[index]!.toString(),
+      );
+
+      if (probeId) {
+        return probeId;
+      }
+    }
+
+    return null;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -989,6 +1183,37 @@ export class Service extends DatabaseService<Model> {
       typeCache: new Map<string, NetworkSiteType>(),
     });
 
+    /*
+     * The monitoring defaults are tenant-checked on the way in, in both
+     * spellings. See the constants for why a bad value here is not confined
+     * to this row.
+     */
+    const probeId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: PROBE_KEYS,
+      relationTitle: "Probe",
+    });
+
+    if (probeId) {
+      await this.assertProbeIsAttachableToProject({
+        probeId: probeId,
+        projectId: projectId,
+      });
+    }
+
+    const snmpCredentialProfileId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+      relationTitle: "SNMP Credential Profile",
+    });
+
+    if (snmpCredentialProfileId) {
+      await this.assertSnmpCredentialProfileBelongsToProject({
+        snmpCredentialProfileId: snmpCredentialProfileId,
+        projectId: projectId,
+      });
+    }
+
     if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
     }
@@ -1050,12 +1275,26 @@ export class Service extends DatabaseService<Model> {
       rawData,
       MATERIALIZED_HIERARCHY_KEYS,
     );
+    /*
+     * These two have to be named in the early return, and that is the whole
+     * reason they are here. Setting a site's default probe or credential
+     * profile touches neither the parent nor the type, so a tenancy guard
+     * placed below the return would be dead code on exactly the write it
+     * exists for — the shape the site settings form actually posts.
+     */
+    const touchesProbe: boolean = isRelationWritten(rawData, PROBE_KEYS);
+    const touchesSnmpCredentialProfile: boolean = isRelationWritten(
+      rawData,
+      SNMP_CREDENTIAL_PROFILE_KEYS,
+    );
 
     if (
       !touchesParent &&
       !touchesNetworkSiteType &&
       !touchesProject &&
-      !touchesMaterializedHierarchy
+      !touchesMaterializedHierarchy &&
+      !touchesProbe &&
+      !touchesSnmpCredentialProfile
     ) {
       return { updateBy, carryForward: null };
     }
@@ -1148,6 +1387,60 @@ export class Service extends DatabaseService<Model> {
           throw new BadDataException(
             "Network site must belong to the same project.",
           );
+        }
+      }
+    }
+
+    /*
+     * One check per DISTINCT project in the matched set, because a single
+     * updateBy can span more than one project when a root caller issues it,
+     * and the payload names one probe / one profile for all of them. Reading
+     * the ids here (rather than above the previousItems read) keeps a
+     * conflicting-spelling payload refused on every write shape.
+     */
+    if (touchesProbe || touchesSnmpCredentialProfile) {
+      const newProbeId: ObjectID | null = touchesProbe
+        ? readStrictRelationId({
+            payload: rawData,
+            keys: PROBE_KEYS,
+            relationTitle: "Probe",
+          })
+        : null;
+      const newSnmpCredentialProfileId: ObjectID | null =
+        touchesSnmpCredentialProfile
+          ? readStrictRelationId({
+              payload: rawData,
+              keys: SNMP_CREDENTIAL_PROFILE_KEYS,
+              relationTitle: "SNMP Credential Profile",
+            })
+          : null;
+
+      // A clear (null) points at nothing and has nothing to check.
+      if (newProbeId || newSnmpCredentialProfileId) {
+        const checkedProjectIds: Set<string> = new Set();
+
+        for (const item of previousItems) {
+          if (
+            !item.projectId ||
+            checkedProjectIds.has(normalizeId(item.projectId))
+          ) {
+            continue;
+          }
+          checkedProjectIds.add(normalizeId(item.projectId));
+
+          if (newProbeId) {
+            await this.assertProbeIsAttachableToProject({
+              probeId: newProbeId,
+              projectId: item.projectId,
+            });
+          }
+
+          if (newSnmpCredentialProfileId) {
+            await this.assertSnmpCredentialProfileBelongsToProject({
+              snmpCredentialProfileId: newSnmpCredentialProfileId,
+              projectId: item.projectId,
+            });
+          }
         }
       }
     }

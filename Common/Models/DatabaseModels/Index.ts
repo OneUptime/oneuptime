@@ -14,6 +14,8 @@ import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceAutoImportRule from "./NetworkDeviceAutoImportRule";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import NetworkDeviceRole from "./NetworkDeviceRole";
+import NetworkAlertPolicy from "./NetworkAlertPolicy";
+import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
@@ -882,6 +884,8 @@ const AllModelTypes: Array<{
   NetworkDeviceAutoImportRule,
   NetworkDeviceOidTemplate,
   NetworkDeviceRole,
+  NetworkAlertPolicy,
+  NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
   NetworkSite,

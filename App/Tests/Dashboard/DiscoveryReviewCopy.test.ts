@@ -523,10 +523,20 @@ describe("the dialog puts that copy on screen", () => {
     expect(description).not.toContain("cannot be imported");
     expect(description).not.toContain("without SNMP cannot");
 
+    /*
+     * The two groups no longer import into different KINDS of device — both
+     * are Probe devices the scan's probe pings — so what the sentence has to
+     * carry is the one difference left: SNMP hosts arrive with the scan's
+     * credentials and are walked, hosts without SNMP are pinged until
+     * credentials are added. "monitor-backed" and "polling off" would be
+     * describing the import this dialog no longer does.
+     */
     const snmpBranch: string = reviewDescriptionBranches().snmp;
 
-    expect(snmpBranch).toContain("polled devices");
-    expect(snmpBranch).toContain("monitor-backed");
+    expect(snmpBranch).toContain("credentials");
+    expect(snmpBranch).toContain("pinged by the scan's probe");
+    expect(snmpBranch).not.toContain("monitor-backed");
+    expect(snmpBranch).not.toContain("polling off");
   });
 
   test("a row's checkbox says which host it is for", () => {
@@ -689,24 +699,24 @@ describe("the review dialog reads differently for a scan that only pinged", () =
      * The two facts an operator needs before pressing Import on a sweep that
      * asked nothing about SNMP:
      *
-     *   - what arrives in the inventory. "monitor-backed" is the same word the
-     *     No SNMP pill and the toggle's own description use, so the three
-     *     places this concept appears name it identically.
-     *   - that the device has no status until something is bound to it. A
-     *     monitor-backed device with no monitor is a row that never goes green
-     *     or red, and an operator who imports 2,890 of them and hears nothing
-     *     for a week has been told nothing was wrong.
+     *   - what arrives in the inventory. "pinged by the scan's probe" is the
+     *     same phrase the No SNMP pill and the SNMP branch use, so the three
+     *     places this concept appears name it identically — and it says the
+     *     device has a status on its own, which is the thing the old
+     *     "monitor-backed ... polling off" import did not.
+     *   - what is still worth adding: SNMP credentials for inventory, and the
+     *     optional Ping monitor for incidents.
      */
     const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
 
     expect(icmpOnly).toContain("ICMP only");
-    expect(icmpOnly).toContain("monitor-backed");
+    expect(icmpOnly).toContain("pinged by the scan's probe");
+    expect(icmpOnly).toContain("SNMP credentials");
     /*
      * Named the way the dialog's own control names it. Every host an
-     * ICMP-only scan finds is a host without SNMP, so the "Create a Ping
-     * monitor for each host without SNMP" option covers the whole import —
-     * pointing at it beats telling the operator to go and bind 2,890
-     * monitors by hand.
+     * ICMP-only scan finds is a host without SNMP, so the Ping monitor
+     * option covers the whole import — pointing at it beats telling the
+     * operator to go and create 2,890 monitors by hand.
      */
     expect(icmpOnly).toContain("Create a Ping monitor");
   });
@@ -719,21 +729,20 @@ describe("the review dialog reads differently for a scan that only pinged", () =
      * description of it.
      */
     expect(reviewDescriptionBranches().icmpOnly).toEqual(
-      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off. Turn on 'Create a Ping monitor' below to give each one a status, or bind a monitor yourself afterwards.",
+      "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
     );
   });
 
-  test("the SNMP branch is byte for byte the sentence it already was", () => {
+  test("the SNMP branch is exactly this sentence", () => {
     /*
-     * The other side of the branch. Adding a mode to this dialog must not
-     * reword the case that was already shipping: every scan created before
-     * #3445 — and every SNMP scan created after it — renders this sentence, and
-     * the existing tests above pin its two load-bearing phrases. This pins the
-     * whole of it, so the ICMP-only edit cannot have quietly rewritten the copy
-     * it was branching away from.
+     * The other side of the branch, pinned whole so neither arm can be
+     * quietly rewritten in an edit aimed at the other. Reworded once, when
+     * ping-first polling replaced the monitor-backed import: "polled devices
+     * ... monitor-backed ones" described two kinds of device, and there is
+     * one kind now.
      */
     expect(reviewDescriptionBranches().snmp).toEqual(
-      "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones.",
+      "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
     );
   });
 
@@ -747,7 +756,7 @@ describe("the review dialog reads differently for a scan that only pinged", () =
     const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
 
     expect(icmpOnly).not.toContain("Filter to a group");
-    expect(icmpOnly).not.toContain("polled devices");
+    expect(icmpOnly).not.toContain("walked for inventory");
     expect(icmpOnly).not.toContain("SNMP hosts");
   });
 
@@ -847,12 +856,12 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
      * and what to do afterwards, which is precisely the question an operator
      * has about a row on a scan with no SNMP results. Redundancy across a list
      * where every row carries it is a much smaller cost than removing the one
-     * place that explains what a monitor-backed device is.
+     * place that explains what a credential-less device is.
      */
     expect(pingOnlyBadgeSection()).not.toContain("isIcmpOnlyReview");
   });
 
-  test("the pill still explains what the host imports as and what to bind to it", () => {
+  test("the pill still explains what the host imports as and what to add to it", () => {
     /*
      * The same two facts the ICMP-only description carries, in the same words,
      * one row at a time. `title` is the only place they can live on a pill this
@@ -861,25 +870,50 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
     const badge: string = pingOnlyBadgeSection();
 
     expect(badge).toContain("title=");
-    expect(badge).toContain("monitor-backed device");
+    expect(badge).toContain("pinged by the scan's probe");
+    expect(badge).toContain("SNMP credentials");
     /*
-     * What the pill has to convey, not the exact route to it: the wording
-     * moved from "bind a Ping or IP monitor" to pointing at the "Create a
-     * Ping monitor" option once that option existed. Both say the same thing
-     * — a host that arrives this way has no status until a monitor is bound —
-     * and that is the sentence worth pinning.
+     * What the pill has to convey, not the exact route to it: the device has
+     * a status on its own, so the Ping monitor is offered for what it still
+     * adds — incidents — rather than as the thing that makes the row go
+     * green. The old sentence ("needs a monitor bound to it before it
+     * reports a status") is banned because it is no longer true.
      */
-    expect(badge).toContain("needs a monitor bound to it");
+    expect(badge).toContain("Create a Ping monitor");
+    expect(badge).toContain("incidents");
+    expect(badge).not.toContain("needs a monitor bound to it");
+    expect(badge).not.toContain("monitor-backed");
+    expect(badge).not.toContain("no polling");
   });
 
   test("the pill's wording and the description's agree about what arrives", () => {
     /*
-     * Two pieces of copy, one concept. If either drifts to "unpolled device" or
-     * "ping device", the operator has to work out that the badge on the row and
-     * the sentence above the list are describing the same thing.
+     * Three pieces of copy, one concept. If any drifts to "unpolled device"
+     * or "monitor-backed device", the operator has to work out that the badge
+     * on the row and the sentence above the list are describing the same
+     * thing.
      */
-    expect(pingOnlyBadgeSection()).toContain("monitor-backed");
-    expect(reviewDescriptionBranches().icmpOnly).toContain("monitor-backed");
-    expect(reviewDescriptionBranches().snmp).toContain("monitor-backed");
+    expect(pingOnlyBadgeSection()).toContain("pinged by the scan's probe");
+    expect(reviewDescriptionBranches().icmpOnly).toContain(
+      "pinged by the scan's probe",
+    );
+    expect(reviewDescriptionBranches().snmp).toContain(
+      "pinged by the scan's probe",
+    );
+  });
+
+  test("nothing in the dialog still describes the monitor-backed import", () => {
+    /*
+     * The import this dialog used to do — a monitor-backed device with polling
+     * off, waiting for a monitor to be bound — is gone, and every sentence
+     * that described it went with it. Banned across the whole modal so it
+     * cannot survive in a tooltip or a toggle description that the exact
+     * assertions above do not reach.
+     */
+    const section: string = modalSection();
+
+    expect(section).not.toContain("monitor-backed");
+    expect(section).not.toContain("polling off");
+    expect(section).not.toContain("never polled");
   });
 });

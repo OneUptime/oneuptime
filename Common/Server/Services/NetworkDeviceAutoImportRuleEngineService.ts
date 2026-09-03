@@ -31,10 +31,7 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
-import { monitoringMethodForDiscoveredHost } from "../../Utils/NetworkDiscovery/DiscoveryImportEligibility";
-import NetworkDeviceMonitoringMethod, {
-  NetworkDeviceMonitoringMethodUtil,
-} from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -1269,14 +1266,16 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     isDryRun: boolean;
   }): Promise<boolean> {
     /*
-     * A Network Device monitor is evaluated from SNMP walks. A ping-only
-     * import intentionally has polling disabled and can never supply those
-     * results. Rule validation prevents this combination, while this guard
-     * keeps legacy or directly-written rows from creating inert monitors.
+     * A Network Device monitor is fed by the device's polls, and nothing
+     * polls a monitor-backed device — its bound monitor's status IS its
+     * status — so a monitor provisioned onto one could only ever sit inert.
+     * The DEVICE's method is the whole test. A ping-only host is no longer
+     * a reason to skip: it imports as a Probe device, pinged on schedule,
+     * and its monitor evaluates reachability from that ping while the OID
+     * and interface criteria stay unevaluated (null) until credentials
+     * arrive and a walk runs — see SnmpMonitorCriteria.
      */
     if (
-      monitoringMethodForDiscoveredHost(data.host) ===
-        NetworkDeviceMonitoringMethod.Monitor ||
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
         data.networkDevice.monitoringMethod,
       )

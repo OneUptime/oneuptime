@@ -146,6 +146,8 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES]: `settings/auto-import-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: `settings/oid-collection-templates`,
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: `settings/device-roles`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES]: `settings/snmp-credential-profiles`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]: `settings/alert-policies`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
@@ -2748,6 +2750,20 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[
+        PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+      ]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]
     }`,
   ),
 

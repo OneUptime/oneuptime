@@ -43,7 +43,8 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     countField: "devicesUp",
     attentionClassName: "text-emerald-600",
     allClearClassName: "text-gray-900",
-    caption: "The last SNMP poll, or the bound monitor, reached the device.",
+    caption:
+      "The last poll (ping or SNMP), or the bound monitor, reached the device.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Up],
@@ -57,7 +58,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     attentionClassName: "text-red-600",
     allClearClassName: "text-gray-900",
     caption:
-      "The last SNMP poll, or the bound monitor, could not reach the device.",
+      "The last poll (ping or SNMP), or the bound monitor, could not reach the device.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Down],
@@ -70,7 +71,8 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     countField: "devicesPending",
     attentionClassName: "text-gray-500",
     allClearClassName: "text-gray-900",
-    caption: "No verdict yet — never polled, or no monitor bound.",
+    caption:
+      "No verdict yet — never polled, no probe assigned, or no monitor bound.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Pending],

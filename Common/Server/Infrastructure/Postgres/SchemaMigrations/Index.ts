@@ -569,6 +569,7 @@ import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAu
 import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-AddNetworkSiteTypeParentHierarchy";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
 import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
+import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000 } from "./1791000000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 
 export default [
   InitialMigration,
@@ -1142,4 +1143,5 @@ export default [
   AddNetworkSiteTypeParentHierarchy1790700000000,
   AddNetworkDeviceRoleTable1790800000000,
   AddEnterpriseLicenseUsageProvenance1790900000000,
+  AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000,
 ];

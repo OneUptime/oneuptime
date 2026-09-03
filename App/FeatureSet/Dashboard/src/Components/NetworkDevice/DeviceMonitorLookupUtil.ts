@@ -168,6 +168,16 @@ export default class DeviceMonitorLookupUtil {
         name: true,
         monitorType: true,
         monitorSteps: true,
+        /*
+         * Whether an alert policy owns this monitor — the id only, not the
+         * policy row. The `networkAlertPolicy` RELATION carries no
+         * `canReadOnRelationQuery` (same reason the status pill above reads
+         * the way it does), and widening a shared model's read surface to
+         * put a policy's name on one card is the wrong trade. The id is
+         * enough for what the operator needs to know here: that editing or
+         * deleting this monitor by hand will be undone by the engine.
+         */
+        networkAlertPolicyId: true,
         currentMonitorStatus: {
           name: true,
           color: true,

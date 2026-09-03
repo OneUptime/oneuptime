@@ -203,8 +203,10 @@ describe("buildNetworkDeviceFromDiscoveredHost - vendor template auto-apply flag
   });
 
   /*
-   * A ping-only host is never SNMP-polled, so no poll can ever fingerprint
-   * its vendor — the flag would be a dead toggle that reads as a promise.
+   * A ping-only host imports with no credentials, so no poll fingerprints
+   * its vendor until an operator adds some — the flag would be a dead toggle
+   * that reads as a promise. The device is still the scan's probe's to ping;
+   * what it lacks is the SNMP data the template auto-apply keys off.
    */
   it("stays off on a ping-only host even when requested", () => {
     const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
@@ -227,7 +229,7 @@ describe("buildNetworkDeviceFromDiscoveredHost - SNMP host", () => {
     // The address is both the hostname and the registered-host dedup key.
     expect(device.hostname).toBe("10.0.0.5");
     expect(device.description).toBe("Cisco IOS Software, C2960X");
-    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Snmp);
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
   });
 
   /*
@@ -411,19 +413,25 @@ describe("buildNetworkDeviceFromDiscoveredHost - a scan with several SNMP config
 
 describe("buildNetworkDeviceFromDiscoveredHost - ping-only host", () => {
   /*
-   * A ping-only host becomes a monitor-backed device: recorded so it can
-   * belong to a site and appear on the topology map, with binding a monitor
-   * to it a separate deliberate step. Credentials it never answered to must
-   * not ride along.
+   * A ping-only host becomes a Probe device the scan's probe pings: it has
+   * a status from its first poll, belongs to a site, appears on the topology
+   * map, and gets walked the day an operator adds credentials. Credentials
+   * it never answered to must not ride along.
+   *
+   * (It used to become a monitor-backed device with no probe and polling
+   * off, and sat on "Pending" until a Ping monitor was hand-bound — issue
+   * #3447. The three assertions that changed here are the ones that end
+   * that: Probe, the scan's probe, polling on.)
    */
-  it("builds a monitor-backed device with polling off and no credentials", () => {
+  it("builds a Probe device on the scan's probe with polling on and no credentials", () => {
     const device: NetworkDevice = build({
       host: snmpHost({ snmpReachable: false, sysName: undefined }),
     });
 
-    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
-    expect(device.isPollingEnabled).toBe(false);
-    expect(device.probeId).toBeUndefined();
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+    expect(device.isPollingEnabled).toBe(true);
+    expect(device.probeId).toBeInstanceOf(ObjectID);
+    expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
     expect(device.snmpVersion).toBeUndefined();
     expect(device.snmpCommunityString).toBeUndefined();
     expect(device.snmpPort).toBeUndefined();
@@ -443,7 +451,7 @@ describe("buildNetworkDeviceFromDiscoveredHost - ping-only host", () => {
    * the same probe-written jsonb row, and nothing in the database enforces
    * that a ping-only row leaves the first one unset — an older result, a
    * partially-rewritten row, or a probe bug is enough. The builder must decide
-   * on the monitoring method and return BEFORE it ever looks a config up, so
+   * that the host is ping-only and return BEFORE it ever looks a config up, so
    * that a stray id can never conjure credentials onto a device that answered
    * nothing but a ping.
    */
@@ -456,13 +464,83 @@ describe("buildNetworkDeviceFromDiscoveredHost - ping-only host", () => {
       scan: multiConfigScanSource(),
     });
 
-    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
-    expect(device.isPollingEnabled).toBe(false);
-    expect(device.probeId).toBeUndefined();
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+    expect(device.isPollingEnabled).toBe(true);
+    expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
     expect(device.snmpVersion).toBeUndefined();
     expect(device.snmpCommunityString).toBeUndefined();
     expect(device.snmpPort).toBeUndefined();
     expectNoV3Credentials(device);
+  });
+
+  /*
+   * The OID template an auto-import rule links is SNMP data the host did not
+   * supply; attaching it would promise a collection that cannot start until
+   * credentials exist. Kept off, like the vendor-template flag above.
+   */
+  it("does not attach the rule's OID template to a ping-only host", () => {
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: snmpHost({ snmpReachable: false }),
+      scan: fullScanSource(),
+      oidTemplateId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+    });
+
+    expect(device.oidTemplateId).toBeUndefined();
+  });
+
+  /*
+   * A scan with no probe at all — an API-written row, or a scan whose probe
+   * was deleted between the sweep and the import. The device is still a
+   * Probe device with polling on; it simply has no probe to be claimed by
+   * until one is assigned, which the Settings form requires. Nothing here
+   * may throw or silently fall back to Monitor.
+   */
+  it("still builds a Probe device with polling on when the scan names no probe", () => {
+    const device: NetworkDevice = build({
+      host: snmpHost({ snmpReachable: false }),
+      scan: { ...fullScanSource(), probeId: undefined },
+    });
+
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+    expect(device.isPollingEnabled).toBe(true);
+    expect(device.probeId).toBeUndefined();
+  });
+});
+
+describe("buildNetworkDeviceFromDiscoveredHost - both kinds of host share the recipe", () => {
+  /*
+   * The point of ping-first polling from the import side: the ONLY thing
+   * that differs between an SNMP host and a ping-only one is the credentials.
+   * Method, probe and polling are identical, so an edit that reintroduced a
+   * "ping-only hosts are different" branch on any of the three fails here.
+   */
+  it("differ only in the credentials they carry", () => {
+    const snmpDevice: NetworkDevice = build({
+      host: snmpHost({ snmpReachable: true }),
+    });
+    const pingOnlyDevice: NetworkDevice = build({
+      host: snmpHost({ snmpReachable: false }),
+    });
+
+    expect(pingOnlyDevice.monitoringMethod).toBe(snmpDevice.monitoringMethod);
+    expect(pingOnlyDevice.isPollingEnabled).toBe(snmpDevice.isPollingEnabled);
+    expect(pingOnlyDevice.probeId?.toString()).toBe(
+      snmpDevice.probeId?.toString(),
+    );
+
+    // Anti-vacuity: the SNMP device really does carry what the other lacks.
+    expect(snmpDevice.snmpCommunityString).toBe("public");
+    expect(pingOnlyDevice.snmpCommunityString).toBeUndefined();
+  });
+
+  it("writes polling on explicitly rather than leaving it to the column", () => {
+    for (const snmpReachable of [true, false, undefined]) {
+      expect(
+        build({ host: snmpHost({ snmpReachable: snmpReachable }) })
+          .isPollingEnabled,
+      ).toBe(true);
+    }
   });
 });
 
@@ -848,10 +926,10 @@ describe("the reverse-DNS name (issue #3529)", () => {
       expect(device.name).toBe("core-gw.corp.example.com");
     });
 
-    test("a ping-only host still imports as a monitor-backed device", () => {
+    test("a ping-only host still imports as a credential-less Probe device", () => {
       /*
        * Naming must not change WHAT a host imports as. A PTR record says
-       * nothing about whether the device can be SNMP-polled.
+       * nothing about whether the device answered SNMP.
        */
       const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
         projectId: PROJECT_ID,
@@ -864,10 +942,9 @@ describe("the reverse-DNS name (issue #3529)", () => {
       });
 
       expect(device.name).toBe("cam-lobby.corp.example.com");
-      expect(device.monitoringMethod).toBe(
-        NetworkDeviceMonitoringMethod.Monitor,
-      );
-      expect(device.isPollingEnabled).toBe(false);
+      expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+      expect(device.isPollingEnabled).toBe(true);
+      expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
       expect(device.snmpCommunityString).toBeUndefined();
     });
 

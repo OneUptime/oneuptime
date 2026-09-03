@@ -425,6 +425,16 @@ export default class CriteriaFilterUtil {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === CheckOn.SnmpIsOnline ||
+          /*
+           * Offered beside "Is Online" because the two now mean different
+           * things: a device is online when it answers ping OR its walk
+           * succeeds, so a switch whose SNMP agent has stopped answering is
+           * still Online while its walk is not succeeding. Without this
+           * option an operator has no way to alert on the walk breaking —
+           * which is the failure that silently stops interface, topology and
+           * inventory data from arriving.
+           */
+          i.value === CheckOn.SnmpWalkIsSucceeding ||
           i.value === CheckOn.SnmpResponseTime ||
           i.value === CheckOn.SnmpOidValue ||
           i.value === CheckOn.SnmpOidExists ||
@@ -787,6 +797,14 @@ export default class CriteriaFilterUtil {
 
     if (
       checkOn === CheckOn.SnmpIsOnline ||
+      /*
+       * "Is False" on the walk means the walk was ATTEMPTED and failed. A
+       * poll that ran no walk at all — a device with no credentials, which
+       * is only pinged — is not evaluated against this criterion, so it can
+       * never raise an incident for a device nobody asked an OID of. See
+       * SnmpMonitorCriteria.isWalkDependentCheckOn.
+       */
+      checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
       checkOn === CheckOn.SnmpInterfaceIsDown
     ) {

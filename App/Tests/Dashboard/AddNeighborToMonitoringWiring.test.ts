@@ -183,8 +183,8 @@ describe("the adoption dialog", () => {
    * helpers the Devices create form does rather than re-declaring them.
    */
   test("reuses the shared field helpers rather than re-declaring them", () => {
-    expect(MODAL).toContain('getSnmpConfigFormFields({ stepId: "snmp" })');
-    expect(MODAL).toContain("MONITORING_METHOD_OPTIONS");
+    expect(MODAL).toContain('getSnmpConfigFormFields({ stepId: "snmp",');
+    expect(MODAL).toContain("description: HOSTNAME_FIELD_DESCRIPTION");
     /*
      * Roles are a per-project table now, so the shared helper is the
      * model-backed dropdown wiring rather than a static option list. Still one
@@ -193,8 +193,6 @@ describe("the adoption dialog", () => {
     expect(MODAL).toContain("DEVICE_ROLE_DROPDOWN_MODAL");
     expect(MODAL).toContain("DEVICE_ROLE_FIELD_TITLE");
     expect(MODAL).not.toContain("DEVICE_ROLE_OPTIONS");
-    expect(MODAL).toContain("isSnmpDevice");
-    expect(MODAL).toContain("isMonitorBackedDevice");
   });
 
   /*
@@ -208,25 +206,60 @@ describe("the adoption dialog", () => {
   });
 
   /*
-   * A monitor-backed device has no probe and no credentials, so the SNMP
-   * step is hidden wholesale — exactly as the Devices create form hides it.
+   * There is no monitoring-method question to ask: every neighbour the
+   * dialog adopts is probe-polled. The step, the field, the option list and
+   * the two predicates that used to branch the form on it are all gone —
+   * and gone from the IMPORTS too, so a half-removed branch cannot survive
+   * as a dead helper that the next edit reaches for.
    */
-  test("hides the SNMP step for a device nothing will poll", () => {
-    expect(MODAL).toMatch(/id: "snmp", showIf: isSnmpDevice/);
+  test("asks no monitoring-method question", () => {
+    expect(MODAL).not.toContain('id: "monitoring-method"');
+    expect(MODAL).not.toContain("monitoringMethod: true");
+    expect(MODAL).not.toContain("MONITORING_METHOD_OPTIONS");
+    expect(MODAL).not.toContain("MONITORING_METHOD_FIELD_DESCRIPTION");
+    expect(MODAL).not.toContain("isSnmpDevice");
+    expect(MODAL).not.toContain("isMonitorBackedDevice");
   });
 
   /*
-   * An operator adopting a phone from the map has no Ping monitor for it
-   * yet, and the server has always allowed the pair to be bound later — the
-   * same contract the discovery import relies on. The binding is optional on
-   * EVERY NetworkDevice form now (MonitorBindingNeverRequired.test.ts pins
-   * that); what this pins is that this dialog says so with the shared
-   * placeholder rather than a private one that could drift.
+   * ModelForm sends only the fields it renders, and this form renders no
+   * method field — so the method is written explicitly on the way out, from
+   * the draft, rather than left to a column default that may not have been
+   * migrated on every deployment.
    */
-  test("lets a monitor-backed device be recorded before a monitor exists", () => {
-    expect(MODAL).toMatch(
-      /showIf: isMonitorBackedDevice,[\s\S]*?required: false,[\s\S]*?placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER/,
+  test("writes the draft's method on the way out", () => {
+    expect(MODAL).toContain(
+      "device.monitoringMethod = draft.monitoringMethod;",
     );
+  });
+
+  /*
+   * Every device walks through the SNMP step, and none is made to fill it
+   * in: a neighbour adopted with no credentials is pinged by its probe. The
+   * step used to be hidden wholesale for a monitor-backed device; a showIf
+   * on it now would hide the one step that explains "ping only".
+   */
+  test("walks every device through the SNMP step, unconditionally", () => {
+    expect(MODAL).toMatch(/id: "snmp", \}/);
+    expect(MODAL).not.toMatch(/id: "snmp", showIf:/);
+    expect(MODAL).toContain("SNMP_STEP_DESCRIPTION");
+  });
+
+  /*
+   * The probe is required for every device, a phone included — a Probe
+   * device with no probe is claimed by nothing and never polls — and it is
+   * never hidden behind a predicate. The Monitor binding field is gone with
+   * the branch it belonged to: the override for gear a probe cannot reach is
+   * chosen on Settings, not offered to a neighbour the probe just reached.
+   */
+  test("requires the probe and offers no monitor binding", () => {
+    expect(MODAL).toMatch(
+      /field: \{ probe: true, \}, title: "Probe", stepId: "probe-and-site",[\s\S]*?required: true, placeholder: "Probe",/,
+    );
+    expect(MODAL).not.toMatch(/field: \{ probe: true, \},[\s\S]{0,200}showIf:/);
+    expect(MODAL).not.toContain("monitor: true");
+    expect(MODAL).not.toContain("MONITOR_BINDING_FIELD_PLACEHOLDER");
+    expect(MODAL).not.toContain("MONITOR_BINDING_FIELD_DESCRIPTION");
   });
 
   /*

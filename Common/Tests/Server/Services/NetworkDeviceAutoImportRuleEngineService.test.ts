@@ -130,6 +130,7 @@ import MonitorTemplateService from "../../../Server/Services/MonitorTemplateServ
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import logger from "../../../Server/Utils/Logger";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
@@ -1034,7 +1035,15 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       });
     });
 
-    it("defensively skips inert Network Device monitors for ping-only hosts", async () => {
+    /*
+     * A ping-only host imports as a Probe device under ping-first polling —
+     * pinged on schedule, walked once credentials arrive — so a Network
+     * Device monitor on it is fed from its first poll: the reachability
+     * criteria evaluate from the ping while the OID and interface criteria
+     * wait, unevaluated, for a walk. It used to import monitor-backed with
+     * polling off, and the engine skipped its monitor as inert.
+     */
+    it("provisions a Network Device monitor for a ping-only host, which imports as a Probe device", async () => {
       scanFindOneByMock.mockResolvedValue(
         makeScan({
           discoveredDevices: [makeHost({ snmpReachable: false })],
@@ -1050,12 +1059,46 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
 
       const result: AutoImportRuleRunResult | null = await processScan();
 
+      expect(createdDevice(0).monitoringMethod).toBe(
+        NetworkDeviceMonitoringMethod.Probe,
+      );
       expect(result).toMatchObject({
         devicesCreated: 1,
-        monitorsCreated: 0,
-        monitorsSkippedUnsupportedHost: 1,
+        monitorsCreated: 1,
+        monitorsSkippedUnsupportedHost: 0,
       });
-      expect(monitorCreateMock).not.toHaveBeenCalled();
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The DEVICE's method is the whole test, never the host's SNMP answer:
+     * a Probe device the sweep happened to find without SNMP this time is
+     * still polled, and still gets its monitor.
+     */
+    it("judges by the device's method, not by whether the host answered SNMP", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+      });
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost({ snmpReachable: false })] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({
+          includePingOnlyHosts: true,
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        devicesCreated: 0,
+        monitorsCreated: 1,
+        monitorsSkippedUnsupportedHost: 0,
+      });
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
     });
 
     it("does not backfill an SNMP monitor onto an existing monitor-backed device", async () => {

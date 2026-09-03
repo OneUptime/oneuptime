@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import OneUptimeDate from "../../../Types/Date";
+import NetworkDeviceMonitoringMethod, {
+  LEGACY_SNMP_MONITORING_METHOD,
+} from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   DeviceHealthCounts,
   DeviceHealthStateInput,
@@ -17,11 +20,25 @@ import {
  * has to look at.
  *
  * Everything the hierarchy view claims about an estate of 21,700 devices is
- * this function summed up, so every branch of it is pinned here: what a
- * monitor's verdict overrides, what a dark port does to a device that is
- * otherwise answering, and — the one that matters most — what stays
- * "unknown" instead of being quietly counted as either a failure or a
- * success.
+ * this function summed up, so every branch of it is pinned here: which kind
+ * of device a stamped monitor status speaks for, what a dark port does to a
+ * device that is otherwise answering, and — the one that matters most —
+ * what stays "unknown" instead of being quietly counted as either a failure
+ * or a success.
+ *
+ * The precedence rule (issue #3562, ping-first polling). Under SNMP-first
+ * polling a stamped MonitorStatus outranked the poll on EVERY device, and
+ * that no longer holds: every probe-polled device is now pinged on its
+ * schedule, so it always has a poll verdict of its own, and the monitors
+ * that stamp it (a Network Device monitor watching its SNMP walk, with an
+ * "interface down → Offline" criterion) are watching something narrower
+ * than reachability. The rule is therefore split by kind of device:
+ *
+ *   monitor-backed ("Monitor")  — nothing polls it, so the stamp IS its
+ *                                 health, and no stamp means Pending.
+ *   probe-polled (anything else, including NULL, "" and the legacy "SNMP")
+ *                               — the poll decides; the stamp is
+ *                                 informational and never consulted.
  */
 
 const NOW: Date = OneUptimeDate.fromString("2026-08-21T12:00:00.000Z");
@@ -32,13 +49,38 @@ const minutesAgo: MinutesAgoFunction = (minutes: number): Date => {
   return new Date(NOW.getTime() - minutes * 60 * 1000);
 };
 
-describe("deviceHealthState — a monitor's verdict is the system of record", () => {
-  test("a status the ladder does not call offline makes the device up, whatever the poll says", () => {
+/*
+ * Every spelling of "this device is polled by its probe" that reaches the
+ * classifier from a real row. NULL and "" are rows written before the column
+ * existed; "SNMP" is the retired first value of the enum, and a device that
+ * carried it was probe-polled all along (the probe just did not ping it
+ * yet). All four must take the poll branch identically — a device that read
+ * as monitor-backed on one of them would have the stamp outrank its own
+ * poll, which is the regression this whole describe block exists to catch.
+ */
+const PROBE_POLLED_METHODS: Array<string | null | undefined> = [
+  // The real values, so a renamed member fails here and not in production.
+  NetworkDeviceMonitoringMethod.Probe,
+  LEGACY_SNMP_MONITORING_METHOD,
+  "",
+  null,
+  undefined,
+];
+
+// The one value on which a stamped MonitorStatus is the device's verdict.
+const MONITOR_BACKED: string = NetworkDeviceMonitoringMethod.Monitor;
+
+describe("deviceHealthState — a monitor's verdict is the system of record for a MONITOR-BACKED device", () => {
+  test("a status the ladder does not call offline makes the device up, whatever the poll leftovers say", () => {
     expect(
       deviceHealthState(
         {
+          monitoringMethod: MONITOR_BACKED,
           monitorStatusIsOffline: false,
-          // The SNMP side would say Down on its own.
+          /*
+           * Leftovers from before the device was switched over to a bound
+           * monitor. Nothing polls it now, so these must not be read.
+           */
           isReachable: false,
           lastPolledAt: minutesAgo(1),
         },
@@ -47,10 +89,11 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
     ).toBe("healthy");
   });
 
-  test("an offline monitor status makes the device down, whatever the poll says", () => {
+  test("an offline monitor status makes the device down, whatever the poll leftovers say", () => {
     expect(
       deviceHealthState(
         {
+          monitoringMethod: MONITOR_BACKED,
           monitorStatusIsOffline: true,
           isReachable: true,
           lastPolledAt: minutesAgo(1),
@@ -64,19 +107,154 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
   test("a monitor-backed device that is up can still be degraded by its ports", () => {
     expect(
       deviceHealthState(
-        { monitorStatusIsOffline: false, interfacesDown: 3 },
+        {
+          monitoringMethod: MONITOR_BACKED,
+          monitorStatusIsOffline: false,
+          interfacesDown: 3,
+        },
         NOW,
       ),
     ).toBe("degraded");
   });
 
   /*
-   * `undefined` means "no monitor is attached", which is the ordinary case
-   * for an SNMP-walked switch. It must not be read as a verdict of any kind
-   * — doing so would either paint every switch in the estate down or hide
-   * every real outage behind a stamped green.
+   * The Pending case. A monitor-backed device with nothing stamped has
+   * either had no monitor bound to it yet (discovery used to import
+   * ping-only hosts that way on purpose) or has one that has never been
+   * evaluated. Neither is a verdict, and the device list says "Pending"
+   * about the very same row — reading a green or a red here would put the
+   * site card at odds with the pill under it.
    */
-  test("an absent monitor status defers to reachability rather than deciding", () => {
+  test("a monitor-backed device nothing has stamped is unknown, not a verdict", () => {
+    expect(deviceHealthState({ monitoringMethod: MONITOR_BACKED }, NOW)).toBe(
+      "unknown",
+    );
+    expect(
+      deviceHealthState(
+        { monitoringMethod: MONITOR_BACKED, monitorStatusIsOffline: undefined },
+        NOW,
+      ),
+    ).toBe("unknown");
+    expect(
+      deviceHealthState(
+        { monitoringMethod: MONITOR_BACKED, monitorStatusIsOffline: null },
+        NOW,
+      ),
+    ).toBe("unknown");
+    // Not even dark ports promote a Pending device to a verdict.
+    expect(
+      deviceHealthState(
+        { monitoringMethod: MONITOR_BACKED, interfacesDown: 3 },
+        NOW,
+      ),
+    ).toBe("unknown");
+  });
+});
+
+/*
+ * The other direction, and the reason the split exists (issue #3562).
+ *
+ * A probe-polled switch that answers every ping can carry a stamped Offline
+ * status: a Network Device monitor with an "interface down → Offline"
+ * criterion stamps one the moment a single port goes dark, and the SNMP
+ * walk failing on a credential change does the same. Letting that stamp
+ * decide here painted the site card and the topology node RED while the
+ * device's own row in the device list — which reads `isReachable` — said Up.
+ * These pin the stamp back down to informational for every device the probe
+ * polls.
+ */
+describe("deviceHealthState — a PROBE-POLLED device is judged by its poll, never by a stamp", () => {
+  test.each(PROBE_POLLED_METHODS)(
+    "monitoringMethod %p: a stamped Offline does not override an answering poll",
+    (monitoringMethod: string | null | undefined) => {
+      expect(
+        deviceHealthState(
+          {
+            monitoringMethod: monitoringMethod,
+            // An "interface down → Offline" criterion fired.
+            monitorStatusIsOffline: true,
+            // ...but the device answered its ping one minute ago.
+            isReachable: true,
+            lastPolledAt: minutesAgo(1),
+            lastSeenAt: minutesAgo(1),
+          },
+          NOW,
+        ),
+      ).toBe("healthy");
+    },
+  );
+
+  test.each(PROBE_POLLED_METHODS)(
+    "monitoringMethod %p: a stamped Operational does not rescue a failing poll",
+    (monitoringMethod: string | null | undefined) => {
+      expect(
+        deviceHealthState(
+          {
+            monitoringMethod: monitoringMethod,
+            monitorStatusIsOffline: false,
+            isReachable: false,
+            lastPolledAt: minutesAgo(1),
+          },
+          NOW,
+        ),
+      ).toBe("down");
+    },
+  );
+
+  /*
+   * The whole point of the split, stated as the invariant an operator sees:
+   * the interface-down criterion that stamps a switch Offline must move the
+   * device's own dark-port count and nothing else. A site of answering
+   * devices stays green with one degraded switch in it, and the map you
+   * reach by clicking that card draws the same switch amber rather than red.
+   */
+  test("an interface-down stamp on an answering switch reads degraded, not down", () => {
+    expect(
+      deviceHealthState(
+        {
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+          monitorStatusIsOffline: true,
+          isReachable: true,
+          lastPolledAt: minutesAgo(1),
+          lastSeenAt: minutesAgo(1),
+          interfacesDown: 3,
+        },
+        NOW,
+      ),
+    ).toBe("degraded");
+  });
+
+  /*
+   * A probe-polled device with a failing SNMP walk still answers ping, so
+   * `isReachable` is true (reachability is ping OR walk) and the device is
+   * up. The walk's own verdict lives in isSnmpReachable and is a separate,
+   * explanatory pill — it is not this classifier's input at all, which is
+   * why a ping-only device can never be coloured by "SNMP failing".
+   */
+  test("a failing SNMP walk on a device that answers ping is not a health verdict", () => {
+    expect(
+      deviceHealthState(
+        {
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+          // The walk failed, so a Network Device monitor stamped it Offline.
+          monitorStatusIsOffline: true,
+          // Reachability is ping OR walk, and the ping answered.
+          isReachable: true,
+          lastPolledAt: minutesAgo(1),
+          lastSeenAt: minutesAgo(1),
+        },
+        NOW,
+      ),
+    ).toBe("healthy");
+  });
+
+  /*
+   * `undefined` means no monitor has stamped this device at all, which is
+   * the ordinary case for a probe-polled one. It must not be read as a
+   * verdict of any kind — doing so would either paint every switch in the
+   * estate down or hide every real outage behind a stamped green.
+   */
+  test("an absent monitor status leaves the poll in charge, as always", () => {
     expect(
       deviceHealthState(
         {
@@ -110,7 +288,10 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
  * networks, which is precisely what a shared classifier is for.
  *
  * NetworkDeviceTopology.ts resolves the ladder with
- * `status.isOfflineState ? "down" : "up"`. These pin the same answer here.
+ * `status.isOfflineState ? "down" : "up"` — and, since ping-first polling,
+ * only for a monitor-backed device (it applies the same isMonitorBacked gate
+ * this module does). So every device below is monitor-backed: that is the
+ * one kind of device on which a rung of the ladder decides anything.
  */
 describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
   type LadderRow = {
@@ -127,7 +308,7 @@ describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
     { name: "Offline", isOperationalState: false, isOfflineState: true },
   ];
 
-  // Exactly what NetworkDeviceTopology.ts does with a status row.
+  // Exactly what NetworkDeviceTopology.ts does with a monitor-backed row.
   function mapVerdict(row: LadderRow): "up" | "down" {
     return row.isOfflineState ? "down" : "up";
   }
@@ -136,7 +317,10 @@ describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
     "$name: the rollup agrees with the map about up/down",
     (row: LadderRow) => {
       const state: NetworkDeviceHealthState = deviceHealthState(
-        { monitorStatusIsOffline: row.isOfflineState },
+        {
+          monitoringMethod: MONITOR_BACKED,
+          monitorStatusIsOffline: row.isOfflineState,
+        },
         NOW,
       );
       const rollupSaysDown: boolean = state === "down";
@@ -145,9 +329,12 @@ describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
   );
 
   test("a Degraded device with no dark ports is healthy, not down", () => {
-    expect(deviceHealthState({ monitorStatusIsOffline: false }, NOW)).toBe(
-      "healthy",
-    );
+    expect(
+      deviceHealthState(
+        { monitoringMethod: MONITOR_BACKED, monitorStatusIsOffline: false },
+        NOW,
+      ),
+    ).toBe("healthy");
   });
 
   /*
@@ -159,7 +346,10 @@ describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
     const downRungs: Array<string> = LADDER.filter((row: LadderRow) => {
       return (
         deviceHealthState(
-          { monitorStatusIsOffline: row.isOfflineState },
+          {
+            monitoringMethod: MONITOR_BACKED,
+            monitorStatusIsOffline: row.isOfflineState,
+          },
           NOW,
         ) === "down"
       );
@@ -168,9 +358,46 @@ describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
     });
     expect(downRungs).toEqual(["Offline"]);
   });
+
+  /*
+   * ...and the same ladder against a PROBE-POLLED device, where no rung of
+   * it decides anything. Every one of the four reads by the poll instead, so
+   * the switch that answered its ping is healthy on all four rungs —
+   * including Offline, which is exactly what an "interface down" criterion
+   * stamps on a switch with one dark port.
+   */
+  test.each(LADDER)(
+    "$name: a probe-polled device ignores the rung entirely and reads by its poll",
+    (row: LadderRow) => {
+      expect(
+        deviceHealthState(
+          {
+            monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+            monitorStatusIsOffline: row.isOfflineState,
+            isReachable: true,
+            lastPolledAt: minutesAgo(1),
+            lastSeenAt: minutesAgo(1),
+          },
+          NOW,
+        ),
+      ).toBe("healthy");
+
+      expect(
+        deviceHealthState(
+          {
+            monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+            monitorStatusIsOffline: row.isOfflineState,
+            isReachable: false,
+            lastPolledAt: minutesAgo(1),
+          },
+          NOW,
+        ),
+      ).toBe("down");
+    },
+  );
 });
 
-describe("deviceHealthState — reachability, when nothing is stamped", () => {
+describe("deviceHealthState — the poll rule, which every probe-polled device reads", () => {
   test("the probe asked and got nothing: down", () => {
     expect(
       deviceHealthState(
@@ -229,11 +456,11 @@ describe("deviceHealthState — reachability, when nothing is stamped", () => {
   /*
    * Issue #3562. A monitor-backed device is never polled, so whatever its
    * poll columns hold is either NULL or what a probe last found before it
-   * stopped asking — a device switched over from SNMP keeps a lastSeenAt
-   * from months ago. With nothing stamped yet the only honest answer is
-   * "unknown", which is also what the device list says about the same row;
-   * letting the legacy freshness branch read that timestamp would put the
-   * site card at odds with the pill under it.
+   * stopped asking — a device switched over to a bound monitor keeps a
+   * lastSeenAt from months ago. With nothing stamped yet the only honest
+   * answer is "unknown", which is also what the device list says about the
+   * same row; letting the legacy freshness branch read that timestamp would
+   * put the site card at odds with the pill under it.
    */
   test("a monitor-backed device nothing has reported on is unknown, whatever its leftover poll columns say", () => {
     const leftovers: DeviceHealthStateInput = {
@@ -245,12 +472,15 @@ describe("deviceHealthState — reachability, when nothing is stamped", () => {
     // The legacy branch, for a device that IS polled: staleness decides.
     expect(deviceHealthState(leftovers, NOW)).toBe("down");
     expect(
-      deviceHealthState({ ...leftovers, monitoringMethod: "Monitor" }, NOW),
+      deviceHealthState(
+        { ...leftovers, monitoringMethod: MONITOR_BACKED },
+        NOW,
+      ),
     ).toBe("unknown");
     // ...and a mirrored outcome without a stamp is not a verdict either.
     expect(
       deviceHealthState(
-        { ...leftovers, isReachable: true, monitoringMethod: "Monitor" },
+        { ...leftovers, isReachable: true, monitoringMethod: MONITOR_BACKED },
         NOW,
       ),
     ).toBe("unknown");

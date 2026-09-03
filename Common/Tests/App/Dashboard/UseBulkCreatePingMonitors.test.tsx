@@ -235,7 +235,7 @@ const SNMP_DEVICE: DeviceFixture = {
   id: DEVICE_ONE_ID,
   name: "core-switch-01",
   hostname: "10.0.0.1",
-  method: NetworkDeviceMonitoringMethod.Snmp,
+  method: NetworkDeviceMonitoringMethod.Probe,
 };
 
 const BOUND_DEVICE: DeviceFixture = {
@@ -890,7 +890,8 @@ describe("useBulkCreatePingMonitors", () => {
         screen.getByTestId("modal-description").textContent || "";
 
       expect(description).toContain("already have a monitor bound");
-      expect(description).toContain("SNMP");
+      // Probe-polled devices are pinged by their probe already, so they are skipped.
+      expect(description).toContain("probe-polled devices");
       expect(description).toContain("plan");
       expect(description).toContain("Incidents are off");
     });

@@ -16,6 +16,8 @@ import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
+import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -817,5 +819,103 @@ describe("MonitorCriteriaObservationBuilder.getMetricValueDisplayUnit", () => {
 
     expect(call).not.toThrow();
     expect(unit).toBeUndefined();
+  });
+});
+
+/*
+ * Network Device observations under ping-first polling. "Is Online" is the
+ * device's reachability (ping OR walk, the top-level isOnline the walk
+ * pipeline stamps); "Walk Is Succeeding" is the walk itself, and a poll that
+ * ran no walk is a distinct, non-failure state.
+ */
+describe("MonitorCriteriaObservationBuilder.describeFilterObservation — network device polls", () => {
+  function buildProbeInputs(input: {
+    checkOn: CheckOn;
+    isOnline?: boolean | undefined;
+    failureCause?: string | undefined;
+    snmpResponse?: SnmpMonitorResponse | undefined;
+  }): {
+    monitor: Monitor;
+    criteriaFilter: CriteriaFilter;
+    monitorStep: MonitorStep;
+    dataToProcess: ProbeMonitorResponse;
+  } {
+    return {
+      monitor: new Monitor(),
+      monitorStep: new MonitorStep(),
+      criteriaFilter: {
+        checkOn: input.checkOn,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+      dataToProcess: {
+        projectId: ObjectID.generate(),
+        monitorId: ObjectID.generate(),
+        monitorStepId: ObjectID.generate(),
+        probeId: ObjectID.generate(),
+        failureCause: input.failureCause ?? "",
+        isOnline: input.isOnline,
+        snmpResponse: input.snmpResponse,
+        monitoredAt: new Date(),
+      },
+    };
+  }
+
+  test("Is Online describes device reachability from the top-level verdict, even with no walk", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({ checkOn: CheckOn.SnmpIsOnline, isOnline: true }),
+      ),
+    ).toBe("Device is reachable (answered ping or SNMP).");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpIsOnline,
+          isOnline: false,
+          failureCause: "Request timed out",
+        }),
+      ),
+    ).toBe("Device is unreachable by ping and SNMP: Request timed out");
+  });
+
+  test("Walk Is Succeeding names the no-walk state rather than calling it a failure", () => {
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+        }),
+      ),
+    ).toBe("No SNMP walk ran on this poll (the device is only pinged).");
+  });
+
+  test("Walk Is Succeeding reports the walk's own verdict and failure cause", () => {
+    const failedWalk: SnmpMonitorResponse = {
+      isOnline: false,
+      responseTimeInMs: 0,
+      failureCause: "SNMP timed out after 3 attempts",
+      oidResponses: [],
+    };
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+          snmpResponse: failedWalk,
+        }),
+      ),
+    ).toBe("SNMP walk failed: SNMP timed out after 3 attempts");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.SnmpWalkIsSucceeding,
+          isOnline: true,
+          snmpResponse: { ...failedWalk, isOnline: true, failureCause: "" },
+        }),
+      ),
+    ).toBe("SNMP walk succeeded.");
   });
 });

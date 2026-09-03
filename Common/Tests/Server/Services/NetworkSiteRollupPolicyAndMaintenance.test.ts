@@ -6,6 +6,7 @@ import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import { DeviceHealthGroup } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import SiteHealthRollupPolicy from "../../../Types/NetworkSite/SiteHealthRollupPolicy";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, it } from "@jest/globals";
@@ -24,6 +25,14 @@ import { afterEach, describe, expect, it } from "@jest/globals";
  *   its own maintained descendants — because its rollup is supposed to show
  *   the planned outage. Only an ancestor looking DOWN past a maintained
  *   subtree drops it.
+ *
+ * Both policies score the same devices, so before either can run they have to
+ * agree on what one device's vote IS. For a probe-polled device — the
+ * ordinary kind, and what an omitted monitoringMethod means — that is the
+ * outcome of its last poll; a stamped MonitorStatus votes only on a
+ * monitor-backed device. The fixtures below are built out of those two kinds
+ * deliberately: an arithmetic case uses probe-polled devices because that is
+ * what a real fleet is made of, and the precedence cases pin the rule itself.
  *
  * Everything below the service boundary is spied; no database.
  */
@@ -74,22 +83,88 @@ function statuses(): Array<MonitorStatus> {
   ] as unknown as Array<MonitorStatus>;
 }
 
-// A bucket of `deviceCount` devices at one site, carrying one stamped status.
-function group(
-  siteId: ObjectID,
-  monitorStatusId: string,
-  deviceCount: number,
-): DeviceHealthGroup {
+/*
+ * A bucket of `deviceCount` PROBE-POLLED devices at one site — the ordinary
+ * kind of device, and the default one: an omitted monitoringMethod parses to
+ * Probe. Their vote is the OUTCOME of their last poll (`isReachable`), the
+ * same fact their own row in the device list, the summary tiles and the
+ * topology map read.
+ *
+ * `stampedMonitorStatusId` is a status a Network Device monitor has written
+ * on them. Only the precedence cases pass one, because on a probe-polled
+ * device that stamp is informational: an "interface down -> Offline"
+ * criterion stamps Offline on a switch that answers every ping, and neither
+ * policy may let it outrank the poll.
+ */
+function probePolledDevices(data: {
+  siteId: ObjectID;
+  isReachable: boolean;
+  deviceCount: number;
+  stampedMonitorStatusId?: string | undefined;
+}): DeviceHealthGroup {
   return {
-    siteId: siteId.toString(),
-    monitorStatusId: monitorStatusId,
+    siteId: data.siteId.toString(),
+    monitorStatusId: data.stampedMonitorStatusId || null,
     monitoringMethod: null,
-    isReachable: null,
+    isReachable: data.isReachable,
     hasBeenPolled: true,
+    /*
+     * Every device in these fixtures has answered at some point, so the last
+     * poll's OUTCOME above is the only thing deciding its vote — never the
+     * age of that answer.
+     */
     hasBeenSeen: true,
     isStale: false,
     hasDownInterfaces: false,
-    deviceCount: deviceCount,
+    deviceCount: data.deviceCount,
+    interfacesDownTotal: 0,
+  };
+}
+
+/*
+ * A bucket of `deviceCount` MONITOR-BACKED devices at one site: no probe
+ * polls them, so every poll column is NULL forever and the status their bound
+ * Monitor stamps is their entire verdict. This is the one kind of device
+ * whose stamp votes.
+ */
+function monitorBackedDevices(data: {
+  siteId: ObjectID;
+  monitorStatusId: string;
+  deviceCount: number;
+}): DeviceHealthGroup {
+  return {
+    siteId: data.siteId.toString(),
+    monitorStatusId: data.monitorStatusId,
+    monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    isReachable: null,
+    hasBeenPolled: false,
+    hasBeenSeen: false,
+    isStale: false,
+    hasDownInterfaces: false,
+    deviceCount: data.deviceCount,
+    interfacesDownTotal: 0,
+  };
+}
+
+/*
+ * A bucket of devices nothing has ever polled or seen. They are not evidence
+ * of an outage, so both policies drop them from the vote AND from both sides
+ * of the share.
+ */
+function neverPolledDevices(data: {
+  siteId: ObjectID;
+  deviceCount: number;
+}): DeviceHealthGroup {
+  return {
+    siteId: data.siteId.toString(),
+    monitorStatusId: null,
+    monitoringMethod: null,
+    isReachable: null,
+    hasBeenPolled: false,
+    hasBeenSeen: false,
+    isStale: false,
+    hasDownInterfaces: false,
+    deviceCount: data.deviceCount,
     interfacesDownTotal: 0,
   };
 }
@@ -187,15 +262,24 @@ describe("recomputeRollupForSite honours the site's rollup policy", () => {
   it("WorstStatus (the default) turns a region offline for one dark switch", () => {
     /*
      * The behaviour the issue was filed about, kept as the default so that
-     * upgrading changes nothing for anyone.
+     * upgrading changes nothing for anyone: one switch out of four hundred
+     * stops answering its probe and the whole region reads Offline.
      */
     const harness: Harness = setup({
       site: { currentMonitorStatusId: new ObjectID(OPERATIONAL_STATUS_ID) },
       descendantIds: [UNIT_ID],
       groupsBySite: () => {
         return [
-          group(REGION_ID, OPERATIONAL_STATUS_ID, 399),
-          group(UNIT_ID, OFFLINE_STATUS_ID, 1),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 399,
+          }),
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
         ];
       },
     });
@@ -215,8 +299,16 @@ describe("recomputeRollupForSite honours the site's rollup policy", () => {
       descendantIds: [UNIT_ID],
       groupsBySite: () => {
         return [
-          group(REGION_ID, OPERATIONAL_STATUS_ID, 399),
-          group(UNIT_ID, OFFLINE_STATUS_ID, 1),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 399,
+          }),
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
         ];
       },
     });
@@ -236,8 +328,16 @@ describe("recomputeRollupForSite honours the site's rollup policy", () => {
       descendantIds: [UNIT_ID],
       groupsBySite: () => {
         return [
-          group(REGION_ID, OPERATIONAL_STATUS_ID, 100),
-          group(UNIT_ID, OFFLINE_STATUS_ID, 100),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 100,
+          }),
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 100,
+          }),
         ];
       },
     });
@@ -254,7 +354,90 @@ describe("recomputeRollupForSite honours the site's rollup policy", () => {
         healthRollupPolicy: "GarbageWrittenByHand" as SiteHealthRollupPolicy,
       },
       groupsBySite: () => {
-        return [group(REGION_ID, OFFLINE_STATUS_ID, 1)];
+        return [
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
+        ];
+      },
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(REGION_ID);
+
+    expect(persistedStatusId(harness)).toBe(OFFLINE_STATUS_ID);
+  });
+
+  /*
+   * Which devices' STAMPED status is their vote — the rule both policies have
+   * to read the same way (health precedence, A.7).
+   *
+   * A Network Device monitor watches a switch's SNMP walk and stamps a status
+   * on the device it watches. An "interface down -> Offline" criterion will
+   * therefore stamp Offline on a switch that answers every ping. Letting that
+   * stamp vote turned the site card and the topology node red while every
+   * device row underneath them read Up; the device list pill, the site card
+   * and the map now apply one rule, and it is the poll for a probe-polled
+   * device.
+   */
+  it("PercentThreshold does not count an Offline stamp against a probe-polled device that answers", async () => {
+    /*
+     * Ten answering switches, every one of them stamped Offline by its own
+     * monitor. Counting those stamps would put the share at 100% and hold the
+     * region at Offline; the poll says all ten answer, so the region is
+     * operational.
+     */
+    const harness: Harness = setup({
+      site: {
+        currentMonitorStatusId: new ObjectID(OFFLINE_STATUS_ID),
+        healthRollupPolicy: SiteHealthRollupPolicy.PercentThreshold,
+        offlineThresholdPercent: 50,
+      },
+      groupsBySite: () => {
+        return [
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 10,
+            stampedMonitorStatusId: OFFLINE_STATUS_ID,
+          }),
+        ];
+      },
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(REGION_ID);
+
+    expect(persistedStatusId(harness)).toBe(OPERATIONAL_STATUS_ID);
+  });
+
+  it("PercentThreshold scores a monitor-backed device by its stamp", async () => {
+    /*
+     * The other side of the same rule. These devices have no poll columns at
+     * all — nothing polls them — so reachability alone would call every one
+     * of them Pending and leave the region with no verdict. Their bound
+     * Monitor's stamp is what they contribute, and six offline out of ten
+     * crosses a 50% threshold.
+     */
+    const harness: Harness = setup({
+      site: {
+        currentMonitorStatusId: new ObjectID(OPERATIONAL_STATUS_ID),
+        healthRollupPolicy: SiteHealthRollupPolicy.PercentThreshold,
+        offlineThresholdPercent: 50,
+      },
+      groupsBySite: () => {
+        return [
+          monitorBackedDevices({
+            siteId: REGION_ID,
+            monitorStatusId: OFFLINE_STATUS_ID,
+            deviceCount: 6,
+          }),
+          monitorBackedDevices({
+            siteId: REGION_ID,
+            monitorStatusId: OPERATIONAL_STATUS_ID,
+            deviceCount: 4,
+          }),
+        ];
       },
     });
 
@@ -284,10 +467,20 @@ describe("recomputeRollupForSite and ongoing scheduled maintenance", () => {
           return id.toString();
         });
         const groups: Array<DeviceHealthGroup> = [
-          group(OTHER_UNIT_ID, OPERATIONAL_STATUS_ID, 5),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: true,
+            deviceCount: 5,
+          }),
         ];
         if (ids.includes(UNIT_ID.toString())) {
-          groups.push(group(UNIT_ID, OFFLINE_STATUS_ID, 5));
+          groups.push(
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: false,
+              deviceCount: 5,
+            }),
+          );
         }
         return groups;
       },
@@ -314,7 +507,13 @@ describe("recomputeRollupForSite and ongoing scheduled maintenance", () => {
       } as Partial<NetworkSite>,
       maintainedSiteIds: [UNIT_ID],
       groupsBySite: () => {
-        return [group(UNIT_ID, OFFLINE_STATUS_ID, 5)];
+        return [
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 5,
+          }),
+        ];
       },
     });
 
@@ -333,7 +532,13 @@ describe("recomputeRollupForSite and ongoing scheduled maintenance", () => {
       // The whole subtree is covered — attaching a Region covers its units.
       maintainedSiteIds: [REGION_ID, UNIT_ID],
       groupsBySite: () => {
-        return [group(UNIT_ID, OFFLINE_STATUS_ID, 5)];
+        return [
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 5,
+          }),
+        ];
       },
     });
 
@@ -351,7 +556,13 @@ describe("recomputeRollupForSite and ongoing scheduled maintenance", () => {
       descendantIds: [UNIT_ID, OTHER_UNIT_ID],
       maintainedSiteIds: [],
       groupsBySite: () => {
-        return [group(UNIT_ID, OFFLINE_STATUS_ID, 1)];
+        return [
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
+        ];
       },
     });
 
@@ -536,11 +747,25 @@ describe("PercentThreshold and maintenance together", () => {
         });
         // UNIT_ID is the healthy 1,000; OTHER_UNIT_ID holds the 6 dark of 10.
         if (ids.includes(UNIT_ID.toString())) {
-          return [group(UNIT_ID, OPERATIONAL_STATUS_ID, 1000)];
+          return [
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: true,
+              deviceCount: 1000,
+            }),
+          ];
         }
         return [
-          group(OTHER_UNIT_ID, OFFLINE_STATUS_ID, 6),
-          group(OTHER_UNIT_ID, OPERATIONAL_STATUS_ID, 4),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: false,
+            deviceCount: 6,
+          }),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: true,
+            deviceCount: 4,
+          }),
         ];
       },
     });
@@ -574,7 +799,13 @@ describe("PercentThreshold and maintenance together", () => {
         });
         // The region itself owns no devices; both units are suppressed.
         if (ids.includes(UNIT_ID.toString())) {
-          return [group(UNIT_ID, OFFLINE_STATUS_ID, 20)];
+          return [
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: false,
+              deviceCount: 20,
+            }),
+          ];
         }
         return [];
       },
@@ -595,7 +826,13 @@ describe("PercentThreshold and maintenance together", () => {
           return id.toString();
         });
         if (ids.includes(UNIT_ID.toString())) {
-          return [group(UNIT_ID, OFFLINE_STATUS_ID, 20)];
+          return [
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: false,
+              deviceCount: 20,
+            }),
+          ];
         }
         return [];
       },
@@ -624,12 +861,26 @@ describe("PercentThreshold and maintenance together", () => {
           return id.toString();
         });
         if (ids.includes(UNIT_ID.toString())) {
-          return [group(UNIT_ID, OPERATIONAL_STATUS_ID, 10)];
+          return [
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: true,
+              deviceCount: 10,
+            }),
+          ];
         }
         // 60 of 70 unsuppressed devices dark: 60/80 = 75% >= 50.
         return [
-          group(OTHER_UNIT_ID, OFFLINE_STATUS_ID, 60),
-          group(OTHER_UNIT_ID, OPERATIONAL_STATUS_ID, 10),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: false,
+            deviceCount: 60,
+          }),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: true,
+            deviceCount: 10,
+          }),
         ];
       },
     });
@@ -650,7 +901,13 @@ describe("PercentThreshold and maintenance together", () => {
       descendantIds: [UNIT_ID],
       maintainedSiteIds: [],
       groupsBySite: () => {
-        return [group(UNIT_ID, OPERATIONAL_STATUS_ID, 5)];
+        return [
+          probePolledDevices({
+            siteId: UNIT_ID,
+            isReachable: true,
+            deviceCount: 5,
+          }),
+        ];
       },
     });
 
@@ -682,8 +939,16 @@ describe("the degraded rung must rank below the offline rung", () => {
       },
       groupsBySite: () => {
         return [
-          group(REGION_ID, OPERATIONAL_STATUS_ID, 99),
-          group(REGION_ID, OFFLINE_STATUS_ID, 1),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 99,
+          }),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
         ];
       },
       statuses: [
@@ -736,8 +1001,16 @@ describe("the degraded rung must rank below the offline rung", () => {
       },
       groupsBySite: () => {
         return [
-          group(REGION_ID, OPERATIONAL_STATUS_ID, 99),
-          group(REGION_ID, OFFLINE_STATUS_ID, 1),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: true,
+            deviceCount: 99,
+          }),
+          probePolledDevices({
+            siteId: REGION_ID,
+            isReachable: false,
+            deviceCount: 1,
+          }),
         ];
       },
       statuses: [
@@ -839,24 +1112,19 @@ describe("sizing the suppressed subtree", () => {
         });
         if (ids.includes(UNIT_ID.toString())) {
           // 200 devices that have never been polled or seen.
-          return [
-            {
-              siteId: UNIT_ID.toString(),
-              monitorStatusId: null,
-              monitoringMethod: null,
-              isReachable: null,
-              hasBeenPolled: false,
-              hasBeenSeen: false,
-              isStale: false,
-              hasDownInterfaces: false,
-              deviceCount: 200,
-              interfacesDownTotal: 0,
-            },
-          ];
+          return [neverPolledDevices({ siteId: UNIT_ID, deviceCount: 200 })];
         }
         return [
-          group(OTHER_UNIT_ID, OFFLINE_STATUS_ID, 6),
-          group(OTHER_UNIT_ID, OPERATIONAL_STATUS_ID, 4),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: false,
+            deviceCount: 6,
+          }),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: true,
+            deviceCount: 4,
+          }),
         ];
       },
     });
@@ -886,11 +1154,25 @@ describe("sizing the suppressed subtree", () => {
           return id.toString();
         });
         if (ids.includes(UNIT_ID.toString())) {
-          return [group(UNIT_ID, OPERATIONAL_STATUS_ID, 200)];
+          return [
+            probePolledDevices({
+              siteId: UNIT_ID,
+              isReachable: true,
+              deviceCount: 200,
+            }),
+          ];
         }
         return [
-          group(OTHER_UNIT_ID, OFFLINE_STATUS_ID, 6),
-          group(OTHER_UNIT_ID, OPERATIONAL_STATUS_ID, 4),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: false,
+            deviceCount: 6,
+          }),
+          probePolledDevices({
+            siteId: OTHER_UNIT_ID,
+            isReachable: true,
+            deviceCount: 4,
+          }),
         ];
       },
     });

@@ -28,6 +28,22 @@ import logger from "../../Logger";
 
 export default class SnmpMonitorCriteria {
   /*
+   * Every CheckOn whose value comes out of the SNMP walk. Reachability
+   * (SnmpIsOnline) and traps are the two that do not.
+   */
+  private static isWalkDependentCheckOn(checkOn: CheckOn): boolean {
+    return (
+      checkOn === CheckOn.SnmpWalkIsSucceeding ||
+      checkOn === CheckOn.SnmpResponseTime ||
+      checkOn === CheckOn.SnmpOidExists ||
+      checkOn === CheckOn.SnmpOidValue ||
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+    );
+  }
+
+  /*
    * Interface scope for the interface CheckOns: when the criteria carries
    * snmpMonitorOptions.interfaceName, only interfaces whose name or alias
    * equals it (case-insensitive) are evaluated. Empty scope = every
@@ -256,6 +272,29 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
+    /*
+     * No walk, no verdict. A device without usable SNMP credentials is only
+     * pinged, and the walk pipeline hands its monitors a response with
+     * `snmpResponse` undefined - never a synthesized failure. Every criterion
+     * that reads the walk is therefore NOT EVALUATED on such a poll (null),
+     * rather than breaching: "OID Exists is False" must not raise an
+     * incident on a device nobody ever asked an OID of, and "Walk Is
+     * Succeeding is False" must mean "attempted and failed". Reachability
+     * (SnmpIsOnline) is read from the top-level isOnline further down and
+     * is unaffected.
+     *
+     * This runs before the over-time lookup on purpose: a window of stored
+     * walk-time samples says nothing about a poll that walked nothing.
+     */
+    if (
+      SnmpMonitorCriteria.isWalkDependentCheckOn(
+        input.criteriaFilter.checkOn,
+      ) &&
+      !snmpResponse
+    ) {
+      return null;
+    }
+
     const overTime: OverTimeCriteriaValue =
       await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
         projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
@@ -282,7 +321,12 @@ export default class SnmpMonitorCriteria {
       | boolean
       | undefined = overTime.value;
 
-    // Check if SNMP device is online
+    /*
+     * Device reachability: the top-level isOnline is "answered ping OR the
+     * walk succeeded", stamped by the walk pipeline - the same verdict the
+     * device list's status pill shows. Deliberately not the walk's own
+     * isOnline, which the next CheckOn covers.
+     */
     if (input.criteriaFilter.checkOn === CheckOn.SnmpIsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ??
@@ -290,6 +334,22 @@ export default class SnmpMonitorCriteria {
 
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    /*
+     * The walk itself. Gated above: a poll with no walk returns null before
+     * reaching here, so `snmpResponse` is present and "False" genuinely
+     * means the walk was attempted and failed.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpWalkIsSucceeding) {
+      if (!snmpResponse) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: snmpResponse.isOnline === true,
         criteriaFilter: input.criteriaFilter,
       });
     }

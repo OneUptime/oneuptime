@@ -75,9 +75,15 @@ export interface ProvisionedPingMonitor {
  * What the operator is told after a successful provision. Shared so the
  * create form, the device page and the bulk action say the same thing — and
  * so a test can pin that none of them claims the device was verified.
+ *
+ * It no longer says the device "carries the monitor's starting status". That
+ * was true when a device's status came from a monitor; under probe polling
+ * the device already has a status of its own from its probe's first poll,
+ * and the monitor is there to raise incidents. Saying otherwise would tell
+ * an operator to go and look at the wrong thing while they wait.
  */
 export function pingMonitorProvisionedMessage(monitorName: string): string {
-  return `Ping monitor "${monitorName}" was created and bound to this device. Its first real result lands within the monitor's interval; until then the device carries the monitor's starting status.`;
+  return `Ping monitor "${monitorName}" was created for this device and will raise incidents when the ping fails. Its first result lands within the monitor's interval. The device's own status still comes from its probe's poll.`;
 }
 
 /**

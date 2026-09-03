@@ -9,7 +9,11 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDeviceOidTemplateService from "Common/Server/Services/NetworkDeviceOidTemplateService";
-import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import NetworkDeviceHydrationUtil, {
+  NetworkDevicePollMode,
+  ResolvedDeviceSnmpCredentials,
+  ResolvedSnmpCredentialsForBatch,
+} from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import Express, {
@@ -50,14 +54,43 @@ const DEVICE_POLL_FETCH_LIMIT: number = NumberUtil.parseNumberWithDefault({
 });
 
 /*
+ * The capability a probe advertises (in `probeCapabilities` on its list
+ * request) when it can ping a device and report the result without an SNMP
+ * walk. A probe that does not advertise it predates ping-first polling.
+ */
+const NETWORK_DEVICE_PING_CAPABILITY: string = "networkDevicePing";
+
+/*
  * Hands the requesting probe the polling-enabled devices assigned to it
- * that are due for an SNMP walk, with each device's stored credentials
- * hydrated into a concrete, probe-executable SNMP config. Claiming is
- * atomic (FOR UPDATE SKIP LOCKED) and advances nextPollAt by the device's
- * own polling interval.
+ * that are due for a poll. Every device is handed out as
+ * `{ networkDeviceId, projectId, hostname, pollMode, collectEndpoints,
+ * snmpMonitor? }`:
+ *
+ *   pollMode "snmp" - usable SNMP credentials resolved for the device
+ *                     (NetworkDeviceHydrationUtil.resolveSnmpCredentials:
+ *                     its own columns, the credential profile it points at,
+ *                     or its site's), and `snmpMonitor` carries them
+ *                     hydrated into a concrete, probe-executable SNMP
+ *                     config. The probe pings AND walks it.
+ *   pollMode "ping" - no usable credentials anywhere: `snmpMonitor` is
+ *                     omitted and the probe only pings `hostname`.
+ *
+ * A device whose credential profile could not be READ this cycle is handed
+ * out in neither mode. It is configured to be walked, and pretending it is
+ * a ping-only device would silently drop its interfaces, inventory and walk
+ * health for as long as the lookup keeps failing.
+ *
+ * Capability gate: only a probe advertising `networkDevicePing` is handed
+ * ping-mode devices. An older probe would poll a credential-less device
+ * over SNMP with its default "public" community and report it Down, so for
+ * such a probe those devices are dropped from the batch (with one warning
+ * per batch) and stay Pending until the probe is upgraded.
+ *
+ * Claiming is atomic (FOR UPDATE SKIP LOCKED) and advances nextPollAt by
+ * the device's own polling interval.
  *
  * This is how devices get polled — monitors play no part in it. Network
- * Device monitors are evaluated server-side when the walk results come
+ * Device monitors are evaluated server-side when the poll results come
  * back (see NetworkDeviceWalkUtil).
  */
 router.post(
@@ -100,7 +133,6 @@ router.post(
         },
         select: {
           ...NetworkDeviceHydrationUtil.snmpConfigSelect,
-          projectId: true,
           walkInterfaces: true,
           collectEndpoints: true,
           snmpOids: true,
@@ -114,6 +146,28 @@ router.post(
       });
 
       /*
+       * WHICH credentials each device is walked with: its own columns, the
+       * credential profile it points at, or its site's - resolved once, for
+       * the whole batch, by the same function that hydrates Network Device
+       * monitors. Cross-project profile references are dropped inside the
+       * resolver, so a device pointed at another project's profile arrives
+       * here as a ping-mode device rather than carrying that project's
+       * community string onto this probe's wire.
+       */
+      const resolvedCredentials: ResolvedSnmpCredentialsForBatch =
+        await NetworkDeviceHydrationUtil.resolveSnmpCredentials(devices);
+
+      /*
+       * Whether this probe can be handed a device to ping without a walk.
+       * Read from the body, where the probe's default request body puts it;
+       * an older probe sends no capabilities at all.
+       */
+      const probeCapabilities: unknown = req.body["probeCapabilities"];
+      const probeSupportsPing: boolean =
+        Array.isArray(probeCapabilities) &&
+        probeCapabilities.includes(NETWORK_DEVICE_PING_CAPABILITY);
+
+      /*
        * This is where an OID Collection Template becomes real. Nothing is
        * ever copied onto a device: the template's OIDs are read here, fresh,
        * and merged with the device's own, so editing a template changes what
@@ -122,13 +176,20 @@ router.post(
        * would be 80,000 row updates behind a 10,000-row cap.
        *
        * Cost is one extra query per batch, and only when the batch actually
-       * contains a linked device. A fleet has a handful of device types, so
-       * 250 devices realistically resolve to a single-digit number of
-       * templates.
+       * contains a linked device that will be WALKED. A ping-only device
+       * polls no OIDs, so its template link is irrelevant to this cycle. A
+       * fleet has a handful of device types, so 250 devices realistically
+       * resolve to a single-digit number of templates.
        */
       const templateIdsInBatch: Array<string> = Array.from(
         new Set(
           devices
+            .filter((device: NetworkDevice) => {
+              return (
+                resolvedCredentials.byDeviceId.get(device.id?.toString() || "")
+                  ?.pollMode === "snmp"
+              );
+            })
             .map((device: NetworkDevice) => {
               return device.oidTemplateId?.toString();
             })
@@ -197,9 +258,54 @@ router.post(
       }
 
       const devicePollConfigs: Array<JSONObject> = [];
+      let pingModeDevicesWithheld: number = 0;
+      let credentialLookupDevicesSkipped: number = 0;
 
       for (const device of devices) {
         if (!device.id || !device.hostname) {
+          continue;
+        }
+
+        const resolved: ResolvedDeviceSnmpCredentials | undefined =
+          resolvedCredentials.byDeviceId.get(device.id.toString());
+
+        /*
+         * Only absent when this cycle could not read the profile the device
+         * (or its site) points at. Skip it: handing it over as a ping-mode
+         * device would stop reporting interfaces, inventory and walk health
+         * for a device that is configured to be walked, and the operator
+         * would see a healthy device quietly lose half its data. Claiming
+         * already advanced nextPollAt, so it comes round again next
+         * interval.
+         */
+        if (!resolved) {
+          credentialLookupDevicesSkipped++;
+          continue;
+        }
+
+        const pollMode: NetworkDevicePollMode = resolved.pollMode;
+
+        if (pollMode === "ping") {
+          /*
+           * Never hand an old probe a credential-less device: it would walk
+           * it with SnmpMonitor's default "public" community, fail, and
+           * report the device Down. Withheld devices are counted and named
+           * once below; claiming has already advanced their nextPollAt, so
+           * they come round again next interval and stay Pending until the
+           * probe is upgraded.
+           */
+          if (!probeSupportsPing) {
+            pingModeDevicesWithheld++;
+            continue;
+          }
+
+          devicePollConfigs.push({
+            networkDeviceId: device.id.toString(),
+            projectId: device.projectId?.toString(),
+            hostname: device.hostname,
+            pollMode: pollMode,
+            collectEndpoints: device.collectEndpoints === true,
+          });
           continue;
         }
 
@@ -286,13 +392,29 @@ router.post(
         devicePollConfigs.push({
           networkDeviceId: device.id.toString(),
           projectId: device.projectId?.toString(),
+          hostname: device.hostname,
+          pollMode: pollMode,
           collectEndpoints: device.collectEndpoints === true,
           snmpMonitor: NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-            device: device,
+            hostname: device.hostname,
+            // Where to connect is the device's; what to connect with is resolved.
+            credentials: resolved.carrier,
             oids: oids,
             monitorInterfaces: monitorInterfaces,
           }) as unknown as JSONObject,
         });
+      }
+
+      if (credentialLookupDevicesSkipped > 0) {
+        logger.warn(
+          `Probe ${probeId.toString()}: ${credentialLookupDevicesSkipped} network device(s) in this batch use an SNMP Credential Profile that could not be read this cycle, so they were not handed out. Polling them without their credentials would report them as failing their walk. They are polled again next interval.`,
+        );
+      }
+
+      if (pingModeDevicesWithheld > 0) {
+        logger.warn(
+          `Probe ${probeId.toString()} does not advertise the "${NETWORK_DEVICE_PING_CAPABILITY}" capability (it predates ping-first polling), so ${pingModeDevicesWithheld} network device(s) without SNMP credentials in this batch were not handed to it: an older probe would walk them with a default community and report them Down. They stay Pending until the probe is upgraded.`,
+        );
       }
 
       logger.debug(
@@ -321,11 +443,18 @@ router.post(
 );
 
 /*
- * Receives one device's walk result and queues it for processing —
+ * Receives one device's poll result and queues it for processing —
  * inventory sync, device metrics, and evaluation of the monitors alerting
  * on the device. The device⇄probe pairing is re-verified inside the
  * processor (NetworkDeviceWalkUtil), scoped by the authenticated probe id
  * stamped here.
+ *
+ * Two probe generations post here. A ping-first probe sends
+ * `{ networkDeviceId, isOnline, pollMode, pingResponse, snmpResponse?,
+ * monitoredAt }` - `snmpResponse` only when a walk actually ran. An older
+ * probe sends `{ networkDeviceId, snmpResponse, monitoredAt }`. A body is
+ * rejected only when it carries NEITHER a walk nor a boolean `isOnline`;
+ * the processor derives whatever else is missing.
  */
 router.post(
   "/probe/network-device/response/ingest",
@@ -362,24 +491,36 @@ router.post(
       const snmpResponse: JSONObject | undefined = req.body["snmpResponse"] as
         | JSONObject
         | undefined;
+      const isOnline: unknown = req.body["isOnline"];
 
-      if (!snmpResponse) {
+      if (!snmpResponse && typeof isOnline !== "boolean") {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("snmpResponse not found"),
+          new BadDataException("Neither snmpResponse nor isOnline found"),
         );
       }
 
+      const pollMode: unknown = req.body["pollMode"];
+      const pingResponse: JSONObject | undefined = req.body["pingResponse"] as
+        | JSONObject
+        | undefined;
+
       /*
        * probeId comes from the authenticated request — never from the
-       * body — so a probe can only ever report walks as itself.
+       * body — so a probe can only ever report walks as itself. The rest
+       * is forwarded as received (absent fields stay absent) and the
+       * processor fills in the defaults, so a job queued by either probe
+       * generation is processed the same way.
        */
       await TelemetryQueueService.addNetworkDeviceWalkJob({
         walkRequestBody: {
           probeId: probeId.toString(),
           networkDeviceId: networkDeviceId,
-          snmpResponse: snmpResponse,
+          isOnline: typeof isOnline === "boolean" ? isOnline : undefined,
+          pollMode: typeof pollMode === "string" ? pollMode : undefined,
+          pingResponse: pingResponse || undefined,
+          snmpResponse: snmpResponse || undefined,
           monitoredAt: (req.body["monitoredAt"] as string) || undefined,
         },
       });

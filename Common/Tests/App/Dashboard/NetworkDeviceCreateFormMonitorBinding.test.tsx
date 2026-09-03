@@ -26,19 +26,30 @@ import ObjectID from "../../../Types/ObjectID";
  * The Network Devices create form, as the page actually hands it to the
  * table.
  *
- * A NetworkDevice never needs a monitor to be registered — the server, the
- * Settings edit form, the topology map's "Add to Monitoring" dialog and
- * discovery import all accept a monitor-backed device with nothing bound.
- * The create form on this page was the one surface that demanded one
- * (`required: isMonitorBackedDevice`), so an operator recording a device
- * before its monitor existed was blocked here and nowhere else.
+ * Registering a device is a statement about the DEVICE: what it is called,
+ * where it is, and which probe can reach it. The form used to open by asking
+ * something else entirely — "how is this device monitored?", Probe or Bound
+ * monitor — a question about OneUptime's internals, put to the operator
+ * before they had told it a single thing about their device, and answered
+ * wrong by anyone who read "Bound monitor" as "monitored". The answer then
+ * decided whether the rest of the form asked for a probe or for a monitor,
+ * so getting it wrong produced a device that nothing polls and nothing
+ * reports on.
  *
- * MonitorBindingNeverRequired.test.ts (in App/Tests) pins the source text.
- * This pins the BEHAVIOUR: the field definition the page builds, evaluated
- * the way BasicForm evaluates it, for both monitoring methods. A refactor
- * that moved the requirement into a `required` callback, a `customValidation`
- * or a differently-named helper would slip past a text match and be caught
- * here.
+ * There is no such question now. Every device this form creates is
+ * probe-polled — pinged by its probe, and walked over SNMP as well once it
+ * has credentials — and the bound-monitor override lives on the device's
+ * Settings page, where an operator meets it already knowing what their
+ * device is. The Monitor binding field went with the question: it existed
+ * only to serve the "Bound monitor" answer, and a field shown by a branch
+ * that can no longer be taken is a field nobody sees.
+ *
+ * MonitorBindingNeverRequired.test.ts (in App/Tests) pins the source text of
+ * the surfaces that DO bind a monitor. This pins the create form's own
+ * fields, evaluated the way BasicForm evaluates them, so a method question
+ * or a binding smuggled back in as a `required` callback, a
+ * `customValidation` or a differently-named helper is caught here rather
+ * than by a text match.
  *
  * ModelTable is replaced by a prop recorder — the point is what the page
  * hands it, not re-testing the table (the same approach as
@@ -264,12 +275,18 @@ async function renderDevicesPage(): Promise<CapturedTableProps> {
   return capturedTableProps!;
 }
 
+/** The field for a column, or undefined when the form does not ask for it. */
+function maybeFieldFor(
+  props: CapturedTableProps,
+  key: string,
+): CapturedFormField | undefined {
+  return (props.formFields || []).find((field: CapturedFormField): boolean => {
+    return Object.keys(field.field || {})[0] === key;
+  });
+}
+
 function fieldFor(props: CapturedTableProps, key: string): CapturedFormField {
-  const match: CapturedFormField | undefined = (props.formFields || []).find(
-    (field: CapturedFormField): boolean => {
-      return Object.keys(field.field || {})[0] === key;
-    },
-  );
+  const match: CapturedFormField | undefined = maybeFieldFor(props, key);
 
   expect({ key: key, found: Boolean(match) }).toEqual({
     key: key,
@@ -288,23 +305,28 @@ function isRequired(field: CapturedFormField, values: FormValuesLike): boolean {
   return field.required === true;
 }
 
-function isShown(field: CapturedFormField, values: FormValuesLike): boolean {
-  return field.showIf ? field.showIf(values) : true;
-}
-
-const MONITOR_BACKED: FormValuesLike = {
-  monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
-  name: "lobby-ap-01",
-  hostname: "10.0.0.7",
-};
-
-const SNMP: FormValuesLike = {
-  monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+/*
+ * A half-filled create form. There is no monitoring method among the values,
+ * because the form does not ask for one — which is exactly what makes it the
+ * right thing to evaluate every showIf and every `required` against.
+ */
+const DEVICE: FormValuesLike = {
   name: "core-switch-01",
   hostname: "10.0.0.1",
 };
 
-describe("the Network Devices create form's Monitor binding", () => {
+/** `showIf` the way BasicForm reads it: absent means "always". */
+function isShown(field: CapturedFormField, values: FormValuesLike): boolean {
+  return field.showIf ? field.showIf(values) : true;
+}
+
+function stepIdsOf(props: CapturedTableProps): Array<string> {
+  return (props.formSteps || []).map((step: CapturedFormStep): string => {
+    return step.id;
+  });
+}
+
+describe("the Network Devices create form asks about the device, not about monitoring", () => {
   beforeEach(() => {
     capturedTableProps = null;
     window.localStorage.clear();
@@ -315,108 +337,90 @@ describe("the Network Devices create form's Monitor binding", () => {
     jest.clearAllMocks();
   });
 
-  test("shows the Monitor field for a monitor-backed device and hides it for SNMP", async () => {
+  /*
+   * The regression this file exists for. Not "the question is answered for
+   * you" and not "the question is hidden" — the field is GONE, because a
+   * hidden field's default is still submitted and a collapsed question is
+   * still a question somebody has to maintain the copy for.
+   */
+  test("has no monitoring-method field and no step to put one on", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const monitor: CapturedFormField = fieldFor(props, "monitor");
 
-    expect(isShown(monitor, MONITOR_BACKED)).toBe(true);
-    expect(isShown(monitor, SNMP)).toBe(false);
+    expect(maybeFieldFor(props, "monitoringMethod")).toBeUndefined();
+    expect(stepIdsOf(props)).not.toContain("monitoring-method");
   });
 
   /*
-   * The regression this file exists for: the field is shown, and it is not
-   * required — for either method, with or without a monitor picked.
+   * The binding existed only to serve the "Bound monitor" answer, and it is
+   * still offered — on the device's Settings page, once the device exists
+   * and the operator knows they need the override.
    */
-  test("never requires a monitor to create a monitor-backed device", async () => {
+  test("offers no monitor binding", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const monitor: CapturedFormField = fieldFor(props, "monitor");
 
-    expect(isRequired(monitor, MONITOR_BACKED)).toBe(false);
-    expect(isRequired(monitor, { ...MONITOR_BACKED, monitor: undefined })).toBe(
-      false,
-    );
-    expect(isRequired(monitor, { ...MONITOR_BACKED, monitor: "" })).toBe(false);
-    expect(isRequired(monitor, SNMP)).toBe(false);
+    expect(maybeFieldFor(props, "monitor")).toBeUndefined();
   });
 
   /*
-   * Permission is mocked to nothing here, so the operator would never be
-   * offered the "Create a Ping monitor" box — and the method picker must
-   * not promise one either.
+   * The steps that are left are all about the device. Pinned as a set,
+   * because "SNMP" losing its step is how an optional step becomes an
+   * invisible one (its fields would then render on every step, or on none —
+   * see NetworkFormStepsInvariants.test.ts).
    */
-  test("does not promise a Ping monitor to someone who cannot be offered one", async () => {
+  test("walks the operator through device details, probe and site, and SNMP", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const method: CapturedFormField = fieldFor(props, "monitoringMethod");
 
-    expect(method.description).toContain("now or later");
-    expect(method.description).not.toContain("created for you");
-  });
-
-  test("does not smuggle the requirement in through a custom validation", async () => {
-    const props: CapturedTableProps = await renderDevicesPage();
-    const monitor: CapturedFormField = fieldFor(props, "monitor");
-
-    expect(monitor.customValidation).toBeUndefined();
+    expect(stepIdsOf(props)).toEqual([
+      "device-details",
+      "probe-and-site",
+      "snmp",
+    ]);
   });
 
   /*
-   * The copy is the only thing that tells an operator they may leave the
-   * field empty. It is shared with the Settings form and the topology
-   * dialog (MonitoringMethodFormFields) so the three cannot drift.
+   * What IS required is the identity of the device and the probe that
+   * reaches it. A form that dropped the method question by dropping
+   * questions wholesale would pass the tests above and let a nameless,
+   * addressless, unpolled device through to the server's own validation.
    */
-  test("tells the operator the binding is optional and can be made later", async () => {
+  test("still requires the device's name, hostname and probe", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const monitor: CapturedFormField = fieldFor(props, "monitor");
 
-    expect(monitor.placeholder?.toLowerCase()).toContain("optional");
-    expect(monitor.description).toContain("Leave it empty");
-    expect(monitor.description).toContain("bind a monitor later");
+    expect(isRequired(fieldFor(props, "name"), DEVICE)).toBe(true);
+    expect(isRequired(fieldFor(props, "hostname"), DEVICE)).toBe(true);
+    expect(isRequired(fieldFor(props, "probe"), DEVICE)).toBe(true);
   });
 
   /*
-   * What IS required has not changed: the identity of the device. A form
-   * that dropped the monitor requirement by dropping requirements wholesale
-   * would pass the tests above and let a nameless, addressless device
-   * through to the server's own validation.
+   * Nothing on this form branches on a monitoring method any more, so
+   * nothing may HIDE on one either: a showIf that returned false for the
+   * values this form actually holds would take its field off the wizard
+   * entirely, which is silent — BasicForm renders what matches and warns
+   * about nothing.
    */
-  test("still requires the device's name and hostname for either method", async () => {
+  test("shows every field it asks for, whatever the form holds", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
-    for (const values of [MONITOR_BACKED, SNMP]) {
-      expect(isRequired(fieldFor(props, "name"), values)).toBe(true);
-      expect(isRequired(fieldFor(props, "hostname"), values)).toBe(true);
-      expect(isRequired(fieldFor(props, "monitoringMethod"), values)).toBe(
-        true,
-      );
+    for (const key of ["name", "hostname", "probe", "site"]) {
+      expect({
+        key: key,
+        shown: isShown(fieldFor(props, key), DEVICE),
+      }).toEqual({ key: key, shown: true });
     }
   });
 
   /*
-   * The SNMP side keeps its own requirement: a probe is what polls the
-   * device, and without one an SNMP device would sit on Pending for the
-   * same reason an unbound monitor-backed one reads "No monitor". The two
-   * methods are symmetric in what they need, not in whether they need it.
+   * The site is the one thing on this form the operator may genuinely not
+   * know yet — a device found in a cupboard belongs somewhere, and which
+   * site that is can be settled later (or by an assignment rule).
    */
-  test("the probe stays required for an SNMP device and hidden for a monitor-backed one", async () => {
+  test("does not require a site to register a device", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
-    const probe: CapturedFormField = fieldFor(props, "probe");
+    const site: CapturedFormField = fieldFor(props, "site");
 
-    expect(isShown(probe, SNMP)).toBe(true);
-    expect(isRequired(probe, SNMP)).toBe(true);
-    expect(isShown(probe, MONITOR_BACKED)).toBe(false);
-  });
-
-  test("the Monitor field lives on a declared wizard step", async () => {
-    const props: CapturedTableProps = await renderDevicesPage();
-    const monitor: CapturedFormField = fieldFor(props, "monitor");
-    const stepIds: Array<string> = (props.formSteps || []).map(
-      (step: CapturedFormStep): string => {
-        return step.id;
-      },
-    );
-
-    expect(monitor.stepId).toBeDefined();
-    expect(stepIds).toContain(monitor.stepId);
+    expect(isRequired(site, DEVICE)).toBe(false);
+    expect(site.customValidation).toBeUndefined();
+    expect(site.placeholder?.toLowerCase()).toContain("optional");
   });
 });
 
@@ -445,10 +449,15 @@ const STATUS_MONITOR_ID: ObjectID = new ObjectID(
   "33333333-0000-4000-8000-000000000003",
 );
 
+const STATUS_PROBE_ID: ObjectID = new ObjectID(
+  "44444444-0000-4000-8000-000000000004",
+);
+
 /** A list row carrying only the columns the Status cell is decided from. */
 function statusRow(data: {
   monitoringMethod: string | undefined;
   monitorId?: ObjectID | undefined;
+  probeId?: ObjectID | undefined;
   status?: { name: string; isOfflineState: boolean } | undefined;
 }): NetworkDevice {
   const row: NetworkDevice = new NetworkDevice();
@@ -462,6 +471,10 @@ function statusRow(data: {
 
   if (data.monitorId) {
     row.monitorId = data.monitorId;
+  }
+
+  if (data.probeId) {
+    row.probeId = data.probeId;
   }
 
   if (data.status) {
@@ -577,10 +590,29 @@ describe("the Network Devices list's Status column", () => {
 
   /*
    * NULL in the column is what every device created before the method
-   * existed holds, and it means SNMP — a device with no binding to be
-   * missing, so no qualifier however long it sits on Pending.
+   * existed holds, and it parses as Probe — a device with no binding to be
+   * missing, so no "No monitor" however long it sits on Pending. With a
+   * probe assigned it is simply waiting for its first poll.
    */
-  test("reads Pending alone for an SNMP device that has never been polled", async () => {
+  test("reads Pending alone for a probe-polled device that has never been polled", async () => {
+    const props: CapturedTableProps = await renderDevicesPage();
+
+    const cell: HTMLElement = renderStatusCell(
+      props,
+      statusRow({ monitoringMethod: undefined, probeId: STATUS_PROBE_ID }),
+    );
+
+    expect(pillTextsIn(cell)).toEqual(["Pending"]);
+    expect(pillTextsIn(cell)).not.toContain("No monitor");
+  });
+
+  /*
+   * The probe-polled counterpart of "No monitor": a device with no probe is
+   * not waiting for a poll, because none is coming. It is a different pill
+   * for a different fix, and it must not read as the monitor one — the
+   * create form requires a probe precisely so this row is rare.
+   */
+  test("reads Pending with the No probe qualifier when no probe is assigned", async () => {
     const props: CapturedTableProps = await renderDevicesPage();
 
     const cell: HTMLElement = renderStatusCell(
@@ -588,7 +620,7 @@ describe("the Network Devices list's Status column", () => {
       statusRow({ monitoringMethod: undefined }),
     );
 
-    expect(pillTextsIn(cell)).toEqual(["Pending"]);
+    expect(pillTextsIn(cell)).toEqual(["Pending", "No probe"]);
     expect(pillTextsIn(cell)).not.toContain("No monitor");
   });
 

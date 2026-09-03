@@ -33,11 +33,14 @@ import {
  * Issue #3562 — the monitoring method reaches every classifier, not only
  * the device list.
  *
- * DeviceReachabilityUtil already knows the two kinds of NetworkDevice: an
- * SNMP one is judged by the OUTCOME of its last poll, a monitor-backed one
- * ONLY by the status its bound Monitor stamped, and a monitor-backed device
- * nothing has reported on yet is Pending. The device list pill goes through
- * that rule with `monitoringMethod` attached and gets the right answer.
+ * DeviceReachabilityUtil knows the two kinds of NetworkDevice: a
+ * PROBE-POLLED one (monitoringMethod "Probe", and equally NULL, "" or the
+ * retired "SNMP") is judged by the OUTCOME of its last poll — the probe
+ * pings it on its schedule and walks it over SNMP when credentials resolve,
+ * and either answering makes it reachable — while a MONITOR-BACKED one is
+ * judged ONLY by the status its bound Monitor stamped, and is Pending until
+ * one lands. The device list pill goes through that rule with
+ * `monitoringMethod` attached and gets the right answer.
  *
  * Three other surfaces build a DeviceReachabilityUtil input of their own —
  * the site card's per-device health (DeviceHealthStateUtil), the site
@@ -47,29 +50,42 @@ import {
  * in every poll column, because the rule can only answer Pending for that.
  * It stops being survivable the moment those columns hold anything else:
  *
- *   - a device SWITCHED from SNMP to Monitor keeps its old lastSeenAt until
- *     the switch-over clears it, and `isReachable` NULL + lastSeenAt set is
- *     the one branch of the rule where staleness alone decides — so a
- *     months-old timestamp reads as Down on the site card while the pill
- *     under it reads Pending;
+ *   - a device SWITCHED from probe polling to a bound monitor keeps its old
+ *     lastSeenAt until the switch-over clears it, and `isReachable` NULL +
+ *     lastSeenAt set is the one branch of the rule where staleness alone
+ *     decides — so a months-old timestamp reads as Down on the site card
+ *     while the pill under it reads Pending;
  *   - the server keeps `isReachable` on a monitor-backed device in step
  *     with its Monitor (true/false, NULL when nothing is bound), and a
  *     mirrored outcome beside a stamp that has not landed yet would read as
  *     a poll verdict.
  *
+ * The field is load-bearing in the OTHER direction too, and that is the half
+ * ping-first polling added. A probe-polled device now always has a poll
+ * verdict of its own, and it can carry a stamped MonitorStatus at the same
+ * time: a Network Device monitor with an "interface down → Offline"
+ * criterion stamps one the moment a single port goes dark, and so does the
+ * SNMP walk failing on a switch that still answers ping. That stamp is
+ * INFORMATIONAL on such a device — its poll decides — because a stamp
+ * outranking the poll turned a site of answering devices red while every
+ * device row under it read Up.
+ *
  * So the field is threaded through all three inputs, and through the
  * bucket-to-input builders that feed two of them. What is pinned here:
  *
  *   1. the field is OPTIONAL, and a caller that omits it — or passes NULL,
- *      "SNMP", anything the parser reads as SNMP — behaves exactly as
+ *      "SNMP", anything the parser reads as Probe — behaves exactly as
  *      before, legacy freshness branch included;
  *   2. an unstamped monitor-backed device is "unknown" on the site card, is
  *      skipped by both rollup policies, and is drawn "unknown" on the map,
  *      whatever its leftover poll columns say;
  *   3. a stamped monitor-backed device is judged by the stamp on every
  *      surface, the same way the pill judges it;
- *   4. the aggregation buckets carry the field into both classifier
- *      inputs, and the topology endpoint selects and forwards it.
+ *   4. a stamped PROBE-POLLED device is judged by its poll on every surface,
+ *      also the same way the pill judges it — the stamp does not enter;
+ *   5. the aggregation buckets carry the field into both classifier
+ *      inputs, and the topology endpoint selects it, forwards it, and gates
+ *      the stamp on it.
  */
 
 const NOW: Date = OneUptimeDate.fromString("2026-09-01T12:00:00.000Z");
@@ -87,11 +103,11 @@ interface PollColumns {
 }
 
 /*
- * What a device switched from SNMP to Monitor is left holding: no recorded
- * outcome, and a last successful walk from long before the probe stopped
- * asking. On the legacy branch of the shared rule (no outcome, but seen)
- * staleness alone decides, so this reads as Down through any classifier
- * that forgets to say what kind of device it is.
+ * What a device switched from probe polling to a bound monitor is left
+ * holding: no recorded outcome, and a last successful poll from long before
+ * the probe stopped asking. On the legacy branch of the shared rule (no
+ * outcome, but seen) staleness alone decides, so this reads as Down through
+ * any classifier that forgets to say what kind of device it is.
  */
 const STALE_LEFTOVERS: PollColumns = {
   isReachable: null,
@@ -284,11 +300,12 @@ describe("without a monitoring method nothing changes — the legacy path is pin
   });
 
   /*
-   * Everything the parser reads as SNMP has to land on the same path as an
+   * Everything the parser reads as Probe has to land on the same path as an
    * omitted value, or a row written before the column existed (NULL) would
-   * classify differently from one written after it ("SNMP").
+   * classify differently from one written after it ("SNMP"), or from one
+   * written today ("Probe").
    */
-  test.each([null, "", "snmp", NetworkDeviceMonitoringMethod.Snmp])(
+  test.each([null, "", "snmp", NetworkDeviceMonitoringMethod.Probe])(
     "a monitoring method of %j is the poll rule, exactly as if omitted",
     (monitoringMethod: string | null) => {
       expect(
@@ -383,7 +400,7 @@ describe("an unstamped monitor-backed device is Pending on every surface", () =>
 
   /*
    * Skipped means skipped from BOTH sides of the share, the same treatment
-   * a never-polled SNMP bucket gets. Four hundred ping-only devices awaiting
+   * a never-polled probe-polled bucket gets. Four hundred devices awaiting
    * their first monitor evaluation must not dilute the one switch that is
    * genuinely dark beside them into a 0.25% blip...
    */
@@ -468,7 +485,7 @@ describe("a stamped monitor-backed device is judged by the stamp, everywhere", (
 
   /*
    * The rollup falls back to reachability when a stamped row cannot be
-   * resolved (a deleted status, or a lookup that missed). For an SNMP
+   * resolved (a deleted status, or a lookup that missed). For a probe-polled
    * device that fallback is a real poll verdict. For a monitor-backed one
    * there is nothing underneath to fall back TO — and the pill, which
    * resolves the same row, reads Pending for it — so it sits out the vote.
@@ -482,8 +499,115 @@ describe("a stamped monitor-backed device is judged by the stamp, everywhere", (
     expect(share([{ ...unresolved, monitoringMethod: MONITOR }])).toEqual(
       NOTHING_REPORTED,
     );
-    // Whereas the SNMP device beside it still has its poll to fall back to.
+    /*
+     * Whereas the probe-polled device beside it still has its poll to fall
+     * back to — and would have had one even if the row HAD resolved, since
+     * its stamp never votes.
+     */
     expect(worst([unresolved])).toBe(OFFLINE.monitorStatusId);
+  });
+});
+
+/*
+ * The other precedence, and the half ping-first polling added (see the
+ * header). A probe-polled device carries a stamp and a poll at the same
+ * time, and the poll is the verdict on every surface.
+ *
+ * The concrete regression: an "interface down → Offline" criterion, or an
+ * SNMP walk failing on a credential rotation, stamps Offline on a switch
+ * that answers every ping. If any of these surfaces read that stamp, the
+ * site card and the topology node go red while the device's own row in the
+ * list — which reads `isReachable` — says Up, and an operator is sent to
+ * find an outage that is not there.
+ */
+describe("a stamped probe-polled device is judged by its poll, everywhere", () => {
+  // Every spelling of "probe-polled" a real row can carry.
+  const PROBE_POLLED: Array<string | null | undefined> = [
+    NetworkDeviceMonitoringMethod.Probe,
+    "SNMP",
+    "",
+    null,
+    undefined,
+  ];
+
+  test.each(RUNGS)(
+    "$name: the site card reads the poll, not the rung",
+    (rung: StampedRung) => {
+      for (const monitoringMethod of PROBE_POLLED) {
+        expect(
+          deviceHealthState(
+            healthInput(ANSWERED, {
+              monitoringMethod: monitoringMethod,
+              monitorStatusIsOffline: rung.isOffline,
+            }),
+            NOW,
+          ),
+        ).toBe("healthy");
+        expect(
+          deviceHealthState(
+            healthInput(FAILED, {
+              monitoringMethod: monitoringMethod,
+              monitorStatusIsOffline: rung.isOffline,
+            }),
+            NOW,
+          ),
+        ).toBe("down");
+      }
+    },
+  );
+
+  test.each(RUNGS)(
+    "$name: worst-of maps the poll to the project's own rows, ignoring the stamp",
+    (rung: StampedRung) => {
+      expect(
+        worst([
+          rollupState(ANSWERED, {
+            currentMonitorStatusId: rung.option.monitorStatusId,
+            monitorStatusPriority: rung.option.priority,
+          }),
+        ]),
+      ).toBe(OPERATIONAL.monitorStatusId);
+      expect(
+        worst([
+          rollupState(FAILED, {
+            currentMonitorStatusId: rung.option.monitorStatusId,
+            monitorStatusPriority: rung.option.priority,
+          }),
+        ]),
+      ).toBe(OFFLINE.monitorStatusId);
+    },
+  );
+
+  test.each(RUNGS)(
+    "$name: the share counts the poll, so a stamped fleet that answers is 0% down",
+    (rung: StampedRung) => {
+      expect(
+        share([
+          rollupState(ANSWERED, {
+            currentMonitorStatusId: rung.option.monitorStatusId,
+            monitorStatusIsOperational: rung.isOperational,
+            deviceCount: 400,
+          }),
+        ]),
+      ).toEqual({
+        reportingDeviceCount: 400,
+        nonOperationalDeviceCount: 0,
+        nonOperationalPercent: 0,
+      });
+    },
+  );
+
+  /*
+   * The map's gate is one layer up. NetworkTopologyUtil takes a
+   * `monitorStatus` that is PRESENT as the verdict — by design, since the
+   * graph is handed nodes rather than rows — so the endpoint that builds
+   * those nodes is what withholds the stamp from a probe-polled device. The
+   * source assertion at the bottom of this file pins that gate; here we pin
+   * what the graph then draws, which is the poll.
+   */
+  test("the map draws the poll for a probe-polled device, the stamp having been withheld", () => {
+    expect(topologyStatus(topologyInput(ANSWERED))).toBe("up");
+    expect(topologyStatus(topologyInput(FAILED))).toBe("down");
   });
 });
 
@@ -519,25 +643,17 @@ describe("the site card, the rollup and the map agree with the device list pill"
 
   const cases: Array<MatrixCase> = [];
 
+  /*
+   * The full product, stamped probe-polled devices included. They used to be
+   * excluded here on the grounds that the pill judged such a device by its
+   * poll while the classifiers judged it by its stamp — a real disagreement
+   * at the time, and the one ping-first polling closed. All four surfaces
+   * now read a probe-polled device by its poll, so the cell belongs in the
+   * matrix and is the strongest single check that they still agree.
+   */
   for (const monitoringMethod of METHODS) {
     for (const monitorStatusIsOffline of STAMPS) {
       for (const [label, columns] of COLUMN_SETS) {
-        /*
-         * A stamped SNMP device is out of scope. The pill judges it by its
-         * poll and the classifiers by its stamp (a Network Device monitor's
-         * verdict is the operator's system of record on the site card and
-         * the map). That precedence predates this field and is not what it
-         * is about.
-         */
-        if (
-          !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-            monitoringMethod,
-          ) &&
-          monitorStatusIsOffline !== undefined
-        ) {
-          continue;
-        }
-
         cases.push({
           label: `${label} / method ${String(monitoringMethod)} / stamp ${String(monitorStatusIsOffline)}`,
           monitoringMethod: monitoringMethod,
@@ -546,6 +662,27 @@ describe("the site card, the rollup and the map agree with the device list pill"
         });
       }
     }
+  }
+
+  /*
+   * What the topology ENDPOINT hands the graph. NetworkTopologyUtil takes a
+   * present `monitorStatus` as the verdict outright, so the isMonitorBacked
+   * gate lives where the device row is mapped into a node — reproduced here
+   * so the map is compared against the graph it is actually given (the
+   * source assertions at the bottom of this file pin that the endpoint
+   * really applies it).
+   */
+  function stampForGraph(testCase: MatrixCase): "up" | "down" | undefined {
+    if (
+      testCase.monitorStatusIsOffline === undefined ||
+      !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        testCase.monitoringMethod,
+      )
+    ) {
+      return undefined;
+    }
+
+    return testCase.monitorStatusIsOffline ? "down" : "up";
   }
 
   function pill(testCase: MatrixCase): NetworkDeviceReachability {
@@ -653,12 +790,7 @@ describe("the site card, the rollup and the map agree with the device list pill"
       const actual: string = topologyStatus(
         topologyInput(testCase.columns, {
           monitoringMethod: testCase.monitoringMethod,
-          monitorStatus:
-            testCase.monitorStatusIsOffline === undefined
-              ? undefined
-              : testCase.monitorStatusIsOffline
-                ? "down"
-                : "up",
+          monitorStatus: stampForGraph(testCase),
         }),
       );
 
@@ -720,15 +852,15 @@ describe("buckets carry the method into both classifier inputs", () => {
     },
   );
 
-  test("the same stale bucket is down as SNMP and unknown as monitor-backed", () => {
-    const snmp: DeviceHealthGroup = bucket({});
+  test("the same stale bucket is down as probe-polled and unknown as monitor-backed", () => {
+    const probePolled: DeviceHealthGroup = bucket({});
     const monitorBacked: DeviceHealthGroup = bucket({
       monitoringMethod: MONITOR,
     });
 
     expect(
       deviceHealthState(
-        deviceHealthInputForGroup({ group: snmp, now: NOW }),
+        deviceHealthInputForGroup({ group: probePolled, now: NOW }),
         NOW,
       ),
     ).toBe("down");
@@ -739,9 +871,9 @@ describe("buckets carry the method into both classifier inputs", () => {
       ),
     ).toBe("unknown");
 
-    expect(worst([deviceRollupStateForGroup({ group: snmp, now: NOW })])).toBe(
-      OFFLINE.monitorStatusId,
-    );
+    expect(
+      worst([deviceRollupStateForGroup({ group: probePolled, now: NOW })]),
+    ).toBe(OFFLINE.monitorStatusId);
     expect(
       worst([deviceRollupStateForGroup({ group: monitorBacked, now: NOW })]),
     ).toBeNull();
@@ -835,5 +967,26 @@ describe("the topology endpoint selects the column and forwards it", () => {
     );
 
     expect(mapping).toContain("monitoringMethod: device.monitoringMethod,");
+  });
+
+  /*
+   * And the gate itself. NetworkTopologyUtil.deviceStatus returns a present
+   * `monitorStatus` outright — the graph is handed nodes, not rows, and has
+   * no business re-deciding what a node's status means — so the endpoint is
+   * the only place that can withhold a probe-polled device's stamp. Drop
+   * this condition and an "interface down → Offline" criterion paints every
+   * answering switch on the map red while its row in the device list reads
+   * Up: a silent, compiling, non-throwing regression, which is why it is
+   * asserted against the source.
+   */
+  test("the stamp reaches the graph only for a monitor-backed device", () => {
+    const mapping: string = enclosingLiteral(
+      "isReachable: device.isReachable,",
+    );
+
+    expect(mapping).toContain("monitorStatus:");
+    expect(mapping).toContain(
+      "NetworkDeviceMonitoringMethodUtil.isMonitorBacked( device.monitoringMethod, )",
+    );
   });
 });

@@ -317,7 +317,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       sectionDescription:
         "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
       description:
-        "Leave this on to identify what answers, using the credentials on the next step. Turn it off for an ICMP-only sweep: no SNMP packet is sent, no credentials are asked for, and the SNMP step is skipped. Everything an ICMP-only scan finds imports as a monitor-backed device with polling off, so give it a Ping monitor when you import it.",
+        "Leave this on to identify what answers, using the credentials on the next step. Turn it off for an ICMP-only sweep: no SNMP packet is sent, no credentials are asked for, and the SNMP step is skipped. Everything an ICMP-only scan finds imports as a device pinged by the scan's probe; add SNMP credentials later for inventory.",
       /*
        * Clear the credentials on the way past. Hiding the fields is not enough
        * on its own: ModelForm builds the request body from every DECLARED field
@@ -532,17 +532,18 @@ const getDiscoveryScanEditFormFields: GetDiscoveryScanFormFieldsFunction = (
   );
 };
 /**
- * Create the Ping monitor that will report a ping-only host's health, and
- * return its id so the device can be created already bound to it.
+ * Create the optional Ping monitor for a ping-only host — the one-click path
+ * to incidents, alerts and status pages for a device the probe already pings
+ * — and return its id so the device can be created already bound to it.
  *
  * The scan's own probe is attached explicitly rather than letting the monitor
  * fall back to the project's defaults. That matters more than it looks: the
  * defaults include GLOBAL probes, which sit on the public internet and cannot
  * reach an RFC1918 address — so a monitor left on defaults for 10.246.174.13
  * would fail every check and drive the device to "Offline". That is a worse
- * answer than "Pending", because it looks like a real outage. The scan's probe
- * is the one that just proved the host answers ping, so it is exactly the
- * right one to keep asking.
+ * answer than the probe's own ping, because it looks like a real outage. The
+ * scan's probe is the one that just proved the host answers ping, so it is
+ * exactly the right one to keep asking.
  */
 async function createPingMonitorForHost(data: {
   host: DiscoveredDeviceEntry;
@@ -724,10 +725,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
     reviewedScanIdRef.current = scan._id || "";
     /*
      * Preselect every host that is not already registered. Ping-only hosts
-     * are included: they import as monitor-backed devices rather than as
-     * SNMP-credentialed ones that could never be polled. Read through the
-     * overlay so reopening a scan does not re-tick what was already imported
-     * from it.
+     * are included: they import with no credentials and are pinged by the
+     * scan's probe, rather than carrying credentials they never answered to.
+     * Read through the overlay so reopening a scan does not re-tick what was
+     * already imported from it.
      */
     setSelectedIps(getInitialSelection(getReviewHosts(scan)));
     // Every scan opens on the whole list; narrowing is the operator's move.
@@ -841,9 +842,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         try {
           /*
            * The shared recipe (Common/Utils/NetworkDiscovery/
-           * DiscoveredDeviceBuilder): name, hostname, description, and — for
-           * SNMP hosts — the scan's probe and credentials. A ping-only host
-           * gets none of the scan's SNMP setup and polling off. The
+           * DiscoveredDeviceBuilder): name, hostname, description, the scan's
+           * probe with polling on, and — for SNMP hosts — the scan's
+           * credentials. A ping-only host gets the probe and none of the
+           * SNMP setup: it is pinged until credentials are added. The
            * server-side auto-import rule engine builds through the same
            * function, so a hand-imported host and a rule-imported host are
            * the same device.
@@ -855,14 +857,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
           });
 
           /*
-           * The #3447 fix. A ping-only host imports monitor-backed: no probe,
-           * no credentials, nothing polling it. Without a monitor bound to it
-           * that device has no health source at all and reads "Pending"
-           * forever. So when the operator asked for it, create the Ping
-           * monitor FIRST and carry its id onto the device — binding at
-           * create time is what makes NetworkDeviceService stamp the
-           * monitor's status onto the device immediately, rather than leaving
-           * it Pending until the monitor's next status CHANGE (#3392).
+           * The optional Ping monitor for a ping-only host. The device is
+           * pinged by the scan's probe and has a status from its first poll
+           * without one (the #3447 dead end — no probe, nothing polling it,
+           * "Pending" forever — is gone); what a monitor adds is incidents,
+           * alerts and status-page visibility, and it is the only one-click
+           * path to those until alert policies land. So when the operator
+           * asked for it, create the Ping monitor FIRST and carry its id
+           * onto the device — binding at create time is what makes
+           * NetworkDeviceService stamp the monitor's status onto the device
+           * immediately, rather than waiting for the monitor's next status
+           * CHANGE (#3392).
            *
            * The monitor is an ENHANCEMENT to the import, not a precondition
            * for it, so its failure must not cost the operator the device.
@@ -1017,7 +1022,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
        */
       if (monitorFailures.length > 0) {
         failures.push(
-          `Imported, but no Ping monitor could be created for ${monitorFailures.length === 1 ? "this host" : "these hosts"} — they are in your inventory with nothing reporting on them yet: ${monitorFailures.join(" ")}`,
+          `Imported, but no Ping monitor could be created for ${monitorFailures.length === 1 ? "this host" : "these hosts"} — ${monitorFailures.length === 1 ? "it is" : "they are"} in your inventory and pinged by the probe, but will not raise incidents until a monitor exists: ${monitorFailures.join(" ")}`,
         );
       }
 
@@ -1231,7 +1236,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     {ScanModeUtil.isIcmpOnly(item) && (
                       <span
                         className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                        title="This scan pings each address and asks nothing else of what answers. Its hosts import as monitor-backed devices with polling off."
+                        title="This scan pings each address and asks nothing else of what answers. Its hosts import as devices pinged by the scan's probe; add SNMP credentials later for inventory."
                       >
                         {ScanMethodLabel.PingOnly}
                       </span>
@@ -1629,9 +1634,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
           title="Review Discovered Devices"
           /*
            * This used to end "hosts without SNMP cannot be imported", which
-           * stopped being true when ping-only hosts started importing as
-           * monitor-backed devices — and reads as a flat contradiction next to
-           * a No SNMP filter that exists precisely to import them as a batch.
+           * stopped being true when ping-only hosts started importing at all
+           * — and reads as a flat contradiction next to a No SNMP filter that
+           * exists precisely to import them as a batch.
            */
           description={`Hosts that responded in ${
             ScanNameUtil.getScanLabel(scanToReview) ||
@@ -1644,8 +1649,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * a shortfall rather than the thing the operator asked for.
              */
             isIcmpOnlyReview
-              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as monitor-backed devices with polling off. Turn on 'Create a Ping monitor' below to give each one a status, or bind a monitor yourself afterwards."
-              : "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones."
+              ? "This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents."
+              : "Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some."
           }${
             /*
              * The probe's summary of the sweep. Most valuable precisely when
@@ -1732,14 +1737,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
               </div>
             )}
             {/*
-             * The way out of the dead end this dialog used to leave behind.
+             * The optional one-click path to incidents for the ping-only
+             * hosts.
              *
-             * A host that answered ping but not SNMP imports monitor-backed:
-             * no probe, nothing polling it, and — until someone hand-creates a
-             * Ping monitor and hand-binds it — no health source at all, so it
-             * reads "Pending" forever (OneUptime/oneuptime#3447). Fourteen
-             * discovered phones meant fourteen monitors and fourteen device
-             * edits by hand.
+             * A host that answered ping but not SNMP imports as a device the
+             * scan's probe pings, so it has a status from its first poll —
+             * the "Pending forever" of OneUptime/oneuptime#3447 (no probe,
+             * nothing polling it, fourteen hand-made monitors and fourteen
+             * device edits to escape) is gone. What a Ping monitor still adds
+             * is incidents, alerts and status-page visibility, and until
+             * alert policies land this opt-in is the only way to get those
+             * without creating each monitor by hand.
              *
              * OFF by default on purpose: monitors are billable and
              * plan-limited, so creating a batch of them is the operator's
@@ -1749,8 +1757,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
             {noSnmpHostCount > 0 && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <Toggle
-                  title={`Create a Ping monitor for each host without SNMP (${noSnmpHostCount.toLocaleString("en-US")})`}
-                  description="Hosts without SNMP are never polled, so without a monitor they stay on Pending with no status. This creates one Ping monitor per host — on the probe that ran this scan, so it can reach them — and binds it, so they report Up or Down straight away. Monitors count towards your plan. Incidents stay off; turn them on per monitor if you want paging."
+                  title={`Also create a Ping monitor for each host without SNMP to get incidents (optional) — ${noSnmpHostCount.toLocaleString("en-US")} ${noSnmpHostCount === 1 ? "host" : "hosts"}`}
+                  description="These hosts are already pinged by the probe that ran this scan and read Up or Down on their own. A Ping monitor is what raises incidents and alerts and puts them on a status page: this creates one per host — on the same probe, so it can reach them — and binds it. Monitors count towards your plan. Incidents stay off until you turn them on per monitor."
                   initialValue={createPingMonitors}
                   value={createPingMonitors}
                   dataTestId="discovered-device-create-ping-monitors"
@@ -1774,11 +1782,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
               (shownEntry: ShownDiscoveredHost): ReactElement => {
                 const entry: DiscoveredDeviceEntry = shownEntry.host;
                 /*
-                 * Ping-only hosts (snmpReachable === false) import too, as
-                 * monitor-backed devices rather than SNMP-credentialed ones
-                 * that could never be polled. They are badged so the
-                 * operator knows what they are agreeing to. Legacy rows
-                 * (snmpReachable undefined) import as SNMP, as before.
+                 * Ping-only hosts (snmpReachable === false) import too, with
+                 * no credentials and pinged by the scan's probe, rather than
+                 * carrying credentials they never answered to. They are
+                 * badged so the operator knows what they are agreeing to.
+                 * Legacy rows (snmpReachable undefined) import with the
+                 * scan's credentials, as before.
                  */
                 const isPingOnly: boolean = isPingOnlyDiscoveredHost(entry);
                 /*
@@ -1900,7 +1909,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       {isPingOnly && (
                         <span
                           className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                          title="Responds to ping only. Imports as a monitor-backed device: no polling and no credentials, so it needs a monitor bound to it before it reports a status. Turn on 'Create a Ping monitor' above to have that done for you, or bind one yourself afterwards."
+                          title="Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory. Turn on 'Create a Ping monitor' above if you also want incidents."
                         >
                           No SNMP
                         </span>
