@@ -93,16 +93,23 @@ receivers:
         source_identifier: attributes["log.file.path"]
         force_flush_period: 5s
         max_log_size: 1048576
-      # Podman's log driver does not record a severity; OTel log records
+      # Podman's k8s-file driver does not record a severity; OTel log records
       # have dedicated severity_number / severity_text fields that downstream
-      # viewers rely on for filtering. Derive a best-effort severity from the
-      # stdout/stderr stream: stderr -> ERROR, stdout -> INFO.
-      # First try to read a level keyword out of the body. PSR-3/Monolog
-      # ("app.INFO:") and Go zap ({"level":"info"}) put the keyword next to a
-      # dot or a quote, so a plain word-boundary match misses them and every
-      # such line would fall through to the stream default below and be stamped
-      # ERROR. Route on whether the body carries a recognisable keyword; only
-      # lines without one take the stdout/stderr default.
+      # viewers rely on for filtering. Derive a best-effort severity: read a
+      # level keyword out of the body when there is one, and fall back to the
+      # stdout/stderr stream when there is not.
+      #
+      # The delimiter class has to admit the dot and the double quote, not just
+      # whitespace and brackets: PSR-3/Monolog ("app.INFO:") and Go zap
+      # ({"level":"info"}) write the keyword next to one of those, and a plain
+      # word-boundary match misses both — which is what left every line from
+      # such a service taking the stream default and being stamped ERROR.
+      #
+      # Best-effort really is best-effort. The keyword scan is an unanchored
+      # search over the whole (recombined) body, so it takes the FIRST level
+      # word anywhere in the line — a message that merely mentions one is
+      # classified by it, and a level written as `level=error` is missed
+      # because `=` is not a leading delimiter. Tests/Ops pins both.
       - type: router
         id: severity-router
         routes:
@@ -114,7 +121,7 @@ receivers:
         regex: '(?i)(?:^|[\s.\[("])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)"])'
         parse_from: body
         output: severity-parser
-      # No keyword in the body: fall back to the stream. Podman's json-file
+      # No keyword in the body: fall back to the stream. Podman's k8s-file
       # driver records no severity of its own. stderr -> ERROR, stdout -> INFO.
       - type: add
         id: add-fallback-severity

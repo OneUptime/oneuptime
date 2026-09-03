@@ -154,7 +154,7 @@ Metrics के अलावा, Docker Agent OpenTelemetry filelog receiver क�
 - `resource.container.id` — पूर्ण container ID
 - `resource.container.runtime` — हमेशा `docker`
 - `attributes["log.iostream"]` — `stdout` या `stderr`
-- `severityText` / `severityNumber` — stream से derived: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — लाइन में मौजूद level keyword से पढ़ा जाता है (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); जिन लाइनों में कोई पहचान योग्य level नहीं है वे stream पर fallback करती हैं: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — container process द्वारा emit की गई raw log line
 - `time` — line के लिए Docker daemon का timestamp
 
