@@ -570,6 +570,8 @@ import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
 import { AddTelemetryExceptionErrorClass1790900000000 } from "./1790900000000-AddTelemetryExceptionErrorClass";
 import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
+import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
+import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
 
 export default [
   InitialMigration,
@@ -1144,4 +1146,6 @@ export default [
   AddNetworkDeviceRoleTable1790800000000,
   AddTelemetryExceptionErrorClass1790900000000,
   AddEnterpriseLicenseUsageProvenance1790900000000,
+  AddUserNotificationEmailRollup1791000000000,
+  AddUserNotificationEmailRollupSetting1791100000000,
 ];

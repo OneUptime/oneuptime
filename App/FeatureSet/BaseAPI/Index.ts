@@ -874,6 +874,15 @@ import UserOnCallShiftReminderService, {
 import UserOnCallShiftReminderLogService, {
   Service as UserOnCallShiftReminderLogServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderLogService";
+import UserNotificationEmailRollupItemService, {
+  Service as UserNotificationEmailRollupItemServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupSettingService, {
+  Service as UserNotificationEmailRollupSettingServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupSettingService";
+import UserNotificationEmailRollupBatchService, {
+  Service as UserNotificationEmailRollupBatchServiceType,
+} from "Common/Server/Services/UserNotificationEmailRollupBatchService";
 import ProjectCallSMSConfigService, {
   Service as ProjectCallSMSConfigServiceType,
 } from "Common/Server/Services/ProjectCallSMSConfigService";
@@ -1303,6 +1312,9 @@ import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/O
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
+import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
+import UserNotificationEmailRollupSetting from "Common/Models/DatabaseModels/UserNotificationEmailRollupSetting";
+import UserNotificationEmailRollupBatch from "Common/Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -4660,6 +4672,54 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         UserOnCallShiftReminderLog,
         UserOnCallShiftReminderLogService,
+      ).getRouter(),
+    );
+
+    /*
+     * The owner-email rollup queue and its claim ledger. Both routers deny
+     * every operation - the models' table access lists are empty, because
+     * they are mail-delivery bookkeeping and not a user-facing resource.
+     * They are mounted anyway so the models stay addressable like every
+     * other tenant model, exactly as UserOnCallShiftReminderLog above is.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupItem,
+        UserNotificationEmailRollupItemServiceType
+      >(
+        UserNotificationEmailRollupItem,
+        UserNotificationEmailRollupItemService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupBatch,
+        UserNotificationEmailRollupBatchServiceType
+      >(
+        UserNotificationEmailRollupBatch,
+        UserNotificationEmailRollupBatchService,
+      ).getRouter(),
+    );
+
+    /*
+     * Unlike the two rollup tables above, this one is genuinely used by a
+     * person: the User Settings > Notification Settings page reads and writes
+     * it through this router to turn burst rollup off for themselves. Its
+     * access control is Permission.CurrentUser scoped by
+     * @CurrentUserCanAccessRecordBy("userId"), so a member can only ever see
+     * or change their own row.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        UserNotificationEmailRollupSetting,
+        UserNotificationEmailRollupSettingServiceType
+      >(
+        UserNotificationEmailRollupSetting,
+        UserNotificationEmailRollupSettingService,
       ).getRouter(),
     );
 

@@ -3,7 +3,6 @@ import { OnCreate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
-import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import SmsService from "./SmsService";
 import TeamMemberService from "./TeamMemberService";
@@ -51,6 +50,7 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
+import EmailRollupWriter from "../Utils/EmailRollup/EmailRollupWriter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 
@@ -76,6 +76,16 @@ export class Service extends DatabaseService<UserNotificationSetting> {
      */
     whatsAppMessage?: WhatsAppMessagePayload | undefined;
     telegramMessage?: TelegramMessagePayload | undefined;
+    /*
+     * Bypasses burst coalescing for this send, before any rollup bookkeeping
+     * runs. Some producers reuse another family's event type: the SLA-breach
+     * job at App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts sends
+     * under EmailTemplateType.IncidentOwnerResourceCreated at :265 and reuses
+     * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286, so the event type
+     * alone cannot express that this particular message is urgent. Only a
+     * caller knows that, so only a caller can say so.
+     */
+    forceImmediate?: boolean | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     alertEpisodeId?: ObjectID | undefined;
@@ -140,33 +150,60 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userEmail of userEmails) {
-          MailService.sendMail(
-            {
-              ...data.emailEnvelope,
-              toEmail: userEmail.email!,
-            },
-            {
+          /*
+           * The one seam where an owner email can be held back. Below the
+           * burst threshold this is byte-for-byte the send that was here
+           * before - same envelope, same correlation ids, still
+           * fire-and-forget inside the writer - and above it the message is
+           * queued for a rollup instead of dropped. Awaited, unlike the raw
+           * send it replaces, because the queue row has to exist before this
+           * method returns; the writer itself never awaits MailService.
+           *
+           * data.emailEnvelope is passed by reference and is never mutated by
+           * the writer, which the Telegram fallback below and the Slack /
+           * Microsoft Teams bodies further down depend on: all three
+           * synthesise their message from data.emailEnvelope.subject.
+           *
+           * Guarded even though sendOrRollup is written not to throw. The send
+           * it replaces was fire-and-forget, so one bad address could never
+           * cost another address its email - let alone cost this notification
+           * its SMS, call, push, Telegram, workspace and webhook deliveries
+           * further down. Awaiting reintroduces that possibility; this catch
+           * takes it back out.
+           */
+          try {
+            await EmailRollupWriter.sendOrRollup({
               projectId: data.projectId,
-              incidentId: data.incidentId,
-              alertId: data.alertId,
-              alertEpisodeId: data.alertEpisodeId,
-              incidentEpisodeId: data.incidentEpisodeId,
-              monitorId: data.monitorId,
-              scheduledMaintenanceId: data.scheduledMaintenanceId,
-              statusPageId: data.statusPageId,
-              statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
-              teamId: data.teamId,
-              // OnCall-related fields
-              onCallPolicyId: data.onCallPolicyId,
-              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-              onCallDutyPolicyExecutionLogTimelineId:
-                data.onCallDutyPolicyExecutionLogTimelineId,
-              onCallScheduleId: data.onCallScheduleId,
-            },
-          ).catch((err: Error) => {
+              toEmail: userEmail.email!,
+              eventType: data.eventType,
+              emailEnvelope: data.emailEnvelope,
+              mailOptions: {
+                projectId: data.projectId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                monitorId: data.monitorId,
+                scheduledMaintenanceId: data.scheduledMaintenanceId,
+                statusPageId: data.statusPageId,
+                statusPageAnnouncementId: data.statusPageAnnouncementId,
+                userId: data.userId,
+                teamId: data.teamId,
+                // OnCall-related fields
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+                onCallDutyPolicyExecutionLogTimelineId:
+                  data.onCallDutyPolicyExecutionLogTimelineId,
+                onCallScheduleId: data.onCallScheduleId,
+              },
+              ...(data.forceImmediate !== undefined && {
+                forceImmediate: data.forceImmediate,
+              }),
+            });
+          } catch (err) {
             logger.error(err);
-          });
+          }
         }
       }
 
