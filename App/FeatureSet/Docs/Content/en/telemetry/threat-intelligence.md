@@ -14,6 +14,8 @@ OneUptime enriches your [security events](/docs/telemetry/security-events) again
 | **Poll Interval (Minutes)** | How often new objects are fetched. Whole minutes, `1`–`1440`; default `60`. |
 | **Minimum Confidence** | Skip indicators whose STIX `confidence` is below this (0–100). `0` ingests everything. Indicators that carry no confidence always pass, so an unscored feed does not go silently empty when you set a minimum. |
 
+Polls identify themselves as `User-Agent: OneUptime/<version> (+https://oneuptime.com)`. Providers whose WAF blocks anonymous HTTP-library user agents (a common default rule, and one that answers `403` before the request reaches the TAXII API) should allowlist that string.
+
 The poller tracks each feed with an `added_after` cursor (the server's `X-TAXII-Date-Added-Last` header), fetching up to ten pages per poll — a large initial sync progresses across successive polls, one poll interval apart, and **Last Poll Summary** on the feed row says how far it got. To drain a big collection quickly, set a short poll interval (down to 1 minute) until the sync catches up.
 
 ## What gets ingested
