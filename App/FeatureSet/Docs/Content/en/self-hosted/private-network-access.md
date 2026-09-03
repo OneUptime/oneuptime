@@ -13,7 +13,7 @@ This page explains how to allow it, deliberately and narrowly. There are two ind
 | Workflows, project webhooks, on-call user webhooks | The **API server**'s environment |
 | Custom JavaScript Code **monitors**                | The **probe**'s own environment  |
 
-**Most monitoring already works.** Every monitor type except Custom JavaScript Code — API, Website, Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Synthetic, External Status Page, Network Path — already reaches whatever host you point it at, with no address check at all. If you only want to monitor an internal service, deploy a [custom probe](/docs/probe/custom-probe) inside that network and nothing else on this page applies.
+**Most monitoring already works.** Every monitor type except Custom JavaScript Code — API, Website, Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Database Health, Synthetic, External Status Page, Network Path — already reaches whatever host you point it at, with no address check at all. If you only want to monitor an internal service, deploy a [custom probe](/docs/probe/custom-probe) inside that network and nothing else on this page applies.
 
 ## What is blocked, and what can be unblocked
 

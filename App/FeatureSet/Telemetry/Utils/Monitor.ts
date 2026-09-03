@@ -408,6 +408,40 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.Database) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        if (!monitorStep.data?.databaseMonitor) {
+          continue;
+        }
+
+        /*
+         * Same opt-in secret references as the SQL Query monitor, minus the
+         * query - Database Health has no user-authored SQL. Resolving these
+         * here is what turns a stored {{monitorSecrets.name}} into a usable
+         * credential before the step reaches the probe.
+         */
+        const databaseSecretFields: Array<
+          "password" | "username" | "host" | "databaseName"
+        > = ["password", "username", "host", "databaseName"];
+
+        for (const field of databaseSecretFields) {
+          const currentValue: string | undefined =
+            monitorStep.data.databaseMonitor[field];
+
+          if (currentValue && this.hasSecrets(currentValue)) {
+            const monitorSecrets: MonitorSecret[] = await getSecrets();
+
+            monitorStep.data.databaseMonitor[field] =
+              (await MonitorUtil.fillSecretsInStringOrJSON({
+                secrets: monitorSecrets,
+                populateSecretsIn: currentValue,
+              })) as string;
+          }
+        }
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
         []) {

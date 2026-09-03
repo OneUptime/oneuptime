@@ -13,6 +13,7 @@ import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../Monitor/DnssecMonitor/DnssecMonitorResponse";
 import SqlMonitorResponse from "../Monitor/SqlMonitor/SqlMonitorResponse";
+import DatabaseMonitorResponse from "../Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import HttpPhaseTimings from "../Monitor/HttpPhaseTimings";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
@@ -68,6 +69,12 @@ export default interface ProbeMonitorResponse {
   domainResponse?: DomainMonitorResponse | undefined;
   dnssecResponse?: DnssecMonitorResponse | undefined;
   sqlQueryMonitorResponse?: SqlMonitorResponse | undefined;
+  /*
+   * Database Health monitor payload: normalized metric values plus the
+   * groups that could not be collected. Partial collection is normal here -
+   * see DatabaseMonitorResponse for why it never implies an outage.
+   */
+  databaseMonitorResponse?: DatabaseMonitorResponse | undefined;
   externalStatusPageResponse?: ExternalStatusPageMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
