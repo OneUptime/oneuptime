@@ -5,10 +5,65 @@ import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import { OnCreate } from "../Types/Database/Hooks";
 import OneUptimeDate from "../../Types/Date";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ObjectID from "../../Types/ObjectID";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import logger from "../Utils/Logger";
+
+export const ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_NAMESPACE: string =
+  "EnterpriseLicenseService.usageAggregation";
+
+export const ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_OPTIONS: Readonly<{
+  namespace: string;
+  lockTimeout: number;
+  acquireTimeout: number;
+}> = Object.freeze({
+  namespace: ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_NAMESPACE,
+  lockTimeout: 60_000,
+  acquireTimeout: 10_000,
+});
 
 export class Service extends DatabaseService<EnterpriseLicense> {
   public constructor() {
     super(EnterpriseLicense);
+  }
+
+  /**
+   * Serialize usage aggregation for one enterprise license across every API
+   * and worker process. Callers must put the complete read-compute-write
+   * operation inside `fn`; locking only the write would leave the stale-read
+   * race intact.
+   */
+  public async runWithUsageAggregationLock<TResult>(data: {
+    licenseId: ObjectID;
+    fn: () => Promise<TResult>;
+  }): Promise<TResult> {
+    /*
+     * Acquisition is deliberately outside the callback try/finally. If Redis
+     * is unavailable or contention exceeds the bounded acquire timeout, the
+     * operation fails closed and there is no unowned mutex to release.
+     */
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: data.licenseId.toString(),
+      ...ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_OPTIONS,
+    });
+
+    try {
+      return await data.fn();
+    } finally {
+      try {
+        await Semaphore.release(mutex);
+      } catch (error) {
+        /*
+         * redis-semaphore refreshes held locks and lets them expire after the
+         * lock timeout if explicit release fails. Logging is best effort: a
+         * release error must not replace either the callback's value or its
+         * more useful error.
+         */
+        logger.error(
+          `Failed to release enterprise license usage aggregation lock for ${data.licenseId.toString()}; it will expire automatically: ${error}`,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
