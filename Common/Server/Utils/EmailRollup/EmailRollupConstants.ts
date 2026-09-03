@@ -84,3 +84,15 @@ export const ROLLUP_BATCH_RETENTION_DAYS: number = 30;
 export const ROLLUP_SUBJECT_MAX_LENGTH: number = 500; // ColumnLength.LongText
 export const ROLLUP_SUBJECT_LEAD_TITLE_MAX: number = 80;
 export const ROLLUP_PROJECT_NAME_MAX: number = 60;
+
+/*
+ * How many category counts the SUBJECT line spells out before it gives up and
+ * says "+N more".
+ *
+ * A subject is read in a list, at a glance, and most clients show somewhere
+ * around 60-90 characters of it. "12 notifications" alone says nothing about
+ * whether this is a probe flapping or production burning, and all eleven
+ * categories would be truncated by the client at a point this code does not
+ * control. Three is what fits after the project name and the count.
+ */
+export const ROLLUP_SUBJECT_MAX_CATEGORIES: number = 3;

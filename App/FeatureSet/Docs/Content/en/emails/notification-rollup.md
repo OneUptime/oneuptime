@@ -29,17 +29,28 @@ day still produces three owner emails a day, and they are byte-for-byte the emai
 
 ## What the rollup email looks like
 
-The subject line tells you the scale before you open it:
+The subject line tells you the scale _and the kind_ of storm before you open it:
 
 ```
-[Acme Production] 112 notifications
+[Acme Production] 112 notifications: 63 Monitors, 41 Incidents, 6 Alerts +2 more
 ```
 
-Inside, one row per resource rather than one row per event. If an incident was created, then
-acknowledged, then resolved, that is a single row showing where it ended up — which makes the rollup
-*more* current than the three individual emails would have been, since each of those is a stale
-snapshot by the time you read it. A count of how many updates each row absorbed sits beside it, and
-a summary line at the top breaks the total down by category.
+Inside, a summary card gives the total, the time window the rollup covers, and the breakdown by
+category. Below it the notifications are grouped into one section per category — incidents first,
+then alerts, then the monitors and probes that noticed them — so the first thing under the summary
+is the first thing worth clicking.
+
+Each section holds one row per resource rather than one row per event. If an incident was created,
+then acknowledged, then resolved, that is a single row showing where it ended up — which makes the
+rollup _more_ current than the three individual emails would have been, since each of those is a
+stale snapshot by the time you read it. Every row carries the time of its latest update, and a row
+that absorbed several says how many, so the counts in the sections and the summary card always add
+up to the same total.
+
+Times are shown in UTC, and the date is shown as well whenever a rollup happens to span more than
+one day.
+
+![A rollup email carrying fifteen notifications](/docs/static/images/NotificationRollupEmail.png)
 
 ## What is never rolled up
 
@@ -49,16 +60,16 @@ one code path those notifications take and nothing else does.
 
 Never delayed, and never counted:
 
-| Category | Examples |
-| --- | --- |
-| On-call paging | Every escalation-policy page, and every acknowledgement request |
-| On-call timing | "You are on call now", "you are next on call", "your shift starts soon", "your shift was reassigned" |
-| Account security | Password reset, email verification, password changed, two-factor backup code used or regenerated |
-| Administrative notices about your account | An administrator changed your notification methods or your on-call rules |
-| Billing and balance | Invoices, subscription overdue, "we could not page anyone because the card declined" |
-| Instance health | Postgres, Redis and ClickHouse warnings to instance admins |
-| Status page subscribers | Every email your status page sends to your own subscribers |
-| SLA breaches | Sent immediately even though they reuse the incident-created notification type |
+| Category                                  | Examples                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| On-call paging                            | Every escalation-policy page, and every acknowledgement request                                      |
+| On-call timing                            | "You are on call now", "you are next on call", "your shift starts soon", "your shift was reassigned" |
+| Account security                          | Password reset, email verification, password changed, two-factor backup code used or regenerated     |
+| Administrative notices about your account | An administrator changed your notification methods or your on-call rules                             |
+| Billing and balance                       | Invoices, subscription overdue, "we could not page anyone because the card declined"                 |
+| Instance health                           | Postgres, Redis and ClickHouse warnings to instance admins                                           |
+| Status page subscribers                   | Every email your status page sends to your own subscribers                                           |
+| SLA breaches                              | Sent immediately even though they reuse the incident-created notification type                       |
 
 Only email is affected. SMS, phone calls, push notifications, WhatsApp, Telegram, Slack, Microsoft
 Teams and webhooks are delivered immediately, exactly as before, including for the notifications

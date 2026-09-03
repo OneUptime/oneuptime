@@ -6,20 +6,118 @@
 
 {{> InfoBlock info=rollupIntroHtml }}
 
-{{> TitleBlock title=categoryCountsHtml }}
-
-<table style="width: calc(100% - 64px); margin: 18px 32px; border-collapse: collapse; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2733;">
+<!-- Summary Card -->
+<table
+  class="st-Copy st-Width st-Width--mobile"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="600"
+  style="min-width: 600px;"
+>
+  <tbody>
     <tr>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-left-radius: 10px;">What happened</th>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Updates</th>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td style="border: 0; margin: 0; padding: 0;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; background-color: #f7f9fc; border: 1px solid #e5e8f0; border-radius: 12px;">
+          <tbody>
+            <tr>
+              <td style="padding: 18px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #1a1a2e;">{{summaryCount}}</div>
+                {{#ifNotCond summaryWindow ""}}<div style="font-size: 13px; line-height: 20px; color: #6b7280; padding-top: 4px;">{{summaryWindow}}</div>{{/ifNotCond}}
+                <div style="font-size: 13px; line-height: 22px; color: #374151; padding-top: 10px; border-top: 1px solid #e5e8f0; margin-top: 12px;">{{categoryCounts}}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
     </tr>
-    {{#each rows}}
-    <tr style="background-color: {{this.rowBackground}};">
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0; font-weight: 600;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="color: #4f46e5; text-decoration: none;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</td>
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.updatesLabel}}</td>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--stacked"
+        colspan="3"
+        height="8"
+        style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
     </tr>
-    {{/each}}
+  </tbody>
 </table>
+<!-- /Summary Card -->
+
+<!-- What Happened -->
+<table
+  class="st-Copy st-Width st-Width--mobile"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="600"
+  style="min-width: 600px;"
+>
+  <tbody>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td style="border: 0; margin: 0; padding: 0;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+          <tbody>
+            {{#each rows}}
+            {{#ifCond this.isSectionStart "true"}}
+            <tr>
+              <td style="padding: 22px 0 8px 0; font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280;">{{this.sectionLabel}}</td>
+              <td align="right" style="padding: 22px 0 8px 0; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.4px; color: #9ca3af;">{{this.sectionCount}}</td>
+            </tr>
+            {{/ifCond}}
+            <tr style="background-color: {{this.rowBackground}};">
+              <td colspan="2" style="padding: 12px 14px; border: 1px solid #e5e8f0;">
+                <div style="font-size: 15px; line-height: 22px; font-weight: 600; color: #1f2733;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="color: #4f46e5; text-decoration: none;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</div>
+                <div style="font-size: 12px; line-height: 18px; color: #6b7280; padding-top: 4px;">{{this.metaLabel}}</div>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </td>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--stacked"
+        colspan="3"
+        height="20"
+        style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<!-- /What Happened -->
 
 {{#ifCond hasMore "true"}}
 {{> InfoBlock info=moreTextHtml }}
@@ -76,6 +174,6 @@
 </table>
 <!-- /Notification Settings Link -->
 
-{{> Footer this }}
+{{> Footer this}}
 
 {{> End this}}

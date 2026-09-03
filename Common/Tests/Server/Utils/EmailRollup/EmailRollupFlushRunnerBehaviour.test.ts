@@ -164,7 +164,7 @@ describe("EmailRollupFlushRunner - one flush", () => {
 
       expect(mail.toEmail).toBe(TO_EMAIL.toString());
       expect(mail.templateType).toBe(EmailTemplateType.NotificationRollup);
-      expect(mail.subject).toBe("[Acme] 2 notifications");
+      expect(mail.subject).toBe("[Acme] 2 notifications: 2 Incidents");
       expect(harness.batches[0]!.itemCount).toBe(2);
     });
 

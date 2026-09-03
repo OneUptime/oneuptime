@@ -197,6 +197,42 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.OnCall,
 };
 
+/*
+ * The order the rollup email lists its sections in, most urgent first.
+ *
+ * A rollup exists because something happened forty times in ten minutes, so
+ * the reader is scanning, not reading. Ordering sections by how much they can
+ * cost - an incident before the monitor that declared it, and both before the
+ * probe that noticed - means the first thing under the summary is the first
+ * thing worth clicking. Ordering by count instead would put a flapping probe
+ * above a production incident precisely when that is most wrong, and ordering
+ * by recency would move the sections around between two rollups five minutes
+ * apart, which is exactly the shape a reader learns to skim.
+ *
+ * Categories with no items in a given rollup are not rendered at all, so this
+ * being longer than any one email's section list is expected.
+ *
+ * Every RollupCategory MUST appear here exactly once - a category missing
+ * from this array would silently drop its section out of every rollup email.
+ * That is pinned by NotificationEmailRollupCategory.test.ts rather than by the
+ * type system, because an array cannot express "exhaustive" the way the
+ * Record above can.
+ */
+export const ROLLUP_CATEGORY_ORDER: ReadonlyArray<RollupCategory> = [
+  RollupCategory.Incidents,
+  RollupCategory.IncidentEpisodes,
+  RollupCategory.Alerts,
+  RollupCategory.AlertEpisodes,
+  RollupCategory.Slos,
+  RollupCategory.Monitors,
+  RollupCategory.ScheduledMaintenance,
+  RollupCategory.Probes,
+  RollupCategory.AIAgents,
+  RollupCategory.StatusPages,
+  RollupCategory.OnCall,
+  RollupCategory.Other,
+];
+
 export type GetRollupCategoryFunction = (
   eventType: NotificationSettingEventType,
 ) => RollupCategory;

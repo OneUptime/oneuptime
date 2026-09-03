@@ -407,7 +407,13 @@ describe("NotificationRollup.hbs rendered with the builder's own vars", () => {
     );
 
     expect(html).toContain("4 notifications from Acme");
-    expect(html).toContain("arrived in the last few minutes");
+    expect(html).toContain(
+      "OneUptime grouped these 4 notifications from Acme into a single email",
+    );
+
+    /* The summary card: the count, the window it covers, and the breakdown. */
+    expect(html).toContain("4 notifications");
+    expect(html).toContain("12:00 UTC to 12:03 UTC");
     expect(html).toContain("2 Incidents · 1 Monitors · 1 Probes");
   });
 
@@ -426,7 +432,7 @@ describe("NotificationRollup.hbs rendered with the builder's own vars", () => {
     expect(html).toContain(`href="${MONITOR_LINK}"`);
 
     // The folded incident is one row carrying its update count, not two rows.
-    expect(html).toContain("2 updates");
+    expect(html).toContain("2 updates · latest 12:01 UTC");
     expect(html.split(INCIDENT_LINK).length - 1).toBe(1);
   });
 
@@ -595,13 +601,13 @@ describe("NotificationRollup.hbs zebra striping", () => {
     );
 
     expect(html).toContain("background-color: #ffffff;");
-    expect(html).toContain("background-color: #f0f3f9;");
+    expect(html).toContain("background-color: #f7f9fc;");
 
     expect(renderedRowBackgrounds(html)).toEqual([
       "#ffffff",
-      "#f0f3f9",
+      "#f7f9fc",
       "#ffffff",
-      "#f0f3f9",
+      "#f7f9fc",
       "#ffffff",
     ]);
   });
@@ -623,7 +629,13 @@ describe("NotificationRollup.hbs zebra striping", () => {
     );
   });
 
-  test("the real four-notification rollup stripes its three folded rows", () => {
+  test("the real four-notification rollup puts its three folded rows in three sections, each starting white", () => {
+    /*
+     * One incident (two notifications folded), one monitor, one probe: three
+     * categories, so three sections of one row each, and the stripe restarts
+     * in every one of them. A stripe that ran across section boundaries would
+     * read as a pattern underneath the headings rather than as part of them.
+     */
     const html: string = render(
       EmailTemplateType.NotificationRollup,
       standardEmail().vars,
@@ -631,7 +643,7 @@ describe("NotificationRollup.hbs zebra striping", () => {
 
     expect(renderedRowBackgrounds(html)).toEqual([
       "#ffffff",
-      "#f0f3f9",
+      "#ffffff",
       "#ffffff",
     ]);
   });
@@ -723,7 +735,7 @@ describe("NotificationRollup.hbs source rules", () => {
 
     expect(Array.from(references.topLevel).sort()).toEqual(
       [
-        "categoryCountsHtml",
+        "categoryCounts",
         "hasMore",
         "moreTextHtml",
         "preferencesHtml",
@@ -732,6 +744,8 @@ describe("NotificationRollup.hbs source rules", () => {
         "rollupIntroHtml",
         "rollupTitle",
         "rows",
+        "summaryCount",
+        "summaryWindow",
       ].sort(),
     );
 
@@ -758,7 +772,16 @@ describe("NotificationRollup.hbs source rules", () => {
      * and the declaration is discarded rather than merely looking wrong.
      */
     expect(Array.from(references.rowScoped).sort()).toEqual(
-      ["hasLink", "link", "rowBackground", "title", "updatesLabel"].sort(),
+      [
+        "hasLink",
+        "isSectionStart",
+        "link",
+        "metaLabel",
+        "rowBackground",
+        "sectionCount",
+        "sectionLabel",
+        "title",
+      ].sort(),
     );
 
     /*
@@ -789,5 +812,164 @@ describe("NotificationRollup.hbs source rules", () => {
         /\{\{[^}]*@[A-Za-z_]/g,
       ),
     ).toBeNull();
+  });
+});
+
+describe("NotificationRollup.hbs sections", () => {
+  type SectionHeadingsFunction = (html: string) => Array<string>;
+
+  /*
+   * The heading cells as they actually render, in document order. Read out of
+   * the HTML rather than out of the vars, because the heading is emitted by a
+   * {{#ifCond this.isSectionStart "true"}} block: a builder that flags every
+   * row, or none, is invisible in the vars and obvious here.
+   */
+  const sectionHeadings: SectionHeadingsFunction = (
+    html: string,
+  ): Array<string> => {
+    const found: Array<string> = [];
+
+    for (const match of html.matchAll(
+      /text-transform: uppercase; color: #6b7280;">([^<]*)<\/td>\s*<td align="right"[^>]*>([^<]*)<\/td>/g,
+    )) {
+      found.push(`${match[1]!.trim()} ${match[2]!.trim()}`);
+    }
+
+    return found;
+  };
+
+  type MixedHtmlFunction = () => string;
+
+  const mixedHtml: MixedHtmlFunction = (): string => {
+    return render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Probe eu-west is disconnected",
+          rollupCategory: RollupCategory.Probes,
+        }),
+        makeItem({
+          offsetSeconds: 60,
+          subject: "api.acme.com is offline",
+          viewLink: MONITOR_LINK,
+          rollupCategory: RollupCategory.Monitors,
+        }),
+        makeItem({
+          offsetSeconds: 120,
+          subject: "Checkout is down",
+          viewLink: INCIDENT_LINK,
+        }),
+        makeItem({
+          offsetSeconds: 180,
+          subject: "Checkout is down - acknowledged",
+          viewLink: INCIDENT_LINK,
+        }),
+      ]).vars,
+    );
+  };
+
+  test("renders one heading per category, in the builder's order, with its update count", () => {
+    expect(sectionHeadings(mixedHtml())).toEqual([
+      "Incidents 2 updates",
+      "Monitors 1 update",
+      "Probes 1 update",
+    ]);
+  });
+
+  test("the headings are the only rows without a title, and every other row has one", () => {
+    const html: string = mixedHtml();
+
+    /* Three headings, three data rows: no row rendered twice, none dropped. */
+    expect(sectionHeadings(html)).toHaveLength(3);
+    expect(renderedRowBackgrounds(html)).toHaveLength(3);
+  });
+
+  test("each row renders its own meta line under its title", () => {
+    const html: string = mixedHtml();
+
+    expect(html).toContain("2 updates · latest 12:03 UTC");
+    expect(html).toContain("12:01 UTC");
+    expect(html).toContain("12:00 UTC");
+  });
+
+  test("a rollup with one category renders exactly one heading", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({ offsetSeconds: 0, subject: "a", viewLink: INCIDENT_LINK }),
+        makeItem({
+          offsetSeconds: 60,
+          subject: "b",
+          viewLink: `${INCIDENT_LINK}-2`,
+        }),
+      ]).vars,
+    );
+
+    expect(sectionHeadings(html)).toEqual(["Incidents 2 updates"]);
+  });
+
+  test("a heading label is escaped by the double stache it is rendered through", () => {
+    /*
+     * The labels shipped today contain nothing to escape, which is exactly
+     * why this is worth pinning: the day somebody adds a category called
+     * "Monitors & Probes", the heading must not become live markup. Feeding
+     * the row field directly is the only way to test the wiring rather than
+     * today's data.
+     */
+    const email: RollupEmail = build([
+      makeItem({ offsetSeconds: 0, subject: "a" }),
+    ]);
+    const rows: Array<JSONObject> = email.vars[
+      "rows"
+    ] as unknown as Array<JSONObject>;
+
+    rows[0]!["sectionLabel"] = "<b>Monitors & Probes</b>";
+
+    const html: string = render(EmailTemplateType.NotificationRollup, {
+      ...email.vars,
+      rows: rows as unknown as JSONObject,
+    });
+
+    expect(html).toContain("&lt;b&gt;Monitors &amp; Probes&lt;/b&gt;");
+    expect(html).not.toContain("<b>Monitors");
+  });
+});
+
+describe("NotificationRollup.hbs summary card", () => {
+  test("renders the count, the window and the category breakdown", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      standardEmail().vars,
+    );
+
+    expect(html).toContain(">4 notifications</div>");
+    expect(html).toContain(">12:00 UTC to 12:03 UTC</div>");
+    expect(html).toContain(">2 Incidents · 1 Monitors · 1 Probes</div>");
+  });
+
+  test("an empty window renders no empty line at all", () => {
+    const email: RollupEmail = standardEmail();
+
+    const html: string = render(EmailTemplateType.NotificationRollup, {
+      ...email.vars,
+      summaryWindow: "",
+    });
+
+    expect(html).not.toContain("UTC to");
+    expect(html).not.toContain('padding-top: 4px;"></div>');
+    /* The rest of the card still renders. */
+    expect(html).toContain(">4 notifications</div>");
+  });
+
+  test("the card's count and the headline agree", () => {
+    const email: RollupEmail = standardEmail();
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      email.vars,
+    );
+
+    expect(html).toContain("4 notifications from Acme");
+    expect(html).toContain(">4 notifications</div>");
   });
 });

@@ -3,6 +3,7 @@ import NotificationSettingEventType from "../../../Types/NotificationSetting/Not
 import {
   ROLLUP_CATEGORY_BY_EVENT_TYPE,
   ROLLUP_CATEGORY_LABEL,
+  ROLLUP_CATEGORY_ORDER,
   RollupCategory,
   getRollupCategory,
 } from "../../../Types/NotificationSetting/NotificationEmailRollupCategory";
@@ -254,5 +255,45 @@ describe("NotificationEmailRollupCategory", () => {
        */
       expect(category).toMatch(/^[a-z]+(-[a-z]+)*$/u);
     }
+  });
+
+  /*
+   * ROLLUP_CATEGORY_ORDER decides what the rollup email lists first, and -
+   * unlike ROLLUP_CATEGORY_LABEL and ROLLUP_CATEGORY_BY_EVENT_TYPE, which are
+   * exhaustive Records the compiler checks - it is an array, and an array
+   * cannot say "every member, once". These three tests are that guarantee.
+   */
+  test("the section order lists every RollupCategory", () => {
+    expect([...ROLLUP_CATEGORY_ORDER].sort()).toEqual(
+      Object.values(RollupCategory).sort(),
+    );
+  });
+
+  test("the section order lists no category twice", () => {
+    expect(new Set<RollupCategory>(ROLLUP_CATEGORY_ORDER).size).toBe(
+      ROLLUP_CATEGORY_ORDER.length,
+    );
+  });
+
+  test("incidents lead and Other trails, because the order is urgency, not the alphabet", () => {
+    expect(ROLLUP_CATEGORY_ORDER[0]).toBe(RollupCategory.Incidents);
+    expect(ROLLUP_CATEGORY_ORDER[ROLLUP_CATEGORY_ORDER.length - 1]).toBe(
+      RollupCategory.Other,
+    );
+
+    /*
+     * The pairs that would be wrong in either direction if somebody sorted
+     * this array: a monitor is how an incident was noticed, and a probe is how
+     * the monitor was noticed, so both belong below it.
+     */
+    expect(
+      ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Incidents),
+    ).toBeLessThan(ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Monitors));
+    expect(ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Monitors)).toBeLessThan(
+      ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Probes),
+    );
+    expect(ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Alerts)).toBeLessThan(
+      ROLLUP_CATEGORY_ORDER.indexOf(RollupCategory.Monitors),
+    );
   });
 });
