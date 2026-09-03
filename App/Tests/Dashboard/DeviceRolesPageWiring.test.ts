@@ -315,6 +315,8 @@ describe("the old hardcoded option list is gone for good", () => {
    * the build — FeatureSet/Dashboard is excluded from `npm run compile` — it
    * would fail at runtime, in whichever page still reached for it.
    */
+  const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+
   function dashboardSourceFiles(directory: string): Array<string> {
     const files: Array<string> = [];
 
@@ -326,7 +328,7 @@ describe("the old hardcoded option list is gone for good", () => {
         continue;
       }
 
-      if (/\.tsx?$/.test(entry.name)) {
+      if (TYPESCRIPT_FILE.test(entry.name)) {
         files.push(fullPath);
       }
     }

@@ -121,9 +121,11 @@ describe("ProjectService project creation - subscription_started", () => {
   }
 
   /*
-   * The nine default-row seeders run after the conversion is captured and each
-   * one writes to a different table. None of them are what is under test, so
-   * they are stubbed out wholesale.
+   * The default-row seeders run after the conversion is captured and each one
+   * writes to a different table. None of them are what is under test, so they
+   * are stubbed out wholesale. This list must name every seeder in
+   * ProjectService.onCreateSuccess: one left off reaches a real repository and
+   * throws "Database not connected", failing the whole suite.
    */
   const DEFAULT_SEEDERS: Array<string> = [
     "addDefaultIncidentSeverity",
@@ -135,6 +137,7 @@ describe("ProjectService project creation - subscription_started", () => {
     "addDefaultAlertState",
     "addDefaultIncidentRoles",
     "addDefaultNetworkSiteTypes",
+    "addDefaultNetworkDeviceRoles",
   ];
 
   function setup(data?: {
