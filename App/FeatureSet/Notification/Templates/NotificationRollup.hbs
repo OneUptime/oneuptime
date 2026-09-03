@@ -1,0 +1,81 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=rollupTitle }}
+
+{{> InfoBlock info=rollupIntroHtml }}
+
+{{> TitleBlock title=categoryCountsHtml }}
+
+<table style="width: calc(100% - 64px); margin: 18px 32px; border-collapse: collapse; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2733;">
+    <tr>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-left-radius: 10px;">What happened</th>
+        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Updates</th>
+    </tr>
+    {{#each rows}}
+    <tr style="background-color: {{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0; font-weight: 600;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="color: #4f46e5; text-decoration: none;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</td>
+        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.updatesLabel}}</td>
+    </tr>
+    {{/each}}
+</table>
+
+{{#ifCond hasMore "true"}}
+{{> InfoBlock info=moreTextHtml }}
+{{/ifCond}}
+
+{{> ButtonBlock buttonUrl=projectHomeLink buttonText="Open Project" }}
+
+{{> TitleBlock title="Why did I get one email instead of several?" }}
+{{> InfoBlock info=preferencesHtml }}
+
+<!-- Notification Settings Link -->
+<table
+  class="st-Copy st-Width st-Width--mobile"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="600"
+  style="min-width: 600px;"
+>
+  <tbody>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+      <td
+        class="st-Font st-Font--body"
+        style="border: 0; margin: 0; padding: 0; color: #374151 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 15px; line-height: 26px;"
+      >
+        <a href="{{preferencesLink}}" style="color: #4f46e5; text-decoration: none; word-break: break-all;">{{preferencesLink}}</a>
+      </td>
+      <td
+        class="st-Spacer st-Spacer--gutter"
+        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+        width="64"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+    <tr>
+      <td
+        class="st-Spacer st-Spacer--stacked"
+        colspan="3"
+        height="14"
+        style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
+      >
+        <div class="st-Spacer st-Spacer--filler"></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<!-- /Notification Settings Link -->
+
+{{> Footer this }}
+
+{{> End this}}

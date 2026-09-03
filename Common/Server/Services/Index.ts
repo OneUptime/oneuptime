@@ -425,6 +425,8 @@ import IoTFleetLabelRuleService from "./IoTFleetLabelRuleService";
 import IoTFleetOwnerRuleService from "./IoTFleetOwnerRuleService";
 import IoTFleetOwnerTeamService from "./IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "./IoTFleetOwnerUserService";
+import UserNotificationEmailRollupItemService from "./UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupBatchService from "./UserNotificationEmailRollupBatchService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -848,6 +850,8 @@ const services: Array<BaseService> = [
   ServerlessFunctionOwnerTeamService,
   ServerlessFunctionOwnerUserService,
   WebhookLogService,
+  UserNotificationEmailRollupItemService,
+  UserNotificationEmailRollupBatchService,
 ];
 
 export const AnalyticsServices: Array<

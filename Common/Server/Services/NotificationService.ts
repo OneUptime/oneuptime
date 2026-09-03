@@ -72,6 +72,15 @@ export class NotificationService extends BaseService {
               project.name || ""
             } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
           );
+
+          /*
+           * Looks redundant next to the updateOneById above, and is not: the
+           * throw below lands in this method's own catch, which now reads this
+           * same in-memory object to decide whether to mail. Without this line
+           * the first no-payment-method failure would send two identical
+           * "ACTION REQUIRED" emails - one from here, one from the catch.
+           */
+          project.failedCallAndSMSBalanceChargeNotificationSentToOwners = true;
         }
         throw new BadDataException(
           "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
@@ -110,16 +119,15 @@ export class NotificationService extends BaseService {
         },
       });
 
-      await ProjectService.sendEmailToProjectOwners(
-        project.id!,
-        "SMS and Call Recharge Successful for project - " +
-          (project.name || ""),
-        `We have successfully recharged your SMS and Call balance for project - ${
-          project.name || ""
-        } by ${amountInUSD} USD. Your current balance is ${
-          updatedAmount / 100
-        } USD.`,
-      );
+      /*
+       * No owner email on success, deliberately. rechargeIfBalanceIsLow runs
+       * inline on every SMS, call, WhatsApp and Telegram notification attempt,
+       * so a project that auto-recharges during a paging storm used to mail
+       * every owner once per recharge - and a successful recharge is not news
+       * anyway. The invoice still goes out through
+       * generateInvoiceAndChargeCustomer above, and the Slack notification
+       * below still fires, so nothing that a human acts on is lost.
+       */
 
       // Send Slack notification for balance refill
       this.sendBalanceRefillSlackNotification({
@@ -137,23 +145,31 @@ export class NotificationService extends BaseService {
 
       return updatedAmount;
     } catch (err) {
-      await ProjectService.updateOneById({
-        data: {
-          failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-        },
-        id: project.id!,
-        props: {
-          isRoot: true,
-        },
-      });
-      await ProjectService.sendEmailToProjectOwners(
-        project.id!,
-        "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-          (project.name || ""),
-        `We have tried recharged your SMS and Call balance for project - ${
-          project.name || ""
-        } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
-      );
+      /*
+       * The flag was written here but never read, so a project with a declined
+       * card mailed every owner once per paging attempt. The select at the top
+       * of this method already loads it, so reading the in-memory copy costs
+       * nothing; the flag is reset on the next successful recharge.
+       */
+      if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
+        await ProjectService.updateOneById({
+          data: {
+            failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
+          },
+          id: project.id!,
+          props: {
+            isRoot: true,
+          },
+        });
+        await ProjectService.sendEmailToProjectOwners(
+          project.id!,
+          "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+            (project.name || ""),
+          `We have tried recharged your SMS and Call balance for project - ${
+            project.name || ""
+          } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
+        );
+      }
       logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       throw err;
     }

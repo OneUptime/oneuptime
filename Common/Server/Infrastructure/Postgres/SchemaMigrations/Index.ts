@@ -567,6 +567,7 @@ import { AddOnCallCalendarFeeds1790400000000 } from "./1790400000000-AddOnCallCa
 import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNetworkDeviceOidTemplate";
 import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
+import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
 
 export default [
   InitialMigration,
@@ -1138,4 +1139,5 @@ export default [
   AddNetworkDeviceOidTemplate1790500000000,
   AddAutoImportRuleOidTemplate1790600000000,
   AddNetworkDeviceRoleTable1790800000000,
+  AddUserNotificationEmailRollup1791000000000,
 ];
