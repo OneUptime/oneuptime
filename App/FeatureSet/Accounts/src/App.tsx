@@ -58,11 +58,24 @@ function App(): ReactElement {
               path="/accounts/forgot-password"
               element={<ForgotPasswordPage />}
             />
+            {/*
+             * Both forms of each token-bearing route are registered. The head
+             * bootstrap in Common/Server/Views/Partials/SensitiveUrlToken.ejs
+             * normally takes the token out of the path before the router ever
+             * sees it, which lands the visitor on the token-free form; the
+             * :token form is what remains when that bootstrap could not run.
+             * Either way the page reads the token through SensitiveUrlToken.
+             */}
+            <Route
+              path="/accounts/reset-password"
+              element={<ResetPasswordPage />}
+            />
             <Route
               path="/accounts/reset-password/:token"
               element={<ResetPasswordPage />}
             />
             <Route path="/accounts/register" element={<RegisterPage />} />
+            <Route path="/accounts/verify-email" element={<VerifyEmail />} />
             <Route
               path="/accounts/verify-email/:token"
               element={<VerifyEmail />}
