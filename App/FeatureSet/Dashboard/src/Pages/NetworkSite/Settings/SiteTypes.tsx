@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { fetchParentNetworkSiteTypeOptions } from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -12,11 +13,13 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const networkSiteTypeDocumentation: string = `
 ### How Site Types Work
 
-Site Types are the levels of your network site hierarchy. Every network site is assigned one. The defaults — Account Type, Region, Franchisee, Market, Unit, Data Center, Other — are just a starting point: rename them, reorder them, delete the ones you don't use, or add your own to match how your organisation is actually structured.
+Site Types describe the levels of your network site hierarchy. Every network site is assigned one. The defaults — Account Type, Region, Franchisee, Market, Unit, Data Center, Other — are just a starting point: rename them, arrange them, delete the ones you don't use, or add your own to match how your organisation is actually structured.
 
-### Order
+### Parent Site Type
 
-\`Order\` places a type in the hierarchy. **Lower numbers are higher up.** A Region (order 2) contains Markets (order 4), which contain Units (order 5). The order is how the site hierarchy and the network map decide what nests inside what.
+Choose the type directly above this one. For example, set Account Type as the parent of Region, Region as the parent of Franchisee, Franchisee as the parent of Market, and Market as the parent of Unit. Leave the parent empty for a top-level type. When you create a network site, this relationship determines which parent sites are valid.
+
+To keep existing site trees valid, a type that is already in use can move only when its sites already match the new relationship. For a larger reorganisation, create the replacement type under the new parent, then move each site and assign the replacement type together.
 
 ### Unit Level
 
@@ -57,19 +60,22 @@ const NetworkSiteTypesPage: FunctionComponent<
         cardProps={{
           title: "Site Types",
           description:
-            "The levels of your site hierarchy — Region, Market, Unit and so on. Rename them, reorder them, or add your own.",
+            "The levels of your site hierarchy — Region, Market, Unit and so on. Connect each type to the level directly above it.",
         }}
         helpContent={{
           title: "How Site Types Work",
           description:
-            "Configure your hierarchy levels and pick which one is the unit level.",
+            "Connect your hierarchy levels and pick which one is the unit level.",
           markdown: networkSiteTypeDocumentation,
         }}
         noItemsMessage="No site types yet. Add one to start describing your site hierarchy."
-        sortBy="order"
+        sortBy="name"
         sortOrder={SortOrder.Ascending}
         searchableFields={["name", "description"]}
-        selectMoreFields={{ isUnitLevel: true }}
+        selectMoreFields={{
+          isUnitLevel: true,
+          parentNetworkSiteTypeId: true,
+        }}
         filters={[
           { field: { name: true }, title: "Name", type: FieldType.Text },
           {
@@ -86,9 +92,20 @@ const NetworkSiteTypesPage: FunctionComponent<
             type: FieldType.Text,
           },
           {
-            field: { order: true },
-            title: "Order",
-            type: FieldType.Number,
+            field: {
+              parentNetworkSiteType: {
+                name: true,
+              },
+            },
+            title: "Parent Site Type",
+            type: FieldType.Entity,
+            getElement: (item: NetworkSiteType): ReactElement => {
+              if (!item.parentNetworkSiteType?.name) {
+                return <span className="text-gray-400">Top level</span>;
+              }
+
+              return <span>{item.parentNetworkSiteType.name}</span>;
+            },
           },
           {
             field: { isUnitLevel: true },
@@ -126,15 +143,18 @@ const NetworkSiteTypesPage: FunctionComponent<
             placeholder: "A single store, restaurant or branch office.",
           },
           {
-            field: { order: true },
-            title: "Order",
+            field: { parentNetworkSiteType: true },
+            title: "Parent Site Type",
             stepId: "hierarchy",
-            sectionTitle: "Position in the Hierarchy",
+            sectionTitle: "Parent Relationship",
             sectionDescription:
-              "Where this type sits relative to the others. Lower numbers are higher up: a Region (2) contains Markets (4), which contain Units (5).",
-            fieldType: FormFieldSchemaType.Number,
+              "Choose the type directly above this one. A type cannot be nested beneath itself, one of its descendants, or a unit-level type.",
+            description:
+              "Leave empty to make this a top-level type. Options show their full hierarchy path.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchParentNetworkSiteTypeOptions,
             required: false,
-            placeholder: "5",
+            placeholder: "No parent site type (top level)",
           },
           {
             field: { isUnitLevel: true },

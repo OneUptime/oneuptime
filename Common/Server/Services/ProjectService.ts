@@ -65,6 +65,7 @@ import {
 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
@@ -85,6 +86,10 @@ import {
   DEFAULT_NETWORK_DEVICE_ROLES,
   DefaultNetworkDeviceRole,
 } from "../../Types/NetworkDevice/DefaultNetworkDeviceRole";
+import {
+  DefaultNetworkSiteTypeCreationOrder,
+  DefaultNetworkSiteTypeParent,
+} from "../../Types/NetworkSite/DefaultNetworkSiteTypeHierarchy";
 import Model from "../../Models/DatabaseModels/Project";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
@@ -1912,21 +1917,50 @@ These are no longer recorded against the project and have to be cancelled by han
    * addDefaultAlertSeverity / addDefaultAlertState.
    */
   @CaptureSpan()
-  public async addDefaultNetworkSiteTypes(createdItem: Model): Promise<Model> {
+  public async addDefaultNetworkSiteTypes(
+    createdItem: Model,
+    options?: { setParentRelationships?: boolean },
+  ): Promise<Model> {
     const projectId: ObjectID = createdItem.id!;
 
-    // Idempotent — see getExistingProjectScopedNames.
-    const existingNames: Set<string | undefined> =
-      await this.getExistingProjectScopedNames(
-        NetworkSiteTypeService,
-        projectId,
-      );
+    const existingNetworkSiteTypes: Array<NetworkSiteType> = [];
+    let networkSiteTypeSkip: number = 0;
+
+    while (true) {
+      const page: Array<NetworkSiteType> = await NetworkSiteTypeService.findBy({
+        query: { projectId },
+        select: { _id: true, name: true },
+        sort: { _id: SortOrder.Ascending },
+        limit: LIMIT_MAX,
+        skip: networkSiteTypeSkip,
+        props: { isRoot: true },
+      });
+
+      existingNetworkSiteTypes.push(...page);
+
+      if (page.length < LIMIT_MAX) {
+        break;
+      }
+
+      networkSiteTypeSkip += page.length;
+    }
+
+    const networkSiteTypeByName: Map<string, NetworkSiteType> = new Map<
+      string,
+      NetworkSiteType
+    >();
+
+    for (const networkSiteType of existingNetworkSiteTypes) {
+      if (networkSiteType.name) {
+        networkSiteTypeByName.set(networkSiteType.name, networkSiteType);
+      }
+    }
 
     /*
-     * Listed broadest-first: the array position is the hierarchy level, so the
-     * index drives `order` (1..7, lower = higher in the hierarchy). Names come
-     * from DefaultNetworkSiteType so that enum stays the single source of
-     * truth for the defaults, shared with the backfill data migration.
+     * DefaultNetworkSiteTypeCreationOrder lists parents before children, so a
+     * parent's ID is always available by the time its child is created. The
+     * parent mapping itself is shared with the data migration that repairs
+     * projects created before type parents existed.
      *
      * isUnitLevel is true for "Unit" only. It is load-bearing, not a label:
      * the network map drills sites of a unit-level type into their device
@@ -1934,81 +1968,104 @@ These are no longer recorded against the project and have to be cancelled by han
      * as units. Downstream code keys off this flag rather than the name,
      * because the name is user-editable once seeded.
      */
-    const defaultNetworkSiteTypes: Array<{
-      name: DefaultNetworkSiteType;
-      description: string;
-      isUnitLevel: boolean;
-    }> = [
-      {
-        name: DefaultNetworkSiteType.AccountType,
+    const defaultNetworkSiteTypes: Readonly<
+      Record<
+        DefaultNetworkSiteType,
+        {
+          description: string;
+          isUnitLevel: boolean;
+        }
+      >
+    > = {
+      [DefaultNetworkSiteType.AccountType]: {
         description:
           "Top level grouping - the kind of account the sites underneath it belong to.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Region,
+      [DefaultNetworkSiteType.Region]: {
         description:
           "A broad geographic region that groups markets and the sites within them.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Franchisee,
+      [DefaultNetworkSiteType.Franchisee]: {
         description:
           "An operator or franchise partner responsible for a group of sites.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Market,
+      [DefaultNetworkSiteType.Market]: {
         description: "A metro or trade area that groups the sites within it.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Unit,
+      [DefaultNetworkSiteType.Unit]: {
         description:
           "An individual location with network devices. This is the leaf level of the hierarchy.",
         isUnitLevel: true,
       },
-      {
-        name: DefaultNetworkSiteType.DataCenter,
+      [DefaultNetworkSiteType.DataCenter]: {
         description:
           "A data center or core facility that hosts shared infrastructure.",
         isUnitLevel: false,
       },
-      {
-        name: DefaultNetworkSiteType.Other,
+      [DefaultNetworkSiteType.Other]: {
         description: "Any site that does not fit the other levels.",
         isUnitLevel: false,
       },
-    ];
+    };
 
-    for (
-      let index: number = 0;
-      index < defaultNetworkSiteTypes.length;
-      index++
-    ) {
+    /*
+     * `order` is a sibling display order, not a proxy for depth. Increment a
+     * separate counter per parent: the default chain's only child is 1 at each
+     * level, while the three roots are Account Type (1), Data Center (2), and
+     * Other (3).
+     */
+    const nextOrderByParent: Map<DefaultNetworkSiteType | null, number> =
+      new Map<DefaultNetworkSiteType | null, number>();
+
+    for (const name of DefaultNetworkSiteTypeCreationOrder) {
       const defaultNetworkSiteType: {
-        name: DefaultNetworkSiteType;
         description: string;
         isUnitLevel: boolean;
-      } = defaultNetworkSiteTypes[index]!;
+      } = defaultNetworkSiteTypes[name];
+      const parentName: DefaultNetworkSiteType | null =
+        options?.setParentRelationships === false
+          ? null
+          : DefaultNetworkSiteTypeParent[name];
+      const siblingOrder: number = (nextOrderByParent.get(parentName) || 0) + 1;
+      nextOrderByParent.set(parentName, siblingOrder);
 
-      if (existingNames.has(defaultNetworkSiteType.name)) {
+      if (networkSiteTypeByName.has(name)) {
         continue;
       }
 
       const networkSiteType: NetworkSiteType = new NetworkSiteType();
-      networkSiteType.name = defaultNetworkSiteType.name;
+      networkSiteType.name = name;
       networkSiteType.description = defaultNetworkSiteType.description;
       networkSiteType.isUnitLevel = defaultNetworkSiteType.isUnitLevel;
       networkSiteType.projectId = projectId;
-      networkSiteType.order = index + 1;
+      networkSiteType.order = siblingOrder;
 
-      await NetworkSiteTypeService.create({
-        data: networkSiteType,
-        props: {
-          isRoot: true,
-        },
-      });
+      if (parentName) {
+        const parent: NetworkSiteType | undefined =
+          networkSiteTypeByName.get(parentName);
+
+        if (!parent?.id) {
+          throw new BadDataException(
+            `Cannot create the default ${name} Network Site Type because its ${parentName} parent could not be resolved.`,
+          );
+        }
+
+        networkSiteType.parentNetworkSiteTypeId = parent.id;
+      }
+
+      const createdNetworkSiteType: NetworkSiteType =
+        await NetworkSiteTypeService.create({
+          data: networkSiteType,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      networkSiteTypeByName.set(name, createdNetworkSiteType);
     }
 
     return createdItem;

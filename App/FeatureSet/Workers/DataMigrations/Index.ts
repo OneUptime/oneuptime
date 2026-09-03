@@ -105,6 +105,7 @@ import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaint
 import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
 import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStatus";
 import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNotificationSettingsForUsers";
+import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -376,6 +377,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * legacy value is skipped because it never meant a role in the first place.
    */
   new BackfillNetworkDeviceRoles(),
+  /*
+   * Replaces Network Site Type's ambiguous numeric hierarchy position with an
+   * explicit parent. Existing site trees supply the relationship when they
+   * agree; unused seeded defaults use the same hierarchy as new projects.
+   * Conflicting legacy layouts are logged and left for explicit admin choice.
+   */
+  new BackfillNetworkSiteTypeParents(),
 ];
 
 export default DataMigrations;

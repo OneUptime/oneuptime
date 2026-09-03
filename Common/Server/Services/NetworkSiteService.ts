@@ -6,6 +6,7 @@ import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
+import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -14,12 +15,15 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
+import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
 import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import DeleteOneBy from "../Types/Database/DeleteOneBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -32,6 +36,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import { Raw } from "typeorm";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -42,6 +47,7 @@ import SiteStatusRollupUtil, {
 } from "../../Utils/NetworkSite/SiteStatusRollupUtil";
 import { parseSiteHealthRollupPolicy } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
 import NetworkSiteMaintenanceSuppression from "../Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
+import NetworkSiteHierarchyLock from "../Utils/NetworkSite/NetworkSiteHierarchyLock";
 import { AggregateRow } from "../Types/Database/AggregateBy";
 import AggregateResultUtil from "../Types/Database/AggregateResultUtil";
 import {
@@ -68,6 +74,100 @@ export interface SiteStatusCount {
 const PARENT_SITE_KEYS: Array<string> = ["parentSiteId", "parentSite"];
 
 /*
+ * Like parentSite, the site's type can be written either as its FK or as the
+ * serialised relation produced by dashboard forms. Hierarchy validation must
+ * inspect both spellings because TypeORM has not resolved the relation when
+ * the before hooks run.
+ */
+const NETWORK_SITE_TYPE_KEYS: Array<string> = [
+  "networkSiteTypeId",
+  "networkSiteType",
+];
+
+const PROJECT_KEYS: Array<string> = ["projectId", "project"];
+
+const MATERIALIZED_HIERARCHY_KEYS: Array<string> = [
+  "materializedPath",
+  "depth",
+];
+
+/*
+ * Type edits have to inspect every direct child. Keep each read bounded and
+ * page until exhaustion so a very wide site cannot hide invalid edges beyond
+ * DatabaseService's single-query limit.
+ */
+const DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE: number = 1000;
+
+/*
+ * Rebase large subtrees in bounded pages. Each successful rewrite removes the
+ * row from the old path prefix, so every page must start at offset zero.
+ */
+const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
+
+/*
+ * Model instances initialise optional fields to undefined. Those properties
+ * are omissions, not requests to clear a relation; null is the explicit
+ * clear value and must still run validation.
+ */
+function isRelationWritten(
+  data: Record<string, unknown>,
+  keys: Array<string>,
+): boolean {
+  return keys.some((key: string) => {
+    return key in data && data[key] !== undefined;
+  });
+}
+
+function normalizeId(id: ObjectID | string): string {
+  return id.toString().toLowerCase();
+}
+
+function sameId(left: ObjectID | string, right: ObjectID | string): boolean {
+  return normalizeId(left) === normalizeId(right);
+}
+
+/*
+ * RelationIdUtil intentionally returns null for anything it cannot resolve.
+ * In a hierarchy hook, however, an unresolvable NON-null value cannot mean
+ * "clear": TypeORM may still interpret a raw expression or relation-shaped
+ * object during the eventual write. Require each supplied spelling to be an
+ * explicit clear or a concrete ID before checking cross-spelling agreement.
+ */
+function readStrictRelationId(data: {
+  payload: Record<string, unknown>;
+  keys: Array<string>;
+  relationTitle: string;
+}): ObjectID | null {
+  for (const key of data.keys) {
+    const value: unknown = data.payload[key];
+
+    if (typeof value === "function") {
+      throw new BadDataException(
+        `${key} cannot be set to a raw SQL expression because the network site hierarchy must be validated against an actual ID.`,
+      );
+    }
+
+    const isExplicitClear: boolean = value === null || value === "";
+
+    if (
+      value !== undefined &&
+      !isExplicitClear &&
+      !RelationIdUtil.read(data.payload, [key])
+    ) {
+      throw new BadDataException(
+        `${key} must contain a valid ${data.relationTitle} ID.`,
+      );
+    }
+  }
+
+  return RelationIdUtil.readConsistent(
+    data.payload,
+    data.keys,
+    data.relationTitle,
+  );
+}
+
+/*
  * Carried from onBeforeUpdate to onUpdateSuccess when an update touches
  * parentSiteId, so the subtree rebase knows each site's previous state.
  */
@@ -78,9 +178,10 @@ interface ParentChangeCarryForward {
 }
 
 /*
- * Carried from onBeforeDelete to onDeleteSuccess: the rows are gone by the
- * time the success hook runs, so their pre-delete hierarchy state has to be
- * captured up front to repair the orphaned subtree.
+ * Carried from onBeforeDelete to onDeleteSuccess. The normal path rejects a
+ * delete with surviving children, but retaining the pre-delete hierarchy
+ * state lets the success hook repair rows created under older SET NULL
+ * schemas or by an in-flight legacy write.
  */
 interface DeleteCarryForward {
   sitesToDelete: Array<Model>;
@@ -89,6 +190,393 @@ interface DeleteCarryForward {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Parent/type validation and the eventual write must observe one serialized
+   * project hierarchy. The same distributed lock is used by
+   * NetworkSiteTypeService, because changing either table can invalidate the
+   * other. It surrounds the whole DatabaseService mutation so success-hook
+   * subtree maintenance is protected too and finally always releases it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    if (createBy.props.ignoreHooks) {
+      return await super.create(createBy);
+    }
+
+    const rawData: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        rawData,
+        ["projectId", "project"],
+        "Project",
+      ) ||
+      null;
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds: projectId ? [projectId] : [],
+      operation: async (): Promise<Model> => {
+        return await super.create(createBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async updateOneBy(
+    updateOneBy: UpdateOneBy<Model>,
+  ): Promise<number> {
+    if (
+      updateOneBy.props.ignoreHooks ||
+      !this.updateTouchesHierarchy(updateOneBy.data)
+    ) {
+      return await super.updateOneBy(updateOneBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: updateOneBy.query,
+        props: updateOneBy.props,
+        limit: 1,
+        skip: 0,
+        isDelete: false,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.updateOneBy(updateOneBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async updateBy(updateBy: UpdateBy<Model>): Promise<number> {
+    if (
+      updateBy.props.ignoreHooks ||
+      !this.updateTouchesHierarchy(updateBy.data)
+    ) {
+      return await super.updateBy(updateBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: updateBy.query,
+        props: updateBy.props,
+        limit: this.positiveNumberValue(updateBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(updateBy.skip, 0),
+        isDelete: false,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.updateBy(updateBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async deleteOneBy(
+    deleteOneBy: DeleteOneBy<Model>,
+  ): Promise<number> {
+    if (deleteOneBy.props.ignoreHooks) {
+      return await super.deleteOneBy(deleteOneBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteOneBy.query,
+        props: deleteOneBy.props,
+        limit: 1,
+        skip: 0,
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.deleteOneBy(deleteOneBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async deleteBy(deleteBy: DeleteBy<Model>): Promise<number> {
+    if (deleteBy.props.ignoreHooks) {
+      return await super.deleteBy(deleteBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteBy.query,
+        props: deleteBy.props,
+        limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(deleteBy.skip, 0),
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.deleteBy(deleteBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async hardDeleteBy(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    if (deleteBy.props.ignoreHooks) {
+      return await super.hardDeleteBy(deleteBy);
+    }
+
+    /*
+     * The generic retention cron intentionally queries every tenant at once
+     * by deletedAt. Resolve that open-ended query to a closed set of leaf IDs
+     * before locking and deleting. Deleting leaves only means a limit can
+     * never split a parent from a surviving child; the cron's next iteration
+     * naturally works upward through the tree.
+     */
+    if (
+      !NetworkSiteHierarchyLock.isSafeRootMutationScope({
+        query: deleteBy.query as unknown as Record<string, unknown>,
+        props: deleteBy.props,
+        tenantScopeIsClosed: true,
+      })
+    ) {
+      return await this.hardDeleteClosedLeafBatch(deleteBy);
+    }
+
+    const projectIds: Array<ObjectID | string> =
+      await this.findMutationProjectIds({
+        query: deleteBy.query,
+        props: deleteBy.props,
+        limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+        skip: this.positiveNumberValue(deleteBy.skip, 0),
+        isDelete: true,
+      });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds,
+      operation: async (): Promise<number> => {
+        return await super.hardDeleteBy(deleteBy);
+      },
+    });
+  }
+
+  private updateTouchesHierarchy(data: UpdateOneBy<Model>["data"]): boolean {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    return (
+      isRelationWritten(record, PARENT_SITE_KEYS) ||
+      isRelationWritten(record, NETWORK_SITE_TYPE_KEYS) ||
+      isRelationWritten(record, PROJECT_KEYS) ||
+      isRelationWritten(record, MATERIALIZED_HIERARCHY_KEYS)
+    );
+  }
+
+  private positiveNumberValue(
+    value: PositiveNumber | number | undefined,
+    fallback: number,
+  ): number {
+    if (value instanceof PositiveNumber) {
+      return value.toNumber();
+    }
+
+    return value ?? fallback;
+  }
+
+  private async hardDeleteClosedLeafBatch(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<number> {
+    const requestedLimit: number = this.positiveNumberValue(
+      deleteBy.limit,
+      LIMIT_MAX,
+    );
+
+    if (requestedLimit <= 0) {
+      return 0;
+    }
+
+    const scanPageSize: number = Math.min(
+      DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      requestedLimit,
+    );
+    const leafSites: Array<Model> = [];
+    let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
+
+    while (leafSites.length < requestedLimit) {
+      const candidates: Array<Model> = await this.findBy({
+        query: deleteBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        limit: scanPageSize,
+        skip: scanSkip,
+        props: { isRoot: true },
+      });
+
+      if (candidates.length === 0) {
+        break;
+      }
+
+      const candidateIds: Array<ObjectID> = candidates
+        .map((candidate: Model): ObjectID | null => {
+          return candidate.id || null;
+        })
+        .filter((id: ObjectID | null): id is ObjectID => {
+          return Boolean(id);
+        });
+      const parentIdsWithChildren: Set<string> = new Set<string>();
+
+      for (
+        let parentOffset: number = 0;
+        parentOffset < candidateIds.length;
+        parentOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+      ) {
+        const parentIdBatch: Array<ObjectID> = candidateIds.slice(
+          parentOffset,
+          parentOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+        );
+        let childSkip: number = 0;
+
+        while (parentIdBatch.length > 0) {
+          const children: Array<Model> = await this.findBy({
+            query: {
+              parentSiteId: QueryHelper.any(parentIdBatch),
+            },
+            select: { parentSiteId: true },
+            sort: { _id: SortOrder.Ascending },
+            limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+            skip: childSkip,
+            props: { isRoot: true },
+          });
+
+          for (const child of children) {
+            if (child.parentSiteId) {
+              parentIdsWithChildren.add(normalizeId(child.parentSiteId));
+            }
+          }
+
+          if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+            break;
+          }
+
+          childSkip += children.length;
+        }
+      }
+
+      for (const candidate of candidates) {
+        if (
+          candidate.id &&
+          candidate.projectId &&
+          !parentIdsWithChildren.has(normalizeId(candidate.id))
+        ) {
+          leafSites.push(candidate);
+
+          if (leafSites.length === requestedLimit) {
+            break;
+          }
+        }
+      }
+
+      scanSkip += candidates.length;
+
+      if (candidates.length < scanPageSize) {
+        break;
+      }
+    }
+
+    if (leafSites.length === 0) {
+      return 0;
+    }
+
+    const leafIds: Array<ObjectID> = leafSites.map((site: Model): ObjectID => {
+      return site.id!;
+    });
+
+    return await NetworkSiteHierarchyLock.runExclusive({
+      projectIds: leafSites.map((site: Model): ObjectID => {
+        return site.projectId!;
+      }),
+      operation: async (): Promise<number> => {
+        return await super.hardDeleteBy({
+          ...deleteBy,
+          query: {
+            ...deleteBy.query,
+            _id: QueryHelper.any(leafIds),
+          },
+          limit: leafIds.length,
+          skip: 0,
+        });
+      },
+    });
+  }
+
+  private async findMutationProjectIds(data: {
+    query: Query<Model>;
+    props: DatabaseCommonInteractionProps;
+    limit: number;
+    skip: number;
+    isDelete: boolean;
+  }): Promise<Array<ObjectID | string>> {
+    NetworkSiteHierarchyLock.assertSafeRootMutationScope({
+      query: data.query as unknown as Record<string, unknown>,
+      props: data.props,
+      tenantScopeIsClosed: data.isDelete,
+    });
+
+    const sites: Array<Model> = await this.findBy({
+      query: data.isDelete
+        ? this.scopeDeleteQueryToCallerTenant(data.query, data.props)
+        : this.scopeQueryToCallerTenant(data.query, data.props),
+      select: { projectId: true },
+      limit: data.limit,
+      skip: data.skip,
+      props: { isRoot: true },
+    });
+
+    const projectIds: Array<ObjectID | string> = sites
+      .map((site: Model): ObjectID | undefined => {
+        return site.projectId;
+      })
+      .filter((projectId: ObjectID | undefined): projectId is ObjectID => {
+        return Boolean(projectId);
+      });
+
+    projectIds.push(
+      ...NetworkSiteHierarchyLock.getExplicitProjectIds(
+        data.query as unknown as Record<string, unknown>,
+      ),
+    );
+
+    if (projectIds.length === 0 && data.props.tenantId) {
+      projectIds.push(data.props.tenantId);
+    }
+
+    const seenProjectIds: Set<string> = new Set<string>();
+
+    return projectIds.filter((projectId: ObjectID | string): boolean => {
+      const normalizedProjectId: string = normalizeId(projectId);
+
+      if (seenProjectIds.has(normalizedProjectId)) {
+        return false;
+      }
+
+      seenProjectIds.add(normalizedProjectId);
+      return true;
+    });
   }
 
   /**
@@ -155,7 +643,26 @@ export class Service extends DatabaseService<Model> {
     query: Query<Model>,
     props: DatabaseCommonInteractionProps,
   ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
+    if (props.isRoot || props.isMasterAdmin || !props.tenantId) {
+      return query;
+    }
+
+    return {
+      ...query,
+      projectId: props.tenantId,
+    };
+  }
+
+  /*
+   * Root deletes are also tenant-scoped by DeletePermission when tenantId is
+   * present. Mirror that exact rule in the preflight read so limit/skip guard
+   * the same rows the eventual delete can select.
+   */
+  private scopeDeleteQueryToCallerTenant(
+    query: Query<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): Query<Model> {
+    if (!props.tenantId || props.isMultiTenantRequest) {
       return query;
     }
 
@@ -214,10 +721,10 @@ export class Service extends DatabaseService<Model> {
   /*
    * A stored path is trustworthy only when it agrees with parentSiteId: it
    * must end with the site's own id, and the segment before it must be the
-   * parent (nothing before it for a root). A delete that nulls parentSiteId,
-   * or a half-applied move, leaves the two disagreeing - and a stale path
-   * silently corrupts every prefix query built from it, so treat it as
-   * missing and let the caller rebuild.
+   * parent (nothing before it for a root). A legacy delete that nullified
+   * parentSiteId, or a half-applied move, leaves the two disagreeing - and a
+   * stale path silently corrupts every prefix query built from it, so treat
+   * it as missing and let the caller rebuild.
    */
   private isPathConsistent(site: Model): boolean {
     if (!site.id) {
@@ -245,47 +752,242 @@ export class Service extends DatabaseService<Model> {
     return parentSegment === parentId;
   }
 
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    let parentPath: string | null = null;
+  /*
+   * Resolve a site type with tenant information and its configured direct
+   * parent type. The lookup deliberately runs as root: hook validation occurs
+   * before DatabaseService applies the caller's permission-scoped query, so
+   * the service must see the referenced row and perform the project check
+   * explicitly rather than confuse "foreign" with "missing".
+   */
+  private async getNetworkSiteTypeForHierarchy(
+    networkSiteTypeId: ObjectID,
+    cache: Map<string, NetworkSiteType>,
+  ): Promise<NetworkSiteType> {
+    const key: string = normalizeId(networkSiteTypeId);
+    const cached: NetworkSiteType | undefined = cache.get(key);
 
-    /*
-     * Both spellings: the dashboard's site form posts the `parentSite`
-     * relation, not the `parentSiteId` column. See RelationIdUtil.
-     */
-    const parentSiteId: ObjectID | null = RelationIdUtil.read(
-      createBy.data as unknown as Record<string, unknown>,
-      PARENT_SITE_KEYS,
-    );
+    if (cached) {
+      return cached;
+    }
 
-    if (parentSiteId) {
-      const parent: Model | null = await this.findOneById({
-        id: parentSiteId,
+    const networkSiteType: NetworkSiteType | null =
+      await NetworkSiteTypeService.findOneById({
+        id: networkSiteTypeId,
         select: {
           _id: true,
           projectId: true,
+          parentNetworkSiteTypeId: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-      if (!parent) {
+    if (!networkSiteType) {
+      throw new BadDataException("Network site type not found.");
+    }
+
+    cache.set(key, networkSiteType);
+    return networkSiteType;
+  }
+
+  /*
+   * Assert one proposed site edge against the type hierarchy. Untyped legacy
+   * root rows remain readable/editable, but as soon as a site has a type its
+   * placement is exact: a root type has no parent, and a non-root type has a
+   * parent site whose type is precisely the configured direct parent type.
+   */
+  private async validateSiteTypeEdge(data: {
+    networkSiteTypeId: ObjectID | null;
+    parentSite: Model | null;
+    projectId: ObjectID | undefined;
+    typeCache: Map<string, NetworkSiteType>;
+  }): Promise<void> {
+    if (!data.networkSiteTypeId) {
+      if (data.parentSite) {
+        throw new BadDataException(
+          "A network site with a parent must have a network site type.",
+        );
+      }
+
+      return;
+    }
+
+    const networkSiteType: NetworkSiteType =
+      await this.getNetworkSiteTypeForHierarchy(
+        data.networkSiteTypeId,
+        data.typeCache,
+      );
+
+    if (
+      data.projectId &&
+      networkSiteType.projectId &&
+      !sameId(networkSiteType.projectId, data.projectId)
+    ) {
+      throw new BadDataException(
+        "Network site type must belong to the same project.",
+      );
+    }
+
+    const requiredParentTypeId: ObjectID | null =
+      networkSiteType.parentNetworkSiteTypeId || null;
+
+    if (!requiredParentTypeId) {
+      if (data.parentSite) {
+        throw new BadDataException(
+          "A site with a root network site type cannot have a parent site.",
+        );
+      }
+
+      return;
+    }
+
+    if (!data.parentSite) {
+      throw new BadDataException(
+        "This network site type requires a parent site.",
+      );
+    }
+
+    if (
+      !data.parentSite.networkSiteTypeId ||
+      !sameId(data.parentSite.networkSiteTypeId, requiredParentTypeId)
+    ) {
+      throw new BadDataException(
+        "Parent site must use the configured parent network site type.",
+      );
+    }
+  }
+
+  /*
+   * Changing a site's type also changes what every direct child's type must
+   * point at. Validate those reverse edges before the update so one edit
+   * cannot strand a previously valid subtree.
+   */
+  private async validateDirectChildrenForTypeChange(data: {
+    site: Model;
+    proposedNetworkSiteTypeId: ObjectID | null;
+    typeCache: Map<string, NetworkSiteType>;
+  }): Promise<void> {
+    if (!data.site.id || !data.site.projectId) {
+      return;
+    }
+
+    const proposedParent: Model = {
+      id: data.site.id,
+      projectId: data.site.projectId,
+      networkSiteTypeId: data.proposedNetworkSiteTypeId || undefined,
+    } as Model;
+
+    let skip: number = 0;
+
+    while (true) {
+      const children: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.site.projectId,
+          parentSiteId: data.site.id,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          networkSiteTypeId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+        skip: skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const child of children) {
+        await this.validateSiteTypeEdge({
+          networkSiteTypeId: child.networkSiteTypeId || null,
+          parentSite: proposedParent,
+          projectId: child.projectId || data.site.projectId,
+          typeCache: data.typeCache,
+        });
+      }
+
+      if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+        break;
+      }
+
+      skip += children.length;
+    }
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    let parentPath: string | null = null;
+    let parentSite: Model | null = null;
+    const rawData: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        rawData,
+        ["projectId", "project"],
+        "Project",
+      ) ||
+      undefined;
+
+    /*
+     * Both spellings: the dashboard's site form posts the `parentSite`
+     * relation, not the `parentSiteId` column. See RelationIdUtil.
+     */
+    const parentSiteId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: PARENT_SITE_KEYS,
+      relationTitle: "Parent Site",
+    });
+    const networkSiteTypeId: ObjectID | null = readStrictRelationId({
+      payload: rawData,
+      keys: NETWORK_SITE_TYPE_KEYS,
+      relationTitle: "Network Site Type",
+    });
+
+    if (parentSiteId) {
+      parentSite = await this.findOneById({
+        id: parentSiteId,
+        select: {
+          _id: true,
+          projectId: true,
+          networkSiteTypeId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!parentSite) {
         throw new BadDataException("Parent site not found.");
       }
 
       if (
-        createBy.data.projectId &&
-        parent.projectId &&
-        parent.projectId.toString() !== createBy.data.projectId.toString()
+        projectId &&
+        parentSite.projectId &&
+        !sameId(parentSite.projectId, projectId)
       ) {
         throw new BadDataException(
           "Parent site must belong to the same project.",
         );
       }
+    }
 
+    await this.validateSiteTypeEdge({
+      networkSiteTypeId: networkSiteTypeId,
+      parentSite: parentSite,
+      projectId: projectId,
+      typeCache: new Map<string, NetworkSiteType>(),
+    });
+
+    if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
     }
 
@@ -332,16 +1034,72 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const dataKeys: Array<string> = Object.keys(updateBy.data || {});
+    const rawData: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const touchesParent: boolean = isRelationWritten(rawData, PARENT_SITE_KEYS);
+    const touchesNetworkSiteType: boolean = isRelationWritten(
+      rawData,
+      NETWORK_SITE_TYPE_KEYS,
+    );
+    const touchesProject: boolean = isRelationWritten(rawData, PROJECT_KEYS);
+    const touchesMaterializedHierarchy: boolean = isRelationWritten(
+      rawData,
+      MATERIALIZED_HIERARCHY_KEYS,
+    );
 
-    if (!RelationIdUtil.isWritten(dataKeys, PARENT_SITE_KEYS)) {
+    if (
+      !touchesParent &&
+      !touchesNetworkSiteType &&
+      !touchesProject &&
+      !touchesMaterializedHierarchy
+    ) {
       return { updateBy, carryForward: null };
     }
 
-    const newParentId: ObjectID | null = RelationIdUtil.read(
-      updateBy.data as unknown as Record<string, unknown>,
-      PARENT_SITE_KEYS,
-    );
+    if (touchesMaterializedHierarchy) {
+      throw new BadDataException(
+        "materializedPath and depth are managed by the Network Site hierarchy and cannot be updated directly.",
+      );
+    }
+
+    const proposedProjectId: ObjectID | null = touchesProject
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: PROJECT_KEYS,
+          relationTitle: "Project",
+        })
+      : null;
+
+    if (touchesProject && !proposedProjectId) {
+      throw new BadDataException(
+        "A Network Site cannot be moved to another project.",
+      );
+    }
+
+    const newParentId: ObjectID | null = touchesParent
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: PARENT_SITE_KEYS,
+          relationTitle: "Parent Site",
+        })
+      : null;
+    const newNetworkSiteTypeId: ObjectID | null = touchesNetworkSiteType
+      ? readStrictRelationId({
+          payload: rawData,
+          keys: NETWORK_SITE_TYPE_KEYS,
+          relationTitle: "Network Site Type",
+        })
+      : null;
+    const updateLimit: number =
+      updateBy.limit instanceof PositiveNumber
+        ? updateBy.limit.toNumber()
+        : updateBy.limit || LIMIT_MAX;
+    const updateSkip: number =
+      updateBy.skip instanceof PositiveNumber
+        ? updateBy.skip.toNumber()
+        : updateBy.skip || 0;
 
     const previousItems: Array<Model> = await this.findBy({
       query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
@@ -349,14 +1107,29 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         parentSiteId: true,
+        networkSiteTypeId: true,
         materializedPath: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      limit: updateLimit,
+      skip: updateSkip,
       props: {
         isRoot: true,
       },
     });
+
+    if (touchesProject) {
+      for (const item of previousItems) {
+        if (
+          !item.projectId ||
+          !proposedProjectId ||
+          !sameId(item.projectId, proposedProjectId)
+        ) {
+          throw new BadDataException(
+            "A Network Site cannot be moved to another project.",
+          );
+        }
+      }
+    }
 
     /*
      * Same-project assertion for EVERY parentSiteId write, including the
@@ -368,7 +1141,7 @@ export class Service extends DatabaseService<Model> {
       for (const item of previousItems) {
         if (
           item.projectId &&
-          item.projectId.toString() !== updateBy.props.tenantId.toString()
+          !sameId(item.projectId, updateBy.props.tenantId)
         ) {
           throw new BadDataException(
             "Network site must belong to the same project.",
@@ -377,33 +1150,39 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    let newParentPath: string | null = null;
+    if (!touchesParent && !touchesNetworkSiteType) {
+      return { updateBy, carryForward: null };
+    }
 
-    if (newParentId) {
-      const parent: Model | null = await this.findOneById({
+    let newParentPath: string | null = null;
+    let newParent: Model | null = null;
+
+    if (touchesParent && newParentId) {
+      newParent = await this.findOneById({
         id: newParentId,
         select: {
           _id: true,
           projectId: true,
+          networkSiteTypeId: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-      if (!parent) {
+      if (!newParent) {
         throw new BadDataException("Parent site not found.");
       }
 
       for (const item of previousItems) {
-        if (item.id && item.id.toString() === newParentId.toString()) {
+        if (item.id && sameId(item.id, newParentId)) {
           throw new BadDataException("A site cannot be its own parent.");
         }
 
         if (
           item.projectId &&
-          parent.projectId &&
-          item.projectId.toString() !== parent.projectId.toString()
+          newParent.projectId &&
+          !sameId(item.projectId, newParent.projectId)
         ) {
           throw new BadDataException(
             "Parent site must belong to the same project.",
@@ -426,6 +1205,84 @@ export class Service extends DatabaseService<Model> {
           );
         }
       }
+    }
+
+    const typeCache: Map<string, NetworkSiteType> = new Map();
+    const existingParents: Map<string, Model> = new Map();
+
+    for (const item of previousItems) {
+      let proposedParent: Model | null = null;
+
+      if (touchesParent) {
+        proposedParent = newParent;
+      } else if (item.parentSiteId) {
+        const currentParentId: string = normalizeId(item.parentSiteId);
+        proposedParent = existingParents.get(currentParentId) || null;
+
+        if (!proposedParent) {
+          proposedParent = await this.findOneById({
+            id: item.parentSiteId,
+            select: {
+              _id: true,
+              projectId: true,
+              networkSiteTypeId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!proposedParent) {
+            throw new BadDataException("Parent site not found.");
+          }
+
+          existingParents.set(currentParentId, proposedParent);
+        }
+
+        if (
+          item.projectId &&
+          proposedParent.projectId &&
+          !sameId(item.projectId, proposedParent.projectId)
+        ) {
+          throw new BadDataException(
+            "Parent site must belong to the same project.",
+          );
+        }
+      }
+
+      const proposedNetworkSiteTypeId: ObjectID | null = touchesNetworkSiteType
+        ? newNetworkSiteTypeId
+        : item.networkSiteTypeId || null;
+
+      await this.validateSiteTypeEdge({
+        networkSiteTypeId: proposedNetworkSiteTypeId,
+        parentSite: proposedParent,
+        projectId: item.projectId,
+        typeCache: typeCache,
+      });
+
+      const previousNetworkSiteTypeId: string | null = item.networkSiteTypeId
+        ? normalizeId(item.networkSiteTypeId)
+        : null;
+      const proposedNetworkSiteTypeIdString: string | null =
+        proposedNetworkSiteTypeId
+          ? normalizeId(proposedNetworkSiteTypeId)
+          : null;
+
+      if (
+        touchesNetworkSiteType &&
+        previousNetworkSiteTypeId !== proposedNetworkSiteTypeIdString
+      ) {
+        await this.validateDirectChildrenForTypeChange({
+          site: item,
+          proposedNetworkSiteTypeId: proposedNetworkSiteTypeId,
+          typeCache: typeCache,
+        });
+      }
+    }
+
+    if (!touchesParent) {
+      return { updateBy, carryForward: null };
     }
 
     const carryForward: ParentChangeCarryForward = {
@@ -494,7 +1351,22 @@ export class Service extends DatabaseService<Model> {
       }),
     );
 
-    for (const previousItem of parentChange.previousItems) {
+    /*
+     * A bulk update can include both an ancestor and one of its descendants.
+     * Move the deepest roots first; otherwise rebasing the ancestor changes
+     * the descendant branch away from the latter's old prefix before its own
+     * subtree has been processed.
+     */
+    const previousItemsDeepestFirst: Array<Model> = [
+      ...parentChange.previousItems,
+    ].sort((left: Model, right: Model): number => {
+      return (
+        MaterializedPathUtil.segmentsOf(right.materializedPath).length -
+        MaterializedPathUtil.segmentsOf(left.materializedPath).length
+      );
+    });
+
+    for (const previousItem of previousItemsDeepestFirst) {
       if (!previousItem.id || !updatedIds.has(previousItem.id.toString())) {
         continue;
       }
@@ -520,44 +1392,53 @@ export class Service extends DatabaseService<Model> {
 
       // ...then its entire subtree in one prefix query.
       if (oldPath) {
-        const descendants: Array<Model> = await this.findBy({
-          query: {
-            projectId: previousItem.projectId!,
-            materializedPath: this.pathStartsWith(oldPath),
-          },
-          select: {
-            _id: true,
-            materializedPath: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-        for (const descendant of descendants) {
-          if (
-            !descendant.id ||
-            !descendant.materializedPath ||
-            descendant.id.toString() === previousItem.id.toString()
-          ) {
-            continue;
-          }
-
-          const rebasedPath: string = MaterializedPathUtil.rebasePaths(
-            oldPath,
-            newPath,
-            [descendant.materializedPath],
-          )[0]!;
-
-          await this.updateColumnsByIdWithoutHooks({
-            id: descendant.id,
-            data: {
-              materializedPath: rebasedPath,
-              depth: MaterializedPathUtil.depthOf(rebasedPath),
+        while (true) {
+          const descendants: Array<Model> = await this.findBy({
+            query: {
+              projectId: previousItem.projectId!,
+              materializedPath: this.pathStartsWith(oldPath),
+            },
+            select: {
+              _id: true,
+              materializedPath: true,
+            },
+            sort: {
+              _id: SortOrder.Ascending,
+            },
+            limit: SUBTREE_REBASE_PAGE_SIZE,
+            skip: 0,
+            props: {
+              isRoot: true,
             },
           });
+
+          for (const descendant of descendants) {
+            if (
+              !descendant.id ||
+              !descendant.materializedPath ||
+              descendant.id.toString() === previousItem.id.toString()
+            ) {
+              continue;
+            }
+
+            const rebasedPath: string = MaterializedPathUtil.rebasePaths(
+              oldPath,
+              newPath,
+              [descendant.materializedPath],
+            )[0]!;
+
+            await this.updateColumnsByIdWithoutHooks({
+              id: descendant.id,
+              data: {
+                materializedPath: rebasedPath,
+                depth: MaterializedPathUtil.depthOf(rebasedPath),
+              },
+            });
+          }
+
+          if (descendants.length < SUBTREE_REBASE_PAGE_SIZE) {
+            break;
+          }
         }
       }
 
@@ -598,20 +1479,116 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    const deleteLimit: number =
+      deleteBy.limit instanceof PositiveNumber
+        ? deleteBy.limit.toNumber()
+        : deleteBy.limit || LIMIT_MAX;
+    const deleteSkip: number =
+      deleteBy.skip instanceof PositiveNumber
+        ? deleteBy.skip.toNumber()
+        : deleteBy.skip || 0;
+
     const sitesToDelete: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
+      query: this.scopeDeleteQueryToCallerTenant(
+        deleteBy.query,
+        deleteBy.props,
+      ),
       select: {
         _id: true,
         projectId: true,
         parentSiteId: true,
         materializedPath: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      limit: deleteLimit,
+      skip: deleteSkip,
       props: {
         isRoot: true,
       },
     });
+
+    const deletingSiteIds: Set<string> = new Set(
+      sitesToDelete
+        .map((site: Model): string | null => {
+          return site.id ? normalizeId(site.id) : null;
+        })
+        .filter((siteId: string | null): siteId is string => {
+          return Boolean(siteId);
+        }),
+    );
+
+    const deletingSiteIdList: Array<string> = Array.from(deletingSiteIds);
+    const deletingProjectIdList: Array<string> = Array.from(
+      new Set(
+        sitesToDelete
+          .map((site: Model): string | null => {
+            return site.projectId ? normalizeId(site.projectId) : null;
+          })
+          .filter((projectId: string | null): projectId is string => {
+            return Boolean(projectId);
+          }),
+      ),
+    );
+
+    /*
+     * A valid child type explicitly names the deleted site's type as its
+     * required direct parent type. Legacy SET NULL/orphan-repair behaviour
+     * therefore cannot produce a valid edge: promoting the child to root or
+     * attaching it to the grandparent both violate its type. Reject the
+     * delete unless every direct child is part of this same bulk delete.
+     *
+     * Parent ids and result rows are both batched so neither a wide delete nor
+     * a wide site is silently truncated at a service query limit.
+     */
+    for (
+      let parentIdOffset: number = 0;
+      parentIdOffset < deletingSiteIdList.length;
+      parentIdOffset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+    ) {
+      const parentIdBatch: Array<string> = deletingSiteIdList.slice(
+        parentIdOffset,
+        parentIdOffset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      );
+      let childSkip: number = 0;
+
+      while (true) {
+        const directChildren: Array<Model> = await this.findBy({
+          query: {
+            projectId: QueryHelper.any(deletingProjectIdList),
+            parentSiteId: QueryHelper.any(parentIdBatch),
+          },
+          select: {
+            _id: true,
+            parentSiteId: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+          skip: childSkip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const hasSurvivingChild: boolean = directChildren.some(
+          (child: Model): boolean => {
+            return !child.id || !deletingSiteIds.has(normalizeId(child.id));
+          },
+        );
+
+        if (hasSurvivingChild) {
+          throw new BadDataException(
+            "A network site with child sites cannot be deleted. Move or delete its child sites first.",
+          );
+        }
+
+        if (directChildren.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+          break;
+        }
+
+        childSkip += directChildren.length;
+      }
+    }
 
     const carryForward: DeleteCarryForward = {
       sitesToDelete: sitesToDelete,
@@ -621,15 +1598,12 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * parentSiteId is declared onDelete: "SET NULL", so Postgres detaches the
-   * deleted site's direct children but leaves their materializedPath - and
-   * their whole subtree's - routed through a row that no longer exists. That
-   * strands the subtree: the children endpoint (which reads parentSiteId)
-   * shows them at the root while the rollup engine (which reads
-   * materializedPath) still folds them into the dead ancestor's chain, double
-   * counting every outage. Re-attach the orphans to the deleted site's own
-   * parent - NULL when it was a root, which is exactly what the FK did - and
-   * rebase the subtree paths so both readers agree again.
+   * New schemas use a non-nullifying foreign key and onBeforeDelete rejects
+   * surviving children, so this repair is normally a no-op. Keep it as a
+   * defensive bridge for a database that has not applied the FK migration
+   * yet, or for a legacy write already in flight during an upgrade: reattach
+   * any detached children and rebase their subtree paths so parentSiteId and
+   * materializedPath agree.
    */
   @CaptureSpan()
   protected override async onDeleteSuccess(
@@ -699,58 +1673,67 @@ export class Service extends DatabaseService<Model> {
     const deletedDepth: number =
       MaterializedPathUtil.segmentsOf(oldPath).length;
 
-    const descendants: Array<Model> = await this.findBy({
-      query: {
-        projectId: deletedSite.projectId!,
-        materializedPath: this.pathStartsWith(oldPath),
-      },
-      select: {
-        _id: true,
-        materializedPath: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const descendant of descendants) {
-      if (
-        !descendant.id ||
-        !descendant.materializedPath ||
-        descendant.id.toString() === deletedSite.id.toString()
-      ) {
-        continue;
-      }
-
-      const tailSegments: Array<string> = MaterializedPathUtil.segmentsOf(
-        descendant.materializedPath,
-      ).slice(deletedDepth);
-
-      if (tailSegments.length === 0) {
-        continue;
-      }
-
-      let rebasedPath: string | null = parentPath;
-      for (const segment of tailSegments) {
-        rebasedPath = MaterializedPathUtil.buildPath(rebasedPath, segment);
-      }
-
-      const data: Record<string, unknown> = {
-        materializedPath: rebasedPath!,
-        depth: MaterializedPathUtil.depthOf(rebasedPath!),
-      };
-
-      // A direct child is the one the FK just detached - give it a parent back.
-      if (tailSegments.length === 1) {
-        data["parentSiteId"] = deletedSite.parentSiteId || null;
-      }
-
-      await this.updateColumnsByIdWithoutHooks({
-        id: descendant.id,
-        data: data as any,
+    while (true) {
+      const descendants: Array<Model> = await this.findBy({
+        query: {
+          projectId: deletedSite.projectId!,
+          materializedPath: this.pathStartsWith(oldPath),
+        },
+        select: {
+          _id: true,
+          materializedPath: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: SUBTREE_REBASE_PAGE_SIZE,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
       });
+
+      for (const descendant of descendants) {
+        if (
+          !descendant.id ||
+          !descendant.materializedPath ||
+          descendant.id.toString() === deletedSite.id.toString()
+        ) {
+          continue;
+        }
+
+        const tailSegments: Array<string> = MaterializedPathUtil.segmentsOf(
+          descendant.materializedPath,
+        ).slice(deletedDepth);
+
+        if (tailSegments.length === 0) {
+          continue;
+        }
+
+        let rebasedPath: string | null = parentPath;
+        for (const segment of tailSegments) {
+          rebasedPath = MaterializedPathUtil.buildPath(rebasedPath, segment);
+        }
+
+        const updateData: Record<string, unknown> = {
+          materializedPath: rebasedPath!,
+          depth: MaterializedPathUtil.depthOf(rebasedPath!),
+        };
+
+        // A direct child is the one the FK just detached - give it a parent back.
+        if (tailSegments.length === 1) {
+          updateData["parentSiteId"] = deletedSite.parentSiteId || null;
+        }
+
+        await this.updateColumnsByIdWithoutHooks({
+          id: descendant.id,
+          data: updateData as any,
+        });
+      }
+
+      if (descendants.length < SUBTREE_REBASE_PAGE_SIZE) {
+        break;
+      }
     }
 
     /*

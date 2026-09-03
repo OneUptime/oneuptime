@@ -4,6 +4,11 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
+import {
+  fetchAllNetworkSiteTypeOptions,
+  fetchParentNetworkSiteOptions,
+  isParentSiteRequired,
+} from "../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
@@ -46,6 +51,7 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
@@ -472,9 +478,35 @@ const NetworkSites: FunctionComponent<
         ]}
         formSteps={[
           { title: "Site Details", id: "site-details" },
+          { title: "Hierarchy", id: "hierarchy" },
           { title: "Location", id: "location" },
         ]}
         formFields={[
+          {
+            field: {
+              networkSiteType: true,
+            },
+            title: "Site Type",
+            stepId: "site-details",
+            description:
+              "Choose this first. The type's configured parent determines which parent sites are available on the next step.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
+            onChange: (
+              _value: unknown,
+              currentFormValues: FormValues<NetworkSite>,
+              setNewFormValues: (
+                currentFormValues: FormValues<NetworkSite>,
+              ) => void,
+            ): void => {
+              setNewFormValues({
+                ...currentFormValues,
+                parentSite: null,
+              });
+            },
+            required: true,
+            placeholder: "Select Site Type",
+          },
           {
             field: {
               name: true,
@@ -497,37 +529,19 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            description:
-              "Level of this site in the hierarchy. Unit-level types are leaf sites — the network map opens their device topology. Manage the list in Network Settings.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSiteType,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Select Site Type",
-          },
-          {
-            field: {
               parentSite: true,
             },
             title: "Parent Site",
-            stepId: "site-details",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Only sites whose type is the configured parent of the selected site type are shown.",
             description:
-              "The site this one is nested under. Leave empty for a root site.",
+              "Top-level site types do not have a parent site. A child site type requires one of the matching sites below.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Parent Site (optional)",
+            fetchDropdownOptions: fetchParentNetworkSiteOptions,
+            required: isParentSiteRequired,
+            placeholder: "No parent site (top level)",
           },
           {
             field: {
