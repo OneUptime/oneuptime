@@ -425,9 +425,26 @@ export default class PingMonitor {
       logger.debug(res);
 
       if (!res.alive) {
+        /*
+         * The host we were ASKED to check did not answer. That is the check
+         * succeeding, not the probe failing, so it must not become an Issue in
+         * our own telemetry.
+         *
+         * asUserError() rather than the EXTERNAL_FAULT log attribute because
+         * this value is THROWN: it propagates up to Monitor.probeMonitorStep's
+         * broad catch, which turns it into { isOnline: false, failureCause }
+         * and logs it there. Tagging the value at the leaf is what lets that
+         * broad catch stay loud for everything else it sees — a TypeError from
+         * our own handler code still resolves to code-fault.
+         *
+         * The tag is AUTHORITATIVE, so it survives the probe-check
+         * unit-of-work promotion that would otherwise force it back to
+         * code-fault (there is no HTTP request behind a probe check). See
+         * Common/Server/Utils/Telemetry/ErrorClassResolver.ts.
+         */
         throw new UnableToReachServer(
           `Unable to reach host ${hostAddress}. Monitor ID: ${pingOptions?.monitorId?.toString()}`,
-        );
+        ).asUserError();
       }
 
       const packetStatistics: PingMonitorResponse =

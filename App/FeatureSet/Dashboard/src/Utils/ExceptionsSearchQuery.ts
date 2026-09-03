@@ -1,5 +1,6 @@
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
 import { toLikePattern } from "Common/Types/BaseDatabase/WildcardPattern";
 import {
   SearchQueryValue,
@@ -39,6 +40,16 @@ export const EXCEPTION_FIELD_ALIASES: Record<string, string> = {
   primaryentityid: "primaryEntityId",
   env: "environment",
   environment: "environment",
+  /*
+   * The fault domain of the group — `class:user-error`, `-class:unknown`.
+   * The column stores the ErrorClass string values verbatim (see
+   * Common/Types/Telemetry/ErrorClass), so a typed value is close to what the
+   * column holds; resolveExceptionErrorClasses does the rest. `errorclass:` is
+   * spelled out too, so the column name a person reads in the facet sidebar
+   * also works in the search bar.
+   */
+  class: "errorClass",
+  errorclass: "errorClass",
 };
 
 /**
@@ -61,6 +72,18 @@ export const EXCEPTION_SEARCH_COLUMNS: Set<string> = new Set(
  * compiled — see {@link resolveExceptionServiceIds}.
  */
 export const EXCEPTION_SERVICE_COLUMN: string = "primaryEntityId";
+
+/**
+ * The column `class:` filters — the fault domain of the exception group.
+ *
+ * Like the service column this one is resolved client-side rather than
+ * compiled, but for the opposite reason: the value needs no translation, the
+ * COLUMN does not exist everywhere. `errorClass` lives on the Postgres
+ * exception group and not on the ClickHouse ExceptionInstance rows, so a
+ * predicate on it cannot ride the instance scope that carries every other
+ * operator — see {@link resolveExceptionErrorClasses}.
+ */
+export const EXCEPTION_ERROR_CLASS_COLUMN: string = "errorClass";
 
 /*
  * A service filter that names no existing service has to show NOTHING. The
@@ -212,6 +235,18 @@ export function splitExceptionFieldPredicates(
      * "api", which no row has.
      */
     if (column === EXCEPTION_SERVICE_COLUMN) {
+      continue;
+    }
+
+    /*
+     * `class:` is resolved by resolveExceptionErrorClasses instead. Left in
+     * here, an operator form (`-class:user-error`, `class:user*`) would be
+     * compiled into the ClickHouse instance scope against a column
+     * ExceptionInstance does not have: that query fails, the failure path
+     * keeps the sentinel-narrowed empty fingerprint list, and typing a
+     * perfectly reasonable negation would blank the entire list.
+     */
+    if (column === EXCEPTION_ERROR_CLASS_COLUMN) {
       continue;
     }
 
@@ -459,6 +494,122 @@ export function resolveExceptionServiceIds(input: {
   }
 
   return { serviceIds, excludedServiceIds, matchedNothing };
+}
+
+/**
+ * The fault class as the column spells it, for a value a user typed.
+ *
+ * The column stores the kebab-case ErrorClass values and every comparison
+ * against it is exact, so `class:User-Error` would otherwise filter for a
+ * string no row holds and answer with an empty list. An unrecognised value is
+ * returned untouched: it may be a class a newer release writes, and guessing
+ * at it would be worse than filtering for exactly what was asked.
+ */
+export function canonicalizeExceptionErrorClass(value: string): string {
+  const known: string | undefined = Object.values(ErrorClass).find(
+    (candidate: string): boolean => {
+      return candidate.toLowerCase() === value.toLowerCase();
+    },
+  );
+
+  return known ?? value;
+}
+
+export interface ResolvedExceptionErrorClasses {
+  /**
+   * The classes positive tokens allow, or null when none constrained them.
+   *
+   * Null and [] are deliberately different answers: null is "nobody said
+   * anything about the class", [] is "the tokens contradict each other" —
+   * which has to show nothing rather than everything.
+   */
+  includedClasses: Array<string> | null;
+  /** Classes a negated token rules out. */
+  excludedClasses: Array<string>;
+  /** A positive token matched no class at all. */
+  matchedNothing: boolean;
+}
+
+/**
+ * Resolve `class:` tokens against the ErrorClass vocabulary.
+ *
+ * Equality keeps the value the user typed, so a class written by a newer
+ * release (or echoed by a triage runner) is still filterable. Everything else
+ * — a glob, a contains — is matched against the five known values, the same
+ * client-side resolution `@service:` uses, because there is nowhere else to
+ * evaluate it: the column lives only on the Postgres group.
+ *
+ * Negation returns an EXCLUSION rather than an allow-list of the remaining
+ * classes on purpose. `-class:user-error` compiles to `NOT IN ('user-error')`
+ * and keeps a row whose class this build has never heard of; turning it into
+ * "any of the other four" would drop exactly the unclassified rows the
+ * Issues list exists to surface.
+ */
+export function resolveExceptionErrorClasses(
+  predicates: Array<SearchValuePredicate>,
+): ResolvedExceptionErrorClasses {
+  const vocabulary: Array<string> = Object.values(ErrorClass);
+
+  let includedClasses: Array<string> | null = null;
+  const excludedClasses: Array<string> = [];
+  let matchedNothing: boolean = false;
+
+  for (const predicate of predicates) {
+    const positiveOperator: SearchValueOperator | undefined =
+      POSITIVE_COUNTERPART[predicate.operator];
+
+    const resolved: (candidate: SearchValuePredicate) => Array<string> = (
+      candidate: SearchValuePredicate,
+    ): Array<string> => {
+      const literals: Array<string> | null = getEqualityLiterals(candidate);
+
+      if (literals) {
+        return literals.map(canonicalizeExceptionErrorClass);
+      }
+
+      return vocabulary.filter((value: string): boolean => {
+        return matchesSearchPredicate(value, candidate);
+      });
+    };
+
+    if (positiveOperator !== undefined) {
+      for (const value of resolved({
+        ...predicate,
+        operator: positiveOperator,
+      })) {
+        if (!excludedClasses.includes(value)) {
+          excludedClasses.push(value);
+        }
+      }
+
+      continue;
+    }
+
+    const matched: Array<string> = resolved(predicate);
+
+    if (matched.length === 0) {
+      matchedNothing = true;
+      continue;
+    }
+
+    /*
+     * Two positive tokens are ANDed, like every other repeated filter here,
+     * so `class:user-error class:code-fault` narrows to nothing rather than
+     * quietly widening to either.
+     */
+    includedClasses =
+      includedClasses === null
+        ? matched
+        : includedClasses.filter((value: string): boolean => {
+            return matched.includes(value);
+          });
+  }
+
+  if (includedClasses !== null && includedClasses.length === 0) {
+    matchedNothing = true;
+  }
+
+  return { includedClasses, excludedClasses, matchedNothing };
 }
 
 /**

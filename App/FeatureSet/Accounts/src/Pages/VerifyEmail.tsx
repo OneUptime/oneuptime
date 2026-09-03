@@ -11,7 +11,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import Navigation from "Common/UI/Utils/Navigation";
+import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,9 +31,12 @@ const VerifyEmail: () => JSX.Element = () => {
       // strip data.
       const emailverificationToken: EmailVerificationToken =
         new EmailVerificationToken();
-      emailverificationToken.token = new ObjectID(
-        Navigation.getLastParam()?.toString().replace("/", "") || "",
-      );
+      /*
+       * Not a route param: the head bootstrap moves the token out of the path
+       * before any third-party tag can report the URL. See
+       * Common/UI/Utils/SensitiveUrlToken.
+       */
+      emailverificationToken.token = new ObjectID(SensitiveUrlToken.read());
 
       await ModelAPI.createOrUpdate<EmailVerificationToken>({
         model: emailverificationToken,
@@ -44,6 +47,9 @@ const VerifyEmail: () => JSX.Element = () => {
           overrideRequestUrl: apiUrl,
         },
       });
+
+      // Verified; the token is spent and must not outlive the page.
+      SensitiveUrlToken.clear();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

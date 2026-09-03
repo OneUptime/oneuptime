@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791000000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
+import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 import { AddNetworkDeviceRoleTable1790800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790800000000-AddNetworkDeviceRoleTable";
 import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790700000000-AddNetworkSiteTypeParentHierarchy";
 import { AddNetworkDeviceOidTemplate1790500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790500000000-AddNetworkDeviceOidTemplate";
@@ -50,7 +50,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  */
 
 const MIGRATION_FILE: string =
-  "1791000000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
+  "1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
@@ -761,13 +761,13 @@ describe("the migration runs", () => {
 
     expect(index).toContain(`from "./${MIGRATION_FILE}"`);
     expect(index).toContain(
-      "AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000,",
+      "AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,",
     );
   });
 
   test("it is in the exported migration list, after every migration it builds on", () => {
     const position: number = SchemaMigrations.indexOf(
-      AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000,
+      AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,
     );
 
     expect(position).toBeGreaterThan(-1);
@@ -802,8 +802,8 @@ describe("the migration runs", () => {
    */
   test("its declared name matches its class name", () => {
     expect(
-      new AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000().name,
-    ).toBe("AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000");
+      new AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000().name,
+    ).toBe("AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000");
   });
 
   test("exactly one file on disk carries its timestamp, and it is this one", () => {
@@ -811,7 +811,7 @@ describe("the migration runs", () => {
     const matching: Array<string> = fs
       .readdirSync(directory)
       .filter((file: string): boolean => {
-        return file.startsWith("1791000000000-");
+        return file.startsWith("1791200000000-");
       });
 
     expect(matching).toEqual([`${MIGRATION_FILE}.ts`]);

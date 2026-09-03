@@ -12,6 +12,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { NON_ACTIONABLE_ERROR_CLASSES } from "Common/Types/Telemetry/ErrorClass";
 
 export type ExceptionsTabKey =
   | "overview"
@@ -45,6 +47,20 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
             projectId: ProjectUtil.getCurrentProjectId()!,
             isResolved: false,
             isArchived: false,
+            /*
+             * The badge has to count what the tab it sits on SHOWS. The
+             * Unresolved list opens on the "Issues" class lens, which hides
+             * user errors and expected denials, so counting every unresolved
+             * group would put a 400 on a tab that lists 12 — and the number a
+             * user cannot reconcile with the list is the number that teaches
+             * them to ignore the badge.
+             *
+             * IncludesNone, matching ExceptionsViewer exactly: it compiles to
+             * `NOT IN ('user-error', 'expected-denial')`, so a class this
+             * build has never seen is still counted. An allow-list of the
+             * classes we consider real would silently undercount instead.
+             */
+            errorClass: new IncludesNone([...NON_ACTIONABLE_ERROR_CLASSES]),
           } as never,
         });
         if (!cancelled) {

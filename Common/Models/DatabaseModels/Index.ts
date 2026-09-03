@@ -463,6 +463,9 @@ import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
+import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
+import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
+import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -946,6 +949,9 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   DeletedProject,
+  UserNotificationEmailRollupItem,
+  UserNotificationEmailRollupBatch,
+  UserNotificationEmailRollupSetting,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

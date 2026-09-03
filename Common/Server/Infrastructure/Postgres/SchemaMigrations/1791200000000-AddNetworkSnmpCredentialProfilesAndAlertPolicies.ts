@@ -17,11 +17,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     the NormalizeNetworkDeviceMonitoringMethod data migration rewrites the
  *     stored values.
  */
-export class AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000
+export class AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000
   implements MigrationInterface
 {
   public name: string =
-    "AddNetworkSnmpCredentialProfilesAndAlertPolicies1791000000000";
+    "AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

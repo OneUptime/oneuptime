@@ -5,7 +5,7 @@ import WebhookStatus from "Common/Types/WebhookStatus";
 import { JSONObject } from "Common/Types/JSON";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import WebhookLogService from "Common/Server/Services/WebhookLogService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import API from "Common/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -169,8 +169,14 @@ export default class WebhookService {
         webhookLog.statusMessage = `Webhook endpoint returned non-success status ${statusCode}.`;
       }
     } catch (error: unknown) {
-      logger.error("Failed to send webhook.");
-      logger.error(error);
+      /*
+       * Everything reachable from this try is the tenant's endpoint: a URL they
+       * typed that will not parse, a host that will not resolve, a target the
+       * SSRF guard refuses, a connection that times out, a 5xx they returned.
+       * Recording the failed delivery in the WebhookLog is the product working.
+       */
+      logger.error("Failed to send webhook.", EXTERNAL_FAULT);
+      logger.error(error, EXTERNAL_FAULT);
       webhookLog.status = WebhookStatus.Error;
       const errorMessage: string =
         error instanceof Error && error.message

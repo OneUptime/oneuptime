@@ -159,6 +159,9 @@ import "./Jobs/StatusPage/SendReportsToSubscribers";
 // Workspace Notification Summaries
 import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 
+// Owner Email Burst Rollups
+import "./Jobs/EmailRollup/FlushDueRollups";
+
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";

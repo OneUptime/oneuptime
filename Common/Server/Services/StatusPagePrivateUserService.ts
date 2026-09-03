@@ -1,4 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
+import { EncryptionSecret } from "../EnvironmentConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -16,6 +17,7 @@ import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
+import HashedString from "../../Types/HashedString";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
@@ -143,12 +145,27 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // send email to the user.
+    /*
+     * The invite link doubles as this user's first password-reset link, so the
+     * column has to hold what `/status-page-api/reset-password` looks rows up
+     * by: the SHA-256 of the token, never the token itself. That endpoint
+     * hashes whatever the link carried and queries by the digest, so a raw
+     * token stored here matches nothing and the welcome link is dead on
+     * arrival -- and it would also leave a working bearer credential sitting
+     * in the database in plaintext.
+     *
+     * Same split as `/status-page-api/forgot-password`: the digest is
+     * persisted, the raw token is only ever mailed.
+     */
     const token: string = ObjectID.generate().toString();
+    const hashedToken: string = await HashedString.hashValue(
+      token,
+      EncryptionSecret,
+    );
     await this.updateOneById({
       id: createdItem.id!,
       data: {
-        resetPasswordToken: token,
+        resetPasswordToken: hashedToken,
         resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
       },
       props: {

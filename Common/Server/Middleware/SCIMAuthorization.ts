@@ -12,6 +12,7 @@ import StatusPageSCIM from "../../Models/DatabaseModels/StatusPageSCIM";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class SCIMMiddleware {
@@ -123,6 +124,17 @@ export default class SCIMMiddleware {
         "Invalid bearer token or SCIM configuration not found",
       );
     } catch (err) {
+      /*
+       * Record on THIS middleware's own @CaptureSpan span before handing the
+       * error to Express. The decorator sees a normal return (we call
+       * next(err) rather than rethrowing — Express 4 does not catch a
+       * rejection from an async middleware), so its recorder never runs and
+       * without this the error is invisible on the span it actually belongs
+       * to. Goes through SpanUtil so the event is typed by class name rather
+       * than by HTTP status, and so a rejected credential produces a `fault`
+       * event instead of an Issue.
+       */
+      SpanUtil.recordExceptionOnCurrentSpan(err);
       return next(err);
     }
   }

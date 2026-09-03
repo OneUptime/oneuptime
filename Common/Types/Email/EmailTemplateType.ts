@@ -99,6 +99,8 @@ enum EmailTemplateType {
 
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
+
+  NotificationRollup = "NotificationRollup.hbs",
 }
 
 export default EmailTemplateType;
