@@ -844,6 +844,34 @@ describe("legacy Network Site Type backfill compatibility", () => {
         limit: LIMIT_MAX,
       }),
     );
+
+    const cursorOperator: {
+      getSql: (alias: string) => string;
+      objectLiteralParameters: Record<string, unknown>;
+    } = (
+      networkSiteService.findBy.mock.calls[1]![0] as {
+        query: {
+          _id: {
+            getSql: (alias: string) => string;
+            objectLiteralParameters: Record<string, unknown>;
+          };
+        };
+      }
+    ).query._id;
+    const cursorParameterNames: Array<string> = Object.keys(
+      cursorOperator.objectLiteralParameters,
+    );
+    expect(cursorParameterNames).toHaveLength(1);
+
+    const cursorParameterName: string = cursorParameterNames[0]!;
+    const cursorColumn: string = '"NetworkSite"."_id"';
+    const cursorSql: string = rawSqlFor(cursorOperator, cursorColumn);
+
+    expect(cursorSql).toBe(`(${cursorColumn} > :${cursorParameterName})`);
+    expect(cursorSql).not.toContain(">=");
+    expect(cursorOperator.objectLiteralParameters[cursorParameterName]).toBe(
+      blankSites[blankSites.length - 1]!.id!.toString(),
+    );
     expect(
       networkSiteService.updateColumnsByIdWithoutHooks,
     ).toHaveBeenCalledWith({

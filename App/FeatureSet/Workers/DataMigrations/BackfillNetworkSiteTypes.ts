@@ -11,7 +11,6 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
-import { Raw } from "typeorm";
 
 interface BackfillOptions {
   /* The historical migration bootstraps the catalog for every old project. */
@@ -29,17 +28,6 @@ interface ProjectSiteTypeIndex {
 
 /* Sites are keyset-paged because successful writes remove rows from the query. */
 const SITE_BATCH_SIZE: number = LIMIT_MAX;
-
-const afterObjectId: (id: ObjectID) => ReturnType<typeof Raw> = (
-  id: ObjectID,
-): ReturnType<typeof Raw> => {
-  return Raw(
-    (alias: string): string => {
-      return `(${alias} > :networkSiteTypeBackfillCursor)`;
-    },
-    { networkSiteTypeBackfillCursor: id.toString() },
-  );
-};
 
 /*
  * Type names are matched case-insensitively (and whitespace-insensitively) so a
@@ -198,7 +186,7 @@ export default class BackfillNetworkSiteTypes extends DataMigrationBase {
 
       if (siteCursor) {
         (query as unknown as Record<string, unknown>)["_id"] =
-          afterObjectId(siteCursor);
+          QueryHelper.greaterThan(siteCursor);
       }
 
       const sites: Array<NetworkSite> = await NetworkSiteService.findBy({

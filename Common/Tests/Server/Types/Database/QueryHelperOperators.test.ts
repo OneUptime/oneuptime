@@ -1,4 +1,5 @@
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import ObjectID from "../../../../Types/ObjectID";
 import { FindOperator } from "typeorm";
 import { describe, expect, it } from "@jest/globals";
 
@@ -62,6 +63,22 @@ describe("QueryHelper comparison operators — exact rendered SQL", () => {
       const param: string = soleParamName(operator);
       expect(operator.getSql(ALIAS)).toBe(`(${ALIAS} > :${param})`);
       expect(operator.objectLiteralParameters[param]).toBe(5);
+    });
+
+    it("greaterThan stringifies and binds an ObjectID cursor", () => {
+      const cursor: ObjectID = new ObjectID(
+        "11111111-1111-4111-8111-111111111111",
+      );
+      const operator: RawOperator = asRaw(QueryHelper.greaterThan(cursor));
+      const param: string = soleParamName(operator);
+      const alias: string = '"NetworkSite"."_id"';
+      const sql: string = operator.getSql(alias);
+
+      expect(sql).toBe(`(${alias} > :${param})`);
+      expect(sql).not.toContain(cursor.toString());
+      expect(sql).not.toContain(">=");
+      expect(operator.objectLiteralParameters[param]).toBe(cursor.toString());
+      expect(operator.objectLiteralParameters[param]).not.toBe(cursor);
     });
 
     it("greaterThanEqualTo emits an INCLUSIVE `>=`", () => {
