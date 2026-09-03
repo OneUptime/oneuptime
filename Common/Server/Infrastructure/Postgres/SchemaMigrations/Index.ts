@@ -568,6 +568,7 @@ import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNet
 import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
 import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-AddNetworkSiteTypeParentHierarchy";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
+import { AddTelemetryExceptionErrorClass1790900000000 } from "./1790900000000-AddTelemetryExceptionErrorClass";
 import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
 
 export default [
@@ -1141,5 +1142,6 @@ export default [
   AddAutoImportRuleOidTemplate1790600000000,
   AddNetworkSiteTypeParentHierarchy1790700000000,
   AddNetworkDeviceRoleTable1790800000000,
+  AddTelemetryExceptionErrorClass1790900000000,
   AddEnterpriseLicenseUsageProvenance1790900000000,
 ];

@@ -23,7 +23,7 @@ import StatusPageService, {
 } from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -579,7 +579,16 @@ RunCron(
                 ),
                 statusPageId: statuspage.id!,
               }).catch((err: Error) => {
+                /*
+                 * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
+                 * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
+                 * 404 on a deleted webhook or an unreachable host is their side of the
+                 * wire, not a OneUptime defect — and one status page can fan out to
+                 * thousands of subscribers, so leaving these at ERROR buries real
+                 * failures under a single tenant's dead webhook.
+                 */
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: episode.projectId?.toString(),
                   incidentEpisodeId: episode.id?.toString(),
                 });
@@ -628,6 +637,7 @@ RunCron(
                   },
                 ).catch((err: Error) => {
                   logger.error(err, {
+                    ...EXTERNAL_FAULT,
                     projectId: episode.projectId?.toString(),
                     incidentEpisodeId: episode.id?.toString(),
                   });
@@ -675,6 +685,7 @@ RunCron(
                   },
                 ).catch((err: Error) => {
                   logger.error(err, {
+                    ...EXTERNAL_FAULT,
                     projectId: episode.projectId?.toString(),
                     incidentEpisodeId: episode.id?.toString(),
                   });
@@ -727,6 +738,7 @@ ${episodePublicNote.note || ""}
                 text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
               }).catch((err: Error) => {
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: episode.projectId?.toString(),
                   incidentEpisodeId: episode.id?.toString(),
                 });
@@ -778,6 +790,7 @@ ${episodePublicNote.note || ""}
                 text: markdownMessage,
               }).catch((err: Error) => {
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: episode.projectId?.toString(),
                   incidentEpisodeId: episode.id?.toString(),
                 });
@@ -811,6 +824,7 @@ ${episodePublicNote.note || ""}
                 },
               }).catch((err: Error) => {
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: episode.projectId?.toString(),
                   incidentEpisodeId: episode.id?.toString(),
                 });

@@ -56,6 +56,12 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
+import {
+  COMPONENT_ATTRIBUTE_KEY,
+  TelemetryComponent,
+  UNIT_OF_WORK_ATTRIBUTE_KEY,
+  UnitOfWork,
+} from "Common/Types/Telemetry/UnitOfWork";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
@@ -142,6 +148,14 @@ export default class MonitorUtil {
         monitorId: monitorTest.id?.toString(),
         projectId: monitorTest.projectId?.toString(),
         monitorType: monitorTest.monitorType?.toString(),
+        /*
+         * A probe check has no client to blame: if this code throws a
+         * user-error class, WE produced the bad input, so ErrorClassResolver
+         * promotes it back to code-fault. Set explicitly — runWithContext
+         * inherits the enclosing scope.
+         */
+        [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.ProbeCheck,
+        [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
         return this.probeMonitorTestInternal(monitorTest);
@@ -214,6 +228,14 @@ export default class MonitorUtil {
         monitorId: monitor.id?.toString(),
         projectId: monitor.projectId?.toString(),
         monitorType: monitor.monitorType?.toString(),
+        /*
+         * A probe check has no client to blame: if this code throws a
+         * user-error class, WE produced the bad input, so ErrorClassResolver
+         * promotes it back to code-fault. Set explicitly — runWithContext
+         * inherits the enclosing scope.
+         */
+        [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.ProbeCheck,
+        [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
         return this.probeMonitorInternal(monitor);

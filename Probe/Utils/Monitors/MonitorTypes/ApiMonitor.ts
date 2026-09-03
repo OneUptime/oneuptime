@@ -13,7 +13,7 @@ import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
 import {
   HttpTimingAgents,
@@ -365,10 +365,16 @@ export default class ApiMonitor {
         return apiResponse;
       }
 
+      /*
+       * The tenant's own API refused to answer. That failure is the ANSWER
+       * this check exists to produce — it is returned right below as an
+       * offline response - so it must never open an Issue against OneUptime.
+       */
       logger.error(
         `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
           apiResponse,
         )}`,
+        EXTERNAL_FAULT,
       );
 
       return apiResponse;

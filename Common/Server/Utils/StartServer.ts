@@ -37,6 +37,12 @@ import "./Process";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
 import TelemetryContext from "./Telemetry/TelemetryContext";
+import {
+  COMPONENT_ATTRIBUTE_KEY,
+  TelemetryComponent,
+  UNIT_OF_WORK_ATTRIBUTE_KEY,
+  UnitOfWork,
+} from "../../Types/Telemetry/UnitOfWork";
 import mountVendorAssets from "./VendorAssets";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
@@ -284,13 +290,34 @@ app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
    * ContextSpanProcessor and Logger read this ambient context, every span and
    * log produced downstream inherits it automatically.
    */
-  TelemetryContext.runWithContext({ requestId: requestId }, () => {
-    SpanUtil.addAttributesToCurrentSpan({
+  TelemetryContext.runWithContext(
+    {
       requestId: requestId,
-    });
+      /*
+       * Seed the unit of work EXPLICITLY. ErrorClassResolver honours a
+       * user-error / expected-denial classification only inside an HTTP
+       * request — everywhere else there is no client to blame, so those
+       * classes are promoted back to code-fault. runWithContext inherits the
+       * enclosing scope, so leaving this unset would let a request's marker
+       * leak into background work started from inside the request.
+       */
+      [UNIT_OF_WORK_ATTRIBUTE_KEY]: UnitOfWork.HttpRequest,
+      /*
+       * Which deployment role served this. service.name cannot answer it: the
+       * Helm chart runs the worker from the same image and entrypoint as the
+       * API, so worker pods also report service.name="api".
+       */
+      [COMPONENT_ATTRIBUTE_KEY]:
+        LocalCache.getString("app", "name") || TelemetryComponent.Api,
+    },
+    () => {
+      SpanUtil.addAttributesToCurrentSpan({
+        requestId: requestId,
+      });
 
-    next();
-  });
+      next();
+    },
+  );
 });
 
 export interface InitFuctionOptions {
@@ -509,20 +536,25 @@ export const expressErrorHandler: (
 ): void => {
   logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
-  // Mark span as error.
-  if (err) {
-    const span: api.Span | undefined = api.trace.getSpan(api.context.active());
-    if (span) {
-      // record exception
-      span.recordException(err);
-
-      // set span status code to ERROR
-      span.setStatus({
-        code: api.SpanStatusCode.ERROR,
-        message: err.message,
-      });
-    }
-  }
+  /*
+   * Deliberately does NOT record the exception on a span.
+   *
+   * There is no HTTP instrumentation (Telemetry.init passes an empty
+   * `instrumentations` array) and nothing creates a request-scoped span, so at
+   * this point the ambient span is either absent or an already-ENDED
+   * @CaptureSpan span — and addEvent no-ops on an ended span. On the whole
+   * BaseAPI CRUD surface this emitted exactly zero events while looking like
+   * it emitted one.
+   *
+   * Where it DID fire was the handful of @CaptureSpan-decorated middleware
+   * that swallow an error and call next(err) from inside their own still-open
+   * span. There it wrote to a span the request does not own, and — because the
+   * raw error was passed to span.recordException, and the SDK reads
+   * `exception.code` before `exception.name` — it typed the event with the
+   * HTTP status ("400", "422") instead of the class name. Those middleware now
+   * rethrow instead of swallowing, so CaptureSpan's normalized recorder does
+   * the right thing on the right span.
+   */
 
   if (res.headersSent) {
     next(err);

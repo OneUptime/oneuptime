@@ -1,6 +1,11 @@
 import { LogLevel } from "../EnvironmentConfig";
 import OneUptimeTelemetry, { TelemetryLogger } from "./Telemetry";
 import TelemetryContext from "./Telemetry/TelemetryContext";
+import ErrorClassResolver from "./Telemetry/ErrorClassResolver";
+import ErrorClass, {
+  isNonActionableErrorClass,
+} from "../../Types/Telemetry/ErrorClass";
+import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../Types/Telemetry/UnitOfWork";
 import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "../../Types/Exception/Exception";
 import { JSONObject } from "../../Types/JSON";
@@ -26,6 +31,24 @@ export interface LogAttributes {
   requestId?: string | undefined;
   [key: string]: string | number | boolean | undefined;
 }
+
+/**
+ * Attach to a `logger.error` call whose condition was caused OUTSIDE this
+ * codebase: a tenant's endpoint being down, their credentials being wrong,
+ * their webhook returning 500, their script throwing, their quota being
+ * exhausted. Detecting those is the product working correctly, so they are
+ * logged at WARN severity and never become an Issue.
+ *
+ *   logger.error(`Monitor ping failed: ${err}`, EXTERNAL_FAULT);
+ *
+ * Use it only where the condition is unambiguously external. A genuine
+ * OneUptime defect that happens to surface through a stamped site would be
+ * demoted with it — so keep the stamp tight around the single external call,
+ * never around a whole function body.
+ */
+export const EXTERNAL_FAULT: LogAttributes = {
+  [ERROR_CLASS_ATTRIBUTE_KEY]: ErrorClass.UserError,
+};
 
 export interface RequestLike {
   requestId?: string;
@@ -246,13 +269,68 @@ export default class logger {
       logLevel === ConfigLogLevel.ERROR
     ) {
       const body: LogBody = this.redactBody(message);
+      /*
+       * An explicit `error.class` attribute is a site-level declaration and is
+       * authoritative — it is how the probe, notification and worker call
+       * sites that log a plain STRING (no Error object to carry a tag) declare
+       * that a condition is the tenant's, not ours. See EXTERNAL_FAULT.
+       */
+      const errorClass: ErrorClass = ErrorClassResolver.resolve(
+        message,
+        attributes?.[ERROR_CLASS_ATTRIBUTE_KEY],
+      );
+
+      if (isNonActionableErrorClass(errorClass)) {
+        /*
+         * The platform correctly REFUSING a request is not an ERROR. This one
+         * guard reaches every logger.error call site in the product,
+         * including the three unconditional choke points — Response
+         * sendErrorResponse (which is the DOMINANT path: ~720 call sites
+         * answer 4xx directly and never throw, so this log line is the
+         * error's only report), the Express error handler, and the
+         * @CaptureSpan recorder.
+         *
+         * Deliberately NOT this.warn(): Logger.warn is gated on
+         * DEBUG/INFO/WARN and config.example.env ships LOG_LEVEL=ERROR, so
+         * routing through warn() would delete the line from stdout AND from
+         * the support-bundle ring buffer on every Docker Compose install —
+         * and those lines are how an operator discovers a tenant
+         * misconfiguration. Keep the ERROR-level gate; export at WARN
+         * severity.
+         *
+         * Kept inside error() rather than added as a new Logger method
+         * because a number of test suites mock the logger with `error` and no
+         * `warn` sibling; a new method name would be undefined there.
+         *
+         * Free side effect worth knowing about: WARN (severityNumber 13) is
+         * below LogExceptionExtractor's MIN_ERROR_SEVERITY_NUMBER (17), so
+         * demoting also shuts off the log-derived exception path for these
+         * records. That matters more than it looks — redactBody returns the
+         * FULL STACK STRING whenever redaction fired, and that stack
+         * otherwise parses straight into an Issue.
+         */
+        // eslint-disable-next-line no-console
+        console.warn(body);
+
+        this.record("WARN", body);
+
+        this.emitRedacted(body, SeverityNumber.WARN, {
+          ...(attributes || {}),
+          [ERROR_CLASS_ATTRIBUTE_KEY]: errorClass,
+        });
+
+        return;
+      }
 
       // eslint-disable-next-line no-console
       console.error(body);
 
       this.record("ERROR", body);
 
-      this.emitRedacted(body, SeverityNumber.ERROR, attributes);
+      this.emitRedacted(body, SeverityNumber.ERROR, {
+        ...(attributes || {}),
+        [ERROR_CLASS_ATTRIBUTE_KEY]: errorClass,
+      });
     }
   }
 
