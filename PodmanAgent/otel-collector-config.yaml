@@ -97,19 +97,47 @@ receivers:
       # have dedicated severity_number / severity_text fields that downstream
       # viewers rely on for filtering. Derive a best-effort severity from the
       # stdout/stderr stream: stderr -> ERROR, stdout -> INFO.
+      # First try to read a level keyword out of the body. PSR-3/Monolog
+      # ("app.INFO:") and Go zap ({"level":"info"}) put the keyword next to a
+      # dot or a quote, so a plain word-boundary match misses them and every
+      # such line would fall through to the stream default below and be stamped
+      # ERROR. Route on whether the body carries a recognisable keyword; only
+      # lines without one take the stdout/stderr default.
+      - type: router
+        id: severity-router
+        routes:
+          - output: parse-severity-from-body
+            expr: 'body matches "(?i)(?:^|[\\s.\\[(\"])(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\\s\\]:=,)\"])"'
+        default: add-fallback-severity
+      - type: regex_parser
+        id: parse-severity-from-body
+        regex: '(?i)(?:^|[\s.\[("])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)"])'
+        parse_from: body
+        output: severity-parser
+      # No keyword in the body: fall back to the stream. Podman's json-file
+      # driver records no severity of its own. stderr -> ERROR, stdout -> INFO.
       - type: add
-        id: add-severity-text
+        id: add-fallback-severity
         field: attributes.severity_text
         value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+        output: severity-parser
       # Promote the textual severity onto the LogRecord itself so OTel log
-      # consumers see a real severity_number (17 for ERROR, 9 for INFO) rather
-      # than Unspecified.
+      # consumers see a real severity_number rather than Unspecified.
       - type: severity_parser
         id: severity-parser
         parse_from: attributes.severity_text
+        preset: default
         mapping:
-          error: ERROR
-          info: INFO
+          warn:
+            - warning
+          error:
+            - err
+            - crit
+            - critical
+          fatal:
+            - panic
+          info:
+            - notice
       # Remove the now-redundant attribute so we don't duplicate the value
       # both as an attribute and as the record's severity field.
       - type: remove
