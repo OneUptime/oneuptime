@@ -35,16 +35,37 @@ export class HttpTimingCollector {
     this.isAttached = false;
   }
 
+  /*
+   * Monitor egress validation resolves the target before an Agent creates a
+   * socket. Record that guarded lookup explicitly so it remains part of the
+   * DNS phase instead of being misattributed to response download time.
+   */
+  public startDnsLookup(): void {
+    if (this.startedAt === undefined) {
+      this.startedAt = HttpTimingCollector.nowInMs();
+    }
+  }
+
+  public finishDnsLookup(): void {
+    if (this.startedAt !== undefined && this.dnsDoneAt === undefined) {
+      this.dnsDoneAt = HttpTimingCollector.nowInMs();
+    }
+  }
+
   public attach(socket: net.Socket): void {
     if (this.isAttached) {
       return;
     }
 
     this.isAttached = true;
-    this.startedAt = HttpTimingCollector.nowInMs();
+    if (this.startedAt === undefined) {
+      this.startedAt = HttpTimingCollector.nowInMs();
+    }
 
     socket.once("lookup", () => {
-      this.dnsDoneAt = HttpTimingCollector.nowInMs();
+      if (this.dnsDoneAt === undefined) {
+        this.dnsDoneAt = HttpTimingCollector.nowInMs();
+      }
     });
 
     socket.once("connect", () => {
@@ -120,8 +141,12 @@ export class HttpTimingAgents {
   public static create(
     collector: HttpTimingCollector,
     httpsAgentOptions?: https.AgentOptions | undefined,
+    httpAgentOptions?: http.AgentOptions | undefined,
   ): TimedAgents {
-    const httpAgent: http.Agent = new http.Agent({ keepAlive: false });
+    const httpAgent: http.Agent = new http.Agent({
+      ...(httpAgentOptions || {}),
+      keepAlive: false,
+    });
     const httpsAgent: https.Agent = new https.Agent({
       ...(httpsAgentOptions || {}),
       /*

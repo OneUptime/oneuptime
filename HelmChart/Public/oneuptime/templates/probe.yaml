@@ -150,9 +150,9 @@ spec:
               value: {{ printf "%.0f" (float64 (default 268435456 $val.syntheticMonitorMaxDiskBytes)) | squote }}
             - name: PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED
               value: {{ default false $val.syntheticMonitorChromiumSandboxEnabled | squote }}
-            # Whether Custom JavaScript Code monitors on this probe may reach
-            # private network addresses (issue #3424). Off by default; every
-            # other monitor type already reaches whatever host it is pointed at.
+            # Whether API, Website, External Status Page and Custom JavaScript
+            # Code monitors on this private probe may reach private network
+            # addresses. Ignored by auto-registered global probes.
             - name: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS
               value: {{ default false $val.allowPrivateNetworkMonitors | squote }}
             - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS

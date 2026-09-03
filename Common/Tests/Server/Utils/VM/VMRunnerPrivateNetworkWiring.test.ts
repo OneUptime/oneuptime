@@ -10,15 +10,18 @@ import path from "path";
  * cover the one detail that behaviour test does not: the guard now takes a
  * policy argument, and getting that argument's plumbing wrong fails open.
  *
- * Two things must hold, and neither is visible from the sandbox:
+ * Three things must hold, and none is visible from the sandbox:
  *
  *  - The runner passes the CALLER's flag, not a literal `true` and not the
  *    instance configuration it could read itself. It also executes custom code
  *    monitors inside the Probe, which has no database to resolve a project
  *    from, so the decision cannot live here.
  *
- *  - Absent, the flag is false. A caller that never heard of the option keeps
- *    the strict policy rather than inheriting whatever was last set.
+ *  - A trusted caller can pass its already-resolved local policy separately;
+ *    the eligibility flag above is still required before it has any effect.
+ *
+ *  - Absent, the resolved-policy override stays absent. Workflow callers that
+ *    never heard of it continue to use the API server's webhook configuration.
  */
 
 const VM_DIR: string = path.join(
@@ -45,7 +48,13 @@ const apiSource: string = fs.readFileSync(
 describe("VMRunner — private network policy plumbing", () => {
   test("the sandbox axios guard is called with the caller's flag", () => {
     expect(runnerSource).toMatch(
-      /validateWebhookTargetIsSafe\(\s*effectiveUrl,\s*\{[\s\S]{0,600}?allowPrivateNetworkTargets:\s*\n?\s*options\.allowPrivateNetworkRequests === true,/,
+      /validateAndResolveWebhookTarget\(\s*effectiveUrl,\s*\{[\s\S]{0,600}?allowPrivateNetworkTargets:\s*\n?\s*options\.allowPrivateNetworkRequests === true,/,
+    );
+  });
+
+  test("the sandbox axios guard receives the caller's resolved policy", () => {
+    expect(runnerSource).toMatch(
+      /privateNetworkAccessIsAllowed:\s*\n?\s*options\.privateNetworkAccessIsAllowed/,
     );
   });
 
@@ -78,7 +87,7 @@ describe("VMRunner — private network policy plumbing", () => {
      * every test above — the sandbox would simply have two doors.
      */
     const calls: RegExpMatchArray | null = runnerSource.match(
-      /validateWebhookTargetIsSafe\(/g,
+      /validateAndResolveWebhookTarget\(/g,
     );
 
     expect(calls).toHaveLength(1);
@@ -94,15 +103,99 @@ describe("VMRunner — private network policy plumbing", () => {
     expect(runnerSource).not.toContain("ALLOW_PRIVATE_NETWORK_WEBHOOKS");
   });
 
-  test("the option is optional, so an unaware caller gets the strict policy", () => {
-    expect(runnerSource).toMatch(
-      /allowPrivateNetworkRequests\?:\s*boolean \| undefined;/,
+  test("the bridge disables explicit and environment-configured Axios proxies", () => {
+    expect(runnerSource).toMatch(/safeConfig\["proxy"\]\s*=\s*false;/);
+  });
+
+  test("the bridge forces the HTTP/1 transport that uses its pinned agents", () => {
+    expect(runnerSource).toMatch(/delete safeConfig\["http2Options"\];/);
+    expect(runnerSource).toMatch(/delete safeConfig\["lookup"\];/);
+    expect(runnerSource).toMatch(/safeConfig\["httpVersion"\]\s*=\s*1;/);
+  });
+
+  test("the bridge pins the validation result into both socket agents", () => {
+    expect(runnerSource).toContain(
+      "DataSourceEgressGuard.createPinnedLookup(validatedTarget.addresses)",
+    );
+    expect(runnerSource.match(/lookup:\s*pinnedLookup as never/g)).toHaveLength(
+      2,
     );
   });
 
-  test("VMAPI passes both options through rather than dropping them", () => {
+  test("the validated canonical URL is authoritative at dispatch", () => {
+    expect(runnerSource).toMatch(/delete safeConfig\["baseURL"\];/);
+    expect(runnerSource).toMatch(/delete safeConfig\["url"\];/);
+    expect(runnerSource).toMatch(/delete safeConfig\["allowAbsoluteUrls"\];/);
+    expect(
+      runnerSource.match(
+        /axios\.(?:get|head|options|post|put|patch|delete)\(canonicalUrl/g,
+      ),
+    ).toHaveLength(7);
+    expect(runnerSource).toMatch(/config\["url"\]\s*=\s*canonicalUrl;/);
+  });
+
+  test("response and request bytes are bounded at the host bridge", () => {
+    expect(runnerSource).toContain(
+      "new HTTPResponseBodyBudget(MAX_HTTP_RESPONSE_BYTES)",
+    );
+    expect(runnerSource).toMatch(
+      /safeConfig\["maxBodyLength"\]\s*=\s*effectiveMaxBodyLength;/,
+    );
+    expect(runnerSource).toContain(
+      "maximumResponseBytes: effectiveMaxContentLength",
+    );
+    expect(runnerSource).toMatch(
+      /safeConfig\["responseType"\]\s*=\s*"stream";/,
+    );
+    expect(runnerSource).toContain("HTTPResponseBodyReader.read(responseData");
+    expect(runnerSource).toMatch(
+      /serializedHttpRequestBytes \+ operationBytes >\s*MAX_HTTP_REQUEST_BYTES/,
+    );
+    expect(runnerSource).toContain(
+      "assertSerializedRequestLength(method, url, arg1, arg2)",
+    );
+    expect(runnerSource).toContain('"base64-arraybuffer"');
+    expect(runnerSource).toContain(
+      "body.length > MAX_BASE64_RESPONSE_SOURCE_BYTES",
+    );
+    expect(runnerSource).toContain('"base64-json-or-text"');
+    expect(runnerSource).toContain('"base64-text"');
+    expect(runnerSource).toContain('data: body.toString("base64")');
+    expect(runnerSource).toContain("function decodeUtf8(bytes)");
+  });
+
+  test("untrusted Agent options cannot replace lookup or socket creation", () => {
+    const safeAgentOptionSection: string = runnerSource.slice(
+      runnerSource.indexOf("const pickAgentOptions"),
+      runnerSource.indexOf("const toPlainHeaders"),
+    );
+
+    expect(safeAgentOptionSection).not.toContain('"lookup"');
+    expect(safeAgentOptionSection).not.toContain('"createConnection"');
+    expect(safeAgentOptionSection).not.toContain('"socketPath"');
+    expect(safeAgentOptionSection).not.toContain('"host"');
+    expect(safeAgentOptionSection).not.toContain('"hostname"');
+    expect(safeAgentOptionSection).not.toContain('"port"');
+    expect(safeAgentOptionSection).not.toContain('"path"');
+    expect(safeAgentOptionSection).not.toContain('"keepAlive"');
+    expect(safeAgentOptionSection).toContain('"servername"');
+  });
+
+  test("both policy options are optional", () => {
+    expect(runnerSource).toMatch(
+      /allowPrivateNetworkRequests\?:\s*boolean \| undefined;/,
+    );
+    expect(runnerSource).toMatch(
+      /privateNetworkAccessIsAllowed\?:\s*boolean \| undefined;/,
+    );
+  });
+
+  test("VMAPI exposes and passes every policy option through", () => {
     expect(apiSource).toMatch(
       /allowPrivateNetworkRequests\?:\s*boolean \| undefined;/,
+    );
+    expect(apiSource).toMatch(
+      /privateNetworkAccessIsAllowed\?:\s*boolean \| undefined;/,
     );
     expect(apiSource).toMatch(/privateNetworkHint\?:\s*string \| undefined;/);
     // VMAPI forwards `data` wholesale; anything else would silently drop it.

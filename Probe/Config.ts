@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
+import { HasRegisterProbeKey } from "Common/Server/EnvironmentConfig";
 import {
   MAX_NODE_TIMER_DELAY_IN_MS,
   MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
@@ -127,20 +128,14 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
   });
 
 /*
- * Whether Custom JavaScript Code monitors on THIS probe may reach private
- * network addresses (issue #3424).
+ * Whether HTTP-capable monitors on THIS probe may reach private network
+ * addresses. API and Website monitors enforce this policy at their socket
+ * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge.
  *
- * Every other monitor type a probe runs - API, Website, Ping, Port, SSL, DNS,
- * SNMP, SQL, Synthetic - already reaches whatever host the monitor names, with
- * no address check anywhere in Probe/. Custom Code is the one exception, and
- * only by inheritance: it executes through Common's VMRunner, whose axios
- * bridge carries the SSRF guard written for the WORKFLOW Custom JavaScript
- * component (GHSA-v5xh-rw9h-77fv), where the request really does come off the
- * API server. On a probe the same code is a monitoring agent deliberately
- * placed inside the network it watches, so the guard blocks the ordinary case:
- * a Custom Code monitor checking http://10.0.0.5/health from a probe sitting
- * on that network is refused, while an API monitor against the same host
- * succeeds.
+ * Probes are monitoring agents deliberately placed inside the networks they
+ * watch, so a self-managed probe often needs to check http://10.0.0.5/health.
+ * The permission is therefore owned by the probe operator, never by a monitor
+ * step or project member.
  *
  * Read from THIS PROCESS's environment, which is the right control surface:
  * whoever deploys a probe controls its env, and that is the party who knows
@@ -148,12 +143,15 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
  * instance - a custom probe is usually a different machine, often run by a
  * different person, and never reads the API server's configuration.
  *
- * Off by default. Turning it on does NOT open loopback, link-local or the
- * cloud metadata endpoint: those stay in SSRFProtection's FORBIDDEN tier in
- * every deployment, which matters most for OneUptime's own global probes,
- * where the surrounding network is not the monitor author's to explore.
+ * Off by default, and deliberately ignored by auto-registered global probes.
+ * A REGISTER_PROBE_KEY is the server-issued authority that creates a global
+ * probe, so a tenant-controlled monitor can never loosen that probe's policy
+ * by changing monitor data. Turning this on for a private probe still does
+ * NOT open loopback, link-local or the cloud metadata endpoint: those stay
+ * forbidden in every deployment.
  */
 export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
+  !HasRegisterProbeKey &&
   process.env["PROBE_ALLOW_PRIVATE_NETWORK_MONITORS"] === "true";
 
 /*
@@ -161,8 +159,9 @@ export const PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean =
  * default sentence names the API server's webhook settings, which are neither
  * read by this process nor usually editable by whoever runs this probe.
  */
-export const PROBE_PRIVATE_NETWORK_HINT: string =
-  " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
+export const PROBE_PRIVATE_NETWORK_HINT: string = HasRegisterProbeKey
+  ? " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."
+  : " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.";
 
 export const PROBE_MONITOR_RETRY_LIMIT: number =
   NumberUtil.parseNumberWithDefault({

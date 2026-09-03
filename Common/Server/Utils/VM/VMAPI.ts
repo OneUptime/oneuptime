@@ -13,6 +13,7 @@ export default class VMUtil {
       timeout?: number;
       // See VMRunner.runCodeInSandbox — decided by the caller, not here.
       allowPrivateNetworkRequests?: boolean | undefined;
+      privateNetworkAccessIsAllowed?: boolean | undefined;
       privateNetworkHint?: string | undefined;
     };
   }): Promise<ReturnResult> {
