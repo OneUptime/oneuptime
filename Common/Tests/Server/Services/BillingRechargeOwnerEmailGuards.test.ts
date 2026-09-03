@@ -474,18 +474,19 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
 
     /*
-     * The catch is suppressed by the local already-told-them flag, not by the
-     * window. Burning a 24h window here would mean a later, different failure
-     * on the same day went unreported.
+     * Exactly ONE window claim, taken by the branch. The catch is suppressed
+     * by the local already-told-them flag rather than by a second claim, so
+     * the throw cannot burn a second day's window on its way past.
      */
-    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("a repeat no-payment-method failure mails owners zero times", async () => {
+  test("a repeat no-payment-method failure inside the window mails owners zero times", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: true }),
     );
     hasPaymentMethodsSpy.mockResolvedValue(false);
+    claimWindowSpy.mockResolvedValue(false);
 
     await expect(
       NotificationService.rechargeBalance(PROJECT_ID, 20),
@@ -493,7 +494,30 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
-    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("a still-missing payment method is reported again the next day", async () => {
+    /*
+     * The no-payment-method branch is on a window too, not on the boolean.
+     * Latching it would mean a project that never manages a successful
+     * recharge - which is every project with no card - is told exactly once,
+     * ever, that nobody can be paged for them.
+     */
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: true }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+    claimWindowSpy.mockResolvedValue(true);
+
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow("No payment methods found for the project");
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(
+      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+        PROJECT_NAME,
+    );
   });
 });
 
@@ -663,14 +687,15 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
-    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("a repeat no-payment-method failure mails owners zero times", async () => {
+  test("a repeat no-payment-method failure inside the window mails owners zero times", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeAiProject({ failedFlagAlreadySet: true }),
     );
     hasPaymentMethodsSpy.mockResolvedValue(false);
+    claimWindowSpy.mockResolvedValue(false);
 
     await expect(
       AIBillingService.rechargeBalance(PROJECT_ID, 20),
@@ -678,7 +703,20 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
-    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("a still-missing payment method is reported again the next day", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: true }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+    claimWindowSpy.mockResolvedValue(true);
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow("No payment methods found for the project");
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
   });
 });
 

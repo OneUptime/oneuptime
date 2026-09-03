@@ -37,6 +37,7 @@ import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
+import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
@@ -47,6 +48,8 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import fs from "fs";
+import path from "path";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -143,6 +146,145 @@ function notificationData(
     ...overrides,
   } as SendUserNotificationData;
 }
+
+/*
+ * The SLA-breach job lives in App and Common cannot import it, so the one
+ * assertion that can be made about it from here is made against its source
+ * text. Section (F) explains why that is worth doing at all.
+ */
+const COMMON_DIR: string = path.resolve(__dirname, "../../..");
+const APP_DIR: string = path.resolve(COMMON_DIR, "../App");
+const SLA_BREACH_JOB_PATH: string = path.join(
+  APP_DIR,
+  "FeatureSet",
+  "Workers",
+  "Jobs",
+  "IncidentSla",
+  "CheckSlaBreaches.ts",
+);
+
+type SkipStringLiteralFunction = (source: string, start: number) => number;
+
+/*
+ * The index just past the string literal that starts at `start`. Escapes are
+ * honoured, so a quote inside a string cannot end it early.
+ */
+const skipStringLiteral: SkipStringLiteralFunction = (
+  source: string,
+  start: number,
+): number => {
+  const quote: string = source.charAt(start);
+  let index: number = start + 1;
+
+  while (index < source.length) {
+    const character: string = source.charAt(index);
+
+    if (character === "\\") {
+      index = index + 2;
+      continue;
+    }
+
+    if (character === quote) {
+      return index + 1;
+    }
+
+    index = index + 1;
+  }
+
+  return source.length;
+};
+
+type ExtractCallArgumentsFunction = (
+  source: string,
+  callee: string,
+) => string | null;
+
+/*
+ * The text between the parentheses of the first call to `callee`, with
+ * comments and string bodies blanked out. Null when there is no such call,
+ * which is what makes "somebody renamed the call away" a failure rather than
+ * a vacuous pass.
+ *
+ * A character scan rather than a regex, on purpose. The argument object spans
+ * twenty lines and the whole point of the assertion is that it survives
+ * reformatting, so nothing here may depend on where the newlines fall.
+ * Blanking comments is what stops the prose ABOVE a property from satisfying
+ * an assertion about the property; skipping string bodies is what stops a
+ * parenthesis inside a message from ending the call early.
+ */
+const extractCallArguments: ExtractCallArgumentsFunction = (
+  source: string,
+  callee: string,
+): string | null => {
+  const calleeIndex: number = source.indexOf(callee);
+
+  if (calleeIndex < 0) {
+    return null;
+  }
+
+  const openIndex: number = source.indexOf("(", calleeIndex + callee.length);
+
+  if (openIndex < 0) {
+    return null;
+  }
+
+  const collected: Array<string> = [];
+  let depth: number = 0;
+  let index: number = openIndex;
+
+  while (index < source.length) {
+    const character: string = source.charAt(index);
+    const nextCharacter: string = source.charAt(index + 1);
+
+    if (character === "/" && nextCharacter === "*") {
+      const end: number = source.indexOf("*/", index + 2);
+      index = end < 0 ? source.length : end + 2;
+      collected.push(" ");
+      continue;
+    }
+
+    if (character === "/" && nextCharacter === "/") {
+      const end: number = source.indexOf("\n", index + 2);
+      index = end < 0 ? source.length : end;
+      collected.push(" ");
+      continue;
+    }
+
+    if (character === '"' || character === "'" || character === "`") {
+      index = skipStringLiteral(source, index);
+      collected.push('""');
+      continue;
+    }
+
+    if (character === "(") {
+      depth = depth + 1;
+      index = index + 1;
+
+      if (depth > 1) {
+        collected.push(character);
+      }
+
+      continue;
+    }
+
+    if (character === ")") {
+      depth = depth - 1;
+      index = index + 1;
+
+      if (depth === 0) {
+        return collected.join("");
+      }
+
+      collected.push(character);
+      continue;
+    }
+
+    collected.push(character);
+    index = index + 1;
+  }
+
+  return null;
+};
 
 describe("UserNotificationSettingService.sendUserNotification - rollup routing", () => {
   let findSettings: jest.SpyInstance;
@@ -563,6 +705,134 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
       expect(countRecent).not.toHaveBeenCalled();
       expect(createItem).not.toHaveBeenCalled();
       expect(loggerError).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (F) The SLA-breach bypass - the only caller of forceImmediate there is.
+   *
+   * Every other "must never be delayed" case in this design is excluded
+   * STRUCTURALLY: NEVER_ROLLED_UP_EVENT_TYPES is a property of the event type
+   * itself, so no caller can forget it and no reviewer has to remember it.
+   * The SLA-breach job is the one exception. It sends under
+   * EmailTemplateType.IncidentOwnerResourceCreated and reuses
+   * SEND_INCIDENT_CREATED_OWNER_NOTIFICATION, so its event type cannot say
+   * "this deadline has already passed" - only the caller knows that, and it
+   * says so with one property in a twenty-line object literal.
+   *
+   * A property like that gets deleted by accident: in a rebase, in a
+   * find-and-replace, by a reformat that drops a line. Nothing downstream
+   * notices. The mail still goes out - five minutes late, batched with the
+   * incident chatter that caused the breach, and only for the projects noisy
+   * enough to cross the threshold, which are exactly the projects whose SLA
+   * breaches matter most. So it is pinned twice: as behaviour at the seam,
+   * and as source text at the caller, because Common cannot import App.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("the SLA-breach bypass", () => {
+    test("far past the burst threshold, forceImmediate is the only reason the mail goes out", async () => {
+      /*
+       * Twenty-five times the threshold: a recipient this deep into a burst
+       * has every other rollup-eligible email deferred, which is what makes
+       * the control at the bottom of this test the real assertion.
+       */
+      countRecent.mockResolvedValue(
+        new PositiveNumber(BURST_THRESHOLD * 25) as never,
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData({ forceImmediate: true }),
+      );
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+
+      const delivered: EmailEnvelope & { toEmail: Email } = sendMail.mock
+        .calls[0]?.[0] as EmailEnvelope & { toEmail: Email };
+      expect(delivered.subject).toBe(SUBJECT);
+      expect(delivered.toEmail.toString()).toBe("owner@example.com");
+
+      /*
+       * Not merely "sent anyway": the bypass sits above every database line,
+       * so an urgent email must not pay for the counter or the ledger row.
+       */
+      expect(countRecent).not.toHaveBeenCalled();
+      expect(createItem).not.toHaveBeenCalled();
+
+      /*
+       * THE CONTROL. The identical notification without the flag is deferred.
+       * Without it, the assertions above would still pass in a world where
+       * forceImmediate were ignored end to end and the burst counter were the
+       * thing that was broken.
+       */
+      sendMail.mockClear();
+      createItem.mockClear();
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(createItem).toHaveBeenCalledTimes(1);
+    });
+
+    test("the job file is still where the two source assertions below look for it", () => {
+      /*
+       * A moved or renamed job would otherwise turn those assertions into a
+       * readFileSync throw that says nothing about what was being checked.
+       */
+      expect(fs.existsSync(SLA_BREACH_JOB_PATH)).toBe(true);
+    });
+
+    test("CheckSlaBreaches asks for the bypass by name when it sends the breach notification", () => {
+      const source: string = fs.readFileSync(SLA_BREACH_JOB_PATH, "utf8");
+
+      const functionIndex: number = source.indexOf(
+        "async function sendBreachNotification",
+      );
+      expect(functionIndex).toBeGreaterThanOrEqual(0);
+
+      const argumentText: string | null = extractCallArguments(
+        source.slice(functionIndex),
+        "UserNotificationSettingService.sendUserNotification",
+      );
+
+      /*
+       * Null means sendBreachNotification no longer calls sendUserNotification
+       * at all - a bigger change than this test can judge, and one that must
+       * not be allowed to read as "the bypass is fine".
+       */
+      expect(argumentText).not.toBeNull();
+
+      /*
+       * Whitespace- and position-insensitive: the property may sit anywhere in
+       * the object literal, formatted however prettier likes. What it may not
+       * be is absent, false, or a variable whose value this test cannot see.
+       */
+      expect(argumentText ?? "").toMatch(
+        /(^|[{,\s])forceImmediate\s*:\s*true\s*(,|\}|$)/,
+      );
+    });
+
+    test("the reason the bypass is needed is still true: the job borrows the incident-created identity", () => {
+      /*
+       * The bypass exists only because this job cannot express urgency through
+       * its event type. If that ever stops being true - the job gets its own
+       * NotificationSettingEventType, or its own template - the right fix is
+       * to add that type to NEVER_ROLLED_UP_EVENT_TYPES and delete the
+       * caller-side flag, making the exclusion structural like every other
+       * one. This test going red is the prompt to do that, not a bug in
+       * itself.
+       */
+      const source: string = fs.readFileSync(SLA_BREACH_JOB_PATH, "utf8");
+
+      expect(source).toContain(
+        "EmailTemplateType.IncidentOwnerResourceCreated",
+      );
+      expect(source).toContain(
+        "NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION",
+      );
     });
   });
 });

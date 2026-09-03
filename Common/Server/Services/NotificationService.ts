@@ -87,9 +87,21 @@ export class NotificationService extends BaseService {
           project.paymentProviderCustomerId!,
         ))
       ) {
+        /*
+         * The same 24h window as the catch below, for the same reason: the
+         * project boolean this branch used to latch on is cleared only by a
+         * SUCCESSFUL recharge, so a project that never manages one was told
+         * once and then never again. A window says it once a day until
+         * somebody fixes it, which is what an ACTION REQUIRED message is for.
+         */
         ownersAlreadyToldAboutThisFailure = true;
 
-        if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
+        });
+
+        if (shouldTellOwners) {
           await ProjectService.updateOneById({
             data: {
               failedCallAndSMSBalanceChargeNotificationSentToOwners: true,

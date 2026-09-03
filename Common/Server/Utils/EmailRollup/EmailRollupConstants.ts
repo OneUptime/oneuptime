@@ -17,11 +17,12 @@ export const ROLLUP_JOB_NAME: string = "EmailRollup:FlushDueRollups";
 export const ROLLUP_SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
 
 /*
- * The 4th and later rollup-eligible owner email for one
- * (project, user, address, category) inside BURST_WINDOW_MINUTES is
- * coalesced. Four is chosen so one incident's whole normal lifecycle
- * (created -> acknowledged -> resolved) plus one more event stays immediate;
- * the fourth event in ten minutes is where a human starts noticing.
+ * The FIRST BURST_THRESHOLD rollup-eligible owner emails for one
+ * (project, user, address, category) inside BURST_WINDOW_MINUTES are sent
+ * immediately; the next one and everything after it is coalesced. Four is
+ * chosen so one incident's whole normal lifecycle (created -> acknowledged ->
+ * resolved) plus one more event stays immediate; the fifth event in ten
+ * minutes is where a human starts noticing.
  */
 export const BURST_THRESHOLD: number = 4;
 export const BURST_WINDOW_MINUTES: number = 10;
@@ -47,6 +48,33 @@ export const MAX_ITEMS_PER_ROLLUP: number = 500; // claimed + stamped per flush
 export const MAX_ROWS_IN_ROLLUP: number = 100; // folded rows rendered
 export const MAX_ITEMS_SCANNED_PER_TICK: number = 5000;
 export const MAX_BUCKETS_PER_TICK: number = 50;
+
+/*
+ * How many pages of MAX_ITEMS_SCANNED_PER_TICK the sweep will read looking for
+ * distinct recipients before giving up for this tick.
+ *
+ * One page is not enough. The scan is ordered oldest-first, so a single
+ * recipient with more pending items than one page can fill it entirely, and
+ * every other tenant's due rollup would then be invisible for as long as that
+ * saturation lasted. Paging past a hog costs a handful of indexed reads in a
+ * case that should never happen, and removes the possibility that one project
+ * stalls the whole fleet.
+ */
+export const MAX_DISCOVERY_PAGES_PER_TICK: number = 4;
+
+/*
+ * A hard ceiling on one rollup send.
+ *
+ * MailService.sendMail is an HTTP POST to the notification service with no
+ * timeout of its own, so a hung connection would hang this await forever. That
+ * matters more here than anywhere else the product sends mail, because the
+ * sweep holds a Redis mutex whose lock is auto-refreshed while it is held: a
+ * single wedged send would therefore stop EVERY replica from flushing ANY
+ * recipient's rollup, indefinitely, while the queue behind it grew and its
+ * oldest rows aged out of retention unsent. One minute is far longer than a
+ * healthy send and far shorter than the sweep's budget.
+ */
+export const ROLLUP_SEND_TIMEOUT_MS: number = 60 * 1000;
 
 export const ROLLUP_SWEEP_BUDGET_MS: number = 3 * 60 * 1000;
 export const ROLLUP_JOB_TIMEOUT_MS: number = 4 * 60 * 1000; // below JobDictionary's 5-min default

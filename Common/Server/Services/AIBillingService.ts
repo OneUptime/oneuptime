@@ -83,9 +83,19 @@ export class AIBillingService extends BaseService {
           project.paymentProviderCustomerId!,
         ))
       ) {
+        /*
+         * The same 24h window as the catch below. The project boolean this
+         * branch used to latch on is cleared only by a SUCCESSFUL recharge, so
+         * a project that never manages one was told once and then never again.
+         */
         ownersAlreadyToldAboutThisFailure = true;
 
-        if (!project.failedAiBalanceChargeNotificationSentToOwners) {
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
+        });
+
+        if (shouldTellOwners) {
           await ProjectService.updateOneById({
             data: {
               failedAiBalanceChargeNotificationSentToOwners: true,

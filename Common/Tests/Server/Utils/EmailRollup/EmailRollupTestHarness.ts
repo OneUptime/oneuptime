@@ -13,6 +13,7 @@ import UserNotificationEmailRollupBatch, {
 } from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import URL from "../../../../Types/API/URL";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../../Types/Dictionary";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
@@ -488,6 +489,28 @@ export function installRollupHarness(harness: RollupHarness): void {
       );
     }) as never);
 
+  /*
+   * Used only on the failure path, where flushBucket counts how many rows it
+   * had already stamped into the batch so the Failed row can say how many
+   * notifications went with it. Modelled on findBy so the same query matcher
+   * decides membership; an unmocked countBy would throw inside the catch that
+   * records the failure and leave the batch stuck on Claimed, which is exactly
+   * the state the recording exists to avoid.
+   */
+  jest
+    .spyOn(UserNotificationEmailRollupItemService, "countBy")
+    .mockImplementation(((args: { query?: Record<string, unknown> }) => {
+      const matched: Array<FakeRow> = harness.items
+        .map((row: FakeItemRow): FakeRow => {
+          return row as unknown as FakeRow;
+        })
+        .filter((row: FakeRow): boolean => {
+          return matchesQuery(args.query, row);
+        });
+
+      return Promise.resolve(new PositiveNumber(matched.length));
+    }) as never);
+
   jest
     .spyOn(UserNotificationEmailRollupItemService, "updateBy")
     .mockImplementation(((args: {
@@ -500,9 +523,30 @@ export function installRollupHarness(harness: RollupHarness): void {
 
       const limit: number = toLimit(args.limit, harness.items.length);
 
+      /*
+       * updateBy RESOLVES ITS ROWS NEWEST-FIRST, exactly as DatabaseService
+       * does, and that is not a detail this harness may round off.
+       *
+       * _updateBy loads the rows it is about to write with an internal _findBy
+       * that takes no sort from the caller - UpdateBy has no sort field - so
+       * it gets _findBy's default of createdAt DESCENDING. The default is
+       * invisible until an update is LIMITED, and then it decides WHICH rows
+       * win: a bare `updateBy(..., limit: MAX_ITEMS_PER_ROLLUP)` over an
+       * over-full bucket stamps the NEWEST rows and starves the oldest.
+       *
+       * Iterating insertion order here instead would make a LIFO drain look
+       * FIFO whenever a fixture happened to be seeded oldest-first, which is
+       * every fixture - so the flush runner's explicit oldest-first select
+       * could be deleted with the suite still green.
+       */
+      const candidates: Array<FakeItemRow> = applySort(
+        harness.items as unknown as Array<FakeRow>,
+        { createdAt: SortOrder.Descending },
+      ) as unknown as Array<FakeItemRow>;
+
       let affected: number = 0;
 
-      for (const row of harness.items) {
+      for (const row of candidates) {
         if (affected >= limit) {
           break;
         }

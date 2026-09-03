@@ -13,9 +13,11 @@ import {
   CLAIM_EPOCH_MINUTES,
   FLUSH_AFTER_MINUTES,
   MAX_BUCKETS_PER_TICK,
+  MAX_DISCOVERY_PAGES_PER_TICK,
   MAX_ITEMS_PER_ROLLUP,
   MAX_ITEMS_SCANNED_PER_TICK,
   ROLLUP_JOB_NAME,
+  ROLLUP_SEND_TIMEOUT_MS,
   ROLLUP_SWEEP_BUDGET_MS,
   ROLLUP_SWEEP_LOCK_NAMESPACE,
   ROLLUP_SWEEP_LOCK_TIMEOUT_MS,
@@ -36,6 +38,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import Text from "../../../Types/Text";
 
 /*
@@ -200,54 +203,80 @@ export default class EmailRollupFlushRunner {
      * through the loop, AFTER some buckets had already stamped their items but
      * before they sent. An explicit limit means a backlog drains over several
      * ticks instead, oldest first, which is also fairer across tenants.
-     */
-    const due: Array<UserNotificationEmailRollupItem> =
-      await UserNotificationEmailRollupItemService.findBy({
-        query: {
-          sentAt: QueryHelper.isNull(),
-          createdAt: QueryHelper.lessThanEqualTo(cutoff),
-        },
-        select: {
-          projectId: true,
-          userId: true,
-          toEmail: true,
-          createdAt: true,
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        limit: MAX_ITEMS_SCANNED_PER_TICK,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    /*
-     * Dedupe in JS, preserving first-seen order. The rows arrive oldest-first,
-     * so first-seen order IS oldest-bucket-first: the address that has been
-     * waiting longest is served first when the tick cannot serve everybody.
+     *
+     * IT PAGES, THOUGH, AND THAT IS NOT AN OPTIMISATION. One page of
+     * MAX_ITEMS_SCANNED_PER_TICK rows sorted oldest-first can be entirely one
+     * saturated recipient: a single (project, user, address) with more than
+     * that many pending items would fill the page by itself, and every OTHER
+     * tenant's due rollup would be invisible for as long as the saturation
+     * lasted - a fleet-wide stall caused by one project, in exactly the storm
+     * this feature exists for. Paging past a hog costs a few extra indexed
+     * reads in a case that should never happen, and buys the guarantee that it
+     * cannot starve anybody.
      */
     const seen: Set<string> = new Set<string>();
     const buckets: Array<RollupBucket> = [];
+    let itemsScanned: number = 0;
 
-    for (const item of due) {
-      if (!item.projectId || !item.userId || !item.toEmail) {
-        continue;
+    for (let page: number = 0; page < MAX_DISCOVERY_PAGES_PER_TICK; page++) {
+      const due: Array<UserNotificationEmailRollupItem> =
+        await UserNotificationEmailRollupItemService.findBy({
+          query: {
+            sentAt: QueryHelper.isNull(),
+            createdAt: QueryHelper.lessThanEqualTo(cutoff),
+          },
+          select: {
+            projectId: true,
+            userId: true,
+            toEmail: true,
+            createdAt: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+          limit: MAX_ITEMS_SCANNED_PER_TICK,
+          skip: page * MAX_ITEMS_SCANNED_PER_TICK,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      itemsScanned += due.length;
+
+      /*
+       * Dedupe in JS, preserving first-seen order. The rows arrive
+       * oldest-first, so first-seen order IS oldest-bucket-first: the address
+       * that has been waiting longest is served first when the tick cannot
+       * serve everybody.
+       */
+      for (const item of due) {
+        if (!item.projectId || !item.userId || !item.toEmail) {
+          continue;
+        }
+
+        const key: string = `${item.projectId.toString()}|${item.userId.toString()}|${item.toEmail.toString()}`;
+
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        buckets.push({
+          projectId: item.projectId,
+          userId: item.userId,
+          toEmail: item.toEmail,
+        });
       }
 
-      const key: string = `${item.projectId.toString()}|${item.userId.toString()}|${item.toEmail.toString()}`;
-
-      if (seen.has(key)) {
-        continue;
+      // A short page is the end of the pending set; there is nothing behind it.
+      if (due.length < MAX_ITEMS_SCANNED_PER_TICK) {
+        break;
       }
 
-      seen.add(key);
-      buckets.push({
-        projectId: item.projectId,
-        userId: item.userId,
-        toEmail: item.toEmail,
-      });
+      // Enough work for this tick. The rest keeps until the next one.
+      if (buckets.length >= MAX_BUCKETS_PER_TICK) {
+        break;
+      }
     }
 
     const bucketsThisTick: Array<RollupBucket> = buckets.slice(
@@ -258,7 +287,7 @@ export default class EmailRollupFlushRunner {
     const stats: RollupSweepStats = {
       now: now,
       cutoff: cutoff,
-      itemsScanned: due.length,
+      itemsScanned: itemsScanned,
       bucketsDue: buckets.length,
       bucketsProcessed: 0,
       sent: 0,
@@ -384,6 +413,77 @@ export default class EmailRollupFlushRunner {
     }
 
     /*
+     * EVERYTHING PAST THE CLAIM IS INSIDE THIS TRY, and that is the point of
+     * splitting the method here.
+     *
+     * Once the stamp lands, up to MAX_ITEMS_PER_ROLLUP notifications exist
+     * ONLY as an obligation to send this one email. If anything between the
+     * stamp and the send throws - the recipient re-validation, the project
+     * lookup, the dashboard URL, the renderer, a bug added here later - and
+     * the exception is merely logged by the sweep's per-bucket handler, those
+     * notifications are gone: stamped so nothing will ever pick them up again,
+     * with a batch row still saying Claimed and no trace of what happened.
+     * Recording Failed with the reason is the difference between a bounded,
+     * diagnosable loss and a silent one.
+     */
+    try {
+      return await EmailRollupFlushRunner.sendClaimedBatch(
+        bucket,
+        batchId,
+        now,
+      );
+    } catch (err) {
+      logger.error(err, {
+        projectId: bucket.projectId.toString(),
+        userId: bucket.userId.toString(),
+      });
+
+      try {
+        /*
+         * Counted rather than assumed zero. If the throw happened after the
+         * stamp, rows are already carrying this batch's id and the whole point
+         * of recording Failed is to say how many notifications went with it; a
+         * hard-coded 0 would make the ledger claim a loss of nothing. One
+         * extra query, only on the failure path.
+         */
+        const stampedCount: PositiveNumber =
+          await UserNotificationEmailRollupItemService.countBy({
+            query: {
+              rollupBatchId: batchId,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        await EmailRollupFlushRunner.finish({
+          batchId: batchId,
+          status: RollupBatchStatus.Failed,
+          itemCount: stampedCount.toNumber(),
+          now: now,
+          message: EmailRollupFlushRunner.describeError(err),
+        });
+      } catch (finishErr) {
+        // Nothing further to try; the batch row keeps its Claimed status.
+        logger.error(finishErr);
+      }
+
+      return RollupFlushOutcome.Failed;
+    }
+  }
+
+  /*
+   * The half of a flush that runs after the epoch has been claimed: stamp the
+   * oldest pending rows into this batch, render them, and send. Separated so
+   * every failure in it is caught and recorded against the batch rather than
+   * escaping to the sweep loop, where it would leave stamped-but-unsent rows.
+   */
+  private static async sendClaimedBatch(
+    bucket: RollupBucket,
+    batchId: ObjectID,
+    now: Date,
+  ): Promise<RollupFlushOutcome> {
+    /*
      * STAMP BEFORE SEND, and bounded.
      *
      * The alternative - send first, stamp after - means a permanently broken
@@ -399,13 +499,70 @@ export default class EmailRollupFlushRunner {
      * the bucket, including ones written seconds ago. Coalescing more is
      * strictly better for the recipient, and it can only ever make an item's
      * latency shorter than the schedule promised, never longer.
+     *
+     * THE OLDEST ROWS ARE SELECTED EXPLICITLY, AND THAT TAKES TWO STEPS.
+     * updateBy resolves the rows it will write with an internal _findBy that
+     * takes no sort from the caller (UpdateBy has no sort field) and therefore
+     * gets DatabaseService's default of createdAt DESCENDING. A bare
+     * `updateBy(..., limit: 500)` on an over-full bucket would consequently
+     * stamp the NEWEST five hundred and leave the oldest pending - a LIFO
+     * queue whose tail is never served, and whose tail is then hard-deleted
+     * unsent at ROLLUP_ITEM_RETENTION_DAYS. Selecting the ids oldest-first and
+     * updating exactly those makes the drain FIFO, which is the only ordering
+     * a notification queue may have.
      */
-    const stamped: number =
-      await UserNotificationEmailRollupItemService.updateBy({
+    const oldestPending: Array<UserNotificationEmailRollupItem> =
+      await UserNotificationEmailRollupItemService.findBy({
         query: {
           projectId: bucket.projectId,
           userId: bucket.userId,
           toEmail: bucket.toEmail,
+          sentAt: QueryHelper.isNull(),
+        },
+        select: {
+          _id: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: MAX_ITEMS_PER_ROLLUP,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const pendingIds: Array<ObjectID> = oldestPending
+      .map((item: UserNotificationEmailRollupItem): ObjectID | null => {
+        return item.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return id !== null;
+      });
+
+    if (pendingIds.length === 0) {
+      await EmailRollupFlushRunner.finish({
+        batchId: batchId,
+        status: RollupBatchStatus.Empty,
+        itemCount: 0,
+        now: now,
+      });
+      return RollupFlushOutcome.Empty;
+    }
+
+    const stamped: number =
+      await UserNotificationEmailRollupItemService.updateBy({
+        query: {
+          _id: QueryHelper.any(
+            pendingIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ),
+          /*
+           * Belt and braces with the id list: a row that somebody else stamped
+           * between the select above and this write must not be re-stamped
+           * into this batch, or it would appear in two rollups.
+           */
           sentAt: QueryHelper.isNull(),
         },
         data: {
@@ -566,17 +723,19 @@ export default class EmailRollupFlushRunner {
        * spans many resources, so there is no single incident, alert or monitor
        * it could honestly be correlated with.
        */
-      await MailService.sendMail(
-        {
-          toEmail: bucket.toEmail,
-          subject: built.subject,
-          templateType: EmailTemplateType.NotificationRollup,
-          vars: built.vars,
-        },
-        {
-          projectId: bucket.projectId,
-          userId: bucket.userId,
-        },
+      await EmailRollupFlushRunner.withSendTimeout(
+        MailService.sendMail(
+          {
+            toEmail: bucket.toEmail,
+            subject: built.subject,
+            templateType: EmailTemplateType.NotificationRollup,
+            vars: built.vars,
+          },
+          {
+            projectId: bucket.projectId,
+            userId: bucket.userId,
+          },
+        ),
       );
     } catch (err) {
       logger.error(err, {
@@ -659,5 +818,55 @@ export default class EmailRollupFlushRunner {
     }
 
     return "unknown error";
+  }
+
+  /*
+   * Rejects if the send has not settled within ROLLUP_SEND_TIMEOUT_MS. See
+   * that constant for why a hung send is worse here than anywhere else.
+   *
+   * The underlying request is NOT cancelled - nothing in the stack can cancel
+   * it - so the mail may still go out afterwards. That is the right trade: the
+   * cost of being wrong is one duplicate rollup for one recipient, and the
+   * cost of not doing it is every rollup on the install stopping forever. The
+   * batch is recorded Failed either way, so the duplicate is explicable.
+   *
+   * The timer is always cleared, including on the happy path, so a pending
+   * setTimeout can never hold the worker process open at shutdown.
+   */
+  private static async withSendTimeout(send: Promise<unknown>): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+    const timeout: Promise<never> = new Promise<never>(
+      (
+        _resolve: (value: never) => void,
+        reject: (err: Error) => void,
+      ): void => {
+        timer = setTimeout((): void => {
+          reject(
+            new Error(
+              `${ROLLUP_JOB_NAME}: the rollup send did not complete within ${ROLLUP_SEND_TIMEOUT_MS}ms.`,
+            ),
+          );
+        }, ROLLUP_SEND_TIMEOUT_MS);
+      },
+    );
+
+    try {
+      await Promise.race([send, timeout]);
+    } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+
+      /*
+       * Promise.race leaves the loser unhandled. When the timeout wins, the
+       * send is still in flight and will eventually settle; without this its
+       * rejection would surface as an unhandled rejection and, depending on
+       * the runtime's setting, take the worker down.
+       */
+      send.catch((err: unknown): void => {
+        logger.error(err);
+      });
+    }
   }
 }

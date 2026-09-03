@@ -311,24 +311,61 @@ describe("EmailRollupWriter.sendOrRollup", () => {
       );
     });
 
-    test("the window bound handed to countBy is now minus BURST_WINDOW_MINUTES", async () => {
+    test("the counter counts rows NEWER than now minus BURST_WINDOW_MINUTES, not older", async () => {
+      /*
+       * Both halves of this matter, and only one of them is a number.
+       *
+       * The BOUND is now minus ten minutes. The DIRECTION is what makes the
+       * bound mean anything: QueryHelper.greaterThan and QueryHelper.lessThan
+       * are the same call shape, take the same Date and produce the same
+       * objectLiteralParameters, so a test that reads only the bound stays
+       * green through the one-token swap that inverts the entire feature -
+       * `lessThan` would count everything OLDER than the window, so a genuine
+       * burst would never be detected and a recipient who had been quiet for
+       * an hour would be deferred forever.
+       *
+       * The only part of the returned FindOperator that distinguishes them is
+       * the SQL fragment its generator builds, so that is what is asserted.
+       */
       const before: number = Date.now();
 
       await EmailRollupWriter.sendOrRollup(sendData());
 
       const after: number = Date.now();
 
-      const rawParameters: Record<string, unknown> = (capturedCountBy().query
-        .createdAt.objectLiteralParameters ?? {}) as Record<string, unknown>;
-      const boundValues: Array<unknown> = Object.values(rawParameters);
-      expect(boundValues).toHaveLength(1);
+      const createdAt: FindOperator<Date> = capturedCountBy().query.createdAt;
 
-      const windowStart: Date = boundValues[0] as Date;
+      const rawParameters: Record<string, unknown> =
+        (createdAt.objectLiteralParameters ?? {}) as Record<string, unknown>;
+      const parameterNames: Array<string> = Object.keys(rawParameters);
+      expect(parameterNames).toHaveLength(1);
+
+      const parameterName: string = parameterNames[0] ?? "";
+      const windowStart: Date = rawParameters[parameterName] as Date;
       expect(windowStart).toBeInstanceOf(Date);
 
       const offsetMs: number = BURST_WINDOW_MINUTES * 60 * 1000;
       expect(windowStart.getTime()).toBeGreaterThanOrEqual(before - offsetMs);
       expect(windowStart.getTime()).toBeLessThanOrEqual(after - offsetMs);
+
+      const buildSql: ((alias: string) => string) | undefined =
+        createdAt.getSql;
+      expect(typeof buildSql).toBe("function");
+
+      const sql: string = (buildSql as (alias: string) => string)(
+        "createdAtColumn",
+      );
+
+      /*
+       * Anchored, and the parameter name is the one the bound above was read
+       * from, so this cannot pass on a fragment that compares some other
+       * column or some other value. `>=` is allowed because a half-open window
+       * is the same window; `<` in either position is not, and neither is the
+       * `or IS NULL` variant, which would make every never-created row count.
+       */
+      expect(sql).toMatch(
+        new RegExp(`^\\(createdAtColumn >=? :${parameterName}\\)$`),
+      );
     });
   });
 

@@ -349,12 +349,21 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
     "Choose which notifications you receive, or turn email off entirely, from your notification settings:";
 
   const rowsForTemplate: Array<JSONObject> = rows.map(
-    (row: RollupRow): JSONObject => {
+    (row: RollupRow, index: number): JSONObject => {
       return {
         title: row.title,
         link: row.link,
         hasLink: row.hasLink,
         updatesLabel: row.updatesLabel,
+        /*
+         * The zebra stripe is decided here, not in the template. Handlebars
+         * has @index, @first, @last and @key but NOT @odd or @even, and an
+         * unknown @-variable resolves to undefined rather than erroring - so
+         * `{{#if @odd}}` is silently always false and every row comes out the
+         * same colour. Emitting the colour as a plain string cannot rot that
+         * way, and it keeps the arithmetic in the language that has some.
+         */
+        rowBackground: index % 2 === 1 ? "#f0f3f9" : "#ffffff",
       };
     },
   );

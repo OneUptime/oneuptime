@@ -1,12 +1,17 @@
+import MailService from "../../../../Server/Services/MailService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import UserEmailService from "../../../../Server/Services/UserEmailService";
 import UserNotificationEmailRollupItemService from "../../../../Server/Services/UserNotificationEmailRollupItemService";
 import EmailRollupFlushRunner, {
   RollupSweepStats,
 } from "../../../../Server/Utils/EmailRollup/EmailRollupFlushRunner";
+import * as EmailRollupRenderer from "../../../../Server/Utils/EmailRollup/EmailRollupRenderer";
 import {
+  FLUSH_AFTER_MINUTES,
   MAX_BUCKETS_PER_TICK,
   MAX_ITEMS_PER_ROLLUP,
   MAX_ITEMS_SCANNED_PER_TICK,
+  ROLLUP_SEND_TIMEOUT_MS,
   ROLLUP_SWEEP_BUDGET_MS,
 } from "../../../../Server/Utils/EmailRollup/EmailRollupConstants";
 import { RollupBatchStatus } from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
@@ -21,6 +26,7 @@ import {
   HARNESS_DASHBOARD_URL,
   RollupHarness,
   SentRollupMail,
+  batchesOfStatus,
   emptyRollupHarness,
   installRollupHarness,
   pendingItems,
@@ -61,6 +67,27 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      Notification Logs. And a rollup spans many resources, so attaching any
  *      single incidentId / alertId / monitorId would be a lie recorded in the
  *      log.
+ *
+ *   6. THE DISCOVERY PREDICATES ARE THE SCHEDULE. "Five minutes late, at
+ *      most" is nothing but `createdAt <= now - FLUSH_AFTER_MINUTES`, and
+ *      "each row rides in exactly one rollup" is nothing but
+ *      `sentAt IS NULL`. Drop either and the feature still passes every test
+ *      about what an email CONTAINS while being a different feature.
+ *
+ *   7. THE DRAIN IS FIFO. updateBy resolves the rows it writes with an
+ *      internal find that defaults to createdAt DESCENDING, so an over-full
+ *      bucket stamped by a bare limited updateBy is a LIFO queue: its oldest
+ *      notifications are never sent and are hard-deleted unsent at
+ *      ROLLUP_ITEM_RETENTION_DAYS.
+ *
+ *   8. NOTHING BETWEEN THE STAMP AND THE SEND MAY THROW ITS WAY OUT. Past the
+ *      stamp, those rows exist only as an obligation to send this one email.
+ *      An escaping exception makes that obligation vanish with no trace but a
+ *      log line and a batch row still reading Claimed.
+ *
+ *   9. THE SEND CANNOT HANG. The sweep holds a Redis mutex whose lock
+ *      auto-refreshes while held, so one wedged HTTP POST would stop every
+ *      rollup on the install, on every replica, forever.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -87,6 +114,11 @@ describe("EmailRollupFlushRunner - one flush", () => {
   });
 
   afterEach(() => {
+    /*
+     * Unconditional: only the send-timeout tests install fake timers, and
+     * leaving them installed would make every later suite's setTimeout hang.
+     */
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -211,8 +243,10 @@ describe("EmailRollupFlushRunner - one flush", () => {
       seedDue({ minutesAgo: 12 });
       seedDue({ minutesAgo: 11 });
 
+      const boom: Error = new Error("SMTP connection refused");
+
       harness.failSend = (): Error => {
-        return new Error("SMTP connection refused");
+        return boom;
       };
 
       const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
@@ -230,7 +264,15 @@ describe("EmailRollupFlushRunner - one flush", () => {
       expect(batch.itemCount).toBe(2);
       expect(batch.sentAt).toBeNull();
       expect(batch.statusMessage).toBe("SMTP connection refused");
-      expect(harness.errors).toHaveLength(1);
+
+      /*
+       * Logged TWICE, and both are wanted. The first is the flush recording
+       * why this batch failed. The second is the guard withSendTimeout
+       * attaches to the losing side of its Promise.race: the send's rejection
+       * is still unhandled once the race has settled, and an unhandled
+       * rejection can take the worker down.
+       */
+      expect(harness.errors).toEqual([boom, boom]);
     });
 
     test("a hostile error message is truncated to the statusMessage column length", async () => {
@@ -491,7 +533,7 @@ describe("EmailRollupFlushRunner - one flush", () => {
       expect(harness.warnings.join(" ")).toContain("budget exhausted");
     });
 
-    test("one bucket throwing does not stop the others", async () => {
+    test("a claim that fails for a reason that is not a duplicate does not stop the others", async () => {
       const secondUser: ObjectID = new ObjectID("second-user");
       const secondEmail: Email = new Email("second@example.com");
 
@@ -504,13 +546,18 @@ describe("EmailRollupFlushRunner - one flush", () => {
       seedDue({ minutesAgo: 30 });
       seedDue({ minutesAgo: 12, userId: secondUser, toEmail: secondEmail });
 
-      const boom: Error = new Error("project read timed out");
+      const boom: Error = new Error("claim insert deadlocked");
+      let claims: number = 0;
 
-      jest
-        .spyOn(ProjectService, "findOneById")
-        .mockImplementationOnce((): never => {
-          throw boom;
-        });
+      /*
+       * BEFORE the claim, so nothing has been stamped: this is the one class
+       * of per-bucket failure that legitimately escapes to the sweep's own
+       * handler, and the point here is that it costs exactly one bucket.
+       */
+      harness.failBatchCreate = (): Error | null => {
+        claims = claims + 1;
+        return claims === 1 ? boom : null;
+      };
 
       const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
         now: NOW,
@@ -520,6 +567,8 @@ describe("EmailRollupFlushRunner - one flush", () => {
       expect(harness.errors).toEqual([boom]);
       expect(harness.sent).toHaveLength(1);
       expect(harness.sent[0]!.toEmail).toBe(secondEmail.toString());
+      // Untouched, so the next tick can try again.
+      expect(pendingItems(harness)).toHaveLength(1);
     });
   });
 
@@ -547,6 +596,501 @@ describe("EmailRollupFlushRunner - one flush", () => {
       expect(Object.keys(options).sort()).toEqual(["projectId", "userId"]);
       expect(String(options["projectId"])).toBe(PROJECT_ID.toString());
       expect(String(options["userId"])).toBe(USER_ID.toString());
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (F) What discovery considers due.
+   *
+   * The two predicates in the discovery query ARE the schedule and the
+   * exactly-once promise, and neither is visible in any assertion about what
+   * an email contains. Delete `createdAt <= cutoff` and every deferred owner
+   * email goes out on the next minute's tick instead of after five, which
+   * defeats the coalescing the feature exists for - a burst of five would
+   * become one immediate email plus one a minute later, then another, then
+   * another. Delete `sentAt IS NULL` and every address that has EVER been
+   * rolled up looks permanently due, burning a claim every epoch forever.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("what discovery considers due", () => {
+    test("a bucket whose only pending item is seconds old is left alone this tick", async () => {
+      seedItem(harness, {
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        toEmail: TO_EMAIL,
+        createdAt: new Date(NOW.getTime() - 30 * 1000),
+        subject: "arrived thirty seconds ago",
+      });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expect(stats.itemsScanned).toBe(0);
+      expect(stats.bucketsDue).toBe(0);
+
+      /*
+       * Not merely "no email was sent": NO CLAIM MAY BE MINTED EITHER. A claim
+       * consumes this address's epoch under the batch table's unique index, so
+       * a bucket picked up too early would also lock out the legitimate flush
+       * that comes due later inside the same five minutes.
+       */
+      expect(harness.batchCreateCalls).toBe(0);
+      expect(harness.batches).toHaveLength(0);
+      expect(harness.sendAttempts).toHaveLength(0);
+      expect(pendingItems(harness)).toHaveLength(1);
+    });
+
+    test("the cutoff is inclusive: exactly FLUSH_AFTER_MINUTES old is due, one second short is not", async () => {
+      const cutoff: Date = OneUptimeDate.addRemoveMinutes(
+        NOW,
+        FLUSH_AFTER_MINUTES * -1,
+      );
+
+      const dueUser: ObjectID = new ObjectID("cutoff-due-user");
+      const dueEmail: Email = new Email("due@example.com");
+      const youngUser: ObjectID = new ObjectID("cutoff-young-user");
+      const youngEmail: Email = new Email("young@example.com");
+
+      for (const pair of [
+        { userId: dueUser, email: dueEmail },
+        { userId: youngUser, email: youngEmail },
+      ]) {
+        seedVerifiedEmail(harness, {
+          projectId: PROJECT_ID,
+          userId: pair.userId,
+          email: pair.email,
+        });
+      }
+
+      seedItem(harness, {
+        projectId: PROJECT_ID,
+        userId: dueUser,
+        toEmail: dueEmail,
+        createdAt: cutoff,
+        subject: "exactly five minutes old",
+      });
+
+      seedItem(harness, {
+        projectId: PROJECT_ID,
+        userId: youngUser,
+        toEmail: youngEmail,
+        createdAt: new Date(cutoff.getTime() + 1000),
+        subject: "one second short of due",
+      });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      // The cutoff is now minus FLUSH_AFTER_MINUTES, not plus, and not zero.
+      expect(stats.cutoff.getTime()).toBe(cutoff.getTime());
+      expect(stats.itemsScanned).toBe(1);
+      expect(stats.bucketsDue).toBe(1);
+      expect(
+        harness.sent.map((mail: SentRollupMail): string => {
+          return mail.toEmail;
+        }),
+      ).toEqual([dueEmail.toString()]);
+      expect(
+        pendingItems(harness).map((row: FakeItemRow): string => {
+          return row.subject;
+        }),
+      ).toEqual(["one second short of due"]);
+    });
+
+    test("an already-stamped row does not make its bucket look due", async () => {
+      const earlierBatchId: ObjectID = new ObjectID("earlier-batch");
+
+      /*
+       * Old enough to be due on age alone; already carried by a rollup that
+       * went out fifteen minutes ago.
+       */
+      seedItem(harness, {
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        toEmail: TO_EMAIL,
+        createdAt: OneUptimeDate.addRemoveMinutes(NOW, -20),
+        subject: "already sent in an earlier rollup",
+        sentAt: OneUptimeDate.addRemoveMinutes(NOW, -15),
+        rollupBatchId: earlierBatchId,
+      });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expect(stats.itemsScanned).toBe(0);
+      expect(stats.bucketsDue).toBe(0);
+      expect(harness.batchCreateCalls).toBe(0);
+      expect(harness.batches).toHaveLength(0);
+      expect(harness.sendAttempts).toHaveLength(0);
+      // Still pointing at the batch that actually carried it.
+      expect(harness.items[0]!.rollupBatchId).toBe(earlierBatchId);
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (G) The drain is FIFO.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("an over-full bucket", () => {
+    test("drains oldest-first: the oldest MAX_ITEMS_PER_ROLLUP are sent and the newest are the ones left waiting", async () => {
+      const overflow: number = 3;
+      const total: number = MAX_ITEMS_PER_ROLLUP + overflow;
+
+      /*
+       * A distinct deep link per item so the renderer folds nothing: every
+       * item is its own row, which makes the rendered table a direct readout
+       * of which items this batch claimed.
+       */
+      for (let index: number = 0; index < total; index++) {
+        seedDue({
+          minutesAgo: total - index,
+          subject: `Incident ${index}`,
+          viewLink: `https://oneuptime.example.com/incident/${index}`,
+        });
+      }
+
+      await EmailRollupFlushRunner.runSweep({ now: NOW });
+
+      expect(harness.sent).toHaveLength(1);
+      expect(harness.batches[0]!.itemCount).toBe(MAX_ITEMS_PER_ROLLUP);
+      expect(
+        harness.items.filter((row: FakeItemRow): boolean => {
+          return row.sentAt !== null;
+        }),
+      ).toHaveLength(MAX_ITEMS_PER_ROLLUP);
+
+      const expectedPending: Array<string> = [];
+
+      for (let index: number = MAX_ITEMS_PER_ROLLUP; index < total; index++) {
+        expectedPending.push(`Incident ${index}`);
+      }
+
+      /*
+       * THE WHOLE POINT. updateBy resolves the rows it writes with an internal
+       * find that takes no sort from the caller and therefore defaults to
+       * createdAt DESCENDING, so a bare `updateBy(..., limit: 500)` here would
+       * stamp the NEWEST five hundred and leave THESE three - the oldest - to
+       * wait behind every future arrival, until retention hard-deletes them
+       * unsent. The flush selects the oldest ids explicitly to stop that.
+       */
+      expect(
+        pendingItems(harness).map((row: FakeItemRow): string => {
+          return row.subject;
+        }),
+      ).toEqual(expectedPending);
+
+      const rows: Array<Record<string, unknown>> = harness.sent[0]!.vars[
+        "rows"
+      ] as unknown as Array<Record<string, unknown>>;
+      const titles: Array<string> = rows.map(
+        (row: Record<string, unknown>): string => {
+          return String(row["title"]);
+        },
+      );
+
+      /*
+       * The renderer lists the newest rows first, so the email's lead row is
+       * the newest item INSIDE the claimed window - and nothing from outside
+       * it appears anywhere in the message.
+       */
+      expect(titles[0]).toBe(`Incident ${MAX_ITEMS_PER_ROLLUP - 1}`);
+
+      for (const subject of expectedPending) {
+        expect(titles).not.toContain(subject);
+      }
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (H) A throw between the stamp and the send.
+   *
+   * Past the stamp, up to MAX_ITEMS_PER_ROLLUP notifications exist ONLY as an
+   * obligation to send this one email. Every one of the three collaborators
+   * below sits in that window. If one of them throws and the exception merely
+   * escapes to the sweep's per-bucket handler, those notifications are gone:
+   * stamped, so nothing will ever pick them up again, with a batch row still
+   * saying Claimed and nothing anywhere saying what happened.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("a throw between the stamp and the send", () => {
+    function expectTheBatchRecordedTheFailure(data: {
+      stats: RollupSweepStats;
+      reason: string;
+    }): void {
+      // Recorded and counted, not rethrown.
+      expect(data.stats.failed).toBe(1);
+      expect(data.stats.errors).toBe(0);
+      expect(data.stats.bucketsProcessed).toBe(1);
+      expect(harness.sendAttempts).toHaveLength(0);
+
+      const batch: FakeBatchRow = harness.batches[0]!;
+
+      expect(batch.status).toBe(RollupBatchStatus.Failed);
+      expect(batch.sentAt).toBeNull();
+      expect(batch.statusMessage).toBe(data.reason);
+      expect((batch.statusMessage ?? "").length).toBeGreaterThan(0);
+
+      /*
+       * The rows stay stamped into THIS batch. Un-stamping them looks kinder
+       * and is the trap: the same failure recurs every epoch and the pile
+       * grows, which is the storm the whole feature exists to stop. The loss
+       * is bounded, attributed to a batch id, and explained.
+       */
+      expect(pendingItems(harness)).toHaveLength(0);
+      expect(
+        harness.items.every((row: FakeItemRow): boolean => {
+          return row.rollupBatchId?.toString() === batch.id.toString();
+        }),
+      ).toBe(true);
+    }
+
+    test("the recipient re-validation throwing is recorded on the batch", async () => {
+      seedDue({ minutesAgo: 12 });
+      seedDue({ minutesAgo: 11 });
+
+      jest.spyOn(UserEmailService, "findBy").mockImplementation((): never => {
+        throw new Error("user email read timed out");
+      });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expectTheBatchRecordedTheFailure({
+        stats: stats,
+        reason: "user email read timed out",
+      });
+    });
+
+    test("the project lookup throwing is recorded on the batch", async () => {
+      seedDue({ minutesAgo: 12 });
+      seedDue({ minutesAgo: 11 });
+
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((): never => {
+          throw new Error("project read timed out");
+        });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expectTheBatchRecordedTheFailure({
+        stats: stats,
+        reason: "project read timed out",
+      });
+    });
+
+    test("the renderer throwing is recorded on the batch", async () => {
+      seedDue({ minutesAgo: 12 });
+      seedDue({ minutesAgo: 11 });
+
+      /*
+       * A renderer that throws on some row shape nobody anticipated is the
+       * most likely of the three to be introduced by a later edit, and it is
+       * the one furthest from anything the flush itself owns.
+       */
+      jest
+        .spyOn(EmailRollupRenderer, "buildRollupEmail")
+        .mockImplementation((): never => {
+          throw new Error("cannot read properties of undefined");
+        });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expectTheBatchRecordedTheFailure({
+        stats: stats,
+        reason: "cannot read properties of undefined",
+      });
+    });
+
+    test("the other buckets on the same tick still get their rollup", async () => {
+      const secondUser: ObjectID = new ObjectID("survivor-user");
+      const secondEmail: Email = new Email("survivor@example.com");
+
+      seedVerifiedEmail(harness, {
+        projectId: PROJECT_ID,
+        userId: secondUser,
+        email: secondEmail,
+      });
+
+      // The older bucket is served first, so it is the one that fails.
+      seedDue({ minutesAgo: 30 });
+      seedDue({ minutesAgo: 12, userId: secondUser, toEmail: secondEmail });
+
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementationOnce((): never => {
+          throw new Error("project read timed out");
+        });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expect(stats.failed).toBe(1);
+      expect(stats.sent).toBe(1);
+      expect(stats.errors).toBe(0);
+      expect(stats.bucketsProcessed).toBe(2);
+      expect(harness.sent).toHaveLength(1);
+      expect(harness.sent[0]!.toEmail).toBe(secondEmail.toString());
+      expect(batchesOfStatus(harness, RollupBatchStatus.Failed)).toHaveLength(
+        1,
+      );
+      expect(batchesOfStatus(harness, RollupBatchStatus.Sent)).toHaveLength(1);
+    });
+
+    test("the failed bucket's rows are not resurrected by a later tick", async () => {
+      seedDue({ minutesAgo: 12 });
+      seedDue({ minutesAgo: 11 });
+
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementationOnce((): never => {
+          throw new Error("project read timed out");
+        });
+
+      await EmailRollupFlushRunner.runSweep({ now: NOW });
+
+      /*
+       * The project reads fine again, and the epoch has moved on, so nothing
+       * but the stamp is stopping a second rollup of the same notifications.
+       */
+      const later: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: OneUptimeDate.addRemoveMinutes(NOW, 6),
+      });
+
+      expect(later.bucketsDue).toBe(0);
+      expect(harness.sendAttempts).toHaveLength(0);
+      expect(harness.batches).toHaveLength(1);
+      expect(harness.batches[0]!.status).toBe(RollupBatchStatus.Failed);
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (I) The send cannot hang.
+   *
+   * MailService.sendMail is an HTTP POST to the notification service with no
+   * timeout of its own, and the sweep holds a Redis mutex whose lock is
+   * AUTO-REFRESHED while it is held. One wedged send would therefore stop
+   * every replica from flushing any recipient's rollup, indefinitely, while
+   * the queue behind it grew and its oldest rows aged out of retention unsent.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("the send timeout", () => {
+    function fakeOnlyTheSendTimer(): void {
+      /*
+       * setTimeout / clearTimeout and nothing else. Date stays real because
+       * the harness spies Date.now to drive the sweep's wall-clock budget, and
+       * nextTick / queueMicrotask stay real so awaiting the sweep still makes
+       * progress while the clock is frozen.
+       */
+      jest.useFakeTimers({
+        doNotFake: [
+          "Date",
+          "hrtime",
+          "nextTick",
+          "performance",
+          "queueMicrotask",
+          "requestAnimationFrame",
+          "cancelAnimationFrame",
+          "requestIdleCallback",
+          "cancelIdleCallback",
+          "setImmediate",
+          "clearImmediate",
+        ],
+      });
+    }
+
+    test("a send that never settles ends the batch Failed and lets the sweep return", async () => {
+      fakeOnlyTheSendTimer();
+
+      seedDue({ minutesAgo: 12 });
+      seedDue({ minutesAgo: 11 });
+
+      const sendMail: jest.SpyInstance = jest
+        .spyOn(MailService, "sendMail")
+        .mockImplementation(((): Promise<void> => {
+          return new Promise<void>((): void => {
+            // Wedged: the socket was accepted and nothing ever came back.
+          });
+        }) as never);
+
+      const sweep: Promise<RollupSweepStats> = EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      // Let the sweep run as far as arming the timeout, and no further.
+      for (
+        let turn: number = 0;
+        turn < 200 && jest.getTimerCount() === 0;
+        turn++
+      ) {
+        await Promise.resolve();
+      }
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(1);
+
+      jest.advanceTimersByTime(ROLLUP_SEND_TIMEOUT_MS);
+
+      // Returns at all - this is the assertion the whole timeout exists for.
+      const stats: RollupSweepStats = await sweep;
+
+      expect(stats.failed).toBe(1);
+      expect(stats.errors).toBe(0);
+
+      const batch: FakeBatchRow = harness.batches[0]!;
+
+      expect(batch.status).toBe(RollupBatchStatus.Failed);
+      expect(batch.sentAt).toBeNull();
+      expect(batch.itemCount).toBe(2);
+      expect(batch.statusMessage).toContain(
+        `did not complete within ${ROLLUP_SEND_TIMEOUT_MS}ms`,
+      );
+
+      /*
+       * Stamped, so if the wedged request does eventually deliver, the worst
+       * case is one duplicate for one recipient rather than a second rollup
+       * built from the same rows next epoch.
+       */
+      expect(pendingItems(harness)).toHaveLength(0);
+
+      // Nothing left armed, even though the send itself is still out there.
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test("a normal send leaves no timer armed behind it", async () => {
+      fakeOnlyTheSendTimer();
+
+      seedDue({ minutesAgo: 12 });
+
+      const stats: RollupSweepStats = await EmailRollupFlushRunner.runSweep({
+        now: NOW,
+      });
+
+      expect(stats.sent).toBe(1);
+
+      /*
+       * The timeout is cleared in a finally, on the happy path too. One leaked
+       * sixty-second timer per rollup would hold the worker's event loop open
+       * at shutdown for as long as the last flush was ago.
+       */
+      expect(jest.getTimerCount()).toBe(0);
     });
   });
 });

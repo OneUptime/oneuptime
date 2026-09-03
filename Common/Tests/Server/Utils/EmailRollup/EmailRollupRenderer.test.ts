@@ -34,6 +34,9 @@ import { describe, expect, test } from "@jest/globals";
  *  - Leave the Handlebars braces in the subject and MailService, which
  *    compiles the subject as a template, substitutes an incident title away
  *    to an empty string on its way to the inbox.
+ *  - Stop alternating rowBackground and a hundred-row table is one flat wall
+ *    of white, which is how it actually shipped: the template asked for
+ *    {{#if @odd}}, a data variable Handlebars does not define.
  *
  * Pure and synchronous: no database, no clock, no mocks.
  */
@@ -529,8 +532,36 @@ describe("buildRollupEmail subject grammar", () => {
 });
 
 describe("buildRollupEmail escaping contract", () => {
-  const hostileSubject: string = "<script>alert(1)</script>";
-  const hostileProject: string = "<script>alert('project')</script>";
+  /*
+   * The fixture carries EVERY character escapeHtml touches - & < > " and ' -
+   * on purpose. A fixture built only from <script>alert(1)</script> exercises
+   * two of the five, and, worse, a fixture with no escapable character at all
+   * makes the whole contract untestable: raw and pre-escaped are then the
+   * same bytes, so a test written against it passes whichever way round the
+   * two are wired. Both halves of the contract are asserted here, because
+   * both halves fail silently in production:
+   *
+   *   raw value in a triple stache  -> live markup in a mail client
+   *   pre-escaped value in a double -> the recipient reads "&amp;lt;"
+   *
+   * `&` in a project name is the common case (Marks & Spencer), and `"` in a
+   * title is the common case for a monitor named after a quoted hostname.
+   */
+  const hostileProject: string = "A&B <\"Corp\"> 'Ltd'";
+  const hostileSubject: string =
+    "Disk \"sda1\" > 90% & <b>hot</b> at 'eu-west'";
+
+  /* What escapeHtml makes of hostileProject. Escaped once, never twice. */
+  const projectEscapedOnce: string =
+    "A&amp;B &lt;&quot;Corp&quot;&gt; &#39;Ltd&#39;";
+
+  /*
+   * An `&` that does not open one of the five entities escapeHtml produces.
+   * A pre-escaped var containing one was escaped too few times - which is
+   * exactly what dropping the `&` replace from escapeHtml would do, while
+   * leaving every angle bracket looking correct.
+   */
+  const unescapedAmpersand: RegExp = /&(?!(?:amp|lt|gt|quot|#39);)/;
 
   type HostileEmailFunction = () => RollupEmail;
 
@@ -548,26 +579,51 @@ describe("buildRollupEmail escaping contract", () => {
     );
   };
 
-  test("a row title stays RAW - Handlebars escapes it at render time", () => {
-    const rows: Array<JSONObject> = varRows(hostileEmail());
+  test("a var the template feeds to a DOUBLE stache arrives RAW, byte for byte", () => {
+    const email: RollupEmail = hostileEmail();
+    const rows: Array<JSONObject> = varRows(email);
 
+    /* rollupTitle -> {{> EmailTitle title=... }} -> {{title}} */
+    expect(varString(email, "rollupTitle")).toBe(
+      `2 notifications from ${hostileProject}`,
+    );
+
+    /* rows[].title -> {{this.title}} in this template's own table. */
     expect(rowField(rows[1]!, "title")).toBe(hostileSubject);
+
+    /*
+     * Not one of the five has become an entity yet: Handlebars has not run,
+     * and when it does it must be the FIRST and only pass over these bytes.
+     */
+    expect(varString(email, "rollupTitle")).not.toContain("&amp;");
+    expect(varString(email, "rollupTitle")).not.toContain("&lt;");
+    expect(rowField(rows[1]!, "title")).not.toContain("&quot;");
+    expect(rowField(rows[1]!, "title")).not.toContain("&#39;");
   });
 
-  test("no pre-escaped var ever carries a raw angle bracket", () => {
+  test("a var the template feeds to a TRIPLE stache arrives PRE-ESCAPED, exactly once", () => {
     const email: RollupEmail = hostileEmail();
 
+    /* rollupIntroHtml -> {{> InfoBlock info=... }} -> {{{info}}} */
+    expect(varString(email, "rollupIntroHtml")).toContain(projectEscapedOnce);
+
     for (const name of HTML_VAR_NAMES) {
-      expect(varString(email, name)).not.toContain("<");
-      expect(varString(email, name)).not.toContain(">");
+      const value: string = varString(email, name);
+
+      /* Escaped at least once: nothing a triple stache would render live. */
+      expect(value).not.toContain("<");
+      expect(value).not.toContain(">");
+      expect(value).not.toContain('"');
+      expect(value).not.toContain("'");
+      expect(value).not.toMatch(unescapedAmpersand);
+
+      /* And at most once: escaped twice reads as literal "&amp;lt;". */
+      expect(value).not.toContain("&amp;amp;");
+      expect(value).not.toContain("&amp;lt;");
+      expect(value).not.toContain("&amp;gt;");
+      expect(value).not.toContain("&amp;quot;");
+      expect(value).not.toContain("&amp;#39;");
     }
-  });
-
-  test("a hostile project name reaches the intro escaped, not stripped", () => {
-    const intro: string = varString(hostileEmail(), "rollupIntroHtml");
-
-    expect(intro).toContain("&lt;script&gt;");
-    expect(intro).toContain("&#39;project&#39;");
   });
 
   test("the raw links are passed through untouched for their href attributes", () => {
@@ -580,9 +636,73 @@ describe("buildRollupEmail escaping contract", () => {
       "https://oneuptime.example.com/dashboard/p1/user-settings/notification-settings",
     );
   });
+});
 
-  test("the title the reader sees is raw, because EmailTitle escapes it", () => {
-    expect(varString(hostileEmail(), "rollupTitle")).toContain("<script>");
+describe("buildRollupEmail zebra striping", () => {
+  /*
+   * The template used to decide the stripe itself, with {{#if @odd}}.
+   * Handlebars defines @index, @first, @last, @key, @root and @level - and
+   * NOT @odd - and an unknown @-variable resolves to undefined instead of
+   * erroring, so that condition was false on every single row and the table
+   * rendered flat white. Nothing failed, nothing logged, and no test noticed.
+   *
+   * The colour is a builder field now, and these are the assertions that
+   * would have caught it: the sequence itself, pinned per index.
+   */
+  type StripedEmailFunction = (rowCount: number) => RollupEmail;
+
+  const stripedEmail: StripedEmailFunction = (
+    rowCount: number,
+  ): RollupEmail => {
+    const items: Array<UserNotificationEmailRollupItem> = [];
+
+    for (let index: number = 0; index < rowCount; index++) {
+      items.push(
+        makeItem({
+          createdAt: at(index * 60),
+          subject: `Event ${index}`,
+          viewLink: `https://oneuptime.example.com/dashboard/p1/r/${index}`,
+        }),
+      );
+    }
+
+    return build(items);
+  };
+
+  type BackgroundsFunction = (email: RollupEmail) => Array<string>;
+
+  const backgrounds: BackgroundsFunction = (
+    email: RollupEmail,
+  ): Array<string> => {
+    return varRows(email).map((row: JSONObject): string => {
+      return rowField(row, "rowBackground");
+    });
+  };
+
+  test("row backgrounds alternate, starting white on the first row", () => {
+    expect(backgrounds(stripedEmail(5))).toEqual([
+      "#ffffff",
+      "#f0f3f9",
+      "#ffffff",
+      "#f0f3f9",
+      "#ffffff",
+    ]);
+  });
+
+  test("a one-row rollup is white, never the stripe colour", () => {
+    expect(backgrounds(stripedEmail(1))).toEqual(["#ffffff"]);
+  });
+
+  test("every rendered row carries a colour and no two neighbours share one", () => {
+    const colours: Array<string> = backgrounds(
+      stripedEmail(MAX_ROWS_IN_ROLLUP + 20),
+    );
+
+    expect(colours).toHaveLength(MAX_ROWS_IN_ROLLUP);
+
+    for (let index: number = 1; index < colours.length; index++) {
+      expect(colours[index]!).not.toBe(colours[index - 1]!);
+    }
   });
 });
 
@@ -637,7 +757,7 @@ describe("buildRollupEmail singular and plural copy", () => {
 });
 
 describe("buildRollupEmail variable set", () => {
-  test("every variable the template needs is present, and rows carry exactly four fields", () => {
+  test("every variable the template needs is present, and rows carry exactly five fields", () => {
     const email: RollupEmail = build([
       makeItem({
         createdAt: at(0),
@@ -660,8 +780,14 @@ describe("buildRollupEmail variable set", () => {
       ].sort(),
     );
 
+    /*
+     * Exactly these, no more: a row field the template reads and the builder
+     * does not set renders as the empty string, and rowBackground lives
+     * inside a style attribute, where empty means `background-color: ;` and a
+     * mail client throws the whole declaration away.
+     */
     expect(Object.keys(varRows(email)[0]!).sort()).toEqual(
-      ["hasLink", "link", "title", "updatesLabel"].sort(),
+      ["hasLink", "link", "rowBackground", "title", "updatesLabel"].sort(),
     );
   });
 

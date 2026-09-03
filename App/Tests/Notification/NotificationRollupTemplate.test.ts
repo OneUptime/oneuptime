@@ -30,11 +30,16 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  *     five arguments on one line and nine on another). Every composed string
  *     in this email is therefore built in TypeScript, and the assertion here
  *     is that the template contains no concat call AT ALL.
- *  2. Put a raw value in a triple stache. InfoBlock renders {{{info}}} and
- *     TitleBlock renders {{{title}}} unescaped, so only pre-escaped ...Html
- *     vars may reach them.
- *  3. Read a variable the builder does not set. An unset variable renders as
- *     the empty string, which is how a headline silently disappears.
+ *  2. Put a raw value in a triple stache, or a pre-escaped one in a double.
+ *     InfoBlock renders {{{info}}} and TitleBlock renders {{{title}}}
+ *     unescaped, so only pre-escaped ...Html vars may reach them; EmailTitle
+ *     renders {{title}} escaped, so only raw vars may reach that. Both
+ *     mistakes are silent, and the fixture below therefore carries every
+ *     character escaping touches - a fixture without one cannot tell the two
+ *     wirings apart at all.
+ *  3. Read a variable the builder does not set - top level OR inside a row.
+ *     An unset variable renders as the empty string, which is how a headline
+ *     silently disappears and how `background-color: ;` gets shipped.
  */
 
 const TEMPLATES_DIR: string = Path.resolve(
@@ -113,13 +118,15 @@ const MONITOR_LINK: string =
 
 type BuildFunction = (
   items: Array<UserNotificationEmailRollupItem>,
+  projectName?: string,
 ) => RollupEmail;
 
 const build: BuildFunction = (
   items: Array<UserNotificationEmailRollupItem>,
+  projectName: string = "Acme",
 ): RollupEmail => {
   return buildRollupEmail({
-    projectName: "Acme",
+    projectName: projectName,
     projectHomeLink: PROJECT_HOME_LINK,
     preferencesLink: PREFERENCES_LINK,
     items: items,
@@ -154,15 +161,62 @@ const standardEmail: StandardEmailFunction = (): RollupEmail => {
   ]);
 };
 
+type ZebraEmailFunction = (rowCount: number) => RollupEmail;
+
+/*
+ * One item per row, each with its own link so nothing folds. Five rows is the
+ * smallest count that distinguishes "alternating" from "only the second row
+ * is striped" and from "only the last row is striped".
+ */
+const zebraEmail: ZebraEmailFunction = (rowCount: number): RollupEmail => {
+  const items: Array<UserNotificationEmailRollupItem> = [];
+
+  for (let index: number = 0; index < rowCount; index++) {
+    items.push(
+      makeItem({
+        offsetSeconds: index * 60,
+        subject: `Event ${index}`,
+        viewLink: `https://oneuptime.example.com/dashboard/6560/r/${index}`,
+      }),
+    );
+  }
+
+  return build(items);
+};
+
+type RenderedRowBackgroundsFunction = (html: string) => Array<string>;
+
+/*
+ * The colour of every body row, in render order. Reads the attribute the
+ * template actually emits rather than searching for the two hex strings, so
+ * a row whose colour came out EMPTY - the shape of the bug this replaces -
+ * is captured as "" and fails a comparison instead of being invisible.
+ */
+const renderedRowBackgrounds: RenderedRowBackgroundsFunction = (
+  html: string,
+): Array<string> => {
+  const found: Array<string> = [];
+
+  for (const match of html.matchAll(
+    /<tr style="background-color: ([^;"]*);">/g,
+  )) {
+    found.push(match[1]!);
+  }
+
+  return found;
+};
+
 /*
  * Every variable a template reads, split by scope.
  *
  * Lifted from OnCallShiftReminderTemplates.test.ts, with three additions this
  * template needs and that one did not: block helpers other than {{#if}}
- * ({{#each rows}} and {{#ifCond a "b"}}), Handlebars data variables (@odd,
- * which no builder sets and no builder should), and `this.`-scoped paths,
- * which are fields of a row rather than top-level vars and are collected
- * separately so both halves can be pinned against the builder's output.
+ * ({{#each rows}} and {{#ifCond a "b"}}), Handlebars data variables (@index
+ * and friends, which no builder sets and which this template is separately
+ * forbidden from using at all), and `this.`-scoped paths, which are fields of
+ * a row rather than top-level vars and are collected separately so BOTH
+ * halves can be pinned against the builder's output. A row field is the half
+ * that was missing when the zebra stripe rotted.
  */
 interface TemplateVariableReferences {
   topLevel: Set<string>;
@@ -409,6 +463,102 @@ describe("NotificationRollup.hbs rendered with the builder's own vars", () => {
 });
 
 describe("NotificationRollup.hbs escaping", () => {
+  /*
+   * Every character escaping touches - & < > " and ' - in both a project name
+   * and a row title, because a fixture missing them cannot distinguish the
+   * two wirings: with nothing to escape, "raw" and "pre-escaped" are the same
+   * bytes and every assertion about them holds either way round.
+   */
+  const HOSTILE_PROJECT: string = "A&B <\"Corp\"> 'Ltd'";
+  const HOSTILE_SUBJECT: string =
+    "Disk \"sda1\" > 90% & <b>hot</b> at 'eu-west'";
+
+  /*
+   * The same project name, escaped ONCE, by each of the two escapers. They
+   * differ only on the apostrophe, and that single difference is what lets
+   * one assertion name the headline and another name the intro:
+   *
+   *   escapeHtml (TypeScript, for triple staches) -> &#39;
+   *   Handlebars.escapeExpression (double staches) -> &#x27;
+   */
+  const PROJECT_ESCAPED_BY_BUILDER: string =
+    "A&amp;B &lt;&quot;Corp&quot;&gt; &#39;Ltd&#39;";
+  const PROJECT_ESCAPED_BY_HANDLEBARS: string =
+    "A&amp;B &lt;&quot;Corp&quot;&gt; &#x27;Ltd&#x27;";
+  const SUBJECT_ESCAPED_BY_HANDLEBARS: string =
+    "Disk &quot;sda1&quot; &gt; 90% &amp; &lt;b&gt;hot&lt;/b&gt; at &#x27;eu-west&#x27;";
+
+  type HostileHtmlFunction = () => string;
+
+  const hostileHtml: HostileHtmlFunction = (): string => {
+    return render(
+      EmailTemplateType.NotificationRollup,
+      build(
+        [
+          makeItem({
+            offsetSeconds: 0,
+            subject: HOSTILE_SUBJECT,
+            viewLink: INCIDENT_LINK,
+          }),
+          makeItem({ offsetSeconds: 60, subject: "Something ordinary" }),
+        ],
+        HOSTILE_PROJECT,
+      ).vars,
+    );
+  };
+
+  test("a var the template feeds to a DOUBLE stache arrives RAW and is escaped once here", () => {
+    const html: string = hostileHtml();
+
+    /*
+     * rollupTitle reaches EmailTitle's {{title}} and rows[].title reaches
+     * {{this.title}}. Both must be raw in the vars, so what lands in the HTML
+     * is Handlebars' own encoding - &#x27; for the apostrophe - applied once.
+     * Pre-escape either one in the builder and these read &amp;amp;B instead.
+     */
+    expect(html).toContain(
+      `2 notifications from ${PROJECT_ESCAPED_BY_HANDLEBARS}`,
+    );
+    expect(html).toContain(SUBJECT_ESCAPED_BY_HANDLEBARS);
+  });
+
+  test("a var the template feeds to a TRIPLE stache arrives PRE-ESCAPED and is not escaped again", () => {
+    const html: string = hostileHtml();
+
+    /*
+     * rollupIntroHtml reaches InfoBlock's {{{info}}}, which does not escape.
+     * The builder's own encoding - &#39; for the apostrophe - therefore has
+     * to be what is already in the string. Hand that stache a raw value and
+     * the assertion below fails while the page quietly grows a live <b> tag.
+     */
+    expect(html).toContain(PROJECT_ESCAPED_BY_BUILDER);
+  });
+
+  test("nothing reaches the recipient unescaped", () => {
+    const html: string = hostileHtml();
+
+    expect(html).not.toContain(HOSTILE_PROJECT);
+    expect(html).not.toContain(HOSTILE_SUBJECT);
+    expect(html).not.toContain("<b>hot</b>");
+    expect(html).not.toContain('A&B <"Corp">');
+  });
+
+  test("and nothing reaches the recipient escaped twice", () => {
+    const html: string = hostileHtml();
+
+    /*
+     * The other direction, and the one that used to be untestable here: a
+     * value escaped in TypeScript and then escaped again by a double stache
+     * shows the reader a literal "&amp;lt;" where a "<" belongs.
+     */
+    expect(html).not.toContain("&amp;amp;");
+    expect(html).not.toContain("&amp;lt;");
+    expect(html).not.toContain("&amp;gt;");
+    expect(html).not.toContain("&amp;quot;");
+    expect(html).not.toContain("&amp;#39;");
+    expect(html).not.toContain("&amp;#x27;");
+  });
+
   test("a hostile row title renders escaped and never as a live tag", () => {
     const email: RollupEmail = build([
       makeItem({
@@ -427,21 +577,63 @@ describe("NotificationRollup.hbs escaping", () => {
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).not.toContain("<script>");
   });
+});
 
-  test("the pre-escaped vars survive the triple stache without double escaping", () => {
-    const email: RollupEmail = standardEmail();
+describe("NotificationRollup.hbs zebra striping", () => {
+  /*
+   * The stripe used to be {{#if @odd}} in the template. Handlebars defines
+   * @index, @first, @last, @key, @root and @level - never @odd - and an
+   * unknown @-variable resolves to undefined rather than raising, so the
+   * condition was false on every row and a hundred-row table rendered as one
+   * flat wall of white. The colour is a builder field now; both sides of that
+   * handshake are pinned, because pinning only one leaves the same hole.
+   */
+  test("a multi-row rollup renders BOTH colours, alternating from the first row", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      zebraEmail(5).vars,
+    );
+
+    expect(html).toContain("background-color: #ffffff;");
+    expect(html).toContain("background-color: #f0f3f9;");
+
+    expect(renderedRowBackgrounds(html)).toEqual([
+      "#ffffff",
+      "#f0f3f9",
+      "#ffffff",
+      "#f0f3f9",
+      "#ffffff",
+    ]);
+  });
+
+  test("the colours in the HTML are exactly the ones the builder emitted", () => {
+    const email: RollupEmail = zebraEmail(6);
     const html: string = render(
       EmailTemplateType.NotificationRollup,
       email.vars,
     );
+    const rows: Array<JSONObject> = email.vars[
+      "rows"
+    ] as unknown as Array<JSONObject>;
 
-    /*
-     * InfoBlock and TitleBlock render {{{info}}} and {{{title}}} unescaped,
-     * so a value that had been escaped twice would show the reader a literal
-     * "&amp;lt;" here.
-     */
-    expect(html).not.toContain("&amp;lt;");
-    expect(html).not.toContain("&amp;#39;");
+    expect(renderedRowBackgrounds(html)).toEqual(
+      rows.map((row: JSONObject): unknown => {
+        return row["rowBackground"];
+      }),
+    );
+  });
+
+  test("the real four-notification rollup stripes its three folded rows", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      standardEmail().vars,
+    );
+
+    expect(renderedRowBackgrounds(html)).toEqual([
+      "#ffffff",
+      "#f0f3f9",
+      "#ffffff",
+    ]);
   });
 });
 
@@ -557,12 +749,45 @@ describe("NotificationRollup.hbs source rules", () => {
       "rows"
     ] as unknown as Array<JSONObject>;
 
+    /*
+     * rowBackground belongs in this list and not in the top-level one: it is
+     * read as {{this.rowBackground}} inside {{#each rows}}, so the builder
+     * has to set it on every ROW, and a top-level var of the same name would
+     * not be found. It is also the field with the nastiest failure mode - it
+     * sits inside a style attribute, so unset renders `background-color: ;`
+     * and the declaration is discarded rather than merely looking wrong.
+     */
     expect(Array.from(references.rowScoped).sort()).toEqual(
-      ["hasLink", "link", "title", "updatesLabel"].sort(),
+      ["hasLink", "link", "rowBackground", "title", "updatesLabel"].sort(),
     );
 
-    for (const name of references.rowScoped) {
-      expect(Object.keys(rows[0]!)).toContain(name);
+    /*
+     * EVERY row, not just the first. rowBackground is the one field whose
+     * value depends on the row's index, so a builder that set it on some
+     * rows and not others would satisfy a first-row-only check and still
+     * ship a table with holes in it.
+     */
+    for (const row of rows) {
+      for (const name of references.rowScoped) {
+        expect(Object.keys(row)).toContain(name);
+      }
     }
+  });
+
+  test("uses no Handlebars @-variable, because an unknown one is silently undefined", () => {
+    /*
+     * The stripe shipped as {{#if @odd}}. Handlebars defines @index, @first,
+     * @last, @key, @root and @level, and resolves anything else to undefined
+     * without complaint, so that block was dead from the first render. The
+     * analysis above deliberately IGNORES @-tokens - it cannot check them
+     * against the builder, because no builder sets them - which means a
+     * second rule is needed to stop one creeping back: this template composes
+     * every per-row value in TypeScript and needs no @-variable at all.
+     */
+    expect(
+      templateSource(EmailTemplateType.NotificationRollup).match(
+        /\{\{[^}]*@[A-Za-z_]/g,
+      ),
+    ).toBeNull();
   });
 });

@@ -14,7 +14,7 @@
         <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Updates</th>
     </tr>
     {{#each rows}}
-    <tr style="background-color: {{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
+    <tr style="background-color: {{this.rowBackground}};">
         <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0; font-weight: 600;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="color: #4f46e5; text-decoration: none;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</td>
         <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.updatesLabel}}</td>
     </tr>
