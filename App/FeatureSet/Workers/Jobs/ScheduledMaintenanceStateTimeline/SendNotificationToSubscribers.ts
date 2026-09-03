@@ -28,7 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -393,7 +393,15 @@ RunCron(
                 statusPageId: statuspage.id!,
                 scheduledMaintenanceId: event.id!,
               }).catch((err: Error) => {
-                logger.error(err);
+                /*
+                 * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
+                 * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
+                 * 404 on a deleted webhook or an unreachable host is their side of the
+                 * wire, not a OneUptime defect — and one status page can fan out to
+                 * thousands of subscribers, so leaving these at ERROR buries real
+                 * failures under a single tenant's dead webhook.
+                 */
+                logger.error(err, EXTERNAL_FAULT);
               });
             }
 
@@ -424,7 +432,7 @@ RunCron(
                 url: subscriber.slackIncomingWebhookUrl,
                 text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, EXTERNAL_FAULT);
               });
             }
 
@@ -451,7 +459,7 @@ RunCron(
                 url: subscriber.microsoftTeamsIncomingWebhookUrl,
                 text: markdownMessage,
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, EXTERNAL_FAULT);
               });
             }
 
@@ -475,7 +483,7 @@ RunCron(
                   },
                 },
               }).catch((err: Error) => {
-                logger.error(err);
+                logger.error(err, EXTERNAL_FAULT);
               });
             }
 
@@ -517,7 +525,7 @@ RunCron(
                     scheduledMaintenanceId: event.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(err);
+                  logger.error(err, EXTERNAL_FAULT);
                 });
               } else {
                 // Use default hard-coded template
@@ -566,7 +574,7 @@ RunCron(
                     scheduledMaintenanceId: event.id!,
                   },
                 ).catch((err: Error) => {
-                  logger.error(err);
+                  logger.error(err, EXTERNAL_FAULT);
                 });
               }
             }

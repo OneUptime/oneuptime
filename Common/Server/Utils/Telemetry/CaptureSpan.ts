@@ -4,6 +4,34 @@ import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import { DisableTelemetry } from "../../EnvironmentConfig";
 
+/*
+ * Mark a span OK, but never DOWNGRADE an ERROR someone else already set.
+ *
+ * The SDK's own setStatus guard only early-returns when the CURRENT status is
+ * already OK, so an OK written after an ERROR wins. That is reachable whenever
+ * a decorated method swallows an error and signals failure by another route
+ * (Express middleware calling next(err) is the classic case): the method
+ * "returns successfully" from the decorator's point of view, and the span ends
+ * up marked OK while carrying an exception event.
+ */
+function markSpanOk(span: Span): void {
+  try {
+    const currentStatus: { code?: number } | undefined = (
+      span as unknown as { status?: { code?: number } }
+    ).status;
+
+    if (currentStatus && currentStatus.code === SpanStatusCode.ERROR) {
+      return;
+    }
+  } catch {
+    // Span implementation without an observable status — set it normally.
+  }
+
+  span.setStatus({
+    code: SpanStatusCode.OK,
+  });
+}
+
 function CaptureSpan(data?: {
   name?: string;
   attributes?: JSONObject;
@@ -86,9 +114,7 @@ function CaptureSpan(data?: {
             if (result instanceof Promise) {
               return result
                 .then((res: any) => {
-                  span.setStatus({
-                    code: SpanStatusCode.OK,
-                  });
+                  markSpanOk(span);
                   return res;
                 })
                 .catch((err: Error) => {
@@ -100,12 +126,10 @@ function CaptureSpan(data?: {
                   throw err;
                 })
                 .finally(() => {
-                  span.end();
+                  Telemetry.endSpan(span);
                 });
             }
-            span.setStatus({
-              code: SpanStatusCode.OK,
-            });
+            markSpanOk(span);
             return result;
           } catch (err) {
             Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
@@ -116,7 +140,7 @@ function CaptureSpan(data?: {
             throw err;
           } finally {
             if (!(result instanceof Promise)) {
-              span.end();
+              Telemetry.endSpan(span);
             }
           }
         },

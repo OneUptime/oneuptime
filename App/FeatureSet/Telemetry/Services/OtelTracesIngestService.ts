@@ -31,6 +31,7 @@ import {
   SpanKind,
   SpanStatus,
 } from "Common/Models/AnalyticsModels/Span";
+import { isNonActionableErrorClass } from "Common/Types/Telemetry/ErrorClass";
 import ExceptionUtil, { TelemetryExceptionPayload } from "../Utils/Exception";
 import StackTraceParser, {
   ParsedStackTrace,
@@ -124,6 +125,18 @@ type RawSpanExceptionEvent = {
   attributes: JSONObject;
   time: ParsedUnixNano;
 };
+
+/*
+ * The exception-event attributes that become their own ExceptionInstance
+ * columns. Only these are stripped from the stored attribute bag; anything
+ * else the emitter sent is kept.
+ */
+const PROMOTED_EXCEPTION_ATTRIBUTE_KEYS: Array<string> = [
+  "exception.message",
+  "exception.stacktrace",
+  "exception.type",
+  "exception.escaped",
+];
 
 const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
   1: SpanKind.Internal,
@@ -751,8 +764,21 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         primaryEntityId: primaryEntityId,
                         spanId: spanId,
                         traceId: traceId,
-                        spanStatusCode: statusCode,
-                        spanName: spanName,
+                        /*
+                         * Read back off the POST-scrub, post-pipeline spanRow
+                         * rather than the locals captured before it, for the
+                         * same reason sessionId below is: the exception row
+                         * and the span row must never disagree. A project's
+                         * StatusRemapper processor rewrites
+                         * spanRow["statusCode"], and using the pre-pipeline
+                         * local here silently left the exception row on the
+                         * un-remapped status — making the one user-facing
+                         * lever for reclassifying a span ineffective on
+                         * exceptions.
+                         */
+                        spanStatusCode:
+                          (spanRow["statusCode"] as SpanStatus) ?? statusCode,
+                        spanName: (spanRow["name"] as string) || spanName,
                         /*
                          * Read back off the POST-scrub, post-pipeline
                          * spanRow rather than recomputed from
@@ -938,17 +964,43 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           });
 
           if (eventName === SpanEventType.Exception) {
+            /*
+             * An emitter can declare that this exception is not a defect —
+             * invalid input it rejected, or a credential it correctly refused.
+             * Honour that and file no Issue.
+             *
+             * OneUptime's own services never take this branch: they emit a
+             * differently-named "fault" event instead, which does not reach
+             * here at all. This exists so any customer SDK can get the same
+             * treatment by setting one attribute on the event, without having
+             * to rename it.
+             *
+             * Deliberately narrow: only the two non-actionable classes are
+             * honoured. An unrecognised value, "code-fault", "infrastructure",
+             * "unknown" or an absent attribute all fall through and become an
+             * Issue — an emitter cannot silence itself by accident.
+             */
+            if (isNonActionableErrorClass(eventAttributes["error.class"])) {
+              continue;
+            }
+
             hasException = true;
 
             const escapedParsed: boolean | null = this.toBoolean(
               eventAttributes["exception.escaped"],
             );
 
+            /*
+             * Strip only the keys promoted to their own columns. Everything
+             * else the emitter attached — notably `exception.code`, which
+             * carries the HTTP status or the Postgres SQLSTATE — survives into
+             * the stored attribute bag, which is what keeps history
+             * re-classifiable later. Previously every `exception.*` key was
+             * dropped, discarding that evidence for a few bytes.
+             */
             const exceptionAttributes: JSONObject = { ...eventAttributes };
-            for (const key of Object.keys(exceptionAttributes)) {
-              if (key.startsWith("exception.")) {
-                delete exceptionAttributes[key];
-              }
+            for (const key of PROMOTED_EXCEPTION_ATTRIBUTE_KEYS) {
+              delete exceptionAttributes[key];
             }
 
             /*
@@ -965,7 +1017,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 (eventAttributes["exception.stacktrace"] as string) || "",
               exceptionType:
                 (eventAttributes["exception.type"] as string) || "",
-              escaped: escapedParsed === null ? false : escapedParsed,
+              /*
+               * Preserve the tri-state. Absent means UNKNOWN, not "handled" —
+               * and inventing `false` was affirmatively wrong for span
+               * exceptions, which by construction escaped the span that
+               * recorded them. The column is Nullable and the logs path
+               * already keeps null; this makes the traces path agree.
+               */
+              escaped: escapedParsed,
               attributes: exceptionAttributes,
               time: parsedTime,
             });

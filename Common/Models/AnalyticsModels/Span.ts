@@ -24,6 +24,20 @@ export enum SpanKind {
 
 export enum SpanEventType {
   Exception = "exception",
+  /*
+   * A failure that is deliberately NOT an Issue: invalid input we rejected, a
+   * credential we refused, a plan limit we enforced. Emitted by
+   * Telemetry.recordExceptionOnSpan for the user-error and expected-denial
+   * fault domains.
+   *
+   * The name is the whole mechanism. Trace ingest builds an ExceptionInstance
+   * row and a TelemetryException group for every event named "exception" and
+   * nothing else, so an event under this name is still stored in the span's
+   * `events` column and still rendered in the Traces UI — it simply never
+   * becomes an Issue. Its attributes are `error.*`, never `exception.*`, so
+   * the log-derived exception path cannot resurrect it either.
+   */
+  Fault = "fault",
   Event = "event",
 }
 

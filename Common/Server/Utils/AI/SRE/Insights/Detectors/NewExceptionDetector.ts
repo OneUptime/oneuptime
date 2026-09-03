@@ -2,6 +2,8 @@ import ObjectID from "../../../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../../../Types/Date";
 import SortOrder from "../../../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../../../Types/JSON";
+import IncludesNone from "../../../../../../Types/BaseDatabase/IncludesNone";
+import { NON_ACTIONABLE_ERROR_CLASSES } from "../../../../../../Types/Telemetry/ErrorClass";
 import AIInsightType from "../../../../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../../../../Types/AI/AIInsightSeverity";
 import TelemetryException from "../../../../../../Models/DatabaseModels/TelemetryException";
@@ -171,6 +173,14 @@ export default class NewExceptionDetector implements InsightDetector {
       firstSeenAt: QueryHelper.greaterThanEqualTo(firstSeenSince),
       isResolved: false,
       isArchived: false,
+      /*
+       * Muted fault domains never file an insight. A user-error or an
+       * expected-denial group is not a defect in this code, so triaging it
+       * would spend an LLM budget grant to be told exactly what the
+       * emitting code already declared. Mirrors the Issues list scope, so
+       * the inbox and the list agree on what counts as a real failure.
+       */
+      errorClass: new IncludesNone([...NON_ACTIONABLE_ERROR_CLASSES]),
       occuranceCount: QueryHelper.greaterThanEqualTo(
         NEW_EXCEPTION_MIN_OCCURRENCE_COUNT,
       ),
