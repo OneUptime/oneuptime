@@ -15,6 +15,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkSiteStatusTimeline from "../../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -2202,6 +2204,271 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
         monitorStatusId: OFFLINE_STATUS_ID,
       }),
     ).resolves.toBeUndefined();
+  });
+
+  /*
+   * Monitor-backed devices (monitoringMethod "Monitor") are never polled,
+   * so their isReachable - the column the device list's summary tiles and
+   * Status filter count and filter on in SQL - stays NULL forever unless
+   * the server derives it from the bound monitor's status. These cases pin
+   * that derivation: `isReachable = !MonitorStatus.isOfflineState`, read
+   * from the status row ONCE per call and only when a monitor-backed
+   * device is in the set, while an SNMP device's isReachable stays the
+   * walk's to write.
+   */
+  describe("isReachable for monitor-backed devices", () => {
+    const SECOND_DEVICE_ID: ObjectID = new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    );
+    const THIRD_DEVICE_ID: ObjectID = new ObjectID(
+      "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    );
+
+    function monitorBackedDevice(id: ObjectID): NetworkDevice {
+      return {
+        id: id,
+        siteId: SITE_ID,
+        monitorId: MONITOR_ID,
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+      } as unknown as NetworkDevice;
+    }
+
+    function snmpDevice(
+      id: ObjectID,
+      monitoringMethod: string | undefined,
+    ): NetworkDevice {
+      return {
+        id: id,
+        siteId: SITE_ID,
+        monitoringMethod: monitoringMethod,
+      } as unknown as NetworkDevice;
+    }
+
+    function fakeStatus(isOfflineState: boolean): MonitorStatus {
+      return {
+        id: OFFLINE_STATUS_ID,
+        _id: OFFLINE_STATUS_ID.toString(),
+        isOfflineState: isOfflineState,
+      } as unknown as MonitorStatus;
+    }
+
+    function stampedData(stampSpy: jest.SpyInstance): Array<any> {
+      return stampSpy.mock.calls.map((call: Array<any>) => {
+        return call[0].data;
+      });
+    }
+
+    /*
+     * Wires the two device lookups for a "bound by monitorId" set: no
+     * Network Device monitor references anything, every device comes back
+     * from the monitorId query.
+     */
+    function mockBoundDevices(devices: Array<NetworkDevice>): {
+      stamp: jest.SpyInstance;
+      status: jest.SpyInstance;
+    } {
+      jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+      jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue(devices);
+      jest
+        .spyOn(NetworkSiteService, "recomputeRollupForSiteAndAncestors")
+        .mockResolvedValue(undefined as never);
+
+      const stamp: jest.SpyInstance = jest
+        .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined as never);
+      const status: jest.SpyInstance = jest.spyOn(
+        MonitorStatusService,
+        "findOneBy",
+      );
+
+      return { stamp, status };
+    }
+
+    it("reads the status row once for N monitor-backed rows and stamps isReachable false for an offline status", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+        monitorBackedDevice(SECOND_DEVICE_ID),
+        monitorBackedDevice(THIRD_DEVICE_ID),
+      ]);
+      status.mockResolvedValue(fakeStatus(true));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      const statusArgs: any = status.mock.calls[0]![0];
+      expect(statusArgs.query._id.toString()).toBe(
+        OFFLINE_STATUS_ID.toString(),
+      );
+      expect(statusArgs.query.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(statusArgs.select).toEqual({ _id: true, isOfflineState: true });
+      expect(statusArgs.props).toEqual({ isRoot: true });
+
+      expect(stamp).toHaveBeenCalledTimes(3);
+      for (const data of stampedData(stamp)) {
+        expect(data.currentMonitorStatusId.toString()).toBe(
+          OFFLINE_STATUS_ID.toString(),
+        );
+        expect(data.isReachable).toBe(false);
+      }
+    });
+
+    it("stamps isReachable true for an operational (non-offline) status", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue(fakeStatus(false));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OPERATIONAL_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      expect(stamp).toHaveBeenCalledTimes(1);
+      expect(stampedData(stamp)[0].isReachable).toBe(true);
+      expect(stampedData(stamp)[0].currentMonitorStatusId.toString()).toBe(
+        OPERATIONAL_STATUS_ID.toString(),
+      );
+    });
+
+    /*
+     * A "Degraded" status is neither operational nor offline. It is read
+     * off the offline end, like DeviceReachabilityUtil does, so a degraded
+     * device stays reachable rather than being painted down.
+     */
+    it("treats a status with no offline flag at all as reachable", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue({
+        id: OFFLINE_STATUS_ID,
+        _id: OFFLINE_STATUS_ID.toString(),
+      } as unknown as MonitorStatus);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(stampedData(stamp)[0].isReachable).toBe(true);
+    });
+
+    it("never reads the status row for an all-SNMP set, and stamps the id only", async () => {
+      const { stamp, status } = mockBoundDevices([
+        snmpDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Snmp),
+        // A row written before the column existed: NULL reads as SNMP.
+        snmpDevice(SECOND_DEVICE_ID, undefined),
+      ]);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).not.toHaveBeenCalled();
+      expect(stamp).toHaveBeenCalledTimes(2);
+      for (const data of stampedData(stamp)) {
+        expect(data.currentMonitorStatusId.toString()).toBe(
+          OFFLINE_STATUS_ID.toString(),
+        );
+        // The walk owns an SNMP device's isReachable: the key is absent, not undefined.
+        expect(data).not.toHaveProperty("isReachable");
+        expect(Object.keys(data)).toEqual(["currentMonitorStatusId"]);
+      }
+    });
+
+    it("in a mixed set only the monitor-backed rows get isReachable, from one status read", async () => {
+      const { stamp, status } = mockBoundDevices([
+        snmpDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Snmp),
+        monitorBackedDevice(SECOND_DEVICE_ID),
+        snmpDevice(THIRD_DEVICE_ID, undefined),
+      ]);
+      status.mockResolvedValue(fakeStatus(true));
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(status).toHaveBeenCalledTimes(1);
+      expect(stamp).toHaveBeenCalledTimes(3);
+
+      const byDeviceId: Map<string, any> = new Map(
+        stamp.mock.calls.map((call: Array<any>) => {
+          return [call[0].id.toString(), call[0].data];
+        }),
+      );
+
+      expect(byDeviceId.get(SECOND_DEVICE_ID.toString()).isReachable).toBe(
+        false,
+      );
+      expect(byDeviceId.get(DEVICE_ID.toString())).not.toHaveProperty(
+        "isReachable",
+      );
+      expect(byDeviceId.get(THIRD_DEVICE_ID.toString())).not.toHaveProperty(
+        "isReachable",
+      );
+    });
+
+    it("stamps the id but leaves isReachable alone, with a warning, when the status row is not found", async () => {
+      const { stamp, status } = mockBoundDevices([
+        monitorBackedDevice(DEVICE_ID),
+      ]);
+      status.mockResolvedValue(null);
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(stamp).toHaveBeenCalledTimes(1);
+      expect(stampedData(stamp)[0].currentMonitorStatusId.toString()).toBe(
+        OFFLINE_STATUS_ID.toString(),
+      );
+      expect(stampedData(stamp)[0]).not.toHaveProperty("isReachable");
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toContain(
+        OFFLINE_STATUS_ID.toString(),
+      );
+    });
+
+    it("selects monitoringMethod on BOTH device lookups", async () => {
+      // A Network Device monitor referencing a device drives the first lookup...
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([fakeNetworkDeviceMonitor([DEVICE_ID.toString()])]);
+      // ...and the monitorId query is always the second.
+      const findDevices: jest.SpyInstance = jest
+        .spyOn(NetworkDeviceService, "findBy")
+        .mockResolvedValue([]);
+
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+        monitorStatusId: OFFLINE_STATUS_ID,
+      });
+
+      expect(findDevices).toHaveBeenCalledTimes(2);
+      for (const call of findDevices.mock.calls) {
+        expect((call[0] as any).select.monitoringMethod).toBe(true);
+        expect((call[0] as any).select._id).toBe(true);
+        expect((call[0] as any).select.siteId).toBe(true);
+      }
+    });
   });
 });
 

@@ -17,6 +17,8 @@ import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import logger from "../../../../Server/Utils/Logger";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -1032,5 +1034,135 @@ describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-ap
       .calls[0]![0] as unknown as { select?: Record<string, boolean> };
 
     expect(findArgs.select?.["oidTemplateId"]).toBe(true);
+  });
+});
+
+/*
+ * A monitor-backed device (monitoringMethod "Monitor") is never meant to be
+ * walked - its bound Monitor owns reachability. But claimDevicesForPolling
+ * only excludes such rows at CLAIM time, so a device claimed as SNMP and
+ * switched to Monitor before its walk result arrived still reaches this
+ * writer. The poll verdict must not overwrite the monitor's: these cases
+ * pin that the health columns (lastPolledAt / isReachable / lastSeenAt and
+ * the cached interface counts) are withheld for such a row, that the rest
+ * of the walk's inventory still lands, and that an SNMP walk is untouched.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", () => {
+  const POLL_AND_INTERFACE_COLUMNS: Array<string> = [
+    "lastPolledAt",
+    "isReachable",
+    "lastSeenAt",
+    "interfacesTotal",
+    "interfacesUp",
+    "interfacesDown",
+  ];
+
+  function spyWarn(): jest.SpyInstance {
+    return jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined;
+    });
+  }
+
+  test("a walk for a monitor-backed device leaves the poll and interface-count columns out and warns once", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      systemInfo: { sysName: "ap-01" },
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    // Inventory still lands...
+    expect(update["sysName"]).toBe("ap-01");
+    // ...but nothing that decides the device's health does.
+    for (const column of POLL_AND_INTERFACE_COLUMNS) {
+      expect(update).not.toHaveProperty(column);
+    }
+
+    // The interface inventory itself is still recorded - it is not health.
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain(DEVICE_ID);
+  });
+
+  test("an unreachable walk of a monitor-backed device with nothing else to record writes nothing", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "Device did not respond",
+      },
+      { isOnline: false },
+    );
+
+    /*
+     * For an SNMP device this exact walk MUST write (the attempt has to be
+     * recorded); for a monitor-backed one the attempt is meaningless and
+     * an empty payload is correctly skipped.
+     */
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("selects monitoringMethod on the device read, or the guard can never fire", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["monitoringMethod"]).toBe(true);
+  });
+
+  test("an SNMP walk is unchanged: every poll and interface column is written and nothing warns", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["interfacesTotal"]).toBe(2);
+    expect(update["interfacesUp"]).toBe(1);
+    expect(update["interfacesDown"]).toBe(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("a row with no monitoringMethod at all (written before the column existed) is walked as SNMP", async () => {
+    // The default device carries no monitoringMethod, exactly like a legacy row.
+    mockServices();
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk();
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(warn).not.toHaveBeenCalled();
   });
 });

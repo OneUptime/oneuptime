@@ -17,7 +17,8 @@ import DeviceReachabilityUtil, {
  *
  *   status  — a monitor-stamped status wins outright; otherwise the shared
  *             reachability rule (the OUTCOME of the last poll, never its
- *             age) decides, and a device nothing has ever polled is
+ *             age) decides, and a device nothing has ever polled — or a
+ *             monitor-backed device nothing has yet reported on — is
  *             `unknown` rather than a failure.
  *   degraded — an up device with dark ports. A switch that answers every
  *             poll while three of its interfaces are down is not down, but
@@ -74,6 +75,23 @@ export interface DeviceHealthStateInput {
   lastPolledAt?: Date | string | null | undefined;
   lastSeenAt?: Date | string | null | undefined;
   pollingIntervalInMinutes?: number | null | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as SNMP — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Load-bearing when a monitor-backed device (monitoringMethod "Monitor")
+   * has NO stamped status to read — nothing bound yet, or bound and never
+   * evaluated. The shared rule then answers Pending ("unknown" here) rather
+   * than falling through to the poll columns, which on such a device are
+   * either NULL or, worse, the last thing a probe found before it stopped
+   * asking: a device switched from SNMP to Monitor keeps its old lastSeenAt
+   * until the switch-over clears it, and a caller that dropped this field
+   * would let that months-old timestamp call the device "down" on the site
+   * card while its own row in the device list reads Pending.
+   */
+  monitoringMethod?: string | null | undefined;
   interfacesDown?: number | null | undefined;
 }
 
@@ -133,6 +151,14 @@ export function deviceHealthState(
           lastPolledAt: device.lastPolledAt,
           lastSeenAt: device.lastSeenAt,
           pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+          /*
+           * Carried so the shared rule knows whether the poll columns above
+           * mean anything. This branch is only reached with NO stamped
+           * status (the one above took every stamped one), so for a
+           * monitor-backed device it is exactly the "Pending" case — see
+           * the input docs.
+           */
+          monitoringMethod: device.monitoringMethod,
         },
         now,
       );

@@ -999,6 +999,29 @@ describe("DEVICE_STATUS_FACET_OPTIONS", () => {
     expect(down!.sublabel).toContain("could not reach");
   });
 
+  /*
+   * ...and as monitor verdicts. `isReachable` is stamped from the bound
+   * monitor on a monitor-backed device, so the chip returns those rows too
+   * and its sublabel has to say so — "the last SNMP poll" alone would send
+   * an operator looking for a poll a ping-only phone never had.
+   */
+  test("the Up and Down options credit the bound monitor as well as the poll", () => {
+    const [up, down]: Array<FilterChipDropdownOption> =
+      DEVICE_STATUS_FACET_OPTIONS;
+
+    expect(up!.sublabel).toContain("bound monitor");
+    expect(down!.sublabel).toContain("bound monitor");
+  });
+
+  test("the Pending option names a missing monitor as one way to be pending", () => {
+    const pending: FilterChipDropdownOption | undefined =
+      DEVICE_STATUS_FACET_OPTIONS.find((option: FilterChipDropdownOption) => {
+        return option.label === "Pending";
+      });
+
+    expect(pending?.sublabel?.toLowerCase()).toContain("no monitor bound");
+  });
+
   test("every option the menu offers actually filters", () => {
     for (const value of optionValues(DEVICE_STATUS_FACET_OPTIONS)) {
       expect(buildDeviceStatusFacetQuery([value], "is")).not.toBeUndefined();

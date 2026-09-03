@@ -19,6 +19,8 @@ import MonitorStatusService from "./MonitorStatusService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
@@ -311,6 +313,7 @@ export class Service extends DatabaseService<Model> {
       id: monitorId,
       select: {
         _id: true,
+        projectId: true,
         currentMonitorStatusId: true,
       },
       props: {
@@ -328,6 +331,7 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           monitorStatusId: true,
+          projectId: true,
         },
         props: {
           isRoot: true,
@@ -358,6 +362,39 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * The update above is root (no tenantId), so onUpdateSuccess's
+       * tenant-gated changeMonitorStatus does not run for it and nothing
+       * else re-stamps the network devices bound to this monitor. Bridge
+       * them here, and only when the id actually moved - an unchanged
+       * status must not churn every site rollup above the device.
+       */
+      const projectId: ObjectID | undefined =
+        monitor.projectId || lastMonitorStatus.projectId;
+
+      if (!projectId) {
+        logger.warn(
+          `refreshMonitorCurrentStatus: monitor ${monitorId.toString()} has no projectId; skipping the network site rollup bridge.`,
+        );
+        return;
+      }
+
+      try {
+        await NetworkSiteService.onMonitorStatusChanged({
+          projectId: projectId,
+          monitorIds: [monitorId],
+          monitorStatusId: lastMonitorStatus.monitorStatusId,
+        });
+      } catch (err) {
+        logger.error(
+          `refreshMonitorCurrentStatus: failed to update network site rollups for monitor ${monitorId.toString()}: ${err}`,
+          {
+            projectId: projectId.toString(),
+            monitorId: monitorId.toString(),
+          } as LogAttributes,
+        );
+      }
     }
   }
 
@@ -423,10 +460,65 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * Network devices bound to these monitors (NetworkDevice.monitorId, the
+     * monitor-backed path). The FK is ON DELETE SET NULL, so the binding
+     * disappears with the monitor - but the device's stamped
+     * currentMonitorStatusId / isReachable do not, and nothing else ever
+     * clears them: the device would keep reporting the dead monitor's last
+     * status forever. The ids have to be read BEFORE the delete, because
+     * after it the column that links them is already NULL.
+     *
+     * A lookup failure degrades to "no re-stamp" rather than blocking the
+     * delete itself: a device carrying a stale stamp is a cosmetic bug, a
+     * monitor the operator cannot delete is not.
+     */
+    let networkDeviceIdsToRefresh: Array<ObjectID> = [];
+
+    const monitorIdsPendingDeletion: Array<ObjectID> = monitorsPendingDeletion
+      .map((monitor: Model) => {
+        return monitor.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (monitorIdsPendingDeletion.length > 0) {
+      try {
+        const boundDevices: Array<NetworkDevice> =
+          await NetworkDeviceService.findBy({
+            query: {
+              monitorId: QueryHelper.any(monitorIdsPendingDeletion),
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        networkDeviceIdsToRefresh = boundDevices
+          .map((device: NetworkDevice) => {
+            return device.id;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          });
+      } catch (error) {
+        logger.error(
+          `Error while looking up network devices bound to monitors pending deletion: ${error}`,
+        );
+      }
+    }
+
     return {
       deleteBy,
       carryForward: {
         monitors: monitorsPendingDeletion,
+        networkDeviceIdsToRefresh: networkDeviceIdsToRefresh,
       },
     };
   }
@@ -449,6 +541,34 @@ export class Service extends DatabaseService<Model> {
      * A synchronous ALTER TABLE … DELETE on every monitor deletion is both
      * redundant and expensive.
      */
+
+    /*
+     * Re-derive the stamp of every device that was bound to a deleted
+     * monitor. The FK has nulled NetworkDevice.monitorId by now, so for a
+     * monitor-backed device this resolves to "nothing bound": stamp and
+     * isReachable both go to NULL (the device honestly reads Pending) and
+     * its site chain is recomputed. clearWhenNotMonitorBacked is false on
+     * purpose - an SNMP device's stamp comes from the Network Device monitor
+     * watching its walk, not from this column, and is not ours to clear.
+     * Per device and never propagating: one failed refresh must not stop the
+     * rest, nor fail a delete that has already happened.
+     */
+    const networkDeviceIdsToRefresh: Array<ObjectID> =
+      onDelete.carryForward?.networkDeviceIdsToRefresh || [];
+
+    for (const deviceId of networkDeviceIdsToRefresh) {
+      try {
+        await NetworkDeviceService.refreshStampedMonitorStatus({
+          deviceId: deviceId,
+          clearWhenNotMonitorBacked: false,
+        });
+      } catch (error) {
+        logger.error(
+          `Error while refreshing the stamped monitor status of network device ${deviceId.toString()} after its monitor was deleted: ${error}`,
+        );
+      }
+    }
+
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       try {
         await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
@@ -2593,33 +2713,20 @@ ${createdItem.description?.trim() || "No description provided."}
         statusTimeline.startsAt = startsAt;
       }
 
+      /*
+       * The network-site rollup bridge (stamping the NetworkDevices these
+       * monitors report on and refreshing their sites) is NOT called from
+       * here. It runs inside MonitorStatusTimelineService.onCreateSuccess,
+       * which this create reaches, so calling it here as well stamped every
+       * device twice - and that hook is the only place the PROBE path
+       * (which never comes through changeMonitorStatus) passes through.
+       */
       await this.createStatusTimelineWithRetry({
         statusTimeline: statusTimeline,
         props: props,
         projectId: projectId,
         monitorId: monitorId,
       });
-    }
-
-    /*
-     * Bridge to the network-site rollup engine: stamp the NetworkDevices
-     * these monitors poll and refresh their sites' worst-of status.
-     * Resilient by contract - a rollup failure can never break a monitor
-     * status change (onMonitorStatusChanged also catches internally).
-     */
-    try {
-      await NetworkSiteService.onMonitorStatusChanged({
-        projectId: projectId,
-        monitorIds: monitorIds,
-        monitorStatusId: monitorStatusId,
-      });
-    } catch (err) {
-      logger.error(
-        `changeMonitorStatus: failed to update network site rollups: ${err}`,
-        {
-          projectId: projectId.toString(),
-        } as LogAttributes,
-      );
     }
   }
 

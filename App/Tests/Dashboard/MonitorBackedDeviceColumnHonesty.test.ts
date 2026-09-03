@@ -235,6 +235,15 @@ describe("the device's own pages stop contradicting its status", () => {
 
     expect(emptyState).toContain("props.isMonitorBacked");
     expect(emptyState).toContain("Pending");
+
+    /*
+     * The button below that copy now creates the Ping monitor AND binds it
+     * (Pages/Monitor/Create.tsx, preSeedPingMonitorForMonitorBackedDevice),
+     * so the copy must not send the operator to do the binding by hand under
+     * a settings path that no longer exists in that form.
+     */
+    expect(emptyState).not.toContain("under Settings → Device Details");
+    expect(emptyState).toContain("binds it to the device for you");
   });
 
   test("both pages that render the card pass the method through", () => {

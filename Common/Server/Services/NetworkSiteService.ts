@@ -29,6 +29,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
@@ -2600,8 +2602,11 @@ export class Service extends DatabaseService<Model> {
    */
 
   /*
-   * Called by MonitorService.changeMonitorStatus after a status persists.
-   * Resolves which NetworkDevices these monitors report on, stamps those
+   * Called after a monitor's current status persists - from
+   * MonitorStatusTimelineService.onCreateSuccess / onDeleteSuccess (the one
+   * path every status change, probe-driven or manual, passes through) and
+   * from MonitorService.refreshMonitorCurrentStatus when a repair moves the
+   * id. Resolves which NetworkDevices these monitors report on, stamps those
    * devices' currentMonitorStatusId, then recomputes the rollup for every
    * affected site chain. Never throws - a rollup failure must never break a
    * monitor status change.
@@ -2615,6 +2620,26 @@ export class Service extends DatabaseService<Model> {
    *     monitor-backed path (monitoringMethod "Monitor") for gear that does
    *     not speak SNMP, so ANY monitor type qualifies — a Ping monitor on an
    *     access point is the whole point of it.
+   *
+   * What gets stamped depends on how the device is monitored:
+   *
+   *   - every device gets currentMonitorStatusId, which the pill, the site
+   *     rollup and the topology node read.
+   *   - a MONITOR-BACKED device also gets isReachable, derived from the
+   *     status row (`!isOfflineState`, the same offline-end reading
+   *     DeviceReachabilityUtil uses). Nothing polls such a device, so the
+   *     column is NULL forever otherwise - and the device list's summary
+   *     tiles and its Status filter count and filter on isReachable in SQL,
+   *     which is why a bound ping-only device sat under "Pending" there while
+   *     its own pill said Up. The server keeps the two in sync so the list
+   *     agrees with itself.
+   *   - an SNMP device's isReachable is left alone: the walk owns it
+   *     (NetworkInventoryUtil.updateFromWalk), and a Network Device monitor
+   *     going Degraded must not overwrite what the probe actually found.
+   *
+   * The status row is read at most once per call, and only when at least one
+   * collected device is monitor-backed, so an all-SNMP estate costs no extra
+   * query.
    */
   @CaptureSpan()
   public async onMonitorStatusChanged(data: {
@@ -2680,6 +2705,8 @@ export class Service extends DatabaseService<Model> {
             select: {
               _id: true,
               siteId: true,
+              // Decides whether isReachable is stamped alongside the status.
+              monitoringMethod: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -2699,6 +2726,8 @@ export class Service extends DatabaseService<Model> {
           select: {
             _id: true,
             siteId: true,
+            // Decides whether isReachable is stamped alongside the status.
+            monitoringMethod: true,
           },
           limit: LIMIT_MAX,
           skip: 0,
@@ -2714,15 +2743,83 @@ export class Service extends DatabaseService<Model> {
         return;
       }
 
+      /*
+       * Resolve the status row lazily - once, and only if a monitor-backed
+       * device is in the set - because it is only needed to derive
+       * isReachable, and the SNMP-only case must stay one query cheaper.
+       *
+       * `undefined` afterwards means "do not touch isReachable": either no
+       * device needs it, or the row could not be found in this project (a
+       * status deleted between the timeline write and this call, or one
+       * from another tenant). The id is still stamped in that case so the
+       * pill keeps moving; a stale reachability is the lesser harm next to
+       * a device that stops reporting altogether.
+       */
+      const hasMonitorBackedDevice: boolean = devices.some(
+        (device: NetworkDevice) => {
+          return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device.monitoringMethod,
+          );
+        },
+      );
+
+      let monitorBackedIsReachable: boolean | undefined = undefined;
+
+      if (hasMonitorBackedDevice) {
+        const status: MonitorStatus | null =
+          await MonitorStatusService.findOneBy({
+            query: {
+              _id: data.monitorStatusId,
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              isOfflineState: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (status) {
+          monitorBackedIsReachable = !status.isOfflineState;
+        } else {
+          logger.warn(
+            `NetworkSiteService.onMonitorStatusChanged: monitor status ${data.monitorStatusId.toString()} was not found in project ${data.projectId.toString()}; stamping the status id on the bound network devices but leaving isReachable unchanged.`,
+            {
+              projectId: data.projectId.toString(),
+              monitorStatusId: data.monitorStatusId.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+
       for (const device of devices) {
         if (!device.id) {
           continue;
         }
+
+        const stamp: PartialEntity<NetworkDevice> = {
+          currentMonitorStatusId: data.monitorStatusId,
+        };
+
+        /*
+         * Only a monitor-backed device gets isReachable from here. The key
+         * is left OUT of the payload for an SNMP device rather than set to
+         * undefined, so the walk's verdict is provably untouched.
+         */
+        if (
+          monitorBackedIsReachable !== undefined &&
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device.monitoringMethod,
+          )
+        ) {
+          stamp.isReachable = monitorBackedIsReachable;
+        }
+
         await NetworkDeviceService.updateColumnsByIdWithoutHooks({
           id: device.id,
-          data: {
-            currentMonitorStatusId: data.monitorStatusId,
-          },
+          data: stamp,
         });
       }
 

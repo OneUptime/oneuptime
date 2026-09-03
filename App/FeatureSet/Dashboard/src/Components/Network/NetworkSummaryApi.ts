@@ -158,6 +158,13 @@ export interface OverviewAttentionDevice {
   interfacesDown: number;
   // Down devices lead the list; the rest are up devices with dark ports.
   isDown: boolean;
+  /*
+   * Whether a bound monitor, rather than an SNMP poll, is what judged this
+   * device — so the row can say "Monitor reports offline" instead of
+   * "Never answered" (which is what a NULL lastSeenAt reads as on a device
+   * nothing polls).
+   */
+  isMonitorBacked: boolean;
 }
 
 export interface OverviewAttentionSite {
@@ -233,6 +240,7 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
           lastSeenAt: readString(entry, "lastSeenAt") || null,
           interfacesDown: readNumber(entry, "interfacesDown"),
           isDown: entry["isDown"] === true,
+          isMonitorBacked: entry["isMonitorBacked"] === true,
         };
       })
       .filter((device: OverviewAttentionDevice): boolean => {

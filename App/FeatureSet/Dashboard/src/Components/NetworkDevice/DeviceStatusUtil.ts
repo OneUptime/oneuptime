@@ -5,6 +5,8 @@ import DeviceReachabilityUtil, {
   DeviceReachabilityResult,
   NetworkDeviceReachability,
 } from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * The dashboard's view of Common/Utils/NetworkDevice/DeviceReachabilityUtil,
@@ -120,4 +122,60 @@ export default class DeviceStatusUtil {
       pollingIntervalInMinutes,
     );
   }
+}
+
+/*
+ * The "No monitor" QUALIFIER.
+ *
+ * A monitor-backed device with nothing bound reads "Pending" — the verdict
+ * is honest (nothing has judged it) but it is not actionable: the same word
+ * covers an SNMP device that is queued for its first poll, which fixes
+ * itself, and a monitor-backed device that will sit there forever because
+ * nobody bound a monitor. The tiles above the list and the Status chip
+ * partition the fleet into exactly Up / Down / Pending, so this is NOT a
+ * fourth verdict — a fourth word would make "Status is Pending" return rows
+ * whose pill says something else. It is a second, gray pill beside the
+ * verdict, the same shape as the amber "Stale" pill beside an SNMP verdict:
+ * it qualifies the answer and says what to do about it.
+ *
+ * Every surface that prints a device status reads these, so the list, the
+ * site's Devices tab and the device Overview hero use one word and one
+ * sentence.
+ */
+
+/** The two columns the qualifier is decided from. */
+export interface DeviceBindingRow {
+  monitoringMethod?: string | null | undefined;
+  monitorId?: ObjectID | string | null | undefined;
+}
+
+export const NO_MONITOR_QUALIFIER: { text: string; tooltip: string } = {
+  text: "No monitor",
+  tooltip:
+    "Nothing reports this device's health: it is monitor-backed and no monitor is bound to it. Open the device and use Create Ping Monitor, or bind an existing monitor under its Settings.",
+};
+
+/*
+ * The Pending tooltips for the two ways a monitor-backed device can have no
+ * verdict. Split so neither sentence has to hedge with "or".
+ */
+export const UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP: string =
+  "Nothing reports this device's health yet — no monitor is bound to it.";
+
+export const BOUND_MONITOR_PENDING_TOOLTIP: string =
+  "The monitor bound to this device has not reported a status yet.";
+
+/**
+ * True for a monitor-backed device with nothing bound — the one case the
+ * qualifier is shown for. Read through the method parser, never a raw
+ * compare: NULL means SNMP, and an SNMP device has no binding to be missing.
+ */
+export function isUnboundMonitorBackedDevice(
+  device: DeviceBindingRow,
+): boolean {
+  return (
+    NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+      device.monitoringMethod,
+    ) && !device.monitorId
+  );
 }

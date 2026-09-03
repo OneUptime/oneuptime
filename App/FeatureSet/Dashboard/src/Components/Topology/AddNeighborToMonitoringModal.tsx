@@ -30,7 +30,11 @@ import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import {
+  HOSTNAME_FIELD_DESCRIPTION,
+  MONITORING_METHOD_FIELD_DESCRIPTION,
   MONITORING_METHOD_OPTIONS,
+  MONITOR_BINDING_FIELD_DESCRIPTION,
+  MONITOR_BINDING_FIELD_PLACEHOLDER,
   isMonitorBackedDevice,
   isSnmpDevice,
 } from "../NetworkDevice/MonitoringMethodFormFields";
@@ -259,8 +263,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         },
         title: "How is this device monitored?",
         stepId: "monitoring-method",
-        description:
-          "SNMP devices are polled by a probe you assign. Pick Monitor for gear that cannot be walked — an IP phone, a camera, a PDU — and bind it to a Ping or IP monitor instead. Either way the device keeps its place on the topology map.",
+        description: MONITORING_METHOD_FIELD_DESCRIPTION,
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: MONITORING_METHOD_OPTIONS,
         required: true,
@@ -295,8 +298,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "10.0.0.1 or switch-01.example.com",
-        description:
-          "The device's address. SNMP devices are polled here; for monitor-backed devices it is how the device is identified and matched to SNMP traps.",
+        description: HOSTNAME_FIELD_DESCRIPTION,
       },
       {
         field: {
@@ -327,8 +329,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         title: "Monitor",
         stepId: "probe-and-site",
         showIf: isMonitorBackedDevice,
-        description:
-          "The monitor whose status IS this device's status. A Ping or IP monitor on the device's address is the usual choice. Leave it empty to record the device now and bind a monitor later — it still belongs to a site and still appears on the map.",
+        description: MONITOR_BINDING_FIELD_DESCRIPTION,
         sideLink: {
           text: "Create a monitor",
           url: RouteUtil.populateRouteParams(
@@ -343,7 +344,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
           valueField: "_id",
         },
         required: false,
-        placeholder: "Select Monitor (optional)",
+        placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER,
       },
       {
         field: {
