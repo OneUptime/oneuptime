@@ -6,6 +6,7 @@ import NetworkDeviceLinkService from "Common/Server/Services/NetworkDeviceLinkSe
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDeviceLinkRuleService from "Common/Server/Services/NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTopologySuppressionService";
+import NetworkDeviceRoleService from "Common/Server/Services/NetworkDeviceRoleService";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -89,6 +90,10 @@ jest.mock("Common/Server/Services/NetworkTopologySuppressionService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/NetworkDeviceRoleService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
 /*
  * Importing the API module registers its route on the mocked router so the
  * handler can be invoked directly, with every service call observable.
@@ -117,6 +122,8 @@ const suppressionService: { getSuppressedNodeKeys: jest.Mock } =
   NetworkTopologySuppressionService as unknown as {
     getSuppressedNodeKeys: jest.Mock;
   };
+const deviceRoleService: { findBy: jest.Mock } =
+  NetworkDeviceRoleService as unknown as { findBy: jest.Mock };
 const responseUtil: { sendJsonObjectResponse: jest.Mock } =
   Response as unknown as { sendJsonObjectResponse: jest.Mock };
 
@@ -186,6 +193,7 @@ describe("POST /network-device/topology", () => {
     suppressionService.getSuppressedNodeKeys.mockResolvedValue(
       new Set<string>() as never,
     );
+    deviceRoleService.findBy.mockResolvedValue([] as never);
   });
 
   /*
