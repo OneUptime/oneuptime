@@ -277,3 +277,208 @@ describe("after loading finishes", () => {
     expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
   });
 });
+
+/*
+ * OneUptime issue #3585 - the wrapping opt-in, seen from the skeleton.
+ *
+ * Background: every desktop body <td> this table renders is
+ * `whitespace-nowrap`, and `white-space` is an INHERITED CSS property, so the
+ * nowrap declared on the cell reaches whatever `getElement` returned, no
+ * matter what classes that element carries. A 156-character status sentence
+ * therefore painted as one unbreakable line straight across the columns to
+ * its right. The fix gives a column `wrapContent`, which swaps that one class
+ * on the <td> for `whitespace-normal break-words`.
+ *
+ * Those classes used to be spelled out as string literals in four places -
+ * twice in TableRow (last cell / not last) and twice in TableSkeletonRows.
+ * The fix routes all four through getTableCellClassName in
+ * UI/Components/Table/CellClassName.ts, and the tests below exist to keep
+ * them routed there. A skeleton that re-hard-coded `whitespace-nowrap` would
+ * still look correct on a table of dates while silently un-wrapping the
+ * loading state of every prose column: exactly the drift that produced #3585.
+ *
+ * jsdom runs no layout engine, so nothing here can observe wrapping,
+ * overflow or a column width - getBoundingClientRect is all zeroes and no
+ * stylesheet is applied. What IS observable, and what actually decides the
+ * bug, is which class string each <td> is handed, so every assertion below is
+ * a class assertion.
+ */
+
+interface WrapRow {
+  _id?: string | undefined;
+  name?: string | undefined;
+  statusMessage?: string | undefined;
+  notes?: string | undefined;
+}
+
+const wrappingColumns: Columns<WrapRow> = [
+  // Declares nothing: the ordinary case, and the control for the rest.
+  { title: "Name", type: FieldType.Text, key: "name" },
+  // Wrapping, not last: prose in the middle of the table.
+  {
+    title: "Status Message",
+    type: FieldType.Text,
+    key: "statusMessage",
+    wrapContent: true,
+  },
+  // Wrapping AND last: opting into wrapping must not cost the cell its pr-6.
+  {
+    title: "Notes",
+    type: FieldType.Text,
+    key: "notes",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-xs",
+  },
+];
+
+const wrappingData: Array<WrapRow> = [
+  {
+    _id: "1",
+    name: "Alpha",
+    statusMessage:
+      "Settings changed, so this scan is queued to run again. The hosts below are from the previous run.",
+    notes: "Queued",
+  },
+];
+
+interface RenderWrappingTableOptions {
+  isLoading?: boolean | undefined;
+  data?: Array<WrapRow> | undefined;
+}
+
+type RenderWrappingTableFunction = (
+  options: RenderWrappingTableOptions,
+) => void;
+
+/*
+ * Its own fixture rather than a mutation of the shared `columns` above: the
+ * tests further up assert exact skeleton cell counts against that one.
+ */
+const renderWrappingTable: RenderWrappingTableFunction = (
+  options: RenderWrappingTableOptions,
+): void => {
+  render(
+    <Table<WrapRow>
+      id="wrapping-table"
+      data={options.data ?? []}
+      columns={wrappingColumns}
+      currentPageNumber={1}
+      totalItemsCount={(options.data ?? []).length}
+      itemsOnPage={10}
+      error=""
+      isLoading={options.isLoading ?? false}
+      singularLabel="Scan"
+      pluralLabel="Scans"
+      sortOrder={SortOrder.Ascending}
+      sortBy={null}
+      onSortChanged={(): void => {}}
+      onNavigateToPage={(): void => {}}
+    />,
+  );
+};
+
+type GetSkeletonCellsFunction = () => NodeListOf<Element>;
+
+const getSkeletonCells: GetSkeletonCellsFunction = (): NodeListOf<Element> => {
+  const loader: HTMLElement = screen.getByTestId("table-skeleton-loader");
+  return loader.querySelectorAll("tr")[0]!.querySelectorAll("td");
+};
+
+describe("skeleton cells honour a column's wrapContent flag", () => {
+  test("a wrapContent column's placeholder cell wraps instead of nowrapping", () => {
+    renderWrappingTable({ isLoading: true, data: [] });
+
+    const cells: NodeListOf<Element> = getSkeletonCells();
+
+    /*
+     * The whole point of #3585: nowrap has to be GONE, not merely joined by
+     * a wrapping class. Both would sit in the class list, and which one won
+     * would be a stylesheet-order coin toss that jsdom cannot resolve and a
+     * reader cannot predict.
+     */
+    expect(cells[1]).toHaveClass("whitespace-normal", "break-words");
+    expect(cells[1]).not.toHaveClass("whitespace-nowrap");
+  });
+
+  test("wrapping does not cost the cell its padding, alignment or type styles", () => {
+    renderWrappingTable({ isLoading: true, data: [] });
+
+    const cells: NodeListOf<Element> = getSkeletonCells();
+
+    /*
+     * Everything except the whitespace class is shared with a plain cell, so
+     * a wrapping placeholder keeps the same rhythm as the rows around it.
+     */
+    expect(cells[1]).toHaveClass(
+      "py-4",
+      "pl-4",
+      "sm:pl-6",
+      "align-top",
+      "text-sm",
+      "font-medium",
+      "text-gray-500",
+    );
+  });
+
+  test("last vs non-last right padding still applies to wrapping cells", () => {
+    renderWrappingTable({ isLoading: true, data: [] });
+
+    const cells: NodeListOf<Element> = getSkeletonCells();
+
+    // Wrapping mid-table cell.
+    expect(cells[1]).toHaveClass("pr-3");
+    expect(cells[1]).not.toHaveClass("pr-6");
+    // Wrapping last cell: the extra right padding is keyed off position only.
+    expect(cells[2]).toHaveClass("pr-6");
+    expect(cells[2]).not.toHaveClass("pr-3");
+  });
+
+  test("the flag is per column, not per row: a mixed set gets mixed cells", () => {
+    renderWrappingTable({ isLoading: true, data: [] });
+
+    const cells: NodeListOf<Element> = getSkeletonCells();
+
+    expect(cells).toHaveLength(wrappingColumns.length);
+    // Column 0 declares nothing, so it keeps the product-wide nowrap default.
+    expect(cells[0]).toHaveClass("whitespace-nowrap");
+    expect(cells[0]).not.toHaveClass("whitespace-normal");
+    // Columns 1 and 2 opted in.
+    expect(cells[1]).toHaveClass("whitespace-normal");
+    expect(cells[2]).toHaveClass("whitespace-normal");
+  });
+
+  /*
+   * The drift guard, stated as the equality it actually is. If either
+   * renderer goes back to spelling its own literal, this fails even when
+   * both literals are individually plausible - a placeholder that nowraps
+   * and then swaps to a wrapping real row is a visible reflow on every load,
+   * and is the shape the #3585 regression would take next time.
+   */
+  test("a wrapping column's skeleton cell and real cell carry the same classes", () => {
+    renderWrappingTable({ isLoading: true, data: [] });
+    const skeletonClassNames: Array<string> = Array.from(
+      getSkeletonCells(),
+    ).map((cell: Element): string => {
+      return cell.className;
+    });
+
+    cleanup();
+
+    renderWrappingTable({ isLoading: false, data: wrappingData });
+    const realCells: NodeListOf<Element> = screen
+      .getByTestId("table-content")
+      .querySelectorAll("tbody tr")[0]!
+      .querySelectorAll("td");
+    const realClassNames: Array<string> = Array.from(realCells).map(
+      (cell: Element): string => {
+        return cell.className;
+      },
+    );
+
+    // Every column, not only the wrapping one: the helper owns them all.
+    expect(realClassNames).toEqual(skeletonClassNames);
+    // Guard against both sides being empty and the equality passing vacuously.
+    expect(realClassNames).toHaveLength(wrappingColumns.length);
+    expect(realClassNames[1]).toContain("whitespace-normal");
+  });
+});

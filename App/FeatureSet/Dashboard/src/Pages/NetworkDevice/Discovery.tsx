@@ -1356,6 +1356,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Responded Hosts",
             type: FieldType.Element,
+            /*
+             * This cell carries whole sentences written by the server and by
+             * the probe - the requeue note an edit writes (RETIRE_RUN_PAYLOAD
+             * in Common/Server/Services/NetworkDeviceDiscoveryScanService.ts),
+             * the probe's account of an ICMP-only sweep, the unclaimed-scan
+             * diagnosis - and statusMessage is a 500-character column. Without
+             * this the cell inherits the row's `whitespace-nowrap` and the
+             * sentence is painted straight over the Recurrence and Started
+             * cells beside it (OneUptime issue #3585).
+             */
+            wrapContent: true,
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               const outcome: DiscoveryScanOutcome =
                 summarizeDiscoveryScan(item);
@@ -1378,7 +1389,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
                 return (
                   <div
-                    className="text-xs text-gray-500 max-w-md"
+                    className="text-xs text-gray-500"
                     title={outcome.explanation}
                   >
                     {outcome.explanation}
@@ -1407,7 +1418,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   )}
                   {outcome.explanation && (
                     <div
-                      className="text-xs text-gray-500 mt-1 max-w-md"
+                      className="text-xs text-gray-500 mt-1"
                       title={outcome.explanation}
                     >
                       {outcome.explanation}
@@ -1424,6 +1435,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
             title: "Recurrence",
             type: FieldType.Element,
             hideOnMobile: true,
+            /*
+             * Both of this column's second lines are sentences rather than
+             * labels - "Next scan is scheduled when this run finishes" (45
+             * characters) and "No next scan is scheduled. Open Edit and save
+             * to schedule one." (62) - and one of them renders in the very row
+             * that reports #3585: the same RETIRE_RUN_PAYLOAD write that sets
+             * the status message also sets status Pending and nextScanAt NULL,
+             * which is exactly the first of those two branches. This column
+             * has no width cap of its own, so its symptom is a column stretched
+             * to fit one long line rather than an overlap - the other half of
+             * the deformed row in the report. Capped narrower than Responded
+             * Hosts on purpose: this column's headline is "Every 60 min".
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               if (!item.isRecurring) {
                 return <span className="text-sm text-gray-400">One-time</span>;
