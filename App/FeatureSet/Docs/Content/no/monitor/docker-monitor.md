@@ -154,7 +154,7 @@ I tillegg til metrikker haler Docker-agenten alle containerens `*-json.log`-file
 - `resource.container.id` – den fullstendige container-ID-en
 - `resource.container.runtime` – alltid `docker`
 - `attributes["log.iostream"]` – `stdout` eller `stderr`
-- `severityText` / `severityNumber` – utledet fra strømmen: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` – lest fra et nivånøkkelord i linjen (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); linjer uten et gjenkjennelig nivå faller tilbake til strømmen: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` – den rå logglinjen sendt av containerprosessen
 - `time` – Docker-daemonens tidsstempel for linjen
 

@@ -154,7 +154,7 @@ Utöver mätvärden läser Docker Agent varje containers `*-json.log`-fil via Op
 - `resource.container.id` – Fullständigt container-ID
 - `resource.container.runtime` – Alltid `docker`
 - `attributes["log.iostream"]` – `stdout` eller `stderr`
-- `severityText` / `severityNumber` – Härledd från strömmen: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` – Läses från ett nivånyckelord i raden (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); rader utan en igenkännbar nivå faller tillbaka på strömmen: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` – Den råa loggraden som containerprocessen skickade ut
 - `time` – Docker-daemonens tidsstämpel för raden
 
