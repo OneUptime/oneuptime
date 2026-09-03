@@ -29,11 +29,8 @@ import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMet
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import Icon from "Common/UI/Components/Icon/Icon";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
@@ -313,148 +310,261 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
-        {/* Hide Filter Type dropdown for metric-only monitors since MetricValue is the only option */}
-        {!isMetricOnly && (
-          <div className="">
-            <FieldLabelElement title="Filter Type" />
-            <Dropdown
-              value={checkOnOptions.find((i: DropdownOption) => {
-                return i.value === criteriaFilter?.checkOn;
-              })}
-              options={checkOnOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const checkOn: CheckOn = value?.toString() as CheckOn;
+      <div className="relative my-3 rounded-lg border border-gray-200 bg-gray-50 p-3 pr-11">
+        {/*
+         * A filter reads as a sentence - "Response Time (in ms)",
+         * "Greater Than", "5000" - so its fields flow across the row
+         * instead of down the page. Stacked full-width, three of them
+         * made a single criteria taller than the screen, and a criteria
+         * with three filters unreadable.
+         */}
+        <button
+          type="button"
+          aria-label={isMetricOnly ? "Delete Rule" : "Delete Filter"}
+          title={isMetricOnly ? "Delete Rule" : "Delete Filter"}
+          className="absolute right-2 top-2 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+          onClick={() => {
+            props.onDelete?.();
+          }}
+        >
+          <Icon icon={IconProp.Trash} className="h-4 w-4" />
+        </button>
+        <div className="grid grid-cols-1 items-start gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Hide Filter Type dropdown for metric-only monitors since MetricValue is the only option */}
+          {!isMetricOnly && (
+            <div className="min-w-0">
+              <FieldLabelElement title="Filter Type" />
+              <Dropdown
+                value={checkOnOptions.find((i: DropdownOption) => {
+                  return i.value === criteriaFilter?.checkOn;
+                })}
+                options={checkOnOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  const checkOn: CheckOn = value?.toString() as CheckOn;
 
-                props.onChange?.({
-                  checkOn: checkOn,
-                  /*
-                   * Start the new check on its default condition rather
-                   * than clearing it. An empty Filter Condition sits
-                   * unnoticed next to fields that are all filled in, and
-                   * a criteria saved without one never matches anything.
-                   */
-                  filterType:
-                    CriteriaFilterUiUtil.getDefaultFilterTypeByCheckOn(checkOn),
-                  value: undefined,
-                  evaluateOverTime: false,
-                  evaluateOverTimeOptions: undefined,
-                });
-              }}
-            />
-          </div>
-        )}
-
-        {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title="Disk Path"
-                description="The mount point or device to check. Enter * to check every disk the agent reports and raise a separate alert for each one — otherwise a second disk filling up is silenced while the first disk's alert is open."
-              />
-
-              <Input
-                placeholder={"* or C:\\ or /mnt/data or /dev/sda1"}
-                value={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
-                onChange={(value: string) => {
                   props.onChange?.({
-                    ...criteriaFilter,
-                    serverMonitorOptions: {
-                      diskPath: value,
-                    },
+                    checkOn: checkOn,
+                    /*
+                     * Start the new check on its default condition rather
+                     * than clearing it. An empty Filter Condition sits
+                     * unnoticed next to fields that are all filled in, and
+                     * a criteria saved without one never matches anything.
+                     */
+                    filterType:
+                      CriteriaFilterUiUtil.getDefaultFilterTypeByCheckOn(
+                        checkOn,
+                      ),
+                    value: undefined,
+                    evaluateOverTime: false,
+                    evaluateOverTimeOptions: undefined,
                   });
                 }}
               />
             </div>
           )}
 
-        {criteriaFilter?.checkOn &&
-          (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
-            criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
-          (() => {
-            /*
-             * The options are the device's effective OID list, fetched once
-             * per step. This used to read monitorStep.data.snmpMonitor.oids -
-             * a field belonging to the retired standalone SNMP monitor type,
-             * which a Network Device step never populates. The dropdown was
-             * therefore empty for everyone, snmpMonitorOptions.oid was never
-             * set, and both OID criteria bailed out server-side with no OID
-             * to evaluate. Nobody could alert on a health OID at all.
-             */
-            const oidOptions: Array<DropdownOption> =
-              networkDeviceCatalogue.oids.map(
-                (entry: NetworkDeviceOidCatalogueEntry): DropdownOption => {
-                  const oidLabel: string = entry.name
-                    ? `${entry.name} (${entry.oid})`
-                    : entry.oid;
+          {criteriaFilter?.checkOn &&
+            criteriaFilter?.checkOn === CheckOn.DiskUsagePercent && (
+              <div className="min-w-0">
+                <FieldLabelElement
+                  title="Disk Path"
+                  description="The mount point or device to check. Enter * to check every disk the agent reports and raise a separate alert for each one — otherwise a second disk filling up is silenced while the first disk's alert is open."
+                />
 
-                  return {
-                    value: entry.oid,
-                    label: entry.templateName
-                      ? `${oidLabel} - from template ${entry.templateName}`
-                      : oidLabel,
-                  };
-                },
+                <Input
+                  placeholder={"* or C:\\ or /mnt/data or /dev/sda1"}
+                  value={criteriaFilter?.serverMonitorOptions?.diskPath?.toString()}
+                  onChange={(value: string) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      serverMonitorOptions: {
+                        diskPath: value,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+          {criteriaFilter?.checkOn &&
+            (criteriaFilter.checkOn === CheckOn.SnmpOidValue ||
+              criteriaFilter.checkOn === CheckOn.SnmpOidExists) &&
+            (() => {
+              /*
+               * The options are the device's effective OID list, fetched once
+               * per step. This used to read monitorStep.data.snmpMonitor.oids -
+               * a field belonging to the retired standalone SNMP monitor type,
+               * which a Network Device step never populates. The dropdown was
+               * therefore empty for everyone, snmpMonitorOptions.oid was never
+               * set, and both OID criteria bailed out server-side with no OID
+               * to evaluate. Nobody could alert on a health OID at all.
+               */
+              const oidOptions: Array<DropdownOption> =
+                networkDeviceCatalogue.oids.map(
+                  (entry: NetworkDeviceOidCatalogueEntry): DropdownOption => {
+                    const oidLabel: string = entry.name
+                      ? `${entry.name} (${entry.oid})`
+                      : entry.oid;
+
+                    return {
+                      value: entry.oid,
+                      label: entry.templateName
+                        ? `${oidLabel} - from template ${entry.templateName}`
+                        : oidLabel,
+                    };
+                  },
+                );
+
+              const savedOid: string = SnmpOidListUtil.normalizeOid(
+                criteriaFilter?.snmpMonitorOptions?.oid,
               );
 
-            const savedOid: string = SnmpOidListUtil.normalizeOid(
-              criteriaFilter?.snmpMonitorOptions?.oid,
-            );
+              let selectedOidOption: DropdownOption | undefined =
+                oidOptions.find((option: DropdownOption) => {
+                  return (
+                    SnmpOidListUtil.normalizeOid(option.value.toString()) ===
+                    savedOid
+                  );
+                });
 
-            let selectedOidOption: DropdownOption | undefined = oidOptions.find(
-              (option: DropdownOption) => {
-                return (
-                  SnmpOidListUtil.normalizeOid(option.value.toString()) ===
-                  savedOid
-                );
-              },
-            );
+              /*
+               * A saved OID that is no longer in the catalogue - a template
+               * dropped it, or this step was pointed at a different device -
+               * used to render a blank Dropdown while the stale value stayed in
+               * the criteria: the form claimed nothing was selected while the
+               * monitor still evaluated an OID nothing polls. Now it is listed,
+               * selected, and labelled with why it will never match.
+               *
+               * Only once the catalogue has loaded, though - an empty catalogue
+               * is also what the first render of a perfectly healthy monitor
+               * looks like, and accusing it of being broken for the length of a
+               * fetch is worse than saying nothing.
+               */
+              if (savedOid && !selectedOidOption) {
+                selectedOidOption = {
+                  value: savedOid,
+                  label: networkDeviceCatalogue.isLoaded
+                    ? `${savedOid} - no longer collected by this device`
+                    : savedOid,
+                };
+                oidOptions.push(selectedOidOption);
+              }
 
-            /*
-             * A saved OID that is no longer in the catalogue - a template
-             * dropped it, or this step was pointed at a different device -
-             * used to render a blank Dropdown while the stale value stayed in
-             * the criteria: the form claimed nothing was selected while the
-             * monitor still evaluated an OID nothing polls. Now it is listed,
-             * selected, and labelled with why it will never match.
-             *
-             * Only once the catalogue has loaded, though - an empty catalogue
-             * is also what the first render of a perfectly healthy monitor
-             * looks like, and accusing it of being broken for the length of a
-             * fetch is worse than saying nothing.
-             */
-            if (savedOid && !selectedOidOption) {
-              selectedOidOption = {
-                value: savedOid,
-                label: networkDeviceCatalogue.isLoaded
-                  ? `${savedOid} - no longer collected by this device`
-                  : savedOid,
-              };
-              oidOptions.push(selectedOidOption);
-            }
+              const isDeviceSelected: boolean = Boolean(
+                props.monitorStep.data?.networkDeviceMonitor?.networkDeviceId,
+              );
 
-            const isDeviceSelected: boolean = Boolean(
-              props.monitorStep.data?.networkDeviceMonitor?.networkDeviceId,
-            );
+              return (
+                <div className="min-w-0">
+                  <FieldLabelElement
+                    title="OID"
+                    description="Which of the health OIDs this device collects should this criteria evaluate?"
+                  />
+                  {oidOptions.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      {isDeviceSelected
+                        ? "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here."
+                        : "Choose the network device for this monitor in the configuration above, and the health OIDs it collects are listed here."}
+                    </p>
+                  ) : (
+                    <Dropdown
+                      value={selectedOidOption}
+                      options={oidOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onChange?.({
+                          ...criteriaFilter,
+                          snmpMonitorOptions: {
+                            ...criteriaFilter?.snmpMonitorOptions,
+                            oid: value?.toString(),
+                          },
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
-            return (
-              <div className="mt-1">
-                <FieldLabelElement
-                  title="OID"
-                  description="Which of the health OIDs this device collects should this criteria evaluate?"
-                />
-                {oidOptions.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    {isDeviceSelected
-                      ? "This device collects no health OIDs yet. Link an OID Collection Template, or add device-specific Health OIDs, on the device's Settings page - CPU, memory, temperature, fans and power supplies live there. Per-port traffic, errors and up/down are already collected by the interface walk, so they need no OID here."
-                      : "Choose the network device for this monitor in the configuration above, and the health OIDs it collects are listed here."}
-                  </p>
-                ) : (
+          {criteriaFilter?.checkOn &&
+            (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
+              criteriaFilter?.checkOn ===
+                CheckOn.SnmpInterfaceUtilizationPercent ||
+              criteriaFilter?.checkOn ===
+                CheckOn.SnmpInterfaceErrorsPerSecond) &&
+            (() => {
+              const savedInterfaceName: string =
+                criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
+
+              /*
+               * "*" first, then the names and aliases the device's last walk
+               * actually reported - the server accepts either, so the picker
+               * offers both.
+               *
+               * The free-text input below stays, and has to: "*" is
+               * not an interface, and a port that has not been walked yet - a
+               * device registered minutes ago, a line card about to go in - is
+               * a legitimate thing to write a criteria against before it shows
+               * up here.
+               */
+              const interfaceOptions: Array<DropdownOption> = [
+                {
+                  value: "*",
+                  label: "* - every monitored interface, alerting separately",
+                },
+                ...networkDeviceCatalogue.interfaceNames.map(
+                  (interfaceName: string): DropdownOption => {
+                    return {
+                      value: interfaceName,
+                      label: interfaceName,
+                    };
+                  },
+                ),
+              ];
+
+              /*
+               * The server matches interfaceName against name and alias
+               * case-insensitively, so the picker resolves the saved value the
+               * same way rather than showing "nothing selected" for a name that
+               * does in fact match.
+               */
+              let selectedInterfaceOption: DropdownOption | undefined =
+                interfaceOptions.find((option: DropdownOption) => {
+                  return (
+                    option.value.toString().toLowerCase() ===
+                    savedInterfaceName.toLowerCase()
+                  );
+                });
+
+              /*
+               * Same rule as the OID picker: never show an empty control next
+               * to a value that is saved. A port that has since dropped off the
+               * walk is shown as selected and said to be off the list - but,
+               * again like the OID picker, only once the catalogue has actually
+               * loaded. Before that the value stands on its own, unjudged.
+               */
+              if (savedInterfaceName && !selectedInterfaceOption) {
+                selectedInterfaceOption = {
+                  value: savedInterfaceName,
+                  label: networkDeviceCatalogue.isLoaded
+                    ? `${savedInterfaceName} - not on this device's last interface walk`
+                    : savedInterfaceName,
+                };
+              }
+
+              return (
+                <div className="min-w-0">
+                  <FieldLabelElement
+                    title="Interface (Optional)"
+                    description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or pick * to evaluate every interface and raise a separate alert for each one."
+                  />
                   <Dropdown
-                    value={selectedOidOption}
-                    options={oidOptions}
+                    value={selectedInterfaceOption}
+                    options={interfaceOptions}
+                    placeholder="Every monitored interface (combined)"
                     onChange={(
                       value: DropdownValue | Array<DropdownValue> | null,
                     ) => {
@@ -462,690 +572,556 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         ...criteriaFilter,
                         snmpMonitorOptions: {
                           ...criteriaFilter?.snmpMonitorOptions,
-                          oid: value?.toString(),
+                          interfaceName: value?.toString() || undefined,
                         },
                       });
                     }}
                   />
-                )}
-              </div>
-            );
-          })()}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Or type a name or alias - for an interface this device has
+                    not walked yet.
+                  </p>
+                  <Input
+                    value={savedInterfaceName}
+                    placeholder="* or Gi0/1"
+                    onChange={(value: string) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        snmpMonitorOptions: {
+                          ...criteriaFilter?.snmpMonitorOptions,
+                          interfaceName: value || undefined,
+                        },
+                      });
+                    }}
+                  />
+                </div>
+              );
+            })()}
 
-        {criteriaFilter?.checkOn &&
-          (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
-            criteriaFilter?.checkOn ===
-              CheckOn.SnmpInterfaceUtilizationPercent ||
-            criteriaFilter?.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) &&
-          (() => {
-            const savedInterfaceName: string =
-              criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
+          {criteriaFilter?.checkOn === CheckOn.DatabaseMetric &&
+            (() => {
+              const databaseType: SqlDatabaseType | undefined =
+                props.monitorStep?.data?.databaseMonitor?.databaseType;
 
-            /*
-             * "*" first, then the names and aliases the device's last walk
-             * actually reported - the server accepts either, so the picker
-             * offers both.
-             *
-             * The free-text input below stays, and has to: "*" is
-             * not an interface, and a port that has not been walked yet - a
-             * device registered minutes ago, a line card about to go in - is
-             * a legitimate thing to write a criteria against before it shows
-             * up here.
-             */
-            const interfaceOptions: Array<DropdownOption> = [
-              {
-                value: "*",
-                label: "* - every monitored interface, alerting separately",
-              },
-              ...networkDeviceCatalogue.interfaceNames.map(
-                (interfaceName: string): DropdownOption => {
+              /*
+               * Offer only what the connected engine can actually produce.
+               * Stock MySQL has no deadlock counter and SQL Server has no
+               * fixed connection ceiling, so a threshold on either would sit
+               * permanently unmet - a rule that looks like coverage and is
+               * not. Before an engine has been chosen the whole catalog is
+               * the honest answer; the note below says so.
+               */
+              const metrics: Array<DatabaseMetricDefinition> = databaseType
+                ? getDatabaseMetricsForEngine(databaseType)
+                : getAllDatabaseMetrics();
+
+              const categoryOrder: Array<DatabaseMetricCategory> =
+                getDatabaseMetricCategoryOrder();
+
+              const metricOptions: Array<DropdownOption> = [...metrics]
+                .sort(
+                  (
+                    a: DatabaseMetricDefinition,
+                    b: DatabaseMetricDefinition,
+                  ): number => {
+                    const categoryDifference: number =
+                      categoryOrder.indexOf(a.category) -
+                      categoryOrder.indexOf(b.category);
+
+                    if (categoryDifference !== 0) {
+                      return categoryDifference;
+                    }
+
+                    return a.friendlyName.localeCompare(b.friendlyName);
+                  },
+                )
+                .map((metric: DatabaseMetricDefinition): DropdownOption => {
                   return {
-                    value: interfaceName,
-                    label: interfaceName,
+                    value: metric.metricType,
+                    label: metric.unit
+                      ? `${metric.friendlyName} (${metric.unit})`
+                      : metric.friendlyName,
                   };
-                },
-              ),
-            ];
+                });
 
-            /*
-             * The server matches interfaceName against name and alias
-             * case-insensitively, so the picker resolves the saved value the
-             * same way rather than showing "nothing selected" for a name that
-             * does in fact match.
-             */
-            let selectedInterfaceOption: DropdownOption | undefined =
-              interfaceOptions.find((option: DropdownOption) => {
-                return (
-                  option.value.toString().toLowerCase() ===
-                  savedInterfaceName.toLowerCase()
-                );
-              });
+              const savedMetricType: MonitorMetricType | undefined =
+                criteriaFilter?.databaseMonitorOptions?.metricType;
 
-            /*
-             * Same rule as the OID picker: never show an empty control next
-             * to a value that is saved. A port that has since dropped off the
-             * walk is shown as selected and said to be off the list - but,
-             * again like the OID picker, only once the catalogue has actually
-             * loaded. Before that the value stands on its own, unjudged.
-             */
-            if (savedInterfaceName && !selectedInterfaceOption) {
-              selectedInterfaceOption = {
-                value: savedInterfaceName,
-                label: networkDeviceCatalogue.isLoaded
-                  ? `${savedInterfaceName} - not on this device's last interface walk`
-                  : savedInterfaceName,
-              };
-            }
+              let selectedMetricOption: DropdownOption | undefined =
+                metricOptions.find((option: DropdownOption) => {
+                  return option.value === savedMetricType;
+                });
 
-            return (
-              <div className="mt-1">
-                <FieldLabelElement
-                  title="Interface (Optional)"
-                  description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface as one combined alert, or pick * to evaluate every interface and raise a separate alert for each one."
-                />
-                <Dropdown
-                  value={selectedInterfaceOption}
-                  options={interfaceOptions}
-                  placeholder="Every monitored interface (combined)"
-                  onChange={(
-                    value: DropdownValue | Array<DropdownValue> | null,
-                  ) => {
-                    props.onChange?.({
-                      ...criteriaFilter,
-                      snmpMonitorOptions: {
-                        ...criteriaFilter?.snmpMonitorOptions,
-                        interfaceName: value?.toString() || undefined,
-                      },
-                    });
-                  }}
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Or type a name or alias - for an interface this device has not
-                  walked yet.
-                </p>
-                <Input
-                  value={savedInterfaceName}
-                  placeholder="* or Gi0/1"
-                  onChange={(value: string) => {
-                    props.onChange?.({
-                      ...criteriaFilter,
-                      snmpMonitorOptions: {
-                        ...criteriaFilter?.snmpMonitorOptions,
-                        interfaceName: value || undefined,
-                      },
-                    });
-                  }}
-                />
-              </div>
-            );
-          })()}
+              /*
+               * Same rule as the OID picker above: never draw an empty
+               * control over a value that is saved. Switching the engine on
+               * the step below leaves criteria naming series the new engine
+               * never writes, and a blank dropdown would claim nothing was
+               * chosen while the monitor still evaluated that series.
+               */
+              if (savedMetricType && !selectedMetricOption) {
+                const staleMetric: DatabaseMetricDefinition | null =
+                  getDatabaseMetricByMetricType(savedMetricType);
 
-        {criteriaFilter?.checkOn === CheckOn.DatabaseMetric &&
-          (() => {
-            const databaseType: SqlDatabaseType | undefined =
-              props.monitorStep?.data?.databaseMonitor?.databaseType;
-
-            /*
-             * Offer only what the connected engine can actually produce.
-             * Stock MySQL has no deadlock counter and SQL Server has no
-             * fixed connection ceiling, so a threshold on either would sit
-             * permanently unmet - a rule that looks like coverage and is
-             * not. Before an engine has been chosen the whole catalog is
-             * the honest answer; the note below says so.
-             */
-            const metrics: Array<DatabaseMetricDefinition> = databaseType
-              ? getDatabaseMetricsForEngine(databaseType)
-              : getAllDatabaseMetrics();
-
-            const categoryOrder: Array<DatabaseMetricCategory> =
-              getDatabaseMetricCategoryOrder();
-
-            const metricOptions: Array<DropdownOption> = [...metrics]
-              .sort(
-                (
-                  a: DatabaseMetricDefinition,
-                  b: DatabaseMetricDefinition,
-                ): number => {
-                  const categoryDifference: number =
-                    categoryOrder.indexOf(a.category) -
-                    categoryOrder.indexOf(b.category);
-
-                  if (categoryDifference !== 0) {
-                    return categoryDifference;
-                  }
-
-                  return a.friendlyName.localeCompare(b.friendlyName);
-                },
-              )
-              .map((metric: DatabaseMetricDefinition): DropdownOption => {
-                return {
-                  value: metric.metricType,
-                  label: metric.unit
-                    ? `${metric.friendlyName} (${metric.unit})`
-                    : metric.friendlyName,
+                selectedMetricOption = {
+                  value: savedMetricType,
+                  label: staleMetric
+                    ? `${staleMetric.friendlyName} - not collected by ${databaseType}`
+                    : savedMetricType.toString(),
                 };
-              });
 
-            const savedMetricType: MonitorMetricType | undefined =
-              criteriaFilter?.databaseMonitorOptions?.metricType;
+                metricOptions.push(selectedMetricOption);
+              }
 
-            let selectedMetricOption: DropdownOption | undefined =
-              metricOptions.find((option: DropdownOption) => {
-                return option.value === savedMetricType;
-              });
+              const selectedMetric: DatabaseMetricDefinition | null =
+                savedMetricType
+                  ? getDatabaseMetricByMetricType(savedMetricType)
+                  : null;
 
-            /*
-             * Same rule as the OID picker above: never draw an empty
-             * control over a value that is saved. Switching the engine on
-             * the step below leaves criteria naming series the new engine
-             * never writes, and a blank dropdown would claim nothing was
-             * chosen while the monitor still evaluated that series.
-             */
-            if (savedMetricType && !selectedMetricOption) {
-              const staleMetric: DatabaseMetricDefinition | null =
-                getDatabaseMetricByMetricType(savedMetricType);
+              return (
+                <div className="min-w-0">
+                  <FieldLabelElement
+                    title="Metric"
+                    description="Which of the health metrics the probe collects should this criteria compare against?"
+                  />
+                  <Dropdown
+                    value={selectedMetricOption}
+                    options={metricOptions}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        databaseMonitorOptions: {
+                          ...criteriaFilter?.databaseMonitorOptions,
+                          metricType: value?.toString() as MonitorMetricType,
+                        },
+                      });
+                    }}
+                  />
+                  {selectedMetric ? (
+                    <p className="text-xs text-gray-500 mt-2">
+                      {selectedMetric.description}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                  {!databaseType ? (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Choose a database engine on the Monitor Details step first
+                      - every metric in the catalogue is listed until then,
+                      including ones your engine cannot report.
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            })()}
 
-              selectedMetricOption = {
-                value: savedMetricType,
-                label: staleMetric
-                  ? `${staleMetric.friendlyName} - not collected by ${databaseType}`
-                  : savedMetricType.toString(),
-              };
-
-              metricOptions.push(selectedMetricOption);
-            }
-
-            const selectedMetric: DatabaseMetricDefinition | null =
-              savedMetricType
-                ? getDatabaseMetricByMetricType(savedMetricType)
-                : null;
-
-            return (
-              <div className="mt-1">
+          {criteriaFilter?.checkOn &&
+            criteriaFilter?.checkOn === CheckOn.MetricValue && (
+              <div className="min-w-0">
                 <FieldLabelElement
-                  title="Metric"
-                  description="Which of the health metrics the probe collects should this criteria compare against?"
+                  title={isMetricOnly ? "Metric" : "Select Metric Variable"}
+                  description={
+                    isMetricOnly
+                      ? "Which metric query should this alert rule check?"
+                      : undefined
+                  }
                 />
                 <Dropdown
-                  value={selectedMetricOption}
-                  options={metricOptions}
+                  value={selectedMetricVariableOption}
+                  options={metricVariableOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    /*
+                     * Reset thresholdUnit when the metric changes — the new
+                     * metric may be in a different unit family, and keeping a
+                     * stale unit would silently mis-scale the threshold.
+                     */
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      metricMonitorOptions: {
+                        ...criteriaFilter?.metricMonitorOptions,
+                        metricAlias: value?.toString(),
+                        thresholdUnit: undefined,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+          {criteriaFilter?.checkOn &&
+            criteriaFilter?.checkOn === CheckOn.MetricValue && (
+              <div className="min-w-0">
+                <FieldLabelElement
+                  title={isMetricOnly ? "Aggregation" : "Select Aggregation"}
+                  description={
+                    isMetricOnly
+                      ? "How to combine multiple data points (e.g. Average, Max, Min)."
+                      : undefined
+                  }
+                />
+                <Dropdown
+                  value={metricAggregationValue}
+                  options={metricAggregationOptions}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
                     props.onChange?.({
                       ...criteriaFilter,
-                      databaseMonitorOptions: {
-                        ...criteriaFilter?.databaseMonitorOptions,
-                        metricType: value?.toString() as MonitorMetricType,
+                      metricMonitorOptions: {
+                        ...criteriaFilter?.metricMonitorOptions,
+                        metricAggregationType:
+                          value?.toString() as EvaluateOverTimeType,
                       },
                     });
                   }}
                 />
-                {selectedMetric ? (
-                  <p className="text-xs text-gray-500 mt-2">
-                    {selectedMetric.description}
-                  </p>
-                ) : (
-                  <></>
-                )}
-                {!databaseType ? (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Choose a database engine on the Monitor Details step first -
-                    every metric in the catalogue is listed until then,
-                    including ones your engine cannot report.
-                  </p>
-                ) : (
-                  <></>
-                )}
               </div>
-            );
-          })()}
+            )}
 
-        {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn === CheckOn.MetricValue && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title={isMetricOnly ? "Metric" : "Select Metric Variable"}
-                description={
-                  isMetricOnly
-                    ? "Which metric query should this alert rule check?"
-                    : undefined
-                }
-              />
+          {!criteriaFilter?.checkOn ||
+            (criteriaFilter?.checkOn && (
+              <div className="min-w-0">
+                <FieldLabelElement
+                  title={isMetricOnly ? "Condition" : "Filter Condition"}
+                  description={
+                    isMetricOnly ? "When should this alert trigger?" : undefined
+                  }
+                />
+                <Dropdown
+                  value={filterConditionValue}
+                  options={filterTypeOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      filterType: value?.toString() as FilterType,
+                      value: undefined,
+                    });
+                  }}
+                />
+              </div>
+            ))}
+
+          {!criteriaFilter?.checkOn ||
+            (criteriaFilter?.checkOn &&
+              CriteriaFilterUtil.hasValueField({
+                checkOn: criteriaFilter?.checkOn,
+                filterType: criteriaFilter?.filterType,
+              }) &&
+              !CriteriaFilterUiUtil.isDropdownValueField({
+                checkOn: criteriaFilter?.checkOn,
+              }) && (
+                <div className="min-w-0">
+                  <FieldLabelElement
+                    title={isMetricOnly ? "Threshold" : "Value"}
+                    description={
+                      isMetricOnly
+                        ? thresholdUnitOptions.length > 0
+                          ? "The value and unit to compare against."
+                          : "The value to compare against."
+                        : undefined
+                    }
+                  />
+                  {criteriaFilter?.checkOn === CheckOn.MetricValue &&
+                  thresholdUnitOptions.length > 0 ? (
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <Input
+                          placeholder={valuePlaceholder}
+                          value={criteriaFilter?.value?.toString()}
+                          onChange={(value: string) => {
+                            props.onChange?.({
+                              ...criteriaFilter,
+                              value: value || "",
+                              metricMonitorOptions: {
+                                ...criteriaFilter?.metricMonitorOptions,
+                                thresholdUnit: currentThresholdUnitValue,
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="w-56">
+                        <Dropdown
+                          value={selectedThresholdUnitOption}
+                          options={thresholdUnitOptions.map((o: UnitOption) => {
+                            return { value: o.value, label: o.label };
+                          })}
+                          onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null,
+                          ) => {
+                            props.onChange?.({
+                              ...criteriaFilter,
+                              metricMonitorOptions: {
+                                ...criteriaFilter?.metricMonitorOptions,
+                                thresholdUnit: value?.toString(),
+                              },
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <Input
+                      placeholder={valuePlaceholder}
+                      value={criteriaFilter?.value?.toString()}
+                      onChange={(value: string) => {
+                        props.onChange?.({
+                          ...criteriaFilter,
+                          value: value || "",
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+
+          {!criteriaFilter?.checkOn ||
+            (criteriaFilter?.checkOn &&
+              CriteriaFilterUtil.hasValueField({
+                checkOn: criteriaFilter?.checkOn,
+                filterType: criteriaFilter?.filterType,
+              }) &&
+              CriteriaFilterUiUtil.isDropdownValueField({
+                checkOn: criteriaFilter?.checkOn,
+              }) && (
+                <div className="min-w-0">
+                  <FieldLabelElement title="Value" />
+                  <Dropdown
+                    options={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
+                      checkOn: criteriaFilter?.checkOn,
+                    })}
+                    value={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
+                      checkOn: criteriaFilter?.checkOn,
+                    }).find((i: DropdownOption) => {
+                      return i.value === criteriaFilter?.value;
+                    })}
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      props.onChange?.({
+                        ...criteriaFilter,
+                        value: value?.toString(),
+                      });
+                    }}
+                  />
+                </div>
+              ))}
+
+          {/** checkbox for evaluateOverTime */}
+
+          {criteriaFilter?.checkOn &&
+            CriteriaFilterUtil.isEvaluateOverTimeFilter(
+              criteriaFilter?.checkOn,
+            ) && (
+              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
+                <CheckboxElement
+                  value={criteriaFilter?.evaluateOverTime}
+                  title={"Evaluate this criteria over a period of time"}
+                  onChange={(value: boolean) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      evaluateOverTime: value,
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+          {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn &&
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(
+            criteriaFilter?.checkOn,
+          ) &&
+          criteriaFilter.evaluateOverTime ? (
+            <div className="min-w-0">
+              <FieldLabelElement title="Evaluate" />
               <Dropdown
-                value={selectedMetricVariableOption}
-                options={metricVariableOptions}
+                value={evaluateOverTimeTypeValue}
+                options={evalOverTimeDropdownOptions}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
-                  /*
-                   * Reset thresholdUnit when the metric changes — the new
-                   * metric may be in a different unit family, and keeping a
-                   * stale unit would silently mis-scale the threshold.
-                   */
-                  props.onChange?.({
-                    ...criteriaFilter,
-                    metricMonitorOptions: {
-                      ...criteriaFilter?.metricMonitorOptions,
-                      metricAlias: value?.toString(),
-                      thresholdUnit: undefined,
-                    },
-                  });
-                }}
-              />
-            </div>
-          )}
+                  const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                    criteriaFilter?.evaluateOverTimeOptions
+                      ? {
+                          ...criteriaFilter?.evaluateOverTimeOptions,
+                        }
+                      : {
+                          timeValueInMinutes: 5,
+                          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                        };
 
-        {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn === CheckOn.MetricValue && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title={isMetricOnly ? "Aggregation" : "Select Aggregation"}
-                description={
-                  isMetricOnly
-                    ? "How to combine multiple data points (e.g. Average, Max, Min)."
-                    : undefined
-                }
-              />
-              <Dropdown
-                value={metricAggregationValue}
-                options={metricAggregationOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
                   props.onChange?.({
                     ...criteriaFilter,
-                    metricMonitorOptions: {
-                      ...criteriaFilter?.metricMonitorOptions,
-                      metricAggregationType:
+                    evaluateOverTime: true,
+                    evaluateOverTimeOptions: {
+                      ...evaluateOverTimeOption,
+                      evaluateOverTimeType:
                         value?.toString() as EvaluateOverTimeType,
                     },
                   });
                 }}
               />
             </div>
+          ) : (
+            <></>
           )}
 
-        {/** checkbox for evaluateOverTime */}
-
-        {criteriaFilter?.checkOn &&
+          {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn &&
           CriteriaFilterUtil.isEvaluateOverTimeFilter(
             criteriaFilter?.checkOn,
-          ) && (
-            <div className="mt-3">
-              <CheckboxElement
-                value={criteriaFilter?.evaluateOverTime}
-                title={"Evaluate this criteria over a period of time"}
-                onChange={(value: boolean) => {
-                  props.onChange?.({
-                    ...criteriaFilter,
-                    evaluateOverTime: value,
-                  });
-                }}
-              />
-            </div>
-          )}
-
-        {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement title="Evaluate" />
-            <Dropdown
-              value={evaluateOverTimeTypeValue}
-              options={evalOverTimeDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    evaluateOverTimeType:
-                      value?.toString() as EvaluateOverTimeType,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {criteriaFilter?.checkOn &&
-        criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement title="For the last (in minutes)" />
-            <Dropdown
-              value={evaluateOverTimeMinutesValue}
-              options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    timeValueInMinutes: value as number,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {criteriaFilter?.checkOn &&
-        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
-        criteriaFilter.evaluateOverTime ? (
-          <div className="mt-1">
-            <FieldLabelElement
-              title="If No Data"
-              description={
-                "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
-              }
-            />
-            <Dropdown
-              value={(() => {
-                const policy: NoDataPolicy =
-                  criteriaFilter?.evaluateOverTimeOptions?.onNoDataPolicy ||
-                  NoDataPolicy.Ignore;
-                return { value: policy, label: policy };
-              })()}
-              options={[
-                {
-                  value: NoDataPolicy.Ignore,
-                  label: NoDataPolicy.Ignore,
-                },
-                {
-                  value: NoDataPolicy.TreatAsZero,
-                  label: NoDataPolicy.TreatAsZero,
-                },
-                {
-                  value: NoDataPolicy.Trigger,
-                  label: NoDataPolicy.Trigger,
-                },
-              ]}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const evaluateOverTimeOption: EvaluateOverTimeOptions =
-                  criteriaFilter?.evaluateOverTimeOptions
-                    ? {
-                        ...criteriaFilter?.evaluateOverTimeOptions,
-                      }
-                    : {
-                        timeValueInMinutes: 5,
-                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                      };
-
-                props.onChange?.({
-                  ...criteriaFilter,
-                  evaluateOverTime: true,
-                  evaluateOverTimeOptions: {
-                    ...evaluateOverTimeOption,
-                    onNoDataPolicy: value?.toString() as NoDataPolicy,
-                  },
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {!criteriaFilter?.checkOn ||
-          (criteriaFilter?.checkOn && (
-            <div className="mt-1">
-              <FieldLabelElement
-                title={isMetricOnly ? "Condition" : "Filter Condition"}
-                description={
-                  isMetricOnly ? "When should this alert trigger?" : undefined
-                }
-              />
+          ) &&
+          criteriaFilter.evaluateOverTime ? (
+            <div className="min-w-0">
+              <FieldLabelElement title="For the last (in minutes)" />
               <Dropdown
-                value={filterConditionValue}
-                options={filterTypeOptions}
+                value={evaluateOverTimeMinutesValue}
+                options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
+                  const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                    criteriaFilter?.evaluateOverTimeOptions
+                      ? {
+                          ...criteriaFilter?.evaluateOverTimeOptions,
+                        }
+                      : {
+                          timeValueInMinutes: 5,
+                          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                        };
+
                   props.onChange?.({
                     ...criteriaFilter,
-                    filterType: value?.toString() as FilterType,
-                    value: undefined,
+                    evaluateOverTime: true,
+                    evaluateOverTimeOptions: {
+                      ...evaluateOverTimeOption,
+                      timeValueInMinutes: value as number,
+                    },
                   });
                 }}
               />
             </div>
-          ))}
+          ) : (
+            <></>
+          )}
 
-        {!criteriaFilter?.checkOn ||
-          (criteriaFilter?.checkOn &&
-            CriteriaFilterUtil.hasValueField({
-              checkOn: criteriaFilter?.checkOn,
-              filterType: criteriaFilter?.filterType,
-            }) &&
-            !CriteriaFilterUiUtil.isDropdownValueField({
-              checkOn: criteriaFilter?.checkOn,
-            }) && (
-              <div className="mt-1">
-                <FieldLabelElement
-                  title={isMetricOnly ? "Threshold" : "Value"}
-                  description={
-                    isMetricOnly
-                      ? thresholdUnitOptions.length > 0
-                        ? "The value and unit to compare against."
-                        : "The value to compare against."
-                      : undefined
-                  }
-                />
-                {criteriaFilter?.checkOn === CheckOn.MetricValue &&
-                thresholdUnitOptions.length > 0 ? (
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <Input
-                        placeholder={valuePlaceholder}
-                        value={criteriaFilter?.value?.toString()}
-                        onChange={(value: string) => {
-                          props.onChange?.({
-                            ...criteriaFilter,
-                            value: value || "",
-                            metricMonitorOptions: {
-                              ...criteriaFilter?.metricMonitorOptions,
-                              thresholdUnit: currentThresholdUnitValue,
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                    <div className="w-56">
-                      <Dropdown
-                        value={selectedThresholdUnitOption}
-                        options={thresholdUnitOptions.map((o: UnitOption) => {
-                          return { value: o.value, label: o.label };
-                        })}
-                        onChange={(
-                          value: DropdownValue | Array<DropdownValue> | null,
-                        ) => {
-                          props.onChange?.({
-                            ...criteriaFilter,
-                            metricMonitorOptions: {
-                              ...criteriaFilter?.metricMonitorOptions,
-                              thresholdUnit: value?.toString(),
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <Input
-                    placeholder={valuePlaceholder}
-                    value={criteriaFilter?.value?.toString()}
-                    onChange={(value: string) => {
-                      props.onChange?.({
-                        ...criteriaFilter,
-                        value: value || "",
-                      });
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-
-        {!criteriaFilter?.checkOn ||
-          (criteriaFilter?.checkOn &&
-            CriteriaFilterUtil.hasValueField({
-              checkOn: criteriaFilter?.checkOn,
-              filterType: criteriaFilter?.filterType,
-            }) &&
-            CriteriaFilterUiUtil.isDropdownValueField({
-              checkOn: criteriaFilter?.checkOn,
-            }) && (
-              <div className="mt-1">
-                <FieldLabelElement title="Value" />
-                <Dropdown
-                  options={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
-                    checkOn: criteriaFilter?.checkOn,
-                  })}
-                  value={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
-                    checkOn: criteriaFilter?.checkOn,
-                  }).find((i: DropdownOption) => {
-                    return i.value === criteriaFilter?.value;
-                  })}
-                  onChange={(
-                    value: DropdownValue | Array<DropdownValue> | null,
-                  ) => {
-                    props.onChange?.({
-                      ...criteriaFilter,
-                      value: value?.toString(),
-                    });
-                  }}
-                />
-              </div>
-            ))}
-
-        {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
-          criteriaFilter?.checkOn === CheckOn.SpanCount ||
-          criteriaFilter?.checkOn === CheckOn.LogCount ||
-          criteriaFilter?.checkOn ===
-            CheckOn.SnmpInterfaceUtilizationPercent) &&
-          CriteriaFilterUtil.isAnomalyFilterType(
-            criteriaFilter?.filterType,
-          ) && (
-            <div className="mt-1">
+          {criteriaFilter?.checkOn &&
+          CriteriaFilterUtil.isEvaluateOverTimeFilter(
+            criteriaFilter?.checkOn,
+          ) &&
+          criteriaFilter.evaluateOverTime ? (
+            <div className="min-w-0">
               <FieldLabelElement
-                title="Sensitivity"
-                description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline computed from the configured Baseline Window below."
+                title="If No Data"
+                description={
+                  "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
+                }
               />
               <Dropdown
                 value={(() => {
-                  const v: AnomalyDetectionSensitivity =
-                    (criteriaFilter?.metricMonitorOptions?.anomalyDetection
-                      ?.sensitivity as
-                      | AnomalyDetectionSensitivity
-                      | undefined) || AnomalyDetectionSensitivity.Medium;
-                  return {
-                    value: v,
-                    label:
-                      v === AnomalyDetectionSensitivity.Low
-                        ? "Low (4σ — egregious deviations only)"
-                        : v === AnomalyDetectionSensitivity.High
-                          ? "High (2σ — noisier, very stable services)"
-                          : "Medium (3σ — recommended)",
-                  };
+                  const policy: NoDataPolicy =
+                    criteriaFilter?.evaluateOverTimeOptions?.onNoDataPolicy ||
+                    NoDataPolicy.Ignore;
+                  return { value: policy, label: policy };
                 })()}
                 options={[
                   {
-                    value: AnomalyDetectionSensitivity.Low,
-                    label: "Low (4σ — egregious deviations only)",
+                    value: NoDataPolicy.Ignore,
+                    label: NoDataPolicy.Ignore,
                   },
                   {
-                    value: AnomalyDetectionSensitivity.Medium,
-                    label: "Medium (3σ — recommended)",
+                    value: NoDataPolicy.TreatAsZero,
+                    label: NoDataPolicy.TreatAsZero,
                   },
                   {
-                    value: AnomalyDetectionSensitivity.High,
-                    label: "High (2σ — noisier, very stable services)",
+                    value: NoDataPolicy.Trigger,
+                    label: NoDataPolicy.Trigger,
                   },
                 ]}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
+                  const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                    criteriaFilter?.evaluateOverTimeOptions
+                      ? {
+                          ...criteriaFilter?.evaluateOverTimeOptions,
+                        }
+                      : {
+                          timeValueInMinutes: 5,
+                          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                        };
+
                   props.onChange?.({
                     ...criteriaFilter,
-                    metricMonitorOptions: {
-                      ...criteriaFilter?.metricMonitorOptions,
-                      anomalyDetection: {
-                        ...criteriaFilter?.metricMonitorOptions
-                          ?.anomalyDetection,
-                        sensitivity:
-                          value?.toString() as AnomalyDetectionSensitivity,
-                      },
+                    evaluateOverTime: true,
+                    evaluateOverTimeOptions: {
+                      ...evaluateOverTimeOption,
+                      onNoDataPolicy: value?.toString() as NoDataPolicy,
                     },
                   });
                 }}
               />
-              <div className="mt-3">
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
+            criteriaFilter?.checkOn === CheckOn.SpanCount ||
+            criteriaFilter?.checkOn === CheckOn.LogCount ||
+            criteriaFilter?.checkOn ===
+              CheckOn.SnmpInterfaceUtilizationPercent) &&
+            CriteriaFilterUtil.isAnomalyFilterType(
+              criteriaFilter?.filterType,
+            ) && (
+              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
                 <FieldLabelElement
-                  title="Baseline Window"
-                  description="How many days of history to compare against. Longer windows capture monthly seasonality (billing/payroll cycles); shorter windows respond faster to genuine drift in the underlying metric."
+                  title="Sensitivity"
+                  description="Lower sensitivity = larger expected range, fewer alerts. Compares each sample to the same-hour-of-week baseline computed from the configured Baseline Window below."
                 />
                 <Dropdown
                   value={(() => {
-                    const days: number =
-                      criteriaFilter?.metricMonitorOptions?.anomalyDetection
-                        ?.windowDays || 14;
+                    const v: AnomalyDetectionSensitivity =
+                      (criteriaFilter?.metricMonitorOptions?.anomalyDetection
+                        ?.sensitivity as
+                        | AnomalyDetectionSensitivity
+                        | undefined) || AnomalyDetectionSensitivity.Medium;
                     return {
-                      value: days,
+                      value: v,
                       label:
-                        days === 14
-                          ? "14 days (default)"
-                          : days === 28
-                            ? "28 days (longer warm-up, smoother)"
-                            : days === 60
-                              ? "60 days (monthly seasonality)"
-                              : days === 90
-                                ? "90 days (quarterly cycles)"
-                                : `${days} days`,
+                        v === AnomalyDetectionSensitivity.Low
+                          ? "Low (4σ — egregious deviations only)"
+                          : v === AnomalyDetectionSensitivity.High
+                            ? "High (2σ — noisier, very stable services)"
+                            : "Medium (3σ — recommended)",
                     };
                   })()}
                   options={[
-                    { value: 14, label: "14 days (default)" },
-                    { value: 28, label: "28 days (longer warm-up, smoother)" },
-                    { value: 60, label: "60 days (monthly seasonality)" },
-                    { value: 90, label: "90 days (quarterly cycles)" },
+                    {
+                      value: AnomalyDetectionSensitivity.Low,
+                      label: "Low (4σ — egregious deviations only)",
+                    },
+                    {
+                      value: AnomalyDetectionSensitivity.Medium,
+                      label: "Medium (3σ — recommended)",
+                    },
+                    {
+                      value: AnomalyDetectionSensitivity.High,
+                      label: "High (2σ — noisier, very stable services)",
+                    },
                   ]}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
-                    const parsed: number = Number(value?.toString() || "14");
                     props.onChange?.({
                       ...criteriaFilter,
                       metricMonitorOptions: {
@@ -1153,87 +1129,127 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         anomalyDetection: {
                           ...criteriaFilter?.metricMonitorOptions
                             ?.anomalyDetection,
-                          windowDays: Number.isFinite(parsed) ? parsed : 14,
+                          sensitivity:
+                            value?.toString() as AnomalyDetectionSensitivity,
                         },
                       },
                     });
                   }}
                 />
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                Anomaly detection requires at least the chosen window of
-                telemetry history before firing — until then the rule sits in
-                &quot;Learning&quot; state and produces no alerts.
-              </p>
-            </div>
-          )}
-
-        {criteriaFilter?.checkOn &&
-          criteriaFilter?.checkOn === CheckOn.MetricValue && (
-            <div className="mt-4">
-              <CollapsibleSection
-                title="Advanced"
-                variant="default"
-                defaultCollapsed={
-                  !criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
-                  criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ===
-                    NoDataPolicy.Ignore
-                }
-                headerClassName="text-xs text-gray-500"
-              >
-                <div className="pl-6">
+                <div className="mt-3">
                   <FieldLabelElement
-                    title="If No Data"
-                    description="What should happen when the query returns no data points in the evaluation window?"
+                    title="Baseline Window"
+                    description="How many days of history to compare against. Longer windows capture monthly seasonality (billing/payroll cycles); shorter windows respond faster to genuine drift in the underlying metric."
                   />
                   <Dropdown
                     value={(() => {
-                      const v: NoDataPolicy =
-                        criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
-                        NoDataPolicy.Ignore;
-                      return { value: v, label: v };
+                      const days: number =
+                        criteriaFilter?.metricMonitorOptions?.anomalyDetection
+                          ?.windowDays || 14;
+                      return {
+                        value: days,
+                        label:
+                          days === 14
+                            ? "14 days (default)"
+                            : days === 28
+                              ? "28 days (longer warm-up, smoother)"
+                              : days === 60
+                                ? "60 days (monthly seasonality)"
+                                : days === 90
+                                  ? "90 days (quarterly cycles)"
+                                  : `${days} days`,
+                      };
                     })()}
                     options={[
+                      { value: 14, label: "14 days (default)" },
                       {
-                        value: NoDataPolicy.Ignore,
-                        label: NoDataPolicy.Ignore,
+                        value: 28,
+                        label: "28 days (longer warm-up, smoother)",
                       },
-                      {
-                        value: NoDataPolicy.TreatAsZero,
-                        label: NoDataPolicy.TreatAsZero,
-                      },
-                      {
-                        value: NoDataPolicy.Trigger,
-                        label: NoDataPolicy.Trigger,
-                      },
+                      { value: 60, label: "60 days (monthly seasonality)" },
+                      { value: 90, label: "90 days (quarterly cycles)" },
                     ]}
                     onChange={(
                       value: DropdownValue | Array<DropdownValue> | null,
                     ) => {
+                      const parsed: number = Number(value?.toString() || "14");
                       props.onChange?.({
                         ...criteriaFilter,
                         metricMonitorOptions: {
                           ...criteriaFilter?.metricMonitorOptions,
-                          onNoDataPolicy: value?.toString() as NoDataPolicy,
+                          anomalyDetection: {
+                            ...criteriaFilter?.metricMonitorOptions
+                              ?.anomalyDetection,
+                            windowDays: Number.isFinite(parsed) ? parsed : 14,
+                          },
                         },
                       });
                     }}
                   />
                 </div>
-              </CollapsibleSection>
-            </div>
-          )}
+                <p className="mt-2 text-xs text-gray-500">
+                  Anomaly detection requires at least the chosen window of
+                  telemetry history before firing — until then the rule sits in
+                  &quot;Learning&quot; state and produces no alerts.
+                </p>
+              </div>
+            )}
 
-        <div className="mt-3 -mr-2 w-full flex justify-end">
-          <Button
-            title={isMetricOnly ? "Delete Rule" : "Delete Filter"}
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-            icon={IconProp.Trash}
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              props.onDelete?.();
-            }}
-          />
+          {criteriaFilter?.checkOn &&
+            criteriaFilter?.checkOn === CheckOn.MetricValue && (
+              <div className="min-w-0 sm:col-span-2 lg:col-span-3">
+                <CollapsibleSection
+                  title="Advanced"
+                  variant="default"
+                  defaultCollapsed={
+                    !criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ||
+                    criteriaFilter?.metricMonitorOptions?.onNoDataPolicy ===
+                      NoDataPolicy.Ignore
+                  }
+                  headerClassName="text-xs text-gray-500"
+                >
+                  <div className="pl-6">
+                    <FieldLabelElement
+                      title="If No Data"
+                      description="What should happen when the query returns no data points in the evaluation window?"
+                    />
+                    <Dropdown
+                      value={(() => {
+                        const v: NoDataPolicy =
+                          criteriaFilter?.metricMonitorOptions
+                            ?.onNoDataPolicy || NoDataPolicy.Ignore;
+                        return { value: v, label: v };
+                      })()}
+                      options={[
+                        {
+                          value: NoDataPolicy.Ignore,
+                          label: NoDataPolicy.Ignore,
+                        },
+                        {
+                          value: NoDataPolicy.TreatAsZero,
+                          label: NoDataPolicy.TreatAsZero,
+                        },
+                        {
+                          value: NoDataPolicy.Trigger,
+                          label: NoDataPolicy.Trigger,
+                        },
+                      ]}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onChange?.({
+                          ...criteriaFilter,
+                          metricMonitorOptions: {
+                            ...criteriaFilter?.metricMonitorOptions,
+                            onNoDataPolicy: value?.toString() as NoDataPolicy,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                </CollapsibleSection>
+              </div>
+            )}
         </div>
       </div>
       {criteriaFilter?.checkOn === CheckOn.JavaScriptExpression ? (

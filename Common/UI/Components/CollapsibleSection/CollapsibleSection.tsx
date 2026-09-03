@@ -146,9 +146,17 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
+      {/*
+       * Expanded sections carry no max-height. They used to be capped at
+       * 5000px, which is fine for the short sections this started with and
+       * silently truncates the long ones - a monitor criteria's Actions
+       * section, with two incident templates and their owners and
+       * on-call policies, runs past it and lost its last fields with no
+       * scrollbar and no indication anything was missing.
+       */}
       <div
-        className={`transition-all duration-200 ease-in-out overflow-hidden ${
-          isCollapsed ? "max-h-0 opacity-0" : "max-h-[5000px] opacity-100"
+        className={`transition-all duration-200 ease-in-out ${
+          isCollapsed ? "max-h-0 overflow-hidden opacity-0" : "opacity-100"
         }`}
       >
         <div className={getContentClassName()}>{props.children}</div>

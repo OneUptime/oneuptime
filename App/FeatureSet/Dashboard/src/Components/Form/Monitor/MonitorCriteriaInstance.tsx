@@ -7,17 +7,12 @@ import {
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import Dictionary from "Common/Types/Dictionary";
-import IconProp from "Common/Types/Icon/IconProp";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import IncidentGroupingConfig from "Common/Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -70,7 +65,6 @@ export interface ComponentProps {
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
-  onDelete?: undefined | (() => void);
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
@@ -236,13 +230,18 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mt-4">
-      {/* Criteria Name and Description */}
-      <div className="mb-4">
+      {/*
+       * Name and description sit side by side rather than stacked. They
+       * are two short fields at the top of a form the user has to scroll
+       * through repeatedly, and stacking them pushed the filters - the
+       * part they came here for - a full screen further down.
+       */}
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="mt-3">
           <FieldLabelElement
             title={"Criteria Name"}
             description={
-              "Any friendly name for this criteria, that will help you remember later."
+              "A friendly name that will help you recognise this criteria later."
             }
             required={true}
           />
@@ -292,12 +291,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        <div className="mt-4">
+        <div className="mt-3">
           <FieldLabelElement
             title={"Criteria Description"}
-            description={
-              "Any friendly description for this criteria, that will help you remember later."
-            }
+            description={"What this criteria is for, in a sentence."}
             required={true}
           />
           <TextArea
@@ -832,21 +829,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </CollapsibleSection>
-
-      {/* Delete Criteria Button */}
-      <div className="mt-4 -ml-3">
-        <Button
-          onClick={() => {
-            if (props.onDelete) {
-              props.onDelete();
-            }
-          }}
-          buttonSize={ButtonSize.Small}
-          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-          icon={IconProp.Trash}
-          title="Delete Criteria"
-        />
-      </div>
     </div>
   );
 };
