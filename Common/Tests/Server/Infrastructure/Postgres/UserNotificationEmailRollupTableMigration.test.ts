@@ -177,11 +177,16 @@ describe("registration", () => {
    * exported array is the only thing the runner reads, so it is the only thing
    * worth asserting.
    */
-  test("the migration is registered as the last entry in the array", () => {
+  test("the migration is in the exported array, not merely imported", () => {
+    /*
+     * Membership, not position. It was the last entry when it landed and is
+     * not any more, because the rollup escape hatch added one after it — and
+     * "is it last" is not this file's property to assert in the first place:
+     * SchemaMigrationsOrdering.test.ts owns the registry-wide ordering rules
+     * for every migration at once. What matters here is only that this one
+     * runs at all, which the exported array decides and the imports do not.
+     */
     expect(SchemaMigrations).toContain(
-      AddUserNotificationEmailRollup1791000000000,
-    );
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
       AddUserNotificationEmailRollup1791000000000,
     );
   });

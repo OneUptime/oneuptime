@@ -344,9 +344,20 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
         `(covering ${hiddenItems} ${pluralise(hiddenItems, "notification", "notifications")}) ` +
         `${pluralise(hiddenRows, "is", "are")} not listed here. Open the project to see everything.`;
 
+  /*
+   * The reader of this email did not ask for it, so the footer owes them the
+   * way out and not just an explanation. Rollup ships on with no preference,
+   * which means somebody who wants an email per event has no idea a switch
+   * exists unless this paragraph says so - and it is a per-project switch, so
+   * "for this project" is load-bearing rather than padding. It sits under the
+   * template's own heading, "Why did I get one email instead of several?",
+   * and ends in a colon because the preferencesLink is rendered immediately
+   * below it as the sentence's object.
+   */
   const preferencesText: string =
     "OneUptime groups owner notifications into a single email when several arrive at once for the same project. " +
-    "Choose which notifications you receive, or turn email off entirely, from your notification settings:";
+    "To go back to one email per notification, sent the moment it happens, turn off email rollup for this project in your notification settings. " +
+    "The same page is where you choose which notifications you receive, or turn email off entirely:";
 
   const rowsForTemplate: Array<JSONObject> = rows.map(
     (row: RollupRow, index: number): JSONObject => {

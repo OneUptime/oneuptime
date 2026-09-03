@@ -6,7 +6,8 @@ owner of every one of those resources gets an email for every step. That is how 
 turns a single outage into two hundred messages in one inbox — and how the messages stop being read.
 
 OneUptime coalesces those bursts automatically. You do not have to turn it on, and there is nothing
-to configure.
+to configure — but if you would rather have every notification as its own email, you can
+[switch rollup off for yourself](#turning-rollup-off-for-yourself), one project at a time.
 
 ## How it works
 
@@ -73,6 +74,34 @@ whose email was held back.
   is enforced by the database, not by a timer, so it holds even during a sustained multi-hour storm.
 - Worst-case added delay for a held-back notification is about six minutes.
 
+## Turning rollup off for yourself
+
+Some people want the batching. Some people file every notification as it lands, or feed the mailbox
+to something that does, and a rollup email breaks that. So rollup can be switched off, per person and
+per project, under **User Settings → Notification Settings** in the dashboard — the same page every
+rollup email links to at the bottom.
+
+With it off, every owner and member notification email in that project is sent to you individually
+and immediately again, exactly as it was before rollup existed: same subject, same template, same
+links, no threshold and no five-minute wait. Anything already queued for you when you switch it off
+still arrives as one last rollup a few minutes later; everything after that comes one at a time.
+
+The switch is **yours alone and scoped to one project**. Turning it off does not change what your
+colleagues receive, and it does not carry across projects — so the noisy production project can keep
+batching while the quiet internal one sends everything through, or the other way round. It is on for
+everyone until they turn it off; there is nothing to enable and nothing to migrate.
+
+What it does **not** touch:
+
+- **Which notifications you get.** That is the per-event-type, per-channel setting on the same page
+  (see below). Rollup and this switch only ever change how many emails those notifications are
+  packed into.
+- **On-call paging and shift email**, **account security email**, **billing email**, instance health
+  warnings and status page subscriber email. None of those are ever rolled up in the first place, so
+  turning rollup off changes nothing about them — see [What is never rolled up](#what-is-never-rolled-up).
+- **Any other channel.** SMS, phone calls, push, WhatsApp, Telegram, Slack, Microsoft Teams and
+  webhooks are already immediate.
+
 ## Turning it down further
 
 Rollup reduces how many emails a notification produces. It does not decide which notifications you
@@ -81,4 +110,5 @@ get in the first place — that is still yours to set, per event type and per ch
 page.
 
 If a whole class of notification is not useful to you, switching it off there is a bigger saving than
-any amount of batching.
+any amount of batching — and unlike the rollup switch above, it takes the notification away rather
+than repackaging it.

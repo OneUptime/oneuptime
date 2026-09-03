@@ -1,5 +1,6 @@
 import MailService from "../../../../Server/Services/MailService";
 import UserNotificationEmailRollupItemService from "../../../../Server/Services/UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupSettingService from "../../../../Server/Services/UserNotificationEmailRollupSettingService";
 import EmailRollupWriter, {
   RollupMailOptions,
   SendOrRollupData,
@@ -95,6 +96,17 @@ interface CapturedCountBy {
   };
 }
 
+/*
+ * What the writer hands the preference read. Two ids and nothing else: the
+ * preference is per (user, project), and asserting the shape here is what
+ * proves the writer asks about the recipient of THIS email rather than about
+ * whoever it happened to have in scope.
+ */
+interface CapturedPreferenceRead {
+  userId: ObjectID;
+  projectId: ObjectID;
+}
+
 function buildEnvelope(overrides: Partial<EmailEnvelope> = {}): EmailEnvelope {
   return {
     subject: "Incident created: Checkout is down",
@@ -131,6 +143,7 @@ describe("EmailRollupWriter.sendOrRollup", () => {
   let countRecent: jest.SpyInstance;
   let createItem: jest.SpyInstance;
   let loggerError: jest.SpyInstance;
+  let rollupEnabled: jest.SpyInstance;
 
   beforeEach(() => {
     loggerError = jest.spyOn(logger, "error").mockImplementation((): void => {
@@ -148,6 +161,20 @@ describe("EmailRollupWriter.sendOrRollup", () => {
     createItem = jest
       .spyOn(UserNotificationEmailRollupItemService, "create")
       .mockResolvedValue(new UserNotificationEmailRollupItem() as never);
+
+    /*
+     * The per-user escape hatch, stubbed to its default for every test in the
+     * file. Absent a row the real service answers `true`, so this is the
+     * behaviour every existing test above was written against; stubbing it
+     * keeps them asserting the burst decision rather than accidentally
+     * asserting what an unreachable database does to the preference read.
+     */
+    rollupEnabled = jest
+      .spyOn(
+        UserNotificationEmailRollupSettingService,
+        "isRollupEnabledForUser",
+      )
+      .mockResolvedValue(true as never);
   });
 
   afterEach(() => {
@@ -672,6 +699,166 @@ describe("EmailRollupWriter.sendOrRollup", () => {
       expect(createItem).toHaveBeenCalledTimes(1);
       expect(writtenItem().viewLink).toBeUndefined();
       expect(sendMail).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * (G) The per-user escape hatch.
+   * -----------------------------------------------------------------------
+   */
+
+  describe("the per-user escape hatch", () => {
+    function capturedPreferenceRead(index: number = 0): CapturedPreferenceRead {
+      return rollupEnabled.mock.calls[index]?.[0] as CapturedPreferenceRead;
+    }
+
+    test("below the threshold the preference is never read", async () => {
+      /*
+       * The reason the read sits inside the `if (deferred)` and not above it.
+       * Under the threshold the outcome is an immediate send whatever the
+       * preference says, so a read here would be one extra indexed query per
+       * owner notification per address, on the path that every project takes
+       * every day, that could never change the answer. The feature's
+       * no-op-below-the-threshold promise has to hold in queries, not only in
+       * emails.
+       */
+      recentCount(BURST_THRESHOLD - 1);
+
+      await EmailRollupWriter.sendOrRollup(sendData());
+
+      expect(rollupEnabled).not.toHaveBeenCalled();
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    });
+
+    test("at the threshold with rollup on, the email defers exactly as it did before the toggle existed", async () => {
+      recentCount(BURST_THRESHOLD);
+      rollupEnabled.mockResolvedValue(true as never);
+
+      await EmailRollupWriter.sendOrRollup(sendData());
+
+      expect(rollupEnabled).toHaveBeenCalledTimes(1);
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(createItem).toHaveBeenCalledTimes(1);
+      expect(writtenItem().sentAt).toBeUndefined();
+      expect(loggerError).not.toHaveBeenCalled();
+    });
+
+    test("at the threshold with rollup off, the email is sent immediately with the envelope and options unchanged", async () => {
+      /*
+       * Opting out has to reproduce the pre-rollup product exactly, envelope
+       * and correlation-id bag included - not "an email that says roughly the
+       * same thing". The assertions here are deliberately the same two the
+       * below-threshold test makes.
+       */
+      recentCount(BURST_THRESHOLD + 10);
+      rollupEnabled.mockResolvedValue(false as never);
+
+      const data: SendOrRollupData = sendData();
+
+      await EmailRollupWriter.sendOrRollup(data);
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendMail.mock.calls[0]?.[0]).toEqual({
+        subject: "Incident created: Checkout is down",
+        templateType: EmailTemplateType.BlankTemplate,
+        vars: {
+          incidentViewLink: INCIDENT_LINK,
+        },
+        toEmail: TO_EMAIL,
+      });
+      expect(sendMail.mock.calls[0]?.[1]).toBe(data.mailOptions);
+      expect(loggerError).not.toHaveBeenCalled();
+    });
+
+    test("an opted-out send STILL writes its ledger row, with sentAt set", async () => {
+      /*
+       * The one most likely to be lost in a later refactor, because returning
+       * early on the opt-out reads like the tidy version of the same thing.
+       *
+       * It is not. The row is what the burst counter counts, and the counter is
+       * scoped to (project, user, address, category) - so an opted-out person
+       * whose sends wrote no row would make the window under-count, and their
+       * traffic would become invisible to the volume ledger this table exists
+       * to be. sentAt must be SET, because the row describes an email that has
+       * already gone out; a NULL sentAt is what "pending" means to the flush
+       * sweep, and the sweep would pick this row up and send the notification a
+       * second time inside a rollup.
+       */
+      recentCount(BURST_THRESHOLD);
+      rollupEnabled.mockResolvedValue(false as never);
+
+      await EmailRollupWriter.sendOrRollup(sendData());
+
+      expect(createItem).toHaveBeenCalledTimes(1);
+
+      const item: UserNotificationEmailRollupItem = writtenItem();
+      expect(item.sentAt).toBeInstanceOf(Date);
+      expect(item.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(item.userId?.toString()).toBe(USER_ID.toString());
+      expect(item.toEmail?.toString()).toBe(TO_EMAIL.toString());
+      expect(item.rollupCategory).toBe(
+        NotificationEmailRollupCategory.RollupCategory.Incidents,
+      );
+    });
+
+    test("the preference is read for the recipient of this email", async () => {
+      recentCount(BURST_THRESHOLD);
+
+      await EmailRollupWriter.sendOrRollup(sendData());
+
+      const captured: CapturedPreferenceRead = capturedPreferenceRead();
+      expect(captured.userId.toString()).toBe(USER_ID.toString());
+      expect(captured.projectId.toString()).toBe(PROJECT_ID.toString());
+    });
+
+    test("a preference read that throws sends the email immediately and logs, rather than deferring", async () => {
+      /*
+       * Fail open, again: the failure mode of the escape hatch is the escape
+       * hatch. A read that threw and left `deferred` true would hold back mail
+       * on the strength of a preference nobody managed to look up.
+       */
+      recentCount(BURST_THRESHOLD);
+      rollupEnabled.mockRejectedValue(
+        new Error(
+          'relation "UserNotificationEmailRollupSetting" does not exist',
+        ),
+      );
+
+      await expect(
+        EmailRollupWriter.sendOrRollup(sendData()),
+      ).resolves.toBeUndefined();
+
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledTimes(1);
+    });
+
+    test("forceImmediate short-circuits before the preference is read", async () => {
+      /*
+       * The structural bypasses have to cost zero extra queries. A preference
+       * read reached from either of them would put a database round trip on
+       * the paging-adjacent path the bypasses exist to keep clear.
+       */
+      recentCount(100);
+
+      await EmailRollupWriter.sendOrRollup(sendData({ forceImmediate: true }));
+
+      expect(rollupEnabled).not.toHaveBeenCalled();
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    });
+
+    test("a never-rolled-up event type short-circuits before the preference is read", async () => {
+      recentCount(100);
+
+      for (const eventType of Array.from(NEVER_ROLLED_UP_EVENT_TYPES)) {
+        rollupEnabled.mockClear();
+        sendMail.mockClear();
+
+        await EmailRollupWriter.sendOrRollup(sendData({ eventType }));
+
+        expect(rollupEnabled).not.toHaveBeenCalled();
+        expect(sendMail).toHaveBeenCalledTimes(1);
+      }
     });
   });
 });

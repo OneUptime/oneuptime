@@ -427,6 +427,7 @@ import IoTFleetOwnerTeamService from "./IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "./IoTFleetOwnerUserService";
 import UserNotificationEmailRollupItemService from "./UserNotificationEmailRollupItemService";
 import UserNotificationEmailRollupBatchService from "./UserNotificationEmailRollupBatchService";
+import UserNotificationEmailRollupSettingService from "./UserNotificationEmailRollupSettingService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
@@ -852,6 +853,7 @@ const services: Array<BaseService> = [
   WebhookLogService,
   UserNotificationEmailRollupItemService,
   UserNotificationEmailRollupBatchService,
+  UserNotificationEmailRollupSettingService,
 ];
 
 export const AnalyticsServices: Array<

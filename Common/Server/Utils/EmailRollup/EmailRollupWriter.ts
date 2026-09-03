@@ -1,5 +1,6 @@
 import MailService from "../../Services/MailService";
 import UserNotificationEmailRollupItemService from "../../Services/UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupSettingService from "../../Services/UserNotificationEmailRollupSettingService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -268,6 +269,39 @@ export default class EmailRollupWriter {
         });
 
       deferred = recentCount.toNumber() >= BURST_THRESHOLD;
+
+      /*
+       * THE PERSONAL ESCAPE HATCH, READ ONLY WHEN IT COULD CHANGE THE ANSWER.
+       *
+       * A user can turn burst rollup off for themselves in one project, and
+       * then every owner notification is emailed individually and immediately,
+       * exactly as the product behaved before rollup existed.
+       *
+       * The read is deliberately inside this `if`. Below the threshold the
+       * outcome is an immediate send whatever the preference says, so asking
+       * would be a query per notification per address that could never change
+       * anything - the feature's no-op-below-the-threshold property has to
+       * stay a no-op in queries too, not just in emails. Above it, one indexed
+       * single-row read per deferred email is the honest cost of letting
+       * somebody opt out, and it is not cached, because a person who has just
+       * asked for immediate email should not keep receiving batches for the
+       * length of a TTL.
+       *
+       * A throw here lands in the fail-open catch below, which sends
+       * immediately - the same direction opting out means, so the failure mode
+       * of the escape hatch is the escape hatch.
+       */
+      if (deferred) {
+        const mayRollUp: boolean =
+          await UserNotificationEmailRollupSettingService.isRollupEnabledForUser(
+            {
+              userId: data.userId,
+              projectId: data.projectId,
+            },
+          );
+
+        deferred = mayRollUp;
+      }
 
       /*
        * A ROW IS WRITTEN FOR EVERY ROLLUP-ELIGIBLE EMAIL, sent or deferred.

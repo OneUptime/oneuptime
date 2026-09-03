@@ -568,6 +568,7 @@ import { AddNetworkDeviceOidTemplate1790500000000 } from "./1790500000000-AddNet
 import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAutoImportRuleOidTemplate";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
 import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
+import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
 
 export default [
   InitialMigration,
@@ -1140,4 +1141,5 @@ export default [
   AddAutoImportRuleOidTemplate1790600000000,
   AddNetworkDeviceRoleTable1790800000000,
   AddUserNotificationEmailRollup1791000000000,
+  AddUserNotificationEmailRollupSetting1791100000000,
 ];

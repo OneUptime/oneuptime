@@ -8,6 +8,7 @@ import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationEmailRollupItemService from "../../../Server/Services/UserNotificationEmailRollupItemService";
+import UserNotificationEmailRollupSettingService from "../../../Server/Services/UserNotificationEmailRollupSettingService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
@@ -337,6 +338,23 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
     createItem = jest
       .spyOn(UserNotificationEmailRollupItemService, "create")
       .mockResolvedValue(new UserNotificationEmailRollupItem() as never);
+
+    /*
+     * The absent-row answer, which is what almost every real user has. Without
+     * it the writer reaches the real preference read, that read reaches a
+     * Postgres this suite does not have, and the throw lands in the writer's
+     * fail-open catch - so every deferral assertion below would quietly become
+     * an assertion about what an unreachable database does, and pass or fail
+     * for the wrong reason. The escape hatch's own behaviour is pinned in
+     * Tests/Server/Utils/EmailRollup/EmailRollupWriter.test.ts; here it is
+     * held constant so the routing between channels is what is being measured.
+     */
+    jest
+      .spyOn(
+        UserNotificationEmailRollupSettingService,
+        "isRollupEnabledForUser",
+      )
+      .mockResolvedValue(true as never);
 
     jest.spyOn(UserSmsService, "findBy").mockResolvedValue([
       {

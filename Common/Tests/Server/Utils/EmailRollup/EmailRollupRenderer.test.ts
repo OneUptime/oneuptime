@@ -34,6 +34,10 @@ import { describe, expect, test } from "@jest/globals";
  *  - Leave the Handlebars braces in the subject and MailService, which
  *    compiles the subject as a template, substitutes an incident title away
  *    to an empty string on its way to the inbox.
+ *  - Drop the opt-out from the footer copy and rollup becomes a thing that
+ *    happens TO people: it is on by default with no preference, so this email
+ *    is the only place a recipient who wants one email per event finds out
+ *    they can have that back.
  *  - Stop alternating rowBackground and a hundred-row table is one flat wall
  *    of white, which is how it actually shipped: the template asked for
  *    {{#if @odd}}, a data variable Handlebars does not define.
@@ -791,13 +795,34 @@ describe("buildRollupEmail variable set", () => {
     );
   });
 
-  test("the preferences copy explains why one email arrived instead of several", () => {
+  test("the preferences copy explains the batching AND names the way out of it", () => {
     const email: RollupEmail = build([
       makeItem({ createdAt: at(0), subject: "a" }),
     ]);
 
-    expect(varString(email, "preferencesHtml")).toContain(
+    const preferences: string = varString(email, "preferencesHtml");
+
+    /* Why an email the recipient did not recognise arrived at all. */
+    expect(preferences).toContain(
       "groups owner notifications into a single email",
     );
+
+    /*
+     * And the escape hatch, which is the half that regresses silently.
+     * Rollup is on for everyone with no preference and no announcement, so
+     * this paragraph is the only place a recipient learns the opt-out exists
+     * - copy that merely says "choose which notifications you receive" sends
+     * them to a page whose most useful switch it never mentioned, and they
+     * conclude batching is mandatory.
+     */
+    expect(preferences).toContain("turn off email rollup for this project");
+    expect(preferences).toContain("notification settings");
+
+    /*
+     * The template renders preferencesLink as a bare URL on the line below
+     * this text, so the text has to hand off to it. End on a full stop and
+     * the reader gets a naked link with nothing claiming it.
+     */
+    expect(preferences.endsWith(":")).toBe(true);
   });
 });
