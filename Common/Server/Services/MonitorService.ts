@@ -237,6 +237,21 @@ export class Service extends DatabaseService<Model> {
             monitorDestination = `${sql.host}:${sql.port}/${sql.databaseName}`;
           }
         }
+
+        // For Database Health monitors, show host:port/database (never the credentials).
+        if (
+          monitorType === MonitorType.Database &&
+          firstStep?.data?.databaseMonitor
+        ) {
+          const database: {
+            host: string;
+            port: number;
+            databaseName: string;
+          } = firstStep.data.databaseMonitor;
+          if (database.host) {
+            monitorDestination = `${database.host}:${database.port}/${database.databaseName}`;
+          }
+        }
       }
     }
 

@@ -65,6 +65,20 @@ export interface ComponentProps {
     | ((variables: Array<DashboardVariable>) => void)
     | undefined;
   telemetryAttributeOptions?: Array<string> | undefined;
+  /*
+   * Whether the signed-in user may write to this dashboard. False hides or
+   * locks every affordance that leads to a save - the toolbar is the only
+   * way into edit mode, so this is where a reader is turned back.
+   */
+  canEditDashboard: boolean;
+  /*
+   * Why editing is locked, ready for the tooltip on the disabled menu item.
+   * Undefined means there is nothing honest to say yet (the permission
+   * snapshot has not landed), and the item is hidden instead of accusing the
+   * user of missing a permission they may well hold - same contract as
+   * PermissionGate.
+   */
+  editDashboardDisabledReason?: string | undefined;
 }
 
 interface CountdownCircleProps {
@@ -411,12 +425,22 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   </button>
                 }
               >
-                <MoreMenuItem
-                  text={"Edit Dashboard"}
-                  icon={IconProp.Pencil}
-                  key={"edit"}
-                  onClick={props.onEditClick}
-                />
+                {props.canEditDashboard || props.editDashboardDisabledReason ? (
+                  <MoreMenuItem
+                    text={"Edit Dashboard"}
+                    icon={IconProp.Pencil}
+                    key={"edit"}
+                    isDisabled={!props.canEditDashboard}
+                    tooltip={
+                      props.canEditDashboard
+                        ? undefined
+                        : props.editDashboardDisabledReason
+                    }
+                    onClick={props.onEditClick}
+                  />
+                ) : (
+                  <></>
+                )}
                 <MoreMenuItem
                   text={"Full Screen"}
                   icon={IconProp.Expand}
@@ -427,7 +451,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
 
             {/* Edit mode actions */}
-            {!isSaving && isEditMode && (
+            {!isSaving && isEditMode && props.canEditDashboard && (
               <div className="flex items-center gap-2">
                 {/* Construction tools — segmented pill */}
                 <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 border border-gray-200/60 p-0.5">

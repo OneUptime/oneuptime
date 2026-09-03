@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
@@ -13,6 +14,8 @@ import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
@@ -51,6 +54,86 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy: createBy,
+      carryForward: null,
+    };
+  }
+
+  /**
+   * Kill any outstanding password-reset link for a status page user whose
+   * email address is about to change.
+   *
+   * Same invariant, and the same reasoning, as
+   * `UserService.expirePasswordResetTokensForEmailChange`: the link is a
+   * bearer credential addressed to one mailbox, and `/status-page-api/
+   * reset-password` finds the row by token hash and status page alone, never
+   * by the address the link was mailed to. Left unexpired, a link sent to the
+   * old address keeps working against the account at its new one.
+   *
+   * This path is worth closing even though a status page user cannot edit
+   * their own email: project admins can (the column carries `update` for
+   * ProjectAdmin and StatusPageAdmin), and `StatusPageSCIM.ts` rewrites it
+   * from the directory. "Move this subscriber to their new address" is the
+   * same rescue action, done by somebody else on the user's behalf, and it has
+   * to invalidate old links for the same reason.
+   *
+   * Cleared before the write, and only for rows whose address actually
+   * changes, so a SCIM push that re-sends an unchanged address does not
+   * invalidate a reset link the user is part-way through using.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (updateBy.data.email) {
+      const newEmail: string = (updateBy.data.email as Email)
+        .toString()
+        .toLowerCase();
+
+      const existingUsers: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          email: true,
+        },
+        props: updateBy.props,
+        limit: LIMIT_MAX,
+        skip: 0,
+      });
+
+      for (const user of existingUsers) {
+        if (!user.id) {
+          continue;
+        }
+
+        /*
+         * A row whose `email` did not come back is treated as changed -- that
+         * only happens when the caller could not read the column, and on a
+         * credential the safe assumption is the one that expires the token.
+         */
+        const currentEmail: string | undefined = user.email
+          ?.toString()
+          .toLowerCase();
+
+        if (currentEmail === newEmail) {
+          continue;
+        }
+
+        await this.updateOneById({
+          id: user.id,
+          data: {
+            resetPasswordToken: null!,
+            resetPasswordExpires: null!,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
+    }
+
+    return {
+      updateBy: updateBy,
       carryForward: null,
     };
   }

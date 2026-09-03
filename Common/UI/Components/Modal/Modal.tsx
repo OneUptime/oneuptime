@@ -8,7 +8,7 @@ import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { wasPressConsumedByAnAnchoredPopup } from "../../Types/LayeredDismissal";
-import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
+import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -125,13 +125,7 @@ const Modal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  useEffect(() => {
-    lockPageScroll();
-
-    return () => {
-      unlockPageScroll();
-    };
-  }, []);
+  usePageScrollLock(true);
 
   useEffect(() => {
     const content: HTMLDivElement | null = contentRef.current;

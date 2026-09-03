@@ -164,6 +164,24 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 | `trapSourceIp`         | Source IP the trap was received from — trap-triggered checks only. | `string`         |
 | `trapVarbinds`         | Varbinds carried by the trap, as `{oid, value}` — trap-triggered checks only. | `Array<Object>` |
 
+### Database Health Monitors
+
+| Variable                  | Description                                                                                                          | Type            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `isOnline`                | Whether the probe could connect and run the baseline query. Missing metrics never make this false.                     | `boolean`       |
+| `responseTimeInMs`        | Time to connect and run the baseline query.                                                                            | `number`        |
+| `failureCause`            | The reason the check failed, when it did.                                                                              | `string`        |
+| `connectionError`         | Sanitized connection error. Never contains credentials or a connection string.                                         | `string`        |
+| `engineVersion`           | Version string the database server reported.                                                                           | `string`        |
+| `collectedGroups`         | Metric groups that produced values on this check.                                                                      | `Array<string>` |
+| `unavailableGroups`       | Groups that could not be collected, as `{group, reason, message, remediation}`.                                        | `Array<Object>` |
+| `collectionIssueSummary`  | One line summarising every unavailable group, ready to paste into an alert.                                            | `string`        |
+| `metrics`                 | Collected values keyed by series name, e.g. `{{metrics['oneuptime.monitor.database.connections.used.percent']}}`.      | `Object`        |
+
+A metric that was not collected is **absent** from `metrics` rather than zero,
+so template it defensively — `{{#if metrics.[...]}}` — when a group may be
+unavailable on the database you are monitoring.
+
 ## Basic Usage
 
 In the Incident / Alert form inside a Monitor Criteria instance, you can write:

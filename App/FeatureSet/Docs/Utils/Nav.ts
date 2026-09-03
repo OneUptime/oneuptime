@@ -266,6 +266,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/sql-monitor",
       },
       {
+        title: "Database Health Monitor",
+        url: "/docs/monitor/database-health-monitor",
+      },
+      {
         title: "Synthetic Monitor",
         url: "/docs/monitor/synthetic-monitor",
       },
