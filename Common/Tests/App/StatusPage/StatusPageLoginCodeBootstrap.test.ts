@@ -20,10 +20,15 @@ const INDEX_TEMPLATE: string = path.join(
 const STORAGE_KEY: string = "oneuptime-status-page-login-code";
 
 function renderIndexPage(enableGoogleTagManager: boolean): string {
-  return ejs.render(fs.readFileSync(INDEX_TEMPLATE, "utf8"), {
-    title: "Acme Status",
-    enableGoogleTagManager,
-  });
+  return ejs.render(
+    fs.readFileSync(INDEX_TEMPLATE, "utf8"),
+    {
+      title: "Acme Status",
+      enableGoogleTagManager,
+    },
+    // The template includes the shared sensitive-URL-token partial.
+    { filename: INDEX_TEMPLATE },
+  );
 }
 
 function loadPage(url: string, existingCode?: string): JSDOM {
