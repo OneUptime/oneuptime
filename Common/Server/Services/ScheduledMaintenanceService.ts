@@ -6,6 +6,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import CustomFieldMappingService from "./CustomFieldMappingService";
 import MonitorService from "./MonitorService";
 import ScheduledMaintenanceOwnerTeamService from "./ScheduledMaintenanceOwnerTeamService";
 import ScheduledMaintenanceOwnerUserService from "./ScheduledMaintenanceOwnerUserService";
@@ -609,6 +611,17 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
     await this.validateProjectScopedReferences(updateBy);
 
+    /*
+     * Re-apply mapped custom field values. Covers the Custom Fields modal
+     * saving the whole bag back over a mapped value, and the event's monitors
+     * changing — both change what a mapped field should hold, and folding the
+     * answer into this payload keeps it one write with a truthful audit entry.
+     */
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: ScheduledMaintenanceCustomField,
+      updateBy: updateBy,
+    });
+
     return {
       updateBy,
       carryForward: null,
@@ -936,6 +949,19 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       createBy.data.subscriberNotificationStatusOnEventScheduled =
         StatusPageSubscriberNotificationStatus.Pending;
     }
+
+    /*
+     * Custom fields configured to inherit from the event's monitors are
+     * stamped here rather than in onCreateSuccess: `customFields` is a column
+     * on this row and the onCreateSuccess chain is un-awaited, so a value
+     * written there would be missing from the event the caller gets back.
+     * Written not to throw — a field failing to inherit must not stop an event
+     * from being scheduled.
+     */
+    await CustomFieldMappingService.applyMappingsToCreate({
+      definitionModelType: ScheduledMaintenanceCustomField,
+      createBy: createBy,
+    });
 
     return { createBy, carryForward: null };
   }
@@ -1562,6 +1588,12 @@ ${scheduledMaintenance.description || "No description provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    CustomFieldMappingService.restampAfterMultiRowUpdate({
+      definitionModelType: ScheduledMaintenanceCustomField,
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
+
     /*
      * Rescheduling the planned window is the whole point of making these
      * fields editable, so the numbers derived from them have to move. Without

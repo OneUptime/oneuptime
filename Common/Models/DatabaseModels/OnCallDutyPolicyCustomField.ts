@@ -3,6 +3,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../Types/CustomField/CustomFieldType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -280,6 +281,81 @@ export default class OnCallDutyPolicyCustomField extends BaseModel {
     length: ColumnLength.LongText,
   })
   public dropdownOptions?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateOnCallDutyPolicyCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadOnCallDutyPolicyCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditOnCallDutyPolicyCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Map Value From",
+    description:
+      "Related resource this field copies its value from. Empty means values are entered by hand.",
+    example: "Monitor",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mapFromResourceType?: CustomFieldMappingSourceResource =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateOnCallDutyPolicyCustomField,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadOnCallDutyPolicyCustomField,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditOnCallDutyPolicyCustomField,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Map Value From Field",
+    description:
+      "Name of the custom field on the related resource this field copies its value from.",
+    example: "Vendor",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public mapFromCustomFieldName?: string = undefined;
 
   @ColumnAccessControl({
     create: [

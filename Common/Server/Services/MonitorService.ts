@@ -10,6 +10,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import CustomFieldMappingService from "./CustomFieldMappingService";
+import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
 import MonitorOwnerRuleEngineService from "./MonitorOwnerRuleEngineService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
@@ -962,6 +964,36 @@ export class Service extends DatabaseService<Model> {
           await MonitorProbeService.updateNextPingAtForMonitor({
             monitorId: monitorId,
           });
+        }
+
+        /*
+         * The "stays in sync" half of custom field value mapping
+         * (OneUptime/oneuptime#3549): alerts, incidents and maintenance events
+         * attached to this monitor whose custom fields are configured to
+         * inherit from it are brought back in line.
+         *
+         * `!== undefined` rather than truthiness: clearing the bag arrives as
+         * `{}` or null, and is exactly the edit worth reacting to. In its own
+         * try/catch because a propagation failure must never fail the
+         * operator's save — the house rule for every side effect in this hook.
+         */
+        if (onUpdate.updateBy.data.customFields !== undefined) {
+          try {
+            await CustomFieldMappingService.propagateFromSourceRecord({
+              resource: CustomFieldMappingSourceResource.Monitor,
+              sourceId: monitorId,
+              projectId: projectId,
+            });
+          } catch (error) {
+            logger.error(
+              "Custom field value mapping: propagating monitor custom fields failed in MonitorService.onUpdateSuccess",
+              {
+                projectId: projectId?.toString(),
+                monitorId: monitorId?.toString(),
+              } as LogAttributes,
+            );
+            logger.error(error as Error);
+          }
         }
 
         if (onUpdate.updateBy.data.monitorSteps) {
