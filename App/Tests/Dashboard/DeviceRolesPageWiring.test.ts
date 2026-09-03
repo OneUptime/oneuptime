@@ -161,26 +161,30 @@ describe("a role is a definition, not a rule", () => {
   );
 
   /*
-   * Automation holds the RULES — auto import, site assignment, owners,
-   * labels, links — things that fire and change data. A device role is a
+   * The Rules section holds the things that FIRE and change data — auto
+   * import, site assignment, owners, labels, links. A device role is a
    * vocabulary entry: it changes nothing on its own, it is what the rules and
-   * the map refer to. Filing it under Automation would tell an operator to
-   * look for it among things that run.
+   * the map refer to. Filing it among the rules would tell an operator to
+   * look for it under things that run.
+   *
+   * The section was called "Automation" until the side menu was reorganised
+   * into Network / Topology / Rules / Settings. Only the heading changed —
+   * what belongs on each side of it did not.
    */
   test("it is listed in the Settings section", () => {
     expect(between(sideMenu, 'title: "Settings"', "")).toContain(PAGE_ID);
   });
 
-  test("it is not listed under Automation", () => {
-    const automation: string = between(
+  test("it is not listed among the rules", () => {
+    const rules: string = between(
       sideMenu,
-      'title: "Automation"',
-      'title: "Archive"',
+      'title: "Rules"',
+      'title: "Settings"',
     );
 
     // Anchor the slice, so a mis-sliced section cannot pass by being empty.
-    expect(automation).toContain("NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES");
-    expect(automation).not.toContain(PAGE_ID);
+    expect(rules).toContain("NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES");
+    expect(rules).not.toContain(PAGE_ID);
   });
 });
 
