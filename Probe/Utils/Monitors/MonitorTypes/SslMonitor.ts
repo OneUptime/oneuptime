@@ -13,7 +13,7 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import ObjectUtil from "Common/Utils/ObjectUtil";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { ClientRequest, IncomingMessage } from "http";
 import { Socket } from "net";
 import https, { RequestOptions } from "https";
@@ -218,8 +218,14 @@ export default class SSLMonitor {
 
       // check if timeout exceeded and if yes, report it as offline.
       if (SSLMonitor.isTimeoutError(err)) {
+        /*
+         * The tenant's TLS peer never completed a handshake inside the
+         * budget, after every retry. Detecting that is the check working, so
+         * it is reported as an offline result and not as our defect.
+         */
         logger.error(
           `${LOG_PREFIX} - Timeout exceeded ${pingOptions.monitorId?.toString()} ${host}:${port} - ERROR: ${err}`,
+          EXTERNAL_FAULT,
         );
 
         return {
@@ -248,8 +254,14 @@ export default class SSLMonitor {
         return null;
       }
 
+      /*
+       * The connection to the tenant's host failed outright. Same as the
+       * timeout branch above: the failure is the answer, returned below as an
+       * offline result with the cause attached.
+       */
       logger.error(
         `${LOG_PREFIX} - Failed to check ${pingOptions.monitorId?.toString()} ${host}:${port} - ERROR: ${err}`,
+        EXTERNAL_FAULT,
       );
 
       return {

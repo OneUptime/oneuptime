@@ -7,6 +7,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
+import NetworkSiteService from "./NetworkSiteService";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -106,14 +107,26 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     }
 
     /*
-     * The feed item and its workspace notification run AFTER the mutex is
-     * released: they can involve third-party HTTP (Slack/Teams) with unbounded
-     * latency, and holding the per-monitor lock across them would block every
-     * concurrent status write for this monitor until acquireTimeout - turning
-     * one slow webhook into refused status transitions. Only the predecessor
-     * read -> INSERT -> predecessor close needs the lock, and all of that has
-     * completed by this point. (The pre-fail-closed code released the lock at
-     * this same boundary, before the feed block.)
+     * Both side effects below run AFTER the mutex is released. Only the
+     * predecessor read -> INSERT -> predecessor close (plus the monitor's
+     * currentMonitorStatusId write in onCreateSuccess) needs the lock, and all
+     * of that has completed by this point.
+     *
+     * The network-site bridge goes first: it stamps the devices bound to this
+     * monitor and recomputes their site rollups (which can open alerts and post
+     * their own workspace notifications), and a device stamp must not wait on
+     * the feed item's Slack/Teams round trip below. It is deliberately NOT run
+     * from onCreateSuccess, which executes under the lock - see bridgeIfCurrent.
+     */
+    await this.bridgeIfCurrent(createdItem, createBy);
+
+    /*
+     * The feed item and its workspace notification can involve third-party
+     * HTTP (Slack/Teams) with unbounded latency, and holding the per-monitor
+     * lock across them would block every concurrent status write for this
+     * monitor until acquireTimeout - turning one slow webhook into refused
+     * status transitions. (The pre-fail-closed code released the lock at this
+     * same boundary, before the feed block.)
      */
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
@@ -508,8 +521,119 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         },
         props: onCreate.createBy.props,
       });
+
+      /*
+       * The network-site bridge for this new current status is deliberately
+       * NOT called from here: this hook runs with the per-monitor mutex held
+       * and the bridge can be slow. create() runs it via bridgeIfCurrent
+       * right after the mutex is released.
+       */
     }
     return createdItem;
+  }
+
+  /*
+   * Bridges a NEW CURRENT row (no endsAt) to the network-site rollup engine.
+   *
+   * Why the timeline service bridges at all: this is the one place every
+   * status change passes through. The probe path (MonitorResource ->
+   * MonitorStatusTimelineService.create) writes the timeline row with root
+   * props - no tenantId - so the MonitorService.updateOneBy in onCreateSuccess
+   * never trips MonitorService.onUpdateSuccess's tenantId-gated
+   * changeMonitorStatus, and a bridge that lived only inside
+   * changeMonitorStatus fired for manual / incident / maintenance status
+   * changes but never for a probe result. Devices bound to a monitor therefore
+   * only ever moved on those, and a ping monitor going down left its device
+   * "Up".
+   *
+   * Why it is called from create() AFTER the per-monitor mutex is released and
+   * not from onCreateSuccess (which runs under the lock): the bridge stamps
+   * every bound device and recomputes the site chain of each (which can open
+   * alerts and post workspace notifications), and holding the lock across that
+   * would serialise every concurrent status write for this monitor behind it -
+   * past the semaphore's acquire timeout, refuse it. Only the predecessor
+   * read -> INSERT -> predecessor close needs the lock (see create()).
+   *
+   * Ordering note: two status writes for the same monitor bridge in release
+   * order, and a bridge carries the status of ITS row. Probe results for one
+   * monitor are already serialised by MonitorResource's outer lock, and a
+   * manual change racing a probe result is rare and self-corrects on the next
+   * status change, so this is the right side of the trade-off.
+   *
+   * The row's projectId is the tenant column and is populated by every writer
+   * (onBeforeCreate reads it or falls back to props.tenantId), so it is the
+   * authoritative source here; the createBy data and tenantId are only
+   * defensive fallbacks for a saved entity that somehow came back without it.
+   */
+  private async bridgeIfCurrent(
+    createdItem: MonitorStatusTimeline,
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): Promise<void> {
+    if (
+      createdItem.endsAt ||
+      !createdItem.monitorId ||
+      !createdItem.monitorStatusId
+    ) {
+      // A closed row is history, not the current status: nothing to stamp.
+      return;
+    }
+
+    const projectId: ObjectID | undefined =
+      createdItem.projectId ||
+      createBy.data.projectId ||
+      createBy.props.tenantId;
+
+    await this.bridgeCurrentStatusToNetworkSites({
+      projectId: projectId,
+      monitorId: createdItem.monitorId,
+      monitorStatusId: createdItem.monitorStatusId,
+      logAttributes: {
+        projectId: projectId?.toString(),
+        monitorId: createdItem.monitorId.toString(),
+      } as LogAttributes,
+    });
+  }
+
+  /*
+   * Stamps the NetworkDevices that this monitor reports on (a Network Device
+   * monitor's step devices, and any device bound through its monitorId) and
+   * refreshes their sites' rollups, via NetworkSiteService.
+   *
+   * Resilient by contract: onMonitorStatusChanged catches internally and never
+   * throws, and this wraps it once more, because it is called from create()
+   * (via bridgeIfCurrent, after the per-monitor mutex is released) and from
+   * onDeleteSuccess - in both cases after the timeline row and the monitor's
+   * currentMonitorStatusId have already been written. A rollup failure must
+   * never turn an already-persisted status change into an error for the
+   * caller (and, on the create path, must never surface as a failed probe
+   * ingest).
+   */
+  private async bridgeCurrentStatusToNetworkSites(data: {
+    projectId: ObjectID | undefined;
+    monitorId: ObjectID;
+    monitorStatusId: ObjectID;
+    logAttributes: LogAttributes;
+  }): Promise<void> {
+    if (!data.projectId) {
+      logger.warn(
+        `MonitorStatusTimeline: cannot bridge the status change of monitor ${data.monitorId.toString()} to network sites because no projectId was resolved; any network device bound to this monitor keeps its previous stamped status.`,
+        data.logAttributes,
+      );
+      return;
+    }
+
+    try {
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: data.projectId,
+        monitorIds: [data.monitorId],
+        monitorStatusId: data.monitorStatusId,
+      });
+    } catch (err) {
+      logger.error(
+        `MonitorStatusTimeline: failed to update network site rollups for monitor ${data.monitorId.toString()}: ${err}`,
+        data.logAttributes,
+      );
+    }
   }
 
   /*
@@ -757,6 +881,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           select: {
             _id: true,
             monitorStatusId: true,
+            // For the network-site bridge below.
+            projectId: true,
           },
         });
 
@@ -771,6 +897,22 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           props: {
             isRoot: true,
           },
+        });
+
+        /*
+         * The monitor just fell back to the surviving latest status, and the
+         * update above is root (no tenantId) - the same gap as on the create
+         * path - so the devices bound to this monitor must be re-stamped
+         * from here or they keep reporting the deleted row's status.
+         */
+        await this.bridgeCurrentStatusToNetworkSites({
+          projectId: monitorStatusTimeline.projectId,
+          monitorId: monitorId,
+          monitorStatusId: monitorStatusTimeline.monitorStatusId,
+          logAttributes: {
+            projectId: monitorStatusTimeline.projectId?.toString(),
+            monitorId: monitorId.toString(),
+          } as LogAttributes,
         });
       }
     }

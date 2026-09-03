@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import DeviceStatusHero from "../../../Components/NetworkDevice/DeviceStatusHero";
+import { HOSTNAME_FIELD_DESCRIPTION } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import DeviceInterfacesPreview from "../../../Components/NetworkDevice/DeviceInterfacesPreview";
 import DeviceInventoryCard from "../../../Components/NetworkDevice/DeviceInventoryCard";
 import DeviceMonitorLookupUtil, {
@@ -102,7 +103,7 @@ const NetworkDeviceView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: "IP address or hostname the probe will poll via SNMP.",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
           {
             field: {

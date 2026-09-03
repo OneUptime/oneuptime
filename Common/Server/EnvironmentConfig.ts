@@ -831,6 +831,20 @@ export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
 /*
+ * Master switch for fault classification (code-fault / user-error /
+ * expected-denial / infrastructure). When false, ErrorClassResolver reports
+ * CodeFault for everything, so every thrown value is recorded as an exception
+ * event, marked ERROR and logged at ERROR — exactly the pre-classification
+ * behaviour.
+ *
+ * Default ON. It exists so a regression in classification is a config flip on
+ * a running fleet rather than a redeploy, which matters because this runs on
+ * the universal error path of every decorated method in the product.
+ */
+export const TelemetryErrorClassEnabled: boolean =
+  process.env["TELEMETRY_ERROR_CLASS_ENABLED"] !== "false";
+
+/*
  * Opt out of the daily "is a newer OneUptime released?" check against the
  * GitHub API. Deliberately separate from DISABLE_TELEMETRY, which turns off
  * the OpenTelemetry SDK and says nothing about outbound calls.

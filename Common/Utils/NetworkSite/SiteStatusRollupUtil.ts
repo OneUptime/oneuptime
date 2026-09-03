@@ -61,6 +61,21 @@ export interface DeviceHealthState {
   lastSeenAt?: Date | null | undefined;
   pollingIntervalInMinutes?: number | null | undefined;
   /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as SNMP — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Only consulted on the fallback path above, and load-bearing there: a
+   * monitor-backed device (monitoringMethod "Monitor") that has no stamp
+   * yet — or whose stamped row could not be resolved — has poll columns
+   * that mean nothing (NULL, or the last thing a probe found before it
+   * stopped asking). The shared rule reads it as Pending and both policies
+   * skip it, exactly as they skip a never-polled SNMP device, rather than
+   * letting a months-old lastSeenAt cast a vote against the site.
+   */
+  monitoringMethod?: string | null | undefined;
+  /*
    * How many real devices this entry stands for.
    *
    * The rollup engine feeds in BUCKETS, not rows - one entry per distinct
@@ -436,6 +451,8 @@ export class SiteStatusRollupUtil {
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        // See the field docs: decides whether the columns above mean anything.
+        monitoringMethod: device.monitoringMethod,
       },
       now,
     );

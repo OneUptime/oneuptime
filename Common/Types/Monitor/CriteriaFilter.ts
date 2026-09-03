@@ -1,5 +1,6 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
+import MonitorMetricType from "./MonitorMetricType";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -110,6 +111,21 @@ export enum CheckOn {
   SqlQueryExecutionTime = "SQL Query Execution Time (in ms)",
   SqlQueryError = "SQL Query Error",
 
+  /*
+   * Database Health monitors.
+   *
+   * Deliberately three CheckOns rather than one per metric. The catalog
+   * carries ~40 series and grows with every engine we add; putting each in
+   * this enum would flood a dropdown shared with every other monitor type
+   * and force a new case in five switch statements per metric. Instead
+   * DatabaseMetric names the series in databaseMonitorOptions.metricType,
+   * the same way Server monitors name a disk in serverMonitorOptions and
+   * SNMP monitors name an OID in snmpMonitorOptions.
+   */
+  DatabaseIsOnline = "Database Is Online",
+  DatabaseMetric = "Database Metric",
+  DatabaseCollectionError = "Database Collection Error",
+
   // External Status Page monitors.
   ExternalStatusPageIsOnline = "External Status Page Is Online",
   ExternalStatusPageOverallStatus = "External Status Page Overall Status",
@@ -132,6 +148,16 @@ export interface SnmpMonitorOptions {
    * every monitored interface, the historical behavior.
    */
   interfaceName?: string | undefined;
+}
+
+export interface DatabaseMonitorOptions {
+  /*
+   * Which collected series this filter compares against, e.g.
+   * MonitorMetricType.DatabaseConnectionsUsedPercent. Required whenever
+   * checkOn is CheckOn.DatabaseMetric; a filter without it can never be
+   * met and is reported as misconfigured rather than silently ignored.
+   */
+  metricType?: MonitorMetricType | undefined;
 }
 
 export enum EvaluateOverTimeType {
@@ -242,6 +268,7 @@ export interface CriteriaFilter {
   serverMonitorOptions?: ServerMonitorOptions | undefined;
   metricMonitorOptions?: MetricMonitorOptions | undefined;
   snmpMonitorOptions?: SnmpMonitorOptions | undefined;
+  databaseMonitorOptions?: DatabaseMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
@@ -328,6 +355,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnssecResolverConsensus ||
       checkOn === CheckOn.DnssecNameserverConsistent ||
       checkOn === CheckOn.SqlIsOnline ||
+      checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
     ) {
       return false;
@@ -373,7 +401,14 @@ export class CriteriaFilterUtil {
       return [];
     }
 
-    if (criteriaFilter.checkOn === CheckOn.IsOnline) {
+    /*
+     * Boolean series. Averaging or summing an up/down series is meaningless,
+     * so these offer only the two set-shaped choices.
+     */
+    if (
+      criteriaFilter.checkOn === CheckOn.IsOnline ||
+      criteriaFilter.checkOn === CheckOn.DatabaseIsOnline
+    ) {
       return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
     }
 
@@ -428,7 +463,14 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsResponseTime ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.ExternalStatusPageResponseTime ||
-      checkOn === CheckOn.ExternalStatusPageIsOnline
+      checkOn === CheckOn.ExternalStatusPageIsOnline ||
+      /*
+       * Over time is the most useful shape for database thresholds: a single
+       * sample of "connections above 90%" is a spike, five minutes of it is
+       * an incident.
+       */
+      checkOn === CheckOn.DatabaseIsOnline ||
+      checkOn === CheckOn.DatabaseMetric
     );
   }
 }
@@ -453,6 +495,9 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),
     interfaceName: Zod.string().optional(),
+  }).optional(),
+  databaseMonitorOptions: Zod.object({
+    metricType: Zod.string().optional(),
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),

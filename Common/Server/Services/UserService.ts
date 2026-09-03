@@ -353,6 +353,13 @@ export class Service extends DatabaseService<Model> {
       carryForward = users;
     }
 
+    if (updateBy.data.email) {
+      await this.expirePasswordResetTokensForEmailChange({
+        newEmail: updateBy.data.email as Email,
+        existingUsers: carryForward,
+      });
+    }
+
     /*
      * There used to be a guard here refusing to set `enableTwoFactorAuth` on
      * an account with no verified authenticator, on the grounds that doing so
@@ -410,6 +417,94 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /**
+   * Kill any outstanding password-reset link for every account whose email
+   * address this update is about to change.
+   *
+   * A reset link is a bearer credential addressed to ONE mailbox: holding it
+   * proves only that somebody could read mail sent to the address the account
+   * had when the link was minted. Move the account to a different address and
+   * that proof is about a mailbox the account no longer uses, so the link has
+   * to die with the address it was sent to.
+   *
+   * Without this, changing your email is not the account-recovery step that
+   * users -- and our own "You have changed your email" mail -- take it to be:
+   *
+   *   1. An attacker who can read the victim's mailbox requests a password
+   *      reset and does NOT spend the link. Nothing about the account looks
+   *      wrong, because nothing has changed yet.
+   *   2. The victim notices the mailbox is compromised and moves the account
+   *      to an address the attacker cannot read. This is exactly the advice
+   *      they would be given, and they now believe they are safe.
+   *   3. The attacker spends the link from step 1. `/reset-password` finds the
+   *      row BY TOKEN HASH ALONE -- it never looks at the email address -- so
+   *      it happily sets a new password on the account at its NEW address, and
+   *      the victim is locked out of an account they had just rescued.
+   *
+   * Cleared BEFORE the email is written rather than afterwards in
+   * `onUpdateSuccess`, so there is no instant in which the new address is
+   * committed while a link mailed to the old one is still redeemable. The
+   * price of that ordering is that an email update which subsequently fails
+   * has still burned a pending link, and the user has to request another one.
+   * For a credential that is the right way round.
+   *
+   * Only rows whose address actually CHANGES are touched. Directory syncs
+   * rewrite `email` with the value it already has on every push (see
+   * `App/FeatureSet/Identity/API/SCIM.ts`, which updates whenever either the
+   * email or the name is present), and clearing on those would let an
+   * unrelated SCIM run invalidate a reset link the user is part-way through
+   * using.
+   *
+   * A row that came back with no `email` at all is treated as changed. That
+   * happens when the caller could not read the column, and on a credential the
+   * safe assumption is the one that expires the token.
+   *
+   * NOTE: this runs from `onBeforeUpdate`, so an email write made with
+   * `ignoreHooks: true` would slip past it. Nothing does that today -- the
+   * dashboard, the SCIM endpoints and the admin API all go through the hooks
+   * -- and any new caller that writes `email` hook-free has to clear these two
+   * columns itself.
+   */
+  @CaptureSpan()
+  private async expirePasswordResetTokensForEmailChange(data: {
+    newEmail: Email;
+    existingUsers: Array<Model>;
+  }): Promise<void> {
+    const newEmail: string = data.newEmail.toString().toLowerCase();
+
+    for (const user of data.existingUsers) {
+      if (!user.id) {
+        continue;
+      }
+
+      const currentEmail: string | undefined = user.email
+        ?.toString()
+        .toLowerCase();
+
+      if (currentEmail === newEmail) {
+        continue;
+      }
+
+      await this.updateOneById({
+        id: user.id,
+        data: {
+          resetPasswordToken: null!,
+          resetPasswordExpires: null!,
+        },
+        /*
+         * Root because `resetPasswordToken` is declared with `update: []` --
+         * no permission can write it -- and hook-free because this IS the
+         * update hook; re-entering it would have this write go looking for an
+         * email change of its own.
+         */
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
   }
 
   @CaptureSpan()

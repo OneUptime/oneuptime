@@ -212,6 +212,34 @@ describe("runSiteImport — ordering", () => {
     ]);
   });
 
+  test("a correctly typed existing parent passes hierarchy preflight", async () => {
+    const recorder: Recorder = recordingCreator();
+
+    const summary: SiteImportSummary = await runSiteImport({
+      rows: [
+        makeRow({
+          line: 2,
+          name: "Unit 1042",
+          parentName: "Springfield Market",
+          requiredParentNetworkSiteTypeId: "type-market",
+        }),
+      ],
+      existingSiteIdByName: new Map<string, string>([
+        ["Springfield Market", "existing-market"],
+      ]),
+      existingSiteTypeIdByName: new Map<string, string | null>([
+        ["Springfield Market", "type-market"],
+      ]),
+      createSite: recorder.createSite,
+    });
+
+    expect(recorder.calls).toEqual([
+      { name: "Unit 1042", parentSiteId: "existing-market" },
+    ]);
+    expect(summary.createdCount).toBe(1);
+    expect(summary.skippedCount).toBe(0);
+  });
+
   test("creates run one at a time, never concurrently", async () => {
     let inFlight: number = 0;
     let maxInFlight: number = 0;
@@ -304,6 +332,79 @@ describe("runSiteImport — rows that can never be created", () => {
     expect(recorder.calls).toEqual([]);
     expect(summary.skippedCount).toBe(2);
     expect(summary.createdCount).toBe(0);
+  });
+
+  test("a wrongly typed existing parent is skipped before any create call", async () => {
+    const recorder: Recorder = recordingCreator();
+
+    const summary: SiteImportSummary = await runSiteImport({
+      rows: [
+        makeRow({
+          line: 2,
+          name: "Unit 1042",
+          parentName: "East Region",
+          requiredParentNetworkSiteTypeId: "type-market",
+        }),
+      ],
+      existingSiteIdByName: new Map<string, string>([
+        ["East Region", "existing-region"],
+      ]),
+      existingSiteTypeIdByName: new Map<string, string | null>([
+        ["East Region", "type-region"],
+      ]),
+      createSite: recorder.createSite,
+    });
+
+    expect(recorder.calls).toEqual([]);
+    expect(summary).toMatchObject({
+      createdCount: 0,
+      failedCount: 0,
+      skippedCount: 1,
+      totalToCreate: 0,
+    });
+    expect(summary.results[0]).toEqual({
+      line: 2,
+      name: "Unit 1042",
+      status: "skipped",
+      message:
+        'Parent site "East Region" does not use the Network Site Type required by "Unit".',
+    });
+  });
+
+  test("all hierarchy preflight skips are reported before the first valid create", async () => {
+    const events: Array<string> = [];
+    const createSite: CreateSiteFunction = async (
+      row: ParsedSiteRow,
+    ): Promise<SiteCreateResult> => {
+      events.push(`create:${row.name}`);
+      return { created: true, siteId: `id-${row.name}` };
+    };
+
+    await runSiteImport({
+      rows: [
+        makeRow({
+          line: 2,
+          name: "Invalid Unit",
+          parentName: "East Region",
+          requiredParentNetworkSiteTypeId: "type-market",
+        }),
+        makeRow({ line: 3, name: "Valid Root" }),
+      ],
+      existingSiteIdByName: new Map<string, string>([
+        ["East Region", "existing-region"],
+      ]),
+      existingSiteTypeIdByName: new Map<string, string | null>([
+        ["East Region", "type-region"],
+      ]),
+      createSite,
+      onProgress: (progress: SiteImportProgress) => {
+        if (events.length === 0 && progress.results.length > 0) {
+          events.push(`preflight:${progress.results[0]!.name}`);
+        }
+      },
+    });
+
+    expect(events).toEqual(["preflight:Invalid Unit", "create:Valid Root"]);
   });
 
   test("skipped rows do not count toward the progress total", async () => {

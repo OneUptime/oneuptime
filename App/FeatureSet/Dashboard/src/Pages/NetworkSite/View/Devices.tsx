@@ -3,9 +3,13 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DeviceStatusUtil, {
+  BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NO_MONITOR_QUALIFIER,
   NetworkDeviceStatus,
+  UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  isUnboundMonitorBackedDevice,
 } from "../../../Components/NetworkDevice/DeviceStatusUtil";
 import Route from "Common/Types/API/Route";
 import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
@@ -67,6 +71,8 @@ const NetworkSiteDevices: FunctionComponent<
         selectMoreFields={{
           ...DEVICE_STATUS_SELECT,
           interfacesDown: true,
+          // For the "No monitor" qualifier beside a monitor-backed Pending.
+          monitorId: true,
         }}
         columns={[
           {
@@ -117,6 +123,31 @@ const NetworkSiteDevices: FunctionComponent<
                 );
               }
 
+              /*
+               * Pending is the verdict; "No monitor" is the qualifier that
+               * says whether it will ever change on its own. See
+               * NO_MONITOR_QUALIFIER for why it is a second pill and not a
+               * fourth verdict.
+               */
+              if (isMonitorBacked && isUnboundMonitorBackedDevice(item)) {
+                return (
+                  <div className="flex items-center gap-1.5">
+                    <Pill
+                      text="Pending"
+                      color={Gray500}
+                      size={PillSize.Small}
+                      tooltip={UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP}
+                    />
+                    <Pill
+                      text={NO_MONITOR_QUALIFIER.text}
+                      color={Gray500}
+                      size={PillSize.Small}
+                      tooltip={NO_MONITOR_QUALIFIER.tooltip}
+                    />
+                  </div>
+                );
+              }
+
               return (
                 <Pill
                   text="Pending"
@@ -124,7 +155,7 @@ const NetworkSiteDevices: FunctionComponent<
                   size={PillSize.Small}
                   tooltip={
                     isMonitorBacked
-                      ? "No monitor is bound to this device yet, or the one that is has not reported a status."
+                      ? BOUND_MONITOR_PENDING_TOOLTIP
                       : "This device has not been polled yet."
                   }
                 />

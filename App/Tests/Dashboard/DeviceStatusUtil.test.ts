@@ -5,7 +5,9 @@ import DeviceStatusUtil, {
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
   NetworkDeviceStatus,
+  isUnboundMonitorBackedDevice,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * DeviceStatusUtil is the dashboard's door onto the shared reachability
@@ -365,5 +367,79 @@ describe("a monitor-backed device, as a page actually receives it", () => {
         currentMonitorStatus: { isOfflineState: false },
       }),
     ).toBe(NetworkDeviceStatus.Down);
+  });
+});
+
+/*
+ * The "No monitor" qualifier's predicate. It is shown for exactly one kind
+ * of row — monitor-backed with nothing bound — and every other combination
+ * has a different, existing answer: an SNMP device has no binding to be
+ * missing, and a bound monitor-backed device is either judged or "not yet".
+ */
+describe("isUnboundMonitorBackedDevice", () => {
+  const MONITOR_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  test("is true for a monitor-backed device with nothing bound", () => {
+    expect(
+      isUnboundMonitorBackedDevice({
+        monitoringMethod: "Monitor",
+        monitorId: undefined,
+      }),
+    ).toBe(true);
+    expect(
+      isUnboundMonitorBackedDevice({
+        monitoringMethod: "Monitor",
+        monitorId: null,
+      }),
+    ).toBe(true);
+  });
+
+  test("is false once a monitor is bound, whether the id arrives as an ObjectID or a string", () => {
+    expect(
+      isUnboundMonitorBackedDevice({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID,
+      }),
+    ).toBe(false);
+    expect(
+      isUnboundMonitorBackedDevice({
+        monitoringMethod: "Monitor",
+        monitorId: MONITOR_ID.toString(),
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * An SNMP device can carry a monitorId (the column is not method-gated)
+   * and usually carries none; neither is a missing binding, because nothing
+   * about an SNMP device's status depends on one.
+   */
+  test.each([
+    ["SNMP", undefined],
+    ["SNMP", null],
+    [undefined, undefined],
+    ["", undefined],
+    ["Monitorr", undefined],
+  ])(
+    "is false for a device whose method %p reads as SNMP",
+    (method: string | undefined, monitorId: null | undefined) => {
+      expect(
+        isUnboundMonitorBackedDevice({
+          monitoringMethod: method,
+          monitorId: monitorId,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  test("reads the method through the parser, so case and whitespace do not matter", () => {
+    expect(
+      isUnboundMonitorBackedDevice({
+        monitoringMethod: "  monitor ",
+        monitorId: undefined,
+      }),
+    ).toBe(true);
   });
 });

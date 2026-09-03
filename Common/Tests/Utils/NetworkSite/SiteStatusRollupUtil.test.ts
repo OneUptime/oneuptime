@@ -290,6 +290,26 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
       OFFLINE.monitorStatusId,
     );
   });
+
+  /*
+   * Issue #3562: the legacy branch above must never fire for a device that
+   * is not polled at all. A monitor-backed device switched over from SNMP
+   * keeps its old lastSeenAt until the switch-over clears it, and with no
+   * stamp yet it is Pending — not a months-old freshness verdict against
+   * the site.
+   */
+  it("a monitor-backed device with no stamp contributes nothing, whatever its leftover poll columns say", () => {
+    const leftovers: DeviceHealthState = {
+      lastSeenAt: minutesAgo(600),
+      pollingIntervalInMinutes: 5,
+      monitoringMethod: "Monitor",
+    };
+
+    expect(worst([leftovers])).toBeNull();
+    expect(worst([leftovers, answered(1)])).toBe(OPERATIONAL.monitorStatusId);
+    // A mirrored outcome without a stamp is not a vote either.
+    expect(worst([{ ...leftovers, isReachable: false }])).toBeNull();
+  });
 });
 
 /*
@@ -386,6 +406,31 @@ describe("SiteStatusRollupUtil.deviceHealthShare", () => {
 
     expect(share.reportingDeviceCount).toBe(2);
     expect(share.nonOperationalDeviceCount).toBe(1);
+  });
+
+  /*
+   * Issue #3562: an unstamped monitor-backed bucket is a never-reported
+   * bucket, whatever its leftover poll columns say — it goes in neither
+   * side, so four hundred ping-only devices awaiting their first monitor
+   * evaluation cannot dilute the one switch that is genuinely dark.
+   */
+  it("unstamped monitor-backed devices are in neither side either, whatever their leftovers say", () => {
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        failed(1),
+        {
+          lastSeenAt: minutesAgo(600),
+          pollingIntervalInMinutes: 5,
+          monitoringMethod: "Monitor",
+          deviceCount: 400,
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(1);
+    expect(share.nonOperationalDeviceCount).toBe(1);
+    expect(share.nonOperationalPercent).toBe(100);
   });
 
   it("falls back to reachability when the stamped status could not be resolved", () => {

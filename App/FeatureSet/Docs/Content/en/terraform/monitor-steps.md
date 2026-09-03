@@ -143,7 +143,7 @@ Each element of `monitor_steps` is one probe target:
 | `retry_count_on_error` | number | Synthetic | Retries on script error. |
 | `criteria` | list (required) | all | The decision tree — see below. |
 
-Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
+Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
 
 ```hcl
 monitor_steps = [{
@@ -251,6 +251,7 @@ Common `check_on` values by monitor type:
 | Custom Code / Synthetic | `Result Value`, `Error`, `Execution Time (in ms)` |
 | DNS / Domain / DNSSEC | `DNS Is Online`, `DNS Record Value`, `Domain Is Expired`, `DNSSEC Chain Is Valid` |
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
+| Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
 | Network Device (SNMP) | `SNMP Device Is Online`, `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
 

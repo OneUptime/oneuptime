@@ -51,6 +51,11 @@ export interface PermissionCheckableModel {
   getReadPermissions: () => Array<Permission>;
   getUpdatePermissions: () => Array<Permission>;
   getDeletePermissions: () => Array<Permission>;
+  /*
+   * Set by the @OperationalResource() decorator. Optional here because the
+   * analytics models that are not decorated never define it at all.
+   */
+  isOperationalResource?: boolean | undefined;
 }
 
 /*
@@ -229,6 +234,33 @@ export default class PermissionGate {
     action: ModelAction,
     userPermissions: Array<Permission>,
   ): boolean {
+    if (this.hasDeclaredPermission(model, action, userPermissions)) {
+      return true;
+    }
+
+    /*
+     * The server widens a model's declared permissions with the matching
+     * *AllOperationalResources wildcard for anything marked
+     * @OperationalResource (TablePermission.getEffectiveModelPermissions, and
+     * its analytics twin). Without the same step here, somebody granted
+     * "Edit All Operational Resources" - and nothing else - was told by every
+     * gate in the UI that they could not edit a monitor, an incident or a
+     * dashboard, while the API happily accepted the write. The gate must not
+     * be stricter than the endpoint it is standing in front of.
+     */
+    const wildcard: Permission | null = this.getOperationalWildcard(
+      model,
+      action,
+    );
+
+    return Boolean(wildcard && userPermissions.includes(wildcard));
+  }
+
+  private static hasDeclaredPermission(
+    model: PermissionCheckableModel,
+    action: ModelAction,
+    userPermissions: Array<Permission>,
+  ): boolean {
     switch (action) {
       case ModelAction.Create:
         return model.hasCreatePermissions(userPermissions);
@@ -240,6 +272,35 @@ export default class PermissionGate {
         return model.hasDeletePermissions(userPermissions);
       default:
         return false;
+    }
+  }
+
+  /*
+   * The wildcard that covers this operation on this model, or null when the
+   * model is not an operational resource. Kept out of getModelPermissions on
+   * purpose: that list is what the "you need one of these permissions"
+   * sentence is built from, and the server names only the model's own
+   * permissions there too.
+   */
+  private static getOperationalWildcard(
+    model: PermissionCheckableModel,
+    action: ModelAction,
+  ): Permission | null {
+    if (!model.isOperationalResource) {
+      return null;
+    }
+
+    switch (action) {
+      case ModelAction.Create:
+        return Permission.CreateAllOperationalResources;
+      case ModelAction.Read:
+        return Permission.ReadAllOperationalResources;
+      case ModelAction.Update:
+        return Permission.EditAllOperationalResources;
+      case ModelAction.Delete:
+        return Permission.DeleteAllOperationalResources;
+      default:
+        return null;
     }
   }
 

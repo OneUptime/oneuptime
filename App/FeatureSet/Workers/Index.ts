@@ -302,6 +302,8 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 // Enterprise License usage reporting (self-hosted only).
 import "./Jobs/EnterpriseLicense/ReportUserCount";
 import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
+// Hosted license counts derived from active instance reports.
+import "./Jobs/EnterpriseLicense/ReconcileInstanceUsage";
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";

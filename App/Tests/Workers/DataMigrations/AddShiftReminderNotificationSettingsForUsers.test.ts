@@ -176,15 +176,49 @@ describe("AddShiftReminderNotificationSettingsForUsers", () => {
       expect(indexSource).toContain(`new ${MIGRATION_NAME}()`);
     });
 
-    test("is the LAST migration in the list (new migrations are appended, never inserted)", () => {
-      const instantiations: Array<string> = Array.from(
-        indexSource.matchAll(/new\s+(\w+)\(\)/g),
-      ).map((match: RegExpMatchArray) => {
-        return match[1]!;
-      });
+    function registeredMigrations(): Array<string> {
+      return Array.from(indexSource.matchAll(/new\s+(\w+)\(\)/g)).map(
+        (match: RegExpMatchArray) => {
+          return match[1]!;
+        },
+      );
+    }
 
-      expect(instantiations.length).toBeGreaterThan(1);
-      expect(instantiations[instantiations.length - 1]).toBe(MIGRATION_NAME);
+    /*
+     * The runner records each migration by name once it has run, and decides
+     * what to run from its position in this list. Inserting a migration ahead
+     * of one that has already shipped renumbers everything after it, so an
+     * installation that is part-way through the list re-runs migrations it
+     * has already applied, or skips ones it has not.
+     *
+     * So what is pinned is this migration's INDEX, not that it sits last.
+     * Appending the next migration - which is what everyone should do - leaves
+     * this index alone; inserting one above it does not, and fails here.
+     * Asserting it was last made every future migration fail this test, which
+     * is what happened when BackfillNetworkDeviceRoles was appended.
+     */
+    const REGISTERED_POSITION: number = 103;
+
+    test("keeps its position - new migrations are appended, never inserted above it", () => {
+      const instantiations: Array<string> = registeredMigrations();
+
+      expect(instantiations.length).toBeGreaterThan(REGISTERED_POSITION);
+      expect(instantiations.indexOf(MIGRATION_NAME)).toBe(REGISTERED_POSITION);
+    });
+
+    /*
+     * Registered twice, it runs twice. The walk is idempotent per user, but
+     * the runner would still spend a full pass over every project's members
+     * on the second run.
+     */
+    test("is registered exactly once", () => {
+      const instantiations: Array<string> = registeredMigrations();
+
+      expect(
+        instantiations.filter((name: string): boolean => {
+          return name === MIGRATION_NAME;
+        }).length,
+      ).toBe(1);
     });
 
     test("runs after AddOnCallNotificationForUsers, the migration it is modelled on", () => {

@@ -89,9 +89,14 @@ export const DEVICE_FACET_QUERY_FIELDS: {
 /**
  * The Status chip's values. Up / Down / Pending partition the fleet exactly:
  * `isReachable` true, false, and NULL. SQL drops NULLs from both equality
- * comparisons, so a never-polled device lands in Pending only and the three
+ * comparisons, so a device with no verdict lands in Pending only and the three
  * always sum to the fleet size — which is what lets the three tiles' counts add
  * up to the total.
+ *
+ * `isReachable` is the SNMP walk's verdict on an SNMP device and the bound
+ * monitor's verdict on a monitor-backed one (the server stamps it from the
+ * monitor's status, NULL while nothing is bound), so one column and one chip
+ * cover both kinds of device.
  */
 export enum DeviceStatusFacetValue {
   Up = "up",
@@ -188,17 +193,18 @@ export const DEVICE_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
   {
     value: DeviceStatusFacetValue.Up,
     label: "Up",
-    sublabel: "The last SNMP poll reached the device",
+    sublabel: "The last SNMP poll, or the bound monitor, reached the device",
   },
   {
     value: DeviceStatusFacetValue.Down,
     label: "Down",
-    sublabel: "The last SNMP poll could not reach the device",
+    sublabel:
+      "The last SNMP poll, or the bound monitor, could not reach the device",
   },
   {
     value: DeviceStatusFacetValue.Pending,
     label: "Pending",
-    sublabel: "Never polled",
+    sublabel: "No verdict yet — never polled, or no monitor bound",
   },
 ];
 

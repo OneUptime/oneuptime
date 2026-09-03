@@ -1,5 +1,5 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
@@ -154,10 +154,16 @@ export default class SMTPOAuthService {
       return response;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
+        /*
+         * The tenant's own Token URL did not answer in time. Authoritative
+         * because this runs from the mail worker, where the class-level
+         * user-error default on BadDataException would be promoted back to
+         * code-fault for want of an HTTP request to blame.
+         */
         throw new BadDataException(
           `OAuth token request timed out after ${this.FETCH_TIMEOUT_MS}ms. ` +
             `Please check your network connectivity and Token URL.`,
-        );
+        ).asUserError();
       }
       throw error;
     } finally {
@@ -173,10 +179,11 @@ export default class SMTPOAuthService {
     config: SMTPOAuthConfig,
   ): Promise<string> {
     if (!config.username) {
+      // Missing field in the tenant's SMTP OAuth settings, not a defect.
       throw new BadDataException(
         "Username (subject) is required for JWT Bearer OAuth. " +
           "This is typically the email address or user identifier to impersonate.",
-      );
+      ).asUserError();
     }
 
     // Validate that clientSecret looks like a private key
@@ -184,10 +191,11 @@ export default class SMTPOAuthService {
       !config.clientSecret.includes("-----BEGIN") ||
       !config.clientSecret.includes("PRIVATE KEY")
     ) {
+      // The tenant pasted something that is not a PEM private key.
       throw new BadDataException(
         "For JWT Bearer OAuth, the Client Secret must be a private key in PEM format. " +
           "It should contain '-----BEGIN PRIVATE KEY-----' or '-----BEGIN RSA PRIVATE KEY-----'.",
-      );
+      ).asUserError();
     }
 
     try {
@@ -236,8 +244,14 @@ export default class SMTPOAuthService {
 
       if (!response.ok) {
         const errorText: string = await response.text();
+        /*
+         * The tenant's OAuth provider rejected the tenant's credentials. Every
+         * branch below is a configuration answer for them to act on, so none of
+         * them is a OneUptime defect.
+         */
         logger.error(
           `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
+          EXTERNAL_FAULT,
         );
 
         // Provide helpful error messages for common issues
@@ -249,7 +263,7 @@ export default class SMTPOAuthService {
               `3) The scope '${config.scope}' is not authorized, or ` +
               `4) Required delegations/permissions are not configured. ` +
               `Please check your OAuth provider's configuration.`,
-          );
+          ).asUserError();
         }
 
         if (errorText.includes("unauthorized_client")) {
@@ -257,12 +271,12 @@ export default class SMTPOAuthService {
             `OAuth failed: unauthorized_client. ` +
               `The issuer '${config.clientId}' is not authorized. ` +
               `Please verify that the client has the required permissions and delegations configured.`,
-          );
+          ).asUserError();
         }
 
         throw new BadDataException(
           `Failed to authenticate with OAuth provider: ${response.status}. Error: ${errorText}`,
-        );
+        ).asUserError();
       }
 
       const tokenData: OAuthTokenResponse =
@@ -337,14 +351,16 @@ export default class SMTPOAuthService {
 
       if (!response.ok) {
         const errorText: string = await response.text();
+        // The tenant's OAuth provider rejected the tenant's credentials.
         logger.error(
           `Failed to fetch OAuth token: ${response.status} - ${errorText}`,
+          EXTERNAL_FAULT,
         );
         throw new BadDataException(
           `Failed to authenticate with OAuth provider: ${response.status}. ` +
             `Please check your OAuth credentials (Client ID, Client Secret, Token URL, and Scope). ` +
             `Error: ${errorText}`,
-        );
+        ).asUserError();
       }
 
       const tokenData: OAuthTokenResponse =

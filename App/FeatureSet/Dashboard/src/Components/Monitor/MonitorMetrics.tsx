@@ -31,6 +31,8 @@ import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import TimeRange from "Common/Types/Time/TimeRange";
 
 export interface ComponentProps {
@@ -75,6 +77,14 @@ function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
     }
   }
 
+  /*
+   * Probe-pull monitors group by probe, because the probe is the only thing
+   * that varies between two rows of the same series. Database Health relies
+   * on that: every one of its series is single-valued per monitor, so it
+   * writes no dimension beyond probeId. A future change that fans a database
+   * series out per database or per table has to extend this function first,
+   * or every one of those series shares the probe's legend.
+   */
   if (MonitorTypeHelper.isProbableMonitor(monitorType)) {
     const probeIdString: string | undefined = (attributes as JSONObject)[
       "probeId"
@@ -112,6 +122,14 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [probes, setProbes] = useState<Array<Probe>>([]);
+  /*
+   * Database Health only. The cards drop the series the configured engine can
+   * never write, so a MySQL monitor does not carry a permanently empty
+   * "Transaction ID Used" chart it can do nothing about.
+   */
+  const [databaseType, setDatabaseType] = useState<SqlDatabaseType | undefined>(
+    undefined,
+  );
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_HOUR,
   });
@@ -125,12 +143,24 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
         id: props.monitorId,
         select: {
           monitorType: true,
+          monitorSteps: true,
         },
       });
 
       const monitorType: MonitorType = item?.monitorType || MonitorType.Manual;
 
       setMonitorType(monitorType);
+
+      if (monitorType === MonitorType.Database) {
+        const steps: Array<MonitorStep> =
+          item?.monitorSteps?.data?.monitorStepsInstanceArray || [];
+
+        setDatabaseType(
+          steps.find((step: MonitorStep) => {
+            return Boolean(step.data?.databaseMonitor?.databaseType);
+          })?.data?.databaseMonitor?.databaseType,
+        );
+      }
 
       const isProbeableMonitor: boolean =
         MonitorTypeHelper.isProbableMonitor(monitorType);
@@ -226,8 +256,9 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     }
     return MonitorMetricTypeUtil.getMonitorMetricCategoriesByMonitorType(
       monitorType,
+      databaseType,
     );
-  }, [monitorType]);
+  }, [monitorType, databaseType]);
 
   /*
    * Memoise the per-category query configs so each CategoryMetricsCard only

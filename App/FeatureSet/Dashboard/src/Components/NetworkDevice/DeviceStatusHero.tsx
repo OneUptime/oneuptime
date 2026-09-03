@@ -1,7 +1,11 @@
 import DeviceStatusUtil, {
+  BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NO_MONITOR_QUALIFIER,
   NetworkDeviceStatus,
+  UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  isUnboundMonitorBackedDevice,
 } from "./DeviceStatusUtil";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -47,6 +51,8 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         id: props.modelId,
         select: {
           ...DEVICE_STATUS_SELECT,
+          // For the "No monitor" qualifier and the Monitor Status tile's links.
+          monitorId: true,
           lastRebootedAt: true,
           hostname: true,
           vendor: true,
@@ -118,6 +124,13 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
    * suppresses for them.
    */
   const isMonitorBacked: boolean = reachabilityResult.isMonitorBacked;
+  /*
+   * Monitor-backed with nothing bound: the one Pending that never resolves
+   * by itself, so it gets the "No monitor" qualifier and the Monitor Status
+   * tile turns into the two ways out (bind one, or create a Ping monitor).
+   */
+  const isUnbound: boolean =
+    isMonitorBacked && isUnboundMonitorBackedDevice(device);
 
   const getReachabilityPill: GetReachabilityPillFunction = (): ReactElement => {
     if (reachability === NetworkDeviceStatus.Up) {
@@ -156,9 +169,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         color={Gray500}
         size={PillSize.Normal}
         tooltip={
-          isMonitorBacked
-            ? "No monitor is bound to this device yet, or the one that is has not reported a status."
-            : "This device has not been polled yet."
+          isUnbound
+            ? UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP
+            : isMonitorBacked
+              ? BOUND_MONITOR_PENDING_TOOLTIP
+              : "This device has not been polled yet."
         }
       />
     );
@@ -200,6 +215,24 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       )
     : null;
 
+  /*
+   * The two ways out of "No monitor bound". The create link carries the
+   * device id, so the monitor form seeds a Ping monitor on this device's
+   * address and binds it on save; Settings is where an existing monitor is
+   * bound instead.
+   */
+  const createPingMonitorRoute: Route = Route.fromString(
+    `${RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_CREATE] as Route,
+    ).toString()}?networkDeviceId=${props.modelId.toString()}`,
+  );
+  const settingsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
+    {
+      modelId: props.modelId,
+    },
+  );
+
   const siteRoute: Route | null = device.site?._id
     ? RouteUtil.populateRouteParams(
         RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
@@ -219,6 +252,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           <div className="text-sm font-medium text-gray-500">Reachability</div>
           <div className="mt-1.5 flex items-center gap-2">
             {getReachabilityPill()}
+            {isUnbound && (
+              <Pill
+                text={NO_MONITOR_QUALIFIER.text}
+                color={Gray500}
+                size={PillSize.Normal}
+                tooltip={NO_MONITOR_QUALIFIER.tooltip}
+              />
+            )}
             {reachabilityResult.isStale && (
               <Pill
                 text="Stale"
@@ -229,11 +270,13 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
-            {isMonitorBacked
-              ? "Reported by the monitor bound to this device"
-              : lastSeenAt
-                ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-                : "Never answered a poll"}
+            {isUnbound
+              ? "Nothing is bound to report on it yet"
+              : isMonitorBacked
+                ? "Reported by the monitor bound to this device"
+                : lastSeenAt
+                  ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
+                  : "Never answered a poll"}
           </div>
           {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
             <div className="mt-0.5 text-xs text-gray-400">
@@ -253,6 +296,24 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 color={device.currentMonitorStatus.color || Gray500}
                 size={PillSize.Normal}
               />
+            ) : isUnbound ? (
+              <div>
+                <div className="text-sm text-gray-400">No monitor bound</div>
+                <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
+                  <AppLink
+                    to={createPingMonitorRoute}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    Create Ping monitor
+                  </AppLink>
+                  <AppLink
+                    to={settingsRoute}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    Bind a monitor
+                  </AppLink>
+                </div>
+              </div>
             ) : (
               <span className="text-sm text-gray-400">Not monitored</span>
             )}

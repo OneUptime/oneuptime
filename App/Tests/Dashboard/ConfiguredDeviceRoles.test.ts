@@ -129,8 +129,10 @@ const POS_TERMINAL: Partial<NetworkTopologyNode> = {
   roleShape: "hexagon",
 };
 
-/* A BUILT-IN role the project renamed. The key is unchanged — that is what a
- * key is for — so it must keep its slot in the legend under its new name. */
+/*
+ * A BUILT-IN role the project renamed. The key is unchanged — that is what a
+ * key is for — so it must keep its slot in the legend under its new name.
+ */
 const RENAMED_ROUTER: Partial<NetworkTopologyNode> = {
   role: "router",
   roleKey: "router",
@@ -156,8 +158,10 @@ describe("shapeForNode — the project's configured silhouette wins", () => {
 
   test("a configured shape beats the built-in shape for EVERY built-in role", () => {
     for (const [role, builtInShape] of BUILT_IN_SHAPES) {
-      // Always a silhouette the role is not already drawn with, so a passing
-      // assertion cannot be an accident of the two agreeing.
+      /*
+       * Always a silhouette the role is not already drawn with, so a passing
+       * assertion cannot be an accident of the two agreeing.
+       */
       const configured: TopologyNodeShape =
         builtInShape === "diamond" ? "hexagon" : "diamond";
       const node: NetworkTopologyNode = makeDevice(`dev-${role}`, {
@@ -469,8 +473,10 @@ describe("tierForNode — the configured core flag settles the tier", () => {
   });
 
   test("the flag beats a disagreeing built-in role in both directions", () => {
-    // isCoreLayerRole is checked before node.role, for the same reason
-    // node.role is checked before the FDB: it is the operator's own answer.
+    /*
+     * isCoreLayerRole is checked before node.role, for the same reason
+     * node.role is checked before the FDB: it is the operator's own answer.
+     */
     expect(
       tierForNode(
         makeDevice("d1", { role: "printer", isCoreLayerRole: true }),

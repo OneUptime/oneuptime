@@ -27,12 +27,12 @@ import { DeviceHealthState } from "../../../Utils/NetworkSite/SiteStatusRollupUt
  *
  * So the rule does not move. What moves is the DATA REDUCTION.
  *
- * `deviceHealthState` is a pure function of six facts about a row, and five of
- * them are already booleans or three-state flags. Group the table by those
- * facts in SQL and 80,000 rows collapse into at most a few per site — one
- * bucket per distinct combination that actually occurs. Then hand each bucket
- * back to the REAL classifier once and multiply its verdict by the bucket's
- * count.
+ * `deviceHealthState` is a pure function of seven facts about a row, and six
+ * of them are already booleans, three-state flags or a column that only ever
+ * holds two values. Group the table by those facts in SQL and 80,000 rows
+ * collapse into at most a few per site — one bucket per distinct combination
+ * that actually occurs. Then hand each bucket back to the REAL classifier
+ * once and multiply its verdict by the bucket's count.
  *
  * One rule, one implementation, and the wire carries buckets instead of rows.
  *
@@ -121,20 +121,26 @@ const DEVICE_HEALTH_DISCRIMINATOR_COLUMNS: Array<AggregateColumn> = [
    * The column only ever holds a handful of distinct values, so the raw form
    * costs nothing in bucket count.
    *
-   * Note carefully WHO reads it: `deviceHealthState` never receives it (it is
-   * not part of `DeviceHealthStateInput`, and `deviceHealthInputForGroup` does
-   * not emit it), so the per-site health rollups are indifferent to it. Its
-   * one consumer is the Overview's fleet tally, which re-attaches it and calls
-   * `DeviceReachabilityUtil` directly — and a tally that dropped it would
-   * report every ping-only device as Pending forever (issue #3392, one level
-   * up).
+   * Every consumer of a bucket reads it. `deviceHealthInputForGroup` and
+   * `deviceRollupStateForGroup` carry it into the classifier inputs, where
+   * the shared reachability rule uses it to decide whether the poll facts
+   * beside it mean anything. On a monitor-backed device they do not: its
+   * `isReachable` mirrors the bound monitor (NULL when nothing is bound) and
+   * its `lastSeenAt` is whatever a probe last found before it stopped asking
+   * — so an unstamped monitor-backed bucket has to classify as "unknown",
+   * not as whatever those leftovers happen to say, or the site card and the
+   * device list under it describe two different networks. The Overview's
+   * fleet tally reads it for the same reason one level up (issue #3392: a
+   * tally that dropped it reported every ping-only device as Pending
+   * forever).
    *
-   * It therefore costs the rollup path a discriminator it does not use. On a
-   * real fleet that costs nothing, because `monitoringMethod` is almost
+   * Dropping it from the group keys would therefore not be a harmless
+   * simplification: a bucket that mixed SNMP and monitor-backed devices with
+   * the same poll facts would classify all of them by the poll rule. On a
+   * real fleet it also costs nothing, because `monitoringMethod` is almost
    * perfectly correlated with whether the device carries a stamped monitor
    * status — which is already a group key — so it splits no bucket that
-   * `currentMonitorStatusId` had not split anyway. Keeping one discriminator
-   * set is worth more than saving that.
+   * `currentMonitorStatusId` had not split anyway.
    */
   {
     expression: column("monitoringMethod"),
@@ -373,6 +379,11 @@ export function deviceHealthInputForGroup(data: {
      * the synthetic dates above are placed relative to.
      */
     pollingIntervalInMinutes: undefined,
+    /*
+     * Carried verbatim — the classifier parses it, and NULL reads as SNMP
+     * there. See the discriminator column for why a bucket cannot drop it.
+     */
+    monitoringMethod: group.monitoringMethod,
     interfacesDown: group.hasDownInterfaces ? 1 : 0,
   };
 }
@@ -422,6 +433,8 @@ export function deviceRollupStateForGroup(data: {
     lastSeenAt: group.hasBeenSeen ? contactAt : null,
     // See deviceHealthInputForGroup — staleness is already applied.
     pollingIntervalInMinutes: undefined,
+    // ...and for why this rides along with the poll facts it qualifies.
+    monitoringMethod: group.monitoringMethod,
     deviceCount: group.deviceCount,
   };
 }

@@ -41,6 +41,7 @@ const makeInstance: MakeInstanceFunction = (
     instanceId: "instance-1",
     host: "oneuptime.acme.internal",
     userCount: 10,
+    isCountedTowardsUsage: true,
     lastReportedAt: "2026-01-01T00:00:00.000Z",
     version: "12.0.30",
     ...overrides,
@@ -347,6 +348,74 @@ describe("EnterpriseLicenseSeatsUtil - several instances on one licence", () => 
 
     expect(usage.seatsUsedByOtherInstances).toBe(0);
     expect(usage.seatsInUse).toBe(70);
+  });
+
+  it("does not subtract this installation's stale count from an active-only aggregate", () => {
+    const usage: SeatUsage = seats({
+      userLimit: 100,
+      localUserCount: 80,
+      aggregatedUserCount: 100,
+      thisInstanceId: "instance-1",
+      instances: [
+        makeInstance({
+          instanceId: "instance-1",
+          userCount: 80,
+          isCountedTowardsUsage: false,
+        }),
+        makeInstance({
+          instanceId: "instance-2",
+          userCount: 100,
+          isCountedTowardsUsage: true,
+        }),
+      ],
+    });
+
+    expect(usage.seatsUsedByOtherInstances).toBe(0);
+    expect(usage.seatsInUse).toBe(100);
+    expect(usage.hasSeatForNewUser).toBe(false);
+  });
+
+  it("does not double-count overlapping users when this installation is inactive", () => {
+    const usage: SeatUsage = seats({
+      userLimit: 100,
+      localUserCount: 80,
+      aggregatedUserCount: 80,
+      thisInstanceId: "instance-1",
+      instances: [
+        makeInstance({
+          instanceId: "instance-1",
+          userCount: 80,
+          isCountedTowardsUsage: false,
+        }),
+        makeInstance({
+          instanceId: "instance-2",
+          userCount: 80,
+          isCountedTowardsUsage: true,
+        }),
+      ],
+    });
+
+    expect(usage.seatsInUse).toBe(80);
+    expect(usage.hasSeatForNewUser).toBe(true);
+  });
+
+  it("retains subtraction for older license servers without activity provenance", () => {
+    const usage: SeatUsage = seats({
+      userLimit: 150,
+      localUserCount: 80,
+      aggregatedUserCount: 100,
+      thisInstanceId: "instance-1",
+      instances: [
+        makeInstance({
+          instanceId: "instance-1",
+          userCount: 80,
+          isCountedTowardsUsage: undefined,
+        }),
+      ],
+    });
+
+    expect(usage.seatsUsedByOtherInstances).toBe(20);
+    expect(usage.seatsInUse).toBe(100);
   });
 });
 

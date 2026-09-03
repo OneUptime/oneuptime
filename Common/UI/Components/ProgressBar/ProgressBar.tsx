@@ -28,7 +28,18 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
     let percent: number = 0;
 
     try {
-      percent = (props.count * 100) / props.totalCount;
+      /*
+       * Dividing by zero does not throw in JavaScript — it yields NaN, which
+       * the catch below never sees. `Math.ceil(NaN)` is NaN, and NaN then
+       * reaches the DOM three times over: as `width: NaN%` (which the browser
+       * silently discards, leaving an empty track), as aria-valuenow, and as
+       * the visible "NaN%" readout beside the count. Every caller that had
+       * noticed guarded its own render on a non-zero total; the ones that had
+       * not simply showed it.
+       */
+      if (props.totalCount > 0) {
+        percent = (props.count * 100) / props.totalCount;
+      }
     } catch (err) {
       Logger.error(err as Error);
       // do nothing.

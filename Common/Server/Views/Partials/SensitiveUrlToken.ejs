@@ -1,0 +1,140 @@
+<%#
+    Takes single-use bearer tokens out of the address bar before any
+    third-party tag can read them.
+
+    Password reset and email verification links carry their token in the URL
+    *path* — /accounts/reset-password/<token>, /accounts/verify-email/<token>,
+    /reset-password/<token> on a status page. Every analytics and advertising
+    tag on the page reports the page URL as a matter of course, so the token
+    left the browser to whoever the container happened to be loading. Measured
+    on production before this partial existed, a single visit to
+    /accounts/reset-password/<token> sent the token to five third parties:
+    region1.analytics.google.com, www.google.com, bat.bing.com, q.quora.com and
+    alb.reddit.com. A reset token is a bearer credential for the account, so
+    anyone with read access to any of those ad or analytics dashboards — inside
+    OneUptime or at the vendor — could take the account over for as long as the
+    token stayed valid.
+
+    Two mechanisms, in this order:
+
+    1.  The token is moved into sessionStorage and `history.replaceState`
+        rewrites the path to the token-free route. This runs synchronously in
+        <head>, before the Google Tag Manager snippet below it, so every tag the
+        container loads sees only /accounts/reset-password. Analytics is NOT
+        disabled by this — the signup funnel still reports — it just no longer
+        sees the credential. It also keeps the token out of the browser's own
+        history, which replaceState overwrites rather than appends to.
+
+    2.  If step 1 did not finish — no History API, a storage exception, a URL
+        the parser rejected — the token is still in the address bar, and the
+        partial fails closed by setting
+        __ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__. The Google Tag Manager
+        snippet on each page checks that flag and does not start the container
+        at all. Losing a page view is the cheaper failure.
+
+    The reset flow itself keeps working in both cases: the client reads the
+    token through Common/UI/Utils/SensitiveUrlToken, which prefers the
+    stash and falls back to the path when the bootstrap could not clean it.
+
+    MUST be included as the first thing in <head>, ahead of Google Tag Manager
+    and ahead of every external <script>. A tag that loads before this runs is
+    a tag that sees the token. Common/Tests/App/SensitiveUrlTokenBootstrap.test.ts
+    asserts that ordering for each page that includes it.
+
+    TOKEN_ROUTES below is duplicated in Common/UI/Utils/SensitiveUrlToken.ts,
+    which has to agree about which routes carry a token; the same test asserts
+    the two lists match. Add a route to both or to neither.
+-%>
+<meta name="referrer" content="no-referrer" />
+<script>
+    (function (win) {
+        var STORAGE_KEY = "oneuptime-sensitive-url-token";
+
+        /*
+         * Route segments whose NEXT path segment is a single-use bearer token.
+         * Matched against the second-to-last segment, so this covers
+         * /accounts/reset-password/<token>, /reset-password/<token> and
+         * /status-page/<id>/reset-password/<token> alike.
+         */
+        var TOKEN_ROUTES = ["reset-password", "verify-email"];
+
+        function segmentsOf(pathname) {
+            var parts = String(pathname || "").split("/");
+            var kept = [];
+
+            for (var i = 0; i < parts.length; i++) {
+                if (parts[i] !== "") {
+                    kept.push(parts[i]);
+                }
+            }
+
+            return kept;
+        }
+
+        /* True when the last segment of this path is a bearer token. */
+        function carriesToken(pathname) {
+            var segments = segmentsOf(pathname);
+
+            if (segments.length < 2) {
+                return false;
+            }
+
+            var parent = segments[segments.length - 2];
+
+            for (var i = 0; i < TOKEN_ROUTES.length; i++) {
+                if (parent === TOKEN_ROUTES[i]) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        var pending = true;
+
+        try {
+            var url = new URL(win.location.href);
+
+            if (carriesToken(url.pathname)) {
+                var segments = segmentsOf(url.pathname);
+                var token = segments.pop();
+
+                try {
+                    token = decodeURIComponent(token);
+                } catch (_decodeError) {
+                    /* A malformed escape sequence is handed on verbatim. */
+                }
+
+                try {
+                    win.sessionStorage.setItem(STORAGE_KEY, token);
+                } catch (_storageError) {
+                    /*
+                     * Private mode and blocked storage. The in-memory handoff
+                     * does not survive a reload, but it does survive the SPA
+                     * boot, which is all the flow needs.
+                     */
+                    win.__ONEUPTIME_SENSITIVE_URL_TOKEN__ = token;
+                }
+
+                win.history.replaceState(
+                    win.history.state,
+                    "",
+                    "/" + segments.join("/") + url.search + url.hash
+                );
+            }
+
+            /*
+             * Read the address bar back rather than trusting the rewrite. This
+             * is the whole safety condition: analytics runs only if the token
+             * is demonstrably no longer in the URL those tags are about to
+             * report.
+             */
+            pending = carriesToken(win.location.pathname);
+        } catch (_bootstrapError) {
+            /* Fail closed: something went wrong, so assume the token is exposed. */
+            pending = true;
+        }
+
+        win.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__ = pending;
+    })(window);
+</script>

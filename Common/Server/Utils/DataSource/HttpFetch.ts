@@ -6,6 +6,7 @@ import {
   DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
   DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
 } from "../../../Types/DataSource/DataSourceLimits";
+import OutboundUserAgent from "../OutboundUserAgent";
 import DataSourceEgressGuard, { EgressGuardOptions } from "./EgressGuard";
 import { DataSourceConnectionSettings } from "./Types";
 
@@ -20,7 +21,11 @@ import { DataSourceConnectionSettings } from "./Types";
  *    window while TLS still verifies against the original hostname;
  *  - refuses redirects (maxRedirects: 0) — a 3xx from the target could
  *    otherwise bounce the request to an unvalidated host;
- *  - caps response size and wall-clock time.
+ *  - caps response size and wall-clock time;
+ *  - identifies itself with OneUptime's User-Agent unless the caller set
+ *    one. Left to axios, every request would go out as `axios/<version>`,
+ *    which WAFs and bot-management products block by default — a target
+ *    that answers 403 to a bare library UA never gets to see the query.
  *
  * Uses axios directly (not Common/Utils/API.fetch) because the shared
  * wrapper does not expose maxContentLength, and the response-size cap is a
@@ -99,7 +104,9 @@ export default class DataSourceHttpFetch {
         request.egressOptions,
       );
 
-    const headers: Dictionary<string> = { ...(request.headers || {}) };
+    const headers: Dictionary<string> = OutboundUserAgent.withDefault(
+      request.headers,
+    );
 
     let data: string | URLSearchParams | undefined = undefined;
     if (request.method === "POST" && request.body !== undefined) {

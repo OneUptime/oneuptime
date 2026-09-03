@@ -94,20 +94,59 @@ describe("Monitor create page lets the user pick probes", () => {
     // ModelForm reads initialValues once, on mount.
     expect(source).toContain("isLoadingProbes");
     expect(source).toContain(
-      squash("{!isLoading && !isLoadingProbes && !error && ("),
+      squash("{!isLoading && !isLoadingProbes && !isBinding && !error && ("),
     );
   });
 
   test("still creates the monitor when the probe list cannot be loaded", () => {
     /*
-     * On failure defaultProbeIds stays null, so no "probes" value is submitted
-     * and the server keeps assigning the defaults exactly as before.
+     * On failure defaultProbeIds stays null and probeOptions is empty. A
+     * device probe is pinned only when it is among the loaded options -
+     * BasicForm drops an initial value that is not, and would submit
+     * probes: [], which the server honours as "attach no probes" - so with
+     * nothing loaded the pin is dropped too, seededProbes is null, no
+     * "probes" value is submitted and the server keeps assigning the
+     * defaults exactly as before.
      */
     expect(source).toContain(
       squash(
-        "defaultProbeIds ? { ...initialValues, probes: defaultProbeIds } : initialValues",
+        "const pinnedDeviceProbes: Array<string> | null = deviceProbeIds && deviceProbeIds.every((probeId: string): boolean => { return probeOptions.some((option: DropdownOption): boolean => { return option.value === probeId; }); }) ? deviceProbeIds : null;",
       ),
     );
+    expect(source).toContain(
+      squash(
+        "const seededProbes: Array<string> | null = pinnedDeviceProbes ?? defaultProbeIds;",
+      ),
+    );
+    expect(source).toContain(
+      squash(
+        "seededProbes ? { ...initialValues, probes: seededProbes } : initialValues",
+      ),
+    );
+  });
+
+  test("a device's own probe wins over the defaults", () => {
+    /*
+     * The "Create Ping Monitor" deep link from a monitor-backed device seeds
+     * the device's probe - the one that can reach it - through a state of
+     * its own. `??` is what makes it win: the defaults only apply when no
+     * device probe was seeded (or the loaded probe list does not carry it).
+     * Writing the device probe into defaultProbeIds instead would race
+     * loadProbes, which writes the same setter when the probe list arrives,
+     * so the pre-seed must never touch that setter.
+     */
+    expect(source).toContain(
+      "const [deviceProbeIds, setDeviceProbeIds] = useState<Array<string> | null>(",
+    );
+    expect(source).toContain("pinnedDeviceProbes ?? defaultProbeIds");
+
+    const pingPreSeed: string = source.slice(
+      source.indexOf("const preSeedPingMonitorForMonitorBackedDevice"),
+      source.indexOf("const preSeedFromNetworkDeviceLink"),
+    );
+
+    expect(pingPreSeed).toContain("setDeviceProbeIds(");
+    expect(pingPreSeed).not.toContain("setDefaultProbeIds(");
   });
 });
 

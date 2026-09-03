@@ -12,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Link from "Common/UI/Components/Link/Link";
 import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import SensitiveUrlToken from "Common/UI/Utils/SensitiveUrlToken";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -112,11 +113,12 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
               onBeforeCreate={(
                 item: StatusPagePrivateUser,
               ): Promise<StatusPagePrivateUser> => {
-                item.resetPasswordToken =
-                  Navigation.getLastParam()
-                    ?.toString()
-                    .replace("/", "")
-                    .toString() || "";
+                /*
+                 * Not a route param: the head bootstrap moves the token out of
+                 * the path before any third-party tag can report the URL. See
+                 * Common/UI/Utils/SensitiveUrlToken.
+                 */
+                item.resetPasswordToken = SensitiveUrlToken.read();
 
                 item.statusPageId = StatusPageUtil.getStatusPageId()!;
                 return Promise.resolve(item);
@@ -159,6 +161,12 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
               formType={FormType.Create}
               submitButtonText={t("accounts.resetPassword.submit")}
               onSuccess={() => {
+                /*
+                 * Only on success. A rejected reset (expired token, refused
+                 * password) has to keep the stash so the retry still has a
+                 * token to submit.
+                 */
+                SensitiveUrlToken.clear();
                 setIsSuccess(true);
               }}
             />

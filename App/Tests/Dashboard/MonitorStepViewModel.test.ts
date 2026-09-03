@@ -12,6 +12,7 @@ import IP from "Common/Types/IP/IP";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
+import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
@@ -223,6 +224,27 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           connectionTimeoutInMs: 10000,
           statementTimeoutInMs: 15000,
           maxRows: 100,
+        },
+      });
+    case MonitorType.Database:
+      return buildStep({
+        databaseMonitor: {
+          databaseType: SqlDatabaseType.MySQL,
+          host: "replica.example.com",
+          port: 3306,
+          databaseName: "warehouse",
+          username: "oneuptime_monitor",
+          password: "super-secret-database-password",
+          useWindowsIntegratedAuthentication: false,
+          useSsl: true,
+          rejectUnauthorizedSsl: true,
+          connectionTimeoutInMs: 10000,
+          statementTimeoutInMs: 5000,
+          enabledMetricGroups: [
+            DatabaseMetricGroup.Connections,
+            DatabaseMetricGroup.Throughput,
+            DatabaseMetricGroup.Locks,
+          ],
         },
       });
     case MonitorType.ExternalStatusPage:
@@ -616,7 +638,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
   });
 });
 
-describe("MonitorStepViewModel.getRows — DNS, domain and SQL monitors", () => {
+describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", () => {
   it("shows the DNS query, record type and resolver, which used to render nothing", () => {
     expect(getRow(MonitorType.DNS, "queryName")?.value).toBe("example.com");
     expect(getRow(MonitorType.DNS, "recordType")?.value).toBe(DnsRecordType.A);
@@ -695,6 +717,44 @@ describe("MonitorStepViewModel.getRows — DNS, domain and SQL monitors", () => 
     expect(JSON.stringify(getRows(MonitorType.SQLQuery))).not.toContain(
       "super-secret-password",
     );
+  });
+
+  it("summarizes the database connection and the groups it collects", () => {
+    expect(getRow(MonitorType.Database, "databaseConnection")?.value).toBe(
+      "MySQL · replica.example.com:3306/warehouse",
+    );
+    expect(getRow(MonitorType.Database, "databaseUsername")?.value).toBe(
+      "oneuptime_monitor",
+    );
+    expect(getRow(MonitorType.Database, "databaseMetricGroups")?.value).toEqual(
+      [
+        DatabaseMetricGroup.Connections,
+        DatabaseMetricGroup.Throughput,
+        DatabaseMetricGroup.Locks,
+      ],
+    );
+    expect(
+      getRow(MonitorType.Database, "databaseStatementTimeoutInMs")?.value,
+    ).toBe("5000 ms");
+  });
+
+  /*
+   * The credential never reaches this page in any form. There is not even a
+   * masked row for it: a row titled "Password" whose value is dots still
+   * tells a reader the field is set, and a step often holds a
+   * {{monitorSecrets.name}} reference there, which names the secret.
+   */
+  it("never exposes the database password", () => {
+    const rows: Array<MonitorStepViewRow> = getRows(MonitorType.Database);
+
+    expect(JSON.stringify(rows)).not.toContain(
+      "super-secret-database-password",
+    );
+
+    for (const row of rows) {
+      expect(row.key.toLowerCase()).not.toContain("password");
+      expect(row.title.toLowerCase()).not.toContain("password");
+    }
   });
 
   it("shows the external status page URL, provider and component filters", () => {

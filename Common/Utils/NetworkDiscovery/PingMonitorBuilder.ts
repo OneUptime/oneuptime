@@ -94,6 +94,41 @@ export interface BuildPingMonitorData {
 }
 
 /**
+ * Where a Ping monitor is being built FROM. The sentence it writes into the
+ * monitor's description is the only thing that differs, and it matters: an
+ * operator reading the monitor list months later should be told whether a
+ * scan, a form, or a bulk action put it there.
+ */
+export enum PingMonitorOrigin {
+  // A host that answered a discovery sweep's ping but not its SNMP probe.
+  DiscoveryImport = "DiscoveryImport",
+  // The device create form, with "create a Ping monitor" ticked.
+  DeviceCreateForm = "DeviceCreateForm",
+  // The "Create Ping Monitor" button on a device's Overview or Monitors page.
+  DevicePage = "DevicePage",
+  // The device list's bulk "Create Ping Monitors" action.
+  BulkAction = "BulkAction",
+}
+
+export interface BuildPingMonitorForAddressData {
+  projectId: ObjectID;
+  /*
+   * The device's address as recorded on the device — an IP or a hostname.
+   * NetworkDevice.hostname is free text and required, so this is never empty
+   * for a real device; it is still validated because the bulk action and the
+   * create form both hand over whatever the operator typed.
+   */
+  address: string;
+  /*
+   * The name of the NetworkDevice this monitor will be bound to, so the two
+   * read as a pair in a monitor list that also contains unrelated monitors.
+   */
+  deviceName: string;
+  seedIds: MonitorCriteriaSeedIds;
+  origin: PingMonitorOrigin;
+}
+
+/**
  * The monitor's name: "Ping <device name>", clamped to the column.
  *
  * Named after the DEVICE rather than the address because that is what an
@@ -157,24 +192,54 @@ function suppressIncidentCreation(step: MonitorStep): void {
 }
 
 /**
- * One ping-only discovered host -> the Ping monitor that will report its
- * health once bound to the device through `NetworkDevice.monitorId`.
- *
- * The caller creates this monitor FIRST, then creates the device carrying the
- * new monitor's id: `NetworkDeviceService.onCreateSuccess` stamps the
- * monitor's current status onto the device at bind time, so the device's
- * status pill resolves on the first render rather than waiting for the
- * monitor's next status CHANGE (which on a healthy network may never come —
- * that was OneUptime/oneuptime#3392).
+ * The sentence a provisioned monitor carries so its origin is legible later.
+ * Exported so the surfaces that build one can be tested against the exact
+ * wording rather than a paraphrase.
  */
-export function buildPingMonitorForDiscoveredHost(
-  data: BuildPingMonitorData,
+export function buildPingMonitorDescription(data: {
+  address: string;
+  origin: PingMonitorOrigin;
+}): string {
+  const reachability: string = `Reachability for ${data.address}`;
+
+  switch (data.origin) {
+    case PingMonitorOrigin.DiscoveryImport:
+      return `${reachability}, created when this device was imported from a network discovery scan. The device answered ping but not SNMP, so this monitor is what reports whether it is up.`;
+    case PingMonitorOrigin.DeviceCreateForm:
+      return `${reachability}, created with this network device. The device is monitor-backed — nothing polls it over SNMP — so this monitor is what reports whether it is up.`;
+    case PingMonitorOrigin.BulkAction:
+      return `${reachability}, created by the device list's "Create Ping Monitors" action. The device is monitor-backed — nothing polls it over SNMP — so this monitor is what reports whether it is up.`;
+    case PingMonitorOrigin.DevicePage:
+    default:
+      return `${reachability}, created from this network device's page. The device is monitor-backed — nothing polls it over SNMP — so this monitor is what reports whether it is up.`;
+  }
+}
+
+/**
+ * One device address -> the Ping monitor that will report the device's
+ * health once bound to it through `NetworkDevice.monitorId`.
+ *
+ * This is the shape every provisioning surface shares: discovery import, the
+ * device create form, the "Create Ping Monitor" button on a device's page and
+ * the bulk action on the device list. They differ only in where the address
+ * and the name come from and in the origin sentence; the monitor itself —
+ * type, interval, criteria, incident suppression — is identical, which is
+ * what lets an operator treat every provisioned monitor the same way.
+ *
+ * Order of operations is the caller's: discovery creates the monitor FIRST
+ * and then the device carrying its id (so the create-time stamp resolves the
+ * pill immediately), while the create form and the bulk action create or
+ * already have the device and bind afterwards — which re-stamps through
+ * `NetworkDeviceService.onUpdateSuccess`, so the pill resolves just the same.
+ */
+export function buildPingMonitorForAddress(
+  data: BuildPingMonitorForAddressData,
 ): Monitor {
-  const address: string = (data.host?.ipAddress || "").trim();
+  const address: string = (data.address || "").trim();
 
   if (!address) {
     throw new Error(
-      "A discovered host needs an address before a Ping monitor can be built for it.",
+      "A device needs an address before a Ping monitor can be built for it.",
     );
   }
 
@@ -182,7 +247,10 @@ export function buildPingMonitorForDiscoveredHost(
 
   monitor.projectId = new ObjectID(data.projectId.toString());
   monitor.name = buildPingMonitorName(data.deviceName);
-  monitor.description = `Reachability for ${address}, created when this device was imported from a network discovery scan. The device answered ping but not SNMP, so this monitor is what reports whether it is up.`;
+  monitor.description = buildPingMonitorDescription({
+    address: address,
+    origin: data.origin,
+  });
   monitor.monitorType = MonitorType.Ping;
   monitor.monitoringInterval = PING_MONITOR_INTERVAL;
 
@@ -212,4 +280,38 @@ export function buildPingMonitorForDiscoveredHost(
   monitor.monitorSteps = monitorSteps;
 
   return monitor;
+}
+
+/**
+ * One ping-only discovered host -> the Ping monitor that will report its
+ * health once bound to the device through `NetworkDevice.monitorId`.
+ *
+ * The caller creates this monitor FIRST, then creates the device carrying the
+ * new monitor's id: `NetworkDeviceService.onCreateSuccess` stamps the
+ * monitor's current status onto the device at bind time, so the device's
+ * status pill resolves on the first render rather than waiting for the
+ * monitor's next status CHANGE (which on a healthy network may never come —
+ * that was OneUptime/oneuptime#3392).
+ *
+ * A thin adapter over `buildPingMonitorForAddress`: the only thing a
+ * discovered host contributes is its address.
+ */
+export function buildPingMonitorForDiscoveredHost(
+  data: BuildPingMonitorData,
+): Monitor {
+  const address: string = (data.host?.ipAddress || "").trim();
+
+  if (!address) {
+    throw new Error(
+      "A discovered host needs an address before a Ping monitor can be built for it.",
+    );
+  }
+
+  return buildPingMonitorForAddress({
+    projectId: data.projectId,
+    address: address,
+    deviceName: data.deviceName,
+    seedIds: data.seedIds,
+    origin: PingMonitorOrigin.DiscoveryImport,
+  });
 }

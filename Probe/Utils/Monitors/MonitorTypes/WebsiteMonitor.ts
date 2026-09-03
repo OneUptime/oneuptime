@@ -12,7 +12,7 @@ import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
 import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
 import {
@@ -359,10 +359,16 @@ export default class WebsiteMonitor {
         return probeWebsiteResponse;
       }
 
+      /*
+       * The tenant's own URL refused to answer. That failure is the ANSWER
+       * this check exists to produce — it is returned right below as an
+       * offline response - so it must never open an Issue against OneUptime.
+       */
       logger.error(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
           probeWebsiteResponse,
         )}`,
+        EXTERNAL_FAULT,
       );
 
       return probeWebsiteResponse;

@@ -28,7 +28,7 @@ import StatusPageSubscriberNotificationTemplateService, {
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -476,7 +476,16 @@ RunCron(
               statusPageId: statuspage.id!,
               incidentId: incident.id!,
             }).catch((err: Error) => {
+              /*
+               * Delivery to a channel the SUBSCRIBER chose: their mailbox, their
+               * phone, their Slack/Teams webhook, their HTTP endpoint. A bounce, a
+               * 404 on a deleted webhook or an unreachable host is their side of the
+               * wire, not a OneUptime defect — and one status page can fan out to
+               * thousands of subscribers, so leaving these at ERROR buries real
+               * failures under a single tenant's dead webhook.
+               */
               logger.error(err, {
+                ...EXTERNAL_FAULT,
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
               });
@@ -534,6 +543,7 @@ RunCron(
                 },
               ).catch((err: Error) => {
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: incident.projectId?.toString(),
                   incidentId: incident.id?.toString(),
                 });
@@ -585,6 +595,7 @@ RunCron(
                 },
               ).catch((err: Error) => {
                 logger.error(err, {
+                  ...EXTERNAL_FAULT,
                   projectId: incident.projectId?.toString(),
                   incidentId: incident.id?.toString(),
                 });
@@ -624,6 +635,7 @@ RunCron(
               text: SlackUtil.convertMarkdownToSlackRichText(slackTitle),
             }).catch((err: Error) => {
               logger.error(err, {
+                ...EXTERNAL_FAULT,
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
               });
@@ -669,6 +681,7 @@ RunCron(
               text: teamsTitle,
             }).catch((err: Error) => {
               logger.error(err, {
+                ...EXTERNAL_FAULT,
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
               });
@@ -712,6 +725,7 @@ RunCron(
               },
             }).catch((err: Error) => {
               logger.error(err, {
+                ...EXTERNAL_FAULT,
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
               });

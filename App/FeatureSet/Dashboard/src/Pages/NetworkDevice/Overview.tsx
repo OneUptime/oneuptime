@@ -299,7 +299,7 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description="Unreachable devices first (the last SNMP poll could not reach them), then devices with down interfaces."
+          description="Unreachable devices first (the last SNMP poll, or the bound monitor, could not reach them), then devices with down interfaces."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
@@ -324,11 +324,13 @@ const NetworkOverview: FunctionComponent<
                       <div className="flex flex-shrink-0 items-center gap-2 text-sm">
                         {device.isDown ? (
                           <span className="font-medium text-red-600">
-                            {device.lastSeenAt
-                              ? `Last seen ${OneUptimeDate.fromNow(
-                                  OneUptimeDate.fromString(device.lastSeenAt),
-                                )}`
-                              : "Never answered"}
+                            {device.isMonitorBacked
+                              ? "Monitor reports offline"
+                              : device.lastSeenAt
+                                ? `Last seen ${OneUptimeDate.fromNow(
+                                    OneUptimeDate.fromString(device.lastSeenAt),
+                                  )}`
+                                : "Never answered"}
                           </span>
                         ) : (
                           <span className="font-medium text-amber-700">

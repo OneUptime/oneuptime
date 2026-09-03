@@ -92,6 +92,10 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
         typeof instance["userCount"] === "number"
           ? instance["userCount"]
           : null,
+      isCountedTowardsUsage:
+        typeof instance["isCountedTowardsUsage"] === "boolean"
+          ? instance["isCountedTowardsUsage"]
+          : undefined,
       lastReportedAt:
         typeof instance["lastReportedAt"] === "string"
           ? instance["lastReportedAt"]

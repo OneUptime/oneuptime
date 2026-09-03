@@ -16,7 +16,7 @@ import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import os from "os";
 import path from "path";
@@ -224,7 +224,13 @@ export default class SyntheticMonitor {
       );
 
       if (result.scriptError) {
-        logger.error(result.scriptError);
+        /*
+         * The worker sets scriptError in exactly one place: the tenant's
+         * Playwright script threw, timed out, or returned more data than the
+         * result cap allows. A worker or browser failure surfaces as a
+         * rejection in the catch below instead, which stays loud.
+         */
+        logger.error(result.scriptError, EXTERNAL_FAULT);
         scriptResult.scriptError = result.scriptError;
       }
     } catch (err: unknown) {

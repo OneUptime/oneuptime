@@ -27,7 +27,7 @@ import UserNotificationStatus from "Common/Types/UserNotification/UserNotificati
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
@@ -187,15 +187,17 @@ export class TransporterPool {
       !emailServer.tokenUrl ||
       !emailServer.scope
     ) {
+      // Fields the tenant left blank in SMTP settings, not a defect.
       throw new BadDataException(
         "OAuth configuration is incomplete. Please provide Client ID, Client Secret, Token URL, and Scope.",
-      );
+      ).asUserError();
     }
 
     if (!emailServer.username) {
+      // Field the tenant left blank in SMTP settings, not a defect.
       throw new BadDataException(
         "Username (email address) is required for OAuth authentication.",
-      );
+      ).asUserError();
     }
 
     /*
@@ -324,20 +326,27 @@ export default class MailService {
       (obj["SMTP_TRANSPORT_TYPE"] as MailTransportType) ||
       MailTransportType.SMTP;
 
+    /*
+     * Every branch below reports a field the operator did not fill in (or
+     * filled in wrongly) in Global/Project email settings. Telling them which
+     * one is the product working, so these are stamped external and never open
+     * an Issue.
+     */
     if (!obj["SMTP_EMAIL"]) {
-      logger.error("SMTP_EMAIL env var not found");
+      logger.error("SMTP_EMAIL env var not found", EXTERNAL_FAULT);
       return false;
     }
 
     if (!Email.isValid(obj["SMTP_EMAIL"].toString())) {
       logger.error(
         "SMTP_EMAIL env var " + obj["SMTP_EMAIL"] + " is not a valid email",
+        EXTERNAL_FAULT,
       );
       return false;
     }
 
     if (!obj["SMTP_FROM_NAME"]) {
-      logger.error("SMTP_FROM_NAME env var not found");
+      logger.error("SMTP_FROM_NAME env var not found", EXTERNAL_FAULT);
       return false;
     }
 
@@ -347,27 +356,33 @@ export default class MailService {
      */
     if (transportType === MailTransportType.SMTP) {
       if (!obj["SMTP_USERNAME"]) {
-        logger.error("SMTP_USERNAME env var not found");
+        logger.error("SMTP_USERNAME env var not found", EXTERNAL_FAULT);
         return false;
       }
 
       if (!obj["SMTP_PORT"]) {
-        logger.error("SMTP_PORT env var not found");
+        logger.error("SMTP_PORT env var not found", EXTERNAL_FAULT);
         return false;
       }
 
       if (!Port.isValid(obj["SMTP_PORT"].toString())) {
-        logger.error("SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid");
+        logger.error(
+          "SMTP_PORT " + obj["SMTP_HOST"] + " env var not valid",
+          EXTERNAL_FAULT,
+        );
         return false;
       }
 
       if (!obj["SMTP_HOST"]) {
-        logger.error("SMTP_HOST env var not found");
+        logger.error("SMTP_HOST env var not found", EXTERNAL_FAULT);
         return false;
       }
 
       if (!Hostname.isValid(obj["SMTP_HOST"].toString())) {
-        logger.error("SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid");
+        logger.error(
+          "SMTP_HOST env var " + obj["SMTP_HOST"] + "  not valid",
+          EXTERNAL_FAULT,
+        );
         return false;
       }
     }
@@ -384,27 +399,36 @@ export default class MailService {
 
     if (authType === SMTPAuthenticationType.UsernamePassword) {
       if (!obj["SMTP_PASSWORD"]) {
-        logger.error("SMTP_PASSWORD env var not found");
+        logger.error("SMTP_PASSWORD env var not found", EXTERNAL_FAULT);
         return false;
       }
     } else if (authType === SMTPAuthenticationType.OAuth) {
       if (!obj["SMTP_CLIENT_ID"]) {
-        logger.error("SMTP_CLIENT_ID env var not found for OAuth");
+        logger.error(
+          "SMTP_CLIENT_ID env var not found for OAuth",
+          EXTERNAL_FAULT,
+        );
         return false;
       }
 
       if (!obj["SMTP_CLIENT_SECRET"]) {
-        logger.error("SMTP_CLIENT_SECRET env var not found for OAuth");
+        logger.error(
+          "SMTP_CLIENT_SECRET env var not found for OAuth",
+          EXTERNAL_FAULT,
+        );
         return false;
       }
 
       if (!obj["SMTP_TOKEN_URL"]) {
-        logger.error("SMTP_TOKEN_URL env var not found for OAuth");
+        logger.error(
+          "SMTP_TOKEN_URL env var not found for OAuth",
+          EXTERNAL_FAULT,
+        );
         return false;
       }
 
       if (!obj["SMTP_SCOPE"]) {
-        logger.error("SMTP_SCOPE env var not found for OAuth");
+        logger.error("SMTP_SCOPE env var not found for OAuth", EXTERNAL_FAULT);
         return false;
       }
     }
@@ -414,7 +438,8 @@ export default class MailService {
 
   public static getEmailServer(obj: JSONObject): EmailServer {
     if (!this.isSMTPConfigValid(obj)) {
-      throw new BadDataException("SMTP Config is not valid");
+      // isSMTPConfigValid has already logged which field is wrong.
+      throw new BadDataException("SMTP Config is not valid").asUserError();
     }
 
     const transportType: MailTransportType =
@@ -461,7 +486,8 @@ export default class MailService {
     const emailServer: EmailServer | null = await this.getGlobalSmtpSettings();
 
     if (!emailServer) {
-      throw new BadDataException("Global SMTP Config not found");
+      // Email was never set up on this instance.
+      throw new BadDataException("Global SMTP Config not found").asUserError();
     }
 
     return emailServer.fromEmail;
@@ -598,8 +624,15 @@ export default class MailService {
           return; // Success, exit the function
         } catch (error) {
           lastError = error;
-          logger.error(`Email send attempt ${attempt} failed:`);
-          logger.error(error);
+          /*
+           * Everything nodemailer can raise here belongs to the tenant's mail
+           * server: connection refused, AUTH rejected, TLS mismatch, recipient
+           * bounced, greylisted. Stamped external because this loop runs three
+           * times, so an undeliverable email would otherwise file SIX
+           * ERROR records for one tenant misconfiguration.
+           */
+          logger.error(`Email send attempt ${attempt} failed:`, EXTERNAL_FAULT);
+          logger.error(error, EXTERNAL_FAULT);
 
           if (attempt === maxRetries) {
             break; // Don't wait after the last attempt
@@ -810,7 +843,7 @@ export default class MailService {
             });
           }
 
-          throw new BadDataException("Sendgrid Config not found");
+          throw new BadDataException("Sendgrid Config not found").asUserError();
         }
 
         if (!sendgridConfig.apiKey) {
@@ -827,7 +860,9 @@ export default class MailService {
             });
           }
 
-          throw new BadDataException("Sendgrid API key not configured");
+          throw new BadDataException(
+            "Sendgrid API key not configured",
+          ).asUserError();
         }
 
         if (!sendgridConfig.fromEmail) {
@@ -844,7 +879,9 @@ export default class MailService {
             });
           }
 
-          throw new BadDataException("Sendgrid From Email not configured");
+          throw new BadDataException(
+            "Sendgrid From Email not configured",
+          ).asUserError();
         }
 
         if (!sendgridConfig.fromName) {
@@ -861,7 +898,9 @@ export default class MailService {
             });
           }
 
-          throw new BadDataException("Sendgrid From Name not configured");
+          throw new BadDataException(
+            "Sendgrid From Name not configured",
+          ).asUserError();
         }
 
         SendgridMail.setApiKey(sendgridConfig.apiKey);
@@ -941,7 +980,15 @@ export default class MailService {
             });
           }
 
-          throw new BadDataException("Global SMTP Config not found");
+          /*
+           * The tenant picked SMTP as their email provider and then never
+           * filled the settings in. The EmailLog row above already tells them
+           * so; the outer catch re-logs this exception, and the authoritative
+           * tag is what keeps that log line out of the Issues list.
+           */
+          throw new BadDataException(
+            "Global SMTP Config not found",
+          ).asUserError();
         }
 
         options.emailServer = globalEmailServer;

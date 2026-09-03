@@ -64,6 +64,11 @@ import {
   resolveServiceNamesByIds,
 } from "../../Utils/MetricsCrossSignalPivot";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
@@ -660,6 +665,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const [showAddToDashboardModal, setShowAddToDashboardModal] =
     useState<boolean>(false);
 
+  const addToDashboardGate: PermissionGateResult = useMemo(() => {
+    return PermissionGate.check(new Dashboard(), ModelAction.Update);
+  }, []);
+
   return (
     <div>
       <div className="mb-5 space-y-2">
@@ -843,14 +852,34 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 text="Create monitor from this view"
                 onClick={navigateToCreateMonitor}
               />
-              <MoreMenuItem
-                key="add-to-dashboard"
-                icon={IconProp.ChartPie}
-                text="Add to dashboard"
-                onClick={() => {
-                  setShowAddToDashboardModal(true);
-                }}
-              />
+              {/*
+               * Appending this view to a dashboard is a write to that
+               * dashboard, so it is gated on the same permission the
+               * dashboard editor is - otherwise this is a second, unguarded
+               * door into the same refused update.
+               */}
+              {addToDashboardGate.isAllowed ||
+              addToDashboardGate.disabledReason ? (
+                <MoreMenuItem
+                  key="add-to-dashboard"
+                  icon={IconProp.ChartPie}
+                  text="Add to dashboard"
+                  isDisabled={!addToDashboardGate.isAllowed}
+                  tooltip={
+                    addToDashboardGate.isAllowed
+                      ? undefined
+                      : addToDashboardGate.disabledReason
+                  }
+                  onClick={() => {
+                    if (!addToDashboardGate.isAllowed) {
+                      return;
+                    }
+                    setShowAddToDashboardModal(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
             </MoreMenu>
           </div>
         </div>
