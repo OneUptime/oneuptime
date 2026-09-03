@@ -12,6 +12,10 @@ import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import {
+  BillingFailureNoticeKind,
+  shouldSendBillingFailureNotice,
+} from "../Utils/Billing/BillingFailureNoticeThrottle";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 
@@ -24,10 +28,23 @@ export class AIBillingService extends BaseService {
   public async rechargeBalance(
     projectId: ObjectID,
     amountInUSD: number,
+    options?: {
+      /*
+       * See NotificationService.rechargeBalance for the full reasoning. In
+       * short: true for the manual "Recharge" button, where this email is the
+       * only confirmation a person gets that their card was charged, and false
+       * for the automatic top-up, which fires from the balance check that runs
+       * on every AI call.
+       */
+      sendOwnerConfirmationEmail?: boolean | undefined;
+    },
   ): Promise<number> {
     if (!IsBillingEnabled) {
       throw new BadDataException("Billing is not enabled");
     }
+
+    const sendOwnerConfirmationEmail: boolean =
+      options?.sendOwnerConfirmationEmail !== false;
 
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -52,12 +69,22 @@ export class AIBillingService extends BaseService {
       return 0;
     }
 
+    /*
+     * The no-payment-method branch below throws, and that throw lands in this
+     * method's own catch. Without this the FIRST no-payment-method failure
+     * sends two "ACTION REQUIRED" emails about the same fact, one from each
+     * place.
+     */
+    let ownersAlreadyToldAboutThisFailure: boolean = false;
+
     try {
       if (
         !(await BillingService.hasPaymentMethods(
           project.paymentProviderCustomerId!,
         ))
       ) {
+        ownersAlreadyToldAboutThisFailure = true;
+
         if (!project.failedAiBalanceChargeNotificationSentToOwners) {
           await ProjectService.updateOneById({
             data: {
@@ -76,15 +103,6 @@ export class AIBillingService extends BaseService {
               project.name || ""
             } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
           );
-
-          /*
-           * Looks redundant next to the updateOneById above, and is not: the
-           * throw below lands in this method's own catch, which now reads this
-           * same in-memory object to decide whether to mail. Without this line
-           * the first no-payment-method failure would send two identical
-           * "ACTION REQUIRED" emails - one from here, one from the catch.
-           */
-          project.failedAiBalanceChargeNotificationSentToOwners = true;
         }
         throw new BadDataException(
           "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
@@ -124,13 +142,25 @@ export class AIBillingService extends BaseService {
       });
 
       /*
-       * No owner email on success, deliberately. AI auto-recharge fires from
-       * the same balance check that runs on every AI call, so a busy project
-       * used to mail every owner once per recharge - and a successful recharge
-       * is not news anyway. The invoice still goes out through
-       * generateInvoiceAndChargeCustomer above, and the Slack notification
-       * below still fires, so nothing that a human acts on is lost.
+       * The confirmation is suppressed for AUTO-recharge only. It used to fire
+       * unconditionally, and AI auto-recharge runs from the balance check on
+       * every AI call, so a busy project mailed every owner once per recharge.
+       * Somebody who deliberately clicked "Recharge" still gets told, because
+       * Project.sendInvoicesByEmail defaults to false and nothing else
+       * reliably confirms the charge.
        */
+      if (sendOwnerConfirmationEmail) {
+        await ProjectService.sendEmailToProjectOwners(
+          project.id!,
+          "AI Balance Recharge Successful for project - " +
+            (project.name || ""),
+          `We have successfully recharged your AI balance for project - ${
+            project.name || ""
+          } by ${amountInUSD} USD. Your current balance is ${
+            updatedAmount / 100
+          } USD.`,
+        );
+      }
 
       // Send Slack notification for balance refill
       this.sendBalanceRefillSlackNotification({
@@ -148,29 +178,40 @@ export class AIBillingService extends BaseService {
       return updatedAmount;
     } catch (err) {
       /*
-       * The flag was written here but never read, so a project with a declined
-       * card mailed every owner once per recharge attempt. The select at the
-       * top of this method already loads it, so reading the in-memory copy
-       * costs nothing; the flag is reset on the next successful recharge.
+       * This block used to write failedAiBalanceChargeNotificationSentToOwners
+       * and then send WITHOUT ever reading it, so a project with a declined
+       * card mailed every owner once per recharge attempt.
+       *
+       * A 24h window rather than that boolean, for the same reason as the
+       * SMS/call path: the boolean is only cleared by a SUCCESSFUL recharge,
+       * so latching on it would let "no card -> add a card -> the card is
+       * declined" end in permanent silence. See BillingFailureNoticeThrottle.
        */
-      if (!project.failedAiBalanceChargeNotificationSentToOwners) {
-        await ProjectService.updateOneById({
-          data: {
-            failedAiBalanceChargeNotificationSentToOwners: true,
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
+      if (!ownersAlreadyToldAboutThisFailure) {
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
         });
-        await ProjectService.sendEmailToProjectOwners(
-          project.id!,
-          "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
-            (project.name || ""),
-          `We have tried to recharge your AI balance for project - ${
-            project.name || ""
-          } and failed. Please make sure your payment method is up to date and has sufficient balance. You can add new payment methods in Project Settings.`,
-        );
+
+        if (shouldTellOwners) {
+          await ProjectService.updateOneById({
+            data: {
+              failedAiBalanceChargeNotificationSentToOwners: true,
+            },
+            id: project.id!,
+            props: {
+              isRoot: true,
+            },
+          });
+          await ProjectService.sendEmailToProjectOwners(
+            project.id!,
+            "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
+              (project.name || ""),
+            `We have tried to recharge your AI balance for project - ${
+              project.name || ""
+            } and failed. Please make sure your payment method is up to date and has sufficient balance. You can add new payment methods in Project Settings.`,
+          );
+        }
       }
       logger.error(err);
       throw err;
@@ -232,6 +273,13 @@ export class AIBillingService extends BaseService {
           const updatedAmount: number = await this.rechargeBalance(
             projectId,
             autoAiRechargeByBalanceInUSD,
+            {
+              /*
+               * This runs from the balance check on every AI call, so a
+               * success email here is one message to every owner per recharge.
+               */
+              sendOwnerConfirmationEmail: false,
+            },
           );
           project.aiCurrentBalanceInUSDCents = updatedAmount;
         }

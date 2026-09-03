@@ -31,19 +31,8 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorService from "Common/Server/Services/MonitorService";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
-import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 
 const router: ExpressRouter = Express.getRouter();
-
-/*
- * Namespace for the 24h "we already told you this probe is offline" claim.
- *
- * Probe/Services/Register.ts calls reportIfOffline() once at EVERY probe
- * process start on any host where ICMP is blocked - which is most cloud VMs -
- * so on a self-hosted install every deploy, restart or replica scale-up used
- * to mail every project owner once per probe, with no dedupe of any kind.
- */
-const PROBE_OFFLINE_THROTTLE_NAMESPACE: string = "probe-offline-notification";
 
 router.post(
   "/alive",
@@ -238,87 +227,30 @@ router.post(
          * Skip sending email if billing is enabled
          */
         if (!IsBillingEnabled) {
-          /*
-           * A project probe gets its own window, keyed on its probe id, so a
-           * probe that restart-loops cannot silence a different probe's first
-           * notice. A global probe has no projectId and every global probe
-           * notifies the SAME single instance-wide adminNotificationEmail, so
-           * they deliberately share one window keyed on the literal "global" -
-           * per-probe windows there would still land one mail per replica in
-           * one admin's inbox on every restart, which is the complaint.
-           */
-          let throttleKey: string = "global";
-
-          if (!isGlobalProbe && probe.id) {
-            throttleKey = probe.id.toString();
-          }
-
-          /*
-           * Take the 24h window atomically and across every replica. SET NX
-           * rather than GET-then-SET because several probe replicas starting
-           * together is the normal case here, not the edge one: a
-           * check-then-act would let all of them observe "not notified yet"
-           * and all of them mail every owner, which is the exact duplicate
-           * this exists to prevent.
-           */
-          let shouldSend: boolean = true;
-
-          try {
-            shouldSend = await GlobalCache.setStringIfNotExists(
-              PROBE_OFFLINE_THROTTLE_NAMESPACE,
-              throttleKey,
-              ObjectID.generate().toString(),
+          for (const email of emailsToNotify) {
+            MailService.sendMail(
               {
-                expiresInSeconds: OneUptimeDate.getSecondsInDays(1),
+                toEmail: email,
+                templateType: EmailTemplateType.ProbeOffline,
+                subject: "ACTION REQUIRED: Probe Offline Notification",
+                vars: {
+                  probeName: probe.name || "",
+                  probeDescription: probe.description || "",
+                  projectId: probe.projectId?.toString() || "",
+                  probeId: probe.id?.toString() || "",
+                  hostname: statusReport["hostname"]?.toString() || "",
+                  emailReason: emailReason,
+                  issue: issue,
+                },
               },
-            );
-          } catch (err) {
-            /*
-             * setStringIfNotExists throws when Redis is unreachable. shouldSend
-             * is deliberately left TRUE - this FAILS OPEN. A cache outage then
-             * degrades the throttle to exactly the behaviour that shipped
-             * before it, which is the correct direction: failing closed would
-             * silently swallow a genuine "your probe cannot reach the
-             * internet" notice for as long as Redis is down, and that notice is
-             * the only warning an operator gets that their monitoring is blind.
-             */
-            logger.warn(
-              "Probe offline notification: the shared cache is unavailable, so the 24h throttle cannot be claimed. Sending the notification anyway.",
-            );
-            logger.warn(err);
-          }
-
-          if (shouldSend) {
-            for (const email of emailsToNotify) {
-              MailService.sendMail(
-                {
-                  toEmail: email,
-                  templateType: EmailTemplateType.ProbeOffline,
-                  subject: "ACTION REQUIRED: Probe Offline Notification",
-                  vars: {
-                    probeName: probe.name || "",
-                    probeDescription: probe.description || "",
-                    projectId: probe.projectId?.toString() || "",
-                    probeId: probe.id?.toString() || "",
-                    hostname: statusReport["hostname"]?.toString() || "",
-                    emailReason: emailReason,
-                    issue: issue,
-                  },
-                },
-                {
-                  projectId: probe.projectId,
-                  // Try to attribute email to a known owner
-                  userId: emailToUserIdMap.get(email.toString()) || undefined,
-                },
-              ).catch((err: Error) => {
-                logger.error(err, getLogAttributesFromRequest(req as any));
-              });
-            }
-          } else {
-            logger.debug(
-              "Probe offline notification already sent for this probe within the last 24 hours, skipping.",
-              getLogAttributesFromRequest(req as any),
-            );
+              {
+                projectId: probe.projectId,
+                // Try to attribute email to a known owner
+                userId: emailToUserIdMap.get(email.toString()) || undefined,
+              },
+            ).catch((err: Error) => {
+              logger.error(err, getLogAttributesFromRequest(req as any));
+            });
           }
         } else {
           logger.debug(

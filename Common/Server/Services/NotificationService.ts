@@ -12,6 +12,10 @@ import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import {
+  BillingFailureNoticeKind,
+  shouldSendBillingFailureNotice,
+} from "../Utils/Billing/BillingFailureNoticeThrottle";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 
@@ -24,7 +28,27 @@ export class NotificationService extends BaseService {
   public async rechargeBalance(
     projectId: ObjectID,
     amountInUSD: number,
+    options?: {
+      /*
+       * Whether a successful recharge is worth telling the owners about.
+       *
+       * True for the manual "Recharge" button in Project Settings, where the
+       * email is the only confirmation a person gets that their card was
+       * charged: Project.sendInvoicesByEmail defaults to false, so the Stripe
+       * invoice is filed rather than sent, and the Slack notification is an
+       * operator webhook that most installs never configure.
+       *
+       * False for rechargeIfBalanceIsLow, which runs inline on every SMS,
+       * call, WhatsApp and Telegram attempt - there, "we topped your balance
+       * up" is not news, and during a paging storm it is one email to every
+       * owner per recharge.
+       */
+      sendOwnerConfirmationEmail?: boolean | undefined;
+    },
   ): Promise<number> {
+    const sendOwnerConfirmationEmail: boolean =
+      options?.sendOwnerConfirmationEmail !== false;
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
@@ -48,12 +72,23 @@ export class NotificationService extends BaseService {
       return 0;
     }
 
+    /*
+     * The no-payment-method branch below throws, and that throw lands in this
+     * method's own catch. Without this the FIRST no-payment-method failure
+     * sends two "ACTION REQUIRED" emails about the same fact, one from each
+     * place. This is a local flag rather than a mutation of `project` so it is
+     * obvious it exists only to coordinate those two blocks.
+     */
+    let ownersAlreadyToldAboutThisFailure: boolean = false;
+
     try {
       if (
         !(await BillingService.hasPaymentMethods(
           project.paymentProviderCustomerId!,
         ))
       ) {
+        ownersAlreadyToldAboutThisFailure = true;
+
         if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
           await ProjectService.updateOneById({
             data: {
@@ -72,15 +107,6 @@ export class NotificationService extends BaseService {
               project.name || ""
             } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
           );
-
-          /*
-           * Looks redundant next to the updateOneById above, and is not: the
-           * throw below lands in this method's own catch, which now reads this
-           * same in-memory object to decide whether to mail. Without this line
-           * the first no-payment-method failure would send two identical
-           * "ACTION REQUIRED" emails - one from here, one from the catch.
-           */
-          project.failedCallAndSMSBalanceChargeNotificationSentToOwners = true;
         }
         throw new BadDataException(
           "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
@@ -120,14 +146,26 @@ export class NotificationService extends BaseService {
       });
 
       /*
-       * No owner email on success, deliberately. rechargeIfBalanceIsLow runs
-       * inline on every SMS, call, WhatsApp and Telegram notification attempt,
-       * so a project that auto-recharges during a paging storm used to mail
-       * every owner once per recharge - and a successful recharge is not news
-       * anyway. The invoice still goes out through
-       * generateInvoiceAndChargeCustomer above, and the Slack notification
-       * below still fires, so nothing that a human acts on is lost.
+       * The confirmation is suppressed for AUTO-recharge only. This used to
+       * fire unconditionally, and because rechargeIfBalanceIsLow runs inline
+       * on every SMS, call, WhatsApp and Telegram attempt, a project that
+       * auto-recharges during a paging storm mailed every owner once per
+       * recharge. Somebody who deliberately clicked "Recharge" still gets
+       * told: nothing else reliably tells them, because
+       * Project.sendInvoicesByEmail defaults to false.
        */
+      if (sendOwnerConfirmationEmail) {
+        await ProjectService.sendEmailToProjectOwners(
+          project.id!,
+          "SMS and Call Recharge Successful for project - " +
+            (project.name || ""),
+          `We have successfully recharged your SMS and Call balance for project - ${
+            project.name || ""
+          } by ${amountInUSD} USD. Your current balance is ${
+            updatedAmount / 100
+          } USD.`,
+        );
+      }
 
       // Send Slack notification for balance refill
       this.sendBalanceRefillSlackNotification({
@@ -146,29 +184,44 @@ export class NotificationService extends BaseService {
       return updatedAmount;
     } catch (err) {
       /*
-       * The flag was written here but never read, so a project with a declined
-       * card mailed every owner once per paging attempt. The select at the top
-       * of this method already loads it, so reading the in-memory copy costs
-       * nothing; the flag is reset on the next successful recharge.
+       * This block used to write failedCallAndSMSBalanceChargeNotificationSent
+       * ToOwners and then send WITHOUT ever reading it, so a project with a
+       * declined card mailed every owner once per paging attempt - inline on
+       * every SMS and call, during the outage the pages were about.
+       *
+       * The guard is a 24h window rather than that boolean deliberately. The
+       * boolean is only cleared by a successful recharge, so latching on it
+       * would mean: no card -> mail once and latch -> owner adds a card -> the
+       * card is declined -> the recharge can never succeed -> the latch never
+       * clears -> nobody is ever told the new card failed, and paging quietly
+       * stops. A window collapses the storm to one email a day and still
+       * reports a new failure within a day. See BillingFailureNoticeThrottle.
        */
-      if (!project.failedCallAndSMSBalanceChargeNotificationSentToOwners) {
-        await ProjectService.updateOneById({
-          data: {
-            failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
+      if (!ownersAlreadyToldAboutThisFailure) {
+        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+          projectId: project.id!,
+          kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
         });
-        await ProjectService.sendEmailToProjectOwners(
-          project.id!,
-          "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-            (project.name || ""),
-          `We have tried recharged your SMS and Call balance for project - ${
-            project.name || ""
-          } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
-        );
+
+        if (shouldTellOwners) {
+          await ProjectService.updateOneById({
+            data: {
+              failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
+            },
+            id: project.id!,
+            props: {
+              isRoot: true,
+            },
+          });
+          await ProjectService.sendEmailToProjectOwners(
+            project.id!,
+            "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+              (project.name || ""),
+            `We have tried recharged your SMS and Call balance for project - ${
+              project.name || ""
+            } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
+          );
+        }
       }
       logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
       throw err;
@@ -230,6 +283,15 @@ export class NotificationService extends BaseService {
           const updatedAmount: number = await this.rechargeBalance(
             projectId,
             autoRechargeSmsOrCallByBalanceInUSD,
+            {
+              /*
+               * This method is called inline from SmsService, CallService,
+               * WhatsAppService and TelegramService on EVERY notification
+               * attempt, so a success email here is one message to every owner
+               * per recharge, in the middle of the storm that caused it.
+               */
+              sendOwnerConfirmationEmail: false,
+            },
           );
           project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
         }
