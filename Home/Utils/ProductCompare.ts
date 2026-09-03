@@ -65,6 +65,10 @@ export interface Product {
   migrationBenefits?: Array<string>;
   useCases?: Array<UseCaseComparison>;
   lastUpdated?: string;
+  canonicalGitHubPath?: string;
+  prerequisites?: Array<string>;
+  limitations?: Array<string>;
+  evidenceSources?: Array<{ label: string; url: string }>;
 }
 
 // Export products dictionary so we can build dynamic sitemap and other features.
@@ -1536,143 +1540,90 @@ const products: Dictionary<Product> = {
     price: "",
     oneuptimePrice: "",
     tagline:
-      "One flat-priced unified platform vs metered per-host, per-seat SKUs",
+      "A managed observability SaaS compared with an Apache-2.0 platform you can run in the cloud or self-host",
     competitorFocus:
-      "Datadog is the market leader in cloud monitoring, APM, and logs, but its status pages, on-call, and incident management are separate seat-based products layered on top of per-host and per-GB metering.",
+      "Datadog runs the regional observability control plane as a managed service. Customers run Agents and integrations that send telemetry to the selected Datadog site.",
     oneuptimeFocus:
-      "OneUptime unifies monitoring, logs, metrics, traces, status pages, on-call, and incident management in one platform at a flat, predictable price.",
+      "OneUptime offers a managed cloud service and a self-hosted platform for teams that want control of the observability and incident-response control plane.",
     annualSavings: "",
-    lastUpdated: "2026",
+    lastUpdated: "August 4, 2026",
+    canonicalGitHubPath:
+      "https://github.com/OneUptime/oneuptime/blob/master/Home/Utils/ProductCompare.ts",
     productDescription:
-      "Datadog is the industry leader in cloud monitoring, APM, and log management, with a deep observability suite and 800+ integrations. In 2025 it added native On-Call, Incident Management, and Status Pages, but each is a separate seat-based SKU stacked on top of per-host and per-GB metering, so a full deployment means juggling many priced modules.",
+      "Datadog is a broad, mature managed observability SaaS. Its open-source Agent collects telemetry, while Datadog operates the regional application and analytics control plane. Datadog documents 1,000+ integrations, specialist products across observability and security, and government-hosted options.",
     oneUptimeDescription:
-      "OneUptime delivers monitoring, logs, metrics, traces, status pages, on-call, and incident management in one open-source platform with flat pricing. Active monitors are a flat $1/month each, telemetry ingestion is about $0.10/GB, and every reliability feature is included instead of sold as a separate seat.",
+      "OneUptime is an Apache-2.0 platform for monitoring, OpenTelemetry data, on-call, incidents, workflows, and status pages. Use OneUptime Cloud or operate the full control plane with Docker Compose or Kubernetes/Helm.",
     description:
-      "Datadog is the industry leader in cloud monitoring, APM, and log management, offering deep observability with 800+ integrations. It now bundles native On-Call, Incident Management, and Status Pages, but each is metered separately - per host, per GB, and per seat - so bills grow with usage and headcount and are hard to forecast. Standing up a complete reliability stack still means stitching together and paying for several priced modules.",
+      "Choose based on operating model and required depth, not a feature-count shortcut. Datadog is a strong fit when a team wants a mature managed SaaS, broad specialist products, and a large integration ecosystem. OneUptime is a strong fit when a team wants an integrated reliability workflow, source access, and the option to self-host the control plane.",
     descriptionLine2:
-      "OneUptime gives you monitoring, status pages, on-call, and incident management in one open-source platform at a flat, predictable price - no per-host, per-seat, or surprise per-GB bills.",
+      "Pricing is not directly comparable without hosts, telemetry volume, retention, responder seats, and the products required. Validate a representative workload before deciding.",
+    prerequisites: [
+      "Inventory hosts, containers, telemetry volume, retention, synthetic checks, responder seats, and required integrations.",
+      "Decide whether a vendor-operated regional service or a customer-operated control plane meets your residency and operations requirements.",
+      "Test a representative OpenTelemetry workload and incident workflow before migration.",
+    ],
+    limitations: [
+      "This is a documented capability and pricing comparison, not a benchmark or claim of feature parity.",
+      "Datadog pricing is modular; public starting prices do not include every meter, discount, or contract term.",
+      "Self-hosting OneUptime makes your team responsible for sizing, availability, storage, backups, and upgrades.",
+      "Datadog may be the better fit for teams that need its specialist products, government-hosted sites, or managed-service maturity.",
+    ],
+    evidenceSources: [
+      { label: "OneUptime repository and Apache-2.0 license", url: "https://github.com/OneUptime/oneuptime" },
+      { label: "OneUptime self-hosted architecture", url: "https://oneuptime.com/docs/self-hosted/architecture" },
+      { label: "OneUptime pricing", url: "https://oneuptime.com/pricing" },
+      { label: "Datadog sites and regional model", url: "https://docs.datadoghq.com/getting_started/site/" },
+      { label: "Datadog Agent", url: "https://docs.datadoghq.com/agent/" },
+      { label: "Datadog Agent source and licenses", url: "https://github.com/DataDog/datadog-agent" },
+      { label: "Datadog Workflow Automation", url: "https://docs.datadoghq.com/actions/workflows/" },
+      { label: "Datadog public pricing", url: "https://www.datadoghq.com/pricing/" },
+    ],
     migrationBenefits: [
-      "Flat $1 per active monitor - no per-host, per-seat, or per-GB surprises",
-      "Status pages with unlimited subscribers included, not a seat-based add-on",
-      "Built-in on-call rotations and escalations at no extra per-seat charge",
-      "Full incident management with postmortems and action items included",
-      "Self-host for free under Apache 2.0 for complete data control",
-      "OpenTelemetry-native ingestion for a drop-in migration path",
+      "Start with an inventory of Datadog products, monitors, integrations, telemetry, retention, and responder workflows.",
+      "Use OpenTelemetry where possible so collection is not tied to either platform.",
+      "Run both systems in parallel and validate alert routing, deduplication, recovery, and status communication before cutover.",
+      "Use Datadog webhooks to feed OneUptime workflows during a staged coexistence period.",
+      "Keep Datadog where a required specialist capability has no validated replacement.",
+      "Document rollback criteria and keep the old path available until the new path is proven.",
     ],
     competitorPricingTiers: [
+      {
+        name: "Infrastructure Free",
+        price: "$0",
+        period: "public plan",
+        features: ["Up to 5 hosts", "One-day metric retention"],
+        limitations: ["Limited host count and retention"],
+      },
       {
         name: "Infrastructure Pro",
         price: "$15",
         period: "/host/month (annual)",
-        features: [
-          "800+ integrations",
-          "15-month metric retention",
-          "Alerting and dashboards",
-          "Host maps and inventory",
-        ],
-        limitations: [
-          "Per-host pricing scales fast",
-          "Billed at 99th-percentile host count",
-          "No APM, logs, or status pages",
-          "Enterprise tier runs $23-27/host",
-        ],
+        features: ["1,000+ integrations", "Infrastructure monitoring"],
+        limitations: ["$18/host on demand", "Other products and usage meters are separate"],
       },
       {
-        name: "APM Pro",
-        price: "$35",
-        period: "/host/month (annual, additional)",
-        features: [
-          "Distributed tracing",
-          "Error tracking",
-          "Service maps",
-          "150 GB spans per host included",
-        ],
-        limitations: [
-          "Stacks on top of Infrastructure",
-          "Span overages at $1.70/M events",
-          "Cannot be bought standalone",
-          "On-demand runs $42/host",
-        ],
+        name: "APM",
+        price: "$31",
+        period: "/host/month with Infrastructure (annual)",
+        features: ["Distributed tracing", "Service performance"],
+        limitations: ["Standalone and on-demand prices differ", "Telemetry and retention assumptions matter"],
       },
       {
         name: "Log Management",
-        price: "$0.10/GB + $1.70/M",
-        period: "ingested + indexed",
-        features: [
-          "Log collection and search",
-          "Log patterns and analytics",
-          "Flexible retention tiers",
-        ],
-        limitations: [
-          "Costs scale with volume",
-          "Indexing up to $3.75/M on-demand",
-          "Bills often 2-3x initial estimates",
-        ],
+        price: "$0.10/GB",
+        period: "ingested, plus indexing",
+        features: ["Log ingestion", "Search and analytics"],
+        limitations: ["15-day standard indexing starts at $1.70 per million events/month annually"],
       },
       {
-        name: "Incident Response",
-        price: "$40",
-        period: "/user/month (annual)",
-        features: [
-          "On-Call schedules and escalations",
-          "Incident management and postmortems",
-          "Datadog Status Pages",
-          "Included SMS and phone telephony",
-        ],
-        limitations: [
-          "Per-seat, on top of observability",
-          "On-Call alone is $20/seat, Incident $30",
-          "Requires paid Datadog observability",
-          "Seat sprawl as teams grow",
-        ],
-      },
-      {
-        name: "Enterprise",
-        price: "Custom",
-        period: "contact sales",
-        features: [
-          "Volume discounts",
-          "Custom contracts",
-          "Dedicated support",
-          "Advanced security and compliance",
-        ],
-        limitations: [
-          "Requires sales engagement",
-          "Long annual commitments",
-          "Still metered and multi-SKU",
-        ],
+        name: "Incident Management",
+        price: "$30",
+        period: "/seat/month standalone (annual)",
+        features: ["Incident coordination", "Response workflows"],
+        limitations: ["Incident Response bundle starts at $40/seat/month annually"],
       },
     ],
-    useCases: [
-      {
-        scenario:
-          "Startup with 10 servers needing monitoring, APM, and on-call",
-        competitorSolution:
-          "Datadog Infrastructure + APM + logs + 5 Incident Response seats",
-        competitorCost: "$150 + $350 + ~$150 logs + $200 = ~$850/month",
-        oneuptimeSolution: "OneUptime with everything included",
-        oneuptimeCost: "$0/month (Free tier) or $99/month (Growth)",
-      },
-      {
-        scenario:
-          "Growing company with 50 servers, logs, on-call, and a status page",
-        competitorSolution: "Datadog full stack + 15 Incident Response seats",
-        competitorCost:
-          "$750 infra + $1,750 APM + $500-1,500 logs + $600 seats = ~$3,600-4,600/month",
-        oneuptimeSolution:
-          "OneUptime with monitoring, status, on-call, and incidents included",
-        oneuptimeCost: "$0-299/month",
-      },
-      {
-        scenario: "Enterprise with containers and microservices",
-        competitorSolution:
-          "Datadog Enterprise + on-call and incident seats across teams",
-        competitorCost: "$10,000-50,000+/month",
-        oneuptimeSolution: "OneUptime Enterprise or self-hosted",
-        oneuptimeCost:
-          "Contact for pricing (fraction of Datadog) or free self-hosted",
-      },
-    ],
+    useCases: [],
     keyDifferences: [
       {
         title: "Predictable Flat Pricing",
