@@ -57,6 +57,36 @@
     "today": "Heute",
     "notAvailable": "Nicht verfügbar"
   },
+  "uptimeHistory": {
+    "graphLabel": "Verfügbarkeitsverlauf der letzten {{total}} Tage",
+    "dayLabel": "{{date}}: {{uptime}}% Verfügbarkeit",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}% Verfügbarkeit, {{total}} Vorfälle",
+    "dayLabelNoData": "{{date}}: keine Daten",
+    "dayLabelNoDataWithIncidents": "{{date}}: keine Daten, {{total}} Vorfälle",
+    "uptime": "Verfügbarkeit",
+    "noMonitoringData": "Keine Überwachungsdaten für diesen Tag",
+    "incidents": "Vorfälle",
+    "noIncidents": "Keine Vorfälle",
+    "noIncidentsDescription": "An diesem Tag wurden keine Vorfälle gemeldet.",
+    "declared": "Gemeldet",
+    "oneIncidentOnThisDay": "1 Vorfall an diesem Tag gemeldet",
+    "incidentsOnThisDay": "{{total}} Vorfälle an diesem Tag gemeldet"
+  },
+  "liveStatus": {
+    "updated": "Aktualisiert {{time}}",
+    "refresh": "Aktualisieren",
+    "refreshing": "Wird aktualisiert",
+    "refreshFailed": "Aktualisierung fehlgeschlagen. Es wird der zuletzt bekannte Status angezeigt."
+  },
+  "search": {
+    "label": "Ressourcen suchen",
+    "placeholder": "Ressourcen suchen",
+    "clear": "Suche löschen",
+    "resultCount": "{{matched}} von {{total}} Ressourcen",
+    "noMatchesInGroup": "Hier entsprechen keine Ressourcen Ihrer Suche.",
+    "noResultsTitle": "Keine passenden Ressourcen",
+    "noResultsDescription": "Nichts auf dieser Seite entspricht „{{query}}“. Versuchen Sie eine kürzere Suche."
+  },
   "incidents": {
     "title": "Vorfälle",
     "singular": "Vorfall",

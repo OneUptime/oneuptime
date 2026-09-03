@@ -41,6 +41,28 @@ describe("Status Page authentication handoff", () => {
       "utf8",
     )
     .replace(/\s+/g, " ");
+  /*
+   * The head of the page is now two files: index.ejs includes this partial as
+   * its very first thing in <head>. The referrer policy and the token scrub
+   * live in the partial, so the composition is what has to be asserted - not
+   * index.ejs on its own, which stopped containing either of them.
+   */
+  const sensitiveUrlTokenPartial: string = fs
+    .readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Common",
+        "Server",
+        "Views",
+        "Partials",
+        "SensitiveUrlToken.ejs",
+      ),
+      "utf8",
+    )
+    .replace(/\s+/g, " ");
   const authenticationApi: string = readCode(
     "Identity",
     "API",
@@ -88,6 +110,9 @@ describe("Status Page authentication handoff", () => {
     );
 
     expect(statusPageIndex).toContain(
+      "include('../../../../Common/Server/Views/Partials/SensitiveUrlToken')",
+    );
+    expect(sensitiveUrlTokenPartial).toContain(
       '<meta name="referrer" content="no-referrer" />',
     );
     expect(capture).toBeGreaterThan(-1);
