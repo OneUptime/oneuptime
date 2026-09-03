@@ -61,14 +61,25 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
   }
 }
 
+/*
+ * Per-area guidance for list and explorer pages. This text is the only
+ * capability claim in the request that is scoped to the page the user is on,
+ * so the model weighs it against the tool schemas — which means it must never
+ * describe a tool as NARROWER than it is. It previously summarised
+ * query_incidents as "recent incidents, or one by incidentId", and the model
+ * paraphrased that back as "I have no tool to list active incidents, give me
+ * an incidentId" on the very page whose own suggested prompt card asks
+ * "which incidents are currently active or unresolved?". Every affordance an
+ * area page's suggested prompts depend on has to be named here.
+ */
 function buildAreaContextGuidance(type: AIChatPageContextType): string {
   switch (type) {
     case AIChatPageContextType.IncidentsList:
-      return `the incidents list. Questions about "these incidents" or incident activity are answered with query_incidents (recent incidents, or one by incidentId) and search_incidents (free-text search over past incidents).`;
+      return `the incidents list. Questions about "these incidents" or incident activity are answered with query_incidents: pass state="active" to list every incident that is unresolved RIGHT NOW (this drops the time window, so incidents opened weeks ago are still returned), leave state unset for recent activity in a window, or pass incidentId for one incident's full details. search_incidents does free-text search over past incidents.`;
     case AIChatPageContextType.AlertsList:
-      return `the alerts list. Questions about alert activity are answered with query_alerts.`;
+      return `the alerts list. Questions about alert activity are answered with query_alerts: pass state="active" to list every alert that is unresolved RIGHT NOW regardless of age, leave state unset for recent activity in a window, or pass alertId for one alert's full details.`;
     case AIChatPageContextType.MonitorsList:
-      return `the monitors list. Questions about monitors and their status are answered with query_monitors.`;
+      return `the monitors list. Questions about monitors and their status are answered with query_monitors: pass problemsOnly=true to list the monitors that are NOT operational right now, or monitorId for one monitor's details and its recent status timeline.`;
     case AIChatPageContextType.ScheduledMaintenanceList:
       return `the scheduled maintenance list. Questions about maintenance windows are answered with query_scheduled_maintenance (past, ongoing and upcoming events; one event by scheduledMaintenanceId). recent_changes also merges maintenance into a chronological feed alongside other changes.`;
     case AIChatPageContextType.LogsExplorer:

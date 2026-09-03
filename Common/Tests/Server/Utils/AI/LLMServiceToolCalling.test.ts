@@ -248,6 +248,241 @@ describe("LLMService tool calling — Ollama", () => {
     expect(requestBody["tools"]).toHaveLength(1);
     expect(requestBody["stream"]).toBe(false);
   });
+
+  /*
+   * num_ctx is the reason additionalParams had to reach the Ollama branch at
+   * all. Ollama silently truncates a request that exceeds the server's
+   * default context (2048/4096 on common builds) — no error, no warning — and
+   * the chat agent's tool belt alone is several thousand tokens. The
+   * definitions fall off the end of the prompt and the model then answers
+   * that it has no tool for the question, which is exactly the bug users
+   * reported. Raising num_ctx is the operator's only lever, and before this
+   * change the Ollama branch ignored additionalParams entirely.
+   */
+  test("merges additionalParams.options into the Ollama options block, keeping the defaults", async () => {
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+      },
+      messages: [{ role: "user", content: "which incidents are active?" }],
+      maxTokens: 512,
+      additionalParams: { options: { num_ctx: 32768 } },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    const options: JSONObject = requestBody["options"] as JSONObject;
+
+    expect(options["num_ctx"]).toBe(32768);
+
+    /*
+     * Merged INTO the defaults, not over them: an operator raising num_ctx
+     * must not silently lose the sampling temperature or the output cap the
+     * caller asked for.
+     */
+    expect(options["temperature"]).toBe(0.7);
+    expect(options["num_predict"]).toBe(512);
+  });
+
+  test("applies a non-options additionalParams key at the top level of the body", async () => {
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+      },
+      messages: [{ role: "user", content: "hi" }],
+      // keep_alive is a top-level /api/chat field, not a generation option.
+      additionalParams: { keep_alive: "30m" },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(requestBody["keep_alive"]).toBe("30m");
+    // A top-level key must not leak into the generation options.
+    expect(
+      (requestBody["options"] as JSONObject)["keep_alive"],
+    ).toBeUndefined();
+  });
+
+  /*
+   * additionalParams is operator-supplied tuning stored on the provider row,
+   * so it must never be able to replace the conversation, silence the tool
+   * belt, swap the model, or flip the request to streaming (which this branch
+   * cannot parse). Fail closed on the structural fields regardless of whether
+   * the caller protected its request.
+   */
+  test("additionalParams cannot overwrite model, messages, tools or stream", async () => {
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+        modelName: "llama3.1",
+      },
+      messages: [{ role: "user", content: "which incidents are active?" }],
+      tools: [
+        {
+          name: "query_incidents",
+          description: "query incidents",
+          inputSchema: { type: "object", properties: {} },
+        },
+      ],
+      additionalParams: {
+        model: "attacker-model",
+        messages: [],
+        tools: [],
+        stream: true,
+      },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(requestBody["model"]).toBe("llama3.1");
+
+    const messages: Array<JSONObject> = requestBody[
+      "messages"
+    ] as Array<JSONObject>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0]!["content"]).toBe("which incidents are active?");
+
+    const tools: Array<JSONObject> = requestBody["tools"] as Array<JSONObject>;
+    expect(tools).toHaveLength(1);
+    expect((tools[0]!["function"] as JSONObject)["name"]).toBe(
+      "query_incidents",
+    );
+
+    // Non-streaming: this branch reads a single JSON body, not an SSE stream.
+    expect(requestBody["stream"]).toBe(false);
+  });
+
+  test("protectRequestParameters limits top-level additionalParams to the allowlist but still merges options", async () => {
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+      },
+      messages: [{ role: "user", content: "hi" }],
+      protectRequestParameters: true,
+      additionalParams: {
+        // On the allowlist of generation-safe tuning fields.
+        top_p: 0.5,
+        // Not on it — a protected caller drops anything it does not know.
+        keep_alive: "30m",
+        options: { num_ctx: 16384 },
+      },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(requestBody["top_p"]).toBe(0.5);
+    expect(requestBody["keep_alive"]).toBeUndefined();
+
+    /*
+     * The options merge still applies for a protected caller, and unlike the
+     * top-level keys it is not filtered by the allowlist. That is what keeps
+     * num_ctx reachable for the chat agent — the caller that protects its
+     * request and is also the one whose tool definitions have to survive the
+     * context window. Pinned here so the merge is not later "tidied" behind
+     * the protection check, which would put the truncation bug back.
+     */
+    expect((requestBody["options"] as JSONObject)["num_ctx"]).toBe(16384);
+  });
+
+  test("a protected caller keeps its own temperature and output cap through an options merge", async () => {
+    /*
+     * Every Ollama generation knob lives inside `options`, so the merge that
+     * makes num_ctx reachable is also the one that would let provider config
+     * overwrite what the CALLER owns. Unattended callers protect their
+     * request precisely so their temperature and output cap survive provider
+     * tuning — the OpenAI wire re-asserts both after applying
+     * additionalParams, and the Ollama wire has to match it. Without this,
+     * a provider configured with a creative temperature would silently apply
+     * to graders and summarisers that asked for a deterministic one.
+     */
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+      },
+      messages: [{ role: "user", content: "hi" }],
+      temperature: 0,
+      maxTokens: 64,
+      protectRequestParameters: true,
+      additionalParams: {
+        options: {
+          num_ctx: 32768,
+          temperature: 1.5,
+          num_predict: 4096,
+        },
+      },
+    });
+
+    const options: JSONObject = (spy.mock.calls[0]![0] as { data: JSONObject })
+      .data["options"] as JSONObject | undefined as JSONObject;
+
+    // The operator's context size still applies — that is the whole point.
+    expect(options["num_ctx"]).toBe(32768);
+
+    // The caller's own settings win over the provider's.
+    expect(options["temperature"]).toBe(0);
+    expect(options["num_predict"]).toBe(64);
+  });
+
+  test("an unprotected caller lets provider options tuning through", async () => {
+    /*
+     * The counterpart to the test above: the chat agent does not protect its
+     * request, and an operator who sets a temperature on their provider row
+     * expects it to take effect. Protection is what narrows this, not the
+     * default.
+     */
+    const spy: PostSpy = mockPostResponse({
+      message: { content: "OK" },
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Ollama,
+        baseUrl: "http://localhost:11434",
+      },
+      messages: [{ role: "user", content: "hi" }],
+      temperature: 0,
+      additionalParams: {
+        options: { temperature: 1.5 },
+      },
+    });
+
+    const options: JSONObject = (spy.mock.calls[0]![0] as { data: JSONObject })
+      .data["options"] as JSONObject;
+
+    expect(options["temperature"]).toBe(1.5);
+  });
 });
 
 describe("LLMService — OpenAI-compatible (generic, e.g. vLLM)", () => {

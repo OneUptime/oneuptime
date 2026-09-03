@@ -9,6 +9,14 @@ import API from "./API/API";
 export interface LLMProviderTestResult {
   success: boolean;
   message: string;
+  /*
+   * Whether the provider actually used the tool offered by the connection
+   * test. Reachability alone is not enough for Ask AI or investigations —
+   * they read the user's data exclusively through tools — so a provider can
+   * connect successfully and still be unusable for every AI feature.
+   * Undefined for an older server that does not report it.
+   */
+  supportsToolCalling?: boolean | undefined;
 }
 
 export default class TestLLMProvider {
@@ -48,6 +56,9 @@ export default class TestLLMProvider {
         message:
           (responseData["message"] as string) ||
           "Connection successful. The LLM provider responded to a test prompt.",
+        ...(typeof responseData["supportsToolCalling"] === "boolean"
+          ? { supportsToolCalling: responseData["supportsToolCalling"] }
+          : {}),
       };
     } catch (err) {
       return {
