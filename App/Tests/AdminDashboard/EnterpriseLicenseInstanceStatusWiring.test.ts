@@ -3,12 +3,12 @@ import fs from "fs";
 import nodePath from "path";
 import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import {
-  EnterpriseLicenseInstanceStatusPill,
   EnterpriseLicenseUsageMinimumRefreshDelayInMilliseconds,
   EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
+  getEnterpriseLicenseInstanceActivityState,
   getEnterpriseLicenseUsageBoundaryRefreshDelay,
   isEnterpriseLicenseUsageRequestCurrent,
-} from "../../FeatureSet/AdminDashboard/src/Components/EnterpriseLicense/LicenseUtil";
+} from "../../FeatureSet/AdminDashboard/src/Components/EnterpriseLicense/LicenseActivityUtil";
 
 /*
  * The Admin Dashboard package has no React render harness, so this suite pins
@@ -50,6 +50,16 @@ const licenseUtilSource: string = stripComments(
   ),
 );
 
+const licenseActivityUtilSource: string = stripComments(
+  fs.readFileSync(
+    nodePath.join(
+      ADMIN_DASHBOARD_SRC,
+      "Components/EnterpriseLicense/LicenseActivityUtil.ts",
+    ),
+    "utf8",
+  ),
+);
+
 const instanceTableSource: string = (
   viewSource.split('id="enterprise-license-instances-table"')[1] || ""
 ).split("<ModelDelete")[0] as string;
@@ -59,12 +69,6 @@ const usageCardSource: string = (
     'title={t("pages.enterpriseLicenseView.usageCardTitle")}',
   )[1] || ""
 ).split("<ModelTable")[0] as string;
-
-interface PillElement {
-  props: {
-    text: string;
-  };
-}
 
 describe("Admin Dashboard > Enterprise License instance activity", () => {
   test("shows an explicit status for every instance", () => {
@@ -81,11 +85,11 @@ describe("Admin Dashboard > Enterprise License instance activity", () => {
   });
 
   test("derives the badge from the same predicate used for seat counting", () => {
-    expect(licenseUtilSource).toContain(
+    expect(licenseActivityUtilSource).toContain(
       "EnterpriseLicenseUsageUtil.isInstanceCountedTowardsUsage",
     );
-    expect(licenseUtilSource).not.toContain("instance.isActive");
-    expect(licenseUtilSource).not.toMatch(/7\s*\*\s*24\s*\*\s*60/);
+    expect(licenseActivityUtilSource).not.toContain("instance.isActive");
+    expect(licenseActivityUtilSource).not.toMatch(/7\s*\*\s*24\s*\*\s*60/);
   });
 
   test("uses one server-side snapshot for both status and seat count", () => {
@@ -166,7 +170,7 @@ describe("Admin Dashboard > Enterprise License instance activity", () => {
     };
 
     expect(getEnterpriseLicenseUsageBoundaryRefreshDelay(snapshot)).toBe(5000);
-    expect(licenseUtilSource).not.toContain("Date.now()");
+    expect(licenseActivityUtilSource).not.toContain("Date.now()");
   });
 
   test("subtracts response latency before scheduling the inactivity boundary", () => {
@@ -210,38 +214,38 @@ describe("Admin Dashboard > Enterprise License instance activity", () => {
     expect(usageCardSource).not.toContain("license.userCountUpdatedAt");
   });
 
-  test("maps a recent report to the Active pill", () => {
+  test("maps a recent report to the active state", () => {
     const now: Date = new Date("2026-09-02T12:00:00.000Z");
-    const element: PillElement = EnterpriseLicenseInstanceStatusPill({
-      instance: {
-        lastReportedAt: new Date("2026-09-01T12:00:00.000Z"),
-      },
-      now,
-    }) as PillElement;
-
-    expect(element.props.text).toBe("Active");
+    expect(
+      getEnterpriseLicenseInstanceActivityState({
+        instance: {
+          lastReportedAt: new Date("2026-09-01T12:00:00.000Z"),
+        },
+        now,
+      }),
+    ).toBe("active");
   });
 
-  test("maps a week without a report to the Inactive pill", () => {
+  test("maps a week without a report to the inactive state", () => {
     const now: Date = new Date("2026-09-02T12:00:00.000Z");
-    const element: PillElement = EnterpriseLicenseInstanceStatusPill({
-      instance: {
-        lastReportedAt: new Date("2026-08-26T12:00:00.000Z"),
-      },
-      now,
-    }) as PillElement;
-
-    expect(element.props.text).toBe("Inactive");
+    expect(
+      getEnterpriseLicenseInstanceActivityState({
+        instance: {
+          lastReportedAt: new Date("2026-08-26T12:00:00.000Z"),
+        },
+        now,
+      }),
+    ).toBe("inactive");
   });
 
   test("honors the status from the same snapshot as the displayed count", () => {
-    const element: PillElement = EnterpriseLicenseInstanceStatusPill({
-      instance: {
-        lastReportedAt: new Date("2026-09-02T12:00:00.000Z"),
-      },
-      isActive: false,
-    }) as PillElement;
-
-    expect(element.props.text).toBe("Inactive");
+    expect(
+      getEnterpriseLicenseInstanceActivityState({
+        instance: {
+          lastReportedAt: new Date("2026-09-02T12:00:00.000Z"),
+        },
+        isActive: false,
+      }),
+    ).toBe("inactive");
   });
 });

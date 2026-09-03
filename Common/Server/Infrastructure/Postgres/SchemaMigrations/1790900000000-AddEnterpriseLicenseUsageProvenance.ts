@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddEnterpriseLicenseUsageProvenance1788374340973
+export class AddEnterpriseLicenseUsageProvenance1790900000000
   implements MigrationInterface
 {
-  public name: string = "AddEnterpriseLicenseUsageProvenance1788374340973";
+  public name: string = "AddEnterpriseLicenseUsageProvenance1790900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -2,13 +2,15 @@ import AdminModelAPI from "../../../Utils/ModelAPI";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
-  EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
   EnterpriseLicenseInstanceStatusPill,
-  getEnterpriseLicenseUsageBoundaryRefreshDelay,
-  isEnterpriseLicenseUsageRequestCurrent,
   LicenseStatusPill,
   SeatUsageMeter,
 } from "../../../Components/EnterpriseLicense/LicenseUtil";
+import {
+  EnterpriseLicenseUsageRefreshIntervalInMilliseconds,
+  getEnterpriseLicenseUsageBoundaryRefreshDelay,
+  isEnterpriseLicenseUsageRequestCurrent,
+} from "../../../Components/EnterpriseLicense/LicenseActivityUtil";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
