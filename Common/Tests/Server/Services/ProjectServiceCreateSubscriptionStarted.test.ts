@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import ProjectService from "../../../Server/Services/ProjectService";
 import BillingService from "../../../Server/Services/BillingService";
 import MarketingEventUtil from "../../../Server/Utils/Marketing/MarketingEventUtil";
@@ -8,7 +10,7 @@ import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
 import { resolveEmittedMarketingEvent } from "../Utils/Marketing/EmittedMarketingEvent";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, it, afterEach } from "@jest/globals";
+import { describe, expect, it, afterEach, test } from "@jest/globals";
 
 /*
  * A project created directly on a paid plan never passes through changePlan,
@@ -517,6 +519,64 @@ describe("ProjectService project creation - subscription_started", () => {
         spies.emitInBackground.mock.invocationCallOrder[0]!;
 
       expect(emitOrder).toBeGreaterThan(writeOrder);
+    });
+  });
+
+  /*
+   * The list above is a hand-maintained mirror of the seeders
+   * onCreateSuccess runs, and nothing about adding a tenth seeder to the
+   * service makes this file fail to compile. When addDefaultNetworkDeviceRoles
+   * was added and this list was not updated, the unstubbed seeder reached a
+   * real repository and every test in this suite failed with "Database not
+   * connected" — on master, not in review.
+   *
+   * So the mirror is checked against its source. Read as text because
+   * onCreateSuccess is protected and the seeder batch is a statement inside
+   * it: there is nothing to enumerate at runtime without actually creating a
+   * project, which is the thing this suite stubs out.
+   */
+  describe("the stub list stays in step with the service", () => {
+    const PROJECT_SERVICE_SOURCE: string = fs.readFileSync(
+      path.join(__dirname, "../../../Server/Services/ProjectService.ts"),
+      "utf8",
+    );
+
+    function seedersInCreateHook(): Array<string> {
+      const start: number = PROJECT_SERVICE_SOURCE.indexOf(
+        "await Promise.all([",
+      );
+      expect(start).toBeGreaterThan(-1);
+
+      const block: string = PROJECT_SERVICE_SOURCE.slice(
+        start,
+        PROJECT_SERVICE_SOURCE.indexOf("]);", start),
+      );
+
+      return Array.from(
+        block.matchAll(/this\.(addDefault\w+)\(createdItem\)/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+    }
+
+    test("every seeder the create hook runs is stubbed here", () => {
+      const inHook: Array<string> = seedersInCreateHook();
+
+      expect(inHook.length).toBeGreaterThan(0);
+      expect(DEFAULT_SEEDERS.slice().sort()).toEqual(inHook.slice().sort());
+    });
+
+    /*
+     * A stub for a seeder that no longer exists is dead weight, and
+     * jest.spyOn would throw on the missing method rather than skip it.
+     */
+    test("every seeder stubbed here is a real method on the service", () => {
+      for (const seeder of DEFAULT_SEEDERS) {
+        expect(
+          typeof (ProjectService as unknown as Record<string, unknown>)[seeder],
+        ).toBe("function");
+      }
     });
   });
 });
