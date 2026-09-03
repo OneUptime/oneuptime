@@ -74,6 +74,7 @@ enum IconProp {
   Slack = "Slack",
   Time = "Time",
   Terminal = "Terminal",
+  Keyboard = "Keyboard",
   Drag = "Drag",
   GripVertical = "GripVertical",
   Error = "Error",

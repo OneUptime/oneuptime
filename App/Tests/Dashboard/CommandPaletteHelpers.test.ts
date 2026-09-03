@@ -232,6 +232,12 @@ describe("getVisibleActionIds", () => {
     expect(actionIds).toContain("action-toggle-theme");
     expect(actionIds).toContain("action-ask-ai");
     expect(actionIds).toContain("action-log-out");
+    /*
+     * The shortcuts dialog is a reference, not a capability. Someone who has
+     * just found the palette for the first time is exactly the person who
+     * needs it, and they may have no project and no permissions yet.
+     */
+    expect(actionIds).toContain("action-keyboard-shortcuts");
     // The global (non-project) pages stay reachable without a project.
     expect(actionIds).toContain("action-active-incidents");
     expect(actionIds).toContain("action-my-on-call-policies");
@@ -278,6 +284,20 @@ describe("getVisibleActionIds", () => {
 
     expect(asAdmin).toContain("action-admin-dashboard");
     expect(asMortal).not.toContain("action-admin-dashboard");
+  });
+
+  test("no action id is offered twice", () => {
+    /*
+     * The host maps each id straight onto a command, so a duplicate becomes
+     * two identical palette rows with the same React key.
+     */
+    const actionIds: Array<PaletteActionId> = getVisibleActionIds({
+      ...allGatesOpen,
+      hasProjectSelected: true,
+      isMasterAdmin: true,
+    });
+
+    expect(new Set(actionIds).size).toBe(actionIds.length);
   });
 });
 
