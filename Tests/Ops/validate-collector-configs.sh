@@ -37,6 +37,22 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 # in the repo — so open it up rather than running the container as root.
 chmod 0755 "${WORK_DIR}"
 
+# `validate` does more than parse: some components stat the paths they were
+# configured with. The node collector's hostmetrics receiver checks its
+# root_path, and the cadvisor prometheus receiver checks the service-account
+# token it authenticates with — both real paths on a Kubernetes node and
+# neither present in this container. Stubbing them is what lets the DaemonSet
+# config be validated AS SHIPPED, rather than with those receivers switched off.
+mkdir -p "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
+echo "validate-only" >"${WORK_DIR}/serviceaccount/token"
+chmod 0755 "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
+chmod 0644 "${WORK_DIR}/serviceaccount/token"
+
+STUB_MOUNTS=(
+  -v "${WORK_DIR}/hostfs":/host:ro
+  -v "${WORK_DIR}/serviceaccount/token":/var/run/secrets/kubernetes.io/serviceaccount/token:ro
+)
+
 # The configs reference these through ${env:...}. The values are never used —
 # nothing connects during `validate` — but they have to resolve.
 ENV_ARGS=(
@@ -63,6 +79,7 @@ validate() {
 
   if docker run --rm \
     "${ENV_ARGS[@]}" \
+    "${STUB_MOUNTS[@]}" \
     -v "$(dirname "${config}")":/validate:ro \
     "${COLLECTOR_IMAGE}" \
     validate --config "/validate/$(basename "${config}")"; then
