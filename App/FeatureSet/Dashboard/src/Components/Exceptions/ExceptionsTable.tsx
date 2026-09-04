@@ -581,7 +581,13 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
               message: true,
             },
             title: "Exception Message",
-            contentClassName: "max-w-3xl whitespace-normal break-words",
+            /*
+             * The one hand-spelled instance of the wrap idiom that predates
+             * the option, moved onto it so exactly one way of asking for a
+             * wrapping cell is left in the tree (OneUptime issue #3585).
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-3xl",
             type: FieldType.Element,
             getElement: (exception: TelemetryException) => {
               return (

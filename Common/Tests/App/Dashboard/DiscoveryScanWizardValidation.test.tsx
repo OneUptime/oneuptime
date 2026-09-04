@@ -120,6 +120,17 @@ type CapturedColumn = {
   isRemovable?: boolean | undefined;
   disableSort?: boolean | undefined;
   noValueMessage?: string | undefined;
+  /*
+   * The three properties that decide whether a cell's text may occupy more
+   * than one line, captured for issue #3585. They are configuration in
+   * exactly the same way the layout flags above are — a column declares them
+   * and TableRow renders through them — so the only place they can be
+   * asserted is here, off the props the page handed the table. See the
+   * "long status messages wrap inside their own column" block at the bottom.
+   */
+  contentClassName?: string | undefined;
+  wrapContent?: boolean | undefined;
+  wrapMaxWidthClassName?: string | undefined;
   getElement?:
     | ((item: NetworkDeviceDiscoveryScan) => React.ReactElement)
     | undefined;
@@ -205,6 +216,23 @@ import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDe
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import FieldType from "../../../UI/Components/Types/FieldType";
+/*
+ * The renderer's own cell-class helpers (issue #3585). The page declares
+ * `wrapContent` on a column; these two functions are what TableRow turns that
+ * declaration into, so running the page's real column objects through them
+ * asserts the flag has the effect it is being set for — rather than asserting
+ * that a property the page sets is a property the page sets.
+ */
+import TableColumn from "../../../UI/Components/Table/Types/Column";
+import {
+  getTableCellClassName,
+  getTableCellContentClassName,
+} from "../../../UI/Components/Table/CellClassName";
+/*
+ * The Recurrence cell hangs the fully formatted date off a `title`, so the
+ * expectation is computed with the same utility the cell formats with.
+ */
+import OneUptimeDate from "../../../Types/Date";
 import ModelTableColumn from "../../../UI/Components/ModelTable/Column";
 import ModelTableColumns from "../../../UI/Components/ModelTable/Columns";
 import {
@@ -350,6 +378,53 @@ function renderRecurrenceCell(
   );
 
   return container.textContent || "";
+}
+
+/*
+ * The same cells as element trees rather than as strings, for issue #3585.
+ *
+ * The helpers above return textContent, which is the right shape for the
+ * questions they answer ("what does an operator read on this row") and the
+ * wrong one for #3585, where both the defect and the fix are carried by
+ * classes and attributes rather than by words.
+ *
+ * jsdom performs NO layout: there is no getBoundingClientRect, no computed
+ * `white-space`, no column width, so the overlap the issue reports cannot be
+ * observed here at all. What CAN be observed is the markup pairing that
+ * produced it — a width-capped box nested inside an inherited nowrap line —
+ * and the configuration that now tells the renderer to unset that nowrap.
+ * Every assertion in that block is therefore a class, attribute, DOM-shape or
+ * text assertion, deliberately, and never a visual one.
+ */
+function renderCellContainer(
+  columnKey: string,
+  scan: Partial<NetworkDeviceDiscoveryScan>,
+): HTMLElement {
+  const column: CapturedColumn = columnNamed(columnKey);
+
+  if (!column.getElement) {
+    throw new Error(`The "${columnKey}" column renders no element`);
+  }
+
+  const { container } = render(
+    <MemoryRouter>
+      {column.getElement(scan as NetworkDeviceDiscoveryScan)}
+    </MemoryRouter>,
+  );
+
+  return container;
+}
+
+function renderRespondedHostsCell(
+  scan: Partial<NetworkDeviceDiscoveryScan>,
+): HTMLElement {
+  return renderCellContainer("respondedHostCount", scan);
+}
+
+function renderRecurrenceCellElement(
+  scan: Partial<NetworkDeviceDiscoveryScan>,
+): HTMLElement {
+  return renderCellContainer("isRecurring", scan);
 }
 
 /*
@@ -2586,5 +2661,398 @@ describe("Scan Target says how big the sweep is while it is being typed", () => 
     expect(renderTargetSizeHint("  192.168.1.0/24  ")).toBe(
       "This target sweeps 254 addresses.",
     );
+  });
+});
+
+/*
+ * OneUptime issue #3585: "status message overlaps the columns next to it on
+ * the Discovery Scans table".
+ *
+ * WHAT WENT WRONG, because the shape of it decides the shape of these tests.
+ * Saving an edit retires the scan's run, and the retire payload
+ * (RETIRE_RUN_PAYLOAD in
+ * Common/Server/Services/NetworkDeviceDiscoveryScanService.ts) writes a
+ * 156-character sentence into statusMessage explaining why the results
+ * vanished. The Responded Hosts cell renders that sentence. Every desktop body
+ * <td> in Common/UI/Components/Table/TableRow.tsx declares `whitespace-nowrap`,
+ * and `white-space` is an INHERITED property — so the nowrap reached the div
+ * this page rendered inside the cell no matter what classes that div carried.
+ * The div carried `max-w-md`, which capped the BOX while the LINE inside it
+ * stayed unbreakable, so the sentence ran straight out of the cell and painted
+ * over the Recurrence and Started cells beside it. A max-width paired with a
+ * nowrap does not contain long text; it is precisely what turns "the table
+ * gets wider" into "the text lands on top of its neighbours".
+ *
+ * THE FIX, and therefore what is asserted here: the wrapping is asked for at
+ * COLUMN level (`wrapContent`, with an optional `wrapMaxWidthClassName`), the
+ * renderer emits `whitespace-normal break-words` on the <td> and the width cap
+ * on its content div, and the inner `max-w-md` this page used to spell by hand
+ * is DELETED rather than left in place beside the new option.
+ *
+ * HOW IT IS ASSERTED. jsdom performs no layout whatsoever — no
+ * getBoundingClientRect, no computed `white-space`, no column widths, no
+ * overflow — so the overlap itself is not observable in any test that could
+ * live in this repo. Every assertion below is therefore a configuration,
+ * class, attribute, DOM-shape or text assertion: the flags the page declares,
+ * the classes the real TableRow helpers derive from those flags, and the
+ * markup the cell renders for the exact row the issue was filed about. The
+ * negative ones matter as much as the positive ones — a `max-w-*` left behind
+ * inside the cell re-creates the original pairing exactly, and a wrap flag
+ * that spread to the timestamp and badge columns would be a page-wide restyle
+ * wearing this fix's name.
+ */
+describe("long status messages wrap inside their own column (issue #3585)", () => {
+  /*
+   * The sentence the server actually writes, inlined rather than imported:
+   * Common/Server/Services/NetworkDeviceDiscoveryScanService.ts is a server
+   * module that pulls in the database layer, and this is a UI test. Copying it
+   * is deliberate — a reword on the server side surfaces here as a failure,
+   * which is the moment to re-check that the reworded sentence still wraps.
+   */
+  const RETIRE_MESSAGE: string =
+    "Settings changed, so this scan is queued to run again. The hosts the previous run found have been cleared - they described settings this scan no longer has.";
+
+  /*
+   * The retired row itself: no host counts (the payload nulls them) and the
+   * sentence above. This is the row an operator sees straight after pressing
+   * Save on the Edit dialog, and the row screenshotted in the issue.
+   */
+  const RETIRED_SCAN: Partial<NetworkDeviceDiscoveryScan> = {
+    respondedHostCount: null,
+    statusMessage: RETIRE_MESSAGE,
+  } as unknown as Partial<NetworkDeviceDiscoveryScan>;
+
+  /*
+   * The captured column as the type TableRow's helpers take. The mock stores
+   * the page's own column objects under a looser local type, so this is a cast
+   * rather than a copy — the helpers run over the very objects the page
+   * declared.
+   */
+  function tableColumnFor(
+    title: string,
+  ): TableColumn<NetworkDeviceDiscoveryScan> {
+    return columnByTitle(
+      title,
+    ) as unknown as TableColumn<NetworkDeviceDiscoveryScan>;
+  }
+
+  function cellClassNameFor(title: string): string {
+    return getTableCellClassName<NetworkDeviceDiscoveryScan>({
+      column: tableColumnFor(title),
+      isLastRenderedColumn: false,
+    });
+  }
+
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+
+    const probe: Probe = new Probe();
+    probe.id = new ObjectID("22222222-2222-4222-8222-222222222222");
+    probe.name = "Datacenter Probe";
+
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([probe] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  /*
+   * THE assertion that tells the fixed page from the broken one. Everything
+   * else in this block describes the shape of the fix; this one line is the
+   * fix. Delete `wrapContent` from the Responded Hosts column and the cell is
+   * back to inheriting the row's nowrap, with the status message back on top
+   * of the two columns to its right.
+   */
+  test("the Responded Hosts column asks for its prose to wrap", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Responded Hosts").wrapContent).toBe(true);
+  });
+
+  /*
+   * And the flag has to REACH the markup. Asserted through the two helpers
+   * TableRow and TableSkeletonRows render with, rather than by restating the
+   * class strings this test would like them to produce: the claim is "this
+   * column's cell wraps", and the code that decides that is what is asked.
+   */
+  test("that flag makes the rendered cell a wrapping one, not a nowrap one", async () => {
+    await renderPage();
+
+    const className: string = cellClassNameFor("Responded Hosts");
+
+    expect(className).toContain("whitespace-normal");
+    expect(className).toContain("break-words");
+    /*
+     * The inherited declaration that caused #3585. Its absence here is the
+     * whole point: it is unset on the cell, so it is unset on every element
+     * getElement returns beneath it.
+     */
+    expect(className).not.toContain("whitespace-nowrap");
+  });
+
+  /*
+   * The width cap is not spelled on this column, so it takes the shared
+   * default — one place to change if 28rem turns out to be wrong for prose,
+   * rather than a number copied into every column that holds a sentence. The
+   * contentClassName check is the other half: the cap now arrives through the
+   * wrap option, and a hand-written `max-w-*` sitting beside it would be
+   * resolved by stylesheet order rather than by intent.
+   */
+  test("it takes the shared default width cap rather than naming one", async () => {
+    await renderPage();
+
+    const column: CapturedColumn = columnByTitle("Responded Hosts");
+
+    expect(column.wrapMaxWidthClassName).toBeUndefined();
+    expect(column.contentClassName).toBeUndefined();
+
+    expect(
+      getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
+        tableColumnFor("Responded Hosts"),
+      ),
+    ).toBe("max-w-md");
+  });
+
+  /*
+   * Recurrence wraps too, and narrower. The same RETIRE_RUN_PAYLOAD write that
+   * sets the status message also sets status Pending and nextScanAt NULL, so
+   * the row that reports #3585 renders a sentence in this cell as well — and
+   * this column's headline is "Every 60 min", so it has no business being as
+   * wide as the results cell.
+   */
+  test("the Recurrence column wraps, capped narrower than Responded Hosts", async () => {
+    await renderPage();
+
+    const column: CapturedColumn = columnByTitle("Recurrence");
+
+    expect(column.wrapContent).toBe(true);
+    expect(column.wrapMaxWidthClassName).toBe("max-w-xs");
+
+    expect(
+      getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
+        tableColumnFor("Recurrence"),
+      ),
+    ).toBe("max-w-xs");
+    expect(cellClassNameFor("Recurrence")).toContain("whitespace-normal");
+  });
+
+  /*
+   * Started is one of the two columns the message used to be painted over, and
+   * it must not be "fixed" by being allowed to wrap: a timestamp folded onto
+   * two lines is a regression of its own, and `whitespace-nowrap` on date
+   * cells is what keeps "Mar 12 2026, 16:05" whole.
+   */
+  test("the Started timestamp is left on its single line", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Started").wrapContent).toBeFalsy();
+    expect(cellClassNameFor("Started")).toContain("whitespace-nowrap");
+  });
+
+  /*
+   * The scope check. Two columns hold prose; the rest hold a name, an entity,
+   * a badge and an address, and every one of them still gets the default
+   * single-line cell. This is what separates a targeted fix from "the whole
+   * table now wraps", which is a much larger visual change than #3585 asked
+   * for and which no screenshot in the issue would justify.
+   */
+  test.each(["Scan", "Probe", "Status", "Scan Target"])(
+    "the %s column is untouched and still renders on one line",
+    async (title: string) => {
+      await renderPage();
+
+      expect(columnByTitle(title).wrapContent).toBeFalsy();
+      expect(columnByTitle(title).wrapMaxWidthClassName).toBeUndefined();
+      expect(cellClassNameFor(title)).toContain("whitespace-nowrap");
+    },
+  );
+
+  /*
+   * The page's one pre-existing contentClassName, left exactly as it was. It
+   * is a type/colour class with no width in it, which is the only kind of
+   * contentClassName that was ever safe on a nowrap cell — and the migration
+   * of the wrap idiom must not have gone rewriting the ones that were fine.
+   */
+  test("the one pre-existing contentClassName on this page is unchanged", async () => {
+    await renderPage();
+
+    expect(columnByTitle("Scan Target").contentClassName).toBe(
+      "text-sm text-gray-900",
+    );
+  });
+
+  /*
+   * The rule that makes the class of bug in #3585 unspellable on this page: a
+   * width cap may only arrive through `wrapMaxWidthClassName`, which the
+   * renderer emits ONLY together with `whitespace-normal`. A `max-w-*` written
+   * into a contentClassName is the pairing that overlaps, whichever column it
+   * is written on, so no column here may hold one.
+   */
+  test("no column caps its width through contentClassName", async () => {
+    await renderPage();
+
+    const columns: Array<CapturedColumn> = capturedTableProps?.columns || [];
+
+    expect(columns.length).toBeGreaterThan(0);
+
+    for (const column of columns) {
+      expect(column.contentClassName || "").not.toContain("max-w-");
+    }
+  });
+
+  /*
+   * THE ROW FROM THE ISSUE. An operator edits a scan, the server retires the
+   * run, and this is the cell they are looking at. The sentence has to be
+   * there in full — the fix wraps it, it does not truncate it, and nothing
+   * about #3585 justifies hiding what happened to the results — and the hover
+   * tooltip that predates the fix has to survive it, because the same cell
+   * still carries probe explanations far longer than this one.
+   */
+  test("the retired-run sentence renders in full, and still on a tooltip", async () => {
+    await renderPage();
+
+    const container: HTMLElement = renderRespondedHostsCell(RETIRED_SCAN);
+
+    expect(container.textContent).toContain(RETIRE_MESSAGE);
+    expect(container.querySelector(`[title="${RETIRE_MESSAGE}"]`)).toBeTruthy();
+  });
+
+  /*
+   * The negative half, and the one that would catch a "fix" that only added
+   * the option without cleaning up after it. The inner `max-w-md` had to be
+   * DELETED, not supplemented: leaving it re-creates the exact capped-box
+   * pairing that caused the overlap, and it would now sit inside a cell that
+   * ALSO has a cap — two `max-w-*` on nested elements, resolved by stylesheet
+   * order rather than by intent.
+   *
+   * (No layout is being measured here — jsdom has none. This asserts that the
+   * markup which made the overlap possible is gone.)
+   */
+  test("nothing inside the cell caps its own width any more", async () => {
+    await renderPage();
+
+    const container: HTMLElement = renderRespondedHostsCell(RETIRED_SCAN);
+
+    expect(container.querySelectorAll("[class*='max-w-']")).toHaveLength(0);
+  });
+
+  /*
+   * The reporting branch, which is the cell as it renders on a normal day. The
+   * three things it says all predate #3585 and all have issues of their own
+   * behind them — the headline count, the ping-only tally (#3445) and the
+   * probe's explanation (#3287) — so this is the regression test for "the
+   * layout change quietly dropped a line".
+   */
+  test("a reported scan still says everything it said before", async () => {
+    await renderPage();
+
+    const container: HTMLElement = renderRespondedHostsCell({
+      respondedHostCount: 0,
+      scannedHostCount: 254,
+      discoveredDevices: [
+        { ipAddress: "10.0.0.4", snmpReachable: false },
+        { ipAddress: "10.0.0.9", snmpReachable: false },
+      ],
+      statusMessage: RETIRE_MESSAGE,
+    } as unknown as Partial<NetworkDeviceDiscoveryScan>);
+
+    // The count — a zero alone reads as "empty subnet" (issue #3287).
+    expect(container.textContent).toContain("0 of 254 hosts");
+    // ...which is why the ping-only tally sits under it (issue #3445).
+    expect(container.textContent).toContain("+ 2 alive without SNMP");
+    // ...and the probe's account of the sweep under that (issue #3287).
+    expect(container.textContent).toContain(RETIRE_MESSAGE);
+    expect(container.querySelector(`[title="${RETIRE_MESSAGE}"]`)).toBeTruthy();
+
+    expect(container.querySelectorAll("[class*='max-w-']")).toHaveLength(0);
+  });
+
+  /*
+   * And the empty branch: a scan with nothing to report and nothing to explain
+   * is still a bare em-dash, exactly like every other empty cell on this
+   * table.
+   */
+  test("a scan with nothing to say still renders a bare em-dash", async () => {
+    await renderPage();
+
+    const container: HTMLElement = renderRespondedHostsCell({});
+
+    expect(container.textContent).toBe("—");
+    expect(container.querySelectorAll("[class*='max-w-']")).toHaveLength(0);
+  });
+
+  /*
+   * The Recurrence cell in the state RETIRE_RUN_PAYLOAD actually writes:
+   * recurring, Pending, nextScanAt NULL. This row is the sibling of the one
+   * above — the same save produces both — so the wrap flag added to this
+   * column has to leave its wording alone.
+   */
+  test("a retired recurring scan still says the next run waits for this one", async () => {
+    await renderPage();
+
+    expect(
+      renderRecurrenceCell({
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+        status: "Pending",
+        nextScanAt: null,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+    ).toContain("Next scan is scheduled when this run finishes");
+  });
+
+  /*
+   * The warning branch from issue #3444 — a recurring scan that has finished
+   * with nothing scheduled will never run again — including the colour that
+   * makes it read as a warning rather than as a caption.
+   */
+  test("the never-again warning keeps its wording and its colour", async () => {
+    await renderPage();
+
+    const container: HTMLElement = renderRecurrenceCellElement({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+      nextScanAt: null,
+    } as unknown as Partial<NetworkDeviceDiscoveryScan>);
+
+    expect(container.textContent).toContain(
+      "No next scan is scheduled. Open Edit and save to schedule one.",
+    );
+    expect(container.querySelector(".text-yellow-600")).toBeTruthy();
+  });
+
+  // The two branches the fix had no business touching at all.
+  test("a one-time scan still reads as one-time", async () => {
+    await renderPage();
+
+    expect(renderRecurrenceCell({ isRecurring: false })).toBe("One-time");
+  });
+
+  test("a scheduled scan still hangs the exact date off a tooltip", async () => {
+    await renderPage();
+
+    const nextScanAt: Date = new Date(Date.now() + 30 * 60000);
+
+    const container: HTMLElement = renderRecurrenceCellElement({
+      isRecurring: true,
+      rescanIntervalInMinutes: 60,
+      status: "Completed",
+      nextScanAt: nextScanAt,
+    });
+
+    expect(container.textContent).toContain("Next scan");
+    /*
+     * The cell shows a relative time and keeps the absolute one on the title,
+     * formatted by the same utility this expectation is built with.
+     */
+    expect(
+      container.querySelector(
+        `[title="${OneUptimeDate.getDateAsLocalFormattedString(nextScanAt)}"]`,
+      ),
+    ).toBeTruthy();
   });
 });
