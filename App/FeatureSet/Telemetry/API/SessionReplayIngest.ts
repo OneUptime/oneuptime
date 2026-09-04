@@ -2,6 +2,11 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -379,7 +384,7 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   SessionReplayRequestMiddleware.parseBody,
   replayIngestMetricsMiddleware,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SessionReplay),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -627,7 +632,7 @@ router.post(
  */
 router.get(
   "/session-replay/v1/config",
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SessionReplay),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -889,6 +894,21 @@ router.get(
  * script or a "Test your installation" panel a real answer. It ingests
  * nothing and writes nothing, and reads the token from headers only so it
  * cannot leak into access logs.
+ *
+ * `valid` means "the chunk endpoint would accept this key", so it also
+ * accounts for the kill switch, the expiry and the browser-key surface rule.
+ * A key that resolves but is switched off answers false, because answering
+ * true would send someone away believing their install works while every
+ * chunk is refused. Existing keys are all enabled and never expire, so their
+ * answer is unchanged.
+ *
+ * What this deliberately does NOT check is the ORIGIN allowlist, even though
+ * ingest enforces it for a browser key. This probe is overwhelmingly run
+ * from curl, CI or a settings page - none of which sends the Origin the
+ * recorder will send - so enforcing it here would report a correctly
+ * configured key as broken and send customers hunting a problem they do not
+ * have. Origin is a property of the real recorder request, and that is where
+ * it is checked.
  */
 router.get(
   "/session-replay/v1/validate",
@@ -918,12 +938,12 @@ router.get(
         return;
       }
 
-      const projectId: ObjectID | null =
-        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+      const keyPolicy: TelemetryIngestionKeyPolicy | null =
+        await TelemetryIngestionKeyService.getPolicyFromSecretKey(
           token.toString(),
         );
 
-      if (!projectId) {
+      if (!keyPolicy) {
         Response.sendJsonObjectResponse(
           req,
           res,
@@ -937,6 +957,40 @@ router.get(
         );
         return;
       }
+
+      /*
+       * The same kill-switch / expiry / browser-surface triad the ingest
+       * guard applies, evaluated against the session-replay surface so the
+       * probe and the chunk endpoint can never disagree about the same key.
+       *
+       * Session replay IS one of the surfaces a browser key may write to, so
+       * this rejects a browser key only if that ever stops being true. It is
+       * written as the shared check rather than an inline isEnabled/expiresAt
+       * pair precisely so that change lands here for free.
+       */
+      const refusal: TelemetryIngestionKeyRefusal | null =
+        TelemetryIngestionKeyGuard.getRefusal({
+          policy: keyPolicy,
+          surface: TelemetryIngestSurface.SessionReplay,
+        });
+
+      if (refusal) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            keyType: keyPolicy.keyType,
+            reason: refusal.reason,
+            message: refusal.message,
+          },
+          { statusCode: new StatusCode(401) },
+        );
+        return;
+      }
+
+      const projectId: ObjectID = keyPolicy.projectId;
 
       const appIdentifier: string = readAppIdentifier(req);
 
@@ -972,6 +1026,14 @@ router.get(
         appIdentifierProvided: Boolean(appIdentifier),
         isSessionReplayEnabled: isSessionReplayEnabled,
         isIngestEnabledOnThisInstance: SESSION_REPLAY_INGEST_ENABLED,
+        /*
+         * A recorder snippet is meant to carry a Browser key, so unlike
+         * /otlp/v1/validate this is reported without editorialising - a
+         * Server key here still works and is not a misconfiguration, it just
+         * gives up the origin binding that makes a published key safe. The
+         * field lets a "Test your installation" panel say so.
+         */
+        keyType: keyPolicy.keyType,
         message: "Ingestion token is valid.",
       });
       return;

@@ -2,6 +2,7 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
   ExpressRequest,
@@ -37,7 +38,7 @@ router.post(
   "/change-events/v1/ingest",
   TelemetryIngestionDisabled.middleware,
   setChangeEventsProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.ChangeEvents),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
