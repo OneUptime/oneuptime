@@ -569,7 +569,7 @@ import { AddAutoImportRuleOidTemplate1790600000000 } from "./1790600000000-AddAu
 import { AddNetworkSiteTypeParentHierarchy1790700000000 } from "./1790700000000-AddNetworkSiteTypeParentHierarchy";
 import { AddNetworkDeviceRoleTable1790800000000 } from "./1790800000000-AddNetworkDeviceRoleTable";
 import { AddTelemetryExceptionErrorClass1790900000000 } from "./1790900000000-AddTelemetryExceptionErrorClass";
-import { AddEnterpriseLicenseUsageProvenance1790950000000 } from "./1790950000000-AddEnterpriseLicenseUsageProvenance";
+import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
 import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
 import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
 import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "./1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
@@ -1146,7 +1146,7 @@ export default [
   AddNetworkSiteTypeParentHierarchy1790700000000,
   AddNetworkDeviceRoleTable1790800000000,
   AddTelemetryExceptionErrorClass1790900000000,
-  AddEnterpriseLicenseUsageProvenance1790950000000,
+  AddEnterpriseLicenseUsageProvenance1790900000000,
   AddUserNotificationEmailRollup1791000000000,
   AddUserNotificationEmailRollupSetting1791100000000,
   AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,

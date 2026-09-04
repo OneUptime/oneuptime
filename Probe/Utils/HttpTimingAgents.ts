@@ -123,8 +123,17 @@ export class HttpTimingAgents {
   ): TimedAgents {
     const httpAgent: http.Agent = new http.Agent({ keepAlive: false });
     const httpsAgent: https.Agent = new https.Agent({
-      keepAlive: false,
       ...(httpsAgentOptions || {}),
+      /*
+       * After the spread, not before it. A pooled connection skips DNS, TCP
+       * and TLS altogether, so a caller whose options happened to carry
+       * keepAlive would silently switch off the instrumentation this class
+       * exists to provide — and the check would report a suspiciously fast
+       * phase breakdown rather than an error. Callers pass TLS settings here
+       * (self-signed certificates, client certs); the socket lifecycle is not
+       * theirs to choose.
+       */
+      keepAlive: false,
     });
 
     for (const agent of [httpAgent, httpsAgent]) {
