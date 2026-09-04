@@ -154,7 +154,7 @@ Oltre alle metriche, l'Agente Docker monitora il file `*-json.log` di ogni conta
 - `resource.container.id` — l'ID completo del container
 - `resource.container.runtime` — sempre `docker`
 - `attributes["log.iostream"]` — `stdout` o `stderr`
-- `severityText` / `severityNumber` — derivati dallo stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — letti da una parola chiave di livello nella riga (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); le righe senza un livello riconoscibile ricadono sullo stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — la riga di log grezza emessa dal processo del container
 - `time` — il timestamp del daemon Docker per la riga
 

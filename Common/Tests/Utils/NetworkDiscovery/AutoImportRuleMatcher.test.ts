@@ -380,12 +380,19 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
     });
   });
 
+  /*
+   * The gate asks what the host ANSWERED, not how it would be monitored.
+   *
+   * Under ping-first polling (issue #3562) every discovered host imports as a
+   * probe-polled device — a ping-only host is a first-class device now, not a
+   * monitor-backed stub. So `monitoringMethodForDiscoveredHost` is a constant
+   * and cannot express this question; only `isPingOnlyDiscoveredHost` can.
+   * The gate itself is unchanged and still default-closed: an SNMP credential
+   * typo makes a whole subnet report as ping-only, and a rule silently
+   * importing hundreds of half-identified hosts on that typo is the failure
+   * mode it exists to prevent.
+   */
   describe("the ping-only gate", () => {
-    /*
-     * An SNMP credential typo makes a whole subnet report as ping-only; a
-     * rule silently importing hundreds of half-identified hosts on that typo
-     * is the failure mode the default-closed gate exists to prevent.
-     */
     it("does not let an import rule claim a ping-only host by default", () => {
       expect(
         AutoImportRuleMatcher.ruleMatchesHost(
@@ -393,6 +400,49 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
           host({ snmpReachable: false }),
         ),
       ).toBe(false);
+    });
+
+    /*
+     * The regression, stated as the fact it depends on. The gate briefly ran
+     * off the imported monitoring method, which now answers Probe for every
+     * host — so it never fired at all and the default-closed gate was open
+     * for the whole fleet. This pins it to the host's own SNMP answer: two
+     * hosts identical in every field the rule matches on, differing only in
+     * `snmpReachable`, must be claimed differently.
+     */
+    it("keys on the host's SNMP answer, not on the method it would import under", () => {
+      const rule: AutoImportRuleCandidate = { ipMatchTarget: "10.0.0.0/24" };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ snmpReachable: true }),
+        ),
+      ).toBe(true);
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ snmpReachable: false }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * And through the whole rule set, which is the surface the engine and the
+     * dry-run dialog actually call: a ping-only host does not import at all
+     * on a rule that never opted in.
+     */
+    it("leaves a ping-only host unimported by an evaluation that did not opt in", () => {
+      const evaluation: AutoImportHostEvaluation =
+        AutoImportRuleMatcher.evaluateHost(
+          [{ ipMatchTarget: "10.0.0.0/24" }],
+          host({ snmpReachable: false }),
+        );
+
+      expect(evaluation.shouldImport).toBe(false);
+      expect(evaluation.matchedRules).toEqual([]);
+      // Not a veto — nothing claimed it, which reads differently in a dry run.
+      expect(evaluation.excludedByRule).toBeUndefined();
     });
 
     it("lets an import rule claim a ping-only host after the explicit opt-in", () => {

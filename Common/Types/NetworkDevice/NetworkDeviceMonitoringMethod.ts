@@ -1,39 +1,54 @@
 /*
  * How a NetworkDevice's health is established.
  *
- * The network product was built around SNMP: a device is a thing an assigned
- * probe walks on a schedule, and everything downstream — the status pill, the
- * site rollup, the topology map — reads freshness off `lastSeenAt`, which only
- * a successful walk ever stamps.
+ * A device is the unit; reachability is a built-in capability of every device
+ * a probe polls, and SNMP is an enrichment layered on top when credentials
+ * exist. That is what `Probe` means: the assigned probe pings the device on
+ * its own schedule, and walks it over SNMP as well whenever it has usable
+ * credentials (its own, or through a credential profile). A device with no
+ * credentials is simply pinged — it still has a status from its first poll,
+ * still belongs to a site, still appears on the map.
  *
- * Plenty of real gear cannot be walked. Consumer APs, PDUs, cameras, anything
- * with SNMP disabled by policy: an operator tracks those with an ordinary Ping
- * or IP monitor. They are as real a part of the network as the switch they
- * hang off, and before this existed they could not be recorded as devices at
- * all — so they were absent from the site hierarchy and from the topology map,
- * which is what issue #3023 is about.
+ * `Monitor` is the override for gear a probe cannot reach at all, or whose
+ * health is better judged by an HTTP or port check: no polling; the bound
+ * Monitor's status IS the device's status, stamped through the same bridge
+ * that stamps every other device.
  *
- * `Monitor` is that second answer: no probe, no credentials, no polling; the
- * bound Monitor's status IS the device's status, stamped through the same
- * bridge that already stamps SNMP devices watched by a Network Device monitor.
+ * HISTORY. The product started SNMP-first: the first value was "SNMP", and
+ * everything that could not be walked had to be `Monitor`-backed, which meant
+ * a Ping monitor per phone and per camera (issue #3023, #3447). Rows written
+ * in that era hold "SNMP" or NULL, and both read as `Probe` — they were
+ * probe-polled devices all along, the probe just did not ping them yet.
  *
  * Stored as free text on the column (the SnmpVersion precedent), so parse it
  * through `NetworkDeviceMonitoringMethodUtil.parse` rather than comparing the
- * raw column: rows written before this existed hold NULL and must read as
- * `Snmp`, which is what they are.
+ * raw column: NULL, "", "SNMP" and anything unrecognised must read as
+ * `Probe`, and defaulting a device into "monitor-backed" would silently stop
+ * it being polled.
  */
 export enum NetworkDeviceMonitoringMethod {
-  // An assigned probe walks the device over SNMP on its own schedule.
-  Snmp = "SNMP",
-  // No polling; a bound Monitor (Ping, IP, Port, ...) reports its health.
+  /*
+   * The assigned probe pings the device on its schedule, and walks it over
+   * SNMP as well whenever it has usable credentials.
+   */
+  Probe = "Probe",
+  // No polling; a bound Monitor (Ping, IP, Port, HTTP, ...) reports its health.
   Monitor = "Monitor",
 }
 
+/*
+ * The value every device written before ping-first polling carries. Kept as
+ * a named constant for the parser, the normalising data migration and tests;
+ * it is not a value the product writes any more.
+ */
+export const LEGACY_SNMP_MONITORING_METHOD: string = "SNMP";
+
 export class NetworkDeviceMonitoringMethodUtil {
   /*
-   * NULL, empty and anything unrecognised read as Snmp — that is what every
-   * device created before this column existed is, and defaulting a device
-   * into "monitor-backed" would silently stop it being polled.
+   * NULL, empty, the legacy "SNMP" and anything unrecognised read as Probe —
+   * that is what every device created before this column (or before
+   * ping-first polling) is, and defaulting a device into "monitor-backed"
+   * would silently stop it being polled.
    */
   public static parse(
     value: string | undefined | null,
@@ -41,7 +56,7 @@ export class NetworkDeviceMonitoringMethodUtil {
     if ((value || "").trim().toLowerCase() === "monitor") {
       return NetworkDeviceMonitoringMethod.Monitor;
     }
-    return NetworkDeviceMonitoringMethod.Snmp;
+    return NetworkDeviceMonitoringMethod.Probe;
   }
 
   public static isMonitorBacked(value: string | undefined | null): boolean {
@@ -49,6 +64,11 @@ export class NetworkDeviceMonitoringMethodUtil {
       NetworkDeviceMonitoringMethodUtil.parse(value) ===
       NetworkDeviceMonitoringMethod.Monitor
     );
+  }
+
+  /** The complement of isMonitorBacked: the assigned probe polls the device. */
+  public static isProbePolled(value: string | undefined | null): boolean {
+    return !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(value);
   }
 }
 

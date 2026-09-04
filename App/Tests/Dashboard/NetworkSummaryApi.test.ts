@@ -46,6 +46,8 @@ jest.mock("Common/UI/Utils/API/API", () => {
 
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import fs from "fs";
+import path from "path";
 import {
   DeviceSummaryCounts,
   NetworkOverviewSummary,
@@ -652,9 +654,11 @@ describe("fetchNetworkOverview", () => {
   /*
    * The Overview words a down row for what judged it: "Monitor reports
    * offline" for a monitor-backed device, "Last seen …" / "Never answered"
-   * for a polled one. Anything but a literal `true` reads as polled, so an
-   * older server that never sent the flag keeps the SNMP wording it always
-   * had.
+   * for a polled one. Anything but a literal `true` reads as polled, which is
+   * the safe default: the polled wording talks about when the device last
+   * ANSWERED, and that sentence is true of a ping and a walk alike, so an
+   * older server that never sent the flag still gets a row that says
+   * something true.
    */
   test.each([
     [true, true],
@@ -674,6 +678,44 @@ describe("fetchNetworkOverview", () => {
       const parsed: NetworkOverviewSummary = await fetchNetworkOverview();
 
       expect(parsed.attentionDevices[0]!.isMonitorBacked).toBe(expected);
+    },
+  );
+
+  /*
+   * The third flag on an attention row, and the one that exists because a
+   * poll is a PING first: a device that answers ping while its SNMP walk
+   * fails is genuinely reachable, and its interface counts are frozen at
+   * whatever the last successful walk found. The row says "SNMP failing" for
+   * it instead of the port count, which would otherwise be a week-old claim
+   * — often "0 interfaces down", which is true and no help at all.
+   *
+   * Read strictly, like isDown and isMonitorBacked: the string "false" is
+   * truthy in JavaScript, so a loose check would put the amber line on rows
+   * whose walk is perfectly healthy. An older server that never sends the
+   * field reads as false, which is the honest default — most devices are
+   * pinged only and have no walk to fail.
+   */
+  test.each([
+    [true, true],
+    ["true", false],
+    ["false", false],
+    [1, false],
+    [null, false],
+    [undefined, false],
+  ])(
+    "reads isSnmpFailing %p on an attention row as %p",
+    async (raw: unknown, expected: boolean) => {
+      const overview: JSONObject = wellFormedOverview();
+      const rows: Array<JSONObject> = overview[
+        "attentionDevices"
+      ] as Array<JSONObject>;
+      (rows[0] as JSONObject)["isSnmpFailing"] = raw as JSONValue;
+      respondWith(overview);
+
+      const parsed: NetworkOverviewSummary = await fetchNetworkOverview();
+
+      expect(parsed.attentionDevices[0]!.isSnmpFailing).toBe(expected);
+      expect(typeof parsed.attentionDevices[0]!.isSnmpFailing).toBe("boolean");
     },
   );
 
@@ -705,6 +747,13 @@ describe("fetchNetworkOverview", () => {
         isDown: true,
         // Absent from an older server's row reads as "judged by a poll".
         isMonitorBacked: false,
+        /*
+         * ...and absent reads as "the walk is fine". A device is pinged
+         * first and walked only where it has credentials, so most rows have
+         * no walk to be failing; defaulting the other way would print "SNMP
+         * failing" over a fleet that is not walked at all.
+         */
+        isSnmpFailing: false,
       },
     ]);
     expect(overview.attentionSites).toEqual([
@@ -1090,6 +1139,7 @@ describe("fetchNetworkOverview", () => {
         interfacesDown: 3,
         isDown: false,
         isMonitorBacked: false,
+        isSnmpFailing: false,
       },
     ]);
   });
@@ -1199,6 +1249,7 @@ describe("fetchNetworkOverview", () => {
       "interfacesDown",
       "isDown",
       "isMonitorBacked",
+      "isSnmpFailing",
       "lastSeenAt",
       "name",
     ]);
@@ -1209,5 +1260,195 @@ describe("fetchNetworkOverview", () => {
       "statusColor",
       "statusName",
     ]);
+  });
+});
+
+/*
+ * The three lines an attention row can print, and which of them wins.
+ *
+ * The Overview's card lists unreachable devices first, then devices whose
+ * SNMP walk is failing, then devices with dark ports, and each row prints ONE
+ * line: the down wording, "SNMP failing", or "N interfaces down". The three
+ * flags behind that choice all come out of this module, and the two failure
+ * modes are both silent. A row that lost `isDown` would say "0 interfaces
+ * down" about a device that is off. A row that lost `isSnmpFailing` would say
+ * the same about a device whose walk broke a week ago — the counts are frozen
+ * at the last successful walk, so the number is not even current.
+ *
+ * So this pins two things: that the reader hands the page three INDEPENDENT
+ * flags (one arriving never clears another), and that the page still consults
+ * them in the order the model below assumes. The model mirrors the ternary
+ * chain in Pages/NetworkDevice/Overview.tsx; the source check underneath it is
+ * what stops the mirror going stale if that chain is ever reordered.
+ */
+describe("the attention row's three mutually exclusive lines", () => {
+  type AttentionLine =
+    | "monitor-offline"
+    | "last-seen"
+    | "never-answered"
+    | "snmp-failing"
+    | "interfaces-down";
+
+  type AttentionLineFunction = (
+    device: OverviewAttentionDevice,
+  ) => AttentionLine;
+
+  const attentionLine: AttentionLineFunction = (
+    device: OverviewAttentionDevice,
+  ): AttentionLine => {
+    if (device.isDown) {
+      if (device.isMonitorBacked) {
+        return "monitor-offline";
+      }
+
+      return device.lastSeenAt ? "last-seen" : "never-answered";
+    }
+
+    if (device.isSnmpFailing) {
+      return "snmp-failing";
+    }
+
+    return "interfaces-down";
+  };
+
+  async function readRow(entry: JSONObject): Promise<OverviewAttentionDevice> {
+    respondWith({ attentionDevices: [entry] });
+
+    const overview: NetworkOverviewSummary = await fetchNetworkOverview();
+
+    return overview.attentionDevices[0]!;
+  }
+
+  /*
+   * Down wins. The server only sets isSnmpFailing on a device the shared rule
+   * calls Up, so the two together should never arrive — but a row that
+   * carried both must still read as down: "SNMP failing" beside a device that
+   * is switched off sends its operator to check credentials on a box that
+   * cannot answer anything.
+   */
+  test("a down device stays down even if the walk flag arrives with it", async () => {
+    const device: OverviewAttentionDevice = await readRow({
+      _id: "a",
+      isDown: true,
+      isSnmpFailing: true,
+      lastSeenAt: "2026-08-20T10:00:00.000Z",
+    });
+
+    expect(device.isDown).toBe(true);
+    expect(device.isSnmpFailing).toBe(true);
+    expect(attentionLine(device)).toBe("last-seen");
+  });
+
+  /*
+   * A monitor-backed device has no poll and no lastSeenAt, so the down line
+   * has to come from isMonitorBacked rather than from the missing timestamp —
+   * "Never answered" beside a Ping monitor that just reported it offline is
+   * the wrong sentence about the right device.
+   */
+  test("a monitor-backed down device is worded from its monitor, not its empty poll columns", async () => {
+    const device: OverviewAttentionDevice = await readRow({
+      _id: "a",
+      isDown: true,
+      isMonitorBacked: true,
+    });
+
+    expect(device.lastSeenAt).toBeNull();
+    expect(attentionLine(device)).toBe("monitor-offline");
+  });
+
+  /*
+   * The state the flag was added for: reachable, zero interfaces recorded
+   * down, and a broken walk. Without the flag this row prints "0 interfaces
+   * down" — which is what the page has to say about it otherwise, and says
+   * nothing about why it is on a list of devices needing attention.
+   */
+  test("an up device with a failing walk says so instead of counting ports", async () => {
+    const device: OverviewAttentionDevice = await readRow({
+      _id: "a",
+      isDown: false,
+      isSnmpFailing: true,
+      interfacesDown: 0,
+    });
+
+    expect(attentionLine(device)).toBe("snmp-failing");
+  });
+
+  /*
+   * ...and a device whose walk is fine falls through to the port count, even
+   * when the walk flag is present and false. The counts on that row were
+   * collected by a walk that succeeded, so the number is current.
+   */
+  test("an up device with a healthy walk falls through to its interface count", async () => {
+    const device: OverviewAttentionDevice = await readRow({
+      _id: "a",
+      isDown: false,
+      isSnmpFailing: false,
+      interfacesDown: 3,
+    });
+
+    expect(attentionLine(device)).toBe("interfaces-down");
+    expect(device.interfacesDown).toBe(3);
+  });
+
+  /*
+   * Every combination resolves to exactly one line, including the ones the
+   * server does not currently produce — the reader is a boundary, and a row
+   * it cannot classify would render as a blank right-hand column.
+   */
+  test("every combination of the three flags resolves to one line", async () => {
+    for (const isDown of [true, false]) {
+      for (const isMonitorBacked of [true, false]) {
+        for (const isSnmpFailing of [true, false]) {
+          const device: OverviewAttentionDevice = await readRow({
+            _id: "a",
+            isDown: isDown,
+            isMonitorBacked: isMonitorBacked,
+            isSnmpFailing: isSnmpFailing,
+            interfacesDown: 2,
+          });
+
+          expect(attentionLine(device)).toBeTruthy();
+          expect(device.isDown).toBe(isDown);
+          expect(device.isMonitorBacked).toBe(isMonitorBacked);
+          expect(device.isSnmpFailing).toBe(isSnmpFailing);
+        }
+      }
+    }
+  });
+
+  /*
+   * The anchor for the model above. The App suite has no React renderer, so
+   * the page's branch order is asserted against its source the way
+   * DeviceStatusSurfaceInvariants and NetworkDeviceStatusCopyInvariants do —
+   * whitespace squashed first, so prettier re-wrapping the JSX cannot fail
+   * this for the wrong reason.
+   */
+  test("the Overview card branches on down, then the walk, then the ports", () => {
+    const overviewSource: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Pages",
+          "NetworkDevice",
+          "Overview.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, " ");
+
+    const downAt: number = overviewSource.indexOf("device.isDown ?");
+    const snmpAt: number = overviewSource.indexOf("device.isSnmpFailing ?");
+    const interfacesAt: number = overviewSource.indexOf(
+      "{device.interfacesDown} interface",
+    );
+
+    expect(downAt).toBeGreaterThan(-1);
+    expect(snmpAt).toBeGreaterThan(downAt);
+    expect(interfacesAt).toBeGreaterThan(snmpAt);
   });
 });

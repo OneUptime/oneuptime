@@ -154,7 +154,7 @@ OneUptime предоставляет шаблоны для типовых сце
 - `resource.container.id` — полный идентификатор контейнера
 - `resource.container.runtime` — всегда `docker`
 - `attributes["log.iostream"]` — `stdout` или `stderr`
-- `severityText` / `severityNumber` — определяется по потоку: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — считывается из ключевого слова уровня в строке (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); строки без распознаваемого уровня используют поток: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — необработанная строка журнала, выведенная процессом контейнера
 - `time` — временная метка Docker daemon для данной строки
 

@@ -1,8 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
+import NetworkAlertPolicyEngineService from "./NetworkAlertPolicyEngineService";
+import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
+import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
+import NetworkAlertPolicy from "../../Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkDeviceAutoImportRule from "../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -106,6 +112,170 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A template that something PROVISIONS FROM cannot be deleted.
+   *
+   * Both foreign keys pointing here are ON DELETE SET NULL, so without this
+   * guard the delete succeeds and the damage is silent and deferred:
+   *
+   *   - A NETWORK ALERT POLICY loses its template and stops provisioning.
+   *     Its existing monitors stay (they are the fleet's incident history)
+   *     but nothing new is ever covered, and the settings table shows a
+   *     policy that looks live and is not. The operator finds out when a
+   *     switch they added last month turns out never to have been alerted
+   *     on. There is no undo either: pointing the policy at a replacement
+   *     template makes the engine tear the old fleet down and re-clone it.
+   *   - An AUTO-IMPORT RULE loses its template and quietly imports devices
+   *     with no monitor at all, which is the same failure one scan later.
+   *
+   * So the delete is refused, by name and by count, and the operator is
+   * told which thing to detach first. This is the same contract
+   * NetworkDeviceOidTemplateService.onBeforeDelete enforces for OID
+   * templates, and it is the reason the policy's SET NULL branch is a
+   * backstop rather than a path anything takes on purpose.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const templatesToDelete: Array<Model> = await this.findBy({
+      /*
+       * This hook runs BEFORE DatabaseService permission-checks the query, so
+       * a raw isRoot read of deleteBy.query would hand back other tenants'
+       * templates — and their policy names in the refusal message with them.
+       */
+      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
+      select: {
+        _id: true,
+        templateName: true,
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const template of templatesToDelete) {
+      if (!template.id || !template.projectId) {
+        continue;
+      }
+
+      const templateName: string =
+        template.templateName || "This monitor template";
+
+      const policies: Array<NetworkAlertPolicy> =
+        await NetworkAlertPolicyService.findBy({
+          query: {
+            projectId: template.projectId,
+            monitorTemplateId: template.id,
+          },
+          select: {
+            _id: true,
+            name: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (policies.length > 0) {
+        throw new BadDataException(
+          `${templateName} is used by ${policies.length} network alert ${
+            policies.length === 1 ? "policy" : "policies"
+          } (${this.describeNames(
+            policies.map((policy: NetworkAlertPolicy): string => {
+              return policy.name || policy.id?.toString() || "unnamed";
+            }),
+          )}). Point ${
+            policies.length === 1 ? "it" : "them"
+          } at another template, or delete ${
+            policies.length === 1 ? "it" : "them"
+          }, before deleting this template.`,
+        );
+      }
+
+      const rules: Array<NetworkDeviceAutoImportRule> =
+        await NetworkDeviceAutoImportRuleService.findBy({
+          query: {
+            projectId: template.projectId,
+            monitorTemplateId: template.id,
+          },
+          select: {
+            _id: true,
+            name: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (rules.length > 0) {
+        throw new BadDataException(
+          `${templateName} is used by ${rules.length} network device auto-import ${
+            rules.length === 1 ? "rule" : "rules"
+          } (${this.describeNames(
+            rules.map((rule: NetworkDeviceAutoImportRule): string => {
+              return rule.name || rule.id?.toString() || "unnamed";
+            }),
+          )}). Clear it from ${
+            rules.length === 1 ? "that rule" : "those rules"
+          } before deleting this template, or devices they import will have no monitor.`,
+        );
+      }
+    }
+
+    return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * See NetworkSiteService for the full explanation: hooks run before
+   * ModelPermission scopes the caller's query, so anything a hook reads with
+   * isRoot has to be re-scoped by hand or it spans projects.
+   */
+  private scopeQueryToCallerTenant(
+    query: Query<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): Query<Model> {
+    if (props.isRoot || !props.tenantId) {
+      return query;
+    }
+
+    return {
+      ...query,
+      projectId: props.tenantId,
+    };
+  }
+
+  /*
+   * "Warehouse switches", "Warehouse switches and Core routers",
+   * "Warehouse switches, Core routers and 3 more" — enough for the operator
+   * to recognise what they have to detach, without pasting a hundred names
+   * into a toast.
+   */
+  private describeNames(names: Array<string>): string {
+    const MAX_NAMED: number = 3;
+
+    if (names.length <= MAX_NAMED) {
+      if (names.length === 1) {
+        return names[0] as string;
+      }
+
+      return `${names.slice(0, names.length - 1).join(", ")} and ${
+        names[names.length - 1]
+      }`;
+    }
+
+    return `${names.slice(0, MAX_NAMED).join(", ")} and ${
+      names.length - MAX_NAMED
+    } more`;
   }
 
   /**
@@ -319,6 +489,13 @@ export class Service extends DatabaseService<Model> {
         });
       }
 
+      await this.stampPolicyTemplateSync({
+        monitorTemplateId: template.id!,
+        projectId: template.projectId,
+        totalLinkedMonitors,
+        syncedMonitors,
+      });
+
       return { totalLinkedMonitors, syncedMonitors };
     }
 
@@ -391,10 +568,49 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    await this.stampPolicyTemplateSync({
+      monitorTemplateId: template.id!,
+      projectId: template.projectId,
+      totalLinkedMonitors,
+      syncedMonitors,
+    });
+
     return {
       totalLinkedMonitors,
       syncedMonitors,
     };
+  }
+
+  /*
+   * "Template Synced" on the alert-policies table means one thing: every
+   * monitor the policy owns is running the template's current
+   * configuration. This push is what makes that true, so this is where the
+   * column is stamped — not in the policy engine, which reconciles the
+   * device SET and has no opinion about a criteria edit that left the set
+   * unchanged.
+   *
+   * Only stamped when the push reached EVERY linked monitor. A caller whose
+   * label scopes hide half the fleet has synced half the fleet, and a date
+   * against that would read as "your criteria edit has landed" when it has
+   * landed on some of the devices.
+   */
+  private async stampPolicyTemplateSync(data: {
+    monitorTemplateId: ObjectID;
+    projectId: ObjectID;
+    totalLinkedMonitors: number;
+    syncedMonitors: number;
+  }): Promise<void> {
+    if (
+      data.syncedMonitors <= 0 ||
+      data.syncedMonitors < data.totalLinkedMonitors
+    ) {
+      return;
+    }
+
+    await NetworkAlertPolicyEngineService.onMonitorTemplateSynced({
+      monitorTemplateId: data.monitorTemplateId,
+      projectId: data.projectId,
+    });
   }
 
   /**

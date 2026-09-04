@@ -154,7 +154,7 @@ OneUptime 为常见的 Docker 监控场景提供模板：
 - `resource.container.id` — 完整的容器 ID
 - `resource.container.runtime` — 始终为 `docker`
 - `attributes["log.iostream"]` — `stdout` 或 `stderr`
-- `severityText` / `severityNumber` — 从流中派生：`stderr` → `ERROR`，`stdout` → `INFO`
+- `severityText` / `severityNumber` — 从行中的级别关键字读取（`app.INFO:`、`{"level":"warn"}`、`[ERROR]`）；没有可识别级别的行回退到流：`stderr` → `ERROR`，`stdout` → `INFO`
 - `body` — 容器进程输出的原始日志行
 - `time` — Docker 守护进程对该行的时间戳
 

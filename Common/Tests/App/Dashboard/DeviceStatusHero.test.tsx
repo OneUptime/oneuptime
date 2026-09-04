@@ -28,7 +28,9 @@ import { MemoryRouter } from "react-router-dom";
  * one under Settings. A BOUND monitor-backed device that has simply not been
  * evaluated yet gets none of that: it reads "Pending" with a different
  * tooltip, its caption credits the monitor, and the tile says "Not
- * monitored". An SNMP device keeps the poll vocabulary.
+ * monitored". A probe-polled device keeps the poll vocabulary, and has its own
+ * never-resolving Pending — no probe assigned, or polling switched off —
+ * qualified by "No probe" rather than by anything about binding.
  *
  * Until now every one of those sentences was pinned by a source-text match
  * (DeviceStatusSurfaceInvariants, NetworkDeviceStatusCopyInvariants) plus a
@@ -70,6 +72,8 @@ import DeviceStatusHero from "../../../../App/FeatureSet/Dashboard/src/Component
 import {
   BOUND_MONITOR_PENDING_TOOLTIP,
   NO_MONITOR_QUALIFIER,
+  NO_PROBE_QUALIFIER,
+  SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -94,11 +98,17 @@ const DEVICE_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
+const PROBE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
-/** The three columns that decide everything under test, nothing else set. */
+/** The columns that decide everything under test, nothing else set. */
 function device(data: {
   monitoringMethod: string | undefined;
   monitorId?: ObjectID | undefined;
+  probeId?: ObjectID | undefined;
+  isPollingEnabled?: boolean | undefined;
+  isReachable?: boolean | undefined;
+  isSnmpReachable?: boolean | undefined;
+  polledJustNow?: boolean | undefined;
   status?: { name: string; isOfflineState: boolean } | undefined;
 }): NetworkDevice {
   const row: NetworkDevice = new NetworkDevice();
@@ -112,6 +122,40 @@ function device(data: {
 
   if (data.monitorId) {
     row.monitorId = data.monitorId;
+  }
+
+  if (data.probeId) {
+    row.probeId = data.probeId;
+  }
+
+  if (data.isPollingEnabled !== undefined) {
+    row.isPollingEnabled = data.isPollingEnabled;
+  }
+
+  if (data.isReachable !== undefined) {
+    row.isReachable = data.isReachable;
+  }
+
+  /*
+   * `isSnmpReachable` left unset is the NULL the column carries when no walk
+   * was attempted — a ping-only device — and it is a different state from
+   * `false`, which is a walk that ran and failed.
+   */
+  if (data.isSnmpReachable !== undefined) {
+    row.isSnmpReachable = data.isSnmpReachable;
+  }
+
+  /*
+   * A poll that has just happened, so the shared rule's stale window cannot
+   * expire and add an amber pill the assertions below do not expect.
+   */
+  if (data.polledJustNow) {
+    const now: Date = new Date();
+    row.lastPolledAt = now;
+
+    if (data.isReachable) {
+      row.lastSeenAt = now;
+    }
   }
 
   if (data.status) {
@@ -138,9 +182,24 @@ function boundQuietMonitorBackedDevice(): NetworkDevice {
   });
 }
 
-/** (c) SNMP by way of the NULL column, never polled. */
-function neverPolledSnmpDevice(): NetworkDevice {
-  return device({ monitoringMethod: undefined });
+/**
+ * (c) Probe-polled by way of the NULL column — the legacy spelling parses to
+ * Probe — with a probe assigned and polling on, and no poll reported yet.
+ */
+function neverPolledProbeDevice(): NetworkDevice {
+  return device({
+    monitoringMethod: undefined,
+    probeId: PROBE_ID,
+    isPollingEnabled: true,
+  });
+}
+
+/**
+ * (e) Probe-polled with NO probe assigned: the Pending that never resolves by
+ * itself on this kind of device, the way an unbound monitor-backed one is.
+ */
+function unpolledProbeDevice(): NetworkDevice {
+  return device({ monitoringMethod: NetworkDeviceMonitoringMethod.Probe });
 }
 
 /** (d) Monitor-backed, bound, and the monitor has reported. */
@@ -188,9 +247,31 @@ function linkHref(text: string): string {
   return anchor!.getAttribute("href") || "";
 }
 
+/**
+ * The pill carrying this text. Scoped to `[data-testid="pill"]` rather than
+ * matched on text anywhere in the hero, because "No probe" is also the "Polled
+ * By" tile's empty state — the qualifier and the tile say the same two words
+ * about two different things, and a bare text query would find both.
+ */
+function pillNamed(pillText: string): HTMLElement {
+  const pill: HTMLElement | undefined = Array.from(
+    screen
+      .getByTestId("device-status-hero")
+      .querySelectorAll<HTMLElement>('[data-testid="pill"]'),
+  ).find((candidate: HTMLElement): boolean => {
+    return (candidate.textContent || "").trim() === pillText;
+  });
+
+  if (!pill) {
+    throw new Error(`No pill reading "${pillText}" was rendered.`);
+  }
+
+  return pill;
+}
+
 /** Hover a pill and return the text of every tooltip tippy has mounted. */
 function tooltipsAfterHovering(pillText: string): Array<string> {
-  fireEvent.mouseEnter(screen.getByText(pillText));
+  fireEvent.mouseEnter(pillNamed(pillText));
 
   return screen.getAllByRole("tooltip").map((tooltip: HTMLElement): string => {
     return tooltip.textContent || "";
@@ -317,13 +398,22 @@ describe("the device Overview status hero", () => {
     });
   });
 
-  describe("an SNMP device that has never been polled", () => {
-    test("reads Pending in the poll vocabulary, with no binding qualifier", async () => {
-      await renderHero(neverPolledSnmpDevice());
+  describe("a probe-polled device that has never been polled", () => {
+    /*
+     * A probe IS assigned here and polling is on, so the poll is coming: the
+     * verdict stands alone. Both qualifiers have to stay off — "No monitor"
+     * because nothing is meant to be bound to a probe-polled device, and "No
+     * probe" because a device that is merely waiting for its first cycle is
+     * not a device nothing can reach.
+     */
+    test("reads Pending in the poll vocabulary, with no qualifier beside it", async () => {
+      await renderHero(neverPolledProbeDevice());
 
+      /*
+       * The equality is the assertion: it says the verdict stands alone, so
+       * neither qualifier and no "Stale" pill can appear beside it.
+       */
       expect(pillTexts()).toEqual(["Pending"]);
-      expect(screen.queryByText(NO_MONITOR_QUALIFIER.text)).toBeNull();
-      expect(screen.queryByText("Stale")).toBeNull();
 
       expect(screen.getByText("Never answered a poll")).toBeInTheDocument();
       expect(
@@ -340,7 +430,7 @@ describe("the device Overview status hero", () => {
     });
 
     test("explains Pending as a poll that has not happened", async () => {
-      await renderHero(neverPolledSnmpDevice());
+      await renderHero(neverPolledProbeDevice());
 
       const tooltips: Array<string> = tooltipsAfterHovering("Pending");
 
@@ -351,12 +441,133 @@ describe("the device Overview status hero", () => {
   });
 
   /*
-   * The qualifier is decided from `monitorId`, and the verdict from
-   * `monitoringMethod` and the nested status. A hero that stopped selecting
-   * any of them would not fail to render — it would render "No monitor" on
-   * every monitor-backed device, or "Pending" on every one of them.
+   * The probe-polled counterpart of the unbound monitor-backed case, and the
+   * reason it needs its own pill: every device is pinged by its probe now, so
+   * "Pending" on a device with no probe is not "the first cycle has not run" —
+   * it is "no cycle will ever run", and the operator has to be told which of
+   * the two they are looking at. The way out is a probe, never a monitor, so
+   * the binding vocabulary must stay off this device entirely.
    */
-  test("selects the columns the qualifier and the verdict are decided from", async () => {
+  describe("a probe-polled device with no probe assigned", () => {
+    test("reads Pending with the No probe qualifier, and nothing about binding", async () => {
+      await renderHero(unpolledProbeDevice());
+
+      expect(pillTexts()).toEqual(["Pending", NO_PROBE_QUALIFIER.text]);
+      expect(screen.queryByText("No monitor bound")).toBeNull();
+      expect(screen.queryByText("Create Ping monitor")).toBeNull();
+      expect(screen.queryByText("Bind a monitor")).toBeNull();
+    });
+
+    test("says assigning a probe is what starts the pinging", async () => {
+      await renderHero(unpolledProbeDevice());
+
+      expect(tooltipsAfterHovering(NO_PROBE_QUALIFIER.text)).toContain(
+        NO_PROBE_QUALIFIER.tooltip,
+      );
+    });
+
+    /*
+     * Switching polling off reaches the same dead end by the other door, and
+     * the hero has to say so: a device nobody polls on purpose still reads
+     * Pending forever, and an operator who does not see the qualifier goes
+     * looking for a probe that is already assigned.
+     */
+    test("says the same when a probe is assigned but polling is switched off", async () => {
+      await renderHero(
+        device({
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+          probeId: PROBE_ID,
+          isPollingEnabled: false,
+        }),
+      );
+
+      expect(pillTexts()).toEqual(["Pending", NO_PROBE_QUALIFIER.text]);
+    });
+  });
+
+  /*
+   * The reason the walk needs a pill of its own. Ping and SNMP are two
+   * separate questions about a probe-polled device now: reachability is "ping
+   * answered OR the walk succeeded", so a device whose credentials are wrong
+   * answers ping and is CORRECTLY Up — while its interfaces, inventory and
+   * health OIDs quietly stop being refreshed. Without the qualifier the only
+   * signal is a green pill and numbers that never change.
+   */
+  describe("a probe-polled device that answers ping while its walk fails", () => {
+    function pingingButNotWalking(): NetworkDevice {
+      return device({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        probeId: PROBE_ID,
+        isPollingEnabled: true,
+        isReachable: true,
+        isSnmpReachable: false,
+        polledJustNow: true,
+      });
+    }
+
+    test("stays Up, and says so with SNMP failing beside it rather than a red pill", async () => {
+      await renderHero(pingingButNotWalking());
+
+      expect(pillTexts()).toEqual(["Up", SNMP_FAILING_QUALIFIER.text]);
+      expect(tooltipsAfterHovering(SNMP_FAILING_QUALIFIER.text)).toContain(
+        SNMP_FAILING_QUALIFIER.tooltip,
+      );
+    });
+
+    test("the SNMP line names the walk as what is broken", async () => {
+      await renderHero(pingingButNotWalking());
+
+      expect(
+        screen.getByTestId("device-status-hero-snmp").textContent,
+      ).toContain("Failing");
+    });
+  });
+
+  /*
+   * The other half of that split, and the one the ping-first change exists
+   * for: a device with no credentials is pinged and never walked, so its
+   * `isSnmpReachable` is NULL rather than false. Calling that "SNMP failing"
+   * would send its operator hunting for credentials on a device nobody ever
+   * decided to walk — the hero says it is not configured instead, and points
+   * at where to configure it.
+   */
+  describe("a probe-polled device that is pinged and never walked", () => {
+    function pingOnly(): NetworkDevice {
+      return device({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        probeId: PROBE_ID,
+        isPollingEnabled: true,
+        isReachable: true,
+        polledJustNow: true,
+      });
+    }
+
+    test("reads Up alone — a device nobody walks is never SNMP failing", async () => {
+      await renderHero(pingOnly());
+
+      expect(pillTexts()).toEqual(["Up"]);
+    });
+
+    test("the SNMP line offers credentials instead of reporting a failure", async () => {
+      await renderHero(pingOnly());
+
+      const snmpLine: string =
+        screen.getByTestId("device-status-hero-snmp").textContent || "";
+
+      expect(snmpLine).toContain("Not configured");
+      expect(snmpLine).not.toContain("Failing");
+    });
+  });
+
+  /*
+   * "No monitor" is decided from `monitorId`, "No probe" from `probeId` and
+   * `isPollingEnabled`, and the verdict from `monitoringMethod` and the nested
+   * status. A hero that stopped selecting any of them would not fail to
+   * render — an unselected column arrives undefined, which reads as "not set",
+   * so it would hang "No monitor" on every monitor-backed device and "No
+   * probe" on every probe-polled one however well they are configured.
+   */
+  test("selects the columns the qualifiers and the verdict are decided from", async () => {
     await renderHero(boundReportingMonitorBackedDevice());
 
     expect(getItemRequests).toHaveLength(1);
@@ -365,6 +576,8 @@ describe("the device Overview status hero", () => {
     expect(getItemRequests[0]!.select).toMatchObject({
       monitorId: true,
       monitoringMethod: true,
+      probeId: true,
+      isPollingEnabled: true,
       currentMonitorStatus: {
         name: true,
         color: true,

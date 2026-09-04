@@ -191,12 +191,14 @@ function tallyFleetStatus(data: {
  * The devices worth a human's next click, drawn from the whole fleet rather
  * than from whichever page of it a list fetch happened to return.
  *
- * Two bounded reads instead of one unbounded one: the devices whose last poll
+ * Bounded reads instead of one unbounded one: the devices whose last poll
  * failed (and the monitor-backed devices their monitor calls offline), longest
  * silent first — a device that has not answered in a week is likelier to be
- * hard-down than one that missed a single poll — then reachable devices
- * carrying dark ports, most ports first. Never-polled devices are excluded:
- * that is onboarding, not an outage.
+ * hard-down than one that missed a single poll — then reachable devices whose
+ * SNMP walk is failing (they answer ping, so they are Up, but their
+ * interfaces and inventory have stopped refreshing, which is almost always
+ * credentials), then reachable devices carrying dark ports, most ports first.
+ * Never-polled devices are excluded: that is onboarding, not an outage.
  *
  * Each read asks for exactly the number of rows the list shows, and the shared
  * reachability rule then confirms each candidate — SQL narrows, it does not
@@ -212,8 +214,10 @@ async function getDevicesNeedingAttention(data: {
     _id: boolean;
     name: boolean;
     isReachable: boolean;
+    isSnmpReachable: boolean;
     lastPolledAt: boolean;
     lastSeenAt: boolean;
+    lastSnmpSeenAt: boolean;
     pollingIntervalInMinutes: boolean;
     monitoringMethod: boolean;
     interfacesDown: boolean;
@@ -222,8 +226,10 @@ async function getDevicesNeedingAttention(data: {
     _id: true,
     name: true,
     isReachable: true,
+    isSnmpReachable: true,
     lastPolledAt: true,
     lastSeenAt: true,
+    lastSnmpSeenAt: true,
     pollingIntervalInMinutes: true,
     monitoringMethod: true,
     interfacesDown: true,
@@ -300,12 +306,45 @@ async function getDevicesNeedingAttention(data: {
         })
       : Promise.resolve([]);
 
+  /*
+   * Reachable — ping answers — but the last SNMP walk failed. Longest since a
+   * successful walk first (`ASC` is NULLS LAST, so a device whose walk has
+   * never once succeeded sorts behind one that broke last week; the
+   * misconfigured-from-day-one case is the less urgent of the two, and the
+   * read is bounded either way).
+   */
+  const snmpFailingPromise: Promise<Array<NetworkDevice>> =
+    NetworkDeviceService.findBy({
+      query: {
+        projectId: data.projectId,
+        isArchived: false,
+        isReachable: true,
+        isSnmpReachable: false,
+      },
+      select: selectColumns,
+      sort: {
+        lastSnmpSeenAt: SortOrder.Ascending,
+      },
+      limit: ATTENTION_LIST_LIMIT,
+      skip: 0,
+      props: data.props,
+    });
+
+  /*
+   * Up with dark ports. `isSnmpReachable` must not be false: a failing walk
+   * leaves the interface counts frozen at whatever the last successful walk
+   * found, so "3 interfaces down" on such a device is a week-old claim, and
+   * the row belongs in the SNMP-failing read above instead. NULL is let
+   * through — a row written before the column existed still carries counts
+   * a walk really did collect.
+   */
   const degradedPromise: Promise<Array<NetworkDevice>> =
     NetworkDeviceService.findBy({
       query: {
         projectId: data.projectId,
         isArchived: false,
         isReachable: true,
+        isSnmpReachable: QueryHelper.equalToOrNull("true"),
         interfacesDown: QueryHelper.greaterThan(0),
       },
       select: selectColumns,
@@ -317,7 +356,8 @@ async function getDevicesNeedingAttention(data: {
       props: data.props,
     });
 
-  const [neverAnswered, unreachable, monitorOffline, degraded]: [
+  const [neverAnswered, unreachable, monitorOffline, snmpFailing, degraded]: [
+    Array<NetworkDevice>,
     Array<NetworkDevice>,
     Array<NetworkDevice>,
     Array<NetworkDevice>,
@@ -326,6 +366,7 @@ async function getDevicesNeedingAttention(data: {
     neverAnsweredPromise,
     unreachablePromise,
     monitorOfflinePromise,
+    snmpFailingPromise,
     degradedPromise,
   ]);
 
@@ -346,6 +387,26 @@ async function getDevicesNeedingAttention(data: {
           : undefined,
       },
       data.now,
+    );
+  };
+
+  /*
+   * The same predicate the device list's "SNMP failing" pill uses: a
+   * probe-polled device the shared rule calls Up whose last walk failed. A
+   * monitor-backed device is never walked, so its column is NULL and it can
+   * never be this.
+   */
+  type IsSnmpFailingFunction = (device: NetworkDevice) => boolean;
+
+  const isSnmpFailing: IsSnmpFailingFunction = (
+    device: NetworkDevice,
+  ): boolean => {
+    return (
+      !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        device.monitoringMethod,
+      ) &&
+      device.isSnmpReachable === false &&
+      classify(device) === NetworkDeviceReachability.Up
     );
   };
 
@@ -375,6 +436,19 @@ async function getDevicesNeedingAttention(data: {
     );
   });
 
+  const snmpFailingDevices: Array<NetworkDevice> = snmpFailing.filter(
+    (device: NetworkDevice): boolean => {
+      const deviceId: string | undefined = device.id?.toString();
+
+      if (!deviceId || seenDeviceIds.has(deviceId) || !isSnmpFailing(device)) {
+        return false;
+      }
+
+      seenDeviceIds.add(deviceId);
+      return true;
+    },
+  );
+
   const degradedDevices: Array<NetworkDevice> = degraded.filter(
     (device: NetworkDevice): boolean => {
       const deviceId: string | undefined = device.id?.toString();
@@ -387,7 +461,7 @@ async function getDevicesNeedingAttention(data: {
     },
   );
 
-  return [...downDevices, ...degradedDevices]
+  return [...downDevices, ...snmpFailingDevices, ...degradedDevices]
     .slice(0, ATTENTION_LIST_LIMIT)
     .map((device: NetworkDevice): JSONObject => {
       return {
@@ -400,13 +474,19 @@ async function getDevicesNeedingAttention(data: {
         isDown: classify(device) === NetworkDeviceReachability.Down,
         /*
          * So the Overview can word the row for what actually judged it: a
-         * monitor-backed device has no "last SNMP poll" and no lastSeenAt,
-         * and "Never answered" is the wrong thing to print beside a Ping
+         * monitor-backed device has no "last poll" and no lastSeenAt, and
+         * "Never answered" is the wrong thing to print beside a Ping
          * monitor that just reported it offline.
          */
         isMonitorBacked: NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
           device.monitoringMethod,
         ),
+        /*
+         * ...and so an Up device on this list can say WHY it is here: the
+         * walk is failing, not the ports. Without it the row would print
+         * "0 interfaces down" — true, and no help at all.
+         */
+        isSnmpFailing: isSnmpFailing(device),
       };
     });
 }

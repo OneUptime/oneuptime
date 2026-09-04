@@ -16,7 +16,14 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
@@ -304,7 +311,32 @@ describe("auto-provisioned Monitor lifecycle", () => {
   });
 });
 
+/*
+ * Reads the SQL a QueryHelper operator would emit, so a test can say "this
+ * clause is IS NULL" rather than "this clause is some opaque object".
+ */
+function rawSqlOf(operator: unknown): string {
+  const findOperator: { getSql?: (alias: string) => string } = operator as {
+    getSql?: (alias: string) => string;
+  };
+
+  return findOperator?.getSql
+    ? findOperator.getSql("column")
+    : String(operator);
+}
+
 describe("Network Device deletion with automatic monitors", () => {
+  /*
+   * The delete hook now asks the Network Alert Policy engine to remove the
+   * POLICY-owned monitors of every device in the request, as root, before it
+   * deletes the rest with the caller's own permissions. That engine call
+   * pages MonitorService.findBy; unless a case is about policy monitors, the
+   * answer is "this device has none".
+   */
+  beforeEach(() => {
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
+  });
+
   it("fails closed at the foreign key when a monitor appears after service preflight", () => {
     const provenanceRelation: RelationMetadataArgs | undefined =
       getMetadataArgsStorage().relations.find(
@@ -360,15 +392,30 @@ describe("Network Device deletion with automatic monitors", () => {
 
     expect(deleteMonitorSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {
+        query: expect.objectContaining({
           projectId: PROJECT_ID,
           autoProvisionedNetworkDeviceId: DEVICE_ID,
-        },
+        }),
         props: expect.objectContaining({
           tenantId: PROJECT_ID,
           userId: props.userId,
         }),
       }),
+    );
+
+    /*
+     * ...and ONLY the monitors no alert policy owns. A policy's monitors are
+     * system-managed — the API can neither set nor clear their
+     * networkAlertPolicyId — so requiring the caller's Monitor delete
+     * permission on them would refuse a device delete over rows the caller
+     * never chose to own. The engine removes those as root instead.
+     */
+    const deletedMonitorQuery: Query<Monitor> = (
+      deleteMonitorSpy.mock.calls[0]![0] as { query: Query<Monitor> }
+    ).query;
+
+    expect(rawSqlOf(deletedMonitorQuery.networkAlertPolicyId)).toContain(
+      "IS NULL",
     );
   });
 
@@ -390,6 +437,104 @@ describe("Network Device deletion with automatic monitors", () => {
       props: { tenantId: PROJECT_ID },
     });
 
+    expect(deleteMonitorSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * THE INVARIANT THESE TWO CASES EXIST FOR. Monitor's provenance FK is
+   * RESTRICT, so a policy-owned monitor left behind makes the device delete
+   * fail outright — and those monitors are exactly the ones the operator
+   * never chose individually, because the API cannot write
+   * networkAlertPolicyId at all. They are removed by the engine, as root,
+   * and they never appear in the caller-authorized preflight.
+   */
+  it("removes the device's policy-owned monitors as root", async () => {
+    const policyMonitor: Monitor = automaticMonitor();
+    policyMonitor.networkAlertPolicyId = ObjectID.generate();
+
+    jest
+      .spyOn(ModelPermission, "checkDeleteQueryPermission")
+      .mockImplementation(allowDeleteQuery);
+    jest.spyOn(NetworkDeviceService, "findBy").mockResolvedValue([device()]);
+    // No monitors are left for the caller-permissioned half of the cleanup.
+    jest
+      .spyOn(MonitorService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValueOnce([policyMonitor])
+      .mockResolvedValue([]);
+    const deleteMonitorSpy: SpyInstance<typeof MonitorService.deleteBy> = jest
+      .spyOn(MonitorService, "deleteBy")
+      .mockResolvedValue(1);
+
+    await (NetworkDeviceService as any).onBeforeDelete({
+      query: { _id: DEVICE_ID },
+      limit: 1,
+      skip: 0,
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+    });
+
+    expect(deleteMonitorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: { isRoot: true },
+      }),
+    );
+
+    /*
+     * Still keyed on "a policy owns it" at the moment of the delete, so a
+     * monitor that lost its owner between the page read and the delete is
+     * left to the caller-permissioned half rather than swept up as root.
+     */
+    const policyDeleteQuery: Query<Monitor> = (
+      deleteMonitorSpy.mock.calls[0]![0] as { query: Query<Monitor> }
+    ).query;
+
+    expect(rawSqlOf(policyDeleteQuery.networkAlertPolicyId)).toContain(
+      "IS NOT NULL",
+    );
+  });
+
+  it("does not remove policy monitors until every device has cleared the preflight", async () => {
+    jest
+      .spyOn(ModelPermission, "checkDeleteQueryPermission")
+      .mockImplementation(
+        async (
+          modelType: { new (): BaseModel },
+          query: Query<BaseModel>,
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Query<BaseModel>> => {
+          if ((modelType as unknown) === Monitor) {
+            throw new NotAuthorizedException("no monitor delete");
+          }
+
+          return await allowDeleteQuery(modelType, query, props);
+        },
+      );
+    jest
+      .spyOn(NetworkDeviceService, "findBy")
+      .mockResolvedValue([device(), otherDevice()]);
+    jest
+      .spyOn(MonitorService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const deleteMonitorSpy: SpyInstance<typeof MonitorService.deleteBy> =
+      jest.spyOn(MonitorService, "deleteBy");
+
+    await expect(
+      (NetworkDeviceService as any).onBeforeDelete({
+        query: { _id: DEVICE_ID },
+        limit: 2,
+        skip: 0,
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    /*
+     * Nothing was deleted. A policy's monitors carry the fleet's incident
+     * history, and destroying them for a device that then SURVIVES the
+     * request — because a later device in the same bulk delete was refused —
+     * would be unrecoverable.
+     */
     expect(deleteMonitorSpy).not.toHaveBeenCalled();
   });
 

@@ -75,7 +75,7 @@ type CreatePingMonitorsFormData = {
  * that names the device, says nothing happened, and says why.
  */
 export const SKIPPED_SNMP_DEVICE_MESSAGE: string =
-  "Skipped: this device is polled over SNMP, so it does not use a bound monitor.";
+  "Skipped: this device is probe-polled, so it does not use a bound monitor.";
 
 export const SKIPPED_ALREADY_BOUND_MESSAGE: string =
   "Skipped: a monitor is already bound to this device.";
@@ -360,7 +360,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
    * Offered whenever the selection holds at least one monitor-backed device.
    * An all-SNMP selection would only ever produce a list of "Skipped" rows,
    * so the action is withheld from it; a mixed selection keeps it, because
-   * the monitor-backed devices in it are the point and the SNMP ones are
+   * the monitor-backed devices in it are the point and the probe-polled ones are
    * reported as skipped rather than touched. An empty selection reads as
    * visible, the convention every bulk-action hook here follows - the
    * action bar is not rendered for one anyway.
@@ -424,7 +424,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
            * the device reading Up straight after this is the monitor's
            * starting status, not a verdict.
            */
-          description="Creates a Ping monitor on each selected monitor-backed device's hostname and binds it to the device, so the monitor's status becomes the device's status. Devices that already have a monitor bound are skipped, and so are SNMP devices — a probe polls those. Each monitor counts towards the plan's monitor limit. Incidents are off on these monitors by default, so they move the device's status without paging anyone; turn them on per monitor if you want that."
+          description="Creates a Ping monitor on each selected bound-monitor device's hostname and binds it to the device, so the monitor's status becomes the device's status. Devices that already have a monitor bound are skipped, and so are probe-polled devices — their probe pings them already. Each monitor counts towards the plan's monitor limit. Incidents are off on these monitors by default, so they move the device's status without paging anyone; turn them on per monitor if you want that."
           isLoading={isLoadingProbes}
           onClose={closeModal}
           submitButtonText="Create Ping Monitors"

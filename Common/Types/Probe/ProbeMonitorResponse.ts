@@ -41,6 +41,15 @@ export default interface ProbeMonitorResponse {
   sslResponse?: SslMonitorResponse | undefined;
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
+  /*
+   * For Network Device monitors this is the REAL walk when one ran (success
+   * or failure) and undefined when the poll ran no walk - a device with no
+   * usable SNMP credentials is only pinged. It is never synthesized from the
+   * ping: walk-dependent criteria treat undefined as "not evaluated", and
+   * `isOnline` above carries device reachability (ping OR walk) on its own.
+   * `responseTimeInMs` is the walk's time only; ping RTT and packet loss
+   * travel in `pingResponse`.
+   */
   snmpResponse?: SnmpMonitorResponse | undefined;
   /*
    * Present ONLY on event-driven responses generated when a probe's trap

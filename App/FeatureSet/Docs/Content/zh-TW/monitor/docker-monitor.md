@@ -154,7 +154,7 @@ OneUptime 為常見的 Docker 監控情境提供範本：
 - `resource.container.id`——完整的容器 ID
 - `resource.container.runtime`——永遠為 `docker`
 - `attributes["log.iostream"]`——`stdout` 或 `stderr`
-- `severityText` / `severityNumber`——由串流推導而來：`stderr` → `ERROR`，`stdout` → `INFO`
+- `severityText` / `severityNumber`——從行中的層級關鍵字讀取（`app.INFO:`、`{"level":"warn"}`、`[ERROR]`）；沒有可辨識層級的行則回退至串流：`stderr` → `ERROR`，`stdout` → `INFO`
 - `body`——容器行程所發出的原始日誌行
 - `time`——Docker daemon 為該行記錄的時間戳記
 

@@ -13,6 +13,7 @@ import MetricType from "../../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -22,14 +23,28 @@ import OneUptimeDate from "../../../Types/Date";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
- * Emits device-scoped metrics from each device walk — availability,
- * response time, per-interface status/bandwidth/utilization/errors, and
- * polled health-OID values. Series are keyed to the NetworkDevice
- * (primaryEntityId = deviceId, attributes.networkDeviceId), NOT to a
- * monitor, so the device pages can chart health for every registered
- * device — including devices no monitor watches. Mirrors the SNMP sections
- * of MonitorMetricUtil, which continue to emit monitor-scoped series for
- * monitors that alert on the device.
+ * Ping round-trip time of a network device, in ms.
+ *
+ * Ping monitors write their RTT into MonitorMetricType.ResponseTime, but on
+ * a network device that series is the SNMP walk's time (and is absent on a
+ * ping-only poll), so the RTT needs a series of its own. It sits in the
+ * `oneuptime.monitor.ping.*` namespace beside PacketLossPercent and Jitter,
+ * which ARE reused from the Ping monitor. MonitorMetricType has no member
+ * for it yet; this constant should graduate into that enum (and the device
+ * metric catalog) rather than be duplicated.
+ */
+export const NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME: string =
+  "oneuptime.monitor.ping.round.trip.time";
+
+/*
+ * Emits device-scoped metrics from each device poll — reachability, ping
+ * RTT / packet loss, SNMP walk time, per-interface
+ * status/bandwidth/utilization/errors, and polled health-OID values.
+ * Series are keyed to the NetworkDevice (primaryEntityId = deviceId,
+ * attributes.networkDeviceId), NOT to a monitor, so the device pages can
+ * chart health for every registered device — including devices no monitor
+ * watches. Mirrors the SNMP sections of MonitorMetricUtil, which continue
+ * to emit monitor-scoped series for monitors that alert on the device.
  */
 export default class NetworkDeviceMetricUtil {
   /*
@@ -103,9 +118,14 @@ export default class NetworkDeviceMetricUtil {
     networkDeviceId: ObjectID;
     deviceName: string | undefined;
     probeId: ObjectID | undefined;
+    // The SNMP walk when one ran; undefined on a ping-only poll.
     snmpResponse: SnmpMonitorResponse | undefined;
+    // The walk's time only - undefined on a ping-only poll, never the RTT.
     responseTimeInMs: number | undefined;
+    // Device reachability: answered ping OR the walk succeeded.
     isOnline: boolean | undefined;
+    // RTT / packet loss from the probe's ping, when it ran one.
+    pingResponse?: PingMonitorResponse | undefined;
   }): Promise<void> {
     const metricRows: Array<JSONObject> = [];
     const metricNameServiceNameMap: Dictionary<MetricType> = {};
@@ -177,16 +197,52 @@ export default class NetworkDeviceMetricUtil {
       pushMetric({
         metricName: MonitorMetricType.IsOnline,
         value: data.isOnline ? 1 : 0,
-        description: "SNMP reachability of this network device (1 up, 0 down)",
+        description:
+          "Reachability of this network device by ping or SNMP (1 up, 0 down)",
         unit: "",
       });
     }
 
+    /*
+     * Walk time only. A ping-only poll has no walk and writes no point
+     * here; its latency is the RTT series below. Mixing the two into one
+     * series would chart a 1 ms ICMP echo and a 400 ms 48-port walk as the
+     * same thing.
+     */
     if (data.responseTimeInMs !== undefined) {
       pushMetric({
         metricName: MonitorMetricType.ResponseTime,
         value: data.responseTimeInMs,
-        description: "SNMP response time of this network device",
+        description:
+          "SNMP walk time of this network device (absent when the poll ran no walk)",
+        unit: "ms",
+      });
+    }
+
+    /*
+     * The probe's ping, when it ran one. Packet loss and jitter reuse the
+     * Ping monitor's series so the same charts and criteria vocabulary
+     * apply; the RTT gets its own (see the constant's comment). pushMetric
+     * skips undefined values, so an older probe that reports no ping
+     * writes nothing here.
+     */
+    if (data.pingResponse) {
+      pushMetric({
+        metricName: NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME,
+        value: data.pingResponse.avgRoundTripTimeInMs,
+        description: "Ping round-trip time to this network device",
+        unit: "ms",
+      });
+      pushMetric({
+        metricName: MonitorMetricType.PacketLossPercent,
+        value: data.pingResponse.packetLossPercent,
+        description: "Ping packet loss to this network device",
+        unit: "%",
+      });
+      pushMetric({
+        metricName: MonitorMetricType.Jitter,
+        value: data.pingResponse.jitterInMs,
+        description: "Ping jitter to this network device",
         unit: "ms",
       });
     }

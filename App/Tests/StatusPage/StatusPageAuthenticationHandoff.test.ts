@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import ejs from "ejs";
 import fs from "fs";
 import path from "path";
 
@@ -35,32 +36,25 @@ describe("Status Page authentication handoff", () => {
     "Utils",
     "LoginCode.ts",
   );
-  const statusPageIndex: string = fs
-    .readFileSync(
-      path.join(FEATURE_SET, "StatusPage", "views", "index.ejs"),
-      "utf8",
-    )
-    .replace(/\s+/g, " ");
   /*
-   * The head of the page is now two files: index.ejs includes this partial as
-   * its very first thing in <head>. The referrer policy and the token scrub
-   * live in the partial, so the composition is what has to be asserted - not
-   * index.ejs on its own, which stopped containing either of them.
+   * Rendered, not read as raw template text. The no-referrer tag and the
+   * token-scrubbing bootstrap reach this page through an include of the shared
+   * Common/Server/Views/Partials/SensitiveUrlToken partial, so a text-only read
+   * sees the include directive and none of what it contributes — and the
+   * ordering asserted below is an ordering in the page a browser actually
+   * receives. `filename` is what lets ejs resolve that relative include.
    */
-  const sensitiveUrlTokenPartial: string = fs
-    .readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "Common",
-        "Server",
-        "Views",
-        "Partials",
-        "SensitiveUrlToken.ejs",
-      ),
-      "utf8",
+  const indexTemplatePath: string = path.join(
+    FEATURE_SET,
+    "StatusPage",
+    "views",
+    "index.ejs",
+  );
+  const statusPageIndex: string = ejs
+    .render(
+      fs.readFileSync(indexTemplatePath, "utf8"),
+      { title: "Acme Status", enableGoogleTagManager: true },
+      { filename: indexTemplatePath },
     )
     .replace(/\s+/g, " ");
   const authenticationApi: string = readCode(
@@ -110,9 +104,6 @@ describe("Status Page authentication handoff", () => {
     );
 
     expect(statusPageIndex).toContain(
-      "include('../../../../Common/Server/Views/Partials/SensitiveUrlToken')",
-    );
-    expect(sensitiveUrlTokenPartial).toContain(
       '<meta name="referrer" content="no-referrer" />',
     );
     expect(capture).toBeGreaterThan(-1);

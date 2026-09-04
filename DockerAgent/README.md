@@ -70,7 +70,7 @@ docker compose up -d
 
 ## Collected Logs
 
-Container logs are automatically collected from `/var/lib/docker/containers/*/*-json.log` and enriched with container metadata (container id, image, runtime, host name) plus a derived severity — lines written to stderr become `ERROR` and lines written to stdout become `INFO`. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+Container logs are automatically collected from `/var/lib/docker/containers/*/*-json.log` and enriched with container metadata (container id, image, runtime, host name) plus a derived severity. The severity is read from a level keyword in the line itself (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); only lines with no recognisable level fall back to the stream, where stderr becomes `ERROR` and stdout becomes `INFO`. The keyword scan is a best-effort heuristic — it takes the first level word anywhere in the line, so a message that mentions one in passing can be classified by it. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
 
 ### Log Driver Requirement
 

@@ -2193,14 +2193,21 @@ describe('POST /probe/discovery-scan/result — what "responded" counts, per sca
    * is no id to report — the probe sends none, and this endpoint must not
    * invent one.
    *
-   * Inventing one is not a hypothetical: the resolver's documented fallback
-   * for an ABSENT id is the scan's first config, so an id written here — even
-   * a placeholder — would be taken at face value later. On an ICMP-only scan
-   * the row's credential columns were cleared when Check SNMP was switched
-   * off, so the fabricated id would resolve to nothing and every host from
-   * this sweep would import as an SNMP device with no credentials: a device
-   * that fails every poll from the moment it is created, on a scan the
-   * operator asked to do nothing but ping.
+   * Inventing one is not a hypothetical, and a placeholder is the worst kind
+   * to invent: config ids are index-derived (`config-1`, `config-2`, see
+   * SnmpScanConfigUtil.normalizeConfig), so a made-up one does not stay
+   * inert — it collides with whatever credential set actually sits at that
+   * position, and resolveForHost hands those credentials to the import at
+   * face value. A host that answered nothing but ICMP would then be created
+   * carrying a community string it never answered on, handed to its probe in
+   * snmp mode, and marked as failing its walk every cycle from birth.
+   *
+   * Writing nothing is not a gap: the resolver's documented fallback for an
+   * ABSENT id is the scan's first config, which is exactly how ping-only
+   * hosts and pre-feature results are meant to import. Under ping-first
+   * polling a device that resolves no usable credentials is simply PINGED —
+   * a first-class device with a real status — so "no id" costs this host
+   * nothing at all.
    */
   test("an ICMP-only sweep's hosts are stored with no snmpConfigId, because no credential set found them", async () => {
     await reportResult(makeScan(false), {

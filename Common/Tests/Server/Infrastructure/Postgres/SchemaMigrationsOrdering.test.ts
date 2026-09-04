@@ -81,6 +81,24 @@ const SHIPPED_DUPLICATE_MIGRATIONS: ReadonlyArray<{
       "AddUserTwoFactorBackupCode1789100000000",
     ],
   },
+  /*
+   * And it happened again, the same way: these two were authored on separate
+   * branches, both reached for the next round slot, and both merged to master
+   * before either author saw the other. They are on master now, so the
+   * paragraph above applies to them unchanged — renaming either re-runs it,
+   * and AddTelemetryExceptionErrorClass adds NOT NULL columns whose re-run
+   * fails against a database that already has them.
+   *
+   * The recurrence is the argument for picking the next slot by looking at
+   * the directory immediately before committing, not when you start work.
+   */
+  {
+    timestamp: 1790900000000,
+    classNames: [
+      "AddEnterpriseLicenseUsageProvenance1790900000000",
+      "AddTelemetryExceptionErrorClass1790900000000",
+    ],
+  },
 ];
 
 /*

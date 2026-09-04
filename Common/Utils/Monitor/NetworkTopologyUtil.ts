@@ -44,7 +44,7 @@ export interface TopologyDeviceInput {
   pollingIntervalInMinutes?: number | undefined;
   /*
    * How this device's health is established. NULL, empty and anything
-   * unrecognised read as SNMP — see NetworkDeviceMonitoringMethodUtil.parse,
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
    * which is why an omitted value keeps every existing caller on the poll
    * rule unchanged.
    *

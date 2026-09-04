@@ -37,16 +37,17 @@ const NOINDEX_META: RegExp =
   /<meta\s+name="robots"\s+content="noindex,\s*nofollow">/;
 
 function renderIndexPage(variables: JSONObject): string {
-  /*
-   * filename is what tells ejs where the template lives, and so where its
-   * <% include %> paths are relative to. Without it ejs resolves them against
-   * the working directory, which is how this suite started failing the moment
-   * the template gained an include (SensitiveUrlToken) - the test was
-   * rendering a template it could no longer read.
-   */
-  return ejs.render(fs.readFileSync(INDEX_TEMPLATE, "utf8"), variables, {
-    filename: INDEX_TEMPLATE,
-  });
+  return ejs.render(
+    fs.readFileSync(INDEX_TEMPLATE, "utf8"),
+    variables,
+    /*
+     * The template opens <head> with an include of the shared
+     * sensitive-URL-token partial, and ejs resolves that relative path against
+     * `filename`. Without it every render below throws on the include rather
+     * than reaching the robots tag it means to assert.
+     */
+    { filename: INDEX_TEMPLATE },
+  );
 }
 
 describe("the status page index template", () => {

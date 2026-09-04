@@ -147,8 +147,23 @@ describe("pingMonitorProvisionedMessage", () => {
     const message: string = pingMonitorProvisionedMessage("Ping lobby-ap-01");
 
     expect(message).toContain("Ping lobby-ap-01");
-    expect(message).toContain("bound");
+    expect(message).toContain("raise incidents");
     expect(message.toLowerCase()).toContain("interval");
+  });
+
+  /*
+   * The device is polled by its probe whether or not this monitor exists, so
+   * the monitor is an alerting mechanism rather than the device's status
+   * source. The message used to say the device "carries the monitor's
+   * starting status", which sent the operator to watch a pill that was
+   * already being written by something else — and would read Pending on a
+   * device its probe had answered for.
+   */
+  test("does not claim the monitor supplies the device's status", () => {
+    const message: string = pingMonitorProvisionedMessage("Ping lobby-ap-01");
+
+    expect(message).toContain("still comes from its probe's poll");
+    expect(message).not.toContain("carries the monitor's starting status");
   });
 
   test("never claims the device was verified reachable", () => {
