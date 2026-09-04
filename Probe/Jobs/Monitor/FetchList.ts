@@ -13,7 +13,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -66,7 +65,7 @@ export function resetProbeWorkerRunState(): void {
 export async function probeMonitorWithDeadline(
   monitor: Monitor,
   deadlineInMs: number = PROBE_MONITOR_CHECK_TIMEOUT_IN_MS,
-): Promise<Array<ProbeMonitorResponse | null>> {
+): Promise<void> {
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined = undefined;
 
   const deadline: Promise<never> = new Promise<never>(
@@ -220,9 +219,7 @@ export class FetchListAndProbe {
         Monitor,
       );
 
-      const probeMonitorPromises: Array<
-        Promise<Array<ProbeMonitorResponse | null>>
-      > = []; // Array of promises to probe monitors
+      const probeMonitorPromises: Array<Promise<void>> = [];
 
       for (const monitor of monitors) {
         /*
@@ -230,32 +227,14 @@ export class FetchListAndProbe {
          * monitor implementation that never settles keeps this
          * Promise.allSettled — and therefore this worker — pending forever.
          */
-        probeMonitorPromises.push(probeMonitorWithDeadline(monitor));
+        probeMonitorPromises.push(this.probeAndLogMonitor(monitor));
       }
 
-      // all settled
-      // eslint-disable-next-line no-undef
-      const results: PromiseSettledResult<(ProbeMonitorResponse | null)[]>[] =
-        await Promise.allSettled(probeMonitorPromises);
-
-      let resultIndex: number = 0;
-
-      for (const result of results) {
-        if (monitors && monitors[resultIndex]) {
-          logger.debug("Monitor:");
-          logger.debug(monitors[resultIndex]);
-        }
-
-        if (result.status === "rejected") {
-          logger.error("Error in probing monitor:");
-          logger.error(result.reason);
-        } else {
-          logger.debug("Probed monitor: ");
-          logger.debug(result.value);
-        }
-
-        resultIndex++;
-      }
+      /*
+       * Each task consumes its result/error immediately and resolves void,
+       * so waiting for a slow check cannot retain other checks' payloads.
+       */
+      await Promise.allSettled(probeMonitorPromises);
     } catch (err) {
       logger.error("Error in fetching monitor list");
       logger.error(err);
@@ -264,6 +243,19 @@ export class FetchListAndProbe {
         logger.error("API Exception Error");
         logger.error(JSON.stringify((err as APIException).error, null, 2));
       }
+    }
+  }
+
+  private async probeAndLogMonitor(monitor: Monitor): Promise<void> {
+    try {
+      await probeMonitorWithDeadline(monitor);
+      logger.debug(`Probed monitor ${monitor.id?.toString()}`);
+    } catch (err) {
+      logger.error("Error in probing monitor:");
+      logger.error(err);
+    } finally {
+      logger.debug("Monitor:");
+      logger.debug(monitor);
     }
   }
 }
