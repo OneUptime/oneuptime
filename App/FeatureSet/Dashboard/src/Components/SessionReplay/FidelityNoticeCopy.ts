@@ -19,6 +19,47 @@ export interface FidelityNoticeCopy {
   description: string;
 }
 
+/*
+ * How loudly a notice should be shown.
+ *
+ * Every notice used to be stacked into one amber warning block above the
+ * picture, which meant a perfectly good recording of a perfectly ordinary
+ * page opened behind a wall of alarm - "a stylesheet could not be read",
+ * "web fonts not captured" - and taught people to ignore the block that
+ * sometimes contains "a stretch of this timeline is unplayable".
+ *
+ * The split is by consequence, not by cause:
+ *
+ *   Playback — there is footage you cannot watch, or the timeline is not
+ *   what it claims. Worth interrupting for.
+ *
+ *   Fidelity — everything IS playable, it just does not look pixel-exact:
+ *   a system font instead of a web font, an unstyled region, a black box
+ *   where a payment iframe was. These are permanent, deliberate properties
+ *   of how the recorder works and appear on a large share of recordings,
+ *   so they belong in a quiet, expandable note rather than a warning.
+ */
+export type FidelityNoticeSeverity = "playback" | "fidelity";
+
+const PLAYBACK_AFFECTING: Set<string> = new Set<string>([
+  SessionReplayFidelityNotice.SnapshotTooLarge,
+  SessionReplayFidelityNotice.BufferOverflow,
+  "truncated",
+]);
+
+export function getFidelityNoticeSeverity(
+  code: string,
+): FidelityNoticeSeverity {
+  /*
+   * An unknown code is treated as a fidelity note rather than as a playback
+   * problem. A newer recorder must be able to report something this
+   * Dashboard has not heard of, and guessing "this recording is broken"
+   * about a notice we cannot read would be a worse lie than guessing
+   * "this recording looks slightly different".
+   */
+  return PLAYBACK_AFFECTING.has(code) ? "playback" : "fidelity";
+}
+
 const COPY: Record<string, FidelityNoticeCopy> = {
   [SessionReplayFidelityNotice.CanvasNotRecorded]: {
     title: "Canvas not recorded",

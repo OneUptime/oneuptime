@@ -71,6 +71,15 @@ export interface ReplayTimelineEvent {
   status?: number;
   durationMs?: number;
   responseBytes?: number;
+  /*
+   * The W3C trace id this request carried, when the page (or the
+   * recorder's own traceparent injection) put one on the wire. The
+   * recorder has always emitted it on the network payload; extracting it
+   * here is what lets a request row in the player link straight to the
+   * backend trace of the call that failed, which is the whole point of
+   * having recorded it.
+   */
+  traceId?: string;
 
   /* route */
   from?: string;
@@ -727,6 +736,17 @@ export default class ChunkLoader {
         row.status = readNumber("status") ?? 0;
         row.durationMs = readNumber("durationMs") ?? 0;
         row.responseBytes = readNumber("responseBytes") ?? 0;
+
+        const traceId: string | undefined = readString("traceId");
+
+        /*
+         * Assigned conditionally rather than as `traceId: undefined`:
+         * exactOptionalPropertyTypes makes those two different types, and
+         * a row with the key present but empty would render a dead link.
+         */
+        if (traceId) {
+          row.traceId = traceId;
+        }
       } else if (kind === "route") {
         row.from = readString("from") ?? "";
         row.to = readString("to") ?? "";

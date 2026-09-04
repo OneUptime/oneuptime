@@ -33,7 +33,11 @@ import ChunkLoader, {
 } from "./ChunkLoader";
 import ReplayDevtoolsPanel from "./ReplayDevtoolsPanel";
 import ReplayPinControl from "./ReplayPinControl";
-import { getFidelityNoticeCopy } from "./FidelityNoticeCopy";
+import {
+  FidelityNoticeCopy,
+  getFidelityNoticeCopy,
+  getFidelityNoticeSeverity,
+} from "./FidelityNoticeCopy";
 import ReplayStage, {
   ReplaySeekRequest,
   ReplayerFactory,
@@ -47,6 +51,10 @@ import ReplayScrubber, {
 import ReplayCorrelationPanel, {
   ReplaySessionDetails,
 } from "./ReplayCorrelationPanel";
+import {
+  DEFAULT_SKIP_INACTIVE,
+  shouldRewindBeforePlay,
+} from "./ReplayPlaybackIntent";
 
 /*
  * The loader half of the player: manifest, authenticated chunk transport, the
@@ -281,7 +289,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(1);
-  const [skipInactive, setSkipInactive] = useState<boolean>(true);
+  /* Off by default; see DEFAULT_SKIP_INACTIVE for why that reversed. */
+  const [skipInactive, setSkipInactive] = useState<boolean>(
+    DEFAULT_SKIP_INACTIVE,
+  );
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [seekRequest, setSeekRequest] = useState<ReplaySeekRequest | null>(
     null,
@@ -568,6 +579,33 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     };
   }, []);
 
+  /*
+   * Start playing as soon as there is something to play.
+   *
+   * Opening a recording is an unambiguous request to watch it - nobody
+   * navigates into a session replay to look at a still frame - and every
+   * comparable tool starts on open. It also removes the whole class of "I
+   * pressed Play and nothing happened" from the first thirty seconds of
+   * using the feature, because by the time the viewer reaches for a
+   * control the transport is already proven to be moving.
+   *
+   * Once per loader, and only from a standing start: a ?t= deep link seeks
+   * first and then plays from there, and a viewer who pauses is never
+   * overridden, because this only ever runs on the transition into having
+   * a loader at all.
+   */
+  const hasAutoPlayedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!loader || !replayerFactory || hasAutoPlayedRef.current) {
+      return;
+    }
+
+    hasAutoPlayedRef.current = true;
+    setIsPlaying(true);
+  }, [loader, replayerFactory]);
+
   /* Honour the ?t= deep link once, after the loader exists. */
   const hasAppliedInitialSeekRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
@@ -695,6 +733,20 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   }, [viewId]);
 
   const durationMs: number = loader?.getDurationMs() ?? 0;
+
+  /* See shouldRewindBeforePlay for why Play at the end has to seek first. */
+  const togglePlayPause: () => void = useCallback((): void => {
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+
+    if (shouldRewindBeforePlay(currentTimeMs, durationMs)) {
+      seekTo(0);
+    }
+
+    setIsPlaying(true);
+  }, [isPlaying, durationMs, currentTimeMs, seekTo]);
 
   const bands: Array<ReplayBand> = useMemo(() => {
     if (!loader) {
@@ -932,6 +984,21 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }
 
+  /*
+   * Two lists, not one, and the split is by consequence.
+   *
+   * `notices` is "there is footage you cannot watch, or the timeline is not
+   * what it claims" - worth interrupting for. `captureNotes` is "everything
+   * IS playable, it just does not look pixel-exact": a system font instead
+   * of a web font, an unstyled region, a black box where a payment iframe
+   * was. Those are permanent, deliberate properties of how the recorder
+   * works and appear on a large share of recordings.
+   *
+   * Stacking both into one amber block - which is what this did - opened a
+   * perfectly good recording of a perfectly ordinary page behind a wall of
+   * alarm, and taught people to skim past the block that sometimes says a
+   * stretch of the timeline is missing.
+   */
   const notices: Array<string> = [];
 
   if (!manifest.isFinalized) {
@@ -954,13 +1021,49 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }
 
+  const captureNotes: Array<FidelityNoticeCopy> = [];
+
   for (const notice of manifest.fidelityNotices) {
-    notices.push(getFidelityNoticeCopy(notice).title);
+    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
+
+    if (getFidelityNoticeSeverity(notice) === "playback") {
+      notices.push(`${copy.title}. ${copy.description}`);
+    } else {
+      captureNotes.push(copy);
+    }
   }
+
+  /*
+   * The facts a viewer needs before deciding whether this is the right
+   * session, on screen rather than behind the details drawer. Everything
+   * here already arrived with the manifest, so it costs nothing to show;
+   * hiding it behind a button meant the header carried a bare timestamp
+   * and nothing else. Blank values are dropped rather than rendered as an
+   * em dash, so a pseudonymous session does not advertise the field it
+   * does not have.
+   */
+  const summaryFacts: Array<{ label: string; value: string }> = [
+    {
+      label: "User",
+      value: manifest.details.identifiedUserLabel,
+    },
+    {
+      label: "Browser",
+      value: [manifest.details.browserName, manifest.details.browserVersion]
+        .filter(Boolean)
+        .join(" "),
+    },
+    { label: "OS", value: manifest.details.osName },
+    { label: "Device", value: manifest.details.deviceType },
+    { label: "Country", value: manifest.details.countryCode },
+    { label: "Entry", value: manifest.details.entryUrl },
+  ].filter((fact: { label: string; value: string }): boolean => {
+    return Boolean(fact.value);
+  });
 
   return (
     <Fragment>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         {tabSwitcher}
 
         <div className="text-xs text-gray-500">
@@ -1009,6 +1112,31 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         </div>
       </div>
 
+      {summaryFacts.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2">
+          {summaryFacts.map(
+            (fact: { label: string; value: string }): ReactElement => {
+              return (
+                <div
+                  key={fact.label}
+                  className="flex min-w-0 items-baseline gap-1.5"
+                >
+                  <span className="text-[11px] uppercase tracking-wide text-gray-400">
+                    {fact.label}
+                  </span>
+                  <span
+                    className="max-w-xs truncate text-xs text-gray-800"
+                    title={fact.value}
+                  >
+                    {fact.value}
+                  </span>
+                </div>
+              );
+            },
+          )}
+        </div>
+      )}
+
       {notices.length > 0 && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
           {notices.map((notice: string, index: number): ReactElement => {
@@ -1023,6 +1151,35 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             );
           })}
         </div>
+      )}
+
+      {captureNotes.length > 0 && (
+        <details className="mb-4 rounded-lg border border-gray-200 bg-white px-3 py-2">
+          <summary className="cursor-pointer text-xs text-gray-500">
+            {captureNotes.length} capture note
+            {captureNotes.length === 1 ? "" : "s"} —{" "}
+            {captureNotes
+              .map((note: FidelityNoticeCopy): string => {
+                return note.title.toLowerCase();
+              })
+              .join(", ")}
+          </summary>
+
+          <div className="mt-2 space-y-2">
+            {captureNotes.map(
+              (note: FidelityNoticeCopy, index: number): ReactElement => {
+                return (
+                  <div key={index} className="text-xs">
+                    <div className="font-medium text-gray-700">
+                      {note.title}
+                    </div>
+                    <div className="text-gray-500">{note.description}</div>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        </details>
       )}
 
       {crossedGaps.length > 0 && (
@@ -1046,56 +1203,71 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         </div>
       )}
 
+      {/*
+       * Picture and correlated events side by side on a wide screen, stacked
+       * below ~1280px. The events rail is the half of this view that answers
+       * "what was the app doing when that happened", and putting it under the
+       * fold behind a disclosure - which is where it used to live - meant the
+       * two halves could never be read together, which is the entire point of
+       * having both.
+       */}
       <div
         ref={theaterRef}
-        className={isTheaterMode ? "flex flex-col bg-white p-4" : ""}
+        className={
+          isTheaterMode
+            ? "flex flex-col overflow-auto bg-white p-4"
+            : "flex flex-col"
+        }
       >
-        <ReplayStage
-          loader={loader}
-          replayerFactory={replayerFactory}
-          isPlaying={isPlaying}
-          speed={speed}
-          skipInactive={skipInactive}
-          seekRequest={seekRequest}
-          onTimeUpdate={handleTimeUpdate}
-          onPlayingChange={setIsPlaying}
-          onGapCrossed={handleGapCrossed}
-          onLoadedChunkIndexesChange={setLoadedChunkIndexes}
-          onError={setStageError}
-          onBufferingChange={setIsBuffering}
-        />
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <ReplayStage
+              loader={loader}
+              replayerFactory={replayerFactory}
+              isPlaying={isPlaying}
+              speed={speed}
+              skipInactive={skipInactive}
+              seekRequest={seekRequest}
+              onTimeUpdate={handleTimeUpdate}
+              onPlayingChange={setIsPlaying}
+              onGapCrossed={handleGapCrossed}
+              onLoadedChunkIndexesChange={setLoadedChunkIndexes}
+              onError={setStageError}
+              onBufferingChange={setIsBuffering}
+            />
 
-        <div className="mt-3">
-          <ReplayScrubber
-            durationMs={durationMs}
-            currentTimeMs={currentTimeMs}
-            isPlaying={isPlaying}
-            speed={speed}
-            skipInactive={skipInactive}
-            bands={bands}
-            frustrationMarkers={chunkMarkers.frustration}
-            errorMarkers={chunkMarkers.errors}
-            networkMarkers={networkMarkers}
-            routeMarkers={chunkMarkers.routes}
-            onSeek={seekTo}
-            onPlayPauseToggle={(): void => {
-              setIsPlaying((existing: boolean): boolean => {
-                return !existing;
-              });
-            }}
-            onSpeedChange={setSpeed}
-            onSkipInactiveChange={setSkipInactive}
-            onJumpToNextError={jumpToNextError}
-            areShortcutsEnabled={!isPanelOpen}
-          />
+            <div className="mt-3">
+              <ReplayScrubber
+                durationMs={durationMs}
+                currentTimeMs={currentTimeMs}
+                isPlaying={isPlaying}
+                speed={speed}
+                skipInactive={skipInactive}
+                bands={bands}
+                frustrationMarkers={chunkMarkers.frustration}
+                errorMarkers={chunkMarkers.errors}
+                networkMarkers={networkMarkers}
+                routeMarkers={chunkMarkers.routes}
+                onSeek={seekTo}
+                onPlayPauseToggle={togglePlayPause}
+                onSpeedChange={setSpeed}
+                onSkipInactiveChange={setSkipInactive}
+                onJumpToNextError={jumpToNextError}
+                areShortcutsEnabled={!isPanelOpen}
+              />
+            </div>
+          </div>
+
+          <div className="w-full shrink-0 xl:w-[26rem]">
+            <ReplayDevtoolsPanel
+              events={timelineEvents}
+              isTruncated={areEventsTruncated}
+              currentTimeMs={currentTimeMs}
+              isPlaying={isPlaying}
+              onSeek={seekTo}
+            />
+          </div>
         </div>
-
-        <ReplayDevtoolsPanel
-          events={timelineEvents}
-          isTruncated={areEventsTruncated}
-          currentTimeMs={currentTimeMs}
-          onSeek={seekTo}
-        />
       </div>
 
       <ReplayCorrelationPanel
