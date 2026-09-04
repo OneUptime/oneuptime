@@ -13,7 +13,6 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
-import ThemeToggle from "./ThemeToggle";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
@@ -867,27 +866,42 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             />
           </>
         }
-        mobileRightComponents={<ThemeToggle />}
         rightComponents={
           <>
-            {BILLING_ENABLED &&
-            props.selectedProject?.id &&
-            props.selectedProject.paymentProviderPlanId &&
-            SubscriptionPlan.isFreePlan(
-              props.selectedProject.paymentProviderPlanId,
-              getAllEnvVars(),
-            ) ? (
-              <Upgrade />
-            ) : (
-              <></>
-            )}
-            <Search />
-            <AskAI />
+            {/*
+             * Upgrade, Search and Ask AI are wide-screen entries: two of them
+             * exist to advertise a keyboard chord, and none of the three is
+             * worth the width on a phone. They are grouped rather than moved so
+             * the desktop rail keeps the order it has always had.
+             */}
+            <div className="hidden items-center gap-2 lg:flex">
+              {BILLING_ENABLED &&
+              props.selectedProject?.id &&
+              props.selectedProject.paymentProviderPlanId &&
+              SubscriptionPlan.isFreePlan(
+                props.selectedProject.paymentProviderPlanId,
+                getAllEnvVars(),
+              ) ? (
+                <Upgrade />
+              ) : (
+                <></>
+              )}
+              <Search />
+              <AskAI />
+            </div>
+            {/*
+             * The bell and the profile button stay at every width. They are the
+             * two the header cannot do without: what is on fire right now, and
+             * the menu that owns the profile, admin settings, the theme switch
+             * and log out — none of which is reachable anywhere else on a phone.
+             */}
             <NotificationBell
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
             />
-            <Help />
+            <div className="hidden items-center lg:flex">
+              <Help />
+            </div>
             <UserProfile
               onClickUserProfile={() => {
                 Navigation.navigate(RouteMap[PageMap.USER_PROFILE_OVERVIEW]!);
