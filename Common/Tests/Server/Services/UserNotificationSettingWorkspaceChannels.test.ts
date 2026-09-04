@@ -6,12 +6,14 @@ import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMS
 import MailService from "../../../Server/Services/MailService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationEmailRollupItemService from "../../../Server/Services/UserNotificationEmailRollupItemService";
+import DatabaseConfig from "../../../Server/DatabaseConfig";
 import logger from "../../../Server/Utils/Logger";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import URL from "../../../Types/API/URL";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
@@ -451,36 +453,42 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
 
   /*
    * ----------------------------------------------------------------------- *
-   * (D) The email hand-off is unchanged by the rollup seam.
+   * (D) The email hand-off preserves content and correlation ids.
    * -----------------------------------------------------------------------
    */
 
   describe("the email hand-off", () => {
     /*
      * Owner emails now pass through EmailRollupWriter on their way to
-     * MailService. Below the burst threshold that has to be invisible, and
-     * "invisible" means these two exact arguments - not merely an email that
-     * arrives. The second argument is the correlation-id bag every downstream
-     * log line joins on, so a field silently dropped in the hand-off would
+     * MailService. Below the burst threshold the email keeps its content and
+     * gains a direct preferences link. The second argument is the correlation-id
+     * bag every downstream log line joins on, so a field silently dropped in the hand-off would
      * detach incident emails from their incident with nothing failing.
      */
-    test("MailService receives the identical envelope and correlation-id options it received before rollup existed", async () => {
+    test("MailService receives the original content and correlation ids with a direct preferences link", async () => {
       findSettings.mockResolvedValue(
         settingsRow({ alertByEmail: true }) as never,
       );
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(
+          URL.fromString("https://oneuptime.example.com/dashboard"),
+        );
 
-      await UserNotificationSettingService.sendUserNotification(
-        notificationData(),
-      );
+      const data: SendUserNotificationData = notificationData();
+      await UserNotificationSettingService.sendUserNotification(data);
 
       expect(sendMail).toHaveBeenCalledTimes(1);
 
       expect(sendMail.mock.calls[0]?.[0]).toEqual({
         subject: "Incident created: Checkout is down",
         templateType: EmailTemplateType.BlankTemplate,
-        vars: {},
+        vars: {
+          notificationPreferencesUrl: `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/user-settings/notification-settings`,
+        },
         toEmail: "user@example.com",
       });
+      expect(data.emailEnvelope.vars).toEqual({});
 
       expect(sendMail.mock.calls[0]?.[1]).toEqual({
         projectId: PROJECT_ID,

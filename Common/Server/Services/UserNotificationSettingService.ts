@@ -53,6 +53,8 @@ import {
 import EmailRollupWriter from "../Utils/EmailRollup/EmailRollupWriter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
+import DatabaseConfig from "../DatabaseConfig";
+import URL from "../../Types/API/URL";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {
@@ -149,18 +151,44 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           },
         });
 
+        const emailEnvelope: EmailEnvelope = {
+          ...data.emailEnvelope,
+          vars: { ...data.emailEnvelope.vars },
+        };
+
+        if (userEmails.length > 0) {
+          try {
+            const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+            /*
+             * Keep this out of the producer's envelope and the other channels.
+             * A *Link variable would be mistaken for a resource by the rollup writer.
+             */
+            emailEnvelope.vars["notificationPreferencesUrl"] = URL.fromString(
+              dashboardUrl.toString(),
+            )
+              .addRoute(
+                `/${data.projectId.toString()}/user-settings/notification-settings`,
+              )
+              .toString();
+          } catch (err) {
+            // The footer retains navigation instructions if a URL is unavailable.
+            logger.error(err);
+          }
+        }
+
         for (const userEmail of userEmails) {
           /*
            * The one seam where an owner email can be held back. Below the
-           * burst threshold this is byte-for-byte the send that was here
-           * before - same envelope, same correlation ids, still
-           * fire-and-forget inside the writer - and above it the message is
+           * burst threshold the email is sent immediately with its original
+           * subject, template and correlation ids, plus the preferences URL
+           * above. Delivery is fire-and-forget inside the writer; above the
+           * threshold the message is
            * queued for a rollup instead of dropped. Awaited, unlike the raw
            * send it replaces, because the queue row has to exist before this
            * method returns; the writer itself never awaits MailService.
            *
-           * data.emailEnvelope is passed by reference and is never mutated by
-           * the writer, which the Telegram fallback below and the Slack /
+           * The email-only envelope copy is never mutated by the writer.
+           * The original remains unchanged, which the Telegram fallback and Slack /
            * Microsoft Teams bodies further down depend on: all three
            * synthesise their message from data.emailEnvelope.subject.
            *
@@ -177,7 +205,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               userId: data.userId,
               toEmail: userEmail.email!,
               eventType: data.eventType,
-              emailEnvelope: data.emailEnvelope,
+              emailEnvelope: emailEnvelope,
               mailOptions: {
                 projectId: data.projectId,
                 incidentId: data.incidentId,

@@ -1,4 +1,10 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import EmailNoiseCard from "../../Components/NotificationMethods/EmailNoiseCard";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import PageComponentProps from "../PageComponentProps";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import User from "Common/UI/Utils/User";
@@ -371,6 +377,7 @@ const buildSection: SectionFactory = (
 interface ChannelCellProps {
   channel: ChannelDef;
   enabled: boolean;
+  disabled: boolean;
   onChange: (next: boolean) => Promise<void>;
 }
 
@@ -380,7 +387,7 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
   const [isBusy, setIsBusy] = useState<boolean>(false);
 
   const handleClick: () => Promise<void> = async (): Promise<void> => {
-    if (isBusy) {
+    if (isBusy || props.disabled) {
       return;
     }
     setIsBusy(true);
@@ -402,7 +409,7 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       aria-checked={props.enabled}
       aria-label={`${props.channel.label}: ${props.enabled ? "On" : "Off"}. Click to ${props.enabled ? "disable" : "enable"}.`}
       onClick={handleClick}
-      disabled={isBusy}
+      disabled={isBusy || props.disabled}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
     >
       {props.enabled ? (
@@ -416,6 +423,8 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
 
 interface NotificationMatrixProps {
   section: SectionDef;
+  disabled: boolean;
+  onSavingChange: (isSaving: boolean) => void;
 }
 
 const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
@@ -650,12 +659,20 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                             <ChannelCell
                               channel={channel}
                               enabled={enabled}
-                              onChange={(nextValue: boolean) => {
-                                return persistToggle(
-                                  event.type,
-                                  channel.key,
-                                  nextValue,
-                                );
+                              disabled={props.disabled}
+                              onChange={async (
+                                nextValue: boolean,
+                              ): Promise<void> => {
+                                props.onSavingChange(true);
+                                try {
+                                  await persistToggle(
+                                    event.type,
+                                    channel.key,
+                                    nextValue,
+                                  );
+                                } finally {
+                                  props.onSavingChange(false);
+                                }
                               }}
                             />
                           </td>
@@ -872,7 +889,7 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
               </div>
               <p className="mt-1 text-sm text-gray-500 max-w-2xl">
                 {isEnabled
-                  ? "When a burst of notifications about the resources you own lands at once, the first few are still emailed one by one as they happen. The rest are gathered up and delivered together as a single email a few minutes later. Nothing is dropped - every one of them is in that email."
+                  ? "When a burst of notifications about the resources you own lands at once, the first few are still emailed one by one as they happen. The rest are delivered together a few minutes later. The summary includes the notifications you are still subscribed to when it is sent."
                   : "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time."}
               </p>
               <p className="mt-3 text-xs text-gray-500 max-w-2xl">
@@ -894,104 +911,146 @@ const EmailRollupCard: FunctionComponent = (): ReactElement => {
   );
 };
 
+const incidents: Array<SectionDef> = [
+  buildSection("Incidents", "Notify me about incidents on resources I own.", [
+    NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
+  ]),
+  buildSection(
+    "Incident Episodes",
+    "Notify me about activity on incident episodes I own.",
+    [
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+    ],
+  ),
+];
+
+const alerts: Array<SectionDef> = [
+  buildSection("Alerts", "Notify me about alerts on resources I own.", [
+    NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+  ]),
+  buildSection(
+    "Alert Episodes",
+    "Notify me about activity on alert episodes I own.",
+    [
+      NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+    ],
+  ),
+];
+
+const monitoring: Array<SectionDef> = [
+  buildSection("Monitors", "Notify me about monitors I own.", [
+    NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+  ]),
+  buildSection("SLOs", "Notify me about SLOs I own.", [
+    NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+    NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
+  ]),
+  buildSection("Probes", "Notify me about custom probes I own.", [
+    NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+  ]),
+  buildSection("AI Agents", "Notify me about AI agents I own.", [
+    NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
+  ]),
+];
+
+const statusPages: Array<SectionDef> = [
+  buildSection("Status Pages", "Notify me about status pages I own.", [
+    NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
+    NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+  ]),
+];
+
+const scheduledMaintenance: Array<SectionDef> = [
+  buildSection(
+    "Scheduled Maintenance",
+    "Notify me about scheduled maintenance events I own.",
+    [
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
+];
+
+const onCall: Array<SectionDef> = [
+  buildSection(
+    "On-Call",
+    "Notify me about my on-call schedule and policy membership.",
+    [
+      NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+      NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+      NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+      NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+      NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+      NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+      NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+    ],
+  ),
+];
+
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  const incidents: Array<SectionDef> = [
-    buildSection("Incidents", "Notify me about incidents on resources I own.", [
-      NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-    ]),
-    buildSection(
-      "Incident Episodes",
-      "Notify me about activity on incident episodes I own.",
-      [
-        NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
-        NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
-      ],
-    ),
-  ];
+  const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
+  const [settingsVersion, setSettingsVersion] = useState<number>(0);
+  const [isApplyingPreset, setIsApplyingPreset] = useState<boolean>(false);
+  const [pendingSaves, setPendingSaves] = useState<number>(0);
+  const onSavingChange: (isSaving: boolean) => void = useCallback(
+    (isSaving: boolean): void => {
+      setPendingSaves((count: number): number => {
+        return count + (isSaving ? 1 : -1);
+      });
+    },
+    [],
+  );
 
-  const alerts: Array<SectionDef> = [
-    buildSection("Alerts", "Notify me about alerts on resources I own.", [
-      NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
-    ]),
-    buildSection(
-      "Alert Episodes",
-      "Notify me about activity on alert episodes I own.",
-      [
-        NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
-        NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
-      ],
-    ),
-  ];
+  const reduceRoutineEmails: () => Promise<void> = async (): Promise<void> => {
+    setIsApplyingPreset(true);
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromURL(APP_API_URL).addRoute(
+            new Route("/user-notification-setting/reduce-routine-emails"),
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-  const monitoring: Array<SectionDef> = [
-    buildSection("Monitors", "Notify me about monitors I own.", [
-      NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
-      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
-      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
-    ]),
-    buildSection("SLOs", "Notify me about SLOs I own.", [
-      NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
-      NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
-    ]),
-    buildSection("Probes", "Notify me about custom probes I own.", [
-      NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
-    ]),
-  ];
+      if (response instanceof HTTPErrorResponse || response.isFailure()) {
+        throw response;
+      }
 
-  const statusPages: Array<SectionDef> = [
-    buildSection("Status Pages", "Notify me about status pages I own.", [
-      NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
-      NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
-    ]),
-  ];
-
-  const scheduledMaintenance: Array<SectionDef> = [
-    buildSection(
-      "Scheduled Maintenance",
-      "Notify me about scheduled maintenance events I own.",
-      [
-        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_REMINDER_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_NOTE_POSTED_OWNER_NOTIFICATION,
-        NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_OWNER_ADDED_NOTIFICATION,
-      ],
-    ),
-  ];
-
-  const onCall: Array<SectionDef> = [
-    buildSection(
-      "On-Call",
-      "Notify me about my on-call schedule and policy membership.",
-      [
-        NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
-        NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
-        NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
-        NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
-        NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
-        NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
-        NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
-      ],
-    ),
-  ];
+      setSettingsVersion((version: number): number => {
+        return version + 1;
+      });
+    } finally {
+      setIsApplyingPreset(false);
+    }
+  };
 
   const renderSections: (sections: Array<SectionDef>) => ReactElement = (
     sections: Array<SectionDef>,
@@ -999,14 +1058,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <div className="space-y-4">
         {sections.map((section: SectionDef) => {
-          return <NotificationMatrix key={section.title} section={section} />;
+          return (
+            <NotificationMatrix
+              key={`${section.title}-${settingsVersion}`}
+              section={section}
+              disabled={isApplyingPreset}
+              onSavingChange={onSavingChange}
+            />
+          );
         })}
       </div>
     );
   };
 
   return (
-    <Fragment>
+    <Fragment key={projectId}>
+      <EmailNoiseCard
+        onApply={reduceRoutineEmails}
+        disabled={pendingSaves > 0}
+      />
       {/* Above the tabs on purpose: it governs delivery for every tab. */}
       <EmailRollupCard />
       <Tabs

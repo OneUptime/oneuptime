@@ -21,11 +21,12 @@ scheduled maintenance, status pages, probes, SLOs, and so on.
 - About five minutes later, everything held back for you in that project — across all categories —
   arrives as **one** email listing what happened, newest first, with a link to each resource.
 
-Nothing is dropped. A held-back notification is delayed, never discarded, and the rollup email
-contains every one of them.
+The rollup includes notifications that you are still subscribed to when it is sent. If you turn off
+an event's email while its notifications are queued, those notifications are left out of the rollup.
+Turning email back on later does not replay those skipped updates.
 
 Below the threshold the feature does nothing at all. A project that produces three owner emails a
-day still produces three owner emails a day, and they are byte-for-byte the emails you got before.
+day still receives those three owner emails individually.
 
 ## What the rollup email looks like
 
@@ -115,11 +116,23 @@ What it does **not** touch:
 
 ## Turning it down further
 
-Rollup reduces how many emails a notification produces. It does not decide which notifications you
-get in the first place — that is still yours to set, per event type and per channel, under
-**User Settings → Notification Settings** in the dashboard. Every rollup email links straight to that
-page.
+Open **Manage notification preferences** at the bottom of an owner notification or rollup email,
+or go to **User Settings → Notification Settings** in the dashboard.
 
-If a whole class of notification is not useful to you, switching it off there is a bigger saving than
-any amount of batching — and unlike the rollup switch above, it takes the notification away rather
-than repackaging it.
+Choose **Reduce routine emails** to turn off these informational emails for yourself in the current
+project:
+
+- Notes posted on incidents, alerts, episodes, and scheduled maintenance.
+- Notices that you were added as a resource owner.
+- New monitors and status pages.
+- Incidents or alerts added to existing episodes.
+- Being added to or removed from an on-call policy.
+
+The action preserves your existing choices for incident and alert creation, state changes, reminders,
+incident assignments, monitor health, and on-call shifts. It does not enable any email you previously
+disabled. Paging, other delivery channels, account email, billing email, and status page subscriber
+email are unaffected.
+
+The changes save together. Review the per-event switches below to turn any individual email back on.
+These preferences also apply to notifications waiting for a rollup; an already-sent email cannot be
+recalled. Email rollup remains a separate setting that controls batching for the events you keep.

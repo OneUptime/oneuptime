@@ -5,6 +5,7 @@ import ProjectService from "../../Services/ProjectService";
 import UserEmailService from "../../Services/UserEmailService";
 import UserNotificationEmailRollupBatchService from "../../Services/UserNotificationEmailRollupBatchService";
 import UserNotificationEmailRollupItemService from "../../Services/UserNotificationEmailRollupItemService";
+import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import logger from "../Logger";
@@ -29,6 +30,7 @@ import UserNotificationEmailRollupBatch, {
   RollupBatchStatus,
 } from "../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
+import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ColumnLength from "../../../Types/Database/ColumnLength";
@@ -37,6 +39,7 @@ import PartialEntity from "../../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
+import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Text from "../../../Types/Text";
@@ -52,8 +55,9 @@ import Text from "../../../Types/Text";
  * WHAT ONE TICK DOES. Find every rollup item that is still pending and old
  * enough to be due, group them by (project, user, address), and for each such
  * bucket send ONE email carrying everything still pending for that address -
- * across every category. Nothing is suppressed and nothing is summarised
- * away; the recipient gets the same information in one message instead of N.
+ * across every category, excluding events the user has since unsubscribed
+ * from. The recipient gets their subscribed updates in one message instead
+ * of N.
  *
  * THE EXACTLY-ONCE ARGUMENT, IN THE ORDER THE LAYERS ACTUALLY MATTER.
  *
@@ -550,6 +554,38 @@ export default class EmailRollupFlushRunner {
       return RollupFlushOutcome.Empty;
     }
 
+    /*
+     * Read current preferences before consuming any queued items. A user may
+     * have turned an event's email off, or removed its setting, while this
+     * batch was waiting. Both mean no email, just as they do on the immediate
+     * send path. If this lookup fails, the items stay pending so a later epoch
+     * can retry instead of discarding them or mailing against unknown choices.
+     */
+    const settings: Array<UserNotificationSetting> =
+      await UserNotificationSettingService.findBy({
+        query: {
+          projectId: bucket.projectId,
+          userId: bucket.userId,
+          alertByEmail: true,
+        },
+        select: {
+          eventType: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    const enabledEventTypes: Set<NotificationSettingEventType> =
+      new Set<NotificationSettingEventType>();
+
+    for (const setting of settings) {
+      if (setting.eventType) {
+        enabledEventTypes.add(setting.eventType);
+      }
+    }
+
     const stamped: number =
       await UserNotificationEmailRollupItemService.updateBy({
         query: {
@@ -591,7 +627,7 @@ export default class EmailRollupFlushRunner {
      * READ BACK BY BATCH, never by "still pending for this bucket": this is
      * what guarantees the email describes exactly the rows this attempt owns.
      */
-    const items: Array<UserNotificationEmailRollupItem> =
+    const claimedItems: Array<UserNotificationEmailRollupItem> =
       await UserNotificationEmailRollupItemService.findBy({
         query: {
           rollupBatchId: batchId,
@@ -613,7 +649,7 @@ export default class EmailRollupFlushRunner {
         },
       });
 
-    if (items.length === 0) {
+    if (claimedItems.length === 0) {
       await EmailRollupFlushRunner.finish({
         batchId: batchId,
         status: RollupBatchStatus.Empty,
@@ -621,6 +657,23 @@ export default class EmailRollupFlushRunner {
         now: now,
       });
       return RollupFlushOutcome.Empty;
+    }
+
+    const items: Array<UserNotificationEmailRollupItem> = claimedItems.filter(
+      (item: UserNotificationEmailRollupItem): boolean => {
+        return Boolean(item.eventType && enabledEventTypes.has(item.eventType));
+      },
+    );
+
+    if (items.length === 0) {
+      await EmailRollupFlushRunner.finish({
+        batchId: batchId,
+        status: RollupBatchStatus.Skipped,
+        itemCount: 0,
+        now: now,
+        message: "email notifications are no longer enabled for these events",
+      });
+      return RollupFlushOutcome.Skipped;
     }
 
     /*

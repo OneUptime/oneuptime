@@ -1,2 +1,30 @@
-{{> TitleBlock title="How do I unsubscribe from this email?"}}
-{{> InfoBlock info="You can go to OneUptime Dashboard > More > User Settings > Notification Settings to unsubscribe from this email."}}
+{{> TitleBlock title="Want fewer notification emails?"}}
+{{#if notificationPreferencesUrl}}
+<table
+  class="st-Copy st-Width st-Width--mobile"
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="600"
+  style="min-width: 600px;"
+>
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" width="64"></td>
+      <td
+        class="st-Font st-Font--caption"
+        style="color: #6b7280; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 13px; line-height: 20px; padding-bottom: 16px;"
+      >
+        Choose which notifications you receive and how emails are grouped in this project.
+        <a
+          href="{{notificationPreferencesUrl}}"
+          style="color: #1a1a2e; text-decoration: underline; font-weight: 500;"
+        >Manage notification preferences</a>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="64"></td>
+    </tr>
+  </tbody>
+</table>
+{{else}}
+{{> InfoBlock info="Go to OneUptime Dashboard > More > User Settings > Notification Settings to choose which notification emails you receive."}}
+{{/if}}
