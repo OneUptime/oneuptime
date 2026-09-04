@@ -57,6 +57,36 @@
     "today": "Сегодня",
     "notAvailable": "Недоступно"
   },
+  "uptimeHistory": {
+    "graphLabel": "История доступности за последние {{total}} дней",
+    "dayLabel": "{{date}}: доступность {{uptime}} %",
+    "dayLabelWithIncidents": "{{date}}: доступность {{uptime}} %, инцидентов: {{total}}",
+    "dayLabelNoData": "{{date}}: нет данных",
+    "dayLabelNoDataWithIncidents": "{{date}}: нет данных, инцидентов: {{total}}",
+    "uptime": "Доступность",
+    "noMonitoringData": "Нет данных мониторинга за этот день",
+    "incidents": "Инциденты",
+    "noIncidents": "Инцидентов нет",
+    "noIncidentsDescription": "В этот день инциденты не зафиксированы.",
+    "declared": "Зарегистрирован",
+    "oneIncidentOnThisDay": "В этот день зафиксирован 1 инцидент",
+    "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}"
+  },
+  "liveStatus": {
+    "updated": "Обновлено {{time}}",
+    "refresh": "Обновить",
+    "refreshing": "Обновление",
+    "refreshFailed": "Не удалось обновить. Показан последний известный статус."
+  },
+  "search": {
+    "label": "Поиск ресурсов",
+    "placeholder": "Поиск ресурсов",
+    "clear": "Очистить поиск",
+    "resultCount": "{{matched}} из {{total}} ресурсов",
+    "noMatchesInGroup": "Здесь нет ресурсов, соответствующих запросу.",
+    "noResultsTitle": "Подходящих ресурсов нет",
+    "noResultsDescription": "На этой странице ничего не соответствует «{{query}}». Попробуйте более короткий запрос."
+  },
   "incidents": {
     "title": "Инциденты",
     "singular": "Инцидент",

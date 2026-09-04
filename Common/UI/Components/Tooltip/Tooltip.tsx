@@ -35,7 +35,17 @@ const Tooltip: FunctionComponent<ComponentProps> = (
 
   return (
     <Tippy
-      key={Math.random()}
+      /*
+       * Deliberately no key. This used to carry key={Math.random()}, which
+       * gives the element a different identity on every render and so unmounts
+       * and remounts the child each time the parent re-renders. Tippy updates
+       * its content from props perfectly well without that, and the remount
+       * had two costs worth naming: a page that re-renders on a timer tore
+       * down and rebuilt every tooltipped element under it (a status page
+       * draws ninety of them per resource), and anything focused inside one
+       * lost focus on every tick - which makes a keyboard-navigable widget
+       * impossible to build under it.
+       */
       content={tooltipContent}
       interactive={isRich}
       trigger="mouseenter focus"
