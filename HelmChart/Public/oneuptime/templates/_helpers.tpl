@@ -145,6 +145,14 @@ its userlist at startup.
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
+{{- if $.Values.browserOpenTelemetryExporter.endpoint }}
+- name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+  value: {{ $.Values.browserOpenTelemetryExporter.endpoint }}
+{{- end }}
+{{- if $.Values.browserOpenTelemetryExporter.browserIngestionKey }}
+- name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
+  value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey }}
+{{- end }}
 - name: SLACK_APP_CLIENT_ID
   {{- if $.Values.slackApp.existingSecret }}
   valueFrom:

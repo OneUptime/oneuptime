@@ -1070,6 +1070,38 @@ test("HTML entrypoints still get no-store from their prefix locations", () => {
   }
 });
 
+test("every env.js proxy preserves the application's private no-store response", () => {
+  for (const serverBlock of serverBlocks) {
+    const isPrimary = serverBlock === primaryServerBlock;
+    const envPaths = isPrimary
+      ? [
+          "/accounts/env.js",
+          "/dashboard/env.js",
+          "/admin/env.js",
+          "/status-page/env.js",
+          "/public-dashboard/env.js",
+        ]
+      : ["/status-page/env.js", "/public-dashboard/env.js"];
+    const locations = getLocationBlocks(serverBlock.body);
+
+    for (const envPath of envPaths) {
+      const location = resolveLocation(locations, envPath);
+
+      assert.ok(location, `missing nginx route for ${envPath}`);
+      assert.ok(
+        !getDirectives(location.body, "proxy_hide_header").includes(
+          "proxy_hide_header Cache-Control;",
+        ),
+        `${envPath} must preserve the upstream private no-store Cache-Control`,
+      );
+      assert.ok(
+        !location.body.includes("immutable"),
+        `${envPath} must never resolve to an immutable-cache location`,
+      );
+    }
+  }
+});
+
 test("nginx location precedence sends chunks to the immutable block and pages to the app block", () => {
   const locations = getLocationBlocks(primaryServerBlock.body);
   const immutableLocation = findImmutableLocation(primaryServerBlock);

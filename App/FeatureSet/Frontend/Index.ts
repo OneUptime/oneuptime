@@ -2,7 +2,6 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import {
   GoogleTagManagerEnabled,
   IsBillingEnabled,
-  getFrontendEnvVars,
 } from "Common/Server/EnvironmentConfig";
 import Express, {
   ExpressApplication,
@@ -35,6 +34,7 @@ import {
   shouldSkipDashboardFallbackRoute,
   shouldSkipStatusPageDomainFallbackRoute,
 } from "./RouteReservations";
+import { sendFrontendEnvironmentResponse } from "Common/Server/Utils/FrontendEnvironment";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -233,20 +233,7 @@ const sendFrontendEnvScript: (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const env: JSONObject = getFrontendEnvVars();
-
-    const script: string = `
-if(!window.process){
-  window.process = {}
-}
-
-if(!window.process.env){
-  window.process.env = {}
-}
-window.process.env = ${JSON.stringify(env)};
-`;
-
-    Response.sendJavaScriptResponse(req, res, script);
+    sendFrontendEnvironmentResponse(req, res);
   } catch (err) {
     next(err);
   }
