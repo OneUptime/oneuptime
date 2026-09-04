@@ -32,6 +32,11 @@ COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.154.0"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
+# The collector image runs as a non-root user, so it cannot read into the 0700
+# directory mktemp hands back. Nothing secret goes in here — the configs are all
+# in the repo — so open it up rather than running the container as root.
+chmod 0755 "${WORK_DIR}"
+
 # The configs reference these through ${env:...}. The values are never used —
 # nothing connects during `validate` — but they have to resolve.
 ENV_ARGS=(
@@ -54,6 +59,7 @@ validate() {
   local config="$2"
 
   echo "==> ${label}"
+  chmod 0644 "${config}"
 
   if docker run --rm \
     "${ENV_ARGS[@]}" \
