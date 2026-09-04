@@ -12,6 +12,30 @@
  * level keyword out of the body first and only falls back to the stream when
  * there is no keyword to read.
  *
+ * The first version of that read was an unanchored keyword scan, and it cost
+ * more than it looked. It took the leftmost level word ANYWHERE in the
+ * recombined body, with no notion of which token was the level, so
+ * `{"status":"ok","error":null}` on stdout became Error, `Recovered from panic`
+ * became Fatal, and — because `=` was a trailing delimiter but not a leading
+ * one — logfmt's `level=error` was invisible while a level word later in the
+ * same message was not, turning a genuine error into Information. The scan is
+ * now FIELD-AWARE: a keyword counts only where a level actually sits, which is
+ * one of exactly two shapes.
+ *
+ *   1. LINE PREAMBLE — the keyword is on the first line of the record and
+ *      everything before it is preamble: punctuation, digits, and word tokens
+ *      ending on a structural delimiter. "[ERROR] …", "app.INFO: …",
+ *      "2026-08-31 07:25:04 INFO …", "… - myapp - INFO - …", "level=error …".
+ *      Prose is not preamble, which is what keeps "Connection error, retrying"
+ *      out.
+ *   2. LEVEL FIELD — the keyword is the value of a level-ish key anywhere in
+ *      the line (level / lvl / severity / severity_text / levelname /
+ *      log.level / log_level), quoted or not, separated by ":" or "=". That is
+ *      zap and logrus JSON, and logfmt whose level is not the first field.
+ *
+ * The preamble branch is anchored, so it is always the leftmost match when it
+ * matches at all, and therefore beats a level field further along the line.
+ *
  * These tests exist because that chain has no other guard rail. It is YAML
  * baked into three separate images; nothing compiles it, and `otelcol validate`
  * only proves each operator is individually well-formed — it will happily
@@ -25,7 +49,8 @@
  *                  pattern after their two different layers of quoting
  *   3. coverage  — every keyword the regex can capture resolves to a real OTel
  *                  severity number (stanza's built-in preset does NOT know
- *                  notice / crit / critical / panic)
+ *                  notice / crit / critical / panic / alert / emerg /
+ *                  emergency)
  *   4. ingest    — every severity number the chain can emit survives
  *                  OneUptime's ingest as a real LogSeverity, not Unspecified
  *   5. behaviour — a corpus of real log lines maps to the level a human would
@@ -33,6 +58,8 @@
  *                  word in prose do not
  *   6. lockstep  — the three agents and the Kubernetes agent's DaemonSet
  *                  ConfigMap carry one identical chain
+ *   7. regression — every line the unanchored scan got wrong, kept as a test
+ *                  in the direction it is now supposed to go
  *
  * The expectations were cross-checked against the real thing: each config was
  * run through otelcol-contrib 0.154.0 (the version the images are built FROM)
@@ -183,6 +210,18 @@ const CORPUS = [
     body: "[2026-08-31 07:25:04] php.CRITICAL: out of memory",
     keyword: "CRITICAL",
   },
+  // The two PSR-3 levels ABOVE critical. Monolog defines eight; the alternation
+  // carried six, so a site-is-down line on stdout was stored as Information.
+  {
+    body: "[2026-08-31 07:25:04] app.ALERT: replica lag 900s",
+    keyword: "ALERT",
+  },
+  {
+    body: "[2026-08-31 07:25:04] app.EMERGENCY: site is down",
+    keyword: "EMERGENCY",
+  },
+  // nginx spells emergency [emerg], and missed for the same reason.
+  { body: "2026/08/31 07:25:04 [emerg] 1#1: bind() failed", keyword: "emerg" },
 
   // Go zap / logrus / slog. The keyword sits between double quotes — the other
   // half of the reason.
@@ -217,6 +256,38 @@ const CORPUS = [
   { body: "07:25:04.123 [main] INFO  c.e.App - started", keyword: "INFO" },
   { body: "info: Microsoft.Hosting.Lifetime[14]", keyword: "info" },
 
+  // logfmt — Grafana, Traefik, Prometheus, Loki, the Docker daemon and the
+  // HashiCorp tools. Invisible to the old scan, because `=` was a trailing
+  // delimiter and not a leading one.
+  { body: "level=info msg=ready", keyword: "info" },
+  { body: "level=error msg=boom", keyword: "error" },
+  { body: 'level="error" msg=boom', keyword: "error" },
+  {
+    body: 'time="2026-08-31T07:25:04Z" level=error msg=x',
+    keyword: "error",
+  },
+  {
+    body: "ts=2026-08-31T07:25:04Z caller=main.go:42 level=warn msg=x",
+    keyword: "warn",
+  },
+  { body: "component=proxy level=error msg=x", keyword: "error" },
+
+  // The other names structured loggers give the level field.
+  { body: '{"severity":"ERROR","message":"boom"}', keyword: "ERROR" },
+  { body: '{"severity_text":"WARN","message":"x"}', keyword: "WARN" },
+  { body: '{"log.level":"warn","message":"x"}', keyword: "warn" },
+  { body: '{"log_level":"debug","message":"x"}', keyword: "debug" },
+  { body: '{"levelname":"DEBUG","msg":"x"}', keyword: "DEBUG" },
+  { body: "lvl=warn msg=x", keyword: "warn" },
+
+  // A level that is the last thing on the line. Docker's json-file driver keeps
+  // the trailing newline in the `log` field and Podman's CRI format does not,
+  // so a consumed trailing delimiter made the two agents disagree here.
+  { body: "2026-08-31 07:25:04 ERROR", keyword: "ERROR" },
+  { body: "2026-08-31 07:25:04 ERROR\n", keyword: "ERROR" },
+  { body: "level=error", keyword: "error" },
+  { body: "[WARN]", keyword: "WARN" },
+
   // Aliases stanza's built-in preset does NOT know. Each of these is
   // Unspecified unless the config's own `mapping:` block supplies it.
   { body: "[NOTICE] configuration reloaded", keyword: "NOTICE" },
@@ -245,6 +316,60 @@ const CORPUS = [
   // An ANSI colour escape sits between the delimiter and the keyword, so the
   // keyword is not seen. Colour-coded stdout falls back to INFO, as before.
   { body: "\u001b[32mINFO\u001b[0m starting", keyword: null },
+
+  // Ordinary container output that merely MENTIONS a level word. Every one of
+  // these was escalated by the unanchored scan; none of them carries a level.
+  { body: '{"status":"ok","error":null,"took_ms":12}', keyword: null },
+  { body: "Recovered from panic, continuing", keyword: null },
+  { body: "Connection error, retrying in 5s", keyword: null },
+  { body: "Import finished with status: ERROR", keyword: null },
+  { body: "log level is set to WARN", keyword: null },
+  { body: "An error occurred while doing the thing", keyword: null },
+  { body: "failed to fetch: 3 errors occurred", keyword: null },
+  { body: "Deprecation warning in module foo", keyword: null },
+  { body: "No errors found", keyword: null },
+  { body: "the error rate is low", keyword: null },
+  { body: "curl -sS http://x/ --level=info", keyword: null },
+  { body: "Traceback (most recent call last):", keyword: null },
+  { body: "npm notice New minor version of npm available!", keyword: null },
+];
+
+/**
+ * Thirty ordinary container stdout lines carrying no level field at all. The
+ * unanchored scan reclassified eleven of them; the fallback is only correct if
+ * it is reached, so NONE of these may match.
+ */
+const LEVEL_FREE_STDOUT = [
+  "Server listening on port 8080",
+  "Listening and serving HTTP on :8080",
+  "Ready to accept connections tcp",
+  "Database connection established",
+  "Migrated 12 of 12 migrations",
+  "Cache warmed in 84ms",
+  "GET /healthz 200 1.2ms",
+  "POST /api/v1/errors 201 8.4ms",
+  '{"status":"ok","error":null,"took_ms":12}',
+  '{"ok":true,"errors":[],"warnings":[]}',
+  '{"event":"request.finished","status":200}',
+  "Recovered from panic, continuing",
+  "Connection error, retrying in 5s",
+  "An error occurred while doing the thing",
+  "No errors found",
+  "there were 3 errors",
+  "failed to fetch: 3 errors occurred",
+  "the error rate is low",
+  "Deprecation warning in module foo",
+  "log level is set to WARN",
+  "Import finished with status: ERROR",
+  "informational message",
+  "loaded config from /etc/app/warning.yaml",
+  "service.warning.example.com resolved",
+  "curl -sS http://x/ --level=info",
+  "Traceback (most recent call last):",
+  "    at com.example.Foo.bar(Foo.java:42)",
+  "npm notice New minor version of npm available!",
+  "Compiled successfully in 1240ms",
+  "Shutting down gracefully",
 ];
 
 /**
@@ -474,6 +599,38 @@ describe.each(AGENTS)("%s severity operator chain", (agent) => {
     expect(resolveSeverityNumber("crit", severityParser)).toBe(17);
     expect(resolveSeverityNumber("critical", severityParser)).toBe(17);
     expect(resolveSeverityNumber("panic", severityParser)).toBe(21);
+    // PSR-3 and syslog put alert and emergency above critical; nginx spells
+    // emergency [emerg]. None of the three has a built-in mapping either.
+    expect(resolveSeverityNumber("alert", severityParser)).toBe(21);
+    expect(resolveSeverityNumber("emerg", severityParser)).toBe(21);
+    expect(resolveSeverityNumber("emergency", severityParser)).toBe(21);
+  });
+
+  /*
+   * Monolog implements all eight PSR-3 levels and this chain was written for
+   * Monolog, so a keyword list that carries only six of them is a hole with a
+   * name. The two it used to miss — ALERT and EMERGENCY — are the two above
+   * CRITICAL, which is the worst possible half to drop.
+   */
+  test("the keyword list covers all eight PSR-3 levels", () => {
+    const keywords = severityKeywordsFromRegex(bodyParser.regex).map(
+      (keyword) => {
+        return keyword.toLowerCase();
+      },
+    );
+
+    for (const level of [
+      "debug",
+      "info",
+      "notice",
+      "warning",
+      "error",
+      "critical",
+      "alert",
+      "emergency",
+    ]) {
+      expect(keywords).toContain(level);
+    }
   });
 
   test("matching is case-insensitive, as stanza lower-cases before lookup", () => {
@@ -542,20 +699,17 @@ describe.each(AGENTS)("%s severity operator chain", (agent) => {
     });
 
     /*
-     * The pattern takes the LEFTMOST match, so a line whose message mentions a
-     * level word before the real level field is read wrong. Pinned rather than
-     * fixed: the alternative is parsing every line as JSON, and this shape is
-     * rare next to the Monolog/zap shapes the chain does get right. If someone
-     * later teaches the chain to prefer a `"level":` key, this test is the one
-     * that should change.
+     * The two branches meet here. The preamble branch is anchored at the start
+     * of the body, so whenever it matches its match begins at offset 0 — which
+     * is leftmost by construction, and therefore beats the level-field branch
+     * anywhere later in the line. That ordering is the whole reason a line can
+     * carry both a real preamble level and the word `level=` in its message
+     * without the message winning.
      */
-    test("known limitation: the leftmost level word wins, even inside the message", () => {
+    test("an anchored preamble level beats a level field later in the line", () => {
       expect(
-        regex.exec('{"msg":"error, retrying","level":"info"}').groups
-          .severity_text,
-      ).toBe("error");
-
-      // The Monolog shape puts the level first, so the same message is fine.
+        regex.exec("[ERROR] could not apply level=debug").groups.severity_text,
+      ).toBe("ERROR");
       expect(
         regex.exec("[2026-08-31 07:25:04] app.INFO: error, retrying").groups
           .severity_text,
@@ -563,109 +717,233 @@ describe.each(AGENTS)("%s severity operator chain", (agent) => {
     });
 
     /*
-     * The pattern requires a delimiter AFTER the keyword, so a body that ENDS
-     * on the level matches only when something follows it. Docker's json-file
-     * driver keeps the trailing newline in the `log` field, so Docker and Swarm
-     * bodies match; Podman's k8s-file (CRI) format does not, so the same line
-     * from Podman falls back to the stream. Pinned so the divergence is a known
-     * quantity rather than a surprise.
+     * And the other way round: with no preamble level, the level FIELD is what
+     * decides, not the first level-looking word in the message. This is the
+     * shape the unanchored scan inverted — a genuine error stored as
+     * Information, which is worse than any amount of escalation.
      */
-    test("known limitation: a body ending on the keyword needs a trailing delimiter", () => {
-      expect(regex.exec("log level is set to WARN")).toBeNull();
+    test("the level field beats a level word quoted inside the message", () => {
       expect(
-        regex.exec("log level is set to WARN\n").groups.severity_text,
-      ).toBe("WARN");
+        regex.exec('{"msg":"error, retrying","level":"info"}').groups
+          .severity_text,
+      ).toBe("info");
+      expect(
+        regex.exec('{"error":"conn refused","level":"info","msg":"retry"}')
+          .groups.severity_text,
+      ).toBe("info");
     });
 
     /*
-     * CHARACTERIZATION, NOT APPROVAL.
+     * Prose is not a preamble. The preamble is punctuation, digits, and word
+     * tokens that end on a structural delimiter; a bare word followed by a
+     * space ends it. "Connection error, retrying" therefore stops dead at
+     * "Connection " and never reaches the keyword, which is the mechanism the
+     * whole escalation class rests on.
+     */
+    test("a bare word followed by a space ends the preamble", () => {
+      expect(regex.exec("Connection error, retrying in 5s")).toBeNull();
+      expect(regex.exec("Recovered from panic, continuing")).toBeNull();
+      // The same word one token earlier, where a preamble can still reach it.
+      expect(regex.exec("Error, connection refused").groups.severity_text).toBe(
+        "Error",
+      );
+      // And a word token that DOES end on a delimiter is preamble, which is
+      // what makes Monolog's "app.INFO:" and Python's "- myapp - INFO -" work.
+      expect(regex.exec("myapp - INFO - ready").groups.severity_text).toBe(
+        "INFO",
+      );
+    });
+
+    /*
+     * The trailing delimiter used to have to be CONSUMED, so a body ending on
+     * its level only matched when something followed it. Docker's json-file
+     * driver keeps the trailing newline in the `log` field and Podman's CRI
+     * format does not, so the two agents read the same line differently. End of
+     * body is now a delimiter in its own right and they agree.
+     */
+    test("a level at the very end of the body is read, newline or not", () => {
+      for (const body of [
+        "2026-08-31 07:25:04 ERROR",
+        "2026-08-31 07:25:04 ERROR\n",
+        "level=error",
+        "level=error\n",
+        "[WARN]",
+        "[WARN]\n",
+      ]) {
+        expect(regex.exec(body)).not.toBeNull();
+      }
+    });
+
+    /*
+     * The recombine operator glues a stack trace into one record, so the body
+     * the scan sees is multi-line. The preamble branch is anchored with `^` and
+     * neither pattern is in multiline mode, so only the FIRST line can supply a
+     * preamble level — a level word on a continuation line is not one.
+     */
+    test("only the first line of a recombined body can carry a preamble level", () => {
+      expect(
+        regex.exec("[INFO] request finished\n    ERROR in frame\n").groups
+          .severity_text,
+      ).toBe("INFO");
+      expect(
+        regex.exec("Server started\n    at Foo.bar\n    ERROR here\n"),
+      ).toBeNull();
+    });
+
+    /*
+     * THE REGRESSION BLOCK.
      *
-     * Everything below is a line the chain gets WRONG. None of it is a bug in
-     * the operator graph — the graph does exactly what it says — it is the
-     * price of deciding severity by scanning for a keyword, and it is worth
-     * writing down because the price is not free and the PR that introduced
-     * this chain described only the upside.
+     * Every line below is a line the unanchored keyword scan got wrong, in the
+     * direction it got it wrong. They were the `characterization` block until
+     * the scan was made field-aware; keeping them as assertions of the FIXED
+     * behaviour is what stops the fix being undone by a well-meaning widening
+     * of the delimiter classes.
      *
      * Two directions of damage, both reproduced against otelcol-contrib
-     * 0.154.0:
+     * 0.154.0 before the fix:
      *
      *   ESCALATION  a benign stdout line that mentions a level word in prose
-     *               used to be Information and is now Error or Fatal;
-     *   INVERSION   a genuine stderr ERROR whose message happens to contain an
-     *               earlier level word used to be Error and is now Information
-     *               — a real error hidden, which is the worse of the two.
-     *
-     * The inversion is sharpest for logfmt (`level=error msg="…"`), because
-     * `=` is in the pattern's TRAILING delimiter class but not its leading one:
-     * the real `level=` token can never be captured, while a level word later
-     * in the message can. That is the whole Go/CNCF ecosystem — Grafana,
-     * Traefik, Prometheus, Loki, the Docker daemon, the HashiCorp tools.
-     *
-     * Fixing it properly means making the scan field-aware, or at minimum
-     * adding `=` to the leading class, in all four copies of the chain at
-     * once. Until that happens these tests are the record of what is
-     * happening, and the day someone changes them should be a deliberate one.
+     *               was Information and became Error or Fatal;
+     *   INVERSION   a genuine stderr ERROR whose message happened to contain an
+     *               earlier level word was Error and became Information — a
+     *               real error hidden, which is the worse of the two.
      */
-    describe("characterization: what the keyword scan gets wrong", () => {
-      const severityOf = (body) => {
+    describe("regression: what the unanchored keyword scan got wrong", () => {
+      const severityOf = (body, stream) => {
         const match = regex.exec(body);
 
-        return match
-          ? oneUptimeLogSeverity(
-              resolveSeverityNumber(match.groups.severity_text, severityParser),
-            )
-          : null;
+        if (match) {
+          return oneUptimeLogSeverity(
+            resolveSeverityNumber(match.groups.severity_text, severityParser),
+          );
+        }
+
+        // No keyword: the chain's `add` operator supplies the stream fallback.
+        return oneUptimeLogSeverity(
+          resolveSeverityNumber(
+            stream === "stderr" ? "ERROR" : "INFO",
+            severityParser,
+          ),
+        );
       };
 
-      test("escalates benign stdout prose that used to be Information", () => {
-        // A success envelope. Every OK response in this service is now Error.
-        expect(severityOf('{"status":"ok","error":null,"took_ms":12}\n')).toBe(
-          "Error",
-        );
+      test("no longer escalates benign stdout prose", () => {
+        // A success envelope. Every OK response in this service used to be
+        // Error, because `"error":null` sat inside it.
+        expect(
+          severityOf('{"status":"ok","error":null,"took_ms":12}\n', "stdout"),
+        ).toBe("Information");
         // logrus WithError(err).Info(...) — logged AT info, stored as Error.
         expect(
-          severityOf('{"error":"conn refused","level":"info","msg":"retry"}\n'),
-        ).toBe("Error");
-        // And the worst of them: a recovery notice stored in the top bucket.
-        expect(severityOf("Recovered from panic, continuing\n")).toBe("Fatal");
-        expect(severityOf("Connection error, retrying in 5s\n")).toBe("Error");
+          severityOf(
+            '{"error":"conn refused","level":"info","msg":"retry"}\n',
+            "stdout",
+          ),
+        ).toBe("Information");
+        // And the worst of them: a recovery notice in the top bucket.
+        expect(severityOf("Recovered from panic, continuing\n", "stdout")).toBe(
+          "Information",
+        );
+        expect(severityOf("Connection error, retrying in 5s\n", "stdout")).toBe(
+          "Information",
+        );
       });
 
-      test("inverts a real stderr error into Information when the message mentions a level first", () => {
-        // logfmt: the real level is `error`, but `=` is not a leading
-        // delimiter, so `level=error` is invisible and ` info,` wins.
+      test("no longer inverts a real error into Information", () => {
+        // logfmt: the real level is `error`. `=` was a trailing delimiter and
+        // not a leading one, so `level=error` was invisible and ` info,` won.
         expect(
           severityOf(
             'level=error msg="upstream returned info, aborting" component=proxy\n',
+            "stderr",
           ),
-        ).toBe("Information");
+        ).toBe("Error");
       });
 
-      test("cannot see a logfmt level at all, because `=` is only a trailing delimiter", () => {
-        expect(regex.exec("level=info msg=ready\n")).toBeNull();
-        expect(regex.exec("level=error msg=boom\n")).toBeNull();
-        // The very same keyword IS seen when quoted, which is what proves the
-        // leading class — not the keyword list — is what excludes logfmt.
+      test("sees a logfmt level, which it could not before", () => {
+        expect(regex.exec("level=info msg=ready\n").groups.severity_text).toBe(
+          "info",
+        );
+        expect(regex.exec("level=error msg=boom\n").groups.severity_text).toBe(
+          "error",
+        );
         expect(
           regex.exec('level="error" msg=boom\n').groups.severity_text,
         ).toBe("error");
       });
 
-      test("misses the two most severe PSR-3 levels, which the commit set out to support", () => {
-        // Monolog defines eight levels; the alternation carries six. ALERT and
-        // EMERGENCY — the two above CRITICAL — fall back to the stream, so on
-        // stdout a site-is-down line is stored as Information.
+      test("reads the two most severe PSR-3 levels", () => {
+        // Monolog defines eight levels; the alternation carried six. ALERT and
+        // EMERGENCY — the two above CRITICAL — fell back to the stream, so on
+        // stdout a site-is-down line was stored as Information.
         expect(
-          regex.exec("[2026-08-31 07:25:04] app.EMERGENCY: site down\n"),
-        ).toBeNull();
+          severityOf(
+            "[2026-08-31 07:25:04] app.EMERGENCY: site down\n",
+            "stdout",
+          ),
+        ).toBe("Fatal");
         expect(
-          regex.exec("[2026-08-31 07:25:04] app.ALERT: replica lag\n"),
-        ).toBeNull();
-        // nginx writes the same level as [emerg], and misses for the same reason.
+          severityOf(
+            "[2026-08-31 07:25:04] app.ALERT: replica lag\n",
+            "stdout",
+          ),
+        ).toBe("Fatal");
+        // nginx writes the same level as [emerg], and missed for the same reason.
         expect(
-          regex.exec("2026/08/31 [emerg] 1#1: bind() failed\n"),
-        ).toBeNull();
+          severityOf("2026/08/31 [emerg] 1#1: bind() failed\n", "stdout"),
+        ).toBe("Fatal");
       });
+
+      test("Docker and Podman agree on a body that ends on its level", () => {
+        // Docker's json-file driver keeps the newline, Podman's CRI does not.
+        const docker = "Import finished, level=error\n";
+        const podman = "Import finished, level=error";
+
+        expect(severityOf(docker, "stdout")).toBe(severityOf(podman, "stdout"));
+        expect(severityOf(docker, "stdout")).toBe("Error");
+      });
+
+      /*
+       * The whole point of the fallback is that it is reached when there is
+       * nothing to read. Thirty ordinary stdout lines, eleven of which the
+       * unanchored scan reclassified; none of them may match now.
+       */
+      test.each(LEVEL_FREE_STDOUT)(
+        "level-free stdout stays Information: %s",
+        (body) => {
+          expect(regex.exec(body)).toBeNull();
+          expect(severityOf(body, "stdout")).toBe("Information");
+        },
+      );
+    });
+
+    /*
+     * The pattern runs on every log line the agent ships, and the Kubernetes
+     * API-mode tailer runs the same source through JavaScript's BACKTRACKING
+     * engine rather than RE2. A pattern that is linear in RE2 can still be
+     * exponential there, so the shapes that could blow up — long runs of
+     * letters and digits, of separators, of quoted tokens — get a wall-clock
+     * bound rather than a promise.
+     */
+    test("pathological bodies do not blow up the backtracking engine", () => {
+      const bodies = [
+        "a".repeat(20000),
+        "a1".repeat(10000),
+        "ab. ".repeat(5000),
+        "a -".repeat(5000),
+        "x=".repeat(10000),
+        `${"level=".repeat(5000)}error`,
+        `${"[".repeat(10000)}ERROR`,
+        `${"\t ".repeat(10000)}ERROR`,
+      ];
+
+      const started = Date.now();
+
+      for (const body of bodies) {
+        regex.exec(body);
+      }
+
+      expect(Date.now() - started).toBeLessThan(2000);
     });
   });
 });

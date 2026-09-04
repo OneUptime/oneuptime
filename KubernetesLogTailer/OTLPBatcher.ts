@@ -16,40 +16,83 @@ import Logger from "./Logger";
 /*
  * OTLP-HTTP JSON severity numbers follow the OpenTelemetry spec:
  * https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
+ *
+ * These are the numbers the collector chain emits for the same keywords, and
+ * they have to be those numbers rather than "something in the right bucket":
+ * OneUptime's ingest throws away severityText and re-derives it from
+ * severityNumber (OtelLogsIngestService.getSeverityText), so a keyword the two
+ * Kubernetes log modes number differently can still surface as two different
+ * levels on the Logs page. NOTICE and CRITICAL used to be 10 and 20 here
+ * against the chain's 9 and 17; Tests/Severity.test.js reads the chain's own
+ * mapping block out of the Helm template and fails if they drift again.
+ *
+ * ALERT and EMERGENCY (PSR-3, syslog, nginx's [emerg]) sit above CRITICAL and
+ * land on FATAL.
  */
-const severityTextToNumber: Record<string, number> = {
+export const severityTextToNumber: Record<string, number> = {
   TRACE: 1,
   DEBUG: 5,
   INFO: 9,
-  NOTICE: 10,
+  NOTICE: 9,
   WARN: 13,
   WARNING: 13,
   ERROR: 17,
   ERR: 17,
-  CRITICAL: 20,
-  CRIT: 20,
+  CRITICAL: 17,
+  CRIT: 17,
   FATAL: 21,
   PANIC: 21,
+  ALERT: 21,
+  EMERG: 21,
+  EMERGENCY: 21,
 };
 
 /*
- * The keyword may be delimited by whitespace, brackets, parentheses, a dot or
- * a double quote. The dot and the quote matter more than they look: without
- * them the two most common structured log formats in the wild are both missed,
- * and every line they produce falls through to the stream fallback below.
- *   * PSR-3 / Monolog  -> "[2026-08-31 07:25:04] app.INFO: ..."
- *   * Go zap, logrus   -> '{"level":"info","ts":...,"msg":"..."}'
+ * The RE2 pattern the collector chain uses, character for character.
+ *
+ * A level keyword is only believed when it sits where a LEVEL sits, not merely
+ * because the word turns up somewhere in the line. Two shapes count, in this
+ * order:
+ *
+ *   1. LINE PREAMBLE — the keyword is on the first line and everything before
+ *      it is preamble: punctuation, digits, and word tokens ending on a
+ *      structural delimiter. That is "[ERROR] ...", Monolog's "app.INFO: ...",
+ *      "2026-08-31 07:25:04 INFO ...", Python's "... - myapp - INFO - ..." and
+ *      logfmt's leading "level=error ...". Prose is not: "Connection error,
+ *      retrying" stops the preamble dead at "Connection ". The repetition is
+ *      LAZY, so the first keyword in preamble position wins, not the last.
+ *   2. LEVEL FIELD — the keyword is the value of a level-ish key anywhere in
+ *      the line (level / lvl / severity / severity_text / levelname /
+ *      log.level / log_level), quoted or not, separated by ":" or "=". That is
+ *      zap and logrus JSON, and logfmt whose level is not the first field.
+ *
  * Not covered: klog's single-letter prefix ("I0831 07:25:04.123456"), which
  * needs its own letter-to-level mapping.
  *
- * This must stay in step with the `severity-router` / `parse-severity-from-body`
- * operators in HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml.
- * The two log modes are meant to be behaviourally identical (see MIN_SEVERITY
- * in Config.ts), and a keyword one mode recognises and the other does not is
+ * Kept verbatim, as the collector's own RE2 source rather than a JS regex
+ * literal, because it MUST stay in step with the `severity-router` /
+ * `parse-severity-from-body` operators in
+ * HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml. The two
+ * log modes are meant to be behaviourally identical (see MIN_SEVERITY in
+ * Config.ts), and a keyword one mode recognises and the other does not is
  * exactly the kind of divergence a preset would silently impose on a user.
+ * Tests/Severity.test.js reads the pattern back out of that template and fails
+ * on any difference.
  */
-const SEVERITY_REGEX: RegExp =
-  /(?:^|[\s.[("])(TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERR(?:OR)?|CRIT(?:ICAL)?|FATAL|PANIC)(?:[\s\]:=,)"])/i;
+export const SEVERITY_PATTERN: string = String.raw`(?i)(?:^(?:[^A-Za-z"\n]|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\s\]:=,)"}|>])`;
+
+/*
+ * RE2 -> JavaScript. Only two dialect differences matter here: the inline (?i)
+ * flag is legal in RE2 and not in JS, so it becomes the `i` flag; and named
+ * groups are (?P<name>...) in RE2 and (?<name>...) in JS. Everything else —
+ * anchors, classes, alternation, and the leftmost-first alternation both
+ * engines use — behaves the same, and `$` means end of input in both because
+ * neither is in multiline mode.
+ */
+export const SEVERITY_REGEX: RegExp = new RegExp(
+  SEVERITY_PATTERN.replace("(?i)", "").replace("(?P<", "(?<"),
+  "i",
+);
 
 type Stream = "stdout" | "stderr";
 
@@ -119,8 +162,9 @@ export const deriveSeverity: (
   stream: Stream,
 ): { text: string; number: number; parsed: boolean } => {
   const match: RegExpMatchArray | null = body.match(SEVERITY_REGEX);
-  if (match && match[1]) {
-    const text: string = match[1].toUpperCase();
+  const keyword: string | undefined = match?.groups?.["severity_text"];
+  if (keyword) {
+    const text: string = keyword.toUpperCase();
     const num: number | undefined = severityTextToNumber[text];
     if (num !== undefined) {
       return { text, number: num, parsed: true };

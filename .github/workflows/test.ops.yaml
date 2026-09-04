@@ -34,3 +34,14 @@ jobs:
       # is the check that only has value if it actually runs on every PR.
       - run: cd Tests/Ops && npm install
       - run: cd Tests/Ops && npm run test
+      # The jest suite reads the collector configs with js-yaml and reasons
+      # about them, which cannot see the Go-side class of error: a malformed
+      # RE2 regex, an `output`/`default` naming an operator that does not
+      # exist, or an expr-lang string one backslash short. `otelcol validate`
+      # builds the pipeline and the stanza operator graph for real, so it
+      # catches all three — and it is the only check that runs the same
+      # collector binary the agent images are built FROM.
+      #
+      # Runs the pinned collector image over the three agent configs and over
+      # both collector ConfigMaps rendered out of the kubernetes-agent chart.
+      - run: bash Tests/Ops/validate-collector-configs.sh

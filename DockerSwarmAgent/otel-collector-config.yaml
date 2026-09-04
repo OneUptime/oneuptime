@@ -58,26 +58,49 @@ receivers:
       # reading a level keyword out of the body, falling back to the
       # stdout/stderr stream when there is no keyword to read.
       #
-      # The delimiter class has to admit the dot and the double quote, not just
-      # whitespace and brackets: PSR-3/Monolog ("app.INFO:") and Go zap
-      # ({"level":"info"}) write the keyword next to one of those, and a plain
-      # word-boundary match misses both — which is what left every line from
-      # such a service taking the stream default and being stamped ERROR.
+      # A level keyword is only believed when it sits where a LEVEL sits, not
+      # merely because the word turns up somewhere in the line. Two shapes
+      # count, and the pattern is those two, in this order:
       #
-      # Best-effort really is best-effort. The keyword scan is an unanchored
-      # search over the whole (recombined) body, so it takes the FIRST level
-      # word anywhere in the line — a message that merely mentions one is
-      # classified by it, and a level written as `level=error` is missed
-      # because `=` is not a leading delimiter. Tests/Ops pins both.
+      #   1. LINE PREAMBLE. The keyword is on the first line of the record and
+      #      everything before it is preamble: punctuation, digits, and word
+      #      tokens that end on a structural delimiter (. ] = - : / | ) }).
+      #      That is "[ERROR] ...", Monolog's "app.INFO: ...", "2026-08-31
+      #      07:25:04 INFO ...", Python's "... - myapp - INFO - ..." and
+      #      logfmt's leading "level=error ...". Prose is not: "Connection
+      #      error, retrying" stops the preamble dead at "Connection ",
+      #      because a bare word followed by a space is not a preamble token.
+      #      The repetition is LAZY, so the first keyword in preamble
+      #      position wins rather than the last.
+      #   2. LEVEL FIELD. The keyword is the value of a level-ish key anywhere
+      #      in the line -- level / lvl / severity / severity_text / levelname
+      #      / log.level / log_level -- quoted or not, separated by ":" or
+      #      "=". That is zap and logrus JSON ({"level":"info"}) and logfmt
+      #      whose level is not the first field (ts=... level=error msg=...).
+      #
+      # The preamble branch is anchored, so when it matches it is the leftmost
+      # match and beats a level field further along the same line. Both
+      # branches take end-of-body as a trailing delimiter, so Docker (whose
+      # json-file driver keeps the newline in the `log` field) and Podman
+      # (whose CRI format does not) read the same line the same way.
+      #
+      # A line matching neither shape takes the stream fallback below, exactly
+      # as it did before any of this existed. Every keyword in the alternation
+      # MUST also resolve in `severity-parser` below: stanza's built-in preset
+      # knows nothing of notice/crit/critical/panic/alert/emerg/emergency, and
+      # an unmapped keyword leaves the record Unspecified, which is worse than
+      # the stream guess it replaced.
+      # Tests/Ops/ContainerAgentLogSeverity.test.js pins all of it, the corpus
+      # of lines that must NOT match included.
       - type: router
         id: severity-router
         routes:
           - output: parse-severity-from-body
-            expr: 'body matches "(?i)(?:^|[\\s.\\[(\"])(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\\s\\]:=,)\"])"'
+            expr: 'body matches "(?i)(?:^(?:[^A-Za-z\"\\n]|[A-Za-z][A-Za-z0-9_]*[ \\t]*[.:=,/>|)}\\]-])*?|(?:^|[\\s,{\\[])\"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)\"?[ \\t]*[:=][ \\t]*\"?)(TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\\s\\]:=,)\"}|>])"'
         default: add-fallback-severity
       - type: regex_parser
         id: parse-severity-from-body
-        regex: '(?i)(?:^|[\s.\[("])(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL|CRIT|PANIC)(?:[\s\]:=,)"])'
+        regex: '(?i)(?:^(?:[^A-Za-z"\n]|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\s\]:=,)"}|>])'
         parse_from: body
         output: severity-parser
       # No keyword in the body: fall back to the stream. The json-file driver
@@ -98,8 +121,13 @@ receivers:
             - err
             - crit
             - critical
+          # PSR-3 / syslog put alert and emergency above critical, and neither
+          # has a built-in mapping; nginx writes emergency as [emerg].
           fatal:
             - panic
+            - alert
+            - emerg
+            - emergency
           info:
             - notice
       - type: remove
