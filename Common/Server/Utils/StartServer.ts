@@ -6,7 +6,6 @@ import {
   EncryptionSecretWarning,
   GoogleTagManagerEnabled,
   TrustedProxyHops,
-  getFrontendEnvVars,
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
@@ -16,6 +15,7 @@ import CorsOptions, {
   CORS_PREFLIGHT_MAX_AGE_SECONDS,
 } from "./CorsOptions";
 import "./Environment";
+import { sendFrontendEnvironmentResponse } from "./FrontendEnvironment";
 import Express, {
   ExpressApplication,
   ExpressJson,
@@ -373,22 +373,7 @@ const init: InitFunction = async (
       [`/${appName}/env.js`, "/env.js"],
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          // ping api server for database config.
-
-          const env: JSONObject = getFrontendEnvVars();
-
-          const script: string = `
-    if(!window.process){
-      window.process = {}
-    }
-
-    if(!window.process.env){
-      window.process.env = {}
-    }
-    window.process.env = ${JSON.stringify(env)};
-  `;
-
-          Response.sendJavaScriptResponse(req, res, script);
+          sendFrontendEnvironmentResponse(req, res);
         } catch (err) {
           return next(err);
         }
