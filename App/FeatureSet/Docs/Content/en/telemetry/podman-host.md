@@ -64,12 +64,12 @@ podman compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                                                                                                                                      |
-| ------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                       |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                             |
-| `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`)                                              |
-| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent negotiates with the Podman socket. Defaults to `1.44`; lower it if the socket reports an older maximum (see Troubleshooting) |
+| Variable                  | Required | Description                                                                                                                                                                                   |
+| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                    |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                          |
+| `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`)                                                                           |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks to the Podman socket. Defaults to `1.44`; lower it if the socket reports an older maximum, or set it empty to auto-negotiate (see Troubleshooting) |
 
 ## Verify the Installation
 
@@ -166,6 +166,14 @@ curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost
 Then add `-e DOCKER_API_VERSION=1.41` (or the value you got) to `podman run`, or set
 `DOCKER_API_VERSION` in Compose. Newer servers still serve older API versions, so the
 setting stays valid after an upgrade.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then negotiates the version with the socket (one `HEAD /_ping`,
+then the maximum the socket reports) instead of pinning one:
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

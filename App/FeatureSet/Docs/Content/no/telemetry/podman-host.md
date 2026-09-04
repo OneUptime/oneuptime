@@ -64,11 +64,12 @@ podman compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                                                                                         |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_                           |
-| `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
+| Variable                  | Required | Description                                                                                                                                                                                                              |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                               |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_                                                                                                                                |
+| `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`)                                                                                                      |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API-versjonen agenten snakker med Podman-socketen. Standardverdi er `1.44`; senk den hvis socketen rapporterer et eldre maksimum, eller la den stå tom for å forhandle den automatisk (se Troubleshooting) |
 
 ## Verify the Installation
 
@@ -145,6 +146,28 @@ The agent container must run as root (`--user 0:0`) to access `/run/podman/podma
 ### Podman Socket / Log Driver
 
 The Podman API socket must be enabled and reachable at `/run/podman/podman.sock`. On rootful systemd hosts, enable it with `systemctl enable --now podman.socket`. Container logs are read from `/var/lib/containers`, so make sure that path is mounted into the agent and that Podman is using a file-based log driver (for example `--log-driver=k8s-file` or `json-file`). If you run Podman rootless, the socket lives under `/run/user/<uid>/podman/podman.sock` instead — mount that path and adjust the volume accordingly.
+
+### Agenten starter på nytt med "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+En Docker-API-server som håndhever en maksimal klientversjon, avviser en nyere klient (Docker Engine rapporterer det som ovenfor), så receiveren starter aldri, og collectoren avsluttes sammen med den. Sjekk API-versjonen Podman-socketen rapporterer, og send den videre til agenten:
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+```
+
+Legg deretter til `-e DOCKER_API_VERSION=1.41` (eller verdien du fikk) i `podman run`, eller sett `DOCKER_API_VERSION` i Compose. Nyere servere betjener fortsatt eldre API-versjoner, så innstillingen forblir gyldig etter en oppgradering.
+
+Hvis du heller vil slippe å slå opp tallet, sett `DOCKER_API_VERSION` til den **tomme strengen**. Agenten forhandler da versjonen med socketen (én `HEAD /_ping`, deretter maksimum som socketen rapporterer) i stedet for å låse den til én versjon:
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

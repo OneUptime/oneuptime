@@ -64,12 +64,12 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                                                                                                      |
-| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                       |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                             |
-| `DOCKER_HOST_NAME`        | No       | Friendly name for this host. Defaults to `docker-host`. Set it to something stable per host (e.g. `prod-docker-01`)              |
-| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent negotiates. Defaults to `1.44`; lower it on hosts with an older daemon (see Troubleshooting) |
+| Variable                  | Required | Description                                                                                                                                                     |
+| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                      |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                            |
+| `DOCKER_HOST_NAME`        | No       | Friendly name for this host. Defaults to `docker-host`. Set it to something stable per host (e.g. `prod-docker-01`)                                             |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks. Defaults to `1.44`; lower it on hosts with an older daemon, or set it empty to auto-negotiate (see Troubleshooting) |
 
 ## Verify the Installation
 
@@ -161,6 +161,15 @@ docker version --format '{{ .Server.APIVersion }}'
 Then add `-e DOCKER_API_VERSION=1.41` (or the value you got) to `docker run`, or set
 `DOCKER_API_VERSION` in Compose. Newer daemons still serve older API versions, so the
 setting stays valid after an upgrade.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then asks the Docker SDK to negotiate the version with the daemon
+(one `HEAD /_ping`, then the daemon's own maximum), which works against both old and
+new daemons:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

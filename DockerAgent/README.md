@@ -45,12 +45,12 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                              |
-| ------------------------- | -------- | -------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                              |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys)  |
-| `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)     |
-| `DOCKER_API_VERSION`      | No       | Docker Engine API version to negotiate (default: `1.44`) |
+| Variable                  | Required | Description                                                                                                                                            |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL                                                                                                                            |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion service token (Settings → API Keys)                                                                                                |
+| `DOCKER_HOST_NAME`        | No       | Friendly name for this host (default: `docker-host`)                                                                                                   |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent speaks (default: `1.44`). Set it to your daemon's maximum on older hosts, or to the empty string to auto-negotiate |
 
 ## Image Tags
 
@@ -171,6 +171,15 @@ docker run -d ... -e DOCKER_API_VERSION=1.41 ...     # or set it in Compose
 
 The value keeps working after the daemon is upgraded, since newer daemons still
 serve older API versions, so it can be removed on its own schedule.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then asks the Docker SDK to negotiate the version with the daemon
+(one `HEAD /_ping`, then the daemon's own maximum), which works against both old and
+new daemons:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### No Container Logs in the Dashboard
 

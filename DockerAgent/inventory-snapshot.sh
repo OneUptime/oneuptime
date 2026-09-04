@@ -23,13 +23,23 @@ set -eu
 SOCKET="${DOCKER_INVENTORY_SOCKET:-/var/run/docker.sock}"
 LOG_PATH="${DOCKER_INVENTORY_LOG_PATH:-/var/log/oneuptime-docker-inventory.log}"
 INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"
-API_VERSION="${DOCKER_API_VERSION:-1.44}"
+API_VERSION="${DOCKER_API_VERSION-1.44}"
 
-# Follow the collector's DOCKER_API_VERSION (same default) so a host that
-# lowers the docker_stats receiver's version for an older daemon lowers
-# ours too. The modern default keeps newer daemons from rejecting us with
+# Follow the collector's DOCKER_API_VERSION so that a host which lowers the
+# docker_stats receiver's version for an older daemon lowers ours too.
+#
+# Note the "-" rather than ":-": unset means "use the shipped default", but an
+# explicitly EMPTY value is the documented "let the server pick" escape hatch.
+# The collector answers that by auto-negotiating; curl has no negotiation, so we
+# answer it by dropping the /v<version> prefix -- the Docker API serves those
+# unversioned paths at the daemon's own latest version, which is the same
+# outcome. A pinned modern default keeps newer daemons from rejecting us with
 # "client version too old".
-DOCKER_API="http://localhost/v${API_VERSION}"
+if [ -n "${API_VERSION}" ]; then
+    DOCKER_API="http://localhost/v${API_VERSION}"
+else
+    DOCKER_API="http://localhost"
+fi
 
 emit_array_endpoint() {
     kind="$1"

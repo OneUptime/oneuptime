@@ -69,6 +69,7 @@ podman compose up -d
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Projektinställningar → Telemetri och APM → Intagningsnycklar_                                        |
 | `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
+| `DOCKER_API_VERSION`      | No       | Versionen av Docker Engine API som agenten använder mot Podman-socketen. Standardvärdet är `1.44`; sänk den om socketen rapporterar en lägre maxversion, eller ange den tom för att förhandla fram versionen automatiskt (se Troubleshooting) |
 
 ## Verify the Installation
 
@@ -145,6 +146,35 @@ The agent container must run as root (`--user 0:0`) to access `/run/podman/podma
 ### Podman Socket / Log Driver
 
 The Podman API socket must be enabled and reachable at `/run/podman/podman.sock`. On rootful systemd hosts, enable it with `systemctl enable --now podman.socket`. Container logs are read from `/var/lib/containers`, so make sure that path is mounted into the agent and that Podman is using a file-based log driver (for example `--log-driver=k8s-file` or `json-file`). If you run Podman rootless, the socket lives under `/run/user/<uid>/podman/podman.sock` instead — mount that path and adjust the volume accordingly.
+
+### Agenten startar om med "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+En Docker-API-server som tillämpar en högsta klientversion avvisar en nyare (Docker Engine
+rapporterar det som ovan), så receivern startar aldrig och collectorn avslutas tillsammans
+med den. Kontrollera vilken API-version Podman-socketen rapporterar och skicka den vidare
+till agenten:
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+```
+
+Lägg sedan till `-e DOCKER_API_VERSION=1.41` (eller värdet du fick) i `podman run`, eller
+ange `DOCKER_API_VERSION` i Compose. Nyare servrar betjänar fortfarande äldre API-versioner,
+så inställningen fortsätter att gälla efter en uppgradering.
+
+Om du hellre slipper leta upp numret kan du ange `DOCKER_API_VERSION` till en **tom
+sträng**. Agenten förhandlar då fram versionen med socketen (en `HEAD /_ping`, sedan den
+högsta version som socketen rapporterar) i stället för att låsa fast en:
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent Shows as Disconnected
 

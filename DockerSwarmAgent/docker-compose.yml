@@ -27,7 +27,10 @@ services:
       # Lower this if the host's daemon is older: docker version --format '{{ .Server.APIVersion }}'
       # Keep the default here: the config references the variable and, unlike the
       # Docker Host agent, there is no image ENV to fall back on when it is unset.
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.44}
+      # Set it to an empty value to negotiate the version with the daemon instead.
+      # Hence "${VAR-default}" and not "${VAR:-default}": the colon form would
+      # replace an explicitly empty value with the default and swallow that.
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
       # Required. otel-collector-config.yaml stamps oneuptime.agent.version
       # from this, and the collector refuses to start pipelines when a
       # referenced env var is unset — it would crash-loop rather than run
@@ -61,7 +64,7 @@ services:
     environment:
       - DOCKER_INVENTORY_INTERVAL_SECONDS=${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}
       # Same pin as the collector above; the poller builds its Docker API URL from it.
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.44}
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
     # Pin the sidecar to a manager node when deployed as a stack:
     #   deploy:
     #     placement:

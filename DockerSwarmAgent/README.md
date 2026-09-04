@@ -55,13 +55,13 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 
 ## Environment variables
 
-| Variable                            | Required | Default                 | Notes                                                          |
-| ----------------------------------- | -------- | ----------------------- | -------------------------------------------------------------- |
-| `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                        |
-| `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                        |
-| `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime) |
-| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot          |
-| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version to negotiate (see Troubleshooting)   |
+| Variable                            | Required | Default                 | Notes                                                                                        |
+| ----------------------------------- | -------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                                                      |
+| `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                                                      |
+| `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime)                               |
+| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot                                        |
+| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version the collector and the inventory poller speak (see Troubleshooting) |
 
 ## How it differs from the Docker Host agent
 
@@ -102,3 +102,7 @@ Then add `DOCKER_API_VERSION=1.41` (or the value you got) to `.env` and run
 `docker compose up -d`, on every node the collector runs on. The value keeps working
 after the daemon is upgraded, since newer daemons still serve older API versions, so it
 can be removed on its own schedule.
+
+If you would rather not look the number up, put `DOCKER_API_VERSION=` (empty) in `.env`
+instead. The collector then negotiates the version with the daemon (one `HEAD /_ping`,
+then the daemon's own maximum), which works against both old and new daemons.

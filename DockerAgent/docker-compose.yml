@@ -11,7 +11,11 @@ services:
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - DOCKER_HOST_NAME=${DOCKER_HOST_NAME:-docker-host}
       # Lower this if the host's daemon is older: docker version --format '{{ .Server.APIVersion }}'
-      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.44}
+      # Set it to an empty value to have the collector negotiate the version with
+      # the daemon instead. That is why this is "${VAR-default}" and not
+      # "${VAR:-default}": the colon form would replace an explicitly empty value
+      # with the default and swallow that escape hatch.
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}
     restart: unless-stopped
     logging:
       driver: json-file

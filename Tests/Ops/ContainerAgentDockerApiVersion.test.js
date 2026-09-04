@@ -3,52 +3,66 @@
 /**
  * The container agents (DockerAgent, PodmanAgent, DockerSwarmAgent) scrape
  * container metrics with the collector's `docker_stats` receiver, and the
- * receiver has to name the Docker Engine API version it speaks. Its own default
- * (1.25) is too old for a modern daemon ("client version too old"), so the
- * configs pin a newer one — but a daemon ALSO refuses a client newer than its
- * own maximum. With `api_version: "1.44"` a literal in the config, Docker Engine
- * 20.10 (API 1.41) fails the receiver at start-up:
+ * receiver has to name the Docker Engine API version it speaks.
+ *
+ * A daemon refuses a client NEWER than its own maximum, and a receiver that
+ * fails to start takes the whole collector down with it. With the version a
+ * literal `"1.44"` baked into the image, Docker Engine 20.10 (max API 1.41)
+ * restart-loops the agent:
  *
  *   Error: cannot start pipelines: failed to start "docker_stats" receiver:
  *   Error response from daemon: client version 1.44 is too new.
  *   Maximum supported API version is 1.41
  *
- * The collector exits with it and the container restart-loops, and because the
- * config lives inside the image there was no way out short of replacing it. So
- * the pin is now the DOCKER_API_VERSION environment variable: the config
- * carries a plain `${env:DOCKER_API_VERSION}` placeholder — the form every
- * other variable in these configs already resolves as — and the default (1.44)
- * lives in the image's ENV and in the compose file's
- * `${DOCKER_API_VERSION:-1.44}` pass-through, where a host with an older daemon
- * can lower it with `-e`.
+ * So the version is the DOCKER_API_VERSION environment variable, defaulting to
+ * 1.44 (the behaviour the agents have always shipped).
+ *
+ * BEHAVIOUR VERIFIED AGAINST otel/opentelemetry-collector-contrib:0.154.0 and a
+ * real daemon (max API 1.54, min 1.40). These numbers are measured, not assumed,
+ * and several of them contradict what the configs used to claim:
+ *
+ *   api_version in config    | on the wire                    | collector
+ *   -------------------------|--------------------------------|-----------
+ *   field omitted            | /v1.44/ (receiver default)     | starts
+ *   "" (unset or empty env)  | HEAD /_ping then /v1.54/       | starts
+ *   "1.44"                   | /v1.44/                        | starts
+ *   "1.25"                   | -                              | EXIT 1, "too old"
+ *   "1.99"                   | -                              | EXIT 1, "too new"
+ *
+ * Three consequences drive the assertions below:
+ *
+ *   1. The receiver's own default is 1.44, and 1.25 is its accepted MINIMUM,
+ *      not its default. The old comment ("the receiver default is 1.25, which
+ *      modern daemons reject") was wrong on both halves, so a test guards
+ *      against it coming back.
+ *
+ *   2. An EMPTY api_version is safe, not broken: the receiver asks the Docker
+ *      SDK to auto-negotiate (one HEAD /_ping, then the daemon's own maximum),
+ *      which works against any daemon. That makes it a genuine escape hatch for
+ *      operators who do not want to look their maximum up, so the docs describe
+ *      it and these tests keep it reachable.
+ *
+ *   3. Because empty is meaningful, the pass-throughs use `${VAR-default}` and
+ *      NOT `${VAR:-default}`. Compose's and the shell's `:-` replace an empty
+ *      value with the default and would swallow the escape hatch; `-` only
+ *      fills in when the variable is absent entirely. A test pins that
+ *      distinction so it does not get "tidied" back.
+ *
+ * The config keeps a plain `${env:DOCKER_API_VERSION}` rather than
+ * `${env:DOCKER_API_VERSION:-1.44}`: confmap applies a `:-` default only when
+ * the variable is UNSET, so it would not catch an empty value anyway, and the
+ * unset case already degrades to auto-negotiation, which is the safer of the
+ * two outcomes.
  *
  * The receiver is not the only client of that API. Each agent's
- * inventory-snapshot.sh polls the same daemon over curl, and it used to
- * hardcode `http://localhost/v1.44` under a comment saying it matched the
- * receiver's pin. It now reads the same variable with the same default, and
- * Swarm's compose file passes the variable to the sidecar that runs it.
- *
- * Nothing else guards that shape. `otelcol validate` is as happy with a literal
- * as with the placeholder, and the literal only fails at run time, on the hosts
- * old enough to hit it. These tests pin, for every agent that ships the
- * docker_stats receiver:
- *
- *   1. placeholder — the config reads api_version from `${env:…}`, never from
- *                    a version literal
- *   2. image       — the two agents that build an image bake a default into
- *                    their Dockerfile ENV
- *   3. compose     — every compose file passes the variable through with a
- *                    default, and it is the image's default
- *   4. poller      — every inventory-snapshot.sh builds its API base from
- *                    `${DOCKER_API_VERSION:-…}` with the shared default, and
- *                    Swarm's compose file passes the variable through to the
- *                    sidecar that runs the script
- *   5. lockstep    — the placeholder and every default are identical across
- *                    the three agents
+ * inventory-snapshot.sh polls the same daemon over curl. Those scripts are
+ * exercised by RUNNING their resolution logic under `sh` rather than by
+ * pattern-matching the source, so the assertions are about behaviour.
  */
 
 const fs = require("fs");
 const path = require("path");
+const { execFileSync } = require("child_process");
 const yaml = require("js-yaml");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -74,28 +88,11 @@ const COLLECTOR_SERVICE = {
 /**
  * The Swarm sidecar that runs inventory-snapshot.sh. It is its own container
  * (stock alpine with the script bind-mounted in), so the collector service's
- * DOCKER_API_VERSION entry does not reach it and it needs a pass-through of
- * its own.
- *
- * DockerAgent and PodmanAgent have no equivalent. Their scripts are not wired
- * into their images today — Dockerfile.tpl copies only the collector config,
- * and nothing references entrypoint.sh — so for them the pin keeps the
- * script's "same default as the collector" comment true rather than guarding
- * a running path.
+ * DOCKER_API_VERSION entry does not reach it and it needs its own.
  */
 const INVENTORY_SIDECAR_SERVICE = "oneuptime-docker-swarm-inventory";
 
-/**
- * Exactly this string. A plain `${env:NAME}`, not a default-valued
- * `${env:NAME:-1.44}` expansion, because the plain form is what every other
- * variable in these configs already resolves as: DOCKER_HOST_NAME,
- * PODMAN_HOST_NAME and DOCKER_SWARM_CLUSTER_NAME are `${env:…}` with the
- * default declared as ENV in the Dockerfile (or as a compose `:-` default, for
- * Swarm), and no `${env:VAR:-default}` form exists in any collector config in
- * this repo. One home for the default also keeps it where `docker inspect`
- * shows it. That the plain form works on any confmap version, including the
- * ones that had not learnt `:-` defaults yet, is a secondary point.
- */
+/** Exactly this string — not a literal, and not a `:-` default (see header). */
 const API_VERSION_PLACEHOLDER = "${env:DOCKER_API_VERSION}";
 
 /** The default every shipped copy has to agree on. */
@@ -103,16 +100,14 @@ const API_VERSION_DEFAULT = "1.44";
 
 const VERSION_LITERAL = /^\d+\.\d+$/;
 const DOCKERFILE_ENV_LINE = /^ENV DOCKER_API_VERSION=(\S+)$/;
+
+/**
+ * `${DOCKER_API_VERSION-1.44}` — a hyphen with NO colon. The colon form would
+ * replace an explicitly empty value with the default and defeat the documented
+ * auto-negotiate escape hatch.
+ */
 const COMPOSE_PASS_THROUGH =
-  /^DOCKER_API_VERSION=\$\{DOCKER_API_VERSION:-(\d+\.\d+)\}$/;
-/** The poller's API base assignment, e.g. `DOCKER_API="http://localhost/v…"`. */
-const POLLER_API_BASE_LINE = /^[A-Z_]+="(http:\/\/localhost\/v[^"]*)"$/;
-/** A plain double-quoted shell assignment: NAME="value". */
-const SHELL_ASSIGNMENT = /^([A-Z_]+)="([^"]*)"$/;
-/** A plain `${NAME}` shell expansion, without a `:-` default of its own. */
-const SHELL_EXPANSION = /\$\{([A-Z_]+)\}/g;
-const POLLER_PASS_THROUGH =
-  /^http:\/\/localhost\/v\$\{DOCKER_API_VERSION:-(\d+\.\d+)\}$/;
+  /^DOCKER_API_VERSION=\$\{DOCKER_API_VERSION-(\d+\.\d+)\}$/;
 
 function readRepoFile(file) {
   return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
@@ -175,7 +170,7 @@ function readComposeEntry(agent, serviceName) {
   return entries.length === 1 ? entries[0] : null;
 }
 
-/** The `:-` default inside the collector service's compose pass-through, or null. */
+/** The `-` default inside the collector service's compose pass-through, or null. */
 function readComposeDefault(agent) {
   const match = COMPOSE_PASS_THROUGH.exec(
     readComposeEntry(agent, COLLECTOR_SERVICE[agent]) || "",
@@ -185,79 +180,86 @@ function readComposeDefault(agent) {
 }
 
 /**
- * The poller's `http://localhost/v…` API base with the script's own variables
- * expanded one level, or a hard error if the script has no such base.
+ * The poller's API-base resolution, RUN rather than parsed.
  *
- * The scripts assign the version on its own line, in the `NAME="${VAR:-…}"`
- * style of the SOCKET/LOG_PATH/INTERVAL lines above it, and build the URL from
- * that name — so the pass-through and the URL are two lines. One hop of
- * expansion, over the assignments that precede the URL as the shell would see
- * them, joins the two; the literal `/v1.44` this guards against has nothing to
- * expand and comes back as written.
+ * The scripts resolve API_VERSION and then build the base URL in an if/else, so
+ * pattern-matching the source would only ever assert the shape of one branch.
+ * Instead the block is lifted out and executed under `sh` with a controlled
+ * environment, and the URL it produces is what gets asserted — which is the
+ * thing that actually matters.
  */
-function readPollerApiBase(agent) {
+function resolvePollerApiBase(agent, apiVersionEnv) {
   const file = `${agent}/inventory-snapshot.sh`;
-  const lines = readRepoFile(file)
-    .split("\n")
-    .map((line) => {
-      return line.trimEnd();
-    });
-  const baseIndices = lines
-    .map((line, index) => {
-      return POLLER_API_BASE_LINE.test(line) ? index : -1;
-    })
-    .filter((index) => {
-      return index !== -1;
-    });
+  const lines = readRepoFile(file).split("\n");
+  const start = lines.findIndex((line) => {
+    return line.startsWith("API_VERSION=");
+  });
 
-  if (baseIndices.length !== 1) {
-    throw new Error(
-      `${file}: expected one http://localhost/v… API base, found ${baseIndices.length}`,
-    );
+  if (start === -1) {
+    throw new Error(`${file}: no API_VERSION= assignment`);
   }
 
-  const [baseIndex] = baseIndices;
-  const assignments = new Map();
+  const end = lines.findIndex((line, index) => {
+    return index > start && line.trimEnd() === "fi";
+  });
 
-  for (const line of lines.slice(0, baseIndex)) {
-    const match = SHELL_ASSIGNMENT.exec(line);
-
-    if (match) {
-      assignments.set(match[1], match[2]);
-    }
+  if (end === -1) {
+    throw new Error(`${file}: API_VERSION block is not closed by an "fi"`);
   }
 
-  return POLLER_API_BASE_LINE.exec(lines[baseIndex])[1].replace(
-    SHELL_EXPANSION,
-    (expansion, name) => {
-      return assignments.has(name) ? assignments.get(name) : expansion;
-    },
+  const block = lines.slice(start, end + 1).join("\n");
+  const env = { PATH: process.env.PATH };
+
+  if (apiVersionEnv !== undefined) {
+    env.DOCKER_API_VERSION = apiVersionEnv;
+  }
+
+  return execFileSync(
+    "sh",
+    ["-c", `${block}\nprintf '%s' "\${DOCKER_API:-$PODMAN_API}"`],
+    { env, encoding: "utf8" },
   );
 }
 
-/** The `:-` default inside the poller's pass-through, or null. */
-function readPollerDefault(agent) {
-  const match = POLLER_PASS_THROUGH.exec(readPollerApiBase(agent));
+/** Every collector config in the repo that declares a docker_stats receiver. */
+function findDockerStatsConfigs() {
+  const found = [];
 
-  return match ? match[1] : null;
+  function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name === ".git") {
+        continue;
+      }
+
+      const full = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (/\.ya?ml$/.test(entry.name)) {
+        const text = fs.readFileSync(full, "utf8");
+
+        if (/^\s{2}docker_stats:/m.test(text)) {
+          found.push(path.relative(REPO_ROOT, full));
+        }
+      }
+    }
+  }
+
+  walk(REPO_ROOT);
+
+  return found.sort();
 }
 
 describe.each(AGENTS)("%s Docker API version pin", (agent) => {
   /*
-   * THE PLACEHOLDER TEST. A version literal here is the exact state that
-   * restart-loops the collector on an older Engine, and it is also the state
-   * `otelcol validate` accepts without a murmur — so the assertion is on the
-   * exact string, and the agent and the file are in the test's name.
+   * A version literal here is the exact state that restart-loops the collector
+   * on an older Engine, and it is also the state `otelcol validate` accepts
+   * without a murmur — so the assertion is on the exact string.
    */
   test("otel-collector-config.yaml reads api_version from the DOCKER_API_VERSION placeholder, not a literal", () => {
     expect(readApiVersion(agent)).toBe(API_VERSION_PLACEHOLDER);
   });
 
-  /*
-   * With the config reading `${env:…}`, an unset variable is what the collector
-   * refuses to start on, so compose has to supply one — and as a `:-` default,
-   * so that `DOCKER_API_VERSION=1.41` in the host's .env still wins.
-   */
   test("docker-compose.yml passes DOCKER_API_VERSION through with a version default", () => {
     expect(readComposeEntry(agent, COLLECTOR_SERVICE[agent])).toEqual(
       expect.stringMatching(COMPOSE_PASS_THROUGH),
@@ -265,18 +267,49 @@ describe.each(AGENTS)("%s Docker API version pin", (agent) => {
   });
 
   /*
-   * The poller talks to the same daemon as the receiver, so the same "client
-   * version too new" refusal applies to it — as a silently empty inventory
-   * rather than a crash, because the script swallows curl failures. It has to
-   * follow the same variable, and the `:-` default keeps it working where the
-   * variable is not set at all. The received value on failure is the URL as
-   * the script builds it, so a literal `/v1.44` reads as exactly that.
+   * `${VAR:-default}` would replace an explicitly empty value with 1.44 and
+   * silently swallow the documented auto-negotiate escape hatch. Only `${VAR-…}`
+   * distinguishes "absent" from "deliberately empty".
    */
-  test("inventory-snapshot.sh builds its API base from the DOCKER_API_VERSION pass-through, not a literal", () => {
-    expect(readPollerApiBase(agent)).toEqual(
-      expect.stringMatching(POLLER_PASS_THROUGH),
+  test("the compose pass-through defaults on unset only, so an explicit empty value survives", () => {
+    const entry = readComposeEntry(agent, COLLECTOR_SERVICE[agent]);
+
+    expect(entry).not.toContain(":-");
+    expect(entry).toBe(
+      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${API_VERSION_DEFAULT}}`,
     );
-    expect(readPollerDefault(agent)).toBe(API_VERSION_DEFAULT);
+  });
+});
+
+describe.each(AGENTS)("%s inventory poller resolves its API base", (agent) => {
+  test("with DOCKER_API_VERSION unset it falls back to the shared default", () => {
+    expect(resolvePollerApiBase(agent, undefined)).toBe(
+      `http://localhost/v${API_VERSION_DEFAULT}`,
+    );
+  });
+
+  /*
+   * curl has no version negotiation, so the poller answers the empty-string
+   * escape hatch by dropping the /v<version> prefix. The Docker API serves those
+   * unversioned paths at the daemon's own latest version — the same outcome the
+   * collector reaches by negotiating, which is the point: both clients of the
+   * socket have to move together.
+   */
+  test("with DOCKER_API_VERSION explicitly empty it drops the version prefix", () => {
+    expect(resolvePollerApiBase(agent, "")).toBe("http://localhost");
+  });
+
+  test("an explicit version is used verbatim", () => {
+    expect(resolvePollerApiBase(agent, "1.41")).toBe("http://localhost/v1.41");
+  });
+
+  test("the script parses under sh -n", () => {
+    expect(() => {
+      return execFileSync("sh", [
+        "-n",
+        path.join(REPO_ROOT, agent, "inventory-snapshot.sh"),
+      ]);
+    }).not.toThrow();
   });
 });
 
@@ -302,33 +335,31 @@ describe.each(IMAGE_AGENTS)("%s image default", (agent) => {
 
 describe("DockerSwarmAgent inventory sidecar", () => {
   /*
-   * The one poller that actually runs, and it runs in its own container, so
-   * the collector service's pass-through does not reach it. Exactly the
-   * collector's entry, default included: the two services can then only
-   * disagree when a host sets the variable for one and not the other, and the
-   * default stays visible in the compose file rather than only inside the
-   * script.
+   * The one poller that actually runs, and it runs in its own container, so the
+   * collector service's pass-through does not reach it.
    */
   test("docker-compose.yml passes DOCKER_API_VERSION through to the sidecar with the shared default", () => {
     expect(
       readComposeEntry("DockerSwarmAgent", INVENTORY_SIDECAR_SERVICE),
-    ).toBe(`DOCKER_API_VERSION=\${DOCKER_API_VERSION:-${API_VERSION_DEFAULT}}`);
+    ).toBe(`DOCKER_API_VERSION=\${DOCKER_API_VERSION-${API_VERSION_DEFAULT}}`);
+  });
+
+  test("the sidecar and the collector get byte-identical entries", () => {
+    expect(
+      readComposeEntry("DockerSwarmAgent", INVENTORY_SIDECAR_SERVICE),
+    ).toBe(
+      readComposeEntry("DockerSwarmAgent", COLLECTOR_SERVICE.DockerSwarmAgent),
+    );
   });
 });
 
 describe("the pin is identical everywhere it ships", () => {
-  /*
-   * The three agents were written as copies of one another, and a bump applied
-   * to one and not the rest is the obvious way for them to rot. A host that
-   * lowers DOCKER_API_VERSION also expects the same knob, with the same default
-   * behind it, on every agent it runs — and behind the poller as well as the
-   * receiver, since both talk to the same daemon.
-   */
   function pinOf(agent) {
     return {
       placeholder: readApiVersion(agent),
       composeDefault: readComposeDefault(agent),
-      pollerDefault: readPollerDefault(agent),
+      pollerUnset: resolvePollerApiBase(agent, undefined),
+      pollerEmpty: resolvePollerApiBase(agent, ""),
     };
   }
 
@@ -346,7 +377,9 @@ describe("the pin is identical everywhere it ships", () => {
   test(`and the default they share is ${API_VERSION_DEFAULT}`, () => {
     expect(readComposeDefault("DockerAgent")).toBe(API_VERSION_DEFAULT);
     expect(readImageDefault("DockerAgent")).toBe(API_VERSION_DEFAULT);
-    expect(readPollerDefault("DockerAgent")).toBe(API_VERSION_DEFAULT);
+    expect(resolvePollerApiBase("DockerAgent", undefined)).toBe(
+      `http://localhost/v${API_VERSION_DEFAULT}`,
+    );
   });
 
   /*
@@ -360,5 +393,133 @@ describe("the pin is identical everywhere it ships", () => {
     });
 
     expect(withDockerfile).toEqual(IMAGE_AGENTS);
+  });
+
+  /*
+   * The suite works off a hardcoded agent list, so a FOURTH agent added later
+   * with a literal pin would sail straight past every assertion above. This is
+   * the test that notices.
+   */
+  test("AGENTS covers every docker_stats receiver in the repo", () => {
+    expect(findDockerStatsConfigs()).toEqual(
+      AGENTS.map((agent) => {
+        return `${agent}/otel-collector-config.yaml`;
+      }).sort(),
+    );
+  });
+});
+
+describe("the shipped explanation matches the measured behaviour", () => {
+  const SHIPPED_FILES = [
+    ...AGENTS.map((agent) => {
+      return `${agent}/otel-collector-config.yaml`;
+    }),
+    ...AGENTS.map((agent) => {
+      return `${agent}/README.md`;
+    }),
+    ...IMAGE_AGENTS.map((agent) => {
+      return `${agent}/Dockerfile.tpl`;
+    }),
+    ...AGENTS.map((agent) => {
+      return `${agent}/inventory-snapshot.sh`;
+    }),
+    "App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
+    "App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
+    "App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
+  ];
+
+  /*
+   * The configs used to say "the receiver default is 1.25, which modern daemons
+   * reject". Measured against 0.154.0, the receiver's default is 1.44 and 1.25 is
+   * its accepted minimum — so that sentence was wrong twice over and steered the
+   * reader toward believing an unset variable is dangerous when it is not.
+   */
+  test.each(SHIPPED_FILES)(
+    "%s does not claim the receiver default is 1.25",
+    (file) => {
+      const text = readRepoFile(file).toLowerCase();
+      const claims = text.match(/[^.\n]*receiver[^.\n]*default[^.\n]*/g) || [];
+
+      for (const claim of claims) {
+        expect(claim).not.toContain("1.25");
+      }
+    },
+  );
+
+  /*
+   * The escape hatch only helps if an operator can find it. It is the answer for
+   * anyone who cannot or does not want to read their daemon's maximum.
+   */
+  test.each([
+    "DockerAgent/README.md",
+    "PodmanAgent/README.md",
+    "DockerSwarmAgent/README.md",
+    "App/FeatureSet/Docs/Content/en/telemetry/docker-host.md",
+    "App/FeatureSet/Docs/Content/en/telemetry/podman-host.md",
+    "App/FeatureSet/Docs/Content/en/telemetry/docker-swarm.md",
+  ])("%s documents the empty-value auto-negotiate escape hatch", (file) => {
+    const text = readRepoFile(file);
+
+    expect(text).toMatch(/DOCKER_API_VERSION/);
+    expect(text.toLowerCase()).toMatch(/empty/);
+    expect(text.toLowerCase()).toMatch(/negotiat/);
+  });
+});
+
+describe("translated docs keep the variable in step", () => {
+  const CONTENT_ROOT = "App/FeatureSet/Docs/Content";
+  const TRANSLATED_PAGES = ["docker-host.md", "podman-host.md"];
+
+  function locales() {
+    return fs
+      .readdirSync(path.join(REPO_ROOT, CONTENT_ROOT), { withFileTypes: true })
+      .filter((entry) => {
+        return entry.isDirectory();
+      })
+      .map((entry) => {
+        return entry.name;
+      })
+      .sort();
+  }
+
+  const cases = [];
+
+  for (const locale of locales()) {
+    for (const page of TRANSLATED_PAGES) {
+      if (
+        fs.existsSync(
+          path.join(REPO_ROOT, CONTENT_ROOT, locale, "telemetry", page),
+        )
+      ) {
+        cases.push([locale, page]);
+      }
+    }
+  }
+
+  /*
+   * These pages exist in 16 locales. The English copy drifting ahead of the rest
+   * is the normal failure mode, and it leaves a reader on a German or Japanese
+   * page with no way to discover the variable that unbreaks their agent.
+   */
+  test.each(cases)(
+    "%s/telemetry/%s documents DOCKER_API_VERSION",
+    (locale, page) => {
+      const text = readRepoFile(`${CONTENT_ROOT}/${locale}/telemetry/${page}`);
+
+      expect(text).toContain("DOCKER_API_VERSION");
+    },
+  );
+
+  test.each(cases)(
+    "%s/telemetry/%s carries the troubleshooting entry for the version mismatch",
+    (locale, page) => {
+      const text = readRepoFile(`${CONTENT_ROOT}/${locale}/telemetry/${page}`);
+
+      expect(text).toContain("client version 1.44 is too new");
+    },
+  );
+
+  test("every locale that ships these pages was checked", () => {
+    expect(cases.length).toBeGreaterThanOrEqual(32);
   });
 });

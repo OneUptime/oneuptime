@@ -50,7 +50,7 @@ podman compose up -d
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
 | `PODMAN_HOST_NAME` | No | Friendly name for this host (default: `podman-host`) |
-| `DOCKER_API_VERSION` | No | Docker Engine API version to negotiate (default: `1.44`) |
+| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks (default: `1.44`). Set it to the socket's maximum on older hosts, or to the empty string to auto-negotiate |
 
 ## Image Tags
 
@@ -180,6 +180,14 @@ podman run -d ... -e DOCKER_API_VERSION=1.41 ...   # or set it in Compose
 
 The value keeps working after an upgrade, since newer servers still serve older API
 versions, so it can be removed on its own schedule.
+
+If you would rather not look the number up, set `DOCKER_API_VERSION` to the **empty
+string**. The agent then negotiates the version with the socket (one `HEAD /_ping`,
+then the maximum the socket reports) instead of pinning one:
+
+```bash
+podman run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### No Container Logs in the Dashboard
 

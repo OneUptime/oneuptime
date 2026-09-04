@@ -57,13 +57,13 @@ The cluster appears in OneUptime within a few minutes, and the resource list pag
 
 ## Environment variables
 
-| Variable                            | Required | Default                 | Notes                                                                                            |
-| ----------------------------------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------ |
-| `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                                                          |
-| `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                                                          |
-| `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime)                                   |
-| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot                                            |
-| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version the collector and the inventory poller negotiate (see Troubleshooting) |
+| Variable                            | Required | Default                 | Notes                                                                                        |
+| ----------------------------------- | -------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`                     | yes      | `https://oneuptime.com` | Your OneUptime instance                                                                      |
+| `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                                                      |
+| `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime)                               |
+| `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot                                        |
+| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version the collector and the inventory poller speak (see Troubleshooting) |
 
 ## How it differs from the Docker Host agent
 
@@ -74,4 +74,4 @@ The Docker Host agent models a single host and stamps `host.name` + `container.r
 - **No inventory appears** — confirm the poller runs on a manager (`docker node ls` must succeed there). Check `docker compose logs oneuptime-docker-swarm-inventory` for `failed to emit ...` lines.
 - **Cluster never appears** — check the collector logs and that `ONEUPTIME_SERVICE_TOKEN` / `ONEUPTIME_URL` are correct.
 - **Status flaps to Disconnected** — the cluster is marked disconnected after 15 minutes without telemetry; ensure the collector container stays running.
-- **Collector exits with "client version is too new"** — the daemon's maximum API version is below the default `1.44` (Docker Engine 20.10 stops at `1.41`), so the `docker_stats` receiver fails to start and the container restart-loops. Check the maximum with `docker version --format '{{ .Server.APIVersion }}'`, set `DOCKER_API_VERSION` to that value in `.env`, and run `docker compose up -d` on every node running the agent.
+- **Collector exits with "client version is too new"** — the daemon's maximum API version is below the default `1.44` (Docker Engine 20.10 stops at `1.41`), so the `docker_stats` receiver fails to start and the container restart-loops. Check the maximum with `docker version --format '{{ .Server.APIVersion }}'`, set `DOCKER_API_VERSION` to that value in `.env`, and run `docker compose up -d` on every node running the agent. Alternatively set `DOCKER_API_VERSION=` (empty) to have the collector negotiate the version with the daemon instead of pinning one.

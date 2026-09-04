@@ -1,11 +1,24 @@
 receivers:
   docker_stats:
     endpoint: unix:///var/run/docker.sock
-    # Pin the Docker Engine API version: the receiver default is "1.25", which
-    # modern daemons reject ("client version too old"). The value comes from
-    # DOCKER_API_VERSION (the image defaults it to 1.44) so that a host running an
-    # older daemon can lower it -- a daemon also rejects a client newer than its
-    # own maximum, and that failure stops the receiver and the collector with it.
+    # Docker Engine API version the receiver speaks, from DOCKER_API_VERSION.
+    #
+    # Verified against otel/opentelemetry-collector-contrib:0.154.0:
+    #   * a daemon rejects a client NEWER than its maximum ("client version 1.44
+    #     is too new"), and a rejected receiver fails to start, which takes the
+    #     whole collector down with it -- so a host on an older Engine has to be
+    #     able to lower this without replacing the config;
+    #   * the receiver's own default is 1.44 (1.25 is its accepted MINIMUM, not
+    #     its default);
+    #   * leaving this empty is safe, not broken: the receiver then asks the
+    #     Docker SDK to auto-negotiate (one HEAD /_ping, then the daemon's own
+    #     maximum), which works against any daemon. Operators who do not want to
+    #     look their maximum up can set DOCKER_API_VERSION= (empty) instead.
+    #
+    # Deliberately a plain ${env:...} and not ${env:...:-1.44}: confmap applies a
+    # ":-" default only when the variable is UNSET, so it would not catch the
+    # empty string Compose injects for an absent .env entry -- and the unset case
+    # already degrades to auto-negotiation, which is the safer of the two.
     api_version: "${env:DOCKER_API_VERSION}"
     collection_interval: 30s
     # Enable optional metrics that the OneUptime Docker monitor alert
