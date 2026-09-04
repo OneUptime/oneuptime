@@ -198,6 +198,63 @@ or an expr string one backslash short. It runs on every PR from the
 cd Tests/Ops && npm run validate-collector-configs
 ```
 
+### `ContainerAgentDockerApiVersion.test.js`
+
+The `docker_stats` receiver has to name the Docker Engine API version it
+speaks. Its own default (`1.25`) is too old for a modern daemon, so the agent
+configs pin a newer one — but a daemon also refuses a client _newer_ than its
+own maximum, and with a literal `"1.44"` baked into the image there was
+no way out on Docker Engine 20.10 (API 1.41) short of replacing the config: the
+receiver fails to start, the collector exits with it and the container
+restart-loops. The pin is now the `DOCKER_API_VERSION` environment variable: the
+config carries a plain `${env:DOCKER_API_VERSION}` placeholder, and the default
+(`1.44`) lives in the image `ENV` and in the compose file's
+`${DOCKER_API_VERSION:-1.44}` pass-through, where a host can lower it.
+
+`otelcol validate` is as happy with a literal as with the placeholder, and the
+literal only fails at run time on the hosts old enough to hit it, so the suite
+pins the shape for every agent that ships the receiver. **The config's
+`api_version` is the placeholder and nothing else**: a literal version fails
+with the agent and the file in the test's name, and so does a default-valued
+`${env:…:-1.44}` expansion. The plain form is how every other variable in these
+configs already resolves — `DOCKER_HOST_NAME`, `PODMAN_HOST_NAME` and
+`DOCKER_SWARM_CLUSTER_NAME` are plain `${env:…}` with the default declared as
+`ENV` in the Dockerfile, or as a compose default for Swarm — no
+`${env:VAR:-default}` form exists in any collector config in this repo, and one
+home for the default keeps it where `docker inspect` shows it. That the plain
+form also works on any confmap version, including those that had not learnt
+`:-` defaults, is a secondary point. The compose file has to pass the variable
+through with a version default, and `DockerAgent` and `PodmanAgent` have to bake
+the same default into their `Dockerfile.tpl`. `DockerSwarmAgent` runs the stock
+upstream collector image with the config bind-mounted, so it has no Dockerfile
+and its compose default is the only default it has; a test pins that exemption,
+so the `ENV` check gets added the day it grows an image.
+
+The receiver is not the only client of that API. Each agent's
+`inventory-snapshot.sh` polls the same daemon over `curl`, and it used to
+hardcode `http://localhost/v1.44` under a comment saying it matched the
+receiver's pin — a daemon that refuses the version leaves the inventory
+silently empty rather than crashing anything. The suite asserts that every
+script builds its API base from `${DOCKER_API_VERSION:-1.44}`: a literal
+`/v1.44` fails with the agent and the file in the test's name. The scripts
+assign the version on its own line and build the URL from that name, so the
+test expands that one hop the way the shell would before matching. It also
+asserts that `DockerSwarmAgent/docker-compose.yml` passes exactly
+`DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.44}` to the
+`oneuptime-docker-swarm-inventory` sidecar — the container that actually runs
+the script, which the collector service's entry does not reach. `DockerAgent`'s
+and `PodmanAgent`'s scripts are not wired into their images today
+(`Dockerfile.tpl` copies only the collector config, and nothing references
+`entrypoint.sh`), so for them the assertion keeps the script's "same default as
+the collector" comment true rather than guarding a running path.
+
+The last block is the **lockstep cross-check**: each agent's placeholder,
+compose default and poller default are compared with `DockerAgent`'s, the two
+image defaults with each other, and `DockerAgent`'s defaults with `1.44`.
+Bumping the default touches every file that carries it (nine load-bearing places
+across eight files, plus the value quoted in three config comments) and the
+constant in the test — and is meant to.
+
 ## Utils
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
