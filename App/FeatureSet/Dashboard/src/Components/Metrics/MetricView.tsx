@@ -1349,6 +1349,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     metricResults={metricResults}
                     metricTypes={metricTypes}
                     metricViewData={effectiveData}
+                    /*
+                     * The interval the results above were fetched with. The
+                     * charts use it as their grid step so every slot is one
+                     * backend bucket: re-deriving it from `effectiveData`
+                     * would run the ladder over the ALIGNED window, whose
+                     * floored start is slightly wider and can tip a window
+                     * sitting on a tier boundary into the next tier.
+                     */
+                    aggregationInterval={aggregationInterval}
                     chartCssClass={props.chartCssClass}
                     enableSeriesActions={props.enableSeriesActions}
                     metricResultsPrevious={

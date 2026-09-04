@@ -106,7 +106,14 @@ describe("series data does not merge across days", () => {
     const rows: Array<ChartDataPoint> = chartRows(xAxis, hourlyPoints(48));
     const withData: Array<ChartDataPoint> = rowsCarryingData(rows);
 
-    expect(rows).toHaveLength(97);
+    /*
+     * 96, not the 97 slots the raw grid walks. The 97th is the start of the
+     * bucket CONTAINING the window end — [Mar 4 00:00, Mar 4 00:30), which
+     * this 48h window does not reach into at all — so nothing can ever land
+     * there and it is dropped rather than left as a blank slot stretching
+     * the axis past the data. See XAxisUtil.getRenderableIntervals.
+     */
+    expect(rows).toHaveLength(96);
     expect(withData).toHaveLength(48);
 
     for (const row of withData) {
@@ -125,8 +132,14 @@ describe("series data does not merge across days", () => {
       -1,
     );
 
-    // Hourly points on a half-hourly axis reach the second-to-last tick.
-    expect(lastRowWithData).toBe(rows.length - 3);
+    /*
+     * Hourly points on a half-hourly axis reach the second-to-last tick: the
+     * final hourly point is at 47h, and the tick after it is the 47:30 slot,
+     * which no hourly point lands on. (This used to read `length - 3`, back
+     * when the grid also carried an unfillable 48:00 slot past the end of
+     * the window.)
+     */
+    expect(lastRowWithData).toBe(rows.length - 2);
   });
 
   test("a Sum aggregate is not inflated by a merged day", () => {
