@@ -42,7 +42,6 @@ import {
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.CreateProjectApiKey,
     Permission.EditProjectApiKeyPermissions,
   ],
   read: [
@@ -60,7 +59,6 @@ import {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditProjectApiKeyPermissions,
-    Permission.EditProjectApiKey,
   ],
 })
 @EnableWorkflow({
@@ -86,7 +84,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -126,7 +123,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -155,7 +151,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -191,7 +186,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -218,11 +212,7 @@ export default class APIKeyPermission extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -254,11 +244,7 @@ export default class APIKeyPermission extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -281,11 +267,7 @@ export default class APIKeyPermission extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -340,7 +322,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -352,7 +333,6 @@ export default class APIKeyPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectApiKeyPermissions,
-      Permission.EditProjectApiKey,
     ],
   })
   @TableColumn({
@@ -375,7 +355,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -387,7 +366,6 @@ export default class APIKeyPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectApiKeyPermissions,
-      Permission.EditProjectApiKey,
     ],
   })
   @TableColumn({
@@ -421,7 +399,6 @@ export default class APIKeyPermission extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.CreateProjectApiKey,
       Permission.EditProjectApiKeyPermissions,
     ],
     read: [
@@ -433,7 +410,6 @@ export default class APIKeyPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectApiKeyPermissions,
-      Permission.EditProjectApiKey,
     ],
   })
   @TableColumn({

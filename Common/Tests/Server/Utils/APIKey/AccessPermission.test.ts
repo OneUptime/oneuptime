@@ -177,7 +177,7 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
     };
   };
 
-  it("queries the permissions for exactly this api key", async () => {
+  it("queries permissions for exactly this api key and project", async () => {
     spyFindPermissions.mockResolvedValue([] as never);
 
     await APIKeyAccessPermission.getApiTenantAccessPermission(
@@ -186,8 +186,12 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
     );
 
     expect(spyFindPermissions).toHaveBeenCalledTimes(1);
-    const arg: ObjectID = spyFindPermissions.mock.calls[0]![0] as ObjectID;
-    expect(arg.toString()).toBe(apiKeyId.toString());
+    const keyArgument: ObjectID = spyFindPermissions.mock
+      .calls[0]![0] as ObjectID;
+    const projectArgument: ObjectID = spyFindPermissions.mock
+      .calls[0]![1] as ObjectID;
+    expect(keyArgument.toString()).toBe(apiKeyId.toString());
+    expect(projectArgument.toString()).toBe(projectId.toString());
   });
 
   it("returns just the default baseline when the key has no permissions", async () => {
