@@ -5,6 +5,11 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import TracesQueueService from "./Services/Queue/TracesQueueService";
@@ -58,23 +63,25 @@ export async function authenticateRequest(
 
   /*
    * Resolve the token through the shared in-process TTL cache
-   * (TelemetryIngestionKeyService.getProjectIdFromSecretKey) instead of
+   * (TelemetryIngestionKeyService.getPolicyFromSecretKey) instead of
    * hitting Postgres with a findOneBy per RPC. OTLP exporters send an
    * Export call every schedule tick per signal per process, so an
    * uncached lookup here was one database round trip per exported batch.
-   * The HTTP ingest middleware (TelemetryIngest.isAuthorizedServiceMiddleware)
-   * already resolves through the same cache, so both entry points share
-   * staleness behavior: at most 60s for a revoked key, 10s for a retried
-   * invalid one. Callers only need the projectId, which is exactly what
-   * the cached resolver returns (null for unknown / malformed / revoked
-   * tokens — same as the previous no-row result).
+   * The HTTP ingest middleware (TelemetryIngest) already resolves through
+   * the same cache, so both entry points share staleness behavior: at most
+   * 60s for a revoked key, 10s for a retried invalid one. The resolver
+   * returns null for unknown / malformed / revoked tokens — same as the
+   * previous no-row result.
+   *
+   * It returns the whole POLICY rather than just the projectId because a
+   * project id alone cannot answer "may this key still write, and may it
+   * write HERE?". Resolving it is not a decision: a disabled or expired key
+   * resolves fine, and the refusal below is what turns it away.
    */
-  const projectId: ObjectID | null =
-    await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
-      oneuptimeToken,
-    );
+  const policy: TelemetryIngestionKeyPolicy | null =
+    await TelemetryIngestionKeyService.getPolicyFromSecretKey(oneuptimeToken);
 
-  if (!projectId) {
+  if (!policy) {
     /*
      * Deliberately do NOT log the presented token: it is a secret (or a
      * typo away from someone else's secret) and log lines routinely land
@@ -86,7 +93,40 @@ export async function authenticateRequest(
     return null;
   }
 
-  return projectId;
+  /*
+   * Kill switch, expiry, and the key TYPE.
+   *
+   * The type check is the interesting one. No browser can speak OTLP over
+   * gRPC — it needs HTTP/2 trailers, which no browser exposes to page
+   * JavaScript, which is the entire reason grpc-web exists — so a Browser
+   * key presented on this port did not come from a page running the
+   * customer's site. It was scraped out of that page's source and replayed
+   * by something else, which is precisely the attack the browser key type
+   * exists to bound. Refusing it here costs no legitimate caller anything:
+   * there is no legitimate caller.
+   */
+  const refusal: TelemetryIngestionKeyRefusal | null =
+    TelemetryIngestionKeyGuard.getRefusal({
+      policy: policy,
+      surface: TelemetryIngestSurface.Grpc,
+    });
+
+  if (refusal) {
+    /*
+     * Same discipline as above — the reason is a short closed vocabulary,
+     * and the token never appears. The key id is safe and is what an
+     * operator needs to find the key in the dashboard.
+     */
+    logger.error(
+      `gRPC: Ingestion key ${policy.ingestionKeyId.toString()} refused: ${refusal.reason}.`,
+      {
+        service: "telemetry",
+      },
+    );
+    return null;
+  }
+
+  return policy.projectId;
 }
 
 // Exported for tests.

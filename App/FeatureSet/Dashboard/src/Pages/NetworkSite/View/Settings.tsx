@@ -1,8 +1,14 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  fetchAllNetworkSiteTypeOptions,
+  fetchParentNetworkSiteOptions,
+  isParentSiteRequired,
+} from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import ObjectID from "Common/Types/ObjectID";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import SiteHealthRollupPolicy, {
   getSiteHealthRollupPolicyLabel,
   parseSiteHealthRollupPolicy,
@@ -41,11 +47,44 @@ const NetworkSiteSettings: FunctionComponent<
             id: "site-details",
           },
           {
+            title: "Hierarchy",
+            id: "hierarchy",
+          },
+          {
             title: "Location",
             id: "location",
           },
+          {
+            title: "Monitoring Defaults",
+            id: "monitoring-defaults",
+          },
         ]}
         formFields={[
+          {
+            field: {
+              networkSiteType: true,
+            },
+            title: "Site Type",
+            stepId: "site-details",
+            description:
+              "Choose this first. The type's configured parent determines which parent sites are available on the next step.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
+            onChange: (
+              _value: unknown,
+              currentFormValues: FormValues<NetworkSite>,
+              setNewFormValues: (
+                currentFormValues: FormValues<NetworkSite>,
+              ) => void,
+            ): void => {
+              setNewFormValues({
+                ...currentFormValues,
+                parentSite: null,
+              });
+            },
+            required: true,
+            placeholder: "Select Site Type",
+          },
           {
             field: {
               name: true,
@@ -68,35 +107,21 @@ const NetworkSiteSettings: FunctionComponent<
           },
           {
             field: {
-              networkSiteType: true,
-            },
-            title: "Site Type",
-            stepId: "site-details",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSiteType,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: true,
-            placeholder: "Select Site Type",
-          },
-          {
-            field: {
               parentSite: true,
             },
             title: "Parent Site",
-            stepId: "site-details",
+            stepId: "hierarchy",
+            sectionTitle: "Place This Site",
+            sectionDescription:
+              "Only sites whose type is the configured parent of the selected site type are shown.",
             description:
-              "The site this one is nested under. Leave empty for a root site.",
+              "Top-level site types do not have a parent site. A child site type requires one of the matching sites below.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
+            fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
+              return fetchParentNetworkSiteOptions(values, modelId);
             },
-            required: false,
-            placeholder: "Select Parent Site (optional)",
+            required: isParentSiteRequired,
+            placeholder: "No parent site (top level)",
           },
           {
             field: {
@@ -131,6 +156,43 @@ const NetworkSiteSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "-89.6501",
+          },
+          {
+            field: {
+              probe: true,
+            },
+            title: "Default Probe",
+            stepId: "monitoring-defaults",
+            sectionTitle: "Monitoring Defaults",
+            sectionDescription:
+              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            description:
+              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Probe,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default probe",
+          },
+          {
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "Default SNMP Credential Profile",
+            stepId: "monitoring-defaults",
+            description:
+              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSnmpCredentialProfile,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default credential profile",
           },
         ]}
         modelDetailProps={{
@@ -183,6 +245,44 @@ const NetworkSiteSettings: FunctionComponent<
                   return <span className="text-gray-400">Root site</span>;
                 }
                 return <span>{item.parentSite.name}</span>;
+              },
+            },
+            {
+              field: {
+                probe: {
+                  name: true,
+                },
+              },
+              title: "Default Probe",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (!item.probe?.name) {
+                  return (
+                    <span className="text-sm text-gray-400">
+                      None — devices name their own probe
+                    </span>
+                  );
+                }
+                return <span>{item.probe.name}</span>;
+              },
+            },
+            {
+              field: {
+                snmpCredentialProfile: {
+                  name: true,
+                },
+              },
+              title: "Default SNMP Credential Profile",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (!item.snmpCredentialProfile?.name) {
+                  return (
+                    <span className="text-sm text-gray-400">
+                      None — devices without credentials are pinged only
+                    </span>
+                  );
+                }
+                return <span>{item.snmpCredentialProfile.name}</span>;
               },
             },
             {

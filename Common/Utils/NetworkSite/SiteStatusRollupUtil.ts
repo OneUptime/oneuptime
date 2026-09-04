@@ -1,6 +1,7 @@
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import SiteHealthRollupPolicy, {
   DefaultSiteOfflineThresholdPercent,
 } from "../../Types/NetworkSite/SiteHealthRollupPolicy";
@@ -25,14 +26,26 @@ import SiteHealthRollupPolicy, {
  *
  * Both policies agree on which devices get a vote at all: a device that has
  * never reported anything is not evidence of an outage and is skipped by
- * each of them.
+ * each of them. And both agree on what a device's vote IS: for a
+ * monitor-backed device the stamped MonitorStatus, for a probe-polled one
+ * the outcome of its last poll — the stamp on a probe-polled device is
+ * informational (see the field docs), the same precedence the device list
+ * pill, the site card and the map apply.
  */
 
 // One device's health inputs, denormalized by the rollup engine.
 export interface DeviceHealthState {
   /*
    * The MonitorStatus stamped by the monitor bridge (string form). When set
-   * together with its priority, it is the device's authoritative status.
+   * together with its priority ON A MONITOR-BACKED DEVICE, it is the
+   * device's authoritative status.
+   *
+   * A probe-polled device can carry one too — a Network Device monitor
+   * watching its walk stamps it, and an "interface down → Offline" criterion
+   * will stamp Offline on a switch that answers every ping. Its health
+   * source is the poll (`isReachable`, which is what its own pill reads), so
+   * the stamp is ignored here for it, or one dark port would turn a site of
+   * answering devices offline while every row under it reads Up.
    */
   currentMonitorStatusId?: string | null | undefined;
   // Priority of that status row; missing when the row no longer exists.
@@ -50,16 +63,32 @@ export interface DeviceHealthState {
    */
   monitorStatusIsOperational?: boolean | null | undefined;
   /*
-   * The SNMP fallback for devices no monitor stamps, resolved by the shared
-   * DeviceReachabilityUtil rule: the OUTCOME of the last poll, not the age
-   * of the last success. Rolling a site up from freshness alone is what
-   * turned "the probe is behind on a 900-device fleet" into a red site card
-   * over devices that were all answering.
+   * The poll verdict for probe-polled devices, resolved by the shared
+   * DeviceReachabilityUtil rule: the OUTCOME of the last poll (ping, or the
+   * SNMP walk), not the age of the last success. Rolling a site up from
+   * freshness alone is what turned "the probe is behind on a 900-device
+   * fleet" into a red site card over devices that were all answering.
    */
   isReachable?: boolean | null | undefined;
   lastPolledAt?: Date | null | undefined;
   lastSeenAt?: Date | null | undefined;
   pollingIntervalInMinutes?: number | null | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Load-bearing twice. It decides whether the stamped status above is the
+   * device's vote at all (only for a monitor-backed device). And a
+   * monitor-backed device (monitoringMethod "Monitor") that has no stamp
+   * yet — or whose stamped row could not be resolved — has poll columns
+   * that mean nothing (NULL, or the last thing a probe found before it
+   * stopped asking). The shared rule reads it as Pending and both policies
+   * skip it, exactly as they skip a never-polled probe device, rather than
+   * letting a months-old lastSeenAt cast a vote against the site.
+   */
+  monitoringMethod?: string | null | undefined;
   /*
    * How many real devices this entry stands for.
    *
@@ -118,13 +147,13 @@ export class SiteStatusRollupUtil {
    * operational/offline rows) - the caller treats null as "leave the site's
    * status untouched".
    *
-   * Per device: a stamped monitor status (with a known priority) wins;
-   * otherwise the device's SNMP reachability maps Up to the project's
-   * isOperationalState row and Down to its isOfflineState row. A device
-   * that has never been polled contributes nothing at all - it is not
-   * evidence of an outage, and counting it as one used to pin a site red
-   * for as long as it took the first walk to land. Priority ties keep the
-   * first contributor (stable).
+   * Per device: on a monitor-backed device a stamped monitor status (with a
+   * known priority) is the vote; otherwise the device's poll reachability
+   * maps Up to the project's isOperationalState row and Down to its
+   * isOfflineState row. A device that has never been polled contributes
+   * nothing at all - it is not evidence of an outage, and counting it as
+   * one used to pin a site red for as long as it took the first poll to
+   * land. Priority ties keep the first contributor (stable).
    */
   public static worstStatus(data: {
     deviceStates: Array<DeviceHealthState>;
@@ -148,6 +177,7 @@ export class SiteStatusRollupUtil {
       let candidate: RollupStatusOption | null = null;
 
       if (
+        SiteStatusRollupUtil.isStampAuthoritative(device) &&
         device.currentMonitorStatusId &&
         typeof device.monitorStatusPriority === "number" &&
         Number.isFinite(device.monitorStatusPriority)
@@ -200,12 +230,12 @@ export class SiteStatusRollupUtil {
    * How the subtree splits between operational and not, in DEVICES rather
    * than in buckets.
    *
-   * A device counts as non-operational when its stamped MonitorStatus is not
-   * the operational one, or - for devices no monitor stamps - when its SNMP
-   * reachability is Down. Never-reported devices are excluded from both the
-   * numerator and the denominator, so a region half-way through its first
-   * discovery walk is scored on the half that has answered rather than
-   * marked down for the half that has not.
+   * A monitor-backed device counts as non-operational when its stamped
+   * MonitorStatus is not the operational one; a probe-polled device when its
+   * poll reachability is Down. Never-reported devices are excluded from both
+   * the numerator and the denominator, so a region half-way through its
+   * first discovery walk is scored on the half that has answered rather
+   * than marked down for the half that has not.
    */
   public static deviceHealthShare(data: {
     deviceStates: Array<DeviceHealthState>;
@@ -238,6 +268,7 @@ export class SiteStatusRollupUtil {
       const count: number = SiteStatusRollupUtil.deviceCountOf(device);
 
       if (
+        SiteStatusRollupUtil.isStampAuthoritative(device) &&
         device.currentMonitorStatusId &&
         typeof device.monitorStatusIsOperational === "boolean"
       ) {
@@ -415,6 +446,19 @@ export class SiteStatusRollupUtil {
     return Math.floor(value);
   }
 
+  /*
+   * Whether this device's stamped MonitorStatus is its vote — true only for
+   * a monitor-backed device. One gate for both policies, so the same fleet
+   * cannot read differently depending on which one a site uses; and the
+   * same gate DeviceHealthStateUtil and the topology map apply, so the site
+   * card, the map and this rollup describe one network.
+   */
+  private static isStampAuthoritative(device: DeviceHealthState): boolean {
+    return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+      device.monitoringMethod,
+    );
+  }
+
   private static deviceCountOf(device: DeviceHealthState): number {
     if (
       typeof device.deviceCount !== "number" ||
@@ -436,6 +480,8 @@ export class SiteStatusRollupUtil {
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        // See the field docs: decides whether the columns above mean anything.
+        monitoringMethod: device.monitoringMethod,
       },
       now,
     );

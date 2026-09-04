@@ -38,6 +38,65 @@ import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import SessionReplayIngestService from "../../Services/SessionReplayIngestService";
 import { JSONObject } from "Common/Types/JSON";
+import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+
+/*
+ * Enforce the ingestion key's pinned `service.name` on a decoded OTLP body,
+ * in place, before anything downstream reads it.
+ *
+ * WHY IN THE WORKER AND NOT AT THE HTTP EDGE: the ingest endpoints never
+ * decode the payload. They stash the raw bytes — routinely gzipped protobuf —
+ * in Redis via TelemetryBodyStore and hand the worker a key, precisely so the
+ * decode stays off the Express event loop. The first moment the payload exists
+ * as JSON is the decode in resolveOtelBody below, so that is the earliest
+ * point at which a service name can be rewritten at all. The pin therefore has
+ * to ride on the job (TelemetryIngestJobData.pinnedServiceName) and be applied
+ * here.
+ *
+ * WHY IT MUST HAPPEN BEFORE THE INGEST SERVICES: everything past this point
+ * treats the payload as the customer's own data. `service.name` decides which
+ * service a span, log or metric is filed under, and therefore what dashboards
+ * chart, what telemetry monitors evaluate and what alerts fire on. A Browser
+ * ingestion key is published in page source by design and must be assumed
+ * scraped, so its payload has to be relabelled before any of that reads a
+ * service name out of it — otherwise a scraped key can forge telemetry that
+ * looks like it came from a backend service the attacker never touched.
+ *
+ * It is called from inside resolveOtelBody on purpose: all four OTel signals
+ * resolve their body through that one function, so the control has exactly one
+ * call site and a fifth signal cannot be wired up without inheriting it.
+ * PinServiceName walks the resource container of all four (spans, logs,
+ * metrics and profiles), so a pin means the same thing whichever signal the
+ * key is used for.
+ */
+function applyPinnedServiceName(
+  body: JSONObject,
+  jobData: TelemetryIngestJobData,
+): void {
+  if (!jobData.pinnedServiceName) {
+    return;
+  }
+
+  /*
+   * PinServiceName is specified never to throw — every malformed shape it
+   * meets is repaired or skipped — and it is wrapped anyway, because the two
+   * blast radii here are wildly lopsided. It runs on attacker-controlled JSON,
+   * and an unhandled error out of it would fail the whole job: with BullMQ
+   * retries re-hitting the same payload, that is permanent loss of everything
+   * else in the batch. A pin that failed to apply, by contrast, is a labelling
+   * failure on ONE key, whose abuse is still bounded by the origin allowlist,
+   * the per-key rate limit and the kill switch. So: log loudly, never fail the
+   * job.
+   */
+  try {
+    PinServiceName.pinInPlace(body, jobData.pinnedServiceName);
+  } catch (error) {
+    logger.error(
+      `ProcessTelemetry: failed to pin service.name for project ${jobData.projectId}:`,
+    );
+    logger.error(error);
+  }
+}
 
 /*
  * Resolve the parsed JSON body for an OTel job. The HTTP enqueue
@@ -46,6 +105,11 @@ import { JSONObject } from "Common/Types/JSON";
  * decoder fetches the binary back out and runs the heavy
  * gunzip + protobuf decode here in the worker, off the Express
  * event loop.
+ *
+ * The decoded body is then run through applyPinnedServiceName, so every
+ * caller gets a body that already honours the ingestion key's service-name
+ * pin — see the comment there for why this is the only place in the system
+ * where that pin can be applied.
  *
  * Throws if a required field is missing — that indicates a
  * producer bug in TelemetryQueueService and must not be silently
@@ -60,12 +124,16 @@ async function resolveOtelBody(
     );
   }
 
-  return await OtelPayloadDecoder.decodeFromQueue({
+  const body: JSONObject = await OtelPayloadDecoder.decodeFromQueue({
     productType: jobData.productType,
     format: jobData.bodyFormat,
     encoding: jobData.bodyEncoding ?? "none",
     bodyKey: jobData.bodyKey,
   });
+
+  applyPinnedServiceName(body, jobData);
+
+  return body;
 }
 
 /*

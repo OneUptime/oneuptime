@@ -11,9 +11,9 @@ This page explains how to allow it, deliberately and narrowly. There are two ind
 | What you want to reach internally                  | Where the setting lives          |
 | -------------------------------------------------- | -------------------------------- |
 | Workflows, project webhooks, on-call user webhooks | The **API server**'s environment |
-| Custom JavaScript Code **monitors**                | The **probe**'s own environment  |
+| API, Website, External Status Page and Custom JavaScript Code **monitors** | The **probe**'s own environment  |
 
-**Most monitoring already works.** Every monitor type except Custom JavaScript Code — API, Website, Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Synthetic, External Status Page, Network Path — already reaches whatever host you point it at, with no address check at all. If you only want to monitor an internal service, deploy a [custom probe](/docs/probe/custom-probe) inside that network and nothing else on this page applies.
+Network-native monitor types such as Ping, Port, SSL Certificate, DNS, DNSSEC, SNMP / Network Device, SQL Query, Database Health, Synthetic and Network Path use their own transports. The setting on this page governs the HTTP transports that return arbitrary response content to a project: API, Website, External Status Page and Custom JavaScript Code monitors.
 
 ## What is blocked, and what can be unblocked
 
@@ -87,21 +87,21 @@ webhooks:
 
 ## Probes and monitors
 
-Only one monitor type is affected: **Custom JavaScript Code**. It runs in the same sandbox as the workflow Custom JavaScript component and inherits that component's SSRF guard, so on a stock install a Custom Code monitor checking `http://10.0.0.5/health` is refused while an API monitor against the same host succeeds.
+Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space. API, Website and External Status Page monitors validate and pin DNS results for every connection and revalidate each redirect; Custom JavaScript Code applies the same address policy in its sandbox bridge.
 
-The switch is read by the **probe process from its own environment**, not from the API server's. Whoever deploys a probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
+The switch is read by the **private probe process from its own environment**, not from the API server's. Whoever deploys a private probe controls its environment, and they are the party who knows which network that probe can see — a custom probe is usually a different machine, often run by a different person, and it never reads the API server's configuration.
 
 ```
 PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true
 ```
 
-On Docker Compose, set it in `config.env`; it is applied to both bundled probes. On Kubernetes, set it per probe:
+Auto-registered global probes always use the strict public-network policy,
+even if this variable is present. Deploy a project-owned private probe for
+monitors that intentionally target an internal network.
 
-```yaml
-probes:
-  one:
-    allowPrivateNetworkMonitors: true
-```
+Set it only on a separately deployed private probe. The probes bundled with
+Docker Compose and the Helm chart auto-register as global probes, so they
+always ignore this switch.
 
 Turning it on does **not** open loopback, link-local or the cloud metadata endpoint. Those stay refused on every probe, which matters most for probes that run in a network the monitor's author does not own.
 
@@ -113,6 +113,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 
 - _"...points to a private network address and is not allowed. Self-hosted instances can allow this by setting `ALLOW_PRIVATE_NETWORK_WEBHOOKS`..."_ — the API server setting is missing.
 - _"...points to a private network address and is not allowed. Set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` on the probe running this monitor to allow it."_ — the probe's setting is missing. Note that this is set on the probe, not on the API server.
+- _"Global probes cannot monitor private network addresses..."_ — select a project-owned private probe; the global-probe policy cannot be relaxed.
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — the target is in the forbidden tier. For a webhook, name the exact host or CIDR in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` if you really need it. For a monitor, there is no override.
 - _"...hostname could not be resolved via DNS."_ — the container cannot resolve the name. Check that it shares a network with the target.
 
@@ -121,7 +122,7 @@ Run the workflow or monitor again. If it is still refused, the error message nam
 Opening this up is a real change to what your OneUptime instance can be made to reach, so it is worth being deliberate about:
 
 - **Prefer the allowlist to the blanket boolean.** Naming `mattermost.internal` is a much smaller grant than opening every RFC-1918 address.
-- **Anyone who can author a workflow or a monitor can reach anything you allowed.** Treat membership in those projects accordingly.
+- **Anyone who can author a workflow or an API, Website, External Status Page or Custom JavaScript Code monitor can reach anything you allowed.** Treat membership in those projects accordingly.
 - **The response body comes back.** A workflow API component returns the status, headers and body into the workflow log, so an allowed host is readable, not just writable.
 - **Redirects are never followed** on webhook requests, so an allowed public host cannot bounce the server to an internal one on a second hop.
 - **Scope by probe rather than instance-wide where you can.** A probe deployed inside one network is a narrower grant than opening the API server's egress.

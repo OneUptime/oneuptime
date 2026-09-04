@@ -26,9 +26,10 @@ import ColumnLength from "Common/Types/Database/ColumnLength";
  *
  * Pure and react-free on purpose, the same way NetworkTopologyMeta and
  * TopologyLayout are: every rule below is a judgement call about somebody's
- * network — which end of a cable is the managed one, whether a phone should
- * be SNMP-polled, whether the map will still draw the link afterwards — and
- * those are worth testing directly rather than through a rendered form.
+ * network — which end of a cable is the managed one, whether a phone's
+ * guessed role should be written onto it, whether the map will still draw
+ * the link afterwards — and those are worth testing directly rather than
+ * through a rendered form.
  */
 
 /*
@@ -83,6 +84,14 @@ export interface NeighborAdoptionDraft {
    */
   networkDeviceRoleId?: string | undefined;
   description: string;
+  /*
+   * Always Probe. The switch that reported this peer is polled by a probe
+   * that reaches the peer's port, so the same probe can ping it — and pinging
+   * is all a probe-polled device needs to have a status. SNMP is layered on
+   * top when the operator adds credentials; `Monitor` is an override for gear
+   * a probe cannot reach at all, which is never the case for a neighbour the
+   * probe just heard about from the switch beside it.
+   */
   monitoringMethod: NetworkDeviceMonitoringMethod;
   links: Array<AdoptableNeighborLink>;
   /* One sentence for the dialog: where this device came from. */
@@ -97,15 +106,21 @@ export interface NeighborAdoptionDraft {
 
 /*
  * Roles that are never SNMP-walkable in practice — a desk phone, a printer,
- * a camera, a plain host. Defaulting those to SNMP would create a device
- * that queues a walk it can only fail, and leave the operator reading
- * "pending" forever wondering which credential they got wrong.
+ * a camera, a plain host. The built-in fallback for the walkability of a
+ * role when the payload does not carry the project's own answer.
  *
- * Everything else, INCLUDING an unclassified peer, defaults to SNMP: an
+ * Walkability no longer decides how the device is MONITORED — every adopted
+ * neighbour is probe-polled, and a device with no credentials is simply
+ * pinged. What it still decides is whether the classified role is written
+ * onto the device (see `buildNeighborAdoptionDraft`): a device nothing will
+ * ever walk has no sysDescr coming to classify it better, so the guess from
+ * its neighbours is the only evidence there will ever be.
+ *
+ * Everything else, INCLUDING an unclassified peer, is treated as walkable: an
  * unidentified box hanging off a switch's uplink port is far more often a
  * switch nobody has added yet than it is a kiosk.
  */
-const MONITOR_BACKED_ROLES: ReadonlySet<NetworkTopologyDeviceRole> =
+const NOT_SNMP_WALKABLE_ROLES: ReadonlySet<NetworkTopologyDeviceRole> =
   new Set<NetworkTopologyDeviceRole>(["phone", "printer", "camera", "host"]);
 
 const IPV4_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
@@ -372,16 +387,20 @@ export function buildNeighborAdoptionDraft(data: {
    * The project's own answer wins. Roles are configurable rows now and each
    * carries an isSnmpWalkable flag, so a project that decided its cameras DO
    * speak SNMP - or that added a role of its own that does not - is obeyed
-   * instead of overruled by the built-in set below. Absent (an older payload,
+   * instead of overruled by the built-in set above. Absent (an older payload,
    * or a project with no row for this role) falls back to it unchanged.
+   *
+   * This decides ONLY whether the classified role is seeded (below). The
+   * monitoring method is Probe either way: the probe that polls the switch
+   * this peer hangs off can ping it, and a device with no credentials is
+   * pinged and nothing more — it does not queue a walk it can only fail.
    */
   const isSnmpWalkable: boolean =
     node.isSnmpWalkableRole !== undefined
       ? node.isSnmpWalkableRole
-      : !(role && MONITOR_BACKED_ROLES.has(role));
-  const monitoringMethod: NetworkDeviceMonitoringMethod = isSnmpWalkable
-    ? NetworkDeviceMonitoringMethod.Snmp
-    : NetworkDeviceMonitoringMethod.Monitor;
+      : !(role && NOT_SNMP_WALKABLE_ROLES.has(role));
+  const monitoringMethod: NetworkDeviceMonitoringMethod =
+    NetworkDeviceMonitoringMethod.Probe;
 
   const provenance: string = provenanceForLinks(links);
 
@@ -423,18 +442,14 @@ export function buildNeighborAdoptionDraft(data: {
      * hostname convention and nothing else, so "gw-floor3-sw2" arrives as
      * "router". Writing that onto a device the probe is about to walk would
      * permanently outrank the sysDescr and sysObjectID that would have
-     * answered correctly. A monitor-backed device has no such future: it is
-     * never walked, so a guess from its neighbours is the only evidence
-     * there will ever be, and the field's own help text says to set it.
+     * answered correctly. A device whose role is not walkable has no such
+     * future: the probe pings it and nothing else, so a guess from its
+     * neighbours is the only evidence there will ever be, and the field's
+     * own help text says to set it. Keyed on walkability, not on the
+     * monitoring method — both kinds of device are Probe-polled now.
      */
-    deviceRole:
-      monitoringMethod === NetworkDeviceMonitoringMethod.Monitor
-        ? role
-        : undefined,
-    networkDeviceRoleId:
-      monitoringMethod === NetworkDeviceMonitoringMethod.Monitor
-        ? node.roleId
-        : undefined,
+    deviceRole: isSnmpWalkable ? undefined : role,
+    networkDeviceRoleId: isSnmpWalkable ? undefined : node.roleId,
     description: description,
     monitoringMethod: monitoringMethod,
     links: links,

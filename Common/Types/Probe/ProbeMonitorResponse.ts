@@ -13,6 +13,7 @@ import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../Monitor/DnssecMonitor/DnssecMonitorResponse";
 import SqlMonitorResponse from "../Monitor/SqlMonitor/SqlMonitorResponse";
+import DatabaseMonitorResponse from "../Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import HttpPhaseTimings from "../Monitor/HttpPhaseTimings";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
@@ -40,6 +41,15 @@ export default interface ProbeMonitorResponse {
   sslResponse?: SslMonitorResponse | undefined;
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
+  /*
+   * For Network Device monitors this is the REAL walk when one ran (success
+   * or failure) and undefined when the poll ran no walk - a device with no
+   * usable SNMP credentials is only pinged. It is never synthesized from the
+   * ping: walk-dependent criteria treat undefined as "not evaluated", and
+   * `isOnline` above carries device reachability (ping OR walk) on its own.
+   * `responseTimeInMs` is the walk's time only; ping RTT and packet loss
+   * travel in `pingResponse`.
+   */
   snmpResponse?: SnmpMonitorResponse | undefined;
   /*
    * Present ONLY on event-driven responses generated when a probe's trap
@@ -68,6 +78,12 @@ export default interface ProbeMonitorResponse {
   domainResponse?: DomainMonitorResponse | undefined;
   dnssecResponse?: DnssecMonitorResponse | undefined;
   sqlQueryMonitorResponse?: SqlMonitorResponse | undefined;
+  /*
+   * Database Health monitor payload: normalized metric values plus the
+   * groups that could not be collected. Partial collection is normal here -
+   * see DatabaseMonitorResponse for why it never implies an outage.
+   */
+  databaseMonitorResponse?: DatabaseMonitorResponse | undefined;
   externalStatusPageResponse?: ExternalStatusPageMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;

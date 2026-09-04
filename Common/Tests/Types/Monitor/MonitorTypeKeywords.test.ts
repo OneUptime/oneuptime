@@ -12,7 +12,7 @@ import {
 } from "../../../UI/Components/CardSelect/CardSelect";
 
 /*
- * The monitor type picker offers 29 types. Whether someone finds the right one
+ * The monitor type picker offers 31 types. Whether someone finds the right one
  * comes down to whether the words they already use - "k8s", "postgres",
  * "heartbeat", "tls" - are attached to the card, because none of them appear
  * in its title or its copy. These are the searches this catalog promises to
@@ -192,8 +192,8 @@ describe("MonitorType keywords", () => {
   describe("card copy is scannable", () => {
     /*
      * Every description used to open with "This monitor type lets you
-     * monitor", so the first five words of all 29 cards were identical and
-     * carried nothing. Reading the grid meant skipping them 29 times.
+     * monitor", so the first five words of every card were identical and
+     * carried nothing. Reading the grid meant skipping them on every card.
      */
     test("no description opens with the old boilerplate", () => {
       for (const props of allProps) {
@@ -230,10 +230,19 @@ describe("MonitorType keywords", () => {
       ["k8s", MonitorType.Kubernetes],
       ["kubernetes", MonitorType.Kubernetes],
       ["eks", MonitorType.Kubernetes],
-      ["postgres", MonitorType.SQLQuery],
-      ["postgresql", MonitorType.SQLQuery],
-      ["mysql", MonitorType.SQLQuery],
-      ["database", MonitorType.SQLQuery],
+      /*
+       * Both database cards answer to the engine names. Someone typing an
+       * engine into a monitoring product wants its health series, not the
+       * escape hatch for a query they have to write themselves - so the
+       * engine words rank Database Health first, and SQL Query keeps the
+       * searches that describe what only it does.
+       */
+      ["postgres", MonitorType.Database],
+      ["postgresql", MonitorType.Database],
+      ["mysql", MonitorType.Database],
+      ["database", MonitorType.Database],
+      ["query", MonitorType.SQLQuery],
+      ["row count", MonitorType.SQLQuery],
       ["heartbeat", MonitorType.IncomingRequest],
       ["cron", MonitorType.IncomingRequest],
       ["webhook", MonitorType.IncomingRequest],

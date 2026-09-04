@@ -93,23 +93,86 @@ receivers:
         source_identifier: attributes["log.file.path"]
         force_flush_period: 5s
         max_log_size: 1048576
-      # Podman's log driver does not record a severity; OTel log records
+      # Podman's k8s-file driver does not record a severity; OTel log records
       # have dedicated severity_number / severity_text fields that downstream
-      # viewers rely on for filtering. Derive a best-effort severity from the
-      # stdout/stderr stream: stderr -> ERROR, stdout -> INFO.
+      # viewers rely on for filtering. Derive a best-effort severity: read a
+      # level keyword out of the body when there is one, and fall back to the
+      # stdout/stderr stream when there is not.
+      #
+      # A level keyword is only believed when it sits where a LEVEL sits, not
+      # merely because the word turns up somewhere in the line. Two shapes
+      # count, and the pattern is those two, in this order:
+      #
+      #   1. LINE PREAMBLE. The keyword is on the first line of the record and
+      #      everything before it is preamble: punctuation, digits, and word
+      #      tokens that end on a structural delimiter (. ] = - : / | ) }).
+      #      That is "[ERROR] ...", Monolog's "app.INFO: ...", "2026-08-31
+      #      07:25:04 INFO ...", Python's "... - myapp - INFO - ..." and
+      #      logfmt's leading "level=error ...". Prose is not: "Connection
+      #      error, retrying" stops the preamble dead at "Connection ",
+      #      because a bare word followed by a space is not a preamble token.
+      #      The repetition is LAZY, so the first keyword in preamble
+      #      position wins rather than the last.
+      #   2. LEVEL FIELD. The keyword is the value of a level-ish key anywhere
+      #      in the line -- level / lvl / severity / severity_text / levelname
+      #      / log.level / log_level -- quoted or not, separated by ":" or
+      #      "=". That is zap and logrus JSON ({"level":"info"}) and logfmt
+      #      whose level is not the first field (ts=... level=error msg=...).
+      #
+      # The preamble branch is anchored, so when it matches it is the leftmost
+      # match and beats a level field further along the same line. Both
+      # branches take end-of-body as a trailing delimiter, so Docker (whose
+      # json-file driver keeps the newline in the `log` field) and Podman
+      # (whose CRI format does not) read the same line the same way.
+      #
+      # A line matching neither shape takes the stream fallback below, exactly
+      # as it did before any of this existed. Every keyword in the alternation
+      # MUST also resolve in `severity-parser` below: stanza's built-in preset
+      # knows nothing of notice/crit/critical/panic/alert/emerg/emergency, and
+      # an unmapped keyword leaves the record Unspecified, which is worse than
+      # the stream guess it replaced.
+      # Tests/Ops/ContainerAgentLogSeverity.test.js pins all of it, the corpus
+      # of lines that must NOT match included.
+      - type: router
+        id: severity-router
+        routes:
+          - output: parse-severity-from-body
+            expr: 'body matches "(?i)(?:^(?:[^A-Za-z\"\\n]|[A-Za-z][A-Za-z0-9_]*[ \\t]*[.:=,/>|)}\\]-])*?|(?:^|[\\s,{\\[])\"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)\"?[ \\t]*[:=][ \\t]*\"?)(TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\\s\\]:=,)\"}|>])"'
+        default: add-fallback-severity
+      - type: regex_parser
+        id: parse-severity-from-body
+        regex: '(?i)(?:^(?:[^A-Za-z"\n]|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\s\]:=,)"}|>])'
+        parse_from: body
+        output: severity-parser
+      # No keyword in the body: fall back to the stream. Podman's k8s-file
+      # driver records no severity of its own. stderr -> ERROR, stdout -> INFO.
       - type: add
-        id: add-severity-text
+        id: add-fallback-severity
         field: attributes.severity_text
         value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+        output: severity-parser
       # Promote the textual severity onto the LogRecord itself so OTel log
-      # consumers see a real severity_number (17 for ERROR, 9 for INFO) rather
-      # than Unspecified.
+      # consumers see a real severity_number rather than Unspecified.
       - type: severity_parser
         id: severity-parser
         parse_from: attributes.severity_text
+        preset: default
         mapping:
-          error: ERROR
-          info: INFO
+          warn:
+            - warning
+          error:
+            - err
+            - crit
+            - critical
+          # PSR-3 / syslog put alert and emergency above critical, and neither
+          # has a built-in mapping; nginx writes emergency as [emerg].
+          fatal:
+            - panic
+            - alert
+            - emerg
+            - emergency
+          info:
+            - notice
       # Remove the now-redundant attribute so we don't duplicate the value
       # both as an attribute and as the record's severity field.
       - type: remove

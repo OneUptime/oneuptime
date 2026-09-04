@@ -42,7 +42,7 @@ type AlertStateFilter = "active" | "resolved" | "any";
 export const QueryAlertsTool: ObservabilityTool = {
   name: "query_alerts",
   description:
-    "Query alerts in this project with their current state and severity. To answer 'which alerts are active/firing right now?' pass state='active' — it returns every unresolved alert regardless of age (no time window unless createdWithinHours is passed explicitly). state='resolved' returns only resolved alerts; the default 'any' returns both, limited to the createdWithinHours window. Results are newest-first; the result reports the total match count — pass skip to page through more. Pass alertId to get full details of one alert, including its description and its owners (teams and users).",
+    "Query alerts in this project with their current state and severity. Every row also carries the monitor the alert was raised for, so counting rows by monitor answers 'which monitor or source is the noisiest?'. To answer 'which alerts are active/firing right now?' pass state='active' — it returns every unresolved alert regardless of age (no time window unless createdWithinHours is passed explicitly). state='resolved' returns only resolved alerts; the default 'any' returns both, limited to the createdWithinHours window. Results are newest-first; the result reports the total match count — pass skip to page through more. Pass alertId to get full details of one alert, including its description and its owners (teams and users).",
   inputSchema: {
     type: "object",
     properties: {
@@ -95,6 +95,9 @@ export const QueryAlertsTool: ObservabilityTool = {
             name: true,
           },
           alertSeverity: {
+            name: true,
+          },
+          monitor: {
             name: true,
           },
         },
@@ -177,6 +180,7 @@ export const QueryAlertsTool: ObservabilityTool = {
               description: alert.description,
               state: alert.currentAlertState?.name,
               severity: alert.alertSeverity?.name,
+              monitor: alert.monitor?.name,
               createdAt: alert.createdAt,
               ownerTeams: ownerTeamNames || undefined,
               ownerUsers: ownerUserNames || undefined,
@@ -286,6 +290,15 @@ export const QueryAlertsTool: ObservabilityTool = {
         alertSeverity: {
           name: true,
         },
+        /*
+         * The monitor an alert was raised for is what turns a list of alerts
+         * into "which source is noisiest" — the question the alerts page
+         * offers as a first-class suggested prompt. Without it the model can
+         * only guess a source from alert titles.
+         */
+        monitor: {
+          name: true,
+        },
       },
       sort: {
         createdAt: SortOrder.Descending,
@@ -309,6 +322,7 @@ export const QueryAlertsTool: ObservabilityTool = {
         title: alert.title,
         state: alert.currentAlertState?.name,
         severity: alert.alertSeverity?.name,
+        monitor: alert.monitor?.name,
         createdAt: alert.createdAt,
       };
     });

@@ -1,9 +1,8 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../Types/ObjectID";
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import RulePatternMatchUtil from "../Rules/RulePatternMatchUtil";
-import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
+import { isPingOnlyDiscoveredHost } from "./DiscoveryImportEligibility";
 import ScanTargetUtil from "./ScanTargetUtil";
 
 /*
@@ -134,12 +133,21 @@ export function matchesOidPattern(
 }
 
 export class AutoImportRuleMatcher {
-  // True when the host answered ping but not SNMP.
+  /*
+   * True when the host answered ping but not SNMP.
+   *
+   * Asked of the host's own SNMP answer (`isPingOnlyDiscoveredHost`), NOT of
+   * the method it would import under. Under ping-first polling EVERY
+   * discovered host imports as a Probe device, so
+   * `monitoringMethodForDiscoveredHost` is a constant — routing this gate
+   * through it made `isPingOnlyHost` permanently false and silently opened
+   * the default-closed gate below: one SNMP credential typo would have
+   * imported a whole subnet of half-identified hosts through rules that never
+   * opted in. How a host is MONITORED and what it ANSWERED are two different
+   * questions now, and this one is the second.
+   */
   private static isPingOnlyHost(host: DiscoveredNetworkDevice): boolean {
-    return (
-      monitoringMethodForDiscoveredHost(host) ===
-      NetworkDeviceMonitoringMethod.Monitor
-    );
+    return isPingOnlyDiscoveredHost(host);
   }
 
   /*

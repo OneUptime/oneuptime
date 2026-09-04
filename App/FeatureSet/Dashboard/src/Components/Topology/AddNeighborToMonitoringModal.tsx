@@ -12,16 +12,16 @@ import {
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Route from "Common/Types/API/Route";
+import { JSONObject } from "Common/Types/JSON";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -29,18 +29,17 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ProbeUtil from "../../Utils/Probe";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import {
-  MONITORING_METHOD_OPTIONS,
-  isMonitorBackedDevice,
-  isSnmpDevice,
-} from "../NetworkDevice/MonitoringMethodFormFields";
+import { HOSTNAME_FIELD_DESCRIPTION } from "../NetworkDevice/MonitoringMethodFormFields";
 import {
   DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
   DEVICE_ROLE_FIELD_PLACEHOLDER,
   DEVICE_ROLE_FIELD_TITLE,
 } from "../NetworkDevice/DeviceRoleFormFields";
-import { getSnmpConfigFormFields } from "../../Pages/NetworkDevice/SnmpConfigFormFields";
+import {
+  SnmpConfigModelFields,
+  getSnmpConfigFormFields,
+} from "../../Pages/NetworkDevice/SnmpConfigFormFields";
 import {
   NeighborAdoptionDraft,
   buildNeighborAdoptionDraft,
@@ -57,6 +56,15 @@ import {
  * phone in their topology had to leave the map, open Network > Devices >
  * Create, and retype what OneUptime had already discovered. This dialog is
  * that trip, pre-filled.
+ *
+ * Every device it creates is probe-polled. The switch that reported the peer
+ * is polled by a probe that reaches the peer's port, so that probe can ping
+ * it — and pinging is all a device needs to have a status. There is no
+ * "how is this device monitored?" question to ask any more: the probe is
+ * required, SNMP credentials are optional, and a phone adopted with no
+ * credentials is simply pinged. (It used to open on a monitor-backed branch
+ * for leaf devices, which created a device nothing polled and left the
+ * operator hand-making a Ping monitor for it.)
  *
  * It deliberately reuses the SAME field helpers as the create form on the
  * Devices list rather than declaring its own: two ways of creating one kind
@@ -82,6 +90,21 @@ interface InheritedPlacement {
   probeId?: string | undefined;
   siteId?: string | undefined;
 }
+
+/*
+ * The SNMP step's copy, worded for a form that no longer asks how the device
+ * is monitored. The shared field helper's default community-string caption
+ * ("Required for SNMP V1 and V2c") was written for a form where reaching
+ * this step meant the operator had already chosen SNMP; here every device
+ * reaches it, and leaving the step empty is a legitimate answer.
+ */
+const SNMP_STEP_TITLE: string = "SNMP Credentials";
+
+const SNMP_STEP_DESCRIPTION: string =
+  "Optional. Leave the community string empty to ping only; add credentials for interfaces, inventory and health. A device without them is pinged by its probe and reads Up or Down from that alone — credentials can be added later on its Settings page.";
+
+const SNMP_COMMUNITY_FIELD_DESCRIPTION: string =
+  "Optional. Leave it empty to ping only; add it for interfaces, inventory and health. Used by SNMP V1 and V2c, not by V3.";
 
 const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -219,7 +242,6 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       name: draft.name,
       hostname: draft.hostname,
       description: draft.description,
-      monitoringMethod: draft.monitoringMethod,
     };
 
     /*
@@ -233,14 +255,13 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * Only for a device that will actually be polled. Handing a probe to a
-     * monitor-backed device would be handing it a poller it never uses, and
-     * the field is hidden on that branch anyway.
+     * Seeded for EVERY device, whatever its role. A phone is as probe-polled
+     * as a switch now — the probe pings it — so the probe its neighbours
+     * agree on is the right head start for a leaf device exactly as it is
+     * for an uplink. (The seed used to be withheld from leaf devices, which
+     * opened on a monitor-backed branch with the probe field hidden.)
      */
-    if (
-      inherited.probeId &&
-      draft.monitoringMethod === NetworkDeviceMonitoringMethod.Snmp
-    ) {
+    if (inherited.probeId) {
       values["probe"] = inherited.probeId;
     }
 
@@ -252,20 +273,27 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
   }, [draft, inherited.probeId, inherited.siteId]);
 
   const formFields: Fields<NetworkDevice> = useMemo(() => {
+    /*
+     * The shared SNMP fields, with the step's own heading on the first of
+     * them. The step is walked through by every device, so the heading is
+     * where the operator learns that leaving it empty is an answer.
+     */
+    const snmpFields: Fields<SnmpConfigModelFields> = getSnmpConfigFormFields({
+      stepId: "snmp",
+      communityStringDescription: SNMP_COMMUNITY_FIELD_DESCRIPTION,
+    }).map((field: Field<SnmpConfigModelFields>, index: number) => {
+      if (index !== 0) {
+        return field;
+      }
+
+      return {
+        ...field,
+        sectionTitle: SNMP_STEP_TITLE,
+        sectionDescription: SNMP_STEP_DESCRIPTION,
+      };
+    });
+
     return [
-      {
-        field: {
-          monitoringMethod: true,
-        },
-        title: "How is this device monitored?",
-        stepId: "monitoring-method",
-        description:
-          "SNMP devices are polled by a probe you assign. Pick Monitor for gear that cannot be walked — an IP phone, a camera, a PDU — and bind it to a Ping or IP monitor instead. Either way the device keeps its place on the topology map.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: MONITORING_METHOD_OPTIONS,
-        required: true,
-        placeholder: "Monitoring method",
-      },
       {
         field: {
           name: true,
@@ -295,8 +323,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "10.0.0.1 or switch-01.example.com",
-        description:
-          "The device's address. SNMP devices are polled here; for monitor-backed devices it is how the device is identified and matched to SNMP traps.",
+        description: HOSTNAME_FIELD_DESCRIPTION,
       },
       {
         field: {
@@ -322,38 +349,18 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       },
       {
         field: {
-          monitor: true,
-        },
-        title: "Monitor",
-        stepId: "probe-and-site",
-        showIf: isMonitorBackedDevice,
-        description:
-          "The monitor whose status IS this device's status. A Ping or IP monitor on the device's address is the usual choice. Leave it empty to record the device now and bind a monitor later — it still belongs to a site and still appears on the map.",
-        sideLink: {
-          text: "Create a monitor",
-          url: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.MONITORS] as Route,
-          ),
-          openLinkInNewTab: true,
-        },
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownModal: {
-          type: Monitor,
-          labelField: "name",
-          valueField: "_id",
-        },
-        required: false,
-        placeholder: "Select Monitor (optional)",
-      },
-      {
-        field: {
           probe: true,
         },
         title: "Probe",
         stepId: "probe-and-site",
-        showIf: isSnmpDevice,
+        /*
+         * Required, for every device: a probe-polled device with no probe is
+         * claimed by nothing and never polls, which is the "Pending forever"
+         * this flow exists to end. The server does not insist (API and
+         * Terraform callers may set it later), so the form does.
+         */
         description:
-          "The probe that polls this device. It has to reach the device directly, so the probe already polling the switch this device hangs off is pre-selected when every neighbouring device agrees on one.",
+          "The probe that polls this device: it pings it on its schedule, and walks it over SNMP as well when the next step has credentials. It has to reach the device directly, so the probe already polling the switch this device hangs off is pre-selected when every neighbouring device agrees on one.",
         sideLink: {
           text: "Create a custom probe",
           url: RouteUtil.populateRouteParams(
@@ -392,7 +399,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         required: false,
         placeholder: "Select Site (optional)",
       },
-      ...getSnmpConfigFormFields({ stepId: "snmp" }),
+      ...snmpFields,
     ] as Fields<NetworkDevice>;
   }, [probes]);
 
@@ -441,6 +448,20 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Medium}
       initialValues={initialValues}
       onClose={props.onClose}
+      /*
+       * The method is written by the dialog, not left to the column default.
+       * ModelForm only sends the fields it renders, and this form renders no
+       * method picker — every neighbour it adopts is probe-polled, and the
+       * draft says so. Stating it on the way out keeps that true even on a
+       * deployment whose column default has not been migrated yet.
+       */
+      onBeforeCreate={(
+        device: NetworkDevice,
+        _miscDataProps: JSONObject,
+      ): Promise<NetworkDevice> => {
+        device.monitoringMethod = draft.monitoringMethod;
+        return Promise.resolve(device);
+      }}
       onSuccess={(device: NetworkDevice) => {
         props.onSuccess(device);
       }}
@@ -451,10 +472,6 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         formType: FormType.Create,
         steps: [
           {
-            title: "Monitoring",
-            id: "monitoring-method",
-          },
-          {
             title: "Device Details",
             id: "device-details",
           },
@@ -464,13 +481,12 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
           },
           {
             /*
-             * Hidden wholesale for a monitor-backed device, exactly as the
-             * Devices create form hides it: nothing polls such a device, so
-             * there is nothing for a credential to be used for.
+             * Walked through by every device, and optional for every device:
+             * a neighbour adopted with no credentials is pinged by its probe,
+             * and the step's own heading says so.
              */
-            title: "SNMP Credentials",
+            title: SNMP_STEP_TITLE,
             id: "snmp",
-            showIf: isSnmpDevice,
           },
         ],
         fields: formFields,

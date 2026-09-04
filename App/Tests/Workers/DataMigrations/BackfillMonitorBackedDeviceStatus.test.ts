@@ -104,8 +104,9 @@ describe("BackfillMonitorBackedDeviceStatus", () => {
   });
 
   /*
-   * monitoringMethod decides whether a row is walked at all, so a select
-   * that dropped it would send every SNMP device through the monitor path.
+   * monitoringMethod decides whether a row is polled by its probe at all, so
+   * a select that dropped it would send every probe-polled device through
+   * the monitor path.
    */
   test("selects the column it filters on", async () => {
     await migration.migrate();
@@ -161,19 +162,21 @@ describe("BackfillMonitorBackedDeviceStatus", () => {
   });
 
   /*
-   * An SNMP device can carry a monitorId and a stamped status both — the
-   * status comes from the Network Device monitor watching its walk. Sending
-   * it through here would re-derive that stamp from the wrong binding and
-   * wipe it.
+   * A probe-polled device can carry a monitorId and a stamped status both —
+   * the status comes from the Network Device monitor watching its poll.
+   * Sending it through here would re-derive that stamp from the wrong
+   * binding and wipe it. And the stamp is not that device's verdict anyway:
+   * a probe-polled device is judged by its own poll, so re-deriving it would
+   * churn a column nothing reads for it.
    */
-  test("skips SNMP devices that happen to carry a monitor", async () => {
-    const snmp: ObjectID = ObjectID.generate();
+  test("skips probe-polled devices that happen to carry a monitor", async () => {
+    const probePolled: ObjectID = ObjectID.generate();
     const monitorBacked: ObjectID = ObjectID.generate();
 
     deviceService.findBy.mockResolvedValue([
       makeDevice({
-        deviceId: snmp,
-        monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+        deviceId: probePolled,
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
       }),
       makeDevice({
         deviceId: monitorBacked,
@@ -188,8 +191,10 @@ describe("BackfillMonitorBackedDeviceStatus", () => {
 
   /*
    * The column is free text and nullable. Everything that is not the
-   * literal "monitor" is an SNMP device — including a row written before
-   * the column existed, and including a typo.
+   * literal "monitor" is a probe-polled device — including a row written
+   * before the column existed, one still holding the legacy "SNMP", and a
+   * typo. Defaulting the other way would stamp a monitor's status onto a
+   * device no monitor backs.
    */
   test.each([
     ["a NULL method, from before the column existed", undefined],

@@ -24,6 +24,18 @@ enum MonitorType {
   // Database monitoring — runs a read-only SQL query on a schedule from a probe.
   SQLQuery = "SQL Query",
 
+  /*
+   * Database health monitoring. Where SQLQuery runs the query the user
+   * wrote, this runs the queries we wrote: a probe connects to the engine
+   * and reads its own catalog views (pg_stat_*, performance_schema,
+   * sys.dm_*) to produce connection, throughput, lock, cache, storage and
+   * replication series without the user knowing a single system table.
+   * The two are deliberately separate types - a health check has no user
+   * query, needs different grants, and runs a different number of
+   * statements per interval.
+   */
+  Database = "Database",
+
   // These two monitor types are same but we are keeping them separate for now - this is for marketing purposes
   SyntheticMonitor = "Synthetic Monitor",
   CustomJavaScriptCode = "Custom JavaScript Code",
@@ -103,7 +115,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Database Monitoring",
-        monitorTypes: [MonitorType.SQLQuery],
+        monitorTypes: [MonitorType.Database, MonitorType.SQLQuery],
       },
       {
         label: "Synthetic Monitoring",
@@ -496,6 +508,37 @@ export class MonitorTypeHelper {
         ],
       },
       {
+        monitorType: MonitorType.Database,
+        title: "Database Health",
+        description:
+          "Connections, locks, replication and cache health for PostgreSQL, MySQL and SQL Server.",
+        icon: IconProp.Database,
+        keywords: [
+          "database",
+          "db",
+          "health",
+          "performance",
+          "postgres",
+          "postgresql",
+          "mysql",
+          "mariadb",
+          "mssql",
+          "sql server",
+          "connections",
+          "replication",
+          "replica",
+          "lag",
+          "locks",
+          "deadlock",
+          "vacuum",
+          "bloat",
+          "buffer",
+          "cache hit",
+          "slow query",
+          "wraparound",
+        ],
+      },
+      {
         monitorType: MonitorType.SyntheticMonitor,
         title: "Synthetic Monitor",
         description:
@@ -780,6 +823,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.Database ||
       monitorType === MonitorType.ExternalStatusPage;
     return isProbeableMonitor;
   }
@@ -808,6 +852,7 @@ export class MonitorTypeHelper {
       MonitorType.DNSSEC,
       MonitorType.Domain,
       MonitorType.SQLQuery,
+      MonitorType.Database,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
@@ -855,6 +900,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.Database ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
       return true;

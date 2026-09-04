@@ -72,6 +72,7 @@ const serverResponse: ServerResponseFunction = (
         instanceId: "instance-1",
         host: "oneuptime.acme.internal",
         userCount: 42,
+        isCountedTowardsUsage: true,
         lastReportedAt: "2026-08-24T09:59:00.000Z",
         version: "12.0.19",
       },
@@ -434,7 +435,11 @@ describe("EnterpriseLicenseSyncUtil - token", () => {
 describe("EnterpriseLicenseSyncUtil - instances", () => {
   it("stores the instance list", () => {
     const instances: Array<JSONObject> = [
-      { instanceId: "a", host: "a.example.com" },
+      {
+        instanceId: "a",
+        host: "a.example.com",
+        isCountedTowardsUsage: false,
+      },
     ];
 
     expect(
@@ -526,6 +531,7 @@ describe("EnterpriseLicenseSyncUtil - the whole response at once", () => {
           instanceId: "instance-1",
           host: "oneuptime.acme.internal",
           userCount: 42,
+          isCountedTowardsUsage: true,
           lastReportedAt: "2026-08-24T09:59:00.000Z",
           version: "12.0.19",
         },

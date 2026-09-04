@@ -1,9 +1,11 @@
 import DatabaseService from "./DatabaseService";
 import MonitorTemplateService from "./MonitorTemplateService";
+import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
+import NetworkAlertPolicy from "../../Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDeviceOidTemplate from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
@@ -83,7 +85,6 @@ export class Service extends DatabaseService<Model> {
         monitorTemplateId: monitorTemplateId,
         projectId: createBy.props.tenantId || createBy.data.projectId,
         isExclusion: createBy.data.isExclusion,
-        includePingOnlyHosts: createBy.data.includePingOnlyHosts,
         props: createBy.props,
       });
     }
@@ -115,10 +116,16 @@ export class Service extends DatabaseService<Model> {
       dataKeys.includes("sysDescrPattern") ||
       dataKeys.includes("sysObjectIdPattern");
 
+    /*
+     * `includePingOnlyHosts` is deliberately not here. A ping-only host
+     * imports as a Probe device like any other under ping-first polling, so
+     * whether a rule includes such hosts has no bearing on whether it may
+     * carry a Network Device monitor template — toggling it validates
+     * nothing and must not cost a template lookup.
+     */
     const isMonitorProvisioningChange: boolean =
       RelationIdUtil.isWritten(dataKeys, MONITOR_TEMPLATE_KEYS) ||
       dataKeys.includes("isExclusion") ||
-      dataKeys.includes("includePingOnlyHosts") ||
       dataKeys.includes("isEnabled");
 
     const isOidTemplateChange: boolean = RelationIdUtil.isWritten(
@@ -172,7 +179,6 @@ export class Service extends DatabaseService<Model> {
         sysDescrPattern: true,
         sysObjectIdPattern: true,
         isExclusion: true,
-        includePingOnlyHosts: true,
         isEnabled: true,
         monitorTemplateId: true,
       },
@@ -232,8 +238,7 @@ export class Service extends DatabaseService<Model> {
           dataKeys.includes("isEnabled") &&
           data["isEnabled"] === false &&
           !isMonitorTemplateWritten &&
-          !dataKeys.includes("isExclusion") &&
-          !dataKeys.includes("includePingOnlyHosts");
+          !dataKeys.includes("isExclusion");
 
         if (monitorTemplateId && !isOnlyDisablingRule) {
           await this.validateMonitorTemplateSelection({
@@ -242,9 +247,6 @@ export class Service extends DatabaseService<Model> {
             isExclusion: dataKeys.includes("isExclusion")
               ? data["isExclusion"] === true
               : existingRule.isExclusion,
-            includePingOnlyHosts: dataKeys.includes("includePingOnlyHosts")
-              ? data["includePingOnlyHosts"] === true
-              : existingRule.includePingOnlyHosts,
             props: updateBy.props,
           });
         }
@@ -301,22 +303,25 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Ping-only hosts are not a reason to refuse a template. They used to be —
+   * "Rules that include ping-only hosts cannot select a Network Device
+   * monitor template" — because such a host imported monitor-backed, with
+   * polling off, and a Network Device monitor on it could never be fed.
+   * Under ping-first polling it imports as a Probe device that is pinged on
+   * schedule, and the monitor's reachability criteria evaluate from that
+   * ping while its OID and interface criteria wait, unevaluated, for
+   * credentials. The engine's only guard is the DEVICE's method.
+   */
   private async validateMonitorTemplateSelection(data: {
     monitorTemplateId: ObjectID;
     projectId: ObjectID | undefined;
     isExclusion?: boolean | null | undefined;
-    includePingOnlyHosts?: boolean | null | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     if (data.isExclusion) {
       throw new BadDataException(
         "Exclusion rules cannot select a monitor template.",
-      );
-    }
-
-    if (data.includePingOnlyHosts) {
-      throw new BadDataException(
-        "Rules that include ping-only hosts cannot select a Network Device monitor template.",
       );
     }
 
@@ -380,6 +385,46 @@ export class Service extends DatabaseService<Model> {
       monitorTemplate.monitorSteps,
       "Monitor template",
     );
+
+    /*
+     * NO TEMPLATE IS SHARED WITH A NETWORK ALERT POLICY. This is the rule
+     * half of the check NetworkAlertPolicyService makes from the other side,
+     * and both halves have to exist or whichever thing is created second
+     * wins by accident.
+     *
+     * A provisioned monitor's provenance is the pair (device, template) —
+     * that is the partial unique index Monitor carries — so one template has
+     * room for exactly one provisioner per device. If a rule and a policy
+     * shared one, the rule would provision a monitor on import, the policy's
+     * engine would find a monitor for its own (device, template) pair,
+     * believe it provisioned it, and delete it the moment that device left
+     * the policy's scope: an operator's import rule silently losing its
+     * monitors because somebody edited a policy's site list.
+     *
+     * Read as root and keyed on the project, like every other tenancy read
+     * in this file: the answer is about this project's own configuration.
+     */
+    const policiesOnTemplate: Array<NetworkAlertPolicy> =
+      await NetworkAlertPolicyService.findBy({
+        query: {
+          projectId: data.projectId,
+          monitorTemplateId: data.monitorTemplateId,
+        },
+        select: {
+          _id: true,
+        },
+        limit: 1,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (policiesOnTemplate.length > 0) {
+      throw new BadDataException(
+        "This Monitor Template is used by a network alert policy; pick a different template.",
+      );
+    }
   }
 
   private validateCriteria(data: {

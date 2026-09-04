@@ -1246,13 +1246,11 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
-    # Whether Custom JavaScript Code monitors on this probe may reach private
-    # network addresses (10.x, 192.168.x, ...). Off by default. Every other
-    # monitor type this probe runs — API, Website, Ping, Port, SSL, DNS, SNMP,
-    # SQL, Synthetic — already reaches whatever host the monitor names; Custom
-    # Code is the one exception, because it executes in the same sandbox as the
-    # workflow Custom JavaScript component and inherits its SSRF guard. Turning
-    # this on does NOT open loopback, link-local or the cloud metadata endpoint.
+    # Private-network opt-in for API, Website, External Status Page and Custom
+    # JavaScript Code monitors on a private probe. Chart-managed probes
+    # auto-register as global probes, so they ignore this value and always
+    # enforce public-only egress. Turning this on for a separately deployed
+    # private probe still does NOT open loopback, link-local or cloud metadata.
     allowPrivateNetworkMonitors: false
     syntheticMonitorScriptTimeoutInMs: 60000
     # Maximum number of isolated browser worker processes started concurrently

@@ -1,6 +1,10 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import DayUptimeGraph, { BarChartRule, Event } from "../Graphs/DayUptimeGraph";
+import DayUptimeGraph, {
+  BarChartRule,
+  Event,
+  UptimeBarDaySummary,
+} from "../Graphs/DayUptimeGraph";
 import UptimeUtil from "./UptimeUtil";
 import Color from "../../../Types/Color";
 import CommonMonitorEvent from "../../../Utils/Uptime/MonitorEvent";
@@ -8,6 +12,7 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -29,8 +34,14 @@ export interface ComponentProps {
   downtimeMonitorStatuses: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
-  onBarClick?: (date: Date, incidents: Array<UptimeBarTooltipIncident>) => void;
+  onBarClick?: (
+    date: Date,
+    incidents: Array<UptimeBarTooltipIncident>,
+    summary: UptimeBarDaySummary,
+  ) => void;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /* Wording for the strip's accessible names. Defaults to English. */
+  labels?: UptimeHistoryLabels | undefined;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -90,6 +101,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
       incidents={props.incidents}
       onBarClick={props.onBarClick}
       onIncidentClick={props.onIncidentClick}
+      labels={props.labels}
     />
   );
 };

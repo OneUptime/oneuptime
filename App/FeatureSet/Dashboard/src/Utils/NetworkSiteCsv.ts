@@ -23,6 +23,13 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 export interface NetworkSiteTypeOption {
   id: string;
   name: string;
+  /*
+   * `undefined` is reserved for callers that do not have hierarchy metadata.
+   * The import modal always supplies either the configured parent id or null
+   * for a top-level type, which lets the parser enforce the same edge shape as
+   * the server before an import starts.
+   */
+  parentNetworkSiteTypeId?: string | null | undefined;
 }
 
 export interface ParsedSiteRow {
@@ -36,6 +43,13 @@ export interface ParsedSiteRow {
    */
   networkSiteTypeId: string;
   siteType: string;
+  /*
+   * The selected type's configured parent type. This is carried into the
+   * planner so parents that already exist in the project can be checked before
+   * the first POST. Undefined keeps the pure helper backwards-compatible with
+   * callers that genuinely lack hierarchy metadata.
+   */
+  requiredParentNetworkSiteTypeId?: string | null | undefined;
   // Empty string for root sites.
   parentName: string;
   address: string;
@@ -186,6 +200,58 @@ function indexSiteTypesByLowercaseName(
   return byLowercaseName;
 }
 
+function normalizeId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+function indexSiteTypesById(
+  siteTypes: Array<NetworkSiteTypeOption>,
+): Map<string, NetworkSiteTypeOption> {
+  const byId: Map<string, NetworkSiteTypeOption> = new Map<
+    string,
+    NetworkSiteTypeOption
+  >();
+
+  for (const siteType of siteTypes) {
+    const id: string = normalizeId(siteType.id);
+    if (id !== "" && !byId.has(id)) {
+      byId.set(id, siteType);
+    }
+  }
+
+  return byId;
+}
+
+function configuredParentTypeName(data: {
+  parentNetworkSiteTypeId: string;
+  siteTypeById: Map<string, NetworkSiteTypeOption>;
+}): string {
+  return (
+    data.siteTypeById.get(normalizeId(data.parentNetworkSiteTypeId))?.name ||
+    "the configured parent site type"
+  );
+}
+
+function incompatibleParentTypeMessage(data: {
+  child: ParsedSiteRow;
+  parentName: string;
+  actualParentNetworkSiteTypeId: string | null;
+  siteTypeById: Map<string, NetworkSiteTypeOption>;
+}): string {
+  const requiredParentTypeId: string =
+    data.child.requiredParentNetworkSiteTypeId!;
+  const requiredParentTypeName: string = configuredParentTypeName({
+    parentNetworkSiteTypeId: requiredParentTypeId,
+    siteTypeById: data.siteTypeById,
+  });
+  const actualParentTypeName: string = data.actualParentNetworkSiteTypeId
+    ? data.siteTypeById.get(normalizeId(data.actualParentNetworkSiteTypeId))
+        ?.name || "an unknown site type"
+    : "no site type";
+
+  return `Parent site "${data.parentName}" uses ${actualParentTypeName}, but siteType "${data.child.siteType}" requires a parent that uses ${requiredParentTypeName}.`;
+}
+
 type HeaderIndex = Map<string, number>;
 
 function parseHeader(
@@ -294,6 +360,8 @@ export function parseSiteCsv(
 
   const siteTypeByLowercaseName: Map<string, NetworkSiteTypeOption> =
     indexSiteTypesByLowercaseName(siteTypes);
+  const siteTypeById: Map<string, NetworkSiteTypeOption> =
+    indexSiteTypesById(siteTypes);
   const siteTypeNames: Array<string> = Array.from(
     siteTypeByLowercaseName.values(),
   ).map((siteType: NetworkSiteTypeOption) => {
@@ -372,6 +440,25 @@ export function parseSiteCsv(
       rowErrors.push("A site cannot be its own parent.");
     }
 
+    if (siteType && siteType.parentNetworkSiteTypeId !== undefined) {
+      if (siteType.parentNetworkSiteTypeId === null && parentName !== "") {
+        rowErrors.push(
+          `siteType "${siteType.name}" is top level and cannot have a parentName.`,
+        );
+      } else if (
+        siteType.parentNetworkSiteTypeId !== null &&
+        parentName === ""
+      ) {
+        const requiredParentTypeName: string = configuredParentTypeName({
+          parentNetworkSiteTypeId: siteType.parentNetworkSiteTypeId,
+          siteTypeById,
+        });
+        rowErrors.push(
+          `siteType "${siteType.name}" requires a parentName whose siteType is "${requiredParentTypeName}".`,
+        );
+      }
+    }
+
     const address: string = cellAt(record, headerIndex, "address");
 
     const latitudeResult: CoordinateParseResult = parseCoordinate(
@@ -426,6 +513,7 @@ export function parseSiteCsv(
       name: name,
       networkSiteTypeId: siteType!.id,
       siteType: siteType!.name,
+      requiredParentNetworkSiteTypeId: siteType!.parentNetworkSiteTypeId,
       parentName: parentName,
       address: address,
       latitude: latitudeResult.value,
@@ -433,7 +521,54 @@ export function parseSiteCsv(
     });
   }
 
-  return { rows: rows, errors: errors };
+  /*
+   * A parent declared elsewhere in this same file is fully known during the
+   * preview, even when it appears after its child. Reject incompatible edges
+   * here rather than letting the create loop discover them one request at a
+   * time. Existing project parents are checked later by planSiteImport because
+   * they are loaded only when the user starts the import.
+   */
+  const importedRowByName: Map<string, ParsedSiteRow> = new Map<
+    string,
+    ParsedSiteRow
+  >();
+  for (const row of rows) {
+    importedRowByName.set(row.name, row);
+  }
+
+  const incompatibleLines: Set<number> = new Set<number>();
+  for (const row of rows) {
+    if (!row.requiredParentNetworkSiteTypeId || row.parentName === "") {
+      continue;
+    }
+
+    const importedParent: ParsedSiteRow | undefined = importedRowByName.get(
+      row.parentName,
+    );
+    if (
+      importedParent &&
+      normalizeId(importedParent.networkSiteTypeId) !==
+        normalizeId(row.requiredParentNetworkSiteTypeId)
+    ) {
+      errors.push({
+        line: row.line,
+        message: incompatibleParentTypeMessage({
+          child: row,
+          parentName: row.parentName,
+          actualParentNetworkSiteTypeId: importedParent.networkSiteTypeId,
+          siteTypeById,
+        }),
+      });
+      incompatibleLines.add(row.line);
+    }
+  }
+
+  return {
+    rows: rows.filter((row: ParsedSiteRow) => {
+      return !incompatibleLines.has(row.line);
+    }),
+    errors: errors,
+  };
 }
 
 export interface SkippedSiteRow {
@@ -462,8 +597,16 @@ export interface SiteImportPlan {
 export function planSiteImport(
   rows: Array<ParsedSiteRow>,
   existingSiteNames: Array<string>,
+  existingSiteTypeIdByName?: Map<string, string | null> | undefined,
 ): SiteImportPlan {
   const existing: Set<string> = new Set<string>(existingSiteNames);
+  const importedRowByName: Map<string, ParsedSiteRow> = new Map<
+    string,
+    ParsedSiteRow
+  >();
+  for (const row of rows) {
+    importedRowByName.set(row.name, row);
+  }
 
   const skipped: Array<SkippedSiteRow> = [];
   let pending: Array<ParsedSiteRow> = [];
@@ -474,9 +617,41 @@ export function planSiteImport(
         row: row,
         reason: `A site named "${row.name}" already exists in this project.`,
       });
-    } else {
-      pending.push(row);
+      continue;
     }
+
+    if (row.requiredParentNetworkSiteTypeId && row.parentName !== "") {
+      let actualParentTypeId: string | null | undefined;
+      let shouldValidateParentType: boolean = false;
+
+      if (existing.has(row.parentName) && existingSiteTypeIdByName) {
+        shouldValidateParentType = true;
+        actualParentTypeId = existingSiteTypeIdByName.get(row.parentName);
+      } else if (!existing.has(row.parentName)) {
+        const importedParent: ParsedSiteRow | undefined = importedRowByName.get(
+          row.parentName,
+        );
+        if (importedParent) {
+          shouldValidateParentType = true;
+          actualParentTypeId = importedParent.networkSiteTypeId;
+        }
+      }
+
+      if (
+        shouldValidateParentType &&
+        (!actualParentTypeId ||
+          normalizeId(actualParentTypeId) !==
+            normalizeId(row.requiredParentNetworkSiteTypeId))
+      ) {
+        skipped.push({
+          row,
+          reason: `Parent site "${row.parentName}" does not use the Network Site Type required by "${row.siteType}".`,
+        });
+        continue;
+      }
+    }
+
+    pending.push(row);
   }
 
   const batches: Array<Array<ParsedSiteRow>> = [];

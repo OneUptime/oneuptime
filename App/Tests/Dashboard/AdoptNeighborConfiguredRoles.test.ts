@@ -16,17 +16,28 @@ import {
  * carries an `isSnmpWalkable` flag, and the topology payload stamps it onto
  * every node as `isSnmpWalkableRole`.
  *
- * That flag lands in exactly one decision in this module — whether "Add to
- * Monitoring" opens on SNMP polling or on a monitor — and that decision is
- * the difference between a device that reports health and a device that
- * queues a walk it can only ever fail and reads "pending" forever.
+ * That flag lands in exactly one decision in this module — whether the role
+ * the map classified the peer as is SEEDED onto the new device. `deviceRole`
+ * is an override: once written, the topology builder never classifies that
+ * device again. A device the probe will walk has a sysDescr coming that will
+ * answer better than a guess made from an advertised name, so the guess is
+ * withheld; a device nothing will ever walk has no such future, so the guess
+ * is the only evidence there will be and it is carried.
  *
- * Two claims are made about it and both are worth pinning:
+ * It does NOT decide how the device is monitored. That used to be the other
+ * half of this decision — a not-walkable role opened the dialog on a
+ * monitor-backed device with no probe — and it is gone: every adopted
+ * neighbour is a Probe device, pinged by its probe and walked only once it
+ * has credentials, so a phone with the wrong flag is at worst mis-seeded,
+ * never left unpolled.
+ *
+ * Two claims are made about the flag and both are worth pinning:
  *
  *   - the PROJECT'S answer wins, in BOTH directions. A project that says its
  *     routers are not walkable (a fleet of consumer edge boxes with SNMP off
- *     by policy) gets a monitor; a project that says its cameras ARE walkable
- *     gets SNMP. Neither is expressible in the built-in leaf-role list.
+ *     by policy) gets the role seeded; a project that says its cameras ARE
+ *     walkable gets it withheld. Neither is expressible in the built-in
+ *     leaf-role list.
  *   - a payload that does not carry the flag at all — one built before this
  *     existed, or for a project with no row for that role — behaves EXACTLY
  *     as it did before, for every one of the twelve built-in roles.
@@ -34,7 +45,7 @@ import {
  * The second is the regression that matters most: `isSnmpWalkableRole` is an
  * optional boolean, so reading it with a truthiness test rather than an
  * explicit "is it absent" test silently turns "not walkable" into "no answer
- * given", and every camera in every project quietly goes back to SNMP.
+ * given", and every camera in every project quietly loses its seeded role.
  *
  * The name, hostname, description, links and warnings rules are asserted in
  * AdoptNeighborUtil.test.ts; the fixtures below are shared with it on purpose
@@ -124,44 +135,48 @@ const ALL_BUILT_IN_ROLES: ReadonlyArray<NetworkTopologyDeviceRole> = [
 ];
 
 /*
- * The four roles that have ALWAYS opened on a monitor, restated here rather
- * than imported: MONITOR_BACKED_ROLES is private to the module, and a test
- * that imported it would pass just as happily if somebody edited the set.
- * This is the historical contract, written down.
+ * The four roles that have ALWAYS been treated as not walkable, restated here
+ * rather than imported: the set is private to the module, and a test that
+ * imported it would pass just as happily if somebody edited it. This is the
+ * historical contract, written down.
  */
-const HISTORICALLY_MONITOR_BACKED: ReadonlyArray<NetworkTopologyDeviceRole> = [
+const HISTORICALLY_NOT_WALKABLE: ReadonlyArray<NetworkTopologyDeviceRole> = [
   "printer",
   "camera",
   "phone",
   "host",
 ];
 
-function historicalMethodFor(
+/*
+ * The seeding rule with the flag ABSENT: a not-walkable role is seeded, a
+ * walkable one is withheld. "unknown" is not a role and is never seeded.
+ */
+function historicallySeededRoleFor(
   role: NetworkTopologyDeviceRole,
-): NetworkDeviceMonitoringMethod {
-  return HISTORICALLY_MONITOR_BACKED.includes(role)
-    ? NetworkDeviceMonitoringMethod.Monitor
-    : NetworkDeviceMonitoringMethod.Snmp;
+): NetworkTopologyDeviceRole | undefined {
+  return HISTORICALLY_NOT_WALKABLE.includes(role) ? role : undefined;
 }
 
-describe("a project's own answer about a role decides how a neighbour is adopted", () => {
+describe("a project's own answer about a role decides whether it is seeded", () => {
   /*
    * The direction the built-in list cannot express at all. "Router" is
-   * infrastructure and has always defaulted to SNMP, but a project running a
-   * fleet of consumer edge boxes with SNMP disabled by policy knows better —
-   * and before roles were configurable there was nowhere for it to say so.
+   * infrastructure and has always been treated as walkable, but a project
+   * running a fleet of consumer edge boxes with SNMP disabled by policy knows
+   * better — nothing will ever walk them, so the guess is all there is.
    */
-  test("a role the project marked not walkable opens on a monitor, even for a router", () => {
+  test("a role the project marked not walkable is seeded, even for a router", () => {
     const draft: NeighborAdoptionDraft = draftForPhone({
       ...PHONE,
       role: "router",
+      roleId: ROLE_ROW_ID,
       isSnmpWalkableRole: false,
     });
 
-    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
+    expect(draft.deviceRole).toBe("router");
+    expect(draft.networkDeviceRoleId).toBe(ROLE_ROW_ID);
   });
 
-  test("the same holds for every infrastructure role the built-in list sends to SNMP", () => {
+  test("the same holds for every infrastructure role the built-in list treats as walkable", () => {
     for (const role of [
       "switch",
       "firewall",
@@ -172,23 +187,24 @@ describe("a project's own answer about a role decides how a neighbour is adopted
     ] as ReadonlyArray<NetworkTopologyDeviceRole>) {
       expect(
         draftForPhone({ ...PHONE, role: role, isSnmpWalkableRole: false })
-          .monitoringMethod,
-      ).toBe(NetworkDeviceMonitoringMethod.Monitor);
+          .deviceRole,
+      ).toBe(role);
     }
   });
 
   /*
    * And the other direction. Plenty of estates run cameras, handsets and
-   * printers that answer SNMP perfectly well; the built-in list refuses them
-   * because on average they do not. A project that has said otherwise is
-   * obeyed, or the flag is decoration.
+   * printers that answer SNMP perfectly well; the built-in list treats them
+   * as not walkable because on average they are not. A project that has said
+   * otherwise is obeyed — its sysDescr is coming, so the guess is withheld —
+   * or the flag is decoration.
    */
-  test("a role the project marked walkable opens on SNMP, even for a camera", () => {
-    for (const role of HISTORICALLY_MONITOR_BACKED) {
+  test("a role the project marked walkable is withheld, even for a camera", () => {
+    for (const role of HISTORICALLY_NOT_WALKABLE) {
       expect(
         draftForPhone({ ...PHONE, role: role, isSnmpWalkableRole: true })
-          .monitoringMethod,
-      ).toBe(NetworkDeviceMonitoringMethod.Snmp);
+          .deviceRole,
+      ).toBeUndefined();
     }
   });
 
@@ -196,7 +212,7 @@ describe("a project's own answer about a role decides how a neighbour is adopted
    * A custom role ("PoS Terminal", "Kiosk") has no built-in key to fall back
    * on, so `role` is absent and the configured flag is the ONLY evidence
    * there is. Without it being read, every custom role would inherit the
-   * unclassified default and be walked.
+   * unclassified default and be withheld.
    */
   test("a custom role with no built-in equivalent is still obeyed", () => {
     const kiosk: NetworkTopologyNode = {
@@ -204,12 +220,11 @@ describe("a project's own answer about a role decides how a neighbour is adopted
       role: undefined,
       roleKey: "pos-terminal",
       roleLabel: "PoS Terminal",
+      roleId: ROLE_ROW_ID,
       isSnmpWalkableRole: false,
     };
 
-    expect(draftForPhone(kiosk).monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Monitor,
-    );
+    expect(draftForPhone(kiosk).networkDeviceRoleId).toBe(ROLE_ROW_ID);
   });
 
   /*
@@ -228,10 +243,53 @@ describe("a project's own answer about a role decides how a neighbour is adopted
       role: "switch",
     });
 
-    expect(notWalkable.monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Monitor,
+    expect(notWalkable.deviceRole).toBe("switch");
+    expect(noAnswer.deviceRole).toBeUndefined();
+  });
+});
+
+describe("the monitoring method is Probe whatever the project says about the role", () => {
+  /*
+   * The half of the old decision that is gone. Walkability used to open the
+   * dialog on a monitor-backed device — no probe, nothing polling it, a Ping
+   * monitor to hand-make — for every not-walkable role. Every adopted
+   * neighbour is probe-polled now: the probe pings it, and walks it only
+   * once it has credentials, so a not-walkable role costs nothing but the
+   * walk it would have failed anyway.
+   */
+  test("every built-in role, with every configured answer, is a Probe device", () => {
+    const everyConfiguredAnswer: ReadonlyArray<boolean | undefined> = [
+      undefined,
+      true,
+      false,
+    ];
+
+    for (const role of ALL_BUILT_IN_ROLES) {
+      for (const walkable of everyConfiguredAnswer) {
+        expect(
+          draftForPhone({ ...PHONE, role: role, isSnmpWalkableRole: walkable })
+            .monitoringMethod,
+        ).toBe(NetworkDeviceMonitoringMethod.Probe);
+      }
+    }
+  });
+
+  test("a custom role the project marked not walkable is still a Probe device", () => {
+    expect(
+      draftForPhone({
+        ...PHONE,
+        role: undefined,
+        roleKey: "pos-terminal",
+        roleLabel: "PoS Terminal",
+        isSnmpWalkableRole: false,
+      }).monitoringMethod,
+    ).toBe(NetworkDeviceMonitoringMethod.Probe);
+  });
+
+  test("no role and no answer at all is a Probe device", () => {
+    expect(draftForPhone({ ...PHONE, role: undefined }).monitoringMethod).toBe(
+      NetworkDeviceMonitoringMethod.Probe,
     );
-    expect(noAnswer.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Snmp);
   });
 });
 
@@ -242,10 +300,10 @@ describe("a payload that carries no configured answer behaves exactly as before"
    * absent — which is what a payload built before this feature, and a payload
    * for a project whose roles table has no row for the role, both look like.
    */
-  test("every one of the twelve built-in roles resolves the way it always has", () => {
+  test("every one of the twelve built-in roles is seeded the way it always has been", () => {
     for (const role of ALL_BUILT_IN_ROLES) {
-      expect(draftForPhone({ ...PHONE, role: role }).monitoringMethod).toBe(
-        historicalMethodFor(role),
+      expect(draftForPhone({ ...PHONE, role: role }).deviceRole).toBe(
+        historicallySeededRoleFor(role),
       );
     }
   });
@@ -259,31 +317,34 @@ describe("a payload that carries no configured answer behaves exactly as before"
     for (const role of ALL_BUILT_IN_ROLES) {
       expect(
         draftForPhone({ ...PHONE, role: role, isSnmpWalkableRole: undefined })
-          .monitoringMethod,
-      ).toBe(historicalMethodFor(role));
+          .deviceRole,
+      ).toBe(historicallySeededRoleFor(role));
     }
   });
 
   /*
    * An unidentified box on a switch port is far more often a switch nobody
-   * has added yet than it is a kiosk, so the unclassified default is SNMP —
-   * and configurable roles must not have quietly inverted it.
+   * has added yet than it is a kiosk, so the unclassified default is
+   * "walkable" — nothing is seeded — and configurable roles must not have
+   * quietly inverted it.
    */
-  test("an unclassified peer still defaults to the product's primary path", () => {
-    expect(draftForPhone({ ...PHONE, role: undefined }).monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Snmp,
-    );
-    expect(draftForPhone({ ...PHONE, role: "unknown" }).monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Snmp,
-    );
+  test("an unclassified peer is still treated as walkable and gets no seed", () => {
+    expect(
+      draftForPhone({ ...PHONE, role: undefined, roleId: ROLE_ROW_ID })
+        .networkDeviceRoleId,
+    ).toBeUndefined();
+    expect(
+      draftForPhone({ ...PHONE, role: "unknown", roleId: ROLE_ROW_ID })
+        .networkDeviceRoleId,
+    ).toBeUndefined();
   });
 
   /*
    * The other role fields the payload now carries are for the map — the
    * silhouette, the legend grouping, the layout band. None of them says
-   * anything about polling, so none of them may move this decision.
+   * anything about walkability, so none of them may move this decision.
    */
-  test("the other configured role fields do not influence the monitoring method", () => {
+  test("the other configured role fields do not influence the seed", () => {
     const decorated: NeighborAdoptionDraft = draftForPhone({
       ...PHONE,
       role: "phone",
@@ -294,9 +355,8 @@ describe("a payload that carries no configured answer behaves exactly as before"
       roleId: ROLE_ROW_ID,
     });
 
-    expect(decorated.monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Monitor,
-    );
+    expect(decorated.deviceRole).toBe("phone");
+    expect(decorated.networkDeviceRoleId).toBe(ROLE_ROW_ID);
   });
 });
 
@@ -325,7 +385,7 @@ describe("the role row's id rides along only where a role is assigned at all", (
   test("it is undefined when the payload names no role row", () => {
     const draft: NeighborAdoptionDraft = draftForPhone(PHONE);
 
-    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
+    expect(draft.deviceRole).toBe("phone");
     expect(draft.networkDeviceRoleId).toBeUndefined();
   });
 
@@ -338,9 +398,7 @@ describe("the role row's id rides along only where a role is assigned at all", (
       });
 
       expect(draft.networkDeviceRoleId).toBe(
-        historicalMethodFor(role) === NetworkDeviceMonitoringMethod.Monitor
-          ? ROLE_ROW_ID
-          : undefined,
+        historicallySeededRoleFor(role) !== undefined ? ROLE_ROW_ID : undefined,
       );
     }
   });
@@ -351,7 +409,7 @@ describe("the role row's id rides along only where a role is assigned at all", (
    * now a device nothing will walk, so the guess about its role is the only
    * evidence there will ever be — exactly the case the key is carried for.
    */
-  test("a role the project marked not walkable carries the id, like any monitor-backed device", () => {
+  test("a role the project marked not walkable carries the id, like any leaf device", () => {
     const draft: NeighborAdoptionDraft = draftForPhone({
       ...PHONE,
       role: "router",
@@ -363,7 +421,7 @@ describe("the role row's id rides along only where a role is assigned at all", (
     expect(draft.deviceRole).toBe("router");
   });
 
-  test("a role the project marked walkable withholds the id, like any SNMP device", () => {
+  test("a role the project marked walkable withholds the id, like any infrastructure device", () => {
     const draft: NeighborAdoptionDraft = draftForPhone({
       ...PHONE,
       role: "camera",
@@ -390,25 +448,21 @@ describe("the role row's id rides along only where a role is assigned at all", (
       isSnmpWalkableRole: false,
     });
 
-    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
+    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
     expect(draft.networkDeviceRoleId).toBe(ROLE_ROW_ID);
     expect(draft.deviceRole).toBeUndefined();
   });
 });
 
 describe("the deprecated deviceRole string is unchanged by any of this", () => {
-  test("the classified key is carried only for a monitor-backed device", () => {
+  test("the classified key is carried only for a device nothing will walk", () => {
     for (const role of ALL_BUILT_IN_ROLES) {
       const draft: NeighborAdoptionDraft = draftForPhone({
         ...PHONE,
         role: role,
       });
 
-      expect(draft.deviceRole).toBe(
-        historicalMethodFor(role) === NetworkDeviceMonitoringMethod.Monitor
-          ? role
-          : undefined,
-      );
+      expect(draft.deviceRole).toBe(historicallySeededRoleFor(role));
     }
   });
 
@@ -416,7 +470,7 @@ describe("the deprecated deviceRole string is unchanged by any of this", () => {
    * "unknown" is the absence of a role, not a role. Storing it as an override
    * would permanently disable the classifier on a device the operator was only
    * declining to classify — and a project marking that role not walkable must
-   * not sneak it through the newly reachable monitor-backed branch.
+   * not sneak it through the seeded branch.
    */
   test("an unknown role is never written as an override, however the project configured it", () => {
     const everyConfiguredAnswer: ReadonlyArray<boolean | undefined> = [

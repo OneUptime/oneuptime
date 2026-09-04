@@ -1,17 +1,24 @@
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
+import NetworkAlertPolicyEngineService, {
+  MAX_INLINE_RECONCILE_DEVICES,
+} from "./NetworkAlertPolicyEngineService";
 import NetworkDeviceLabelRuleEngineService from "./NetworkDeviceLabelRuleEngineService";
 import NetworkDeviceOwnerRuleEngineService from "./NetworkDeviceOwnerRuleEngineService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
+import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
+import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -137,8 +144,128 @@ function readOidTemplateIdFromData(
   );
 }
 
+/*
+ * readConsistent for the same reason as the OID template above: the create
+ * and update guards validate the id this returns, and TypeORM's precedence
+ * between `monitorId` and `monitor` is not a security boundary. A payload
+ * that writes both spellings with different ids would have one of them
+ * validated and the other persisted, so the contradiction is refused
+ * instead of picked from.
+ */
 function readMonitorIdFromData(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, MONITOR_KEYS);
+  return RelationIdUtil.readConsistent(data, MONITOR_KEYS, "Monitor");
+}
+
+/*
+ * Both spellings of "the probe that polls this device", and of "the SNMP
+ * credentials it is walked with".
+ *
+ * These two are the tenancy boundary of device polling. The probe decides
+ * WHO reaches into the customer's network on this device's behalf, and the
+ * credential profile decides WHAT is put on the wire when it gets there —
+ * so a cross-project value in either is not a mislabelled row, it is one
+ * project's infrastructure being pointed at another's. Both are read
+ * through readConsistent for the reason the monitor reference above is: a
+ * payload writing the FK and the relation at different rows would otherwise
+ * have one validated and the other persisted.
+ */
+const PROBE_KEYS: Array<string> = ["probeId", "probe"];
+const PROFILE_KEYS: Array<string> = [
+  "snmpCredentialProfileId",
+  "snmpCredentialProfile",
+];
+
+/*
+ * Both spellings of "what kind of thing this device is". A role is one of
+ * the three axes a Network Alert Policy's scope selects on, so a write to it
+ * can add a device to a policy or take it out of one.
+ */
+const ROLE_KEYS: Array<string> = ["networkDeviceRoleId", "networkDeviceRole"];
+
+/*
+ * Every write that can change which Network Alert Policies cover a device,
+ * or whether it may carry a policy monitor at all.
+ *
+ * The first three are the scope axes (site, role, labels); the last three
+ * are provisionability — an archived device, a monitor-backed device and a
+ * device with no probe each keep no policy monitors (see the engine).
+ *
+ * Writing any of them makes onUpdateSuccess reconcile, and reconciling needs
+ * each matched device's PROJECT, which only the pre-write snapshot carries
+ * for a root caller with no tenant in props. That is why these are named in
+ * onBeforeUpdate's early return as well: without them a bulk re-label would
+ * skip the snapshot and the success hook would have no project to reconcile
+ * against.
+ */
+function isAlertPolicyRelevantWrite(dataKeys: Array<string>): boolean {
+  return (
+    isSiteWrite(dataKeys) ||
+    RelationIdUtil.isWritten(dataKeys, ROLE_KEYS) ||
+    dataKeys.includes("labels") ||
+    dataKeys.includes("isArchived") ||
+    dataKeys.includes("monitoringMethod") ||
+    RelationIdUtil.isWritten(dataKeys, PROBE_KEYS)
+  );
+}
+
+function readProbeIdFromData(data: Record<string, unknown>): ObjectID | null {
+  return RelationIdUtil.readConsistent(data, PROBE_KEYS, "Probe");
+}
+
+function readSnmpCredentialProfileIdFromData(
+  data: Record<string, unknown>,
+): ObjectID | null {
+  return RelationIdUtil.readConsistent(
+    data,
+    PROFILE_KEYS,
+    "SNMP Credential Profile",
+  );
+}
+
+/*
+ * The poll columns a probe's poll writes and nothing else ever should. On a
+ * device switched to monitor-backed they are residue — the last thing a
+ * probe found before it stopped asking — and left in place they keep
+ * describing a device nothing polls: DeviceReachabilityUtil's legacy branch
+ * judges a row with `lastSeenAt` and no `isReachable` by freshness, and the
+ * network summary's "degraded" query is `isReachable = true AND
+ * interfacesDown > 0`. The SNMP pair goes with them: a monitor-backed device
+ * has no walk, so `isSnmpReachable` and `lastSnmpSeenAt` can only ever be
+ * what the last walk left behind. Cleared on the Probe -> Monitor transition
+ * (onUpdateSuccess) and once on upgrade
+ * (BackfillMonitorBackedDeviceReachability), as a root write in both places:
+ * these columns are updatable by fewer roles than `monitoringMethod` is, so
+ * putting them on the caller's own payload would refuse a project member's
+ * legitimate switch.
+ */
+function pollResidueReset(): PartialEntity<Model> {
+  return {
+    lastSeenAt: null,
+    lastPolledAt: null,
+    isReachable: null,
+    isSnmpReachable: null,
+    lastSnmpSeenAt: null,
+    interfacesUp: null,
+    interfacesDown: null,
+  };
+}
+
+/*
+ * What onBeforeUpdate hands onUpdateSuccess.
+ *
+ * `previousDevices` is the pre-write snapshot of every matched device, for
+ * the site and identity maintenance. `wasMonitorBackedByDeviceId` is only
+ * present on a write that carries `monitoringMethod`, and records which of
+ * those devices were monitor-backed BEFORE the write. By the time
+ * onUpdateSuccess runs only the NEW method is on the row, and the payload
+ * alone cannot tell a real Monitor -> Probe transition from the Settings form
+ * re-sending "Probe" on a Probe device — which it does on every save, and
+ * which used to wipe the stamp that device's Network Device monitor had put
+ * there.
+ */
+interface DeviceUpdateCarryForward {
+  previousDevices: Array<Model>;
+  wasMonitorBackedByDeviceId?: Record<string, boolean>;
 }
 
 /*
@@ -687,6 +814,14 @@ export class Service extends DatabaseService<Model> {
    * first, then deletes their automatic monitors through MonitorService so
    * Monitor delete permissions, workspace cleanup, workflows, audit,
    * realtime, and billing hooks all run before the devices are removed.
+   *
+   * POLICY-OWNED MONITORS ARE HANDLED SEPARATELY, and deliberately so. A
+   * monitor a Network Alert Policy provisioned is system-managed — the API
+   * can neither set nor clear its `networkAlertPolicyId` — so nobody chose
+   * it individually and nobody should need monitor-delete permission on it
+   * individually to remove the device it describes. They are excluded from
+   * the caller-authorized preflight below and removed as root by the engine,
+   * once every device in the request has cleared that preflight.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
@@ -739,6 +874,13 @@ export class Service extends DatabaseService<Model> {
       const automaticMonitorQuery: Query<Monitor> = {
         projectId: device.projectId,
         autoProvisionedNetworkDeviceId: device.id,
+        /*
+         * Rule-provisioned and hand-made monitors only. A policy's monitors
+         * go through the engine as root (see the hook comment), so requiring
+         * the caller's permission on them here would refuse a device delete
+         * over rows the caller never chose to own.
+         */
+        networkAlertPolicyId: QueryHelper.isNull(),
       };
       const monitorDeleteProps: DatabaseCommonInteractionProps = {
         ...deleteBy.props,
@@ -780,6 +922,37 @@ export class Service extends DatabaseService<Model> {
         automaticMonitorQuery,
         monitorDeleteProps,
         monitorCount,
+      });
+    }
+
+    /*
+     * Every device in the request has now proved the caller may delete its
+     * ordinary automatic monitors, so nothing after this point can throw for
+     * an authorization reason. That is the moment to remove the policy-owned
+     * monitors: doing it earlier would let a later device's failed preflight
+     * abort the request after a policy's monitors — and their incident
+     * history — were already gone from devices that then survived.
+     */
+    const devicesByProjectId: Map<string, Array<ObjectID>> = new Map<
+      string,
+      Array<ObjectID>
+    >();
+
+    for (const device of devices) {
+      if (!device.id || !device.projectId) {
+        continue;
+      }
+
+      const key: string = device.projectId.toString();
+      const deviceIds: Array<ObjectID> = devicesByProjectId.get(key) || [];
+      deviceIds.push(device.id);
+      devicesByProjectId.set(key, deviceIds);
+    }
+
+    for (const [projectIdString, deviceIds] of devicesByProjectId) {
+      await NetworkAlertPolicyEngineService.deletePolicyMonitorsForDevices({
+        projectId: new ObjectID(projectIdString),
+        deviceIds: deviceIds,
       });
     }
 
@@ -914,6 +1087,136 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The FK behind `probeId` only requires the Probe row to exist. Probe ids
+   * reach the server from the browser — the device create form, the settings
+   * page and the bulk "Set probe" action all post one — so without this
+   * check a device can be pointed at another project's probe, and that probe
+   * then claims it on its next poll: it reads the device's hostname and its
+   * SNMP credentials, and reports status back into this project. That is a
+   * cross-tenant read of both configuration and network position.
+   *
+   * A GLOBAL probe has no project and is attachable anywhere, so this
+   * delegates to ProbeService rather than comparing projectIds — the same
+   * predicate that decides which probes a monitor may use.
+   *
+   * `claimDevicesForPolling` re-checks the pairing in SQL as a backstop, for
+   * rows written before this guard existed. Both halves are load-bearing:
+   * this one gives the operator an error at the point of the mistake, the
+   * other one makes a stale row unpollable rather than merely unwritable.
+   */
+  @CaptureSpan()
+  private async assertProbeIsAttachableToProject(data: {
+    probeId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const isAttachable: boolean = await ProbeService.isProbeAttachableToProject(
+      {
+        probeId: data.probeId,
+        projectId: data.projectId,
+      },
+    );
+
+    if (!isAttachable) {
+      throw new BadDataException(
+        "Probe not found or it does not belong to this project.",
+      );
+    }
+  }
+
+  /*
+   * Same hole as the probe, on the other half of the poll: a credential
+   * profile is read LIVE at poll time
+   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a device pointed
+   * at another project's profile would be walked with that project's
+   * community string or v3 credentials — put on the wire, inside this
+   * project's network, by this project's probe.
+   *
+   * The resolver drops a mismatched reference as a backstop and pings the
+   * device instead. This is the half that stops the reference being written
+   * at all, and it is the half that tells the operator why.
+   */
+  @CaptureSpan()
+  private async assertSnmpCredentialProfileBelongsToProject(data: {
+    snmpCredentialProfileId: ObjectID;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      return;
+    }
+
+    const profile: NetworkSnmpCredentialProfile | null =
+      await NetworkSnmpCredentialProfileService.findOneById({
+        id: data.snmpCredentialProfileId,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!profile) {
+      throw new BadDataException("SNMP Credential Profile not found.");
+    }
+
+    if (
+      profile.projectId &&
+      profile.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        "SNMP Credential Profile must belong to the same project.",
+      );
+    }
+  }
+
+  /*
+   * The site's default probe, resolved for a device that is landing in that
+   * site without one of its own — this site's `probeId`, or the nearest
+   * ancestor that has one.
+   *
+   * Returns null rather than throwing when the inherited probe is not
+   * attachable to the device's project. A site row written before the
+   * tenancy guards existed must not be able to fail an unrelated device
+   * write; the honest outcome is that the device is created with NO probe
+   * (it reads Pending, and the operator picks one) rather than silently
+   * copying another project's probe onto it.
+   */
+  @CaptureSpan()
+  private async resolveInheritedSiteProbeId(data: {
+    siteId: ObjectID;
+    projectIds: Array<ObjectID>;
+  }): Promise<ObjectID | null> {
+    const inheritedProbeId: ObjectID | null =
+      await NetworkSiteService.resolveDefaultProbeIdForSite(data.siteId);
+
+    if (!inheritedProbeId) {
+      return null;
+    }
+
+    for (const projectId of data.projectIds) {
+      const isAttachable: boolean =
+        await ProbeService.isProbeAttachableToProject({
+          probeId: inheritedProbeId,
+          projectId: projectId,
+        });
+
+      if (!isAttachable) {
+        logger.error(
+          `Network site ${data.siteId.toString()} names default probe ${inheritedProbeId.toString()}, which is not attachable to project ${projectId.toString()}. Not inheriting it; the device is left without a probe.`,
+        );
+        return null;
+      }
+    }
+
+    return inheritedProbeId;
+  }
+
+  /*
    * onBeforeUpdate runs before DatabaseService permission-checks the query,
    * so reading the raw client query as root would hand the hook rows from
    * other projects. Re-apply the caller's tenant here.
@@ -952,6 +1255,42 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * DatabaseService stamps the tenant column AFTER this hook runs, so a
+     * device created from the dashboard reaches here with `projectId` still
+     * unset and only `props.tenantId` to go on. The guards below are the
+     * tenancy boundary of polling, so they must not be skipped for the one
+     * write shape every UI create takes.
+     */
+    const createProjectId: ObjectID | undefined =
+      createBy.data.projectId ||
+      createBy.data.project?.id ||
+      createBy.props.tenantId ||
+      undefined;
+
+    const createProbeId: ObjectID | null = readProbeIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (createProbeId) {
+      await this.assertProbeIsAttachableToProject({
+        probeId: createProbeId,
+        projectId: createProjectId,
+      });
+    }
+
+    const createSnmpCredentialProfileId: ObjectID | null =
+      readSnmpCredentialProfileIdFromData(
+        createBy.data as unknown as Record<string, unknown>,
+      );
+
+    if (createSnmpCredentialProfileId) {
+      await this.assertSnmpCredentialProfileBelongsToProject({
+        snmpCredentialProfileId: createSnmpCredentialProfileId,
+        projectId: createProjectId,
+      });
+    }
+
     const createOidTemplateId: ObjectID | null = readOidTemplateIdFromData(
       createBy.data as unknown as Record<string, unknown>,
     );
@@ -976,37 +1315,76 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const monitorId: ObjectID | null = readMonitorIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * The monitor is NOT required. Discovery import is why: a subnet sweep
+     * finds ping-only hosts in bulk and there is no monitor to bind them to
+     * yet. Such a device is still worth recording — it belongs to a site,
+     * carries labels, and appears on the topology map — and its status reads
+     * Pending, tagged "No monitor", which is exactly true until somebody
+     * points a monitor at it.
+     *
+     * But any binding that IS supplied is tenant-checked, whatever the
+     * monitoring method. This guard used to sit inside the monitor-backed
+     * branch below, which left a Probe-method create (or one with the method
+     * omitted) free to persist another project's monitor FK: the FK only
+     * proves the Monitor row exists, a Probe device may legitimately carry a
+     * monitorId (NetworkSiteService.onMonitorStatusChanged stamps from it),
+     * and a nested select through the relation reads that monitor's
+     * configuration. The update path runs the same check.
+     */
+    if (monitorId) {
+      await this.assertMonitorBelongsToProject({
+        monitorId: monitorId,
+        projectId: createBy.data.projectId,
+      });
+    }
+
     if (
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
         createBy.data.monitoringMethod,
       )
     ) {
-      const monitorId: ObjectID | null = readMonitorIdFromData(
-        createBy.data as unknown as Record<string, unknown>,
-      );
-
       /*
-       * The monitor is NOT required here, though the create form asks for
-       * one. Discovery import is why: a subnet sweep finds ping-only hosts
-       * in bulk and there is no monitor to bind them to yet. Such a device
-       * is still worth recording — it belongs to a site, carries labels, and
-       * appears on the topology map — and its status reads "pending", which
-       * is exactly true until somebody points a monitor at it.
-       */
-      if (monitorId) {
-        await this.assertMonitorBelongsToProject({
-          monitorId: monitorId,
-          projectId: createBy.data.projectId,
-        });
-      }
-
-      /*
-       * Not a preference: a monitor-backed device has no probe and no
-       * credentials, so leaving polling on would queue a walk that can only
-       * ever fail. claimDevicesForPolling refuses these rows too — this is
-       * the half that keeps the column honest for anything reading it.
+       * Not a preference: nothing polls a monitor-backed device — its bound
+       * monitor's status is its status — so leaving polling on would queue
+       * a poll whose verdict nothing may read. claimDevicesForPolling
+       * refuses these rows too — this is the half that keeps the column
+       * honest for anything reading it.
        */
       createBy.data.isPollingEnabled = false;
+    } else if (siteId && !createProbeId) {
+      /*
+       * Site default probe, COPIED AT WRITE.
+       *
+       * This is what lets an operator register a device with a name and an
+       * address and nothing else: the site (or the nearest ancestor site
+       * that names one) supplies the probe, and the device polls from its
+       * first cycle instead of sitting Pending until somebody notices the
+       * empty field.
+       *
+       * Copied, not read through, and that distinction is the whole design.
+       * Nothing re-reads the site later, so editing a site's default probe
+       * decides where FUTURE devices poll from and never re-points a fleet
+       * that is already polling — a read-through default would turn one
+       * dropdown change into a silent migration of every device in the
+       * subtree onto a probe that may not even reach them.
+       *
+       * A device that names its own probe keeps it: `createProbeId` above is
+       * the caller's explicit choice and always wins.
+       */
+      const inheritedProbeId: ObjectID | null =
+        await this.resolveInheritedSiteProbeId({
+          siteId: siteId,
+          projectIds: createProjectId ? [createProjectId] : [],
+        });
+
+      if (inheritedProbeId) {
+        createBy.data.probeId = inheritedProbeId;
+      }
     }
 
     return { createBy, carryForward: null };
@@ -1086,8 +1464,8 @@ export class Service extends DatabaseService<Model> {
           /*
            * A device created monitor-backed adopts its monitor's CURRENT
            * status right away rather than waiting for that monitor's next
-           * status CHANGE. Skipped for SNMP devices, which are judged by
-           * their own walk.
+           * status CHANGE. Skipped for Probe devices, which are judged by
+           * their own poll.
            */
           if (
             NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
@@ -1099,6 +1477,21 @@ export class Service extends DatabaseService<Model> {
               clearWhenNotMonitorBacked: false,
             });
           }
+        })
+        .then(async () => {
+          /*
+           * LAST, and that ordering is the whole point. A Network Alert
+           * Policy can be scoped by site, by role and by LABEL, and the
+           * label and site links above are what put those on a newly
+           * imported device — a discovery import arrives with neither. Asking
+           * the policy engine before they land would reconcile the device
+           * against a scope it does not match yet, provision nothing, and
+           * leave the device uncovered until the five-minute sweep.
+           */
+          await NetworkAlertPolicyEngineService.reconcileDevice({
+            projectId: createdItem.projectId!,
+            deviceId: createdItem.id!,
+          });
         })
         .catch((error: Error) => {
           logger.error(
@@ -1116,9 +1509,13 @@ export class Service extends DatabaseService<Model> {
   /*
    * Capture the previous state of every matched device when an update
    * touches siteId (so onUpdateSuccess can refresh the OLD site's rollup as
-   * well as the new one) or touches one of the columns site assignment rules
+   * well as the new one), touches one of the columns site assignment rules
    * match on (so onUpdateSuccess can tell a real rename from the identical
-   * sysName the SNMP walk rewrites on every poll).
+   * sysName the SNMP walk rewrites on every poll), or touches
+   * monitoringMethod (so onUpdateSuccess can tell a real Monitor -> Probe
+   * transition from a form re-sending the method the device already has).
+   * The same read feeds the tenancy guards on the site, monitor and OID
+   * template references.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -1128,15 +1525,17 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * Switching a device to monitor-backed turns polling off with it. The
-     * two are one decision, not two: a device with no probe and no
-     * credentials cannot be walked, so leaving the flag on would queue a
-     * walk per interval that can only fail and then paint the device down.
+     * two are one decision, not two: a monitor-backed device's health is
+     * its bound monitor's, so leaving the flag on would queue a poll per
+     * interval whose verdict nothing may read. The way back is the mirror
+     * image — onUpdateSuccess restores polling on a real Monitor -> Probe
+     * transition, per device, once the write has committed.
      */
     const isMethodWrite: boolean = dataKeys.includes("monitoringMethod");
     /*
      * An update payload is a QueryDeepPartialEntity, so a column can hold a
      * raw value OR a SQL-expression function. Only a plain string is a
-     * method we can reason about; anything else falls through to the SNMP
+     * method we can reason about; anything else falls through to the Probe
      * default, which changes nothing.
      */
     const writtenMethod: unknown = (
@@ -1148,6 +1547,16 @@ export class Service extends DatabaseService<Model> {
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(writtenMethod);
 
     if (becomesMonitorBacked) {
+      /*
+       * Only the polling flag is forced onto the payload, deliberately. The
+       * poll residue the device carries over from its probe-polled days has to go
+       * too, but the column-permission check runs on this payload AFTER the
+       * hook, and those columns are updatable by fewer roles than
+       * monitoringMethod is — so adding them here would turn a project
+       * member's legitimate switch into a permission failure.
+       * onUpdateSuccess clears them as root once the transition has
+       * committed; see pollResidueReset.
+       */
       updateBy.data.isPollingEnabled = false;
     }
 
@@ -1159,37 +1568,36 @@ export class Service extends DatabaseService<Model> {
      * nothing ever polled it. Only checked when the payload actually asks
      * for it, so the ordinary update path costs no extra query.
      */
-    if (
+    const isPollingTurnOn: boolean =
       !becomesMonitorBacked &&
       dataKeys.includes("isPollingEnabled") &&
-      updateBy.data.isPollingEnabled === true
-    ) {
-      const targets: Array<Model> = await this.findBy({
-        query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-        select: {
-          _id: true,
-          monitoringMethod: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      updateBy.data.isPollingEnabled === true;
 
-      const isTargetMonitorBacked: boolean = targets.some((target: Model) => {
-        return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-          target.monitoringMethod,
-        );
-      });
+    /*
+     * Read — and, for conflicting spellings, refused — before the early
+     * return below, so a payload that points `monitorId` and `monitor` at
+     * different rows is rejected on every write shape rather than only on
+     * the ones that happen to need the snapshot. Null means the write
+     * unbinds the monitor, or does not mention it; neither needs a lookup.
+     */
+    const newMonitorId: ObjectID | null = readMonitorIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
-      // Unless the same write is moving it back to SNMP, which is allowed.
-      if (isTargetMonitorBacked && !(isMethodWrite && !becomesMonitorBacked)) {
-        throw new BadDataException(
-          "This device is monitor-backed, so there is nothing to poll — it has no probe and no SNMP credentials. Switch its monitoring method to SNMP first.",
-        );
-      }
-    }
+    /*
+     * Read here, above the early return, for the same reason the monitor id
+     * is: a payload that points `probeId` and `probe` (or the two credential
+     * profile spellings) at different rows is a contradiction, and it is
+     * refused on every write shape rather than only on the ones that happen
+     * to need the snapshot below.
+     */
+    const newProbeId: ObjectID | null = readProbeIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+    const newSnmpCredentialProfileId: ObjectID | null =
+      readSnmpCredentialProfileIdFromData(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
 
     const isSiteChange: boolean = isSiteWrite(dataKeys);
     const isIdentityChange: boolean = SITE_RULE_IDENTITY_COLUMNS.some(
@@ -1218,12 +1626,51 @@ export class Service extends DatabaseService<Model> {
       OID_TEMPLATE_KEYS,
     );
     const isDeviceOidsChange: boolean = updateBy.data.snmpOids !== undefined;
+    /*
+     * The polling tenancy pair, named in the early return for exactly the
+     * reason the OID template is: assigning a probe or a credential profile
+     * changes neither site nor identity, so a guard placed below the return
+     * would be dead code on the only writes it exists for — the settings
+     * page's Monitoring section and the device-list bulk actions, which post
+     * precisely these columns and nothing else.
+     */
+    const isProbeChange: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      PROBE_KEYS,
+    );
+    const isSnmpCredentialProfileChange: boolean = RelationIdUtil.isWritten(
+      dataKeys,
+      PROFILE_KEYS,
+    );
+
+    /*
+     * One snapshot read serves every guard and carry-forward below, and the
+     * SNMP walk's per-poll column writes — the hot path through here — need
+     * none of them. Binding a monitor is on the list for the same reason the
+     * OID template is: it is exactly the write shape that changes neither
+     * site nor identity, so a tenancy guard placed below a narrower return
+     * would never run on the only write it exists for.
+     */
+    /*
+     * The alert-policy axes ride the same return, and for the same reason
+     * the OID template does: re-labelling a device or moving it to a role
+     * changes neither its site nor its identity, so a snapshot taken below a
+     * narrower return would be absent on exactly the writes onUpdateSuccess
+     * needs it for. See isAlertPolicyRelevantWrite.
+     */
+    const isAlertPolicyChange: boolean = isAlertPolicyRelevantWrite(dataKeys);
 
     if (
+      !isMethodWrite &&
+      !isPollingTurnOn &&
+      !newMonitorId &&
       !isSiteChange &&
       !isIdentityChange &&
       !isOidTemplateChange &&
-      !isDeviceOidsChange
+      !isDeviceOidsChange &&
+      !isProbeChange &&
+      !isSnmpCredentialProfileChange &&
+      !isAlertPolicyChange
     ) {
       return { updateBy, carryForward: null };
     }
@@ -1237,9 +1684,18 @@ export class Service extends DatabaseService<Model> {
         hostname: true,
         name: true,
         sysName: true,
+        /*
+         * Whether the device already has a probe. The site-default
+         * inheritance below must never overwrite one, and this column is
+         * the only way to tell "no probe yet" from "a probe the operator
+         * chose" once the write has committed.
+         */
+        probeId: true,
         // Decide which OID budget applies below, and whether a link would truncate.
         oidTemplateId: true,
         snmpOids: true,
+        // The polling guard and the method transition both need the OLD method.
+        monitoringMethod: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -1247,6 +1703,47 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+
+    if (isPollingTurnOn) {
+      const isTargetMonitorBacked: boolean = previousDevices.some(
+        (target: Model) => {
+          return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            target.monitoringMethod,
+          );
+        },
+      );
+
+      // Unless the same write is moving it back to Probe, which is allowed.
+      if (isTargetMonitorBacked && !(isMethodWrite && !becomesMonitorBacked)) {
+        throw new BadDataException(
+          "This device is monitor-backed, so there is nothing to poll — its bound monitor's status is its status. Switch its monitoring method to Probe first.",
+        );
+      }
+    }
+
+    /*
+     * Which of the matched devices were monitor-backed BEFORE this write.
+     * Only recorded on a method write, because only a method write can be a
+     * transition; see DeviceUpdateCarryForward for what onUpdateSuccess does
+     * with it and why the payload alone is not enough.
+     */
+    let wasMonitorBackedByDeviceId: Record<string, boolean> | undefined =
+      undefined;
+
+    if (isMethodWrite) {
+      wasMonitorBackedByDeviceId = {};
+
+      for (const previousDevice of previousDevices) {
+        if (!previousDevice.id) {
+          continue;
+        }
+
+        wasMonitorBackedByDeviceId[previousDevice.id.toString()] =
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            previousDevice.monitoringMethod,
+          );
+      }
+    }
 
     const newSiteId: ObjectID | null = readSiteIdFromData(
       updateBy.data as unknown as Record<string, unknown>,
@@ -1266,6 +1763,34 @@ export class Service extends DatabaseService<Model> {
 
         await this.assertSiteBelongsToProject({
           siteId: newSiteId,
+          projectId: previousDevice.projectId,
+        });
+      }
+    }
+
+    /*
+     * The monitor guard on the UPDATE path. Until this existed only
+     * onBeforeCreate checked the binding, so a device could be created
+     * clean and then re-pointed at another project's monitor with a plain
+     * update — and read that monitor's status through the device, since
+     * refreshStampedMonitorStatus stamps whatever `monitorId` names. One
+     * check per distinct project in the matched set, like the site guard
+     * above. An unbind (null) has nothing to check.
+     */
+    if (newMonitorId) {
+      const checkedMonitorProjectIds: Set<string> = new Set();
+
+      for (const previousDevice of previousDevices) {
+        if (
+          !previousDevice.projectId ||
+          checkedMonitorProjectIds.has(previousDevice.projectId.toString())
+        ) {
+          continue;
+        }
+        checkedMonitorProjectIds.add(previousDevice.projectId.toString());
+
+        await this.assertMonitorBelongsToProject({
+          monitorId: newMonitorId,
           projectId: previousDevice.projectId,
         });
       }
@@ -1298,6 +1823,56 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+
+    /*
+     * The polling tenancy guards on the UPDATE path. A device created clean
+     * and then re-pointed with a plain update is the same breach as one
+     * created that way, so both hooks check both references. One check per
+     * distinct project in the matched set, like the guards above — a single
+     * updateBy can span projects when a root caller issues it, and the
+     * payload names ONE probe and ONE profile for all of them.
+     *
+     * A clear (null) points at nothing and has nothing to check.
+     */
+    const distinctProjectIds: Array<ObjectID> = [];
+    const seenProjectIds: Set<string> = new Set();
+
+    for (const previousDevice of previousDevices) {
+      if (
+        !previousDevice.projectId ||
+        seenProjectIds.has(previousDevice.projectId.toString())
+      ) {
+        continue;
+      }
+      seenProjectIds.add(previousDevice.projectId.toString());
+      distinctProjectIds.push(previousDevice.projectId);
+    }
+
+    for (const projectId of distinctProjectIds) {
+      if (newProbeId) {
+        await this.assertProbeIsAttachableToProject({
+          probeId: newProbeId,
+          projectId: projectId,
+        });
+      }
+
+      if (newSnmpCredentialProfileId) {
+        await this.assertSnmpCredentialProfileBelongsToProject({
+          snmpCredentialProfileId: newSnmpCredentialProfileId,
+          projectId: projectId,
+        });
+      }
+    }
+
+    await this.applySiteDefaultProbeOnMove({
+      updateBy: updateBy,
+      previousDevices: previousDevices,
+      distinctProjectIds: distinctProjectIds,
+      newSiteId: newSiteId,
+      isProbeChange: isProbeChange,
+      isMethodWrite: isMethodWrite,
+      becomesMonitorBacked: becomesMonitorBacked,
+    });
 
     /*
      * How many OIDs a device may carry of its own.
@@ -1351,17 +1926,96 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const carryForward: DeviceUpdateCarryForward = {
+      previousDevices: previousDevices,
+    };
+
+    if (wasMonitorBackedByDeviceId) {
+      carryForward.wasMonitorBackedByDeviceId = wasMonitorBackedByDeviceId;
+    }
+
     return {
       updateBy,
-      carryForward: {
-        previousDevices: previousDevices,
-      },
+      carryForward: carryForward,
     };
   }
 
   /*
-   * Re-derives one device's stamped `currentMonitorStatusId` from its
-   * binding, and refreshes its site chain if the stamp moved.
+   * Site default probe on a MOVE: a device with no probe of its own that is
+   * moved into a site inherits that site's default (or the nearest
+   * ancestor's), copied onto this same write.
+   *
+   * The create path's twin, and the same copy-at-write rule: this runs only
+   * because the payload moves the device, never because a site's default
+   * changed. Editing a site's probe re-points nothing — the device-list bulk
+   * "Set probe" action is the deliberate way to move a fleet.
+   *
+   * Three things stop it: the caller writing a probe of its own (their
+   * choice wins, including an explicit clear), the device already having one
+   * (a probe an operator chose must survive being filed under a site), and
+   * the device being monitor-backed after this write (nothing polls it, so a
+   * probe would be a lie on the row).
+   *
+   * "Already having one" is judged across the WHOLE matched set, because a
+   * single payload writes one probeId to every row it matches: if any
+   * matched device has a probe, inheriting would re-point it, so the
+   * inheritance is skipped for the batch rather than applied to some of it.
+   * The bulk path a user actually takes — "move these devices to this site"
+   * — is overwhelmingly devices in the same state.
+   */
+  private async applySiteDefaultProbeOnMove(data: {
+    updateBy: UpdateBy<Model>;
+    previousDevices: Array<Model>;
+    distinctProjectIds: Array<ObjectID>;
+    newSiteId: ObjectID | null;
+    isProbeChange: boolean;
+    isMethodWrite: boolean;
+    becomesMonitorBacked: boolean;
+  }): Promise<void> {
+    if (
+      !data.newSiteId ||
+      data.isProbeChange ||
+      data.previousDevices.length === 0
+    ) {
+      return;
+    }
+
+    for (const previousDevice of data.previousDevices) {
+      if (previousDevice.probeId) {
+        return;
+      }
+
+      /*
+       * The method AFTER this write: what the payload sets when it sets one,
+       * otherwise what the row already says. A device that stays (or
+       * becomes) monitor-backed is not polled by a probe at all.
+       */
+      const isMonitorBackedAfterWrite: boolean = data.isMethodWrite
+        ? data.becomesMonitorBacked
+        : NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            previousDevice.monitoringMethod,
+          );
+
+      if (isMonitorBackedAfterWrite) {
+        return;
+      }
+    }
+
+    const inheritedProbeId: ObjectID | null =
+      await this.resolveInheritedSiteProbeId({
+        siteId: data.newSiteId,
+        projectIds: data.distinctProjectIds,
+      });
+
+    if (inheritedProbeId) {
+      data.updateBy.data.probeId = inheritedProbeId;
+    }
+  }
+
+  /*
+   * Re-derives one device's stamped `currentMonitorStatusId` — and, for a
+   * monitor-backed device, its `isReachable` — from its binding, and
+   * refreshes its site chain if either moved.
    *
    * The stamp is what every monitor-backed surface reads — the device list
    * pill, the site rollup, the topology node — and until this existed the
@@ -1373,14 +2027,33 @@ export class Service extends DatabaseService<Model> {
    * OneUptime/oneuptime#3392. Binding is itself an event that decides the
    * device's status, so it stamps here.
    *
+   * `isReachable` rides along because the device list's summary tiles and
+   * its Status facet count and filter in SQL, over that column alone — they
+   * cannot evaluate the stamp's ladder per row — so a monitor-backed device
+   * whose stamp said Operational still counted as "Pending" there. The
+   * value written is `!MonitorStatus.isOfflineState`: the OFFLINE end of the
+   * ladder, not the operational one, because that is exactly what
+   * DeviceReachabilityUtil reads for the pill (a "Degraded" row is neither
+   * operational nor offline, and reads as reachable on both). NULL when
+   * nothing is bound or the monitor has no status, which is the honest
+   * "Pending" the util renders for `undefined`. For a Probe device the poll
+   * owns `isReachable`, and this method never touches it.
+   *
    * `clearWhenNotMonitorBacked` is for the write that moves a device OFF
    * monitor-backed: the ping monitor's verdict must not outlive the binding
    * (DeviceHealthStateUtil lets a stamped status beat reachability, so a
    * stale one would poison the site rollup of a device that is now walked).
    * It is deliberately NOT set when a write only touches the monitor
-   * binding of an SNMP device, because an SNMP device's stamp comes from
-   * the Network Device monitor that watches it, and that binding lives in
-   * the monitor's step data rather than in this column.
+   * binding of a Probe device, nor when a form re-sends "Probe" on a device
+   * that already is one, because a Probe device's stamp comes from the
+   * Network Device monitor that watches it, and that binding lives in the
+   * monitor's step data rather than in this column. onBeforeUpdate records
+   * the old method so onUpdateSuccess can tell the two apart.
+   *
+   * Idempotent: everything is re-derived from the binding, nothing from what
+   * a previous call wrote, and nothing is written when the row already
+   * agrees — which is what makes it safe from every save, from monitor
+   * deletion, and from a backfill running twice concurrently.
    */
   @CaptureSpan()
   public async refreshStampedMonitorStatus(data: {
@@ -1396,6 +2069,10 @@ export class Service extends DatabaseService<Model> {
         monitoringMethod: true,
         monitorId: true,
         currentMonitorStatusId: true,
+        isReachable: true,
+        // Read only to decide whether the clear below has anything to clear.
+        isSnmpReachable: true,
+        lastSnmpSeenAt: true,
       },
       props: {
         isRoot: true,
@@ -1411,13 +2088,64 @@ export class Service extends DatabaseService<Model> {
         device.monitoringMethod,
       );
 
-    if (!isMonitorBacked && !data.clearWhenNotMonitorBacked) {
+    if (!isMonitorBacked) {
+      if (!data.clearWhenNotMonitorBacked) {
+        return;
+      }
+
+      /*
+       * The device has just left monitor-backed. While it was monitor-backed
+       * its `isReachable` could only ever be the bound monitor's mirror: the
+       * poll's value was NULLed on the way in (pollResidueReset), and
+       * NetworkInventoryUtil never writes it for a monitor-backed row. So the
+       * mirror goes with the stamp — otherwise a device switched back to
+       * Probe would read "Down — the last poll could not reach it" (or Up)
+       * on every surface, from the verdict of a monitor that no longer
+       * governs it, until a poll happens to land. NULL is the honest answer:
+       * Pending until the first poll decides.
+       *
+       * The SNMP pair is cleared with them for the same reason: nothing
+       * walked the device while it was monitor-backed, so anything on those
+       * two columns predates the binding, and a device switched back to
+       * Probe starts clean — its first poll decides whether SNMP answers.
+       *
+       * Nothing to clear means nothing to write — a null-over-null write
+       * would still recompute the site chain for nothing.
+       */
+      const hasStamp: boolean = Boolean(device.currentMonitorStatusId);
+      const hasMirroredReachability: boolean =
+        typeof device.isReachable === "boolean";
+      const hasSnmpResidue: boolean =
+        typeof device.isSnmpReachable === "boolean" ||
+        (device.lastSnmpSeenAt !== null && device.lastSnmpSeenAt !== undefined);
+
+      if (!hasStamp && !hasMirroredReachability && !hasSnmpResidue) {
+        return;
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: data.deviceId,
+        data: {
+          currentMonitorStatusId: null,
+          isReachable: null,
+          isSnmpReachable: null,
+          lastSnmpSeenAt: null,
+        },
+      });
+
+      if (device.siteId) {
+        await NetworkSiteService.recomputeRollupForSiteAndAncestors(
+          device.siteId,
+        );
+      }
+
       return;
     }
 
     let monitorStatusId: ObjectID | null = null;
+    let nextReachable: boolean | null = null;
 
-    if (isMonitorBacked && device.monitorId) {
+    if (device.monitorId) {
       /*
        * Scoped to the device's project on the read as well as on the write
        * path in onBeforeCreate/onBeforeUpdate: a monitor from another
@@ -1431,6 +2159,9 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           currentMonitorStatusId: true,
+          currentMonitorStatus: {
+            isOfflineState: true,
+          },
         },
         props: {
           isRoot: true,
@@ -1438,20 +2169,34 @@ export class Service extends DatabaseService<Model> {
       });
 
       monitorStatusId = monitor?.currentMonitorStatusId || null;
+
+      if (monitorStatusId) {
+        nextReachable = monitor?.currentMonitorStatus?.isOfflineState !== true;
+      }
     }
 
     const currentStampId: string | null =
       device.currentMonitorStatusId?.toString() || null;
     const nextStampId: string | null = monitorStatusId?.toString() || null;
 
-    if (currentStampId === nextStampId) {
+    /*
+     * A NULL column reads back as undefined on the model; both mean "no
+     * verdict", and comparing them as one keeps a device that already
+     * agrees from being rewritten on every save.
+     */
+    const currentReachable: boolean | null =
+      typeof device.isReachable === "boolean" ? device.isReachable : null;
+
+    if (currentStampId === nextStampId && currentReachable === nextReachable) {
       return;
     }
 
+    // One write, so the two columns can never be seen disagreeing.
     await this.updateColumnsByIdWithoutHooks({
       id: data.deviceId,
       data: {
         currentMonitorStatusId: monitorStatusId,
+        isReachable: nextReachable,
       },
     });
 
@@ -1485,10 +2230,116 @@ export class Service extends DatabaseService<Model> {
       );
 
       if (isMethodWrite || isMonitorWrite) {
+        // Same parse as onBeforeUpdate: only a plain string is a method.
+        const writtenMethod: unknown = (
+          onUpdate.updateBy.data as unknown as Record<string, unknown>
+        )["monitoringMethod"];
+        const becomesMonitorBacked: boolean =
+          isMethodWrite &&
+          typeof writtenMethod === "string" &&
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(writtenMethod);
+
+        /*
+         * Recorded by onBeforeUpdate on every method write. Absent on a
+         * binding-only write, where nothing can have transitioned.
+         */
+        const wasMonitorBackedByDeviceId: Record<string, boolean> =
+          (onUpdate.carryForward as DeviceUpdateCarryForward | null)
+            ?.wasMonitorBackedByDeviceId || {};
+
         for (const deviceId of updatedItemIds) {
+          const wasMonitorBacked: boolean | undefined =
+            wasMonitorBackedByDeviceId[deviceId.toString()];
+
+          /*
+           * Probe -> Monitor: the probe's last findings are now residue on a
+           * device nothing polls, and they would keep feeding the legacy
+           * staleness rule and the "degraded" query. Cleared as root here
+           * rather than on the caller's payload (see onBeforeUpdate for the
+           * permission reason), and BEFORE the re-stamp, so a device bound
+           * in the same write ends up with its monitor's verdict rather
+           * than the walk's. A device the snapshot did not record is
+           * cleared too: the write is idempotent, and "unknown" must not
+           * mean "keep the residue".
+           */
+          if (becomesMonitorBacked && wasMonitorBacked !== true) {
+            try {
+              await this.updateColumnsByIdWithoutHooks({
+                id: deviceId,
+                data: pollResidueReset(),
+              });
+            } catch (error) {
+              /*
+               * Bookkeeping, and separable from the re-stamp: the monitor's
+               * verdict below still lands, and a set isReachable keeps the
+               * legacy freshness branch out of play even with the dates
+               * left behind.
+               */
+              logger.error(
+                `Error in NetworkDeviceService.onUpdateSuccess poll residue reset for device ${deviceId.toString()}: ${error}`,
+              );
+            }
+          }
+
+          /*
+           * Monitor -> Probe: the mirror image. Arriving at monitor-backed
+           * turned polling off (onBeforeUpdate), so leaving it turns polling
+           * back on — otherwise the device would sit on "Pending" under a
+           * method whose whole point is that the probe polls it. Decided
+           * per device from the snapshot, never from the payload: one bulk
+           * write of "Probe" also matches devices that already were Probe,
+           * and one of those may have had polling turned off on purpose.
+           * A root write, like the residue reset above, because the two
+           * columns are updatable by fewer roles than the method is.
+           * `nextPollAt = now` makes the device due at once rather than at
+           * whatever moment its last claim — months ago, or never — left
+           * behind. The caller's own word wins when it says the opposite:
+           * a payload writing `isPollingEnabled: false` beside the method
+           * wants a Probe device that is not polled yet. No probe is
+           * required here — the forms require one, the API and Terraform
+           * may assign it in a later write — and a Probe device without one
+           * is simply not claimed until it has one.
+           */
+          const isMonitorToProbeTransition: boolean =
+            wasMonitorBacked === true && !becomesMonitorBacked;
+          const payloadTurnsPollingOff: boolean =
+            dataKeys.includes("isPollingEnabled") &&
+            (onUpdate.updateBy.data as unknown as Record<string, unknown>)[
+              "isPollingEnabled"
+            ] === false;
+
+          if (isMonitorToProbeTransition && !payloadTurnsPollingOff) {
+            try {
+              await this.updateColumnsByIdWithoutHooks({
+                id: deviceId,
+                data: {
+                  isPollingEnabled: true,
+                  nextPollAt: OneUptimeDate.getCurrentDate(),
+                },
+              });
+            } catch (error) {
+              /*
+               * Bookkeeping, and separable from the re-stamp below: the
+               * stale stamp still goes, and the operator can turn polling
+               * on from Settings if this write was the one that failed.
+               */
+              logger.error(
+                `Error in NetworkDeviceService.onUpdateSuccess polling restore for device ${deviceId.toString()}: ${error}`,
+              );
+            }
+          }
+
+          /*
+           * Only a device that WAS monitor-backed and now is not may have
+           * its stamp cleared. The Settings form re-sends monitoringMethod
+           * on every save, so "the payload says Probe" is not a transition —
+           * treating it as one wiped the stamp a Network Device monitor had
+           * put on every Probe device that was ever saved.
+           */
           await this.refreshStampedMonitorStatus({
             deviceId: deviceId,
-            clearWhenNotMonitorBacked: isMethodWrite,
+            clearWhenNotMonitorBacked:
+              wasMonitorBacked === true && !becomesMonitorBacked,
           });
         }
       }
@@ -1613,7 +2464,101 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    try {
+      await this.reconcileAlertPoliciesAfterUpdate(onUpdate, updatedItemIds);
+    } catch (error) {
+      /*
+       * Isolated from the site maintenance above for the same reason that is
+       * isolated from the status re-stamp: a policy that cannot provision
+       * must not cost the device its site rollup, and the five-minute sweep
+       * recomputes the same difference either way.
+       */
+      logger.error(
+        `Error in NetworkDeviceService.onUpdateSuccess alert policy reconciliation: ${error}`,
+      );
+    }
+
     return onUpdate;
+  }
+
+  /*
+   * Keep the device's policy-provisioned monitors in step with what the
+   * update just changed about it.
+   *
+   * INLINE ONLY FOR A HANDFUL OF DEVICES. Reconciling one device is a few
+   * queries and, at most, one monitor create — worth doing inside the write
+   * so the monitor is there by the operator's next page load. A BULK write is
+   * a different animal: "move 1,200 devices into this site" or "archive the
+   * warehouse" matches thousands of rows, and reconciling thousands of
+   * devices inside the request would turn one statement into an hour of
+   * monitor provisioning with the caller still waiting on it. Past
+   * MAX_INLINE_RECONCILE_DEVICES the write returns and the five-minute sweep
+   * converges the fleet — it computes the same difference from the same
+   * columns, so nothing is lost but latency.
+   *
+   * The project comes from the pre-write snapshot rather than from
+   * props.tenantId, because a root caller (a worker, a data migration) has no
+   * tenant and its update can legitimately span projects.
+   */
+  private async reconcileAlertPoliciesAfterUpdate(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const dataKeys: Array<string> = Object.keys(onUpdate.updateBy.data || {});
+
+    if (!isAlertPolicyRelevantWrite(dataKeys) || updatedItemIds.length === 0) {
+      return;
+    }
+
+    if (updatedItemIds.length > MAX_INLINE_RECONCILE_DEVICES) {
+      logger.debug(
+        `NetworkDeviceService.onUpdateSuccess: ${updatedItemIds.length} devices changed an alert-policy scope column; leaving reconciliation to the NetworkAlertPolicy sweep.`,
+      );
+
+      return;
+    }
+
+    const previousDevices: Array<Model> =
+      (onUpdate.carryForward?.previousDevices as Array<Model>) || [];
+
+    const projectIdByDeviceId: Map<string, ObjectID> = new Map<
+      string,
+      ObjectID
+    >();
+
+    for (const previousDevice of previousDevices) {
+      if (previousDevice.id && previousDevice.projectId) {
+        projectIdByDeviceId.set(
+          previousDevice.id.toString(),
+          previousDevice.projectId,
+        );
+      }
+    }
+
+    for (const deviceId of updatedItemIds) {
+      const projectId: ObjectID | undefined =
+        projectIdByDeviceId.get(deviceId.toString()) ||
+        onUpdate.updateBy.props.tenantId ||
+        undefined;
+
+      if (!projectId) {
+        /*
+         * No snapshot row and no tenant: the update matched a device this
+         * hook cannot attribute to a project, so it cannot be reconciled
+         * safely. The sweep, which starts from the policies, will reach it.
+         */
+        logger.debug(
+          `NetworkDeviceService.onUpdateSuccess: no project known for device ${deviceId.toString()}; leaving its alert-policy monitors to the sweep.`,
+        );
+
+        continue;
+      }
+
+      await NetworkAlertPolicyEngineService.reconcileDevice({
+        projectId: projectId,
+        deviceId: deviceId,
+      });
+    }
   }
 
   /*
@@ -2014,6 +2959,10 @@ export class Service extends DatabaseService<Model> {
    * Suspended projects are skipped for the same reason monitor claiming
    * skips them; archived devices keep polling on purpose ("archived devices
    * keep collecting telemetry").
+   *
+   * The Probe join is a TENANCY backstop rather than a lookup — nothing from
+   * the probe row is selected. See the predicate for why the write-time
+   * guard is not enough on its own.
    */
   @CaptureSpan()
   public async claimDevicesForPolling(data: {
@@ -2028,12 +2977,22 @@ export class Service extends DatabaseService<Model> {
         SELECT nd."_id", nd."pollingIntervalInMinutes"
         FROM "NetworkDevice" nd
         INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
         WHERE nd."probeId" = $1
           AND nd."isPollingEnabled" = true
           AND nd."deletedAt" IS NULL
           AND nd."hostname" IS NOT NULL
-          -- A monitor-backed device has no credentials to walk with. NULL is
-          -- every device created before the column existed: those are SNMP.
+          -- The tenancy backstop. onBeforeCreate/onBeforeUpdate refuse a
+          -- probe that is not attachable to the device's project, but rows
+          -- written before those guards existed are still on disk, and a
+          -- probe that can CLAIM a device reads its hostname and its SNMP
+          -- credentials. A global probe has no project and may poll anyone;
+          -- anything else must match the device's own project or the row is
+          -- simply never handed out. isGlobalProbe is NOT NULL DEFAULT false,
+          -- so there is no third state here to reason about.
+          AND (pr."isGlobalProbe" = true OR pr."projectId" = nd."projectId")
+          -- Nothing polls a monitor-backed device. NULL is every device
+          -- created before the column existed: those are probe-polled.
           AND (nd."monitoringMethod" IS NULL OR nd."monitoringMethod" <> 'Monitor')
           AND nd."nextPollAt" <= $2
           AND p."deletedAt" IS NULL

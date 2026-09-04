@@ -1,13 +1,19 @@
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject } from "../../../Types/JSON";
-import axios, { AxiosResponse } from "axios";
+import HTTPResponseBodyReader, {
+  HTTPResponseBodyBudget,
+} from "../../../Utils/HTTPResponseBodyReader";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import crypto from "crypto";
 import http from "http";
 import https from "https";
 import ivm from "isolated-vm";
-import CaptureSpan from "../Telemetry/CaptureSpan";
+import DataSourceEgressGuard, {
+  EgressLookupFunction,
+} from "../DataSource/EgressGuard";
 import SSRFProtection from "../SSRFProtection";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMRunner {
   /*
@@ -22,37 +28,53 @@ export default class VMRunner {
    */
   private static resolveEffectiveRequestUrl(data: {
     method: string;
-    url: string;
+    url?: string | undefined;
     config?: JSONObject | undefined;
   }): string {
-    const baseUrl: string =
-      typeof data.config?.["baseURL"] === "string"
-        ? (data.config["baseURL"] as string)
-        : "";
+    const baseUrl: unknown = data.config?.["baseURL"];
+    const requestedUrl: unknown =
+      data.method === "request" ? data.config?.["url"] : data.url;
+    const allowAbsoluteUrls: unknown = data.config?.["allowAbsoluteUrls"];
+    const axiosAbsoluteUrlPattern: RegExp = new RegExp(
+      "^([a-z][a-z\\d+\\-.]*:)?//",
+      "i",
+    );
+    const httpUrlPattern: RegExp = new RegExp("^https?://", "i");
 
-    let target: string = data.url || "";
+    /*
+     * Mirror Axios's buildFullPath/isAbsoluteURL decision exactly before the
+     * SSRF guard sees the target. In particular, protocol-relative URLs and
+     * every RFC 3986 scheme count as absolute to Axios, while
+     * allowAbsoluteUrls:false deliberately combines even an absolute URL with
+     * baseURL. Direct-method positional URLs remain authoritative when they
+     * are the empty string; config.url must not silently replace them.
+     */
+    const isAxiosAbsoluteUrl: boolean =
+      typeof requestedUrl === "string" &&
+      axiosAbsoluteUrlPattern.test(requestedUrl);
+    let effectiveUrl: unknown = requestedUrl;
 
-    if (data.method === "request" || !target) {
-      const configUrl: unknown = data.config?.["url"];
-      target = typeof configUrl === "string" ? configUrl : target;
-    }
-
-    let absolute: string = target;
-
-    const absoluteUrlRegex: RegExp = /^https?:\/\//i;
-
-    if (!absoluteUrlRegex.test(absolute)) {
-      if (!baseUrl) {
+    if (baseUrl && (!isAxiosAbsoluteUrl || allowAbsoluteUrls === false)) {
+      if (typeof baseUrl !== "string") {
         throw new Error("Request URL must be an absolute http or https URL.");
       }
-      absolute = `${baseUrl.replace(/\/+$/, "")}/${absolute.replace(/^\/+/, "")}`;
+
+      effectiveUrl = requestedUrl
+        ? `${baseUrl.replace(/\/?\/$/, "")}/${String(requestedUrl).replace(
+            /^\/+/,
+            "",
+          )}`
+        : baseUrl;
     }
 
-    if (!absoluteUrlRegex.test(absolute)) {
+    if (
+      typeof effectiveUrl !== "string" ||
+      !httpUrlPattern.test(effectiveUrl)
+    ) {
       throw new Error("Request URL must be an absolute http or https URL.");
     }
 
-    return absolute;
+    return effectiveUrl;
   }
 
   @CaptureSpan()
@@ -72,6 +94,15 @@ export default class VMRunner {
        */
       allowPrivateNetworkRequests?: boolean | undefined;
       /*
+       * A trusted caller's already-resolved egress policy. This is separate
+       * from eligibility above because the workflow caller uses the API
+       * server's webhook configuration, while the Probe has already resolved
+       * its own local setting. When supplied, it is authoritative and the API
+       * server's webhook policy is not consulted. Absent leaves the workflow
+       * caller's webhook behavior unchanged.
+       */
+      privateNetworkAccessIsAllowed?: boolean | undefined;
+      /*
        * Overrides the sentence a private-tier refusal appends, telling the
        * operator which setting would permit it. Whoever runs this sandbox
        * knows which process's environment that is; the guard does not.
@@ -88,7 +119,17 @@ export default class VMRunner {
     const MAX_LOG_MESSAGES: number = 1000;
     const MAX_LOG_BYTES: number = 1_000_000;
     const MAX_SCRIPT_ERROR_MESSAGE_LENGTH: number = 10_000;
+    const MAX_HTTP_RESPONSE_BYTES: number = 10 * 1024 * 1024;
+    const MAX_HTTP_REQUEST_BYTES: number = 10 * 1024 * 1024;
+    const MAX_HTTP_CONFIG_BYTES: number = 256 * 1024;
+    const MAX_HTTP_URL_BYTES: number = 16 * 1024;
+    const MAX_BASE64_RESPONSE_SOURCE_BYTES: number = Math.floor(
+      ((MAX_HTTP_RESPONSE_BYTES - 64 * 1024) * 3) / 4,
+    );
     let logBytes: number = 0;
+    let serializedHttpRequestBytes: number = 0;
+    const httpResponseBodyBudget: HTTPResponseBodyBudget =
+      new HTTPResponseBodyBudget(MAX_HTTP_RESPONSE_BYTES);
 
     const pendingHostTimeouts: Set<ReturnType<typeof global.setTimeout>> =
       new Set<ReturnType<typeof global.setTimeout>>();
@@ -342,13 +383,13 @@ export default class VMRunner {
       const executeAxiosRequest: (
         signal: AbortSignal,
         method: string,
-        url: string,
+        url?: string,
         arg1?: string,
         arg2?: string,
       ) => Promise<string> = async (
         signal: AbortSignal,
         method: string,
-        url: string,
+        url?: string,
         arg1?: string,
         arg2?: string,
       ): Promise<string> => {
@@ -367,7 +408,55 @@ export default class VMRunner {
           ? (JSON.parse(configStr) as JSONObject)
           : undefined;
 
-        // Reconstruct real http/https Agents from serialized markers
+        if (method === "request" && config) {
+          const requestBody: unknown = config["data"];
+          const configWithoutBody: JSONObject = { ...config };
+          delete configWithoutBody["data"];
+
+          if (
+            Buffer.byteLength(JSON.stringify(requestBody) || "", "utf8") >
+            MAX_HTTP_REQUEST_BYTES
+          ) {
+            throw new Error("HTTP request body exceeded the allowed size.");
+          }
+
+          if (
+            Buffer.byteLength(JSON.stringify(configWithoutBody), "utf8") >
+            MAX_HTTP_CONFIG_BYTES
+          ) {
+            throw new Error("HTTP request config exceeded the allowed size.");
+          }
+        }
+
+        let suppliedHttpsAgentOptions: https.AgentOptions = {};
+
+        const pickAgentOptions: (
+          source: JSONObject | undefined,
+          allowedKeys: Array<string>,
+        ) => Record<string, unknown> = (
+          source: JSONObject | undefined,
+          allowedKeys: Array<string>,
+        ): Record<string, unknown> => {
+          const picked: Record<string, unknown> = {};
+          if (!source) {
+            return picked;
+          }
+
+          for (const key of allowedKeys) {
+            if (source[key] !== undefined) {
+              picked[key] = source[key];
+            }
+          }
+
+          return picked;
+        };
+
+        /*
+         * Preserve only TLS semantics from a serialized HTTPS Agent. Network
+         * and pooling options are intentionally discarded: host/port/path and
+         * custom socket hooks can steer around the validated URL, while a
+         * per-request keep-alive agent would leave an idle socket behind.
+         */
         if (config) {
           const httpsAgentConfig: JSONObject | undefined = config[
             "httpsAgent"
@@ -377,22 +466,24 @@ export default class VMRunner {
             httpsAgentConfig &&
             httpsAgentConfig["__agentType"] === "__https_agent__"
           ) {
-            config["httpsAgent"] = new https.Agent(
-              httpsAgentConfig["options"] as https.AgentOptions,
-            ) as unknown as JSONObject;
-          }
-
-          const httpAgentConfig: JSONObject | undefined = config[
-            "httpAgent"
-          ] as JSONObject | undefined;
-
-          if (
-            httpAgentConfig &&
-            httpAgentConfig["__agentType"] === "__http_agent__"
-          ) {
-            config["httpAgent"] = new http.Agent(
-              httpAgentConfig["options"] as http.AgentOptions,
-            ) as unknown as JSONObject;
+            suppliedHttpsAgentOptions = pickAgentOptions(
+              httpsAgentConfig["options"] as JSONObject | undefined,
+              [
+                "rejectUnauthorized",
+                "ca",
+                "cert",
+                "key",
+                "pfx",
+                "passphrase",
+                "ciphers",
+                "minVersion",
+                "maxVersion",
+                "secureProtocol",
+                "honorCipherOrder",
+                "ALPNProtocols",
+                "servername",
+              ],
+            ) as https.AgentOptions;
           }
         }
 
@@ -435,9 +526,12 @@ export default class VMRunner {
           config,
         });
 
-        await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl, {
+        const validatedTarget: Awaited<
+          ReturnType<typeof SSRFProtection.validateAndResolveWebhookTarget>
+        > = await SSRFProtection.validateAndResolveWebhookTarget(effectiveUrl, {
           allowPrivateNetworkTargets:
             options.allowPrivateNetworkRequests === true,
+          privateNetworkAccessIsAllowed: options.privateNetworkAccessIsAllowed,
           /*
            * "Webhook URL" is wrong here in both directions: sandboxed code
            * requests whatever it likes, and one of this runner's two callers
@@ -446,23 +540,103 @@ export default class VMRunner {
           targetLabel: "Request URL",
           privateNetworkHint: options.privateNetworkHint,
         });
+        const canonicalUrl: string = validatedTarget.url.toString();
+        const pinnedLookup: EgressLookupFunction =
+          DataSourceEgressGuard.createPinnedLookup(validatedTarget.addresses);
 
         /*
-         * The URL that was just validated has to be the URL that gets
-         * dialled. Each of these would otherwise steer the connection
+         * The canonical URL that was just validated has to be the URL that
+         * gets dialled. Each of these would otherwise steer the connection
          * somewhere else entirely, past the check above:
-         *   proxy      - sends the request to an arbitrary host:port
+         *   proxy      - sends the request to an arbitrary host:port; setting
+         *                it false also disables Axios's environment proxies
          *   socketPath - connects to a unix socket (/var/run/docker.sock)
          *   transport / adapter - replaces the transport wholesale
+         *   HTTP/2 - uses Axios's shared session pool instead of these agents
+         *   lookup - takes precedence over the pinned Agent lookup
+         *   baseURL / config.url / allowAbsoluteUrls - reinterpret the URL
          * and a redirect would let a validated public host nominate an
-         * internal one on the second hop.
+         * internal one on the second hop. The pinned lookup closes the DNS
+         * rebinding window between policy validation and socket creation.
          */
-        const safeConfig: JSONObject = config || {};
-        delete safeConfig["proxy"];
+        const safeConfig: JSONObject = { ...(config || {}) };
         delete safeConfig["socketPath"];
         delete safeConfig["transport"];
         delete safeConfig["adapter"];
+        delete safeConfig["http2Options"];
+        delete safeConfig["lookup"];
+        delete safeConfig["baseURL"];
+        delete safeConfig["url"];
+        delete safeConfig["allowAbsoluteUrls"];
+        safeConfig["proxy"] = false;
         safeConfig["maxRedirects"] = 0;
+        safeConfig["httpVersion"] = 1;
+
+        const getEffectiveByteLimit: (
+          configuredLimit: unknown,
+          securityLimit: number,
+        ) => number = (
+          configuredLimit: unknown,
+          securityLimit: number,
+        ): number => {
+          if (
+            typeof configuredLimit === "number" &&
+            Number.isFinite(configuredLimit) &&
+            configuredLimit >= 0
+          ) {
+            return Math.min(Math.floor(configuredLimit), securityLimit);
+          }
+
+          return securityLimit;
+        };
+        const effectiveMaxContentLength: number = getEffectiveByteLimit(
+          config?.["maxContentLength"],
+          MAX_HTTP_RESPONSE_BYTES,
+        );
+        const effectiveMaxBodyLength: number = getEffectiveByteLimit(
+          config?.["maxBodyLength"],
+          MAX_HTTP_REQUEST_BYTES,
+        );
+        /*
+         * The reader below is the sole response cap so every crossed byte is
+         * charged to the execution-wide budget before a rejection.
+         */
+        safeConfig["maxContentLength"] = -1;
+        safeConfig["maxBodyLength"] = effectiveMaxBodyLength;
+        const requestedResponseType: string | undefined =
+          typeof safeConfig["responseType"] === "string"
+            ? (safeConfig["responseType"] as string)
+            : undefined;
+        const requestedResponseEncoding: string | undefined =
+          typeof safeConfig["responseEncoding"] === "string"
+            ? (safeConfig["responseEncoding"] as string)
+            : undefined;
+        const transitionalConfig: JSONObject | undefined =
+          safeConfig["transitional"] &&
+          typeof safeConfig["transitional"] === "object"
+            ? (safeConfig["transitional"] as JSONObject)
+            : undefined;
+        const forcedJsonParsing: boolean =
+          typeof transitionalConfig?.["forcedJSONParsing"] === "boolean"
+            ? (transitionalConfig["forcedJSONParsing"] as boolean)
+            : true;
+        const silentJsonParsing: boolean =
+          typeof transitionalConfig?.["silentJSONParsing"] === "boolean"
+            ? (transitionalConfig["silentJSONParsing"] as boolean)
+            : true;
+        const shouldParseResponseAsJson: boolean =
+          requestedResponseType === "json" ||
+          (forcedJsonParsing && !requestedResponseType);
+        const strictJsonParsing: boolean =
+          requestedResponseType === "json" && !silentJsonParsing;
+        safeConfig["responseType"] = "stream";
+        safeConfig["httpAgent"] = new http.Agent({
+          lookup: pinnedLookup as never,
+        }) as unknown as JSONObject;
+        safeConfig["httpsAgent"] = new https.Agent({
+          ...suppliedHttpsAgentOptions,
+          lookup: pinnedLookup as never,
+        }) as unknown as JSONObject;
         Object.defineProperty(safeConfig, "signal", {
           value: signal,
           enumerable: true,
@@ -470,39 +644,243 @@ export default class VMRunner {
         });
         config = safeConfig;
 
+        interface NormalizedResponseData {
+          data: string;
+          encoding:
+            | "base64-arraybuffer"
+            | "base64-json-or-text"
+            | "base64-text";
+        }
+
+        const responseDataEncoding:
+          | "base64-arraybuffer"
+          | "base64-json-or-text"
+          | "base64-text" =
+          requestedResponseType === "arraybuffer"
+            ? "base64-arraybuffer"
+            : shouldParseResponseAsJson
+              ? "base64-json-or-text"
+              : "base64-text";
+
+        const serializedResponseConfig: Record<string, unknown> = {
+          method:
+            method === "request"
+              ? String(safeConfig["method"] || "get").toLowerCase()
+              : method,
+          url: canonicalUrl,
+          maxContentLength: effectiveMaxContentLength,
+          maxBodyLength: effectiveMaxBodyLength,
+        };
+        if (requestedResponseType !== undefined) {
+          serializedResponseConfig["responseType"] = requestedResponseType;
+        }
+        if (requestedResponseEncoding !== undefined) {
+          serializedResponseConfig["responseEncoding"] =
+            requestedResponseEncoding;
+        }
+
+        const encodeResponseBody: (body: Buffer) => NormalizedResponseData = (
+          body: Buffer,
+        ): NormalizedResponseData => {
+          if (body.length > MAX_BASE64_RESPONSE_SOURCE_BYTES) {
+            throw new Error(
+              "Remote response exceeded the allowed serialized size.",
+            );
+          }
+
+          return {
+            data: body.toString("base64"),
+            encoding: responseDataEncoding,
+          };
+        };
+
+        type ResponseBodyReadAxiosError = AxiosError & {
+          __oneuptimeResponseBodyReadFailed: true;
+        };
+
+        const wrapResponseBodyReadError: (
+          error: unknown,
+          response: AxiosResponse,
+        ) => ResponseBodyReadAxiosError = (
+          error: unknown,
+          response: AxiosResponse,
+        ): ResponseBodyReadAxiosError => {
+          const wrappedError: AxiosError = AxiosError.from(
+            error,
+            AxiosError.ERR_BAD_RESPONSE,
+            response.config,
+            response.request,
+            response,
+            { __oneuptimeResponseBodyReadFailed: true },
+          );
+
+          /*
+           * Axios's streamed maxContentLength wrapper can throw an AxiosError
+           * before attaching its response. Restore the association here so
+           * interceptors and catch handlers retain status, headers, config,
+           * and request context just as they do for buffered responses.
+           */
+          wrappedError.response = response;
+          wrappedError.config = response.config;
+          wrappedError.request = response.request;
+
+          return wrappedError as ResponseBodyReadAxiosError;
+        };
+
+        const normalizeResponseData: (
+          response: AxiosResponse,
+        ) => Promise<NormalizedResponseData> = async (
+          response: AxiosResponse,
+        ): Promise<NormalizedResponseData> => {
+          const responseData: unknown = response.data;
+          const isStream: boolean = Boolean(
+            responseData &&
+              typeof responseData === "object" &&
+              typeof (responseData as Partial<AsyncIterable<unknown>>)[
+                Symbol.asyncIterator
+              ] === "function",
+          );
+
+          if (!isStream) {
+            /*
+             * Test adapters can return an already-decoded value. Convert that
+             * value back to bounded bytes so every path uses the same base64
+             * bridge and none can trigger host-side JSON escaping or Buffer's
+             * decimal-array serialization.
+             */
+            let body: Buffer;
+
+            if (Buffer.isBuffer(responseData)) {
+              body = responseData;
+            } else if (ArrayBuffer.isView(responseData)) {
+              body = Buffer.from(
+                responseData.buffer,
+                responseData.byteOffset,
+                responseData.byteLength,
+              );
+            } else if (responseData instanceof ArrayBuffer) {
+              body = Buffer.from(responseData);
+            } else {
+              const serialized: string =
+                typeof responseData === "string"
+                  ? responseData
+                  : JSON.stringify(responseData ?? "");
+              body = Buffer.from(serialized, "utf8");
+            }
+
+            try {
+              httpResponseBodyBudget.consume(body.length);
+              return encodeResponseBody(body);
+            } catch (error: unknown) {
+              throw wrapResponseBodyReadError(error, response);
+            }
+          }
+
+          let body: Buffer;
+          try {
+            body = await HTTPResponseBodyReader.read(responseData, {
+              budget: httpResponseBodyBudget,
+              statusCode: response.status,
+              headers: response.headers,
+              limitRedirectResponseBody: false,
+              isHeadResponse:
+                method === "head" ||
+                (method === "request" &&
+                  String(safeConfig["method"] || "").toLowerCase() === "head"),
+              maximumResponseBytes: effectiveMaxContentLength,
+            });
+          } catch (error: unknown) {
+            throw wrapResponseBodyReadError(error, response);
+          }
+
+          /*
+           * Never put raw bytes or decoded attacker text directly into the
+           * host-side JSON envelope. Buffer.toJSON creates a decimal array,
+           * while JSON escaping can turn one control byte into six characters;
+           * either form multiplies memory outside the isolate. Base64 has a
+           * fixed 4/3 expansion. The reserved 64 KiB covers status/headers and
+           * wrapper fields, keeping the complete bridge string under 10 MiB.
+           * Decoding and best-effort JSON parsing happen inside the isolate's
+           * 128 MiB memory limit.
+           */
+          try {
+            return encodeResponseBody(body);
+          } catch (error: unknown) {
+            throw wrapResponseBodyReadError(error, response);
+          }
+        };
+
+        const serializeResponseEnvelope: (
+          metadata: Record<string, unknown>,
+          responseData: NormalizedResponseData,
+        ) => string = (
+          metadata: Record<string, unknown>,
+          responseData: NormalizedResponseData,
+        ): string => {
+          /*
+           * Keep the attacker-controlled body outside the JSON metadata.
+           * Parsing a JSON object that contains a near-limit base64 string
+           * otherwise allocates a second full copy inside the isolate. A JSON
+           * line followed by base64 is unambiguous because JSON escapes any
+           * newline found in metadata values.
+           */
+          const envelope: string = `${JSON.stringify({
+            ...metadata,
+            __oneuptimeDataEncoding: responseData.encoding,
+            __oneuptimeResponseEncoding: requestedResponseEncoding,
+            __oneuptimeShouldParseJson: shouldParseResponseAsJson,
+            __oneuptimeStrictJsonParsing: strictJsonParsing,
+            __oneuptimeConfig: serializedResponseConfig,
+            __oneuptimeHasRequest: true,
+          })}\n${responseData.data}`;
+
+          if (Buffer.byteLength(envelope, "utf8") > MAX_HTTP_RESPONSE_BYTES) {
+            throw new Error(
+              "Remote response exceeded the allowed serialized size.",
+            );
+          }
+
+          return envelope;
+        };
+
         try {
           let response: AxiosResponse;
 
           switch (method) {
             case "get":
-              response = await axios.get(url, config);
+              response = await axios.get(canonicalUrl, config);
               break;
             case "head":
-              response = await axios.head(url, config);
+              response = await axios.head(canonicalUrl, config);
               break;
             case "options":
-              response = await axios.options(url, config);
+              response = await axios.options(canonicalUrl, config);
               break;
             case "post":
-              response = await axios.post(url, body, config);
+              response = await axios.post(canonicalUrl, body, config);
               break;
             case "put":
-              response = await axios.put(url, body, config);
+              response = await axios.put(canonicalUrl, body, config);
               break;
             case "patch":
-              response = await axios.patch(url, body, config);
+              response = await axios.patch(canonicalUrl, body, config);
               break;
             case "delete":
-              response = await axios.delete(url, config);
+              response = await axios.delete(canonicalUrl, config);
               break;
-            case "request":
+            case "request": {
+              config["url"] = canonicalUrl;
               response = await axios.request(
                 config as Parameters<typeof axios.request>[0],
               );
               break;
+            }
             default:
               throw new Error(`Unsupported HTTP method: ${method}`);
           }
+
+          const normalizedResponseData: NormalizedResponseData =
+            await normalizeResponseData(response);
 
           /*
            * Convert AxiosHeaders to a plain object before serializing.
@@ -510,11 +888,14 @@ export default class VMRunner {
            * which makes it join array headers (like set-cookie) with commas.
            * This produces invalid Cookie headers when user code forwards them.
            */
-          return JSON.stringify({
-            status: response.status,
-            headers: toPlainHeaders(response.headers),
-            data: response.data,
-          });
+          return serializeResponseEnvelope(
+            {
+              status: response.status,
+              statusText: response.statusText,
+              headers: toPlainHeaders(response.headers),
+            },
+            normalizedResponseData,
+          );
         } catch (err: unknown) {
           /*
            * If this is an axios error with a response (4xx, 5xx, etc.),
@@ -525,21 +906,47 @@ export default class VMRunner {
             isAxiosError?: boolean;
             response?: AxiosResponse<any, any, Record<string, unknown>>;
             message?: string;
+            code?: string;
+            name?: string;
+            __oneuptimeResponseBodyReadFailed?: boolean;
           } = err as {
             isAxiosError?: boolean;
             response?: AxiosResponse;
             message?: string;
+            code?: string;
+            name?: string;
+            __oneuptimeResponseBodyReadFailed?: boolean;
           };
 
           if (axiosErr.isAxiosError && axiosErr.response) {
-            return JSON.stringify({
-              __isAxiosError: true,
-              message: axiosErr.message || "Request failed",
-              status: axiosErr.response.status,
-              statusText: axiosErr.response.statusText,
-              headers: toPlainHeaders(axiosErr.response.headers),
-              data: axiosErr.response.data,
-            });
+            let errorForEnvelope: typeof axiosErr = axiosErr;
+            let normalizedResponseData: NormalizedResponseData;
+
+            if (axiosErr.__oneuptimeResponseBodyReadFailed) {
+              normalizedResponseData = encodeResponseBody(Buffer.alloc(0));
+            } else {
+              try {
+                normalizedResponseData = await normalizeResponseData(
+                  axiosErr.response,
+                );
+              } catch (responseReadError: unknown) {
+                errorForEnvelope = responseReadError as typeof axiosErr;
+                normalizedResponseData = encodeResponseBody(Buffer.alloc(0));
+              }
+            }
+
+            return serializeResponseEnvelope(
+              {
+                __isAxiosError: true,
+                message: errorForEnvelope.message || "Request failed",
+                code: errorForEnvelope.code,
+                name: errorForEnvelope.name,
+                status: axiosErr.response.status,
+                statusText: axiosErr.response.statusText,
+                headers: toPlainHeaders(axiosErr.response.headers),
+              },
+              normalizedResponseData,
+            );
           }
 
           throw err;
@@ -547,9 +954,14 @@ export default class VMRunner {
       };
 
       const axiosStartCallback: ivm.Callback<
-        (method: string, url: string, arg1?: string, arg2?: string) => string
+        (method: string, url?: string, arg1?: string, arg2?: string) => string
       > = new ivm.Callback(
-        (method: string, url: string, arg1?: string, arg2?: string): string => {
+        (
+          method: string,
+          url?: string,
+          arg1?: string,
+          arg2?: string,
+        ): string => {
           const operationId: string = String(++nextAxiosOperationId);
 
           if (!acceptingHostOperations) {
@@ -560,6 +972,58 @@ export default class VMRunner {
             pendingAxiosOperations.set(operationId, {
               status: "rejected",
               errorMessage: "Too many pending HTTP requests",
+            });
+            return operationId;
+          }
+
+          try {
+            const urlBytes: number = Buffer.byteLength(url || "", "utf8");
+            const arg1Bytes: number = Buffer.byteLength(arg1 || "", "utf8");
+            const arg2Bytes: number = Buffer.byteLength(arg2 || "", "utf8");
+            const hasBody: boolean = ["post", "put", "patch"].includes(method);
+
+            if (urlBytes > MAX_HTTP_URL_BYTES) {
+              throw new Error("HTTP request URL exceeded the allowed size.");
+            }
+
+            if (hasBody) {
+              if (arg1Bytes > MAX_HTTP_REQUEST_BYTES) {
+                throw new Error("HTTP request body exceeded the allowed size.");
+              }
+              if (arg2Bytes > MAX_HTTP_CONFIG_BYTES) {
+                throw new Error(
+                  "HTTP request config exceeded the allowed size.",
+                );
+              }
+            } else if (method === "request") {
+              if (arg1Bytes > MAX_HTTP_REQUEST_BYTES + MAX_HTTP_CONFIG_BYTES) {
+                throw new Error("HTTP request data exceeded the allowed size.");
+              }
+            } else if (arg1Bytes > MAX_HTTP_CONFIG_BYTES) {
+              throw new Error("HTTP request config exceeded the allowed size.");
+            }
+
+            const operationBytes: number = urlBytes + arg1Bytes + arg2Bytes;
+            if (
+              serializedHttpRequestBytes + operationBytes >
+              MAX_HTTP_REQUEST_BYTES
+            ) {
+              throw new Error(
+                "Sandbox HTTP requests exceeded the allowed cumulative request size.",
+              );
+            }
+
+            /*
+             * This budget is deliberately never replenished. Keeping a
+             * per-execution total prevents many individually legal requests
+             * from retaining close to the full limit while DNS or sockets are
+             * pending outside the isolate's memory limit.
+             */
+            serializedHttpRequestBytes += operationBytes;
+          } catch (error: unknown) {
+            pendingAxiosOperations.set(operationId, {
+              status: "rejected",
+              errorMessage: sanitizeScriptError(error).message,
             });
             return operationId;
           }
@@ -608,17 +1072,26 @@ export default class VMRunner {
               pendingAxiosOperations.get(operationId);
 
             if (!operation) {
-              return JSON.stringify({
-                status: "rejected",
-                errorMessage: "HTTP request result is unavailable",
-              });
+              return `E${JSON.stringify("HTTP request result is unavailable")}`;
             }
 
-            if (operation.status !== "pending") {
-              pendingAxiosOperations.delete(operationId);
+            if (operation.status === "pending") {
+              return "P";
             }
 
-            return JSON.stringify(operation);
+            pendingAxiosOperations.delete(operationId);
+
+            if (operation.status === "rejected") {
+              return `E${JSON.stringify(operation.errorMessage)}`;
+            }
+
+            /*
+             * The fulfilled value is already a bounded JSON envelope. Prefix
+             * it instead of embedding it in another JSON document; otherwise
+             * a response near the byte limit is copied and escaped a second
+             * time while crossing into the isolate.
+             */
+            return `F${operation.value}`;
           },
           { async: true },
         );
@@ -633,23 +1106,71 @@ export default class VMRunner {
         delete globalThis.__oneuptimeHostAxiosStartCallback;
         delete globalThis.__oneuptimeHostAxiosPollCallback;
         const axiosPollWaitArray = new Int32Array(new SharedArrayBuffer(4));
+        let serializedRequestCharacters = 0;
+
+        function assertSerializedRequestLength(method, url, arg1, arg2) {
+          const urlCharacters = typeof url === 'string' ? url.length : 0;
+          const arg1Characters = typeof arg1 === 'string' ? arg1.length : 0;
+          const arg2Characters = typeof arg2 === 'string' ? arg2.length : 0;
+          const hasBody = ['post', 'put', 'patch'].includes(method);
+
+          if (urlCharacters > ${MAX_HTTP_URL_BYTES}) {
+            throw new Error('HTTP request URL exceeded the allowed size.');
+          }
+          if (hasBody && arg1Characters > ${MAX_HTTP_REQUEST_BYTES}) {
+            throw new Error('HTTP request body exceeded the allowed size.');
+          }
+          if (hasBody && arg2Characters > ${MAX_HTTP_CONFIG_BYTES}) {
+            throw new Error('HTTP request config exceeded the allowed size.');
+          }
+          if (
+            method === 'request' &&
+            arg1Characters > ${MAX_HTTP_REQUEST_BYTES + MAX_HTTP_CONFIG_BYTES}
+          ) {
+            throw new Error('HTTP request data exceeded the allowed size.');
+          }
+          if (
+            !hasBody &&
+            method !== 'request' &&
+            arg1Characters > ${MAX_HTTP_CONFIG_BYTES}
+          ) {
+            throw new Error('HTTP request config exceeded the allowed size.');
+          }
+
+          const operationCharacters =
+            urlCharacters + arg1Characters + arg2Characters;
+          if (
+            serializedRequestCharacters + operationCharacters >
+            ${MAX_HTTP_REQUEST_BYTES}
+          ) {
+            throw new Error(
+              'Sandbox HTTP requests exceeded the allowed cumulative request size.'
+            );
+          }
+          serializedRequestCharacters += operationCharacters;
+        }
 
         async function hostAxios(method, url, arg1, arg2) {
+          assertSerializedRequestLength(method, url, arg1, arg2);
           const operationId = await hostAxiosStart(method, url, arg1, arg2);
 
           while (true) {
-            const operation = JSON.parse(await hostAxiosPoll(operationId));
+            const operation = await hostAxiosPoll(operationId);
 
-            if (operation.status === 'pending') {
+            if (operation === 'P') {
               Atomics.wait(axiosPollWaitArray, 0, 0, 1);
               continue;
             }
 
-            if (operation.status === 'rejected') {
-              throw new Error(operation.errorMessage);
+            if (operation[0] === 'E') {
+              throw new Error(JSON.parse(operation.slice(1)));
             }
 
-            return operation.value;
+            if (operation[0] !== 'F') {
+              throw new Error('HTTP request result is invalid');
+            }
+
+            return operation.slice(1);
           }
         }
 
@@ -684,20 +1205,330 @@ export default class VMRunner {
           }
         }
 
+        const base64Alphabet =
+          'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        const base64Lookup = new Int16Array(128);
+        base64Lookup.fill(-1);
+        for (let index = 0; index < base64Alphabet.length; index += 1) {
+          base64Lookup[base64Alphabet.charCodeAt(index)] = index;
+        }
+
+        function decodeBase64(encoded) {
+          const padding = encoded.endsWith('==')
+            ? 2
+            : encoded.endsWith('=')
+              ? 1
+              : 0;
+          const decoded = new Uint8Array((encoded.length / 4) * 3 - padding);
+          let outputIndex = 0;
+
+          for (let index = 0; index < encoded.length; index += 4) {
+            const first = base64Lookup[encoded.charCodeAt(index)];
+            const second = base64Lookup[encoded.charCodeAt(index + 1)];
+            const third = encoded[index + 2] === '='
+              ? 0
+              : base64Lookup[encoded.charCodeAt(index + 2)];
+            const fourth = encoded[index + 3] === '='
+              ? 0
+              : base64Lookup[encoded.charCodeAt(index + 3)];
+            const combined =
+              (first << 18) | (second << 12) | (third << 6) | fourth;
+
+            if (outputIndex < decoded.length) {
+              decoded[outputIndex++] = (combined >> 16) & 0xff;
+            }
+            if (outputIndex < decoded.length) {
+              decoded[outputIndex++] = (combined >> 8) & 0xff;
+            }
+            if (outputIndex < decoded.length) {
+              decoded[outputIndex++] = combined & 0xff;
+            }
+          }
+
+          return decoded;
+        }
+
+        function decodeUtf8(bytes) {
+          const chunks = [];
+          const codeUnits = new Uint16Array(8192);
+          let codeUnitCount = 0;
+
+          function flushCodeUnits() {
+            if (codeUnitCount === 0) return;
+            chunks.push(
+              String.fromCharCode.apply(
+                null,
+                codeUnits.subarray(0, codeUnitCount)
+              )
+            );
+            codeUnitCount = 0;
+          }
+
+          function appendCodePoint(codePoint) {
+            if (codeUnitCount >= codeUnits.length - 1) {
+              flushCodeUnits();
+            }
+
+            if (codePoint <= 0xffff) {
+              codeUnits[codeUnitCount++] = codePoint;
+            } else {
+              const adjusted = codePoint - 0x10000;
+              codeUnits[codeUnitCount++] = 0xd800 + (adjusted >> 10);
+              codeUnits[codeUnitCount++] = 0xdc00 + (adjusted & 0x3ff);
+            }
+          }
+
+          for (let index = 0; index < bytes.length;) {
+            const first = bytes[index];
+            let codePoint = 0xfffd;
+            let width = 1;
+
+            if (first <= 0x7f) {
+              codePoint = first;
+            } else if (
+              first >= 0xc2 &&
+              first <= 0xdf &&
+              index + 1 < bytes.length &&
+              (bytes[index + 1] & 0xc0) === 0x80
+            ) {
+              codePoint = ((first & 0x1f) << 6) | (bytes[index + 1] & 0x3f);
+              width = 2;
+            } else if (
+              first >= 0xe0 &&
+              first <= 0xef &&
+              index + 2 < bytes.length &&
+              (bytes[index + 1] & 0xc0) === 0x80 &&
+              (bytes[index + 2] & 0xc0) === 0x80 &&
+              !(first === 0xe0 && bytes[index + 1] < 0xa0) &&
+              !(first === 0xed && bytes[index + 1] >= 0xa0)
+            ) {
+              codePoint =
+                ((first & 0x0f) << 12) |
+                ((bytes[index + 1] & 0x3f) << 6) |
+                (bytes[index + 2] & 0x3f);
+              width = 3;
+            } else if (
+              first >= 0xf0 &&
+              first <= 0xf4 &&
+              index + 3 < bytes.length &&
+              (bytes[index + 1] & 0xc0) === 0x80 &&
+              (bytes[index + 2] & 0xc0) === 0x80 &&
+              (bytes[index + 3] & 0xc0) === 0x80 &&
+              !(first === 0xf0 && bytes[index + 1] < 0x90) &&
+              !(first === 0xf4 && bytes[index + 1] >= 0x90)
+            ) {
+              codePoint =
+                ((first & 0x07) << 18) |
+                ((bytes[index + 1] & 0x3f) << 12) |
+                ((bytes[index + 2] & 0x3f) << 6) |
+                (bytes[index + 3] & 0x3f);
+              width = 4;
+            }
+
+            appendCodePoint(codePoint);
+            index += width;
+          }
+
+          flushCodeUnits();
+          return chunks.join('');
+        }
+
+        function decodeSingleByte(bytes, asciiOnly) {
+          const chunks = [];
+          const codeUnits = new Uint16Array(8192);
+
+          for (let offset = 0; offset < bytes.length; offset += 8192) {
+            const chunkLength = Math.min(8192, bytes.length - offset);
+            for (let index = 0; index < chunkLength; index += 1) {
+              codeUnits[index] = asciiOnly
+                ? bytes[offset + index] & 0x7f
+                : bytes[offset + index];
+            }
+            chunks.push(
+              String.fromCharCode.apply(
+                null,
+                codeUnits.subarray(0, chunkLength)
+              )
+            );
+          }
+
+          return chunks.join('');
+        }
+
+        function decodeUtf16Le(bytes) {
+          const chunks = [];
+          const codeUnits = new Uint16Array(8192);
+          const codeUnitLength = Math.floor(bytes.length / 2);
+
+          for (let offset = 0; offset < codeUnitLength; offset += 8192) {
+            const chunkLength = Math.min(8192, codeUnitLength - offset);
+            for (let index = 0; index < chunkLength; index += 1) {
+              const byteOffset = (offset + index) * 2;
+              codeUnits[index] =
+                bytes[byteOffset] | (bytes[byteOffset + 1] << 8);
+            }
+            chunks.push(
+              String.fromCharCode.apply(
+                null,
+                codeUnits.subarray(0, chunkLength)
+              )
+            );
+          }
+
+          return chunks.join('');
+        }
+
+        function encodeHex(bytes) {
+          const alphabet = '0123456789abcdef';
+          const chunks = [];
+
+          for (let offset = 0; offset < bytes.length; offset += 4096) {
+            const end = Math.min(offset + 4096, bytes.length);
+            let chunk = '';
+            for (let index = offset; index < end; index += 1) {
+              const value = bytes[index];
+              chunk += alphabet[value >> 4] + alphabet[value & 15];
+            }
+            chunks.push(chunk);
+          }
+
+          return chunks.join('');
+        }
+
+        function decodeResponseText(encoded, bytes, responseEncoding) {
+          const normalizedEncoding = responseEncoding
+            ? String(responseEncoding).toLowerCase()
+            : 'utf8';
+
+          switch (normalizedEncoding) {
+            case 'utf8':
+            case 'utf-8':
+              return decodeUtf8(bytes);
+            case 'latin1':
+            case 'binary':
+              return decodeSingleByte(bytes, false);
+            case 'ascii':
+              return decodeSingleByte(bytes, true);
+            case 'utf16le':
+            case 'utf-16le':
+            case 'ucs2':
+            case 'ucs-2':
+              return decodeUtf16Le(bytes);
+            case 'base64':
+              return encoded;
+            case 'base64url':
+              return encoded
+                .split('+').join('-')
+                .split('/').join('_')
+                .replace(/=+$/, '');
+            case 'hex':
+              return encodeHex(bytes);
+            default:
+              throw new TypeError(
+                'Unknown encoding: ' + responseEncoding
+              );
+          }
+        }
+
         function parseAxiosResult(r) {
-          const parsed = JSON.parse(r);
-          if (parsed && parsed.__isAxiosError) {
-            const err = new Error(parsed.message);
-            err.response = {
-              status: parsed.status,
-              statusText: parsed.statusText,
-              headers: parsed.headers,
-              data: parsed.data,
-            };
+          const metadataEnd = r.indexOf('\\n');
+          if (metadataEnd < 0) {
+            throw new Error('HTTP response envelope is invalid');
+          }
+
+          const parsed = JSON.parse(r.slice(0, metadataEnd));
+          const dataEncoding = parsed.__oneuptimeDataEncoding;
+          const responseEncoding = parsed.__oneuptimeResponseEncoding;
+          const shouldParseJson = parsed.__oneuptimeShouldParseJson === true;
+          const strictJsonParsing =
+            parsed.__oneuptimeStrictJsonParsing === true;
+          const responseConfig = parsed.__oneuptimeConfig || {};
+          const hasRequest = parsed.__oneuptimeHasRequest === true;
+          const isAxiosError = parsed.__isAxiosError === true;
+          const errorMessage = parsed.message || 'Request failed';
+          const errorCode = parsed.code;
+          const errorName = parsed.name;
+          const opaqueRequest = hasRequest
+            ? Object.freeze({ __oneuptimeOpaqueRequest: true })
+            : undefined;
+
+          delete parsed.__oneuptimeDataEncoding;
+          delete parsed.__oneuptimeResponseEncoding;
+          delete parsed.__oneuptimeShouldParseJson;
+          delete parsed.__oneuptimeStrictJsonParsing;
+          delete parsed.__oneuptimeConfig;
+          delete parsed.__oneuptimeHasRequest;
+          delete parsed.__isAxiosError;
+          delete parsed.message;
+          delete parsed.code;
+          delete parsed.name;
+
+          parsed.config = responseConfig;
+          if (opaqueRequest) parsed.request = opaqueRequest;
+
+          function createAxiosError(message, code, name) {
+            const err = new Error(message);
+            err.name = name || 'AxiosError';
+            err.code = code;
+            err.config = responseConfig;
+            err.request = opaqueRequest;
+            err.response = parsed;
             err.isAxiosError = true;
             err.status = parsed.status;
-            throw err;
+            return err;
           }
+
+          try {
+            const encoded = r.slice(metadataEnd + 1);
+            const decoded = decodeBase64(encoded);
+
+            if (dataEncoding === 'base64-arraybuffer') {
+              parsed.data = decoded;
+            } else {
+              let text = decodeResponseText(
+                encoded,
+                decoded,
+                responseEncoding
+              );
+
+              if (
+                (!responseEncoding || responseEncoding === 'utf8') &&
+                text.charCodeAt(0) === 0xfeff
+              ) {
+                text = text.slice(1);
+              }
+
+              parsed.data = text;
+
+              if (shouldParseJson && text) {
+                try {
+                  parsed.data = JSON.parse(text);
+                } catch (error) {
+                  if (strictJsonParsing) {
+                    throw createAxiosError(
+                      error.message,
+                      'ERR_BAD_RESPONSE',
+                      error.name
+                    );
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            if (error && error.isAxiosError) throw error;
+            throw createAxiosError(
+              error && error.message
+                ? error.message
+                : 'Response could not be decoded',
+              error && error.code,
+              error && error.name
+            );
+          }
+
+          if (isAxiosError) {
+            throw createAxiosError(errorMessage, errorCode, errorName);
+          }
+
           return parsed;
         }
 
@@ -709,6 +1540,13 @@ export default class VMRunner {
             const merged = Object.assign({}, defaults, overrides);
             if (defaults.headers && overrides.headers) {
               merged.headers = Object.assign({}, defaults.headers, overrides.headers);
+            }
+            if (defaults.transitional && overrides.transitional) {
+              merged.transitional = Object.assign(
+                {},
+                defaults.transitional,
+                overrides.transitional
+              );
             }
             return merged;
           }
@@ -773,6 +1611,9 @@ export default class VMRunner {
             if (merged) assertNoFunctions(merged, 'config');
             const r = await hostAxios('delete', url, merged ? JSON.stringify(merged) : undefined);
             return parseAxiosResult(r);
+          };
+          instance.isAxiosError = (payload) => {
+            return Boolean(payload && payload.isAxiosError === true);
           };
           instance.create = (instanceDefaults) => {
             if (instanceDefaults) assertNoFunctions(instanceDefaults, 'defaults');

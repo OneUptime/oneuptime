@@ -14,6 +14,27 @@ Devices attach to exactly one site. A site's *subtree* is itself plus every site
 
 > Rollups are recomputed when a device's monitor status changes, when a device moves site, when the tree is re-parented, and by a sweep every five minutes that catches the cases where only the passage of time changed the answer.
 
+## Monitoring Defaults
+
+A site is also where you say, once, how the devices in it are monitored. **Site -> Settings -> Monitoring Defaults** holds two fields:
+
+| Setting | Effect |
+| ------- | ------ |
+| **Default Probe** | The probe that pings devices in this site — and walks them over SNMP when they have credentials. A device created into the site with no probe of its own inherits it, and so does a device moved in without one. |
+| **Default SNMP Credential Profile** | The [credential profile](/docs/monitor/network-device-monitor#snmp-credentials-and-credential-profiles) devices in this site are walked with when neither the device nor its own profile carries any. |
+
+Set both on a site and a new device there can be added by name and address alone: it is pinged from its first poll and walked from its first poll.
+
+The two behave differently on edit, and the difference is deliberate:
+
+- **The probe is copied onto the device** when the device is created into (or moved into) the site. Changing a site's default probe later does not re-point devices that already have one — which probe can reach a device is a fact about the network, not a preference to be rewritten in bulk from a site form.
+- **The credential profile is read live, on every poll.** Set one on a site and every credential-less device in it starts being walked on its next poll, with no per-device edit; clear it and they go back to being pinged only.
+
+They also differ in how far down the tree they reach:
+
+- **The probe inherits through the whole tree.** A device landing in a site with no probe of its own takes the nearest ancestor's, so setting one probe on a Region covers every Market and Unit beneath it, and a Market that names its own overrides it for its subtree.
+- **The credential profile is read from the device's own site only.** A device in a Unit does not pick up a profile set on its Region — set it on the sites the devices actually attach to.
+
 ## How Parent Health Is Calculated
 
 Each site chooses **one of two rollup policies**, under **Site -> Settings -> Health Rollup**.
@@ -47,9 +68,11 @@ Note the first row: nothing down is Operational **however low the threshold is s
 Both policies agree here, and it matters more than it sounds:
 
 - **Archived devices never vote.** They are decommissioned; they keep their `siteId` but are excluded.
-- **Devices that have never reported anything never vote.** A device mid-way through its first discovery walk is not evidence of an outage. It is excluded from the numerator *and* the denominator, so a region half-way through onboarding is scored on the half that has answered.
-- A device with a **monitor** attached votes with that monitor's status.
-- A device with **no monitor** votes with its SNMP reachability: the outcome of its last poll, not the age of its last success.
+- **Devices that have never reported anything never vote.** A device waiting for its first poll is not evidence of an outage. It is excluded from the numerator *and* the denominator, so a region half-way through onboarding is scored on the half that has answered.
+- A **probe-polled** device — the normal kind — votes with the outcome of its last poll: reachable by **ping or SNMP**, not the age of its last success. A device that answers ping while its SNMP walk fails is reachable, and votes as such; the site card says the site is up, and the device row says "SNMP failing" so somebody fixes the credentials.
+- A **monitor-backed** device — one switched to the bound-monitor override in its Settings — votes with the status of the monitor bound to it, because nothing polls it. With nothing bound it has never reported and does not vote at all.
+
+Note the asymmetry in that last pair. A Network Device monitor attached to a **probe-polled** device does not change how it votes: a monitor with an "interface down → Offline" criterion stamps Offline on a switch that is answering every ping, and letting one dark port turn a whole site red — while every device row beneath it reads Up — would make the site card disagree with the list it summarises. The poll is the health source for a polled device; the monitor is there to raise incidents.
 
 ### Choosing a policy
 

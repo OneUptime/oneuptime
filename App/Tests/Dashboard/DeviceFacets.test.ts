@@ -8,14 +8,18 @@ import {
   DEVICE_PROBE_FACET_KEY,
   DEVICE_ROLE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
+  DEVICE_SNMP_FACET_KEY,
+  DEVICE_SNMP_FACET_OPTIONS,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
   DeviceInterfacesFacetValue,
+  DeviceSnmpFacetValue,
   DeviceStatusFacetValue,
   NETWORK_DEVICES_TABLE_ID,
   UNASSIGNED_DEVICES_FACET_SELECTION,
   buildDeviceInterfacesFacetQuery,
   buildDeviceLastSeenFacetQuery,
+  buildDeviceSnmpFacetQuery,
   buildDeviceStatusFacetQuery,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
 import {
@@ -93,9 +97,13 @@ const ALL_INTERFACES_VALUES: Array<DeviceInterfacesFacetValue> = Object.values(
   DeviceInterfacesFacetValue,
 );
 
+const ALL_SNMP_VALUES: Array<DeviceSnmpFacetValue> =
+  Object.values(DeviceSnmpFacetValue);
+
 const ALL_FACET_KEYS: Array<string> = [
   DEVICE_STATUS_FACET_KEY,
   DEVICE_INTERFACES_FACET_KEY,
+  DEVICE_SNMP_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_PROBE_FACET_KEY,
   DEVICE_LAST_SEEN_FACET_KEY,
@@ -114,6 +122,7 @@ const ALL_QUERY_FIELDS: Array<string> = Object.values(
 const FACET_KEY_BY_QUERY_FIELD_ROLE: Record<string, string> = {
   status: DEVICE_STATUS_FACET_KEY,
   interfaces: DEVICE_INTERFACES_FACET_KEY,
+  snmp: DEVICE_SNMP_FACET_KEY,
   site: DEVICE_SITE_FACET_KEY,
   probe: DEVICE_PROBE_FACET_KEY,
   lastSeen: DEVICE_LAST_SEEN_FACET_KEY,
@@ -190,6 +199,7 @@ describe("the facet keys", () => {
   test("are the strings already in saved views and links", () => {
     expect(DEVICE_STATUS_FACET_KEY).toBe("deviceStatus");
     expect(DEVICE_INTERFACES_FACET_KEY).toBe("deviceInterfaces");
+    expect(DEVICE_SNMP_FACET_KEY).toBe("deviceSnmp");
     expect(DEVICE_SITE_FACET_KEY).toBe("deviceSite");
     expect(DEVICE_PROBE_FACET_KEY).toBe("deviceProbe");
     expect(DEVICE_LAST_SEEN_FACET_KEY).toBe("deviceLastSeen");
@@ -221,10 +231,30 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
   test("names the columns each chip owns", () => {
     expect(DEVICE_FACET_QUERY_FIELDS.status).toBe("isReachable");
     expect(DEVICE_FACET_QUERY_FIELDS.interfaces).toBe("interfacesDown");
+    expect(DEVICE_FACET_QUERY_FIELDS.snmp).toBe("isSnmpReachable");
     expect(DEVICE_FACET_QUERY_FIELDS.site).toBe("siteId");
     expect(DEVICE_FACET_QUERY_FIELDS.probe).toBe("probeId");
     expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe("lastSeenAt");
     expect(DEVICE_FACET_QUERY_FIELDS.role).toBe("networkDeviceRoleId");
+  });
+
+  /*
+   * The walk's outcome is a column of its own, and NOT the verdict column.
+   *
+   * A poll is a ping plus — only where there are usable credentials — an SNMP
+   * walk, and either answering makes the device reachable. So a device that
+   * answers ping while its walk fails is genuinely Up, and the one thing that
+   * knows its interfaces and inventory have stopped refreshing is
+   * `isSnmpReachable`. Pointing this chip at `isReachable` would collapse the
+   * two facts back together and lose the state the "SNMP failing" pill is
+   * drawn from; the fleet is mostly pinged, so it would also promise a walk
+   * for devices that never had one.
+   */
+  test("the SNMP chip reads the walk's own column, not the verdict", () => {
+    expect(DEVICE_FACET_QUERY_FIELDS.snmp).not.toBe(
+      DEVICE_FACET_QUERY_FIELDS.status,
+    );
+    expect(DEVICE_FACET_QUERY_FIELDS.snmp).toBe("isSnmpReachable");
   });
 
   /*
@@ -307,6 +337,37 @@ describe("DeviceInterfacesFacetValue", () => {
     expect(DeviceInterfacesFacetValue.SomeDown).toBe("some-down");
     expect(DeviceInterfacesFacetValue.AllUp).toBe("all-up");
     expect(ALL_INTERFACES_VALUES).toHaveLength(2);
+  });
+});
+
+describe("DeviceSnmpFacetValue", () => {
+  test("carries the wire values that appear in URLs", () => {
+    expect(DeviceSnmpFacetValue.Ok).toBe("ok");
+    expect(DeviceSnmpFacetValue.Failing).toBe("failing");
+    expect(DeviceSnmpFacetValue.NotConfigured).toBe("not-configured");
+    expect(ALL_SNMP_VALUES).toHaveLength(3);
+  });
+});
+
+/*
+ * No value is spelled the same on two chips.
+ *
+ * The facet key and the value travel separately in the URL, so a stale link or
+ * a hand-edited one can hand a value to the wrong chip. Every builder refuses
+ * a word it does not own (the "other chip's value" cases below), but that
+ * refusal is only reachable while the three vocabularies stay disjoint: a
+ * value shared between two chips would be accepted by both and would filter a
+ * column the user never named.
+ */
+describe("the three option chips speak different vocabularies", () => {
+  test("no value belongs to more than one chip", () => {
+    const allValues: Array<string> = [
+      ...ALL_STATUS_VALUES,
+      ...ALL_INTERFACES_VALUES,
+      ...ALL_SNMP_VALUES,
+    ];
+
+    expect(new Set(allValues).size).toBe(allValues.length);
   });
 });
 
@@ -441,6 +502,20 @@ describe("buildDeviceStatusFacetQuery", () => {
         ),
       ).toBeUndefined();
     });
+
+    /*
+     * The SNMP chip's words, handed to the wrong builder. "failing" reads
+     * like a status to a human and is not one: it is the walk's outcome,
+     * which never moves the Up / Down / Pending verdict. Resolving it here
+     * would put `isReachable = false` behind a chip that says nothing about
+     * reachability, and list a fleet of pingable devices as Down.
+     */
+    test.each(ALL_SNMP_VALUES)(
+      "the SNMP chip's %s value does not constrain the column",
+      (value: DeviceSnmpFacetValue) => {
+        expect(buildDeviceStatusFacetQuery([value], "is")).toBeUndefined();
+      },
+    );
 
     test.each(OPERATORS_OTHER_THAN_IS)(
       "the %s operator does not constrain the column",
@@ -631,6 +706,215 @@ describe("buildDeviceInterfacesFacetQuery", () => {
       expect(
         JSON.stringify(buildDeviceInterfacesFacetQuery([value], "is")),
       ).toBe(JSON.stringify(buildDeviceInterfacesFacetQuery([value], "is")));
+    }
+  });
+});
+
+/*
+ * The SNMP chip, which exists because a poll is a ping FIRST and a walk only
+ * where there are credentials. That made "the device answers, its walk does
+ * not" a real and common state — the rows wearing the "SNMP failing" pill —
+ * and this chip is the only way to list them. Its three values are the three
+ * states of `isSnmpReachable`: the last walk succeeded, it failed, or no walk
+ * was ever attempted (pinged only, or never polled).
+ */
+describe("buildDeviceSnmpFacetQuery", () => {
+  describe("Ok", () => {
+    test("is isSnmpReachable = true", () => {
+      expect(buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.Ok], "is")).toBe(
+        true,
+      );
+    });
+  });
+
+  describe("Failing", () => {
+    test("is isSnmpReachable = false", () => {
+      expect(
+        buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.Failing], "is"),
+      ).toBe(false);
+    });
+
+    /*
+     * Same trap as the Status chip's Down: `undefined` is the one value the
+     * facet layer drops, so a builder that returned it here would leave the
+     * chip lit — reading "SNMP is Failing" — over the entire fleet.
+     */
+    test("false is a constraint, not a no-op", () => {
+      const query: unknown = buildDeviceSnmpFacetQuery(
+        [DeviceSnmpFacetValue.Failing],
+        "is",
+      );
+
+      expect(query).not.toBeUndefined();
+      expect(query).toBe(false);
+    });
+  });
+
+  describe("NotConfigured", () => {
+    /*
+     * NULL is what the column holds for a device that is pinged and never
+     * walked: the ingest writes the walk's outcome, or NULL when no walk ran.
+     * There is no separate "has credentials" flag to ask, so IS NULL is the
+     * honest — and only — way to ask for the pinged-only devices.
+     */
+    test("is isSnmpReachable IS NULL", () => {
+      expect(
+        buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.NotConfigured], "is"),
+      ).toBeInstanceOf(IsNull);
+    });
+  });
+
+  describe("the three values partition the walk's column", () => {
+    test("Ok and Failing are the two boolean states, and neither matches NULL", () => {
+      expect(buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.Ok], "is")).toBe(
+        true,
+      );
+      expect(
+        buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.Failing], "is"),
+      ).toBe(false);
+      expect(
+        buildDeviceSnmpFacetQuery([DeviceSnmpFacetValue.NotConfigured], "is"),
+      ).toBeInstanceOf(IsNull);
+    });
+
+    test("every value produces a constraint, so no chip value is a no-op", () => {
+      for (const value of ALL_SNMP_VALUES) {
+        expect(buildDeviceSnmpFacetQuery([value], "is")).not.toBeUndefined();
+      }
+    });
+
+    test("no two values produce the same constraint", () => {
+      const shapes: Array<string> = ALL_SNMP_VALUES.map(
+        (value: DeviceSnmpFacetValue): string => {
+          return JSON.stringify(buildDeviceSnmpFacetQuery([value], "is"));
+        },
+      );
+
+      expect(new Set(shapes).size).toBe(shapes.length);
+    });
+  });
+
+  /*
+   * The point of giving the walk its own chip: the two chips partition two
+   * different columns, so they compose instead of replacing each other.
+   *
+   * BaseModelTable merges every chip's fragment into one query object, so two
+   * chips over one column would leave only the last one applied. Over two
+   * columns the merge is an AND — and "Status is Up AND SNMP is Failing" is
+   * exactly the set of rows the "SNMP failing" pill is drawn on: reachable by
+   * ping, with interfaces and inventory going stale behind a broken walk.
+   */
+  describe("composes with the Status chip rather than fighting it", () => {
+    test("Up and Failing survive together as two constraints on two columns", () => {
+      const merged: Record<string, unknown> = {
+        [DEVICE_FACET_QUERY_FIELDS.status]: buildDeviceStatusFacetQuery(
+          [DeviceStatusFacetValue.Up],
+          "is",
+        ),
+        [DEVICE_FACET_QUERY_FIELDS.snmp]: buildDeviceSnmpFacetQuery(
+          [DeviceSnmpFacetValue.Failing],
+          "is",
+        ),
+      };
+
+      expect(Object.keys(merged).sort()).toEqual([
+        "isReachable",
+        "isSnmpReachable",
+      ]);
+      expect(merged["isReachable"]).toBe(true);
+      expect(merged["isSnmpReachable"]).toBe(false);
+    });
+
+    /*
+     * And a device that answers neither is Down, not "SNMP failing": the two
+     * chips make different claims, so "Status is Down" must not be reachable
+     * through the SNMP chip. Same shapes, different columns.
+     */
+    test("the two chips constrain different columns", () => {
+      expect(DEVICE_FACET_QUERY_FIELDS.snmp).not.toBe(
+        DEVICE_FACET_QUERY_FIELDS.status,
+      );
+      expect(DEVICE_FACET_QUERY_FIELDS.snmp).not.toBe(
+        DEVICE_FACET_QUERY_FIELDS.interfaces,
+      );
+      expect(DEVICE_FACET_QUERY_FIELDS.snmp).not.toBe(
+        DEVICE_FACET_QUERY_FIELDS.lastSeen,
+      );
+    });
+  });
+
+  describe("refuses anything it cannot express honestly", () => {
+    test.each(JUNK_VALUES)(
+      "%s does not constrain the column",
+      (_label: string, raw: string) => {
+        expect(buildDeviceSnmpFacetQuery([raw], "is")).toBeUndefined();
+      },
+    );
+
+    /*
+     * The Status chip's words on the SNMP chip. A URL with the two facet keys
+     * swapped hands them here, and "down" is not a walk outcome — resolving it
+     * would file every unreachable device under "the walk is failing" and send
+     * their operator to check credentials on boxes that are switched off.
+     */
+    test.each(ALL_STATUS_VALUES)(
+      "the Status chip's %s value does not constrain the column",
+      (value: DeviceStatusFacetValue) => {
+        expect(buildDeviceSnmpFacetQuery([value], "is")).toBeUndefined();
+      },
+    );
+
+    test.each(ALL_INTERFACES_VALUES)(
+      "the Interfaces chip's %s value does not constrain the column",
+      (value: DeviceInterfacesFacetValue) => {
+        expect(buildDeviceSnmpFacetQuery([value], "is")).toBeUndefined();
+      },
+    );
+
+    test("an empty selection does not constrain the column", () => {
+      expect(buildDeviceSnmpFacetQuery([], "is")).toBeUndefined();
+    });
+
+    /*
+     * Single-select for the same reason as Status: the three values partition
+     * one column, so "ok or not configured" is not expressible as a single
+     * field query — and "is not failing" would silently drop every pinged-only
+     * device, because NULL fails the comparison either way.
+     */
+    test("a multi-select does not constrain the column", () => {
+      expect(
+        buildDeviceSnmpFacetQuery(
+          [DeviceSnmpFacetValue.Ok, DeviceSnmpFacetValue.NotConfigured],
+          "is",
+        ),
+      ).toBeUndefined();
+    });
+
+    test("a duplicated value is still a multi-select", () => {
+      expect(
+        buildDeviceSnmpFacetQuery(
+          [DeviceSnmpFacetValue.Failing, DeviceSnmpFacetValue.Failing],
+          "is",
+        ),
+      ).toBeUndefined();
+    });
+
+    test.each(OPERATORS_OTHER_THAN_IS)(
+      "the %s operator does not constrain the column",
+      (operator: FilterOperator) => {
+        for (const value of ALL_SNMP_VALUES) {
+          expect(buildDeviceSnmpFacetQuery([value], operator)).toBeUndefined();
+        }
+      },
+    );
+  });
+
+  // No clock in it, so the table cannot be pushed into a refetch loop.
+  test("serialises identically every time, with no clock in it", () => {
+    for (const value of ALL_SNMP_VALUES) {
+      expect(JSON.stringify(buildDeviceSnmpFacetQuery([value], "is"))).toBe(
+        JSON.stringify(buildDeviceSnmpFacetQuery([value], "is")),
+      );
     }
   });
 });
@@ -999,6 +1283,46 @@ describe("DEVICE_STATUS_FACET_OPTIONS", () => {
     expect(down!.sublabel).toContain("could not reach");
   });
 
+  /*
+   * ...and as monitor verdicts. `isReachable` is stamped from the bound
+   * monitor on a monitor-backed device, so the chip returns those rows too
+   * and its sublabel has to say so — "the last SNMP poll" alone would send
+   * an operator looking for a poll a ping-only phone never had.
+   */
+  test("the Up and Down options credit the bound monitor as well as the poll", () => {
+    const [up, down]: Array<FilterChipDropdownOption> =
+      DEVICE_STATUS_FACET_OPTIONS;
+
+    expect(up!.sublabel).toContain("bound monitor");
+    expect(down!.sublabel).toContain("bound monitor");
+  });
+
+  /*
+   * ...and as a PING first. Most of the fleet has no SNMP credentials at all
+   * — a poll is a ping, and a walk only where credentials exist — so a
+   * sublabel that credits the verdict to "the last SNMP poll" describes a
+   * poll those devices never had, and sends their operator hunting for
+   * credentials to explain a result the ping produced.
+   */
+  test("the Up and Down options name the ping, not an SNMP poll every device gets", () => {
+    const [up, down]: Array<FilterChipDropdownOption> =
+      DEVICE_STATUS_FACET_OPTIONS;
+
+    for (const sublabel of [up!.sublabel || "", down!.sublabel || ""]) {
+      expect(sublabel.toLowerCase()).toContain("ping");
+      expect(sublabel).not.toMatch(/SNMP poll/i);
+    }
+  });
+
+  test("the Pending option names a missing monitor as one way to be pending", () => {
+    const pending: FilterChipDropdownOption | undefined =
+      DEVICE_STATUS_FACET_OPTIONS.find((option: FilterChipDropdownOption) => {
+        return option.label === "Pending";
+      });
+
+    expect(pending?.sublabel?.toLowerCase()).toContain("no monitor bound");
+  });
+
   test("every option the menu offers actually filters", () => {
     for (const value of optionValues(DEVICE_STATUS_FACET_OPTIONS)) {
       expect(buildDeviceStatusFacetQuery([value], "is")).not.toBeUndefined();
@@ -1055,6 +1379,91 @@ describe("DEVICE_INTERFACES_FACET_OPTIONS", () => {
   test("every option the menu offers actually filters", () => {
     for (const value of optionValues(DEVICE_INTERFACES_FACET_OPTIONS)) {
       expect(buildDeviceInterfacesFacetQuery([value], "is")).toBeTruthy();
+    }
+  });
+});
+
+describe("DEVICE_SNMP_FACET_OPTIONS", () => {
+  test("offers every SNMP value exactly once", () => {
+    expect(optionValues(DEVICE_SNMP_FACET_OPTIONS)).toEqual([
+      "ok",
+      "failing",
+      "not-configured",
+    ]);
+  });
+
+  test("every option's value is a real facet value", () => {
+    for (const value of optionValues(DEVICE_SNMP_FACET_OPTIONS)) {
+      expect(ALL_SNMP_VALUES).toContain(value);
+    }
+  });
+
+  test("every facet value has exactly one option", () => {
+    const values: Array<string> = optionValues(DEVICE_SNMP_FACET_OPTIONS);
+
+    expect(new Set(values).size).toBe(values.length);
+
+    for (const value of ALL_SNMP_VALUES) {
+      expect(
+        values.filter((candidate: string) => {
+          return candidate === value;
+        }),
+      ).toHaveLength(1);
+    }
+  });
+
+  test("every option is readable and distinct in the dropdown", () => {
+    const labels: Array<string> = DEVICE_SNMP_FACET_OPTIONS.map(
+      (option: FilterChipDropdownOption): string => {
+        return option.label;
+      },
+    );
+
+    for (const label of labels) {
+      expect(label.length).toBeGreaterThan(0);
+    }
+
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  test("every option explains itself", () => {
+    for (const option of DEVICE_SNMP_FACET_OPTIONS) {
+      expect(option.sublabel).toBeTruthy();
+    }
+  });
+
+  /*
+   * The sublabels are the only place the list explains a column most devices
+   * are NULL in. "Not configured" therefore has to say what such a device is
+   * actually getting — a ping — rather than describing it as a walk that has
+   * not happened yet: a device with no credentials is never walked, and an
+   * operator told otherwise goes looking for interfaces that were never
+   * collected. "Failing" has to name the fix, because a failing walk is
+   * almost always credentials or SNMP switched off on the box.
+   */
+  test('"Not configured" says the device is pinged, not that a walk is pending', () => {
+    const notConfigured: FilterChipDropdownOption | undefined =
+      DEVICE_SNMP_FACET_OPTIONS.find((option: FilterChipDropdownOption) => {
+        return option.value === DeviceSnmpFacetValue.NotConfigured;
+      });
+
+    expect(notConfigured?.sublabel?.toLowerCase()).toContain("ping");
+  });
+
+  test('"Failing" points at the credentials rather than at the device being down', () => {
+    const failing: FilterChipDropdownOption | undefined =
+      DEVICE_SNMP_FACET_OPTIONS.find((option: FilterChipDropdownOption) => {
+        return option.value === DeviceSnmpFacetValue.Failing;
+      });
+
+    expect(failing?.sublabel?.toLowerCase()).toContain("credentials");
+    // The device is reachable; only its walk is not. Never "unreachable".
+    expect(failing?.sublabel?.toLowerCase()).not.toContain("unreachable");
+  });
+
+  test("every option the menu offers actually filters", () => {
+    for (const value of optionValues(DEVICE_SNMP_FACET_OPTIONS)) {
+      expect(buildDeviceSnmpFacetQuery([value], "is")).not.toBeUndefined();
     }
   });
 });

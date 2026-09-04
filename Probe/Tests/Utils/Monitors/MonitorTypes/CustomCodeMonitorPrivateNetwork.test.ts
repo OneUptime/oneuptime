@@ -35,6 +35,7 @@ interface CustomCodeMonitorClass {
 
 interface SandboxCallOptions {
   allowPrivateNetworkRequests?: boolean;
+  privateNetworkAccessIsAllowed?: boolean;
   privateNetworkHint?: string;
   timeout?: number;
 }
@@ -90,6 +91,14 @@ async function sandboxOptionsFor(
   return call[0]!.options;
 }
 
+function expectPrivateNetworkPolicy(
+  options: SandboxCallOptions,
+  expected: boolean,
+): void {
+  expect(options.allowPrivateNetworkRequests).toBe(expected);
+  expect(options.privateNetworkAccessIsAllowed).toBe(expected);
+}
+
 describe("CustomCodeMonitor private network policy", () => {
   const originalOneUptimeUrl: string | undefined = process.env["ONEUPTIME_URL"];
   const originalProbeKey: string | undefined = process.env["PROBE_KEY"];
@@ -126,13 +135,13 @@ describe("CustomCodeMonitor private network policy", () => {
   test("is off when the probe operator set nothing", async () => {
     const options: SandboxCallOptions = await sandboxOptionsFor(undefined);
 
-    expect(options.allowPrivateNetworkRequests).toBe(false);
+    expectPrivateNetworkPolicy(options, false);
   });
 
   test("is on when the probe operator set it", async () => {
     const options: SandboxCallOptions = await sandboxOptionsFor("true");
 
-    expect(options.allowPrivateNetworkRequests).toBe(true);
+    expectPrivateNetworkPolicy(options, true);
   });
 
   /*
@@ -144,7 +153,7 @@ describe("CustomCodeMonitor private network policy", () => {
     async (value: string) => {
       const options: SandboxCallOptions = await sandboxOptionsFor(value);
 
-      expect(options.allowPrivateNetworkRequests).toBe(false);
+      expectPrivateNetworkPolicy(options, false);
     },
   );
 

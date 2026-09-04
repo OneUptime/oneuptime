@@ -8,6 +8,10 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import {
+  DatabaseMetricDefinition,
+  getDatabaseMetricByMetricType,
+} from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -54,6 +58,22 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
       criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime;
+
+    /*
+     * A Database Health filter names its series in databaseMonitorOptions,
+     * not in the check, so its unit is per-metric - the same check reads a
+     * percentage, a byte count or a number of seconds depending on which
+     * metric was picked. The catalog is the only place that knows which,
+     * which is also why "Database Metric" is deliberately absent from the
+     * two flat lists above: they would label a byte count a percentage.
+     */
+    const databaseMetric: DatabaseMetricDefinition | null =
+      criteriaFilter?.checkOn === CheckOn.DatabaseMetric &&
+      criteriaFilter?.databaseMonitorOptions?.metricType
+        ? getDatabaseMetricByMetricType(
+            criteriaFilter.databaseMonitorOptions.metricType,
+          )
+        : null;
 
     // check evaluation over time values.
     if (
@@ -129,7 +149,15 @@ export default class CriteriaFilterUtil {
         criteriaFilter?.value +
         " - evaluates to true.";
     } else {
-      text += `"${criteriaFilter?.checkOn.toString()}" `;
+      /*
+       * Name the metric rather than the check: "Database Metric is greater
+       * than 90" says nothing about what is being measured, and every
+       * database filter would read identically in the criteria list.
+       */
+      const checkOnLabel: string =
+        databaseMetric?.friendlyName || criteriaFilter?.checkOn.toString();
+
+      text += `"${checkOnLabel}" `;
 
       if (criteriaFilter?.serverMonitorOptions?.diskPath) {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
@@ -173,9 +201,13 @@ export default class CriteriaFilterUtil {
             ? ` ${criteriaFilter.metricMonitorOptions.thresholdUnit}`
             : "";
 
+        const databaseUnitSuffix: string = databaseMetric?.unit
+          ? ` ${databaseMetric.unit}`
+          : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix} `;
       }
     }
 
@@ -393,6 +425,16 @@ export default class CriteriaFilterUtil {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === CheckOn.SnmpIsOnline ||
+          /*
+           * Offered beside "Is Online" because the two now mean different
+           * things: a device is online when it answers ping OR its walk
+           * succeeds, so a switch whose SNMP agent has stopped answering is
+           * still Online while its walk is not succeeding. Without this
+           * option an operator has no way to alert on the walk breaking —
+           * which is the failure that silently stops interface, topology and
+           * inventory data from arriving.
+           */
+          i.value === CheckOn.SnmpWalkIsSucceeding ||
           i.value === CheckOn.SnmpResponseTime ||
           i.value === CheckOn.SnmpOidValue ||
           i.value === CheckOn.SnmpOidExists ||
@@ -451,6 +493,23 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SqlQueryScalarValue ||
           i.value === CheckOn.SqlQueryExecutionTime ||
           i.value === CheckOn.SqlQueryError ||
+          i.value === CheckOn.JavaScriptExpression
+        );
+      });
+    }
+
+    /*
+     * Every collected series is reachable through the one DatabaseMetric
+     * check, which names it in databaseMonitorOptions.metricType - the same
+     * shape as SnmpOidValue and its OID. A check per metric would put forty
+     * entries in this dropdown and forty branches in the evaluator.
+     */
+    if (monitorType === MonitorType.Database) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.DatabaseIsOnline ||
+          i.value === CheckOn.DatabaseMetric ||
+          i.value === CheckOn.DatabaseCollectionError ||
           i.value === CheckOn.JavaScriptExpression
         );
       });
@@ -738,6 +797,14 @@ export default class CriteriaFilterUtil {
 
     if (
       checkOn === CheckOn.SnmpIsOnline ||
+      /*
+       * "Is False" on the walk means the walk was ATTEMPTED and failed. A
+       * poll that ran no walk at all — a device with no credentials, which
+       * is only pinged — is not evaluated against this criterion, so it can
+       * never raise an incident for a device nobody asked an OID of. See
+       * SnmpMonitorCriteria.isWalkDependentCheckOn.
+       */
+      checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
       checkOn === CheckOn.SnmpInterfaceIsDown
     ) {
@@ -954,6 +1021,54 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.IsEmpty ||
           i.value === FilterType.IsNotEmpty
         );
+      });
+    }
+
+    if (checkOn === CheckOn.DatabaseIsOnline) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (checkOn === CheckOn.DatabaseMetric) {
+      /*
+       * Listed in reading order instead of being filtered out of the enum,
+       * because the default a new filter opens on is options[0] and a
+       * database metric is a measurement: "connections used equal to 90" is
+       * almost never the rule anyone means. Equality still has to be
+       * offered - "replicas connected equal to 0" is a real alert.
+       */
+      options = [
+        FilterType.GreaterThan,
+        FilterType.LessThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
+      });
+    }
+
+    if (checkOn === CheckOn.DatabaseCollectionError) {
+      /*
+       * Ordered for the same reason: the rule worth writing about a
+       * collection error is "there is one at all", so Is Not Empty leads
+       * even though FilterType declares Is Empty first.
+       */
+      options = [
+        FilterType.IsNotEmpty,
+        FilterType.IsEmpty,
+        FilterType.Contains,
+        FilterType.NotContains,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
       });
     }
 
@@ -1384,6 +1499,9 @@ export default class CriteriaFilterUtil {
       if (monitorType === MonitorType.SQLQuery) {
         return "{{scalarValue}} > 50";
       }
+      if (monitorType === MonitorType.Database) {
+        return "{{metrics['oneuptime.monitor.database.connections.used.percent']}} > 90";
+      }
       return "{{responseBody.result}} === true";
     }
 
@@ -1401,6 +1519,15 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SqlQueryError) {
       return "connection refused";
+    }
+
+    if (checkOn === CheckOn.DatabaseMetric) {
+      return "90";
+    }
+
+    if (checkOn === CheckOn.DatabaseCollectionError) {
+      // The group name or the grant named in the collection issue.
+      return "pg_monitor";
     }
 
     if (checkOn === CheckOn.ResponseStatusCode) {

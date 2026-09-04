@@ -1,6 +1,7 @@
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "./DeviceReachabilityUtil";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * The one place that decides how healthy a single NetworkDevice is, and how
@@ -15,10 +16,12 @@ import DeviceReachabilityUtil, {
  *
  * So the rule moves here, and both halves read it:
  *
- *   status  — a monitor-stamped status wins outright; otherwise the shared
- *             reachability rule (the OUTCOME of the last poll, never its
- *             age) decides, and a device nothing has ever polled is
- *             `unknown` rather than a failure.
+ *   status  — for a MONITOR-BACKED device the stamped monitor status is the
+ *             verdict; for a probe-polled device the shared reachability
+ *             rule (the OUTCOME of the last poll, never its age) decides and
+ *             the stamp is informational only (see the input docs); a device
+ *             nothing has ever polled — or a monitor-backed device nothing
+ *             has yet reported on — is `unknown` rather than a failure.
  *   degraded — an up device with dark ports. A switch that answers every
  *             poll while three of its interfaces are down is not down, but
  *             it is exactly what somebody is looking for.
@@ -55,9 +58,18 @@ export type NetworkDeviceHealthState =
  * The columns the classifier reads. Every caller selects exactly these.
  *
  * `monitorStatusIsOffline` is the OFFLINE end of the device's stamped
- * MonitorStatus row — `undefined` when no monitor backs the device (the
- * ordinary case for an SNMP-walked switch), which is what sends the
- * decision down to reachability.
+ * MonitorStatus row — `undefined` when nothing has stamped one, which is
+ * what sends the decision down to reachability.
+ *
+ * It is CONSULTED ONLY FOR A MONITOR-BACKED DEVICE (monitoringMethod
+ * "Monitor"). A probe-polled device can carry a stamp too — a Network
+ * Device monitor watching its walk writes one, and an "interface down →
+ * Offline" criterion will happily stamp Offline on a switch that answers
+ * every ping — but its health source is the poll: `isReachable` is what its
+ * pill, the summary tiles and the Status chip all read, and a classifier
+ * that let the stamp outrank it would colour the site card and the map red
+ * over a device whose own row reads Up. So for a probe-polled device the
+ * stamp stays informational and reachability decides.
  *
  * The offline end and not the operational end, because MonitorStatus is a
  * ladder rather than a pair: the seeded rows run Operational (1) ...
@@ -74,6 +86,24 @@ export interface DeviceHealthStateInput {
   lastPolledAt?: Date | string | null | undefined;
   lastSeenAt?: Date | string | null | undefined;
   pollingIntervalInMinutes?: number | null | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Load-bearing twice. It decides whether `monitorStatusIsOffline` above is
+   * read at all (only for a monitor-backed device). And when a monitor-backed
+   * device has NO stamped status to read — nothing bound yet, or bound and
+   * never evaluated — the shared rule answers Pending ("unknown" here)
+   * rather than falling through to the poll columns, which on such a device
+   * are either NULL or, worse, the last thing a probe found before it
+   * stopped asking: a device switched from Probe to Monitor keeps its old
+   * lastSeenAt until the switch-over clears it, and a caller that dropped
+   * this field would let that months-old timestamp call the device "down" on
+   * the site card while its own row in the device list reads Pending.
+   */
+  monitoringMethod?: string | null | undefined;
   interfacesDown?: number | null | undefined;
 }
 
@@ -96,11 +126,13 @@ export interface DeviceHealthCounts {
 /**
  * The state of one device.
  *
- * Order is load-bearing. A stamped monitor status is the operator's own
- * system of record and beats everything; then hard-down beats everything
- * else, because a device that does not answer has interface counts that
- * are by definition stale; then — and only for a device known to be up —
- * dark ports make it degraded.
+ * Order is load-bearing. On a monitor-backed device the stamped monitor
+ * status is the operator's own system of record and beats everything; on a
+ * probe-polled one the poll's outcome does (the stamp is informational —
+ * see the input docs); then hard-down beats everything else, because a
+ * device that does not answer has interface counts that are by definition
+ * stale; then — and only for a device known to be up — dark ports make it
+ * degraded.
  *
  * Note what this means for a device stamped "Degraded": the ladder does not
  * call it offline, so it is up, and it lands in "degraded" only if it also
@@ -119,9 +151,19 @@ export function deviceHealthState(
 
   let isUp: boolean;
 
+  /*
+   * The stamp is read for a monitor-backed device and nothing else. The
+   * shared reachability rule below applies the same gate, so the two
+   * branches cannot be reached with different ideas of what kind of device
+   * this is.
+   */
+  const isMonitorBacked: boolean =
+    NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod);
+
   if (
-    device.monitorStatusIsOffline === true ||
-    device.monitorStatusIsOffline === false
+    isMonitorBacked &&
+    (device.monitorStatusIsOffline === true ||
+      device.monitorStatusIsOffline === false)
   ) {
     // Anything the ladder does not call OFFLINE is up. See the input docs.
     isUp = !device.monitorStatusIsOffline;
@@ -133,6 +175,15 @@ export function deviceHealthState(
           lastPolledAt: device.lastPolledAt,
           lastSeenAt: device.lastSeenAt,
           pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+          /*
+           * Carried so the shared rule knows whether the poll columns above
+           * mean anything. A monitor-backed device only reaches this branch
+           * with NO stamped status (the one above took every stamped one),
+           * so for it this is exactly the "Pending" case — see the input
+           * docs. A probe-polled device always reaches it, stamp or no
+           * stamp, and is judged by its poll.
+           */
+          monitoringMethod: device.monitoringMethod,
         },
         now,
       );

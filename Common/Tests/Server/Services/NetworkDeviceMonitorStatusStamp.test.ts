@@ -9,11 +9,13 @@ import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkD
 import ObjectID from "../../../Types/ObjectID";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test — OneUptime/oneuptime#3392, "a correctly bound
- * ping-only device is stuck on Pending".
+ * ping-only device is stuck on Pending", and its second half: the device
+ * list's summary tiles and Status facet still said "Pending" for such a
+ * device after the pill said Up.
  *
  * A monitor-backed NetworkDevice is never polled: no probe, no
  * credentials, no walk. Its ONLY source of health is the Monitor bound to
@@ -28,15 +30,27 @@ import { afterEach, describe, expect, it } from "@jest/globals";
  * down. On a healthy device that is never, which is why the reporter's
  * phone stayed on "Pending" while it answered every ping.
  *
+ * The tiles and the facet are a separate surface with a separate rule:
+ * they count and filter in SQL over `isReachable` alone, because they
+ * cannot walk the stamp's ladder per row. So the stamp alone left them
+ * wrong, and the server now keeps `isReachable` on a monitor-backed device
+ * in step with the monitor — `!isOfflineState`, NULL when nothing is bound
+ * — in the same write as the stamp.
+ *
  * What is pinned here:
  *
  *   - binding stamps the monitor's CURRENT status immediately, on create
  *     and on update, rather than waiting for its next change,
- *   - the site chain is recomputed when the stamp moves, and only then,
- *   - unbinding (or switching the device back to SNMP) clears the stamp,
- *     so a ping monitor's verdict cannot outlive the binding,
- *   - an SNMP device's stamp — which comes from the Network Device monitor
- *     watching its walk, not from this column — is never touched,
+ *   - `isReachable` is written with it, from the OFFLINE end of the
+ *     ladder, and both go in ONE write,
+ *   - the site chain is recomputed when either moves, and only then,
+ *   - unbinding clears both; switching the device back to Probe clears the
+ *     stamp, the mirrored `isReachable` and the SNMP walk's pair, and
+ *     leaves all of them to the next poll,
+ *   - a Probe device's stamp — which comes from the Network Device monitor
+ *     watching its polls, not from this column — is never touched, and in
+ *     particular a form re-sending "Probe" on a Probe device is not a
+ *     transition,
  *   - the monitor lookup is scoped to the device's own project,
  *   - and a failure in any of it never escapes into the device update.
  */
@@ -63,6 +77,9 @@ const OPERATIONAL_STATUS_ID: ObjectID = new ObjectID(
 const OFFLINE_STATUS_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
 );
+const DEGRADED_STATUS_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
 
 function fakeDevice(overrides: Record<string, unknown>): NetworkDevice {
   return {
@@ -73,11 +90,29 @@ function fakeDevice(overrides: Record<string, unknown>): NetworkDevice {
   } as unknown as NetworkDevice;
 }
 
-function fakeMonitor(currentMonitorStatusId: ObjectID | undefined): Monitor {
+/*
+ * The monitor as refreshStampedMonitorStatus selects it: the stamp id plus
+ * the OFFLINE flag of the status row behind it. `isOfflineState` defaults
+ * from the id so the common cases read naturally; the Degraded case sets
+ * it explicitly, because that rung is the one where the two flags of the
+ * ladder disagree.
+ */
+function fakeMonitor(
+  currentMonitorStatusId: ObjectID | undefined,
+  isOfflineState?: boolean,
+): Monitor {
+  const offline: boolean =
+    isOfflineState === undefined
+      ? currentMonitorStatusId?.toString() === OFFLINE_STATUS_ID.toString()
+      : isOfflineState;
+
   return {
     id: MONITOR_ID,
     _id: MONITOR_ID.toString(),
     currentMonitorStatusId: currentMonitorStatusId,
+    currentMonitorStatus: currentMonitorStatusId
+      ? { isOfflineState: offline }
+      : undefined,
   } as unknown as Monitor;
 }
 
@@ -120,7 +155,8 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
 
   /*
    * The fix, stated once: the device in the issue, bound to a Ping monitor
-   * that is Operational and has been for weeks.
+   * that is Operational and has been for weeks. Both columns land, in one
+   * write.
    */
   it("stamps the bound monitor's current status onto a monitor-backed device", async () => {
     const { update } = mockDeviceAndMonitor({
@@ -143,14 +179,20 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
     expect(args.data.currentMonitorStatusId.toString()).toBe(
       OPERATIONAL_STATUS_ID.toString(),
     );
+    expect(args.data.isReachable).toBe(true);
+    expect(Object.keys(args.data).sort()).toEqual([
+      "currentMonitorStatusId",
+      "isReachable",
+    ]);
   });
 
-  it("stamps an offline monitor just the same, so the device reads Down", async () => {
+  it("stamps an offline monitor just the same, so the device reads Down everywhere", async () => {
     const { update } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: MONITOR_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: fakeMonitor(OFFLINE_STATUS_ID),
     });
@@ -160,9 +202,39 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
       clearWhenNotMonitorBacked: false,
     });
 
-    expect(
-      update.mock.calls[0]![0].data.currentMonitorStatusId.toString(),
-    ).toBe(OFFLINE_STATUS_ID.toString());
+    const data: any = update.mock.calls[0]![0].data;
+    expect(data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
+    expect(data.isReachable).toBe(false);
+  });
+
+  /*
+   * MonitorStatus is a ladder, not a pair: a "Degraded" row is neither
+   * operational nor offline. DeviceReachabilityUtil reads only the offline
+   * end for the pill, so the value stamped here has to be derived from the
+   * same end — reading the operational flag would paint a degraded device
+   * red in the tiles and green in the pill.
+   */
+  it("stamps a Degraded monitor as reachable, matching the pill's rule", async () => {
+    const { update } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitorId: MONITOR_ID,
+      }),
+      monitor: fakeMonitor(DEGRADED_STATUS_ID, false),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: false,
+    });
+
+    const data: any = update.mock.calls[0]![0].data;
+    expect(data.currentMonitorStatusId.toString()).toBe(
+      DEGRADED_STATUS_ID.toString(),
+    );
+    expect(data.isReachable).toBe(true);
   });
 
   /*
@@ -209,17 +281,19 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
 
   /*
    * Idempotence is what makes this safe to call from every save and from
-   * the upgrade backfill: re-deriving a stamp that already agrees must
-   * cost nothing and, more importantly, must not churn the site rollups of
-   * a whole estate on every unrelated device edit.
+   * the upgrade backfill: re-deriving a row that already agrees must cost
+   * nothing and, more importantly, must not churn the site rollups of a
+   * whole estate on every unrelated device edit. "Agrees" is both
+   * columns, not just the stamp.
    */
-  it("writes nothing when the stamp already agrees", async () => {
+  it("writes nothing when the stamp and isReachable already agree", async () => {
     const { update, rollup } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: MONITOR_ID,
         siteId: SITE_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: fakeMonitor(OPERATIONAL_STATUS_ID),
     });
@@ -234,15 +308,48 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
   });
 
   /*
+   * The row every pre-upgrade monitor-backed device is in: the stamp was
+   * put there by a status change, but nothing ever wrote isReachable, so
+   * the tiles still count it as Pending. A stamp that agrees is not a
+   * reason to skip the write.
+   */
+  it("writes both when the stamp agrees but isReachable is stale", async () => {
+    const { update, rollup } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitorId: MONITOR_ID,
+        siteId: SITE_ID,
+        currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: undefined,
+      }),
+      monitor: fakeMonitor(OPERATIONAL_STATUS_ID),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: false,
+    });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    const data: any = update.mock.calls[0]![0].data;
+    expect(data.currentMonitorStatusId.toString()).toBe(
+      OPERATIONAL_STATUS_ID.toString(),
+    );
+    expect(data.isReachable).toBe(true);
+    expect(rollup).toHaveBeenCalledTimes(1);
+  });
+
+  /*
    * Discovery import creates ping-only hosts with no monitor on purpose —
    * a subnet sweep has nothing to bind them to yet. "Pending" is the true
    * answer for those, so nothing is invented for them.
    */
-  it("leaves an already-empty stamp alone when no monitor is bound", async () => {
+  it("leaves an already-empty row alone when no monitor is bound", async () => {
     const { update, findMonitor } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: undefined,
+        isReachable: undefined,
       }),
     });
 
@@ -257,14 +364,15 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
 
   /*
    * ...and the same device once its monitor is unbound. The old verdict
-   * must not survive the binding that produced it.
+   * must not survive the binding that produced it — on either column.
    */
-  it("clears the stamp when the monitor is unbound", async () => {
+  it("clears the stamp and isReachable when the monitor is unbound", async () => {
     const { update } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: undefined,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
     });
 
@@ -274,19 +382,50 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
     });
 
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0]![0].data.currentMonitorStatusId).toBeNull();
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+    });
+  });
+
+  /*
+   * An unbound device whose stamp is already empty but whose isReachable
+   * is not: a device switched over from probe polling before the transition started
+   * clearing poll residue. The stale `true` would keep it in the "Up" tile.
+   */
+  it("nulls a stale isReachable on an unbound device even when the stamp is already empty", async () => {
+    const { update } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitorId: undefined,
+        currentMonitorStatusId: undefined,
+        isReachable: true,
+      }),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: false,
+    });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+    });
   });
 
   /*
    * A bound monitor that has somehow never had a status is the same case:
    * there is nothing to adopt, and a stale stamp is worse than none.
    */
-  it("clears the stamp when the bound monitor has no status of its own", async () => {
+  it("clears both when the bound monitor has no status of its own", async () => {
     const { update } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: MONITOR_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: fakeMonitor(undefined),
     });
@@ -296,15 +435,19 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
       clearWhenNotMonitorBacked: false,
     });
 
-    expect(update.mock.calls[0]![0].data.currentMonitorStatusId).toBeNull();
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+    });
   });
 
-  it("clears the stamp when the bound monitor is gone", async () => {
+  it("clears both when the bound monitor is gone", async () => {
     const { update } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
         monitorId: MONITOR_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: null,
     });
@@ -314,12 +457,15 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
       clearWhenNotMonitorBacked: false,
     });
 
-    expect(update.mock.calls[0]![0].data.currentMonitorStatusId).toBeNull();
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+    });
   });
 
   /*
    * The monitorId FK only requires the Monitor row to exist, not that it
-   * belongs to the device's project — the same hole the create/update
+   * belongs to the device's project — the same hole the create and update
    * guards close. Reading it back through a project-scoped query is what
    * stops another tenant's status being stamped here.
    */
@@ -344,17 +490,43 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
   });
 
   /*
-   * An SNMP device's stamp comes from the Network Device monitor watching
-   * its walk, and that binding lives in the monitor's step data rather
-   * than in this column. Re-deriving it from `monitorId` would wipe a
-   * legitimate status the walk pipeline put there.
+   * The offline flag lives on the MonitorStatus row, not on the monitor.
+   * A select that dropped the relation would read `undefined` for every
+   * monitor and stamp every device reachable.
    */
-  it("does not touch an SNMP device by default", async () => {
+  it("selects the offline flag of the monitor's status row", async () => {
+    const { findMonitor } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitorId: MONITOR_ID,
+      }),
+      monitor: fakeMonitor(OPERATIONAL_STATUS_ID),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: false,
+    });
+
+    const select: any = findMonitor.mock.calls[0]![0].select;
+    expect(select.currentMonitorStatusId).toBe(true);
+    expect(select.currentMonitorStatus).toEqual({ isOfflineState: true });
+  });
+
+  /*
+   * A Probe device's stamp comes from the Network Device monitor watching
+   * its polls, and that binding lives in the monitor's step data rather
+   * than in this column. Re-deriving it from `monitorId` would wipe a
+   * legitimate status the poll pipeline put there — and its isReachable
+   * is the poll's own verdict.
+   */
+  it("does not touch a Probe device by default", async () => {
     const { update, findMonitor } = mockDeviceAndMonitor({
       device: fakeDevice({
-        monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
         monitorId: MONITOR_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: fakeMonitor(OFFLINE_STATUS_ID),
     });
@@ -370,9 +542,9 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
 
   /*
    * A device created before the column existed holds NULL, which reads as
-   * SNMP — and must behave as one.
+   * Probe — and must behave as one.
    */
-  it("treats a device with no monitoring method as SNMP", async () => {
+  it("treats a device with no monitoring method as Probe", async () => {
     const { update } = mockDeviceAndMonitor({
       device: fakeDevice({
         monitoringMethod: undefined,
@@ -391,19 +563,28 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
   });
 
   /*
-   * The one write that DOES clear an SNMP device: the one that just moved
-   * it off monitor-backed. The ping monitor's verdict outliving the
+   * The one write that DOES clear a Probe device: the one that just moved
+   * it off monitor-backed. The bound monitor's verdict outliving the
    * binding matters because a stamped status beats reachability in
    * DeviceHealthStateUtil — it would keep deciding the site rollup of a
-   * device that is now being walked.
+   * device that is now being polled.
+   *
+   * And the mirrored `isReachable` goes with it. While the device was
+   * monitor-backed that column could only ever be the bound monitor's
+   * mirror (the poll's value was NULLed on the way in, and the poll never
+   * writes a monitor-backed row), so leaving it would make the device read
+   * "Down — the last poll could not reach it" on every surface from a
+   * verdict no poll ever produced. NULL is Pending until the first poll.
+   * The SNMP walk's pair is NULLed in the same write — see below.
    */
-  it("clears the stamp when a device is switched back to SNMP", async () => {
-    const { update, rollup } = mockDeviceAndMonitor({
+  it("clears the stamp and the mirrored isReachable when a device is switched back to Probe", async () => {
+    const { update, rollup, findMonitor } = mockDeviceAndMonitor({
       device: fakeDevice({
-        monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
         monitorId: MONITOR_ID,
         siteId: SITE_ID,
         currentMonitorStatusId: OPERATIONAL_STATUS_ID,
+        isReachable: true,
       }),
       monitor: fakeMonitor(OPERATIONAL_STATUS_ID),
     });
@@ -413,9 +594,115 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
       clearWhenNotMonitorBacked: true,
     });
 
+    expect(findMonitor).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0]![0].data.currentMonitorStatusId).toBeNull();
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+      isSnmpReachable: null,
+      lastSnmpSeenAt: null,
+    });
     expect(rollup).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The mirror can outlive the stamp on its own — the monitor was deleted
+   * (stamp cleared) while isReachable stayed — and it is just as wrong.
+   */
+  it("clears a mirrored isReachable even when the stamp is already gone", async () => {
+    const { update, rollup } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        monitorId: undefined,
+        siteId: SITE_ID,
+        currentMonitorStatusId: undefined,
+        isReachable: false,
+      }),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: true,
+    });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0]![0].data).toEqual({
+      currentMonitorStatusId: null,
+      isReachable: null,
+      isSnmpReachable: null,
+      lastSnmpSeenAt: null,
+    });
+    expect(rollup).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The SNMP walk's pair is residue of the same kind: nothing walked the
+   * device while it was monitor-backed, so whatever those two columns hold
+   * predates the binding, and a device switched back to Probe starts clean
+   * — its first poll decides whether SNMP answers. A failed walk (`false`)
+   * is a verdict, so it counts as something to clear; only NULL is "no
+   * walk".
+   */
+  it.each([
+    ["a failed walk", { isSnmpReachable: false }],
+    ["a successful walk", { isSnmpReachable: true }],
+    [
+      "a last successful walk time",
+      { lastSnmpSeenAt: new Date("2026-08-01T00:00:00.000Z") },
+    ],
+  ])(
+    "clears the SNMP walk's residue (%s) when a device is switched back to Probe, even with no stamp and no mirror",
+    async (_label: string, residue: Record<string, unknown>) => {
+      const { update, rollup } = mockDeviceAndMonitor({
+        device: fakeDevice({
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+          siteId: SITE_ID,
+          currentMonitorStatusId: undefined,
+          isReachable: undefined,
+          ...residue,
+        }),
+      });
+
+      await NetworkDeviceService.refreshStampedMonitorStatus({
+        deviceId: DEVICE_ID,
+        clearWhenNotMonitorBacked: true,
+      });
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0]![0].data).toEqual({
+        currentMonitorStatusId: null,
+        isReachable: null,
+        isSnmpReachable: null,
+        lastSnmpSeenAt: null,
+      });
+      expect(rollup).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  /*
+   * ...and a Probe device with nothing stamped, no mirrored verdict and no
+   * walk residue has nothing to clear. A null-over-null write would still
+   * recompute the site chain for nothing.
+   */
+  it("writes nothing when asked to clear a Probe device that has no stamp, no mirror and no walk residue", async () => {
+    const { update, rollup } = mockDeviceAndMonitor({
+      device: fakeDevice({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        siteId: SITE_ID,
+        currentMonitorStatusId: undefined,
+        isReachable: undefined,
+        isSnmpReachable: undefined,
+        lastSnmpSeenAt: undefined,
+      }),
+    });
+
+    await NetworkDeviceService.refreshStampedMonitorStatus({
+      deviceId: DEVICE_ID,
+      clearWhenNotMonitorBacked: true,
+    });
+
+    expect(update).not.toHaveBeenCalled();
+    expect(rollup).not.toHaveBeenCalled();
   });
 
   it("does nothing for a device the update never actually matched", async () => {
@@ -449,8 +736,10 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
   /*
    * The columns the method reads. A select that drops one of them makes
    * this silently wrong rather than loudly broken — a missing
-   * `monitoringMethod` reads as SNMP and skips every monitor-backed
-   * device, which is the bug all over again.
+   * `monitoringMethod` reads as Probe and skips every monitor-backed
+   * device, which is the bug all over again, and a missing `isReachable`
+   * reads as "never written" and rewrites every device on every save. The
+   * SNMP pair is read only to decide whether the clear has anything to do.
    */
   it("selects every column its decision depends on", async () => {
     const findDevice: jest.SpyInstance = jest
@@ -466,6 +755,9 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
     expect(select.monitoringMethod).toBe(true);
     expect(select.monitorId).toBe(true);
     expect(select.currentMonitorStatusId).toBe(true);
+    expect(select.isReachable).toBe(true);
+    expect(select.isSnmpReachable).toBe(true);
+    expect(select.lastSnmpSeenAt).toBe(true);
     expect(select.projectId).toBe(true);
     expect(select.siteId).toBe(true);
   });
@@ -477,8 +769,27 @@ describe("NetworkDeviceService.refreshStampedMonitorStatus", () => {
  * `monitor` RELATION together; server-side callers write the `monitorId`
  * COLUMN. Both spellings have to fire, or the fix reaches only half the
  * writes (OneUptime/oneuptime#2940 is the same lesson for sites).
+ *
+ * Whether the re-stamp may CLEAR is decided from what onBeforeUpdate
+ * recorded about each device's previous method (carryForward), never from
+ * the payload alone: the form re-sends monitoringMethod on every save, so
+ * "the payload says Probe" used to wipe the stamp of every Probe device that
+ * was ever saved.
  */
 describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () => {
+  let residueWrite: jest.SpyInstance;
+
+  beforeEach(() => {
+    /*
+     * The Probe -> Monitor transition clears poll residue through this
+     * seam, and the Monitor -> Probe transition restores polling through
+     * it; mocked so no case here reaches a database.
+     */
+    residueWrite = jest
+      .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -486,6 +797,7 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
   function runOnUpdateSuccess(
     data: Record<string, unknown>,
     updatedItemIds: Array<ObjectID> = [DEVICE_ID],
+    carryForward: unknown = null,
   ): Promise<OnUpdate<NetworkDevice>> {
     const onUpdate: OnUpdate<NetworkDevice> = {
       updateBy: {
@@ -493,13 +805,23 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
         data: data,
         props: { isRoot: true },
       } as unknown as UpdateBy<NetworkDevice>,
-      carryForward: null,
+      carryForward: carryForward,
     };
 
     return (NetworkDeviceService as any).onUpdateSuccess(
       onUpdate,
       updatedItemIds,
     );
+  }
+
+  // What onBeforeUpdate hands over on a method write.
+  function methodCarryForward(
+    wasMonitorBackedByDeviceId: Record<string, boolean>,
+  ): unknown {
+    return {
+      previousDevices: [],
+      wasMonitorBackedByDeviceId: wasMonitorBackedByDeviceId,
+    };
   }
 
   it("re-stamps when the monitoring method is written", async () => {
@@ -539,29 +861,93 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
 
   /*
    * The exact save from the issue: Monitoring Method and Monitor set in one
-   * submit, which is how the Device Details card posts them.
+   * submit, on a device that was Probe until now. Nothing to clear — the
+   * device is arriving at monitor-backed, not leaving it — and its poll
+   * residue goes before the re-stamp so the monitor's verdict is what
+   * lands.
    */
   it("re-stamps the reported save, which writes both at once", async () => {
     const refresh: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
       .mockResolvedValue(undefined as never);
 
-    await runOnUpdateSuccess({
-      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
-      monitor: { _id: MONITOR_ID.toString() },
-      deviceRole: "IP phone",
-    });
+    await runOnUpdateSuccess(
+      {
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitor: { _id: MONITOR_ID.toString() },
+        deviceRole: "IP phone",
+      },
+      [DEVICE_ID],
+      methodCarryForward({ [DEVICE_ID.toString()]: false }),
+    );
 
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(refresh.mock.calls[0]![0].clearWhenNotMonitorBacked).toBe(true);
+    expect(refresh.mock.calls[0]![0].clearWhenNotMonitorBacked).toBe(false);
+    expect(residueWrite).toHaveBeenCalledTimes(1);
+    expect(residueWrite.mock.invocationCallOrder[0]).toBeLessThan(
+      refresh.mock.invocationCallOrder[0]!,
+    );
   });
 
   /*
-   * A method write is the only thing allowed to clear an SNMP device's
-   * stamp, because it is the only write that can have just moved the
-   * device off monitor-backed. Binding alone must not.
+   * THE regression. The Settings form re-sends monitoringMethod on every
+   * save, so a Probe device saved with a new name arrives here with
+   * "Probe" in the payload. Before carryForward existed that was read as a
+   * transition and the stamp its Network Device monitor had put there was
+   * wiped on every save.
    */
-  it("only asks to clear on a method write", async () => {
+  it("does not ask to clear when a Probe device is re-saved as Probe", async () => {
+    const refresh: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
+      .mockResolvedValue(undefined as never);
+
+    await runOnUpdateSuccess(
+      {
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        name: "core-sw-01",
+      },
+      [DEVICE_ID],
+      methodCarryForward({ [DEVICE_ID.toString()]: false }),
+    );
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh.mock.calls[0]![0].clearWhenNotMonitorBacked).toBe(false);
+    expect(residueWrite).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The one write that may clear: the device WAS monitor-backed and the
+   * payload moves it off. Only the previous method can say so.
+   */
+  it("asks to clear on a real Monitor -> Probe transition", async () => {
+    const refresh: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
+      .mockResolvedValue(undefined as never);
+
+    await runOnUpdateSuccess(
+      { monitoringMethod: NetworkDeviceMonitoringMethod.Probe },
+      [DEVICE_ID],
+      methodCarryForward({ [DEVICE_ID.toString()]: true }),
+    );
+
+    expect(refresh.mock.calls[0]![0].clearWhenNotMonitorBacked).toBe(true);
+    /*
+     * The only root write this direction makes is the polling restore
+     * (pinned in NetworkDeviceMonitoringMethodTransition.test); never a
+     * residue reset, which is the other direction's.
+     */
+    expect(
+      residueWrite.mock.calls.filter((call: Array<any>) => {
+        return "lastSeenAt" in call[0].data;
+      }),
+    ).toHaveLength(0);
+  });
+
+  /*
+   * A binding-only write cannot be a transition, whatever the device's
+   * method: there is no previous method to compare and nothing to clear.
+   */
+  it("only ever asks to clear on a method write", async () => {
     const refresh: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
       .mockResolvedValue(undefined as never);
@@ -569,6 +955,7 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
     await runOnUpdateSuccess({ monitorId: MONITOR_ID });
 
     expect(refresh.mock.calls[0]![0].clearWhenNotMonitorBacked).toBe(false);
+    expect(residueWrite).not.toHaveBeenCalled();
   });
 
   it("re-stamps every device a bulk update touched", async () => {
@@ -605,6 +992,7 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
     );
 
     expect(refresh).not.toHaveBeenCalled();
+    expect(residueWrite).not.toHaveBeenCalled();
   });
 
   /*
@@ -621,6 +1009,7 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
     await runOnUpdateSuccess({ sysName: "un0661voipcp01", interfacesDown: 2 });
 
     expect(refresh).not.toHaveBeenCalled();
+    expect(residueWrite).not.toHaveBeenCalled();
   });
 
   /*
@@ -668,8 +1057,8 @@ describe("NetworkDeviceService.onUpdateSuccess re-stamps a changed binding", () 
 
 /*
  * The create side. A device can arrive monitor-backed and already bound —
- * the "Add Device" form asks for the monitor in the same submit, and the
- * discovery review screen imports ping-only hosts in bulk — so waiting for
+ * the API and Terraform can post the method and the monitor in one body —
+ * so waiting for
  * a later edit to stamp it would leave a freshly created device on
  * "Pending" for exactly the same reason the reported one was.
  *
@@ -748,18 +1137,18 @@ describe("NetworkDeviceService.onCreateSuccess stamps a device created bound", (
   });
 
   /*
-   * Every SNMP device ever created goes through this hook, including a
+   * Every Probe device ever created goes through this hook, including a
    * whole subnet at a time on discovery import. None of them has anything
    * to stamp, so none of them pays for a device read and a monitor read.
    */
-  it("does not touch an SNMP device", async () => {
+  it("does not touch a Probe device", async () => {
     mockRuleChain();
     const refresh: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "refreshStampedMonitorStatus")
       .mockResolvedValue(undefined as never);
 
     await runOnCreateSuccess(
-      fakeDevice({ monitoringMethod: NetworkDeviceMonitoringMethod.Snmp }),
+      fakeDevice({ monitoringMethod: NetworkDeviceMonitoringMethod.Probe }),
     );
 
     expect(refresh).not.toHaveBeenCalled();

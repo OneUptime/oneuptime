@@ -19,6 +19,8 @@ import BasicInfrastructureMetrics, {
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
+import { getAllDatabaseMetrics } from "../../../Types/Monitor/DatabaseMetricCatalog";
+import DatabaseMonitorResponse from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
@@ -954,6 +956,45 @@ export default class MonitorMetricUtil {
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
+    }
+
+    const databaseResponse: DatabaseMonitorResponse | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).databaseMonitorResponse;
+
+    if (databaseResponse) {
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      /*
+       * Driven off the catalog rather than a list here so a metric is wired
+       * end to end the moment it is added there. Every database series is
+       * single-valued per check, so there is no per-series fan-out to cap
+       * and probeId is the only attribute worth carrying.
+       *
+       * A metric the engine could not report, or whose group was skipped,
+       * is simply absent from the map and pushMonitorMetric writes no row
+       * for it. Absent must never become zero: a replication lag that was
+       * not measured and a replication lag of zero mean opposite things.
+       */
+      for (const definition of getAllDatabaseMetrics()) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: definition.metricType,
+          value: databaseResponse.metrics[definition.metricType],
+          description: definition.description,
+          unit: definition.unit,
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
     }
 
     const snmpInterfaces: Array<SnmpInterface> | undefined = (

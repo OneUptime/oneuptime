@@ -96,7 +96,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
                 trySend();
               }
             }}
-            className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+            className="max-h-40 flex-1 resize-none overscroll-contain border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
           />
           {props.isWorking && props.onStop ? (
             <button

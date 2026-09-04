@@ -10,17 +10,17 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
-import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
-import logger from "Common/Server/Utils/Logger";
-import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
-import {
-  HttpTimingAgents,
-  HttpTimingCollector,
-  TimedAgents,
-} from "../../HttpTimingAgents";
-import https from "https";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import TimeoutException from "Common/Types/Exception/TimeoutException";
+import { HttpTimingCollector } from "../../HttpTimingAgents";
+import HttpMonitorRequest, {
+  HttpMonitorExecutionContext,
+  PreparedHttpMonitorRequest,
+  RedirectRequest,
+} from "../HttpMonitorRequest";
 
 export interface APIResponse {
   url: URL;
@@ -58,6 +58,7 @@ export default class ApiMonitor {
       tlsClientKey?: string | undefined;
       tlsClientKeyPassphrase?: string | undefined;
       attempts?: Array<ProbeAttempt> | undefined;
+      executionContext?: HttpMonitorExecutionContext | undefined;
     },
   ): Promise<APIResponse | null> {
     if (!options) {
@@ -72,82 +73,18 @@ export default class ApiMonitor {
       options.attempts = [];
     }
 
+    const ownsExecutionContext: boolean = !options.executionContext;
+    if (!options.executionContext) {
+      options.executionContext = new HttpMonitorExecutionContext(
+        options.timeout?.toNumber() || 5000,
+      );
+    }
+    const executionContext: HttpMonitorExecutionContext =
+      options.executionContext;
+
     const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
-    const allowSelfSignedCertificates: boolean = Boolean(
-      options.allowSelfSignedCertificates,
-    );
-
-    const tlsClientCertificate: string | undefined =
-      options.tlsClientCertificate
-        ? options.tlsClientCertificate.trim() || undefined
-        : undefined;
-    const tlsClientKey: string | undefined = options.tlsClientKey
-      ? options.tlsClientKey.trim() || undefined
-      : undefined;
-    const hasClientCert: boolean = Boolean(
-      tlsClientCertificate && tlsClientKey,
-    );
-    const tlsClientKeyPassphrase: string | undefined =
-      options.tlsClientKeyPassphrase || undefined;
-
     const timingCollector: HttpTimingCollector = new HttpTimingCollector();
-
-    const buildAgents: () => ProxyAgents = (): ProxyAgents => {
-      const proxyOptions: {
-        rejectUnauthorized?: boolean;
-        cert?: string;
-        key?: string;
-        passphrase?: string;
-      } = {};
-      if (allowSelfSignedCertificates) {
-        proxyOptions.rejectUnauthorized = false;
-      }
-      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
-        proxyOptions.cert = tlsClientCertificate;
-        proxyOptions.key = tlsClientKey;
-        if (tlsClientKeyPassphrase) {
-          proxyOptions.passphrase = tlsClientKeyPassphrase;
-        }
-      }
-
-      const proxyAgents: ProxyAgents = {
-        ...ProxyConfig.getRequestProxyAgents(url, proxyOptions),
-      };
-
-      const agentOptions: https.AgentOptions = {};
-      if (allowSelfSignedCertificates) {
-        agentOptions.rejectUnauthorized = false;
-      }
-      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
-        agentOptions.cert = tlsClientCertificate;
-        agentOptions.key = tlsClientKey;
-        if (tlsClientKeyPassphrase) {
-          agentOptions.passphrase = tlsClientKeyPassphrase;
-        }
-      }
-
-      if (!proxyAgents.httpAgent && !proxyAgents.httpsAgent) {
-        /*
-         * No proxy in the way — use timing-instrumented agents so the check
-         * captures a DNS / TCP / TLS / TTFB phase breakdown.
-         */
-        timingCollector.reset();
-        const timedAgents: TimedAgents = HttpTimingAgents.create(
-          timingCollector,
-          agentOptions,
-        );
-        proxyAgents.httpAgent = timedAgents.httpAgent;
-        proxyAgents.httpsAgent = timedAgents.httpsAgent;
-      } else if (
-        (allowSelfSignedCertificates || hasClientCert) &&
-        !proxyAgents.httpsAgent
-      ) {
-        proxyAgents.httpsAgent = new https.Agent(agentOptions);
-      }
-
-      return proxyAgents;
-    };
 
     const attemptedAt: Date = new Date();
     try {
@@ -157,47 +94,146 @@ export default class ApiMonitor {
         }`,
       );
 
-      let startTime: [number, number] = process.hrtime();
-      const fetchOptions: any = {
-        method: requestType,
-        url: url,
-        headers: options.requestHeaders || undefined,
-        options: {
-          timeout: options.timeout?.toNumber() || 5000,
-          doNotFollowRedirects: options.doNotFollowRedirects || false,
-          ...buildAgents(),
-        },
+      const executeRequest: (
+        initialUrl: string,
+        initialMethod: HTTPMethod,
+        initialHeaders: Headers,
+        initialBody?: JSONObject | undefined,
+      ) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> = async (
+        initialUrl: string,
+        initialMethod: HTTPMethod,
+        initialHeaders: Headers,
+        initialBody?: JSONObject | undefined,
+      ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        const prepareRequest: (
+          requestUrl: string,
+          requestHeaders: Headers,
+          includeTlsIdentity: boolean,
+        ) => Promise<PreparedHttpMonitorRequest> = async (
+          requestUrl: string,
+          requestHeaders: Headers,
+          includeTlsIdentity: boolean,
+        ): Promise<PreparedHttpMonitorRequest> => {
+          return await executionContext.run(async () => {
+            return await HttpMonitorRequest.prepare(requestUrl, {
+              headers: requestHeaders,
+              tls: includeTlsIdentity
+                ? {
+                    allowSelfSignedCertificates:
+                      options.allowSelfSignedCertificates,
+                    tlsClientCertificate: options.tlsClientCertificate,
+                    tlsClientKey: options.tlsClientKey,
+                    tlsClientKeyPassphrase: options.tlsClientKeyPassphrase,
+                  }
+                : undefined,
+              timingCollector: timingCollector,
+            });
+          });
+        };
+
+        let currentUrl: string = initialUrl;
+        let currentMethod: HTTPMethod = initialMethod;
+        let currentHeaders: Headers = { ...initialHeaders };
+        let currentBody: JSONObject | undefined = initialBody;
+        let redirectsFollowed: number = 0;
+        let includeTlsIdentity: boolean = true;
+
+        while (true) {
+          const prepared: PreparedHttpMonitorRequest = await prepareRequest(
+            currentUrl,
+            currentHeaders,
+            includeTlsIdentity,
+          );
+
+          const fetchOptions: any = {
+            method: currentMethod,
+            url: prepared.url,
+            headers: prepared.headers,
+            options: {
+              dispatchUrl: prepared.dispatchUrl,
+              timeout: executionContext.remainingTimeoutInMs(),
+              doNotFollowRedirects: prepared.doNotFollowRedirects,
+              disableProxy: prepared.disableProxy,
+              maxContentLength: Math.min(
+                prepared.maxContentLength,
+                executionContext.responseBodyBudget.remainingBytes,
+              ),
+              maxBodyLength: prepared.maxBodyLength,
+              httpAgent: prepared.httpAgent,
+              httpsAgent: prepared.httpsAgent,
+              signal: executionContext.signal,
+              responseBodyBudget: executionContext.responseBodyBudget,
+              limitRedirectResponseBody: !options.doNotFollowRedirects,
+            },
+          };
+
+          if (currentBody) {
+            fetchOptions.data = currentBody;
+          }
+
+          const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await executionContext.run(async () => {
+              return await API.fetch(fetchOptions);
+            });
+
+          if (options.doNotFollowRedirects) {
+            return result;
+          }
+
+          const redirect: RedirectRequest | null =
+            HttpMonitorRequest.getRedirectRequest({
+              currentUrl: currentUrl,
+              statusCode: result.statusCode,
+              responseHeaders: result.headers,
+              currentMethod: currentMethod,
+              requestHeaders: currentHeaders,
+              requestBody: currentBody,
+              redirectsFollowed: redirectsFollowed,
+            });
+
+          if (!redirect) {
+            return result;
+          }
+
+          currentUrl = redirect.url;
+          currentMethod = redirect.method;
+          currentHeaders = redirect.headers;
+          currentBody = redirect.body;
+          if (redirect.crossesOrigin) {
+            includeTlsIdentity = false;
+          }
+          redirectsFollowed++;
+        }
       };
 
-      if (options.requestBody) {
-        fetchOptions.data = options.requestBody;
-      }
-
+      let startTime: [number, number] = process.hrtime();
+      timingCollector.reset();
       let result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.fetch(fetchOptions);
+        await executeRequest(
+          url.toString(),
+          requestType,
+          options.requestHeaders || {},
+          options.requestBody,
+        );
 
       if (
         result.statusCode >= 400 &&
         result.statusCode < 600 &&
         requestType === HTTPMethod.HEAD
       ) {
+        /*
+         * Preserve the whole-check execution context/deadline, but report
+         * response time and phase timings for the GET that produced the
+         * caller-visible result (the established HEAD fallback behavior).
+         */
         startTime = process.hrtime();
-        const fetchOptions: any = {
-          method: HTTPMethod.GET,
-          url: url,
-          headers: options.requestHeaders || undefined,
-          options: {
-            timeout: options.timeout?.toNumber() || 5000,
-            doNotFollowRedirects: options.doNotFollowRedirects || false,
-            ...buildAgents(),
-          },
-        };
-
-        if (options.requestBody) {
-          fetchOptions.data = options.requestBody;
-        }
-
-        result = await API.fetch(fetchOptions);
+        timingCollector.reset();
+        result = await executeRequest(
+          url.toString(),
+          HTTPMethod.GET,
+          options.requestHeaders || {},
+          options.requestBody,
+        );
       }
 
       const endTime: [number, number] = process.hrtime(startTime);
@@ -229,9 +265,12 @@ export default class ApiMonitor {
           options.currentRetryCount = 0; // default value
         }
 
-        if (options.currentRetryCount < (options.retry || 5)) {
+        if (
+          options.currentRetryCount < (options.retry ?? 5) &&
+          executionContext.canWait(1000)
+        ) {
           options.currentRetryCount++;
-          await Sleep.sleep(1000);
+          await executionContext.sleep(1000);
           return await this.ping(url, options);
         }
       }
@@ -240,10 +279,11 @@ export default class ApiMonitor {
 
       if (
         responseTimeInMS.toNumber() > 10000 &&
-        options.currentRetryCount < (options.retry || 5)
+        options.currentRetryCount < (options.retry ?? 5) &&
+        executionContext.canWait(1000)
       ) {
         options.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await executionContext.sleep(1000);
         return await this.ping(url, options);
       }
 
@@ -271,9 +311,7 @@ export default class ApiMonitor {
       };
 
       logger.debug(
-        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
-          apiResponse,
-        )}`,
+        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} succeeded with status ${apiResponse.statusCode}`,
       );
 
       return apiResponse;
@@ -301,13 +339,22 @@ export default class ApiMonitor {
         failureCause: API.getFriendlyErrorMessage(err as Error),
       });
 
-      if (options.currentRetryCount < (options.retry || 5)) {
+      if (
+        !(err instanceof BadDataException) &&
+        !(err instanceof TimeoutException) &&
+        options.currentRetryCount < (options.retry ?? 5) &&
+        executionContext.canWait(1000)
+      ) {
         options.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await executionContext.sleep(1000);
         return await this.ping(url, options);
       }
 
-      if (!options.isOnlineCheckRequest) {
+      if (
+        !(err instanceof BadDataException) &&
+        !(err instanceof TimeoutException) &&
+        !options.isOnlineCheckRequest
+      ) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
             `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
@@ -339,8 +386,9 @@ export default class ApiMonitor {
 
       // check if timeout exceeded and if yes, return null
       if (
-        (err as any).toString().includes("timeout") &&
-        (err as any).toString().includes("exceeded")
+        err instanceof TimeoutException ||
+        ((err as any).toString().includes("timeout") &&
+          (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
           `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
@@ -365,13 +413,24 @@ export default class ApiMonitor {
         return apiResponse;
       }
 
+      /*
+       * The tenant's own API refused to answer. That failure is the ANSWER
+       * this check exists to produce — it is returned right below as an
+       * offline response - so it must never open an Issue against OneUptime.
+       */
       logger.error(
         `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
           apiResponse,
         )}`,
+        EXTERNAL_FAULT,
       );
 
       return apiResponse;
+    } finally {
+      if (ownsExecutionContext) {
+        executionContext.dispose();
+        delete options.executionContext;
+      }
     }
   }
 }

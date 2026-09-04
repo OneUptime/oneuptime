@@ -656,7 +656,7 @@ export default class QueryHelper {
   }
 
   @CaptureSpan()
-  public static greaterThan<T extends number | Date>(
+  public static greaterThan<T extends number | Date | ObjectID>(
     value: T,
   ): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
@@ -665,7 +665,7 @@ export default class QueryHelper {
         return `(${alias} > :${rid})`;
       },
       {
-        [rid]: value,
+        [rid]: value instanceof ObjectID ? value.toString() : value,
       },
     ) as FindWhereProperty<any>;
   }

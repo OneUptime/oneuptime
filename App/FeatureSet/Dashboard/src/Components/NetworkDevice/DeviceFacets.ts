@@ -38,6 +38,7 @@ export const DEVICE_SITE_FACET_KEY: string = "deviceSite";
 export const DEVICE_PROBE_FACET_KEY: string = "deviceProbe";
 export const DEVICE_LAST_SEEN_FACET_KEY: string = "deviceLastSeen";
 export const DEVICE_ROLE_FACET_KEY: string = "deviceRole";
+export const DEVICE_SNMP_FACET_KEY: string = "deviceSnmp";
 
 /*
  * The column each chip owns. A chip and the column-filter popup cannot both
@@ -58,6 +59,7 @@ export const DEVICE_FACET_QUERY_FIELDS: {
   probe: string;
   lastSeen: string;
   role: string;
+  snmp: string;
 } = {
   /*
    * The stored outcome of the last poll, not a window over `lastSeenAt`.
@@ -68,6 +70,12 @@ export const DEVICE_FACET_QUERY_FIELDS: {
    */
   status: "isReachable",
   interfaces: "interfacesDown",
+  /*
+   * The SNMP walk's own outcome, on its own column: a device can be Up (it
+   * answers ping) while its walk fails, and this is the chip that finds
+   * those — the rows the "SNMP failing" pill sits beside.
+   */
+  snmp: "isSnmpReachable",
   /*
    * The foreign key, not the `site` relation: "is empty" then asks the column
    * for NULL, which is the only way to find devices that belong to no site at
@@ -89,9 +97,15 @@ export const DEVICE_FACET_QUERY_FIELDS: {
 /**
  * The Status chip's values. Up / Down / Pending partition the fleet exactly:
  * `isReachable` true, false, and NULL. SQL drops NULLs from both equality
- * comparisons, so a never-polled device lands in Pending only and the three
+ * comparisons, so a device with no verdict lands in Pending only and the three
  * always sum to the fleet size — which is what lets the three tiles' counts add
  * up to the total.
+ *
+ * `isReachable` is the poll's verdict on a probe-polled device (a ping, plus
+ * the SNMP walk when it has credentials — either answering is Up) and the
+ * bound monitor's verdict on a monitor-backed one (the server stamps it from
+ * the monitor's status, NULL while nothing is bound), so one column and one
+ * chip cover both kinds of device.
  */
 export enum DeviceStatusFacetValue {
   Up = "up",
@@ -102,6 +116,18 @@ export enum DeviceStatusFacetValue {
 export enum DeviceInterfacesFacetValue {
   SomeDown = "some-down",
   AllUp = "all-up",
+}
+
+/**
+ * The SNMP chip's values. Like Status, the three partition one column
+ * exactly: `isSnmpReachable` true (the last walk succeeded), false (it
+ * failed — the device may well still answer ping) and NULL (no walk was
+ * attempted: no usable credentials, or never polled).
+ */
+export enum DeviceSnmpFacetValue {
+  Ok = "ok",
+  Failing = "failing",
+  NotConfigured = "not-configured",
 }
 
 export type BuildDeviceStatusFacetQueryFunction = (
@@ -184,21 +210,83 @@ export const buildDeviceInterfacesFacetQuery: BuildDeviceInterfacesFacetQueryFun
     }
   };
 
+export type BuildDeviceSnmpFacetQueryFunction = (
+  values: Array<string>,
+  operator: FilterOperator,
+) => unknown;
+
+/**
+ * The `isSnmpReachable` constraint behind an SNMP selection.
+ *
+ * Same shape and same reasoning as the Status chip: a stored outcome, three
+ * values that partition one column, "is" only and single-select, and
+ * `undefined` for anything it does not recognise. `IsNull` for "not
+ * configured" because that is what the column holds for a device that is
+ * pinged and never walked — there is no separate "has credentials" flag to
+ * ask, and this one is honest about the never-polled device too (nothing has
+ * tried, so nothing is configured as far as the walk is concerned).
+ */
+export const buildDeviceSnmpFacetQuery: BuildDeviceSnmpFacetQueryFunction = (
+  values: Array<string>,
+  operator: FilterOperator,
+): unknown => {
+  if (operator !== "is" || values.length !== 1) {
+    return undefined;
+  }
+
+  switch (values[0]) {
+    // Bare booleans, not EqualTo — see buildDeviceStatusFacetQuery.
+    case DeviceSnmpFacetValue.Ok:
+      return true;
+
+    case DeviceSnmpFacetValue.Failing:
+      return false;
+
+    case DeviceSnmpFacetValue.NotConfigured:
+      return new IsNull();
+
+    default:
+      return undefined;
+  }
+};
+
 export const DEVICE_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
   {
     value: DeviceStatusFacetValue.Up,
     label: "Up",
-    sublabel: "The last SNMP poll reached the device",
+    sublabel:
+      "The last poll (ping or SNMP), or the bound monitor, reached the device",
   },
   {
     value: DeviceStatusFacetValue.Down,
     label: "Down",
-    sublabel: "The last SNMP poll could not reach the device",
+    sublabel:
+      "The last poll (ping or SNMP), or the bound monitor, could not reach the device",
   },
   {
     value: DeviceStatusFacetValue.Pending,
     label: "Pending",
-    sublabel: "Never polled",
+    sublabel:
+      "No verdict yet — never polled, no probe assigned, or no monitor bound",
+  },
+];
+
+export const DEVICE_SNMP_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
+  {
+    value: DeviceSnmpFacetValue.Ok,
+    label: "OK",
+    sublabel: "The last SNMP walk succeeded",
+  },
+  {
+    value: DeviceSnmpFacetValue.Failing,
+    label: "Failing",
+    sublabel:
+      "The last SNMP walk failed — check credentials, or that SNMP is enabled on the device",
+  },
+  {
+    value: DeviceSnmpFacetValue.NotConfigured,
+    label: "Not configured",
+    sublabel: "Pinged only — no SNMP credentials, or never polled",
   },
 ];
 
@@ -268,4 +356,19 @@ export const UNASSIGNED_DEVICES_FACET_SELECTION: FacetTileSelection = {
   facetKey: DEVICE_SITE_FACET_KEY,
   values: [],
   operator: "is_empty",
+};
+
+/**
+ * "Devices with no verdict" — the Status chip on Pending.
+ *
+ * The Devices Pending tile and the "N devices have no monitor bound" banner
+ * both land here: the banner cannot express "monitor-backed AND unbound" as
+ * a chip (no chip owns `monitorId`), and Pending is the honest superset —
+ * every unbound device is in it, and each one wears its "No monitor" pill so
+ * the operator can pick them out and switch them to probe polling.
+ */
+export const PENDING_DEVICES_FACET_SELECTION: FacetTileSelection = {
+  facetKey: DEVICE_STATUS_FACET_KEY,
+  values: [DeviceStatusFacetValue.Pending],
+  operator: "is",
 };

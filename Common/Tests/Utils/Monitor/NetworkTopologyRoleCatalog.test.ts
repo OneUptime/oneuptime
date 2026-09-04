@@ -713,10 +713,7 @@ describe("NetworkTopologyUtil.buildTopology — the project's configured device 
       expect(handset.roleShape).toBe("rect");
 
       // An endpoint nothing was said about is still a host, and still stamped.
-      const plain: NetworkTopologyNode = nodeById(
-        result,
-        "endpoint:ep-plain",
-      )!;
+      const plain: NetworkTopologyNode = nodeById(result, "endpoint:ep-plain")!;
       expect(plain.role).toBe("host");
       expect(plain.roleKey).toBe("host");
       expect(plain.roleLabel).toBe("Host");

@@ -41,10 +41,15 @@ const Logo: FunctionComponent<ComponentProps> = (
   const theme: Theme = useTheme();
 
   return (
-    <div className="relative z-10 flex items-center pr-4 mr-4 -ml-5 border-r border-gray-200">
+    /*
+     * The wordmark is a 5:1 letterbox, so at h-8 it is 160px wide — nearly
+     * half a phone header, and the profile and bell buttons beside it have
+     * nowhere to go. Shrink the mark and its gutter below sm.
+     */
+    <div className="relative z-10 flex items-center border-r border-gray-200 pr-2 mr-2 -ml-2 sm:pr-4 sm:mr-4 sm:-ml-5">
       <div className="flex flex-shrink-0 items-center">
         <Image
-          className="oneuptime-dashboard-logo block h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+          className="oneuptime-dashboard-logo block h-6 w-auto cursor-pointer hover:opacity-80 transition-opacity sm:h-8"
           onClick={() => {
             if (props.onClick) {
               props.onClick();

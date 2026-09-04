@@ -189,6 +189,44 @@ describe("NetworkTopologyUtil.buildTopology", () => {
     });
 
     /*
+     * Issue #3562: a monitor-backed device is never polled, so its poll
+     * columns are either NULL or whatever a probe last found before it
+     * stopped asking. With nothing stamped yet it is drawn "unknown" — the
+     * device list says the same about the row — rather than red off a
+     * lastSeenAt from before it was switched over from SNMP.
+     */
+    it("a monitor-backed device with nothing stamped is unknown, whatever its leftover poll columns say", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "switched-from-snmp", {
+            isReachable: undefined,
+            lastPolledAt: undefined,
+            lastSeenAt: outOfContact,
+            monitoringMethod: "Monitor",
+          }),
+          // The same leftovers on a device that IS polled: freshness decides.
+          makeDevice("d2", "still-walked", {
+            isReachable: undefined,
+            lastPolledAt: undefined,
+            lastSeenAt: outOfContact,
+          }),
+          // A mirrored outcome without a stamp is not a verdict either.
+          makeDevice("d3", "mirrored-but-unstamped", {
+            isReachable: true,
+            lastPolledAt: undefined,
+            lastSeenAt: undefined,
+            monitoringMethod: "Monitor",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.status).toBe("unknown");
+      expect(nodeById(result, "d2")!.status).toBe("down");
+      expect(nodeById(result, "d3")!.status).toBe("unknown");
+    });
+
+    /*
      * Issue #3220: the map drew a whole fleet red because its probe could
      * not get round every device inside the old fixed 15-minute freshness
      * window. A device that answered its last poll is up on the map however

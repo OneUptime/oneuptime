@@ -24,6 +24,15 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import DatabaseMonitorResponse, {
+  DatabaseMetricGroupStatus,
+  DatabaseMetricGroupUnavailableReason,
+} from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
+import {
+  DatabaseMetricDefinition,
+  getDatabaseMetricByMetricType,
+} from "../../../Types/Monitor/DatabaseMetricCatalog";
+import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
@@ -183,6 +192,10 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSnmpIsOnlineObservation(
           input,
         );
+      case CheckOn.SnmpWalkIsSucceeding:
+        return MonitorCriteriaObservationBuilder.describeSnmpWalkIsSucceedingObservation(
+          input,
+        );
       case CheckOn.SnmpResponseTime:
         return MonitorCriteriaObservationBuilder.describeSnmpResponseTimeObservation(
           input,
@@ -193,6 +206,18 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.SnmpOidValue:
         return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
+          input,
+        );
+      case CheckOn.DatabaseIsOnline:
+        return MonitorCriteriaObservationBuilder.describeDatabaseIsOnlineObservation(
+          input,
+        );
+      case CheckOn.DatabaseMetric:
+        return MonitorCriteriaObservationBuilder.describeDatabaseMetricObservation(
+          input,
+        );
+      case CheckOn.DatabaseCollectionError:
+        return MonitorCriteriaObservationBuilder.describeDatabaseCollectionErrorObservation(
           input,
         );
       default:
@@ -1374,6 +1399,24 @@ export default class MonitorCriteriaObservationBuilder {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
   }): string | undefined {
+    /*
+     * Database Health thresholds are typed in the metric's own unit, which
+     * only the catalog knows - without this the expectation clause reads
+     * "greater than 90" next to an observation of "95.0%".
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.DatabaseMetric) {
+      const metricType: MonitorMetricType | undefined =
+        input.criteriaFilter.databaseMonitorOptions?.metricType;
+
+      const definition: DatabaseMetricDefinition | null = metricType
+        ? getDatabaseMetricByMetricType(metricType)
+        : null;
+
+      return MonitorCriteriaObservationBuilder.normalizeDisplayUnit(
+        definition?.unit,
+      );
+    }
+
     if (input.criteriaFilter.checkOn !== CheckOn.MetricValue) {
       return undefined;
     }
@@ -1429,25 +1472,58 @@ export default class MonitorCriteriaObservationBuilder {
     return { snmpResponse, oid, oidResponse };
   }
 
+  /*
+   * "Is Online" is device reachability - ping OR a successful walk - which
+   * is the top-level isOnline the walk pipeline stamps, not the walk's own
+   * verdict. A device with no credentials is only pinged, so reading the
+   * walk here would describe every such device as "SNMP response was
+   * unavailable" on a poll that found it perfectly reachable.
+   */
   private static describeSnmpIsOnlineObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    if (!probeResponse || probeResponse.isOnline === undefined) {
+      return "Device reachability was not recorded.";
+    }
+
+    if (probeResponse.isOnline) {
+      return "Device is reachable (answered ping or SNMP).";
+    }
+
+    if (probeResponse.failureCause) {
+      return `Device is unreachable by ping and SNMP: ${probeResponse.failureCause}`;
+    }
+
+    return "Device is unreachable by ping and SNMP.";
+  }
+
+  /*
+   * The walk itself, separately from reachability. No walk on this poll is
+   * a distinct, non-failure state: it is what a ping-only device looks like
+   * every cycle, and the criterion is not evaluated for it.
+   */
+  private static describeSnmpWalkIsSucceedingObservation(input: {
     dataToProcess: DataToProcess;
   }): string | null {
     const snmpResponse: SnmpMonitorResponse | null =
       MonitorCriteriaObservationBuilder.getSnmpResponse(input);
 
     if (!snmpResponse) {
-      return "SNMP response was unavailable.";
+      return "No SNMP walk ran on this poll (the device is only pinged).";
     }
 
     if (snmpResponse.isOnline) {
-      return "SNMP device is online.";
+      return "SNMP walk succeeded.";
     }
 
     if (snmpResponse.failureCause) {
-      return `SNMP device is offline: ${snmpResponse.failureCause}`;
+      return `SNMP walk failed: ${snmpResponse.failureCause}`;
     }
 
-    return "SNMP device is offline.";
+    return "SNMP walk failed.";
   }
 
   private static describeSnmpResponseTimeObservation(input: {
@@ -1540,5 +1616,180 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return String(value);
+  }
+
+  private static describeDatabaseIsOnlineObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    if (!probeResponse) {
+      return null;
+    }
+
+    const databaseResponse: DatabaseMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getDatabaseMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (databaseResponse?.isOnline ?? probeResponse.isOnline) {
+      return "The database was reachable.";
+    }
+
+    /*
+     * Both of these are sanitized by the collector before they leave the
+     * probe - the connection string, the password and the login never reach
+     * an operator-facing sentence.
+     */
+    const failureCause: string =
+      databaseResponse?.connectionError ||
+      databaseResponse?.failureCause ||
+      probeResponse.failureCause ||
+      "";
+
+    if (failureCause) {
+      return `The database was not reachable: ${failureCause}`;
+    }
+
+    return "The database was not reachable.";
+  }
+
+  private static describeDatabaseMetricObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const metricType: MonitorMetricType | undefined =
+      input.criteriaFilter.databaseMonitorOptions?.metricType;
+
+    if (!metricType) {
+      return "No database metric is configured on this criteria. Pick one from the metric dropdown in the criteria editor.";
+    }
+
+    const definition: DatabaseMetricDefinition | null =
+      getDatabaseMetricByMetricType(metricType);
+
+    if (!definition) {
+      return `${metricType} is not a metric the Database Health monitor collects.`;
+    }
+
+    const databaseResponse: DatabaseMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getDatabaseMonitorResponse(
+        input.dataToProcess,
+      );
+
+    const value: number | undefined = databaseResponse?.metrics[metricType];
+
+    /*
+     * An absent metric is the normal outcome of partial collection, and the
+     * operator's next action depends entirely on why: a grant to run, an
+     * engine that has no such counter, or a group that timed out. Saying so -
+     * rather than declining to describe the check at all - is what turns a
+     * blank chart into something fixable.
+     */
+    if (value === undefined || value === null) {
+      return MonitorCriteriaObservationBuilder.describeUncollectedDatabaseMetric(
+        {
+          definition: definition,
+          databaseResponse: databaseResponse,
+        },
+      );
+    }
+
+    return `${definition.friendlyName} was ${MonitorCriteriaObservationBuilder.formatDatabaseMetricValue(
+      value,
+      definition.unit,
+    )}.`;
+  }
+
+  private static describeUncollectedDatabaseMetric(input: {
+    definition: DatabaseMetricDefinition;
+    databaseResponse: DatabaseMonitorResponse | null;
+  }): string {
+    const status: DatabaseMetricGroupStatus | undefined =
+      input.databaseResponse?.unavailableGroups?.find(
+        (groupStatus: DatabaseMetricGroupStatus) => {
+          return groupStatus.group === input.definition.group;
+        },
+      );
+
+    if (!status) {
+      return `${input.definition.friendlyName} was not collected on this check.`;
+    }
+
+    let message: string = `${input.definition.friendlyName} was not collected on this check: ${MonitorCriteriaObservationBuilder.describeDatabaseGroupUnavailableReason(
+      status.reason,
+    )}`;
+
+    if (status.remediation) {
+      message += ` (${status.remediation})`;
+    }
+
+    return `${message}.`;
+  }
+
+  private static describeDatabaseGroupUnavailableReason(
+    reason: DatabaseMetricGroupUnavailableReason,
+  ): string {
+    switch (reason) {
+      case DatabaseMetricGroupUnavailableReason.MissingPermission:
+        return "the monitoring login is missing a grant";
+      case DatabaseMetricGroupUnavailableReason.NotSupportedByEngine:
+        return "the connected engine does not report it";
+      case DatabaseMetricGroupUnavailableReason.Timeout:
+        return "its metric group timed out";
+      default:
+        return "its metric group could not be collected";
+    }
+  }
+
+  private static formatDatabaseMetricValue(
+    value: number,
+    unit: string,
+  ): string {
+    if (unit === "%") {
+      return (
+        MonitorCriteriaMessageFormatter.formatPercentage(value) ?? String(value)
+      );
+    }
+
+    if (unit === "bytes") {
+      return (
+        MonitorCriteriaMessageFormatter.formatBytes(value) ?? String(value)
+      );
+    }
+
+    const formatted: string =
+      MonitorCriteriaMessageFormatter.formatNumber(value, {
+        maximumFractionDigits: 2,
+      }) ?? String(value);
+
+    return unit ? `${formatted} ${unit}` : formatted;
+  }
+
+  private static describeDatabaseCollectionErrorObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const databaseResponse: DatabaseMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getDatabaseMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (!databaseResponse) {
+      return null;
+    }
+
+    const statuses: Array<DatabaseMetricGroupStatus> =
+      databaseResponse.unavailableGroups || [];
+
+    if (!statuses.length) {
+      return "All metric groups were collected.";
+    }
+
+    return `Collection issues: ${statuses
+      .map((status: DatabaseMetricGroupStatus) => {
+        return `${status.group}: ${status.message}`;
+      })
+      .join("; ")}.`;
   }
 }

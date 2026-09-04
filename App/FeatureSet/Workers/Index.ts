@@ -86,6 +86,9 @@ import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
 
+// Network Alert Policies
+import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
@@ -155,6 +158,9 @@ import "./Jobs/StatusPage/SendReportsToSubscribers";
 
 // Workspace Notification Summaries
 import "./Jobs/WorkspaceNotificationSummary/SendSummary";
+
+// Owner Email Burst Rollups
+import "./Jobs/EmailRollup/FlushDueRollups";
 
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
@@ -299,6 +305,8 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 // Enterprise License usage reporting (self-hosted only).
 import "./Jobs/EnterpriseLicense/ReportUserCount";
 import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
+// Hosted license counts derived from active instance reports.
+import "./Jobs/EnterpriseLicense/ReconcileInstanceUsage";
 
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";

@@ -19,7 +19,9 @@ jest.mock("../../../Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
     default: {
+      getPolicyFromSecretKey: jest.fn(),
       getProjectIdFromSecretKey: jest.fn(),
+      markUsed: jest.fn(),
     },
   };
 });
@@ -89,7 +91,7 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
 
   test("invalid token: responds 401 and never logs the token value", async () => {
     (
-      TelemetryIngestionKeyService.getProjectIdFromSecretKey as MockFn
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
     ).mockResolvedValue(null as never);
 
     await runMiddleware(buildRequest({ "x-oneuptime-token": SENTINEL_TOKEN }));
@@ -112,7 +114,7 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
 
   test("invalid token via the alternate header names is not logged either", async () => {
     (
-      TelemetryIngestionKeyService.getProjectIdFromSecretKey as MockFn
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn
     ).mockResolvedValue(null as never);
 
     for (const headerName of [
@@ -133,7 +135,7 @@ describe("TelemetryIngest.isAuthorizedServiceMiddleware token logging", () => {
     await runMiddleware(buildRequest({}));
 
     expect(
-      TelemetryIngestionKeyService.getProjectIdFromSecretKey as MockFn,
+      TelemetryIngestionKeyService.getPolicyFromSecretKey as MockFn,
     ).not.toHaveBeenCalled();
     expect(Response.sendErrorResponse as MockFn).toHaveBeenCalledTimes(1);
   });

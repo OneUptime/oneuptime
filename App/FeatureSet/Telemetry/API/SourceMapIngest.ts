@@ -1,5 +1,6 @@
 import TelemetryIngest from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -58,7 +59,7 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   sourceMapMultipartMiddleware,
   mapBearerTokenMiddleware,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SourceMap),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

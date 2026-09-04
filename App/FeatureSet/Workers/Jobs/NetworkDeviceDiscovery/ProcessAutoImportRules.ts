@@ -17,20 +17,28 @@ import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import { DISCOVERY_SCAN_IMPORTABLE_STATUSES } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import { AutoImportRuleRunResult } from "Common/Types/NetworkAutomation/RuleRunResult";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 
 /*
  * The automatic half of network device auto-import rules (issue #3378).
  *
- * The probe-ingest result endpoint stores a completed scan's discovered
- * hosts and clears the scan's autoImportProcessedAt marker in the same
- * write; this job sweeps every minute for Completed scans whose marker is
- * NULL and hands each to the rule engine, which imports what the project's
- * rules claim and stamps the marker behind a compare-and-set on
- * (status, completedAt). Scans in rule-less projects are stamped without
- * importing, so unprocessed results can never accumulate and mass-import
- * months later when a project writes its first rule.
+ * The probe-ingest result endpoint stores a scan's discovered hosts and
+ * clears the scan's autoImportProcessedAt marker in the same write; this job
+ * sweeps every minute for scans whose marker is NULL and hands each to the
+ * rule engine, which imports what the project's rules claim and stamps the
+ * marker behind a compare-and-set on the run state it read. Scans in
+ * rule-less projects are stamped without importing, so unprocessed results
+ * can never accumulate and mass-import months later when a project writes
+ * its first rule.
+ *
+ * "Scans" here means finished AND running ones
+ * (DISCOVERY_SCAN_IMPORTABLE_STATUSES). A sweep uploads what it has found
+ * every 30 seconds and each upload clears the marker, so a long scan feeds
+ * this job in batches rather than in one lump at the end — which is the whole
+ * of OneUptime issue #3599: 527 already-discovered switches were unimportable
+ * for a day because the sweep that found them had not finished.
  *
  * Evaluation deliberately does NOT run inside the ingest request: importing
  * hundreds of devices is minutes of paced work, the probe synchronously
@@ -105,7 +113,15 @@ RunCron(
       const unprocessedScans: Array<NetworkDeviceDiscoveryScan> =
         await NetworkDeviceDiscoveryScanService.findBy({
           query: {
-            status: "Completed",
+            /*
+             * A scan that is STILL SWEEPING counts, not only a finished one.
+             * The probe uploads what it has found every 30 seconds now, and
+             * each upload clears the marker below — so the hosts a long sweep
+             * has already confirmed are importable within a minute of being
+             * found instead of waiting for the whole range (OneUptime issue
+             * #3599, and the 24-hour sweep of #3598 that made it matter).
+             */
+            status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
             autoImportProcessedAt: QueryHelper.isNull(),
           },
           select: {
@@ -115,7 +131,10 @@ RunCron(
           /*
            * Oldest results first, so under a backlog (worker outage, first
            * deploy) the freshness horizon retires stale scans before newer
-           * results wait behind them.
+           * results wait behind them. A scan that is still sweeping has no
+           * completedAt and Postgres orders NULLs last under ASC, which is
+           * where it belongs: a finished result is final, a running one will
+           * be offered again in a minute.
            */
           sort: {
             completedAt: SortOrder.Ascending,

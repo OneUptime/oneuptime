@@ -105,6 +105,9 @@ import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaint
 import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
 import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStatus";
 import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNotificationSettingsForUsers";
+import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
+import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
+import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -376,6 +379,36 @@ const DataMigrations: Array<DataMigrationBase> = [
    * legacy value is skipped because it never meant a role in the first place.
    */
   new BackfillNetworkDeviceRoles(),
+  /*
+   * Replaces Network Site Type's ambiguous numeric hierarchy position with an
+   * explicit parent. Existing site trees supply the relationship when they
+   * agree; unused seeded defaults use the same hierarchy as new projects.
+   * Conflicting legacy layouts are logged and left for explicit admin choice.
+   */
+  new BackfillNetworkSiteTypeParents(),
+  /*
+   * Keeps `isReachable` on monitor-backed network devices in line with the
+   * bound monitor (the device list's summary tiles and Status facet count
+   * and filter on that column alone, so those devices read "Pending" there
+   * whatever their monitor said) and clears the poll residue a device
+   * switched over from SNMP still carried. Walks every monitor-backed
+   * device, bound or not, in id-ordered pages. Idempotent: the reset writes
+   * NULLs and the re-stamp is re-derived from the binding.
+   */
+  new BackfillMonitorBackedDeviceReachability(),
+  /*
+   * Ping-first polling renamed the probe-polled monitoring method from "SNMP"
+   * to "Probe": the assigned probe pings every device it is given and walks
+   * it over SNMP only when credentials exist. Every runtime reader already
+   * parses NULL, "", "SNMP" and anything unrecognised as Probe, so nothing
+   * misbehaves on the old rows — this makes the column SAY what it means,
+   * for the raw SQL that filters on it (claimDevicesForPolling, the device
+   * facets) and for anyone reading the table. Monitor-backed devices are
+   * left monitor-backed (a "monitor" spelling is normalised to "Monitor");
+   * none is converted to Probe, because their probeId was never set.
+   * Id-paged over the whole fleet, idempotent: canonical rows are untouched.
+   */
+  new NormalizeNetworkDeviceMonitoringMethod(),
 ];
 
 export default DataMigrations;

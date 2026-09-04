@@ -860,3 +860,180 @@ describe("which rows count as monitor-backed", () => {
     expect(result.isMonitorBacked).toBe(false);
   });
 });
+
+/*
+ * The QUALIFIER inputs (issue #3562, ping-first polling).
+ *
+ * Every probe-polled device is PINGED on its schedule and additionally
+ * WALKED over SNMP only when credentials resolve for it, so `isReachable` is
+ * "the ping answered OR the walk succeeded" and the walk's own verdict lives
+ * separately in `isSnmpReachable` — NULL when no walk was attempted, which is
+ * every ping-only device forever. `probeId` and `isPollingEnabled` say
+ * whether the device can be polled at all.
+ *
+ * All four ride on this input so a surface can hand its whole row over once
+ * and put a second, explanatory pill ("SNMP failing", "No probe") beside the
+ * verdict. NONE of them moves the verdict, and that is load-bearing rather
+ * than incidental: the pill, the summary tiles and the Status filter are all
+ * SQL over `isReachable` alone, so a verdict that consulted a fifth column
+ * could not be counted or filtered by the list that renders it. Wire
+ * `isSnmpReachable` in here and a ping-only device — NULL walk, answering
+ * ping — starts reading Down or Pending on the map and the site card while
+ * its own row says Up.
+ */
+describe("the qualifier columns ride along without moving the verdict", () => {
+  // The verdict-deciding columns, held fixed while the qualifiers vary.
+  const ANSWERING: DeviceReachabilityInput = {
+    isReachable: true,
+    lastPolledAt: minutesAgo(1),
+    lastSeenAt: minutesAgo(1),
+    pollingIntervalInMinutes: 5,
+  };
+
+  const NOT_ANSWERING: DeviceReachabilityInput = {
+    isReachable: false,
+    lastPolledAt: minutesAgo(1),
+    lastSeenAt: minutesAgo(60),
+    pollingIntervalInMinutes: 5,
+  };
+
+  /*
+   * The three states of the walk: it succeeded, it failed, or no walk was
+   * attempted at all (a ping-only device — no usable credentials).
+   */
+  const WALK_OUTCOMES: Array<[string, boolean | null]> = [
+    ["a successful walk", true],
+    ["a failed walk", false],
+    ["no walk at all (ping-only)", null],
+  ];
+
+  test.each(WALK_OUTCOMES)(
+    "%s leaves an answering device Up",
+    (_label: string, isSnmpReachable: boolean | null) => {
+      expect(
+        statusOf({
+          ...ANSWERING,
+          isSnmpReachable: isSnmpReachable,
+          lastSnmpSeenAt: isSnmpReachable === true ? minutesAgo(1) : null,
+        }),
+      ).toBe(NetworkDeviceReachability.Up);
+    },
+  );
+
+  test.each(WALK_OUTCOMES)(
+    "%s leaves a device that answered nothing Down",
+    (_label: string, isSnmpReachable: boolean | null) => {
+      expect(
+        statusOf({
+          ...NOT_ANSWERING,
+          isSnmpReachable: isSnmpReachable,
+        }),
+      ).toBe(NetworkDeviceReachability.Down);
+    },
+  );
+
+  /*
+   * The exact row the split exists for: a switch whose SNMP credentials were
+   * rotated. The walk fails every cycle, the ping answers every cycle, and
+   * `isReachable` records the OR — so the device is Up and the failing walk
+   * is somebody else's pill to render.
+   */
+  test("a failing walk on a device that still answers ping is Up, not Down", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        isSnmpReachable: false,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(1),
+        lastSnmpSeenAt: minutesAgo(60 * 24 * 7),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * ...and a ping-only device is never "SNMP failing": its walk verdict is
+   * NULL because no walk was attempted, which must read no differently from
+   * a device whose walk succeeded.
+   */
+  test("a ping-only device (NULL walk verdict) reads exactly as a walked one", () => {
+    const pingOnly: NetworkDeviceReachability = statusOf({
+      ...ANSWERING,
+      isSnmpReachable: null,
+      lastSnmpSeenAt: null,
+    });
+    const walked: NetworkDeviceReachability = statusOf({
+      ...ANSWERING,
+      isSnmpReachable: true,
+      lastSnmpSeenAt: minutesAgo(1),
+    });
+
+    expect(pingOnly).toBe(walked);
+    expect(pingOnly).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * A device with no probe, or with polling switched off, cannot be polled —
+   * but neither fact is a verdict about the device. Whatever its last poll
+   * said still stands until something contradicts it, and a device with no
+   * poll on record stays Pending. Turning either into Down would paint a
+   * whole fleet red the moment somebody paused polling for a maintenance
+   * window.
+   */
+  test("no probe and polling switched off qualify the verdict, they do not set it", () => {
+    for (const probeId of [null, undefined, "probe-1"]) {
+      for (const isPollingEnabled of [true, false, null, undefined]) {
+        expect(
+          statusOf({
+            ...ANSWERING,
+            probeId: probeId,
+            isPollingEnabled: isPollingEnabled,
+          }),
+        ).toBe(NetworkDeviceReachability.Up);
+        expect(
+          statusOf({
+            ...NOT_ANSWERING,
+            probeId: probeId,
+            isPollingEnabled: isPollingEnabled,
+          }),
+        ).toBe(NetworkDeviceReachability.Down);
+        // Nothing polled yet: still Pending, not Down.
+        expect(
+          statusOf({
+            probeId: probeId,
+            isPollingEnabled: isPollingEnabled,
+          }),
+        ).toBe(NetworkDeviceReachability.Pending);
+      }
+    }
+  });
+
+  /*
+   * And the whole set at once, stated as the invariant rather than case by
+   * case: for fixed verdict columns, no combination of the four qualifiers
+   * changes the answer.
+   */
+  test("no combination of the four qualifiers changes the verdict", () => {
+    for (const base of [ANSWERING, NOT_ANSWERING]) {
+      const expected: NetworkDeviceReachability = statusOf(base);
+
+      for (const isSnmpReachable of [true, false, null, undefined]) {
+        for (const lastSnmpSeenAt of [minutesAgo(1), minutesAgo(99999), null]) {
+          for (const probeId of [null, "probe-1"]) {
+            for (const isPollingEnabled of [true, false]) {
+              expect(
+                statusOf({
+                  ...base,
+                  isSnmpReachable: isSnmpReachable,
+                  lastSnmpSeenAt: lastSnmpSeenAt,
+                  probeId: probeId,
+                  isPollingEnabled: isPollingEnabled,
+                }),
+              ).toBe(expected);
+            }
+          }
+        }
+      }
+    }
+  });
+});

@@ -950,6 +950,15 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
     await runScan(makeMultiConfigScan());
 
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       /*
        * The METHOD travels beside the credentials (issue #3445). An
@@ -1028,7 +1037,11 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
 
     const body: JSONObject = uploadedBody();
     expect(body["success"]).toBe(false);
-    expect(body["discoveredDevices"]).toEqual([]);
+    /*
+     * A failure report says nothing about hosts, so it cannot erase hosts a
+     * running sweep had already uploaded (OneUptime issue #3598).
+     */
+    expect(body).not.toHaveProperty("discoveredDevices");
     expect(String(body["statusMessage"])).toContain("Vendor block (V3)");
     expect(String(body["statusMessage"])).toContain("aes-256-gcm");
   });
@@ -1054,6 +1067,15 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
 
     expect(scanSpy).toHaveBeenCalledTimes(1);
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [
@@ -1083,6 +1105,15 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
     );
 
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [

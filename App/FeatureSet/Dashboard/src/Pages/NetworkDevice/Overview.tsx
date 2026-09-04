@@ -143,13 +143,13 @@ const NetworkOverview: FunctionComponent<
     return (
       <Card
         title="Welcome to Network Monitoring"
-        description="Monitor switches, routers, and firewalls with SNMP — topology, interfaces, traffic, and per-site health rollups."
+        description="Monitor switches, routers, firewalls and everything else on the wire — reachability for every device, plus topology, interfaces, traffic and per-site health rollups over SNMP."
       >
         <EmptyState
           id="network-overview-empty-state"
           icon={IconProp.Signal}
           title="Bring your network in"
-          description="Add a device by hand, or point a discovery scan at a subnet and import what answers. Devices are polled by your probes via SNMP — interfaces, topology, and health come in automatically."
+          description="Add a device by hand, or point a discovery scan at a subnet and import what answers. Your probes ping every device on its schedule, and walk it over SNMP once it has credentials — interfaces, topology, and health come in automatically."
           footer={
             <div className="flex justify-center gap-3">
               <Button
@@ -299,12 +299,12 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description="Unreachable devices first (the last SNMP poll could not reach them), then devices with down interfaces."
+          description="Unreachable devices first (the last poll, or the bound monitor, could not reach them), then devices whose SNMP walk is failing, then devices with down interfaces."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Every device is reachable and no interfaces are down. Nothing
-              needs you here.
+              Every device is reachable, every SNMP walk is succeeding and no
+              interfaces are down. Nothing needs you here.
             </p>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -324,11 +324,25 @@ const NetworkOverview: FunctionComponent<
                       <div className="flex flex-shrink-0 items-center gap-2 text-sm">
                         {device.isDown ? (
                           <span className="font-medium text-red-600">
-                            {device.lastSeenAt
-                              ? `Last seen ${OneUptimeDate.fromNow(
-                                  OneUptimeDate.fromString(device.lastSeenAt),
-                                )}`
-                              : "Never answered"}
+                            {device.isMonitorBacked
+                              ? "Monitor reports offline"
+                              : device.lastSeenAt
+                                ? `Last seen ${OneUptimeDate.fromNow(
+                                    OneUptimeDate.fromString(device.lastSeenAt),
+                                  )}`
+                                : "Never answered"}
+                          </span>
+                        ) : device.isSnmpFailing ? (
+                          /*
+                           * Reachable — ping answers — but the walk is not.
+                           * Amber, like dark ports: the device is up, and
+                           * something about it needs a look.
+                           */
+                          <span
+                            className="font-medium text-amber-700"
+                            title="The device answers ping but its SNMP walk is failing — check its credentials or that SNMP is enabled on the device."
+                          >
+                            SNMP failing
                           </span>
                         ) : (
                           <span className="font-medium text-amber-700">
@@ -400,7 +414,8 @@ const NetworkOverview: FunctionComponent<
         >
           {vendors.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              Vendor identity appears after the first successful SNMP poll.
+              Vendor identity appears after a device&apos;s first successful
+              SNMP walk — pinged-only devices have none.
             </p>
           ) : (
             <div className="space-y-3">

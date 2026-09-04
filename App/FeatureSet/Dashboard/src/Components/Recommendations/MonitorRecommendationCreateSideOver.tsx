@@ -28,6 +28,8 @@ import {
   MonitorBatchPayAsYouGoConsent,
   isMonitorBatchConsentRequired,
 } from "../Billing/PayAsYouGo";
+import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
+import { MonitorRecommendationCreateProgress } from "./MonitorRecommendationCreateRunner";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -39,7 +41,12 @@ export interface ComponentProps {
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   alertSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   isCreating: boolean;
-  progressMessage?: string | undefined;
+  /*
+   * Per-monitor state for the batch, once one has been started. Undefined
+   * before the first submit — the panel is a form until then and a progress
+   * report afterwards.
+   */
+  createProgress?: MonitorRecommendationCreateProgress | undefined;
   error?: string | undefined;
   onClose: () => void;
   onSubmit: (
@@ -262,11 +269,18 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
       description={`These monitors will be created on this ${props.resourceLabel.toLowerCase()}. Everything below applies to every monitor in this batch.`}
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
+      submitButtonIsLoading={props.isCreating}
       submitButtonDisabled={
         props.isCreating ||
         props.selectedRecommendations.length === 0 ||
         (needsBillingConsent && !hasAcknowledgedBilling)
       }
+      /*
+       * The batch cannot be abandoned half way — the monitors it has already
+       * created are real — so Close is disabled rather than silently ignored
+       * while it runs.
+       */
+      closeButtonDisabled={props.isCreating}
       onClose={props.onClose}
       onSubmit={() => {
         const notificationSettings: MonitorRecommendationNotificationSettings =
@@ -294,10 +308,10 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        {props.progressMessage ? (
-          <div className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
-            {props.progressMessage}
-          </div>
+        {props.createProgress ? (
+          <MonitorRecommendationCreateProgressPanel
+            progress={props.createProgress}
+          />
         ) : (
           <></>
         )}

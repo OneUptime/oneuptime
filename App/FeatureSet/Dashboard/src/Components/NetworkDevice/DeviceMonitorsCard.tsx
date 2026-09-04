@@ -24,8 +24,8 @@ export interface ComponentProps {
   networkDeviceId?: string | undefined;
   /*
    * Whether this device's health comes from a bound Monitor rather than from
-   * an SNMP walk. It changes what an empty list MEANS, so the copy has to
-   * branch on it — see the note below.
+   * its probe's own poll. It changes what an empty list MEANS, so the copy
+   * has to branch on it — see the note below.
    */
   isMonitorBacked?: boolean | undefined;
 }
@@ -39,7 +39,8 @@ export interface ComponentProps {
  *
  * An empty list means two opposite things depending on the device:
  *
- *   SNMP device        - the probe polls and inventories it regardless;
+ *   Probe-polled dev   - the probe pings it on its schedule (and walks it
+ *                        over SNMP once it has credentials) regardless;
  *                        monitors only decide what to ALERT on. Nothing is
  *                        wrong, and the copy says so.
  *   Monitor-backed dev - nothing polls it at all. Without a bound monitor it
@@ -68,8 +69,8 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
         <div className="text-center py-10">
           <p className="text-sm text-gray-500">
             {props.isMonitorBacked
-              ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled over SNMP, and its status stays "Pending" until a monitor is bound. Create a Ping or IP monitor for its address, then bind it under Settings → Device Details → Monitor.`
-              : `No monitors are alerting on this device yet. The device is still polled and inventoried by its assigned probe — create a Network Device monitor to get incidents and alerts for reachability, interface problems, health-OID thresholds, and traps.`}
+              ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled by a probe at all, and its status stays "Pending" until a monitor is bound. The button below creates a Ping monitor on this device's address and binds it to the device for you. To use a monitor that already exists instead, bind it under Settings → Monitor. To have a probe ping it directly instead, switch it to probe polling under Settings.`
+              : `No monitors are alerting on this device yet. Its probe already pings it on schedule, so it has a status either way — a monitor is what turns a failure into an incident. Create one here, or cover this device and others like it at once with an alert policy under Network settings.`}
           </p>
           <div className="mt-4 flex justify-center">
             <Button
@@ -107,6 +108,19 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
             >
               <div className="text-sm font-medium text-gray-900">
                 <MonitorElement monitor={monitor} />
+                {/*
+                 * A policy-owned monitor is created and removed by the alert
+                 * policy engine. Saying so here is what stops an operator
+                 * editing its criteria, or deleting it, and being quietly
+                 * overruled on the next reconcile — the one thing about this
+                 * monitor they cannot discover from the monitor page itself.
+                 */}
+                {monitor.networkAlertPolicyId && (
+                  <div className="mt-0.5 text-xs font-normal text-gray-500">
+                    Managed by an alert policy. Edit the policy rather than this
+                    monitor.
+                  </div>
+                )}
               </div>
               {monitor.currentMonitorStatus?.name && (
                 <Pill

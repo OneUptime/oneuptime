@@ -112,6 +112,10 @@ const DocsNav: NavGroup[] = [
         title: "SMTP",
         url: "/docs/emails/smtp",
       },
+      {
+        title: "Notification Rollup",
+        url: "/docs/emails/notification-rollup",
+      },
     ],
   },
   {
@@ -264,6 +268,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "SQL Query Monitor",
         url: "/docs/monitor/sql-monitor",
+      },
+      {
+        title: "Database Health Monitor",
+        url: "/docs/monitor/database-health-monitor",
       },
       {
         title: "Synthetic Monitor",

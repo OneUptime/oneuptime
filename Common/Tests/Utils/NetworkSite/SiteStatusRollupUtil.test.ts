@@ -5,15 +5,30 @@ import SiteStatusRollupUtil, {
   RollupStatusOption,
 } from "../../../Utils/NetworkSite/SiteStatusRollupUtil";
 import SiteHealthRollupPolicy from "../../../Types/NetworkSite/SiteHealthRollupPolicy";
+import NetworkDeviceMonitoringMethod, {
+  LEGACY_SNMP_MONITORING_METHOD,
+} from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * MonitorStatus priority is HIGHER = WORSE (seeded: Operational 1,
  * Degraded 2, Offline 3).
  *
- * The SNMP half of this rollup now asks DeviceReachabilityUtil — "did the
- * last poll succeed" — rather than "was the last success recent". That is
- * what stops a site card going red because its probe is behind on a large
- * fleet while every device under it is answering (issue #3220).
+ * The poll half of this rollup asks DeviceReachabilityUtil — "did the last
+ * poll succeed" — rather than "was the last success recent". That is what
+ * stops a site card going red because its probe is behind on a large fleet
+ * while every device under it is answering (issue #3220).
+ *
+ * WHICH HALF A DEVICE GOES DOWN (issue #3562, ping-first polling). A stamped
+ * MonitorStatus is a device's vote only when the device is MONITOR-BACKED —
+ * nothing polls such a device, so the bound monitor is all it has. Every
+ * other device (monitoringMethod "Probe", and equally NULL, "" or the
+ * retired "SNMP") is pinged by its probe on its schedule, so it has a poll
+ * verdict of its own and that is its vote; a stamp on it is informational.
+ * Both policies apply the identical gate, which is why the site card, the
+ * device list pill and the topology map can never describe different
+ * networks. Every device literal below therefore says which kind it is, and
+ * `stamped()` builds monitor-backed ones because that is the only kind whose
+ * stamp votes.
  */
 const OPERATIONAL: RollupStatusOption = {
   monitorStatusId: "status-operational",
@@ -34,7 +49,14 @@ function minutesAgo(minutes: number): Date {
   return new Date(NOW.getTime() - minutes * 60 * 1000);
 }
 
-// A device whose last poll succeeded `minutes` ago.
+/*
+ * The column value that makes a device's stamp its vote. Spelled out once so
+ * every literal that relies on the gate says so, and so a device that is
+ * merely POLLED can never be mistaken for one at a glance.
+ */
+const MONITOR_BACKED: string = NetworkDeviceMonitoringMethod.Monitor;
+
+// A probe-polled device whose last poll succeeded `minutes` ago.
 function answered(minutes: number): DeviceHealthState {
   return {
     isReachable: true,
@@ -44,13 +66,22 @@ function answered(minutes: number): DeviceHealthState {
   };
 }
 
-// A device whose last poll failed `minutes` ago.
+// A probe-polled device whose last poll failed `minutes` ago.
 function failed(minutes: number): DeviceHealthState {
   return {
     isReachable: false,
     lastPolledAt: minutesAgo(minutes),
     lastSeenAt: minutesAgo(minutes + 60),
     pollingIntervalInMinutes: 5,
+  };
+}
+
+// A monitor-backed device carrying a stamped, resolvable status row.
+function monitorBacked(status: RollupStatusOption): DeviceHealthState {
+  return {
+    monitoringMethod: MONITOR_BACKED,
+    currentMonitorStatusId: status.monitorStatusId,
+    monitorStatusPriority: status.priority,
   };
 }
 
@@ -80,32 +111,16 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
     expect(worst([])).toBeNull();
   });
 
-  it("a single monitored device contributes its stamped status", () => {
-    expect(
-      worst([
-        {
-          currentMonitorStatusId: DEGRADED.monitorStatusId,
-          monitorStatusPriority: DEGRADED.priority,
-        },
-      ]),
-    ).toBe(DEGRADED.monitorStatusId);
+  it("a single monitor-backed device contributes its stamped status", () => {
+    expect(worst([monitorBacked(DEGRADED)])).toBe(DEGRADED.monitorStatusId);
   });
 
   it("the worst (highest priority) stamped status wins", () => {
     expect(
       worst([
-        {
-          currentMonitorStatusId: OPERATIONAL.monitorStatusId,
-          monitorStatusPriority: OPERATIONAL.priority,
-        },
-        {
-          currentMonitorStatusId: OFFLINE.monitorStatusId,
-          monitorStatusPriority: OFFLINE.priority,
-        },
-        {
-          currentMonitorStatusId: DEGRADED.monitorStatusId,
-          monitorStatusPriority: DEGRADED.priority,
-        },
+        monitorBacked(OPERATIONAL),
+        monitorBacked(OFFLINE),
+        monitorBacked(DEGRADED),
       ]),
     ).toBe(OFFLINE.monitorStatusId);
   });
@@ -174,33 +189,74 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
     expect(worst([answered(1), {}])).toBe(OPERATIONAL.monitorStatusId);
   });
 
-  it("mix: a failing device outranks a monitored operational one", () => {
-    expect(
-      worst([
-        {
-          currentMonitorStatusId: OPERATIONAL.monitorStatusId,
-          monitorStatusPriority: OPERATIONAL.priority,
-        },
-        failed(1),
-      ]),
-    ).toBe(OFFLINE.monitorStatusId);
+  it("mix: a failing polled device outranks a monitor-backed operational one", () => {
+    expect(worst([monitorBacked(OPERATIONAL), failed(1)])).toBe(
+      OFFLINE.monitorStatusId,
+    );
   });
 
-  it("mix: a monitored offline device outranks answering ones", () => {
+  it("mix: a monitor-backed offline device outranks answering ones", () => {
+    expect(worst([answered(1), monitorBacked(OFFLINE), answered(2)])).toBe(
+      OFFLINE.monitorStatusId,
+    );
+  });
+
+  /*
+   * A stamp a probe-polled device carries is not its vote — the poll is (see
+   * the header). Reading the stamp instead is the regression that turned a
+   * region of answering switches Offline the moment one of them reported a
+   * dark port to a Network Device monitor, while every device row under it
+   * still read Up.
+   */
+  it("a stamped status on a PROBE-POLLED device is ignored; its poll votes instead", () => {
+    // Stamped Offline, but the ping answered a minute ago: operational.
     expect(
       worst([
-        answered(1),
         {
+          ...answered(1),
           currentMonitorStatusId: OFFLINE.monitorStatusId,
           monitorStatusPriority: OFFLINE.priority,
         },
-        answered(2),
+      ]),
+    ).toBe(OPERATIONAL.monitorStatusId);
+
+    // ...and the mirror: a stamped Operational cannot rescue a failing poll.
+    expect(
+      worst([
+        {
+          ...failed(1),
+          currentMonitorStatusId: OPERATIONAL.monitorStatusId,
+          monitorStatusPriority: OPERATIONAL.priority,
+        },
       ]),
     ).toBe(OFFLINE.monitorStatusId);
+
+    // The retired "SNMP" spelling and an explicit "Probe" read alike.
+    for (const method of [
+      NetworkDeviceMonitoringMethod.Probe,
+      LEGACY_SNMP_MONITORING_METHOD,
+      "",
+      null,
+      undefined,
+    ]) {
+      expect(
+        worst([
+          {
+            ...answered(1),
+            monitoringMethod: method,
+            currentMonitorStatusId: OFFLINE.monitorStatusId,
+            monitorStatusPriority: OFFLINE.priority,
+          },
+        ]),
+      ).toBe(OPERATIONAL.monitorStatusId);
+    }
   });
 
-  it("a stamped status whose priority is unknown falls back to reachability", () => {
-    // The MonitorStatus row was deleted: treat the device by its last poll.
+  it("a stamped status whose priority is unknown falls back to the shared reachability rule", () => {
+    /*
+     * The MonitorStatus row was deleted under a probe-polled device: it has
+     * a poll of its own to fall back to, so it still votes.
+     */
     expect(
       worst([
         {
@@ -219,16 +275,35 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
         },
       ]),
     ).toBe(OFFLINE.monitorStatusId);
+
+    /*
+     * The same deleted row under a MONITOR-BACKED device leaves nothing to
+     * fall back to — nothing polls it — so the shared rule answers Pending
+     * and it contributes nothing, exactly as an unstamped monitor-backed
+     * device does. Inventing a verdict from its NULL poll columns would be
+     * the months-old-lastSeenAt bug in a second place.
+     */
+    expect(
+      worst([
+        {
+          monitoringMethod: MONITOR_BACKED,
+          currentMonitorStatusId: "deleted-status",
+          monitorStatusPriority: undefined,
+        },
+      ]),
+    ).toBeNull();
   });
 
   it("priority ties keep the first contributor (stable)", () => {
     expect(
       worst([
         {
+          monitoringMethod: MONITOR_BACKED,
           currentMonitorStatusId: "status-a",
           monitorStatusPriority: 2,
         },
         {
+          monitoringMethod: MONITOR_BACKED,
           currentMonitorStatusId: "status-b",
           monitorStatusPriority: 2,
         },
@@ -236,7 +311,7 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
     ).toBe("status-a");
   });
 
-  it("returns null when only SNMP fallbacks apply but the project has no flagged rows", () => {
+  it("returns null when only poll fallbacks apply but the project has no flagged rows", () => {
     expect(
       worst([answered(1), failed(1)], {
         operationalStatus: null,
@@ -250,10 +325,7 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
       worst(
         [
           failed(1), // offline equivalent missing -> skipped
-          {
-            currentMonitorStatusId: DEGRADED.monitorStatusId,
-            monitorStatusPriority: DEGRADED.priority,
-          },
+          monitorBacked(DEGRADED),
         ],
         { offlineStatus: null },
       ),
@@ -290,6 +362,26 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
       OFFLINE.monitorStatusId,
     );
   });
+
+  /*
+   * Issue #3562: the legacy branch above must never fire for a device that
+   * is not polled at all. A monitor-backed device switched over from probe
+   * polling keeps its old lastSeenAt until the switch-over clears it, and
+   * with no stamp yet it is Pending — not a months-old freshness verdict
+   * against the site.
+   */
+  it("a monitor-backed device with no stamp contributes nothing, whatever its leftover poll columns say", () => {
+    const leftovers: DeviceHealthState = {
+      lastSeenAt: minutesAgo(600),
+      pollingIntervalInMinutes: 5,
+      monitoringMethod: MONITOR_BACKED,
+    };
+
+    expect(worst([leftovers])).toBeNull();
+    expect(worst([leftovers, answered(1)])).toBe(OPERATIONAL.monitorStatusId);
+    // A mirrored outcome without a stamp is not a vote either.
+    expect(worst([{ ...leftovers, isReachable: false }])).toBeNull();
+  });
 });
 
 /*
@@ -309,13 +401,23 @@ const LADDER: RollupStatusLadder = {
   offlineStatus: OFFLINE,
 };
 
-// A bucket of `count` devices carrying a stamped, resolved status.
+/*
+ * A bucket of `count` MONITOR-BACKED devices carrying a stamped, resolved
+ * status.
+ *
+ * Monitor-backed on purpose: the stamp is only a device's vote on that kind
+ * of device (see the header), so a bucket built without the method would be
+ * a bucket of probe-polled devices with no poll columns — Pending, and
+ * silently absent from every share below. The share arithmetic these tests
+ * pin needs devices whose stamp actually counts.
+ */
 function stamped(
   status: RollupStatusOption,
   isOperational: boolean,
   count: number,
 ): DeviceHealthState {
   return {
+    monitoringMethod: MONITOR_BACKED,
     currentMonitorStatusId: status.monitorStatusId,
     monitorStatusPriority: status.priority,
     monitorStatusIsOperational: isOperational,
@@ -388,12 +490,66 @@ describe("SiteStatusRollupUtil.deviceHealthShare", () => {
     expect(share.nonOperationalDeviceCount).toBe(1);
   });
 
-  it("falls back to reachability when the stamped status could not be resolved", () => {
+  /*
+   * Issue #3562: an unstamped monitor-backed bucket is a never-reported
+   * bucket, whatever its leftover poll columns say — it goes in neither
+   * side, so four hundred devices awaiting their first monitor evaluation
+   * cannot dilute the one switch that is genuinely dark.
+   */
+  it("unstamped monitor-backed devices are in neither side either, whatever their leftovers say", () => {
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        failed(1),
+        {
+          lastSeenAt: minutesAgo(600),
+          pollingIntervalInMinutes: 5,
+          monitoringMethod: MONITOR_BACKED,
+          deviceCount: 400,
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(1);
+    expect(share.nonOperationalDeviceCount).toBe(1);
+    expect(share.nonOperationalPercent).toBe(100);
+  });
+
+  /*
+   * Issue #3562, the other direction, and the one an operator actually
+   * complains about: a Network Device monitor with an "interface down →
+   * Offline" criterion stamps four hundred answering switches non-operational
+   * the first time each of them reports a dark port. Counting those stamps
+   * here would put the region at 100% down while every device row under it
+   * reads Up. The share must read their POLLS, which all answered.
+   */
+  it("a stamp on a PROBE-POLLED bucket does not enter the numerator; its poll does", () => {
+    const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
+      deviceStates: [
+        {
+          ...answered(1),
+          // Stamped Offline by an interface-down criterion...
+          currentMonitorStatusId: OFFLINE.monitorStatusId,
+          monitorStatusPriority: OFFLINE.priority,
+          monitorStatusIsOperational: false,
+          deviceCount: 400,
+        },
+      ],
+      now: NOW,
+    });
+
+    expect(share.reportingDeviceCount).toBe(400);
+    // ...but all four hundred answered their ping, so none is down.
+    expect(share.nonOperationalDeviceCount).toBe(0);
+    expect(share.nonOperationalPercent).toBe(0);
+  });
+
+  it("falls back to the poll rule when the stamped status could not be resolved", () => {
     /*
-     * Same fallback worst-of takes when it cannot resolve the row's
-     * priority. If the two policies disagreed about which devices their
-     * stamped status speaks for, the same fleet would read differently
-     * depending on which policy a site happened to use.
+     * Same fallback worst-of takes when it cannot resolve the row. If the two
+     * policies disagreed about which devices their stamped status speaks for,
+     * the same fleet would read differently depending on which policy a site
+     * happened to use.
      */
     const share: DeviceHealthShare = SiteStatusRollupUtil.deviceHealthShare({
       deviceStates: [
@@ -494,6 +650,29 @@ describe("SiteStatusRollupUtil.percentThresholdStatus", () => {
   it("returns null when nothing reported, so the caller leaves the status untouched", () => {
     expect(percent([], 50)).toBeNull();
     expect(percent([{ deviceCount: 10 }], 50)).toBeNull();
+  });
+
+  /*
+   * Issue #3562, end to end and under BOTH policies. A region of four
+   * hundred probe-polled switches, every one answering its ping, every one
+   * stamped Offline by a Network Device monitor whose "interface down"
+   * criterion fired. The site card must be green, because the device list
+   * under it shows four hundred green pills. Before the precedence split it
+   * went red — a region on fire, drawn from a fleet with nothing wrong.
+   */
+  it("interface-down stamps across an answering fleet leave the region operational", () => {
+    const stampedButAnswering: DeviceHealthState = {
+      ...answered(1),
+      currentMonitorStatusId: OFFLINE.monitorStatusId,
+      monitorStatusPriority: OFFLINE.priority,
+      monitorStatusIsOperational: false,
+      deviceCount: 400,
+    };
+
+    expect(percent([stampedButAnswering], 50)).toBe(
+      OPERATIONAL.monitorStatusId,
+    );
+    expect(worst([stampedButAnswering])).toBe(OPERATIONAL.monitorStatusId);
   });
 });
 

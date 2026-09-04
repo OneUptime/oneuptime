@@ -78,7 +78,7 @@ export function getNetworkDeviceBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_DISCOVERY, [
       "Project",
       "Network",
-      "Discovery",
+      "Discovery Scans",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_ENDPOINTS, [
       "Project",
@@ -89,31 +89,51 @@ export function getNetworkDeviceBreadcrumbs(
       "Project",
       "Network",
       "Topology",
+      "Device Topology",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_LATENCY_MATRIX, [
       "Project",
       "Network",
+      "Topology",
       "Latency Matrix",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_LINKS, [
+      "Project",
+      "Network",
+      "Topology",
+      "Device Links",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES,
-      ["Project", "Network", "Owner Rules"],
+      ["Project", "Network", "Rules", "Owner Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES,
-      ["Project", "Network", "Label Rules"],
+      ["Project", "Network", "Rules", "Label Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES,
+      ["Project", "Network", "Rules", "Link Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES,
-      ["Project", "Network", "Auto Import Rules"],
+      ["Project", "Network", "Rules", "Auto Import Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
-      ["Project", "Network", "OID Collection Templates"],
+      ["Project", "Network", "Settings", "OID Collection Templates"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
-      ["Project", "Network", "Device Roles"],
+      ["Project", "Network", "Settings", "Device Roles"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
+      ["Project", "Network", "Settings", "SNMP Credentials"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
+      ["Project", "Network", "Settings", "Alert Policies"],
     ),
   };
   return breadcrumpLinksMap[path];

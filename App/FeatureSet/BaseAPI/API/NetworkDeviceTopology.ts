@@ -45,6 +45,7 @@ import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTop
 import NetworkDeviceRoleService from "Common/Server/Services/NetworkDeviceRoleService";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import { TopologyDeviceRoleInput } from "Common/Utils/Monitor/NetworkDeviceRoleCatalog";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * Computes the LLDP+CDP-derived network topology graph for the requesting
@@ -278,11 +279,24 @@ export default class NetworkDeviceTopologyAPI {
                 pollingIntervalInMinutes: true,
                 /*
                  * Health for devices nothing polls. A monitor-backed device
-                 * (monitoringMethod "Monitor") has no SNMP walk at all, so
-                 * the poll columns alone would draw every one of them as
+                 * (monitoringMethod "Monitor") has no poll at all, so the
+                 * poll columns alone would draw every one of them as
                  * permanently unknown.
                  */
                 currentMonitorStatusId: true,
+                /*
+                 * ...and which of the two rules applies. The stamp above is
+                 * handed to the graph ONLY for a monitor-backed device: a
+                 * probe-polled one is judged by its poll (`isReachable`,
+                 * which is what its own row reads), and a Network Device
+                 * monitor's "interface down → Offline" stamp on it stays
+                 * informational — the map must not draw a switch red while
+                 * the device list beside it reads Up. And a monitor-backed
+                 * device with nothing bound yet is "unknown", not whatever
+                 * its leftover poll columns say: on a device switched over
+                 * from Probe those hold the last thing the probe found.
+                 */
+                monitoringMethod: true,
                 interfacesUp: true,
                 interfacesDown: true,
                 vendor: true,
@@ -606,11 +620,22 @@ export default class NetworkDeviceTopologyAPI {
                 lastPolledAt: device.lastPolledAt,
                 lastSeenAt: device.lastSeenAt,
                 pollingIntervalInMinutes: device.pollingIntervalInMinutes,
-                monitorStatus: device.currentMonitorStatusId
-                  ? nodeStatusByMonitorStatusId.get(
-                      device.currentMonitorStatusId.toString(),
-                    )
-                  : undefined,
+                monitoringMethod: device.monitoringMethod,
+                /*
+                 * Only a monitor-backed device's stamp reaches the graph —
+                 * see the select above. The graph itself takes a stamp as
+                 * the verdict whenever one is present, so the gate has to be
+                 * here, where the row is copied into its input.
+                 */
+                monitorStatus:
+                  device.currentMonitorStatusId &&
+                  NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                    device.monitoringMethod,
+                  )
+                    ? nodeStatusByMonitorStatusId.get(
+                        device.currentMonitorStatusId.toString(),
+                      )
+                    : undefined,
                 interfacesUp: device.interfacesUp,
                 interfacesDown: device.interfacesDown,
                 vendor: device.vendor,

@@ -495,3 +495,211 @@ describe("InsightTriageRunner.executeTriage", () => {
     );
   });
 });
+
+/*
+ * ERROR-CLASS PRECEDENCE: declared > manual > ai > default.
+ *
+ * The triage runner writes TWO fields through TWO different service methods,
+ * and the difference is the whole point:
+ *
+ *   aiClassification  -> updateOneById, UNCONDITIONAL. The audit record of
+ *                        what the model said, readable even when it lost.
+ *   errorClass        -> updateOneBy,   GUARDED on errorClassSource='default'.
+ *                        The acted-on field: it scopes the Issues list.
+ *
+ * A test that spies only one of them sees half the behaviour and passes
+ * vacuously, which is why both are asserted together here.
+ */
+describe("InsightTriageRunner error-class precedence", () => {
+  /*
+   * Own lifecycle: the sibling describe's afterEach does not reach here, and
+   * jest.spyOn on the same static returns the SAME spy — so without this,
+   * mock.calls accumulate across tests and a "was never called" assertion sees
+   * the previous test's writes.
+   */
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function stubTriage(telemetryExceptionId: ObjectID): void {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(makeInsight({ telemetryExceptionId }));
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: false,
+    } as unknown as Project);
+  }
+
+  test("promotes errorClass when nobody else has classified the group", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    stubTriage(telemetryExceptionId);
+
+    const auditWrite: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    // 1 matched row: the group's source was still 'default'.
+    const promotion: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneBy")
+      .mockResolvedValue(1 as never);
+
+    driveTriageWithAnalysis(
+      "The caller sent a malformed id.\n\nClassification: user-error",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(auditWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aiClassification: ExceptionAIClassification.UserError,
+        }),
+      }),
+    );
+
+    /*
+     * The source predicate in the WHERE clause is the regression this guards,
+     * and it is invisible to any test whose fixture already has source
+     * 'default' — dropping it would let a stale LLM verdict overwrite a class
+     * the throwing code declared for itself.
+     */
+    expect(promotion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          _id: telemetryExceptionId.toString(),
+          errorClassSource: "default",
+        }),
+        data: expect.objectContaining({
+          errorClass: ExceptionAIClassification.UserError,
+          errorClassSource: "ai",
+        }),
+        props: expect.objectContaining({ isRoot: true }),
+      }),
+    );
+  });
+
+  /*
+   * A stronger source already owns the field: the conditional UPDATE matches
+   * no row. The AUDIT write must still happen — asserting only "errorClass
+   * unchanged" would pass even if the audit write were wrongly removed.
+   */
+  test("a declared or manual class outranks the AI verdict, but the audit record still lands", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    stubTriage(telemetryExceptionId);
+
+    const auditWrite: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    // 0 matched rows: source was 'declared' or 'manual'.
+    jest
+      .spyOn(TelemetryExceptionService, "updateOneBy")
+      .mockResolvedValue(0 as never);
+
+    driveTriageWithAnalysis(
+      "Looks like a real defect.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(auditWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aiClassification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+  });
+
+  /*
+   * The promotion is a secondary, self-healing write — live traffic re-stamps
+   * errorClass on the group's next occurrence. The auto-archive below it is
+   * user-visible and comparatively irreversible, so a failure here must not
+   * cost us that. Without the guard the two are coupled only by statement
+   * order.
+   */
+  test("a failed promotion does not abort the rest of triage", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    stubTriage(telemetryExceptionId);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: true,
+    } as unknown as Project);
+
+    const exceptionWrites: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(TelemetryExceptionService, "updateOneBy")
+      .mockRejectedValue(new Error("postgres said no") as never);
+
+    driveTriageWithAnalysis(
+      "The paywall doing its job.\n\nClassification: expected-denial",
+    );
+
+    await expect(
+      InsightTriageRunner.executeTriage({
+        aiRunId,
+        projectId,
+        sentinelInsightId,
+        attemptCount: 1,
+      }),
+    ).resolves.not.toThrow();
+
+    expect(exceptionWrites).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isArchived: true }),
+      }),
+    );
+  });
+
+  test("no telemetryExceptionId means neither write is attempted", async () => {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      // makeInsight sets no telemetryExceptionId unless one is passed in.
+      .mockResolvedValue(makeInsight());
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: false,
+    } as unknown as Project);
+
+    const auditWrite: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const promotion: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneBy")
+      .mockResolvedValue(1 as never);
+
+    driveTriageWithAnalysis("Nothing to attach to.\n\nClassification: unknown");
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(auditWrite).not.toHaveBeenCalled();
+    expect(promotion).not.toHaveBeenCalled();
+  });
+});

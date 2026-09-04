@@ -10,10 +10,18 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
+  HOSTNAME_FIELD_DESCRIPTION,
+  MONITORING_METHOD_FIELD_DESCRIPTION,
   MONITORING_METHOD_OPTIONS,
+  MONITOR_BINDING_FIELD_DESCRIPTION,
+  MONITOR_BINDING_FIELD_PLACEHOLDER,
+  PROBE_FIELD_DESCRIPTION,
+  SNMP_STEP_DESCRIPTION,
   isMonitorBackedDevice,
-  isSnmpDevice,
+  isProbePolledDevice,
 } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   DEVICE_ROLE_DROPDOWN_MODAL,
   DEVICE_ROLE_FIELD_DESCRIPTION,
@@ -22,6 +30,7 @@ import {
   getDeviceRoleSettingsLink,
 } from "../../../Components/NetworkDevice/DeviceRoleFormFields";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import DeviceHealthOidsFormField from "../../../Components/NetworkDevice/DeviceHealthOidsFormField";
@@ -49,6 +58,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
+/*
+ * The "Ping only" checkbox on the SNMP step is not a column: it blanks the
+ * credential fields in the form on the way to a save. Kept out of the device
+ * payload through overrideFieldKey, and ignored by the server.
+ */
+export const PING_ONLY_FIELD_KEY: string = "pingOnly";
 
 const NetworkDeviceSettings: FunctionComponent<
   PageComponentProps
@@ -84,6 +100,37 @@ const NetworkDeviceSettings: FunctionComponent<
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * Whether this device is a bound-monitor override. The polling card below
+   * asks for a probe, an interval and a polling toggle, none of which mean
+   * anything for a device nothing polls — so it hides those for a Monitor
+   * device and shows a sentence instead. Refreshed after the Device Settings
+   * card saves, because that is where the method is changed.
+   */
+  const [isDeviceMonitorBacked, setIsDeviceMonitorBacked] =
+    useState<boolean>(false);
+
+  const fetchMonitoringMethod: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        const device: NetworkDevice | null =
+          await ModelAPI.getItem<NetworkDevice>({
+            modelType: NetworkDevice,
+            id: modelId,
+            select: {
+              monitoringMethod: true,
+            },
+          });
+
+        setIsDeviceMonitorBacked(
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device?.monitoringMethod,
+          ),
+        );
+      } catch {
+        // Non-fatal: the polling card simply keeps its full form.
+      }
+    };
 
   /*
    * Deliberately swallows its own errors instead of failing the page.
@@ -128,9 +175,10 @@ const NetworkDeviceSettings: FunctionComponent<
   const fetchPageData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const [fetchedProbes]: [Array<Probe>, void] = await Promise.all([
+      const [fetchedProbes]: [Array<Probe>, void, void] = await Promise.all([
         ProbeUtil.getAllProbes(),
         fetchOidTemplates(),
+        fetchMonitoringMethod(),
       ]);
 
       setProbes(fetchedProbes);
@@ -198,10 +246,16 @@ const NetworkDeviceSettings: FunctionComponent<
         name="Device Settings"
         cardProps={{
           title: "Device Settings",
-          description: "Manage settings for this network device.",
+          description:
+            "Identity, monitoring method and SNMP credentials for this device. A probe-polled device is pinged whether or not it has credentials; add them to walk it over SNMP as well.",
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        onSaveSuccess={() => {
+          fetchMonitoringMethod().catch(() => {
+            // handled inside.
+          });
+        }}
         formSteps={[
           {
             title: "Device Details",
@@ -209,12 +263,13 @@ const NetworkDeviceSettings: FunctionComponent<
           },
           {
             /*
-             * Nothing polls a monitor-backed device, so a community string
-             * or a v3 credential has nothing to be used for.
+             * Optional for a probe-polled device (it is pinged either way)
+             * and absent for a bound-monitor override: nothing polls that,
+             * so a community string has nothing to be used for.
              */
             title: "SNMP Credentials",
             id: "snmp",
-            showIf: isSnmpDevice,
+            showIf: isProbePolledDevice,
           },
         ]}
         formFields={[
@@ -234,8 +289,7 @@ const NetworkDeviceSettings: FunctionComponent<
             },
             title: "Monitoring Method",
             stepId: "device-details",
-            description:
-              "SNMP means an assigned probe polls this device on its own schedule. Monitor means nothing polls it and the bound monitor's status is its status — switching to Monitor turns polling off.",
+            description: MONITORING_METHOD_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: MONITORING_METHOD_OPTIONS,
             required: true,
@@ -248,16 +302,16 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Monitor",
             stepId: "device-details",
             showIf: isMonitorBackedDevice,
-            description:
-              "The monitor whose status IS this device's status. Usually a Ping or IP monitor on the device's address.",
+            description: MONITOR_BINDING_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: Monitor,
               labelField: "name",
               valueField: "_id",
             },
+            // Optional here, on the create form and in every other path.
             required: false,
-            placeholder: "Select Monitor",
+            placeholder: MONITOR_BINDING_FIELD_PLACEHOLDER,
           },
           {
             field: {
@@ -291,8 +345,75 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: "IP address or hostname the probe will poll via SNMP.",
+            description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          {
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "SNMP Credential Profile",
+            stepId: "snmp",
+            sectionTitle: "SNMP",
+            sectionDescription: SNMP_STEP_DESCRIPTION,
+            description:
+              "A reusable credential set shared by devices of one kind. The device's own credentials below win when both are set; leave those empty to use the profile. The device's site can carry a default profile too, which applies when neither of these is set.",
+            sideLink: {
+              text: "Manage credential profiles",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+                ] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSnmpCredentialProfile,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No profile — use the credentials below",
+          },
+          {
+            /*
+             * Not a column. "Ping only" is the clear way OFF SNMP: a v3 device
+             * cannot otherwise be made ping-only without knowing that the
+             * username is what the probe keys on. Ticking it blanks the
+             * community string and the v3 username in the form, so the save
+             * carries the blanks and the next poll pings without walking.
+             */
+            overrideField: {
+              [PING_ONLY_FIELD_KEY]: true,
+            },
+            overrideFieldKey: PING_ONLY_FIELD_KEY,
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Ping only — clear this device's own SNMP credentials",
+            stepId: "snmp",
+            description:
+              "Removes the community string and v3 username from this device. It keeps being pinged and keeps its status; interfaces and inventory stop refreshing unless a credential profile (here or on the site) still provides credentials.",
+            fieldType: FormFieldSchemaType.Checkbox,
+            required: false,
+            onChange: (
+              value: unknown,
+              currentFormValues: FormValues<NetworkDevice>,
+              setNewFormValues: (
+                currentFormValues: FormValues<NetworkDevice>,
+              ) => void,
+            ): void => {
+              if (!value) {
+                return;
+              }
+
+              setNewFormValues({
+                ...currentFormValues,
+                snmpCommunityString: "",
+                snmpV3Username: "",
+                snmpV3AuthKey: "",
+                snmpV3PrivKey: "",
+              });
+            },
+          } as ModelField<NetworkDevice>,
           ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
         modelDetailProps={{
@@ -326,7 +447,38 @@ const NetworkDeviceSettings: FunctionComponent<
                 monitoringMethod: true,
               },
               title: "Monitoring Method",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <span>
+                    {NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                      item.monitoringMethod,
+                    )
+                      ? "Bound monitor — the bound monitor's status is this device's status"
+                      : "Probe — pinged by the assigned probe; walked over SNMP when credentials are set"}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                snmpCredentialProfile: {
+                  name: true,
+                },
+              },
+              title: "SNMP Credential Profile",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.snmpCredentialProfile?.name) {
+                  return (
+                    <span className="text-sm text-gray-400">
+                      None — this device&apos;s own credentials, or its
+                      site&apos;s profile
+                    </span>
+                  );
+                }
+                return <span>{item.snmpCredentialProfile.name}</span>;
+              },
             },
             {
               field: {
@@ -372,10 +524,11 @@ const NetworkDeviceSettings: FunctionComponent<
         name="Polling & Data Collection"
         cardProps={{
           title: "Polling & Data Collection",
-          description:
-            "The assigned probe polls this device on its own schedule — inventory, interfaces, topology neighbors, endpoints, and health OIDs. Monitors are only needed to alert on what these polls report.",
+          description: isDeviceMonitorBacked
+            ? "This device is a bound-monitor override: nothing polls it, and the monitor bound to it decides its status. Switch its monitoring method to Probe above to have a probe ping it (and walk it over SNMP once it has credentials)."
+            : "The assigned probe pings this device on its own schedule and, when it has SNMP credentials, walks it too — inventory, interfaces, topology neighbors, endpoints, and health OIDs. Monitors are only needed to alert on what these polls report.",
         }}
-        isEditable={true}
+        isEditable={!isDeviceMonitorBacked}
         editButtonText="Edit Polling"
         formSteps={[
           {
@@ -394,8 +547,7 @@ const NetworkDeviceSettings: FunctionComponent<
             },
             title: "Probe",
             stepId: "polling",
-            description:
-              "The probe that polls this device, and the one whose SNMP trap, syslog and NetFlow receivers this device's records are matched against. It has to be able to reach the device directly.",
+            description: PROBE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {

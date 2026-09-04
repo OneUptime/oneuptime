@@ -52,6 +52,12 @@ import { AppVersion, Env, DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ContextSpanProcessor from "./Telemetry/ContextSpanProcessor";
+import ErrorClassResolver from "./Telemetry/ErrorClassResolver";
+import ErrorClass, {
+  isNonActionableErrorClass,
+  markErrorReported,
+} from "../../Types/Telemetry/ErrorClass";
+import { ERROR_CLASS_ATTRIBUTE_KEY } from "../../Types/Telemetry/UnitOfWork";
 import RuntimeMetrics from "./Telemetry/RuntimeMetrics";
 
 type ResourceWithRawAttributes = Resource & {
@@ -540,70 +546,158 @@ export default class Telemetry {
     return this.getTracer().startActiveSpan(name, data.options || {}, data.fn);
   }
 
+  /*
+   * Span event names. The exception name is load-bearing: the ingest side
+   * mints an ExceptionInstance row and a TelemetryException group for every
+   * span event literally named "exception" (OtelTracesIngestService
+   * getSpanEvents), with no severity, status or handled/unhandled filter. An
+   * event under any OTHER name is still pushed to the span's `events` column
+   * and still renders in the Traces UI — it simply never becomes an Issue.
+   *
+   * That is the entire mechanism by which a user error stops paging us, and
+   * it needs no ingest change, no schema change and no migration.
+   */
+  private static readonly SPAN_EVENT_EXCEPTION: string = "exception";
+  private static readonly SPAN_EVENT_FAULT: string = "fault";
+
+  private static faultCounter: TelemetryCounter | null = null;
+
+  /**
+   * Record a thrown value on a span AND end the span.
+   *
+   * Kept as the name every @CaptureSpan frame calls, so the decorator's
+   * contract is unchanged.
+   */
   public static recordExceptionMarkSpanAsErrorAndEndSpan(data: {
+    span: Span;
+    exception: unknown;
+  }): void {
+    try {
+      this.recordExceptionOnSpan(data);
+    } finally {
+      this.endSpan(data.span);
+    }
+  }
+
+  /**
+   * Record a thrown value on a span WITHOUT ending it, for callers that own
+   * the span's lifetime (QueueWorker's root job span ends it in its own
+   * `finally`).
+   *
+   * What this does, and why each part matters:
+   *
+   * 1. RESOLVES A FAULT DOMAIN. code-fault and infrastructure are real
+   *    failures and behave exactly as before. user-error and expected-denial
+   *    are the platform correctly refusing a request, so they get a `fault`
+   *    event instead of an `exception` event and the span status is left
+   *    alone.
+   *
+   * 2. REPORTS ONCE PER THROWN VALUE. One error crossing N decorated frames
+   *    used to emit N exception events and N logger.error lines. The
+   *    fingerprint hashes no spanId and no span name, so all N landed in the
+   *    same group and occuranceCount jumped by the depth of the call stack
+   *    (measured: 3 for a create with a missing field, 6 for a
+   *    permission-denied get-list). Outer frames still set ERROR status and
+   *    still carry the queryable exception.* attributes, so the trace shows
+   *    the full error path — only the duplicate EVENT and the duplicate LOG
+   *    are suppressed.
+   *
+   * 3. BUILDS THE EVENT ITSELF rather than calling span.recordException. The
+   *    SDK reads `exception.code` BEFORE `exception.name` when deciding
+   *    `exception.type` (sdk-trace-base Span.recordException), and every
+   *    OneUptime ExceptionCode IS an HTTP status — so exceptions were being
+   *    typed "401"/"400"/"500". Constructing the event here removes that trap
+   *    structurally instead of relying on every caller to normalize first.
+   *
+   * 4. COUNTS EVERYTHING. `oneuptime.fault.count` is incremented for every
+   *    class, suppressed or not, so suppression is never invisible. A metric
+   *    also outlives trace retention, which a span event does not.
+   *
+   * Never throws: this is the universal catch path, and a throw here would
+   * mask the original error.
+   */
+  public static recordExceptionOnSpan(data: {
     span: Span;
     exception: unknown;
   }): void {
     const { span, exception } = data;
 
-    /*
-     * This runs on the universal catch path of every @CaptureSpan-decorated
-     * function, so it must NEVER throw — a throw here would mask the original
-     * error and skip marking the span. The whole body is wrapped defensively
-     * and the span is always marked-as-error and ended (in the finally).
-     */
     try {
       const exceptionAttributes: Attributes =
         this.getExceptionAttributes(exception);
 
-      // log the exception as well
-      logger.error(exception);
+      const errorClass: ErrorClass = ErrorClassResolver.resolve(exception);
+      const alreadyReported: boolean = markErrorReported(exception);
+
+      const exceptionType: string =
+        (exceptionAttributes["exception.type"] as string) || "Error";
+      const exceptionMessage: string =
+        (exceptionAttributes["exception.message"] as string) || "";
+
+      if (!alreadyReported) {
+        // Logger applies the same classification and demotes to WARN severity.
+        logger.error(exception);
+      }
 
       /*
-       * Span *events* (from recordException) are not reliably surfaced when the
-       * span is read back, and setStatus on its own only records the error CODE,
-       * not the message. So we also attach the exception details as queryable
-       * span attributes — including DB driver fields like the failing constraint
-       * and table — so the actual cause is visible in the trace UI instead of an
-       * empty "Error" status.
+       * Span *events* are not reliably surfaced when the span is read back,
+       * and setStatus on its own only records the error CODE, not the message.
+       * So the exception details are also attached as queryable span
+       * attributes — including DB driver fields like the failing constraint
+       * and table — so the actual cause is visible in the trace UI instead of
+       * an empty "Error" status. Done for every class, on every frame: it is
+       * what makes `attributes.exception.type` usable as a drop-filter
+       * predicate at any depth.
        */
-      span.setAttributes(exceptionAttributes);
-
-      /*
-       * A NORMALIZED {name, message, stack} is handed to recordException
-       * rather than the raw thrown value, because the OTel SDK reads
-       * `exception.code` BEFORE `exception.name` when deciding
-       * `exception.type` (sdk-trace-base Span.recordException). OneUptime's
-       * Exception base class exposes an HTTP STATUS as `code`
-       * (NotAuthenticatedException = 401, BadDataException = 400,
-       * ServerException = 500 — see Types/Exception/ExceptionCode), so every
-       * exception this platform raises was being typed "401"/"400"/"500".
-       *
-       * That type is the exception event's identity downstream: it is hashed
-       * into the TelemetryException group fingerprint and it is what the
-       * Issues list and the AI insight titles show. A whole service's worth of
-       * unrelated failures collapsed into "401", telling nobody anything.
-       *
-       * The payload is built from the attributes getExceptionAttributes has
-       * already extracted, which means it inherits their truncation (4k
-       * message, 8k stack) and their crash-safety — a hostile thrown value is
-       * read exactly once, defensively, rather than twice.
-       */
-      span.recordException({
-        name: (exceptionAttributes["exception.type"] as string) || "Error",
-        message: (exceptionAttributes["exception.message"] as string) || "",
-        ...(exceptionAttributes["exception.stacktrace"]
-          ? {
-              stack: exceptionAttributes["exception.stacktrace"] as string,
-            }
-          : {}),
-      } as SpanException);
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message:
-          (exceptionAttributes["exception.message"] as string | undefined) ||
-          "Error",
+      span.setAttributes({
+        ...exceptionAttributes,
+        [ERROR_CLASS_ATTRIBUTE_KEY]: errorClass,
       });
+
+      if (!isNonActionableErrorClass(errorClass)) {
+        if (!alreadyReported) {
+          span.addEvent(this.SPAN_EVENT_EXCEPTION, {
+            "exception.type": exceptionType,
+            "exception.message": exceptionMessage,
+            ...(exceptionAttributes["exception.stacktrace"]
+              ? {
+                  "exception.stacktrace": exceptionAttributes[
+                    "exception.stacktrace"
+                  ] as string,
+                }
+              : {}),
+          });
+        }
+
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: exceptionMessage || "Error",
+        });
+      } else if (!alreadyReported) {
+        /*
+         * Deliberately NOT named "exception" and deliberately carrying no
+         * `exception.*` keys: the first stops the trace ingest path from
+         * building an Issue, the second stops LogExceptionExtractor Path A
+         * from resurrecting one out of a log record. The event is still
+         * stored and still rendered.
+         *
+         * No setStatus at all. OTel says a 4xx on a SERVER span must stay
+         * Unset, and setStatus({code: UNSET}) is a documented no-op — so
+         * "leave it unset" is implemented as "do not call it".
+         */
+        span.addEvent(this.SPAN_EVENT_FAULT, {
+          [ERROR_CLASS_ATTRIBUTE_KEY]: errorClass,
+          "error.type": exceptionType,
+          "error.message": exceptionMessage,
+          ...(exceptionAttributes["exception.code"]
+            ? {
+                "error.code": exceptionAttributes["exception.code"] as string,
+              }
+            : {}),
+        });
+      }
+
+      this.incrementFaultCounter(errorClass, exceptionType);
     } catch {
       // Enrichment failed on some exotic thrown value — still flag the span.
       try {
@@ -611,8 +705,34 @@ export default class Telemetry {
       } catch {
         // span may already be ended; nothing more we can do.
       }
-    } finally {
-      this.endSpan(span);
+    }
+  }
+
+  /*
+   * Built lazily and through Telemetry.getCounter directly rather than through
+   * AppMetrics — AppMetrics imports Telemetry, so registering there would
+   * close an import cycle on the error path.
+   */
+  private static incrementFaultCounter(
+    errorClass: ErrorClass,
+    exceptionType: string,
+  ): void {
+    try {
+      if (!this.faultCounter) {
+        this.faultCounter = this.getCounter({
+          name: "oneuptime.fault.count",
+          description:
+            "Faults by fault domain and type, including the ones deliberately kept out of the Issues list.",
+          unit: "1",
+        });
+      }
+
+      this.faultCounter.add(1, {
+        [ERROR_CLASS_ATTRIBUTE_KEY]: errorClass,
+        "error.type": exceptionType,
+      });
+    } catch {
+      // Metrics must never break the error path.
     }
   }
 
@@ -783,7 +903,34 @@ export default class Telemetry {
     }
   }
 
+  /*
+   * Ending a span twice makes the SDK log
+   * "You can only call end() on a span once" via diag. That happened on EVERY
+   * error path: the recorder's finally ended the span, and CaptureSpan then
+   * ended it again in its own finally / .finally(). Guard here rather than at
+   * the call sites so any future caller is safe too.
+   */
   public static endSpan(span: Span): void {
+    try {
+      const endTime: unknown = (span as unknown as { endTime?: Array<number> })
+        .endTime;
+
+      /*
+       * sdk-trace-base sets endTime to [0, 0] until the span ends. A span
+       * implementation that does not expose it (a no-op span, a test double)
+       * falls through and is ended normally.
+       */
+      if (
+        Array.isArray(endTime) &&
+        endTime.length === 2 &&
+        !(endTime[0] === 0 && endTime[1] === 0)
+      ) {
+        return;
+      }
+    } catch {
+      // Fall through and end it.
+    }
+
     span.end();
   }
 }

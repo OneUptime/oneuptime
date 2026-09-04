@@ -57,6 +57,36 @@
     "today": "今天",
     "notAvailable": "無法使用"
   },
+  "uptimeHistory": {
+    "graphLabel": "最近 {{total}} 天的可用性紀錄",
+    "dayLabel": "{{date}}：可用率 {{uptime}}%",
+    "dayLabelWithIncidents": "{{date}}：可用率 {{uptime}}%，{{total}} 起事件",
+    "dayLabelNoData": "{{date}}：無資料",
+    "dayLabelNoDataWithIncidents": "{{date}}：無資料，{{total}} 起事件",
+    "uptime": "可用率",
+    "noMonitoringData": "當天沒有監控資料",
+    "incidents": "事件",
+    "noIncidents": "無事件",
+    "noIncidentsDescription": "當天沒有回報任何事件。",
+    "declared": "宣告於",
+    "oneIncidentOnThisDay": "當天回報了 1 起事件",
+    "incidentsOnThisDay": "當天回報了 {{total}} 起事件"
+  },
+  "liveStatus": {
+    "updated": "{{time}}更新",
+    "refresh": "重新整理",
+    "refreshing": "正在重新整理",
+    "refreshFailed": "無法重新整理。顯示最後已知狀態。"
+  },
+  "search": {
+    "label": "搜尋資源",
+    "placeholder": "搜尋資源",
+    "clear": "清除搜尋",
+    "resultCount": "{{total}} 個資源中的 {{matched}} 個",
+    "noMatchesInGroup": "這裡沒有符合搜尋的資源。",
+    "noResultsTitle": "沒有符合的資源",
+    "noResultsDescription": "此頁面上沒有符合「{{query}}」的內容。請嘗試較短的搜尋。"
+  },
   "incidents": {
     "title": "事件",
     "singular": "事件",

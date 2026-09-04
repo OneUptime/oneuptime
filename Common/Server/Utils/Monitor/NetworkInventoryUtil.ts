@@ -20,25 +20,39 @@ import SnmpVendorTemplateUtil, {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import logger from "../Logger";
 
 /*
  * Keeps the NetworkDevice / NetworkInterface inventory in sync with each
- * device walk, then prunes the in-flight response down to MONITORED
+ * device poll, then prunes the in-flight response down to MONITORED
  * interfaces so criteria and metrics only consider ports the user cares
  * about. Inventory rows always reflect every walked interface; the
  * isMonitored flag is user-owned and never overwritten here.
  *
  * Called from the device polling pipeline (NetworkDeviceWalkUtil): the
- * device's assigned probe walks it on the device's own schedule, so this
- * runs for every registered device — no Monitor required.
+ * device's assigned probe pings it on the device's own schedule - and walks
+ * it over SNMP as well when it has credentials - so this runs for every
+ * registered device, credentials or not, and no Monitor is required.
  */
 export default class NetworkInventoryUtil {
   public static async updateFromWalk(data: {
     projectId: ObjectID;
     deviceId: ObjectID;
+    /*
+     * The SNMP walk, when one ran (success or failure). Undefined on a
+     * ping-only poll - never a synthesized failure.
+     */
     snmpResponse: SnmpMonitorResponse | undefined;
+    // Device reachability: answered ping OR the walk succeeded.
     isOnline: boolean | undefined;
+    /*
+     * How the probe polled. Absent from callers that predate ping-first
+     * polling (the ingest processor stamps "snmp" for an old probe's walk),
+     * and read as "snmp" when absent.
+     */
+    pollMode?: NetworkDevicePollMode | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -61,6 +75,8 @@ export default class NetworkInventoryUtil {
           autoApplyVendorHealthTemplate: true,
           snmpOids: true,
           oidTemplateId: true,
+          // For the monitor-backed guard on the poll columns below.
+          monitoringMethod: true,
         },
         props: {
           isRoot: true,
@@ -71,27 +87,70 @@ export default class NetworkInventoryUtil {
       return;
     }
 
-    const walkedInterfaces: Array<SnmpInterface> =
-      data.snmpResponse?.interfaces || [];
-    const systemInfo: SnmpSystemInfo | undefined =
-      data.snmpResponse?.systemInfo;
-    const entityInfo: SnmpEntityInfo | undefined =
-      data.snmpResponse?.entityInfo;
-    const lldpNeighbors: Array<LldpNeighbor> | undefined =
-      data.snmpResponse?.lldpNeighbors;
-    const cdpNeighbors: Array<CdpNeighbor> | undefined =
-      data.snmpResponse?.cdpNeighbors;
-    const arpEntries: Array<ArpEntry> | undefined =
-      data.snmpResponse?.arpEntries;
-    const fdbEntries: Array<FdbEntry> | undefined =
-      data.snmpResponse?.fdbEntries;
+    /*
+     * A monitor-backed device (monitoringMethod "Monitor") is never meant to
+     * be walked: nothing polls it and its bound Monitor's status owns
+     * isReachable. But claimDevicesForPolling only excludes such rows at
+     * CLAIM time, so a device claimed as SNMP and switched to Monitor before
+     * its walk result arrived still lands here. Writing the poll verdict
+     * then would overwrite the monitor's reachability with the last thing a
+     * probe found before it stopped asking, and the two would fight on the
+     * device list until the next status change. The poll and interface-count
+     * columns are therefore withheld for such a row; everything else the
+     * walk learned (system group, vendor, neighbors, interfaces, endpoints)
+     * is still recorded, because it is inventory rather than health.
+     */
+    const isMonitorBacked: boolean =
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+        ownedDevice.monitoringMethod,
+      );
+
+    if (isMonitorBacked) {
+      logger.warn(
+        `Network device ${deviceId.toString()} is monitor-backed (monitoringMethod "Monitor") but a poll result arrived for it - most likely it was switched off probe polling while a poll was in flight. Its bound monitor owns reachability, so lastPolledAt, isReachable, lastSeenAt, isSnmpReachable, lastSnmpSeenAt and the interface counts from this poll are not written.`,
+      );
+    }
+
+    const pollMode: NetworkDevicePollMode = data.pollMode ?? "snmp";
+
+    /*
+     * Did a walk run, and did it succeed? Two separate questions, because a
+     * ping-only poll runs no walk at all and must not read as a failed one:
+     * the walk columns below go NULL for it, not false.
+     *
+     * A walk where the probe could not open the SNMP session reports
+     * isOnline === false; treat anything else (success, or a walk that
+     * reports no verdict at all) as succeeded - the same convention
+     * isDeviceReachable uses further down.
+     */
+    const walkRan: boolean = data.snmpResponse !== undefined;
+    const walkSucceeded: boolean =
+      data.snmpResponse !== undefined && data.snmpResponse.isOnline !== false;
+
+    /*
+     * Inventory comes ONLY from a successful walk. A failed walk carries no
+     * system group, no neighbours and no interfaces, and reading whatever a
+     * malformed failure did carry would let it clear the LLDP snapshot or
+     * rewrite sysName off a session that never really opened.
+     */
+    const walk: SnmpMonitorResponse | undefined = walkSucceeded
+      ? data.snmpResponse
+      : undefined;
+
+    const walkedInterfaces: Array<SnmpInterface> = walk?.interfaces || [];
+    const systemInfo: SnmpSystemInfo | undefined = walk?.systemInfo;
+    const entityInfo: SnmpEntityInfo | undefined = walk?.entityInfo;
+    const lldpNeighbors: Array<LldpNeighbor> | undefined = walk?.lldpNeighbors;
+    const cdpNeighbors: Array<CdpNeighbor> | undefined = walk?.cdpNeighbors;
+    const arpEntries: Array<ArpEntry> | undefined = walk?.arpEntries;
+    const fdbEntries: Array<FdbEntry> | undefined = walk?.fdbEntries;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
-     * A poll where the probe could not reach the device reports
-     * isOnline === false; treat anything else (reachable, or a walk that
-     * reports no reachability at all) as answered.
+     * A poll where the probe could not reach the device (no ping answer AND
+     * no walk) reports isOnline === false; treat anything else (reachable,
+     * or a poll that reports no reachability at all) as answered.
      */
     const isDeviceReachable: boolean = data.isOnline !== false;
 
@@ -115,12 +174,39 @@ export default class NetworkInventoryUtil {
        *   lastSeenAt   - when the device last ANSWERED. Only moves on a
        *                  successful walk, so it stays honest as "last
        *                  contact" and never paints a dead device green.
+       *
+       * Under ping-first polling the three answer for the DEVICE - "did it
+       * answer ping or SNMP" - which is what the status pill shows. The
+       * walk gets its own pair:
+       *
+       *   isSnmpReachable - the verdict of the last WALK: true/false when
+       *                     one ran, NULL when none did (a ping-only poll)
+       *                     or the device was never polled. NULL is the
+       *                     whole point: a credential-less device is not
+       *                     "SNMP down", it is "not walked".
+       *   lastSnmpSeenAt  - when the walk last SUCCEEDED. Only moves on a
+       *                     good walk, like lastSeenAt for the device.
+       *
+       * An old probe (no pollMode) only ever walked, and the processor
+       * stamps its walk verdict as the device verdict, so both columns
+       * carry the same value for it - never NULL for a credentialed device.
+       *
+       * None of the five is written for a monitor-backed device - see the
+       * guard above the try.
        */
-      deviceUpdate["lastPolledAt"] = now;
-      deviceUpdate["isReachable"] = isDeviceReachable;
+      if (!isMonitorBacked) {
+        deviceUpdate["lastPolledAt"] = now;
+        deviceUpdate["isReachable"] = isDeviceReachable;
 
-      if (isDeviceReachable) {
-        deviceUpdate["lastSeenAt"] = now;
+        if (isDeviceReachable) {
+          deviceUpdate["lastSeenAt"] = now;
+        }
+
+        deviceUpdate["isSnmpReachable"] = walkRan ? walkSucceeded : null;
+
+        if (walkSucceeded) {
+          deviceUpdate["lastSnmpSeenAt"] = now;
+        }
       }
 
       if (systemInfo?.sysDescr) {
@@ -232,24 +318,45 @@ export default class NetworkInventoryUtil {
         deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
       }
 
-      if (walkedInterfaces.length > 0) {
-        deviceUpdate["interfacesTotal"] = walkedInterfaces.length;
-        deviceUpdate["interfacesUp"] = walkedInterfaces.filter(
-          (walked: SnmpInterface) => {
-            return walked.isAdministrativelyUp && walked.isOperationallyUp;
-          },
-        ).length;
-        deviceUpdate["interfacesDown"] = walkedInterfaces.filter(
-          (walked: SnmpInterface) => {
-            return walked.isAdministrativelyUp && !walked.isOperationallyUp;
-          },
-        ).length;
+      /*
+       * The cached interface counts are health columns too (the device list
+       * and the site overview read interfacesDown), so a monitor-backed
+       * device keeps them out for the same reason as the poll columns.
+       *
+       * On a ping-only poll they go NULL rather than staying put: a device
+       * whose credentials were removed would otherwise keep showing the
+       * interface counts of its last walk indefinitely, and the list would
+       * read "3 interfaces down" on a device nothing is walking any more.
+       * A failed walk in snmp mode, by contrast, leaves them alone - the
+       * last good counts are the best estimate until the next good walk,
+       * exactly as the lastWalkLog baseline is kept across failed polls.
+       */
+      if (!isMonitorBacked) {
+        if (pollMode === "ping") {
+          deviceUpdate["interfacesTotal"] = null;
+          deviceUpdate["interfacesUp"] = null;
+          deviceUpdate["interfacesDown"] = null;
+        } else if (walkedInterfaces.length > 0) {
+          deviceUpdate["interfacesTotal"] = walkedInterfaces.length;
+          deviceUpdate["interfacesUp"] = walkedInterfaces.filter(
+            (walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && walked.isOperationallyUp;
+            },
+          ).length;
+          deviceUpdate["interfacesDown"] = walkedInterfaces.filter(
+            (walked: SnmpInterface) => {
+              return walked.isAdministrativelyUp && !walked.isOperationallyUp;
+            },
+          ).length;
+        }
       }
 
       /*
-       * Always non-empty now: even a walk that reached nothing has to
-       * record that we tried, or the staleness backstop cannot tell a
-       * failing device from an unpolled one.
+       * Always non-empty for a probe-polled device: even a poll that
+       * reached nothing has to record that we tried, or the staleness
+       * backstop cannot tell a failing device from an unpolled one. Only
+       * the monitor-backed case above can leave it empty, and then there
+       * is genuinely nothing to write.
        */
       if (Object.keys(deviceUpdate).length > 0) {
         await NetworkDeviceService.updateOneById({

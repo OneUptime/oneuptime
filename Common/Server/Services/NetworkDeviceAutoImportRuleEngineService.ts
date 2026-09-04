@@ -31,10 +31,8 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
-import { monitoringMethodForDiscoveredHost } from "../../Utils/NetworkDiscovery/DiscoveryImportEligibility";
-import NetworkDeviceMonitoringMethod, {
-  NetworkDeviceMonitoringMethodUtil,
-} from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { DISCOVERY_SCAN_IMPORTABLE_STATUSES } from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -44,7 +42,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 
 /*
  * The engine behind network device auto-import rules (issue #3378): reads a
- * completed discovery scan's results, asks the project's rules which hosts
+ * discovery scan's results — finished or still arriving from a running sweep,
+ * see DISCOVERY_SCAN_IMPORTABLE_STATUSES — asks the project's rules which hosts
  * import, and creates the Network Devices the manual Review dialog would
  * have — through the same builder, so a rule-imported host and a
  * hand-imported host are the same device. Site assignment, owners and labels
@@ -185,24 +184,32 @@ export type ImportAttemptBudgetsByProjectId = Map<string, ImportAttemptBudget>;
 
 class NetworkDeviceAutoImportRuleEngineServiceClass {
   /**
-   * The automatic path: apply the project's enabled rules to one Completed
-   * scan, then stamp the scan's autoImportProcessedAt marker.
+   * The automatic path: apply the project's enabled rules to one scan's
+   * stored results, then stamp the scan's autoImportProcessedAt marker.
+   *
+   * The scan may still be SWEEPING — see
+   * DISCOVERY_SCAN_IMPORTABLE_STATUSES. Its partial results are as real as
+   * a finished scan's (the probe found those hosts; it simply has more of the
+   * range to cover), and waiting for the whole sweep is what left 527
+   * discovered switches unimportable for a day in OneUptime issue #3599. The
+   * name is kept because it is the automatic path's identity across the
+   * worker, its tests and its logs.
    *
    * Returns null when there was nothing to do (scan gone, superseded,
    * already processed, no import rules, or results too old) and the run's
    * counters otherwise. Throws only on unexpected failures — the caller
    * (the worker sweep) isolates those per scan.
    *
-   * The marker protocol, and why every stamp is a compare-and-set on
-   * (status, completedAt): the ingest endpoint clears the marker in the same
-   * write that stores new results, so "marker is NULL" always means "the
-   * results now on the row have not been processed". If new results land
-   * while this pass is reading the old ones, the CAS misses, the marker
-   * stays NULL, and the next tick processes the new upload — the stamp can
-   * never retire results it did not see, and the jsonb write-back can never
-   * clobber a newer host list. A truncated pass that created something
-   * stamps nothing on purpose: the NULL marker is what makes the next tick
-   * resume. (A truncated pass where every create FAILED stamps anyway — see
+   * The marker protocol, and why every stamp is a compare-and-set on the run
+   * state this pass read: the ingest endpoint clears the marker in the same
+   * write that stores new results — partial uploads included — so "marker is
+   * NULL" always means "the results now on the row have not been processed".
+   * If new results land while this pass is reading the old ones, the CAS
+   * misses, the marker stays NULL, and the next tick processes the new upload
+   * — the stamp can never retire results it did not see, and the jsonb
+   * write-back can never clobber a newer host list. A truncated pass that
+   * created something stamps nothing on purpose: the NULL marker is what
+   * makes the next tick resume. (A truncated pass where every create FAILED stamps anyway — see
    * the zero-progress note at the stamp below.)
    */
   @CaptureSpan()
@@ -216,13 +223,21 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       await NetworkDeviceDiscoveryScanService.findOneBy({
         query: {
           _id: data.scanId,
-          status: "Completed",
+          status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
         },
         select: {
           _id: true,
           projectId: true,
           status: true,
           completedAt: true,
+          /*
+           * The two counters a running scan's partial uploads move. They are
+           * not read for anything; they are the version token stampScan's
+           * compare-and-set uses to tell "the results I evaluated" from "the
+           * results that landed while I was evaluating".
+           */
+          scannedHostCount: true,
+          respondedHostCount: true,
           autoImportProcessedAt: true,
           discoveredDevices: true,
           ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
@@ -541,11 +556,21 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       await NetworkDeviceDiscoveryScanService.findBy({
         query: {
           projectId: data.projectId,
-          status: "Completed",
+          /*
+           * A scan that is still sweeping counts too: its partial results are
+           * already on the row, and "Run Now found 25 hosts while 527 sat in
+           * the Devices list" was exactly the report (OneUptime issue #3599).
+           */
+          status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
         },
         select: {
           _id: true,
         },
+        /*
+         * Newest results first. An in-progress scan has no completedAt, and
+         * Postgres orders NULLs first under DESC — which is the right place
+         * for it: its results are the freshest the project has.
+         */
         sort: {
           completedAt: SortOrder.Descending,
         },
@@ -567,13 +592,16 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           query: {
             _id: scanStub.id!,
             projectId: data.projectId,
-            status: "Completed",
+            status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
           },
           select: {
             _id: true,
             projectId: true,
             status: true,
             completedAt: true,
+            // The version token stampScan's compare-and-set uses; see there.
+            scannedHostCount: true,
+            respondedHostCount: true,
             discoveredDevices: true,
             ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
           },
@@ -1269,14 +1297,16 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     isDryRun: boolean;
   }): Promise<boolean> {
     /*
-     * A Network Device monitor is evaluated from SNMP walks. A ping-only
-     * import intentionally has polling disabled and can never supply those
-     * results. Rule validation prevents this combination, while this guard
-     * keeps legacy or directly-written rows from creating inert monitors.
+     * A Network Device monitor is fed by the device's polls, and nothing
+     * polls a monitor-backed device — its bound monitor's status IS its
+     * status — so a monitor provisioned onto one could only ever sit inert.
+     * The DEVICE's method is the whole test. A ping-only host is no longer
+     * a reason to skip: it imports as a Probe device, pinged on schedule,
+     * and its monitor evaluates reachability from that ping while the OID
+     * and interface criteria stay unevaluated (null) until credentials
+     * arrive and a walk runs — see SnmpMonitorCriteria.
      */
     if (
-      monitoringMethodForDiscoveredHost(data.host) ===
-        NetworkDeviceMonitoringMethod.Monitor ||
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
         data.networkDevice.monitoringMethod,
       )
@@ -1567,20 +1597,20 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   /*
    * The one write this engine makes to the scan row: retire the consumed
    * hosts in the stored jsonb (so the Review dialog stops offering them) and
-   * stamp the processed marker — in a single hook-free compare-and-set on
-   * (status, completedAt), for the reasons on processCompletedScan. The
+   * stamp the processed marker — in a single hook-free compare-and-set on the
+   * run state that was read, for the reasons on processCompletedScan. The
    * claim endpoint's hook-free contract is why this must never go through
    * updateOneById: the scan service deliberately has no update-success hooks
    * to piggyback on, and this write must not fire the full pipeline on every
    * worker tick.
    *
    * The CAS defends against exactly one concurrent writer — the ingest
-   * endpoint, which rewrites completedAt with every upload. It cannot
-   * defend against another ENGINE write (which changes neither status nor
-   * completedAt), and does not need to: every path that reaches this method
-   * holds the sweep lock (the worker for its whole sweep, Run Now for a
-   * real run; dry runs never write), so the full-array replace below always
-   * has the row's only engine writer. Weaken that invariant and this
+   * endpoint, which rewrites completedAt with a final upload and the host
+   * counters with a partial one. It cannot defend against another ENGINE
+   * write (which changes none of those columns), and does not need to: every
+   * path that reaches this method holds the sweep lock (the worker for its
+   * whole sweep, Run Now for a real run; dry runs never write), so the
+   * full-array replace below always has the row's only engine writer. Weaken that invariant and this
    * becomes last-writer-wins on the isAlreadyRegistered flips.
    */
   private async stampScan(data: {
@@ -1633,8 +1663,30 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       // Cast: the model's JSON column makes DeepPartial recursion blow up.
       data: payload as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
       expectedData: {
-        status: "Completed",
+        /*
+         * The scan's own status, not the literal "Completed" this used to
+         * pin. A scan that is still sweeping is importable now (issue
+         * #3599), and its status is exactly the thing that changes when its
+         * run ends — so reading it off the row keeps the guard doing what it
+         * always did rather than making an In Progress stamp always miss.
+         */
+        status: data.scan.status ?? null,
         completedAt: data.scan.completedAt || null,
+        /*
+         * The counters a running scan's partial uploads move, so a partial
+         * landing between the read and this write is caught the way a
+         * completion is: the stamp misses, the marker stays NULL, and the
+         * next tick processes the newer host list.
+         *
+         * Not a perfect version token for an in-progress scan — the
+         * ICMP-filtered fallback pass finds hosts without advancing
+         * scannedHostCount, so two partials can carry both counts unchanged.
+         * The consequence is bounded and self-healing: one batch of hosts
+         * waits for the next partial upload (which clears the marker again),
+         * and the run's final result clears it unconditionally.
+         */
+        scannedHostCount: data.scan.scannedHostCount ?? null,
+        respondedHostCount: data.scan.respondedHostCount ?? null,
       } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
     });
   }

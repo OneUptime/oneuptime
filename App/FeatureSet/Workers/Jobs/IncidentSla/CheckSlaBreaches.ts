@@ -309,6 +309,18 @@ async function sendBreachNotification(data: {
         pushNotificationMessage: pushMessage,
         whatsAppMessage,
         eventType,
+        /*
+         * Never coalesced into a rollup. This job borrows another family's
+         * identity - the envelope above uses
+         * EmailTemplateType.IncidentOwnerResourceCreated at :265 and eventType
+         * is SEND_INCIDENT_CREATED_OWNER_NOTIFICATION at :286 - so nothing the
+         * rollup writer can see distinguishes "your SLA deadline has been
+         * breached" from an ordinary incident-created notice. An SLA breach is
+         * a deadline that has already passed; delaying it by five minutes to
+         * batch it with the incident chatter that caused it is exactly
+         * backwards.
+         */
+        forceImmediate: true,
       });
     }
 

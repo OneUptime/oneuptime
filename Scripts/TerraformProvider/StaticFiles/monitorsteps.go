@@ -186,6 +186,9 @@ var monitorStepsCheckOnValues = []string{
 	"SQL Query Scalar Value",
 	"SQL Query Execution Time (in ms)",
 	"SQL Query Error",
+	"Database Is Online",
+	"Database Metric",
+	"Database Collection Error",
 	"External Status Page Is Online",
 	"External Status Page Overall Status",
 	"External Status Page Component Status",
@@ -262,6 +265,7 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"domain_monitor", "domainMonitor"},
 	{"dnssec_monitor", "dnssecMonitor"},
 	{"sql_monitor", "sqlMonitor"},
+	{"database_monitor", "databaseMonitor"},
 	{"external_status_page_monitor", "externalStatusPageMonitor"},
 	{"kubernetes_monitor", "kubernetesMonitor"},
 	{"docker_monitor", "dockerMonitor"},
@@ -289,6 +293,7 @@ func monitorStepsFilterAttrTypes() map[string]attr.Type {
 		"disk_path":                         types.StringType,
 		"metric_monitor_options":            types.StringType,
 		"snmp_monitor_options":              types.StringType,
+		"database_monitor_options":          types.StringType,
 	}
 }
 
@@ -605,6 +610,11 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
+			"database_monitor_options": schema.StringAttribute{
+				MarkdownDescription: "Raw JSON escape hatch for Database Health filter options (metricType). Required on every `Database Metric` filter — it names the series the threshold applies to. Write it with `jsonencode()`.",
+				Optional:            true,
+				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			},
 		},
 	}
 }
@@ -918,6 +928,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"domain_monitor":               "Raw JSON escape hatch for the Domain monitor config (domainName, lookupMethod, timeout, retries). lookupMethod is one of Auto, RDAP, WHOIS and defaults to Auto.",
 		"dnssec_monitor":               "Raw JSON escape hatch for the DNSSEC monitor config (domainName, resolvers).",
 		"sql_monitor":                  "Raw JSON escape hatch for the SQL Query monitor config (databaseType, host, port, databaseName, query, ...).",
+		"database_monitor":             "Raw JSON escape hatch for the Database Health monitor config (databaseType, host, port, databaseName, username, password, enabledMetricGroups, ...).",
 		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, providerType).",
 		"kubernetes_monitor":           "Raw JSON escape hatch for the Kubernetes monitor config (clusterIdentifier, ...).",
 		"docker_monitor":               "Raw JSON escape hatch for the Docker monitor config (hostIdentifier, ...).",
@@ -1095,6 +1106,9 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	}
 	if v, ok := monitorStepsAttrJSON(attrs, "snmp_monitor_options", attrPath, diags); ok {
 		out["snmpMonitorOptions"] = v
+	}
+	if v, ok := monitorStepsAttrJSON(attrs, "database_monitor_options", attrPath, diags); ok {
+		out["databaseMonitorOptions"] = v
 	}
 	return out
 }
@@ -1564,6 +1578,9 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 	}
 	if s, ok := monitorStepsAPIJSONString(m["snmpMonitorOptions"]); ok {
 		attrs["snmp_monitor_options"] = types.StringValue(s)
+	}
+	if s, ok := monitorStepsAPIJSONString(m["databaseMonitorOptions"]); ok {
+		attrs["database_monitor_options"] = types.StringValue(s)
 	}
 	// metricCriteriaContext (evaluation-time context) and any unknown keys
 	// are intentionally dropped.

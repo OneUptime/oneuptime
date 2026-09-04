@@ -14,6 +14,8 @@ import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceAutoImportRule from "./NetworkDeviceAutoImportRule";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import NetworkDeviceRole from "./NetworkDeviceRole";
+import NetworkAlertPolicy from "./NetworkAlertPolicy";
+import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
@@ -461,6 +463,9 @@ import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
+import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
+import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
+import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -882,6 +887,8 @@ const AllModelTypes: Array<{
   NetworkDeviceAutoImportRule,
   NetworkDeviceOidTemplate,
   NetworkDeviceRole,
+  NetworkAlertPolicy,
+  NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
   NetworkSite,
@@ -942,6 +949,9 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   DeletedProject,
+  UserNotificationEmailRollupItem,
+  UserNotificationEmailRollupBatch,
+  UserNotificationEmailRollupSetting,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

@@ -17,6 +17,9 @@ import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { NetworkDevicePollMode } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import logger from "../../../../Server/Utils/Logger";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -153,9 +156,17 @@ function existingInterface(interfaceIndex: number): NetworkInterface {
   return row;
 }
 
+/*
+ * A poll that ran a walk. With no pollMode this is what an old probe's walk
+ * looks like to the util (the processor stamps "snmp" for it); pass
+ * pollMode "snmp" for a ping-first probe's walk.
+ */
 async function runWalk(
   snmpFields?: Partial<SnmpMonitorResponse>,
-  options?: { isOnline?: boolean | undefined },
+  options?: {
+    isOnline?: boolean | undefined;
+    pollMode?: NetworkDevicePollMode | undefined;
+  },
 ): Promise<SnmpMonitorResponse> {
   const snmpResponse: SnmpMonitorResponse = buildSnmpResponse(snmpFields);
 
@@ -164,9 +175,21 @@ async function runWalk(
     deviceId: new ObjectID(DEVICE_ID),
     snmpResponse: snmpResponse,
     isOnline: options && "isOnline" in options ? options.isOnline : true,
+    pollMode: options?.pollMode,
   });
 
   return snmpResponse;
+}
+
+// A ping-only poll: the device has no usable credentials, so no walk ran.
+async function runPingOnlyPoll(options: { isOnline: boolean }): Promise<void> {
+  await NetworkInventoryUtil.updateFromWalk({
+    projectId: new ObjectID(PROJECT_ID),
+    deviceId: new ObjectID(DEVICE_ID),
+    snmpResponse: undefined,
+    isOnline: options.isOnline,
+    pollMode: "ping",
+  });
 }
 
 beforeEach(() => {
@@ -299,7 +322,7 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
  * called both of them Down.
  */
 describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () => {
-  test("a reachable poll stamps all three columns", async () => {
+  test("a reachable poll stamps all three columns - and, for a walk, the SNMP pair", async () => {
     mockServices();
 
     await runWalk();
@@ -309,6 +332,8 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () =>
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(update["isReachable"]).toBe(true);
     expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
   });
 
   test("an unreachable poll with no walk data still records the attempt", async () => {
@@ -334,23 +359,35 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () =>
     expect(update["isReachable"]).toBe(false);
     // The device did not answer, so its last contact must not move.
     expect(update).not.toHaveProperty("lastSeenAt");
+    // The walk was attempted and failed: false, not NULL.
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
   });
 
-  test("an unreachable poll with walk data still enriches but never stamps lastSeenAt", async () => {
+  /*
+   * Inventory comes only from a successful walk. A failed walk carries no
+   * system group in practice, and reading whatever a malformed failure did
+   * carry would let a session that never opened rewrite sysName (and so
+   * re-run site-assignment rules) or clear the LLDP snapshot.
+   */
+  test("a failed walk records the attempt but never enriches inventory", async () => {
     mockServices();
 
     await runWalk(
       {
         isOnline: false,
         systemInfo: { sysName: "core-sw-01" },
+        lldpNeighbors: [],
       },
       { isOnline: false },
     );
 
     const update: DeviceUpdatePayload = deviceUpdatePayload();
 
-    expect(update["sysName"]).toBe("core-sw-01");
+    expect(update).not.toHaveProperty("sysName");
+    expect(update).not.toHaveProperty("lldpNeighbors");
     expect(update["isReachable"]).toBe(false);
+    expect(update["isSnmpReachable"]).toBe(false);
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(update).not.toHaveProperty("lastSeenAt");
   });
@@ -810,14 +847,172 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
       isOnline: true,
     });
 
-    // Exactly the reachability columns and nothing else — no walk, no data.
+    /*
+     * Exactly the reachability columns and nothing else — no walk, no
+     * data. isSnmpReachable is NULL, not false: nothing was walked. (No
+     * pollMode reads as "snmp", so the interface counts are left alone as
+     * they are across any failed walk.)
+     */
     expect(deviceUpdatePayload()).toEqual({
       lastPolledAt: NOW,
       isReachable: true,
       lastSeenAt: NOW,
+      isSnmpReachable: null,
     });
     expect(interfaceFindSpy).not.toHaveBeenCalled();
     expect(interfaceUpsertSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Ping-first polling. The three device columns answer "did the device
+ * answer ping or SNMP"; the SNMP pair answers "did the WALK", and NULL there
+ * means "no walk ran" - which is what a credential-less device looks like
+ * on every poll and must never read as "SNMP down".
+ */
+describe("NetworkInventoryUtil.updateFromWalk — ping-first column matrix", () => {
+  test("a reachable ping-only poll: device columns stamped, walk columns NULL, interface counts NULL, no inventory", async () => {
+    mockServices();
+
+    await runPingOnlyPoll({ isOnline: true });
+
+    expect(deviceUpdatePayload()).toEqual({
+      lastPolledAt: NOW,
+      isReachable: true,
+      lastSeenAt: NOW,
+      isSnmpReachable: null,
+      interfacesTotal: null,
+      interfacesUp: null,
+      interfacesDown: null,
+    });
+    expect(interfaceUpsertSpy).not.toHaveBeenCalled();
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
+  });
+
+  test("an unreachable ping-only poll: the attempt is recorded, nothing was seen, walk columns NULL", async () => {
+    mockServices();
+
+    await runPingOnlyPoll({ isOnline: false });
+
+    expect(deviceUpdatePayload()).toEqual({
+      lastPolledAt: NOW,
+      isReachable: false,
+      isSnmpReachable: null,
+      interfacesTotal: null,
+      interfacesUp: null,
+      interfacesDown: null,
+    });
+  });
+
+  test("an snmp-mode poll whose walk succeeded stamps the SNMP pair and the counts beside the device columns", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        interfaces: [
+          walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+          walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+        ],
+      },
+      { isOnline: true, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
+    expect(update["interfacesTotal"]).toBe(2);
+    expect(update["interfacesUp"]).toBe(1);
+    expect(update["interfacesDown"]).toBe(1);
+  });
+
+  /*
+   * The credentials are wrong, the agent is off, or an ACL blocks 161 - but
+   * the device answers ping. It is Up; its walk is down; the last good
+   * interface counts stay (the best estimate until the next good walk);
+   * and nothing the failed session "found" is written as inventory.
+   */
+  test("an snmp-mode poll where ping answered but the walk failed: device up, walk down, counts and inventory untouched", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "SNMP timed out after 3 attempts",
+        systemInfo: { sysName: "should-not-land" },
+      },
+      { isOnline: true, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
+    expect(update).not.toHaveProperty("interfacesTotal");
+    expect(update).not.toHaveProperty("interfacesUp");
+    expect(update).not.toHaveProperty("interfacesDown");
+    expect(update).not.toHaveProperty("sysName");
+  });
+
+  test("an snmp-mode poll that failed both ways: device down, walk down, nothing seen", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "SNMP timed out after 3 attempts",
+      },
+      { isOnline: false, pollMode: "snmp" },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSeenAt");
+    expect(update["isSnmpReachable"]).toBe(false);
+    expect(update).not.toHaveProperty("lastSnmpSeenAt");
+  });
+
+  /*
+   * A probe that predates ping-first polling only ever walked, so its walk
+   * verdict is the device verdict and both columns carry it - a credentialed
+   * device is never left with a NULL walk column by an old probe.
+   */
+  test("an old probe's walk (no pollMode) keeps the walk verdict for BOTH the device and the SNMP columns", async () => {
+    mockServices();
+
+    await runWalk({ isOnline: false }, { isOnline: false });
+    const failed: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(failed["isReachable"]).toBe(false);
+    expect(failed["isSnmpReachable"]).toBe(false);
+
+    deviceUpdateSpy.mockClear();
+    await runWalk();
+    const good: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(good["isReachable"]).toBe(true);
+    expect(good["isSnmpReachable"]).toBe(true);
+    expect(good["lastSeenAt"]).toEqual(NOW);
+    expect(good["lastSnmpSeenAt"]).toEqual(NOW);
+  });
+
+  test("a walk with no verdict at all counts as succeeded, matching the device convention", async () => {
+    mockServices();
+
+    await runWalk({ isOnline: undefined as unknown as boolean });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
   });
 });
 
@@ -1032,5 +1227,156 @@ describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-ap
       .calls[0]![0] as unknown as { select?: Record<string, boolean> };
 
     expect(findArgs.select?.["oidTemplateId"]).toBe(true);
+  });
+});
+
+/*
+ * A monitor-backed device (monitoringMethod "Monitor") is never meant to be
+ * walked - its bound Monitor owns reachability. But claimDevicesForPolling
+ * only excludes such rows at CLAIM time, so a device claimed as SNMP and
+ * switched to Monitor before its walk result arrived still reaches this
+ * writer. The poll verdict must not overwrite the monitor's: these cases
+ * pin that the health columns (lastPolledAt / isReachable / lastSeenAt and
+ * the cached interface counts) are withheld for such a row, that the rest
+ * of the walk's inventory still lands, and that an SNMP walk is untouched.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", () => {
+  const POLL_AND_INTERFACE_COLUMNS: Array<string> = [
+    "lastPolledAt",
+    "isReachable",
+    "lastSeenAt",
+    "isSnmpReachable",
+    "lastSnmpSeenAt",
+    "interfacesTotal",
+    "interfacesUp",
+    "interfacesDown",
+  ];
+
+  function spyWarn(): jest.SpyInstance {
+    return jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined;
+    });
+  }
+
+  test("a walk for a monitor-backed device leaves the poll and interface-count columns out and warns once", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      systemInfo: { sysName: "ap-01" },
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    // Inventory still lands...
+    expect(update["sysName"]).toBe("ap-01");
+    // ...but nothing that decides the device's health does.
+    for (const column of POLL_AND_INTERFACE_COLUMNS) {
+      expect(update).not.toHaveProperty(column);
+    }
+
+    // The interface inventory itself is still recorded - it is not health.
+    expect(interfaceUpsertSpy).toHaveBeenCalledTimes(1);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain(DEVICE_ID);
+  });
+
+  test("an unreachable walk of a monitor-backed device with nothing else to record writes nothing", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk(
+      {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "Device did not respond",
+      },
+      { isOnline: false },
+    );
+
+    /*
+     * For a probe-polled device this exact walk MUST write (the attempt has
+     * to be recorded); for a monitor-backed one the attempt is meaningless
+     * and an empty payload is correctly skipped.
+     */
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The ping-mode NULLs are health writes too: a monitor-backed device's
+   * interface counts belong to whatever last wrote them, not to a poll that
+   * should never have reached it.
+   */
+  test("a ping-only poll of a monitor-backed device writes nothing - not even the NULLs - and warns once", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runPingOnlyPoll({ isOnline: true });
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test("selects monitoringMethod on the device read, or the guard can never fire", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["monitoringMethod"]).toBe(true);
+  });
+
+  test("an SNMP walk is unchanged: every poll and interface column is written and nothing warns", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+    });
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 1, isOperationallyUp: true }),
+        walkedInterface({ interfaceIndex: 2, isOperationallyUp: false }),
+      ],
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+    expect(update["isSnmpReachable"]).toBe(true);
+    expect(update["lastSnmpSeenAt"]).toEqual(NOW);
+    expect(update["interfacesTotal"]).toBe(2);
+    expect(update["interfacesUp"]).toBe(1);
+    expect(update["interfacesDown"]).toBe(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("a row with no monitoringMethod at all (written before the column existed) is walked as SNMP", async () => {
+    // The default device carries no monitoringMethod, exactly like a legacy row.
+    mockServices();
+    const warn: jest.SpyInstance = spyWarn();
+
+    await runWalk();
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(warn).not.toHaveBeenCalled();
   });
 });

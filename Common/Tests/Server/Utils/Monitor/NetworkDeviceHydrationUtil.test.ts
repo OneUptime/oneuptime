@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 import NetworkDeviceHydrationUtil, {
   HydratableMonitor,
+  ResolvedSnmpCredentialsForBatch,
+  SnmpConnectionCredentials,
 } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import NetworkSiteService from "../../../../Server/Services/NetworkSiteService";
+import NetworkSnmpCredentialProfileService from "../../../../Server/Services/NetworkSnmpCredentialProfileService";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "../../../../Models/DatabaseModels/NetworkSite";
+import NetworkSnmpCredentialProfile from "../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -348,13 +354,21 @@ describe("NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors", () => {
       expect(snmp?.snmpV3Auth).toBeUndefined();
     });
 
-    test("a v2c device with no community string leaves it unset for the probe to default", async () => {
-      mockDevices([buildDevice({ snmpVersion: "V2c" })]);
+    /*
+     * Under ping-first polling such a device is never walked at all: the
+     * list handler resolves it to pollMode "ping" and hands out no
+     * snmpMonitor. This legacy hydration path (monitor tests) still builds
+     * the config without a community, for the probe to default.
+     */
+    test("a v2c device with no community string is a ping-only device: no community for the probe, pollMode ping", async () => {
+      const device: NetworkDevice = buildDevice({ snmpVersion: "V2c" });
+      mockDevices([device]);
       const monitor: HydratableMonitor = buildMonitor();
 
       await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors([monitor]);
 
       expect(hydratedStep(monitor)?.communityString).toBeUndefined();
+      expect(NetworkDeviceHydrationUtil.resolvePollMode(device)).toBe("ping");
     });
   });
 
@@ -509,15 +523,31 @@ describe("NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors", () => {
  * hydration path above uses internally, so its credential rules must match:
  * flattened v3 columns first, legacy snmpV3Auth JSON as fallback, community
  * string for v1/v2c, port defaulting to 161.
+ *
+ * WHERE to connect and WHAT to connect with are separate parameters, because
+ * they can come from different rows: a device walked with its site's
+ * credential profile supplies the hostname and the profile supplies
+ * everything else. These cases are the simple half of that — a device that
+ * carries its own credentials is its own carrier — and the resolver's own
+ * describe below covers the half where they differ.
  */
+function connectionOf(device: NetworkDevice): {
+  hostname: string;
+  credentials: SnmpConnectionCredentials;
+} {
+  return { hostname: device.hostname || "", credentials: device };
+}
+
 describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("a v2c device produces a community config with no v3 auth", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({
-          snmpVersion: "V2c",
-          snmpCommunityString: "s3cret",
-        }),
+        ...connectionOf(
+          buildDevice({
+            snmpVersion: "V2c",
+            snmpCommunityString: "s3cret",
+          }),
+        ),
         oids: [],
         monitorInterfaces: true,
       });
@@ -528,21 +558,29 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
     expect(config.snmpV3Auth).toBeUndefined();
   });
 
-  test("a v2c device with no community string leaves it unset for the probe to default", () => {
+  test("a v2c device with no community string is a ping-only device: no community, and the poll mode says so", () => {
+    const device: NetworkDevice = buildDevice({ snmpVersion: "V2c" });
+
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({ snmpVersion: "V2c" }),
+        ...connectionOf(device),
         oids: [],
         monitorInterfaces: true,
       });
 
     expect(config.communityString).toBeUndefined();
+    /*
+     * The list handler consults this BEFORE building a config, and builds
+     * none for a ping-mode device - so the probe never sees this config
+     * and never defaults the community.
+     */
+    expect(NetworkDeviceHydrationUtil.resolvePollMode(device)).toBe("ping");
   });
 
   test("a v3 device's flattened columns become a complete authPriv SnmpV3Auth", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildV3Device(),
+        ...connectionOf(buildV3Device()),
         oids: [],
         monitorInterfaces: true,
       });
@@ -561,17 +599,19 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("a device predating the flattened columns falls back to the legacy snmpV3Auth JSON", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({
-          snmpVersion: "V3",
-          snmpV3Auth: {
-            securityLevel: SnmpSecurityLevel.AuthPriv,
-            username: "legacy-user",
-            authProtocol: SnmpAuthProtocol.MD5,
-            authKey: "legacy-auth",
-            privProtocol: SnmpPrivProtocol.DES,
-            privKey: "legacy-priv",
-          },
-        }),
+        ...connectionOf(
+          buildDevice({
+            snmpVersion: "V3",
+            snmpV3Auth: {
+              securityLevel: SnmpSecurityLevel.AuthPriv,
+              username: "legacy-user",
+              authProtocol: SnmpAuthProtocol.MD5,
+              authKey: "legacy-auth",
+              privProtocol: SnmpPrivProtocol.DES,
+              privKey: "legacy-priv",
+            },
+          }),
+        ),
         oids: [],
         monitorInterfaces: true,
       });
@@ -584,12 +624,14 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("the flattened columns win over a stale legacy blob", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildV3Device({
-          snmpV3Auth: {
-            securityLevel: SnmpSecurityLevel.NoAuthNoPriv,
-            username: "stale-legacy-user",
-          },
-        }),
+        ...connectionOf(
+          buildV3Device({
+            snmpV3Auth: {
+              securityLevel: SnmpSecurityLevel.NoAuthNoPriv,
+              username: "stale-legacy-user",
+            },
+          }),
+        ),
         oids: [],
         monitorInterfaces: true,
       });
@@ -600,7 +642,7 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("a v3 device with no credentials anywhere yields no auth at all", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({ snmpVersion: "V3" }),
+        ...connectionOf(buildDevice({ snmpVersion: "V3" })),
         oids: [],
         monitorInterfaces: true,
       });
@@ -611,13 +653,13 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("a device with no port falls back to 161, and a stored port passes through", () => {
     const defaulted: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({ snmpPort: undefined }),
+        ...connectionOf(buildDevice({ snmpPort: undefined })),
         oids: [],
         monitorInterfaces: true,
       });
     const explicit: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({ snmpPort: 1610 }),
+        ...connectionOf(buildDevice({ snmpPort: 1610 })),
         oids: [],
         monitorInterfaces: true,
       });
@@ -634,7 +676,7 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
 
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({ snmpVersion: "V2c" }),
+        ...connectionOf(buildDevice({ snmpVersion: "V2c" })),
         oids: oids,
         monitorInterfaces: false,
       });
@@ -646,12 +688,451 @@ describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
   test("every config carries the fixed probe timeout and retry policy", () => {
     const config: MonitorStepSnmpMonitor =
       NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
-        device: buildDevice({}),
+        ...connectionOf(buildDevice({})),
         oids: [],
         monitorInterfaces: true,
       });
 
     expect(config.timeout).toBe(5000);
     expect(config.retries).toBe(3);
+  });
+});
+
+/*
+ * The poll-time decision under ping-first polling: a device with usable
+ * SNMP credentials is pinged AND walked; one without is only pinged. Purely
+ * a function of the credential carrier - the device's own columns today, a
+ * credential profile once profile resolution lands - and never of the
+ * monitoring method.
+ */
+describe("NetworkDeviceHydrationUtil.resolvePollMode", () => {
+  test("a v2c device with a community string is walked", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpVersion: "V2c", snmpCommunityString: "s3cret" }),
+      ),
+    ).toBe("snmp");
+  });
+
+  test("a device with no version at all but a community string is walked (v2c is the column default)", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpCommunityString: "public" }),
+      ),
+    ).toBe("snmp");
+  });
+
+  test("a v2c device with no community string is only pinged", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpVersion: "V2c" }),
+      ),
+    ).toBe("ping");
+  });
+
+  test("a whitespace-only community string is not a credential", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpVersion: "V2c", snmpCommunityString: "   " }),
+      ),
+    ).toBe("ping");
+  });
+
+  test("a v3 device with a username is walked, auth keys or not", () => {
+    expect(NetworkDeviceHydrationUtil.resolvePollMode(buildV3Device())).toBe(
+      "snmp",
+    );
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpVersion: "V3", snmpV3Username: "monitoring" }),
+      ),
+    ).toBe("snmp");
+  });
+
+  test("a v3 device with no username is only pinged - a community string means nothing to v3", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode(
+        buildDevice({ snmpVersion: "V3", snmpCommunityString: "public" }),
+      ),
+    ).toBe("ping");
+  });
+
+  test("a carrier need not be a NetworkDevice: any row with the three fields answers", () => {
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode({
+        snmpVersion: "2c",
+        snmpCommunityString: "profile-community",
+        snmpV3Username: null,
+      }),
+    ).toBe("snmp");
+    expect(
+      NetworkDeviceHydrationUtil.resolvePollMode({
+        snmpVersion: null,
+        snmpCommunityString: null,
+        snmpV3Username: null,
+      }),
+    ).toBe("ping");
+  });
+});
+
+/*
+ * WHAT THIS BLOCK IS DEFENDING
+ *
+ * resolveSnmpCredentials answers, per device, "which row is this device
+ * walked with?" — its own columns, the credential profile it points at, or
+ * the profile its SITE points at. Both lookups run as ROOT, because a poll
+ * batch spans projects and there is no caller tenant to scope them to, which
+ * means the foreign key is not a tenancy guarantee and the comparison here is
+ * the only thing standing between a mis-pointed row and one project's
+ * community string being put on another project's wire.
+ *
+ * So these cases are not "does the resolver find the profile". They are:
+ * a cross-project profile is polled with NO credentials rather than that
+ * project's; a device that carries its own credentials never reaches a
+ * lookup at all; and a lookup that FAILS withholds the device rather than
+ * downgrading it to a credential-less ping, which the probe would report as
+ * a failing walk on a perfectly healthy device.
+ */
+const RESOLVER_PROJECT_ID: ObjectID = new ObjectID(
+  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+);
+const RESOLVER_OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+);
+const RESOLVER_PROFILE_ID: ObjectID = new ObjectID(
+  "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+);
+const RESOLVER_SITE_PROFILE_ID: ObjectID = new ObjectID(
+  "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+);
+const RESOLVER_SITE_ID: ObjectID = new ObjectID(
+  "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+);
+
+function resolverDevice(fields: DeviceFields): NetworkDevice {
+  const device: NetworkDevice = new NetworkDevice();
+  device._id = DEVICE_ID;
+  device.hostname = "10.0.0.1";
+  device.projectId = RESOLVER_PROJECT_ID;
+  Object.assign(device, fields);
+
+  return device;
+}
+
+function credentialProfile(fields: {
+  id: ObjectID;
+  projectId: ObjectID;
+  community?: string | undefined;
+}): NetworkSnmpCredentialProfile {
+  const profile: NetworkSnmpCredentialProfile =
+    new NetworkSnmpCredentialProfile();
+  profile._id = fields.id.toString();
+  profile.projectId = fields.projectId;
+  profile.snmpVersion = "V2c";
+  profile.snmpCommunityString =
+    fields.community === undefined ? "profile-community" : fields.community;
+
+  return profile;
+}
+
+function siteWithProfile(
+  snmpCredentialProfileId: ObjectID | undefined,
+): NetworkSite {
+  const site: NetworkSite = new NetworkSite();
+  site._id = RESOLVER_SITE_ID.toString();
+  site.projectId = RESOLVER_PROJECT_ID;
+  if (snmpCredentialProfileId) {
+    site.snmpCredentialProfileId = snmpCredentialProfileId;
+  }
+
+  return site;
+}
+
+function mockLookups(data: {
+  profiles?: Array<NetworkSnmpCredentialProfile> | undefined;
+  sites?: Array<NetworkSite> | undefined;
+}): void {
+  jest
+    .spyOn(NetworkSnmpCredentialProfileService, "findBy")
+    .mockResolvedValue(data.profiles || []);
+  jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue(data.sites || []);
+}
+
+describe("NetworkDeviceHydrationUtil.resolveSnmpCredentials", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a device with its own credentials is its own carrier and costs no lookup", async () => {
+    mockLookups({});
+
+    const device: NetworkDevice = resolverDevice({
+      snmpVersion: "V2c",
+      snmpCommunityString: "device-community",
+      // Pointed at a profile as well: its own columns still win the order.
+      snmpCredentialProfileId: RESOLVER_PROFILE_ID,
+      siteId: RESOLVER_SITE_ID,
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([device]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("snmp");
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBe("device-community");
+    /*
+     * Not a micro-optimisation assertion: a fleet where every device carries
+     * its own credentials must not pay two extra statements per poll batch
+     * for a feature it does not use.
+     */
+    expect(NetworkSnmpCredentialProfileService.findBy).not.toHaveBeenCalled();
+    expect(NetworkSiteService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("a device with no credentials of its own is walked with the profile it points at", async () => {
+    mockLookups({
+      profiles: [
+        credentialProfile({
+          id: RESOLVER_PROFILE_ID,
+          projectId: RESOLVER_PROJECT_ID,
+        }),
+      ],
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ snmpCredentialProfileId: RESOLVER_PROFILE_ID }),
+      ]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("snmp");
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBe("profile-community");
+  });
+
+  /*
+   * THE regression test of this file.
+   *
+   * The profile query runs isRoot, so it happily returns a row belonging to
+   * another project. If the comparison is dropped, this device is walked
+   * with that project's community string — a credential leak onto this
+   * project's probe's wire. The assertion is therefore not "an error is
+   * logged" but "the device is polled with NOTHING": ping mode, and a
+   * carrier holding no community at all.
+   */
+  test("a device pointed at another project's profile is pinged with no credentials, not walked with them", async () => {
+    mockLookups({
+      profiles: [
+        credentialProfile({
+          id: RESOLVER_PROFILE_ID,
+          projectId: RESOLVER_OTHER_PROJECT_ID,
+          community: "other-project-secret",
+        }),
+      ],
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ snmpCredentialProfileId: RESOLVER_PROFILE_ID }),
+      ]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("ping");
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBeFalsy();
+    // Withholding is for lookup FAILURES; a dropped profile is a resolved answer.
+    expect(resolved.unresolvedDeviceIds.has(DEVICE_ID)).toBe(false);
+  });
+
+  test("the site's profile is used when the device names none of its own", async () => {
+    mockLookups({
+      profiles: [
+        credentialProfile({
+          id: RESOLVER_SITE_PROFILE_ID,
+          projectId: RESOLVER_PROJECT_ID,
+        }),
+      ],
+      sites: [siteWithProfile(RESOLVER_SITE_PROFILE_ID)],
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ siteId: RESOLVER_SITE_ID }),
+      ]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("snmp");
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBe("profile-community");
+  });
+
+  /*
+   * The site reference gets the same comparison as the device's own, and it
+   * has to: a site is written through a different service, so a guard on
+   * only one of the two write paths would leave the other open.
+   */
+  test("a site pointing at another project's profile leaves its devices pinged", async () => {
+    mockLookups({
+      profiles: [
+        credentialProfile({
+          id: RESOLVER_SITE_PROFILE_ID,
+          projectId: RESOLVER_OTHER_PROJECT_ID,
+          community: "other-project-secret",
+        }),
+      ],
+      sites: [siteWithProfile(RESOLVER_SITE_PROFILE_ID)],
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ siteId: RESOLVER_SITE_ID }),
+      ]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("ping");
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBeFalsy();
+  });
+
+  test("a device profile with nothing usable in it falls through to the site's", async () => {
+    mockLookups({
+      profiles: [
+        // Named by the device, but blank: it answers "no" and the order moves on.
+        credentialProfile({
+          id: RESOLVER_PROFILE_ID,
+          projectId: RESOLVER_PROJECT_ID,
+          community: "",
+        }),
+        credentialProfile({
+          id: RESOLVER_SITE_PROFILE_ID,
+          projectId: RESOLVER_PROJECT_ID,
+        }),
+      ],
+      sites: [siteWithProfile(RESOLVER_SITE_PROFILE_ID)],
+    });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({
+          snmpCredentialProfileId: RESOLVER_PROFILE_ID,
+          siteId: RESOLVER_SITE_ID,
+        }),
+      ]);
+
+    expect(
+      resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpCommunityString,
+    ).toBe("profile-community");
+  });
+
+  test("a device with nothing anywhere is pinged, and its own row is the carrier", async () => {
+    mockLookups({ sites: [siteWithProfile(undefined)] });
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ siteId: RESOLVER_SITE_ID }),
+      ]);
+
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.pollMode).toBe("ping");
+    expect(resolved.byDeviceId.get(DEVICE_ID)?.carrier.snmpVersion).toBe(
+      undefined,
+    );
+  });
+
+  /*
+   * A failed lookup must WITHHOLD the device, not downgrade it. Falling back
+   * to its own empty columns would hand the probe a ping-mode device that is
+   * configured to be walked, so a database blip would silently stop
+   * reporting interfaces, inventory and walk health across every
+   * profile-using device at once — and, on the monitor side, would evaluate
+   * "SNMP walk is failing" criteria against a walk nobody ran.
+   */
+  test("a profile lookup that throws withholds the profile-referencing devices for the cycle", async () => {
+    jest
+      .spyOn(NetworkSnmpCredentialProfileService, "findBy")
+      .mockRejectedValue(new Error("connection terminated unexpectedly"));
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([]);
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        resolverDevice({ snmpCredentialProfileId: RESOLVER_PROFILE_ID }),
+      ]);
+
+    expect(resolved.unresolvedDeviceIds.has(DEVICE_ID)).toBe(true);
+    // Absent, not "present with empty credentials": callers must skip it.
+    expect(resolved.byDeviceId.has(DEVICE_ID)).toBe(false);
+  });
+
+  test("a lookup failure does not withhold devices that carry their own credentials", async () => {
+    jest
+      .spyOn(NetworkSnmpCredentialProfileService, "findBy")
+      .mockRejectedValue(new Error("connection terminated unexpectedly"));
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([]);
+
+    const selfCredentialled: NetworkDevice = resolverDevice({
+      snmpVersion: "V2c",
+      snmpCommunityString: "device-community",
+    });
+    selfCredentialled._id = "8f2c1f0e-0000-4000-8000-0000000000bb";
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([
+        selfCredentialled,
+        resolverDevice({ snmpCredentialProfileId: RESOLVER_PROFILE_ID }),
+      ]);
+
+    expect(
+      resolved.byDeviceId.get("8f2c1f0e-0000-4000-8000-0000000000bb")?.pollMode,
+    ).toBe("snmp");
+    expect(resolved.unresolvedDeviceIds.has(DEVICE_ID)).toBe(true);
+  });
+
+  /*
+   * Monitor hydration and the poll list handler share this resolver so the
+   * walk a probe is told to run and the walk a monitor is evaluated against
+   * are based on the same credentials. This pins the hydration half: a
+   * device using a profile hydrates with the PROFILE's community, not with
+   * its own empty column.
+   */
+  test("monitor hydration walks a profile-credentialled device with the profile's community", async () => {
+    const device: NetworkDevice = resolverDevice({
+      snmpCredentialProfileId: RESOLVER_PROFILE_ID,
+    });
+    mockDevices([device]);
+    mockLookups({
+      profiles: [
+        credentialProfile({
+          id: RESOLVER_PROFILE_ID,
+          projectId: RESOLVER_PROJECT_ID,
+        }),
+      ],
+    });
+
+    const monitor: HydratableMonitor = buildMonitor();
+    await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors([monitor]);
+
+    expect(hydratedStep(monitor)?.communityString).toBe("profile-community");
+    // The address is always the device's, however the credentials resolved.
+    expect(hydratedStep(monitor)?.hostname).toBe("10.0.0.1");
+  });
+
+  test("monitor hydration leaves a step unhydrated when the credential lookup failed", async () => {
+    mockDevices([
+      resolverDevice({ snmpCredentialProfileId: RESOLVER_PROFILE_ID }),
+    ]);
+    jest
+      .spyOn(NetworkSnmpCredentialProfileService, "findBy")
+      .mockRejectedValue(new Error("connection terminated unexpectedly"));
+    jest.spyOn(NetworkSiteService, "findBy").mockResolvedValue([]);
+
+    const monitor: HydratableMonitor = buildMonitor();
+    await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors([monitor]);
+
+    /*
+     * Unhydrated, NOT hydrated with an empty community: SnmpMonitor defaults
+     * a missing community to "public", so a half-built config is how a
+     * healthy device gets reported Down.
+     */
+    expect(hydratedStep(monitor)).toBeUndefined();
   });
 });

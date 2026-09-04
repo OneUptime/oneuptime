@@ -57,6 +57,36 @@
     "today": "今日",
     "notAvailable": "利用不可"
   },
+  "uptimeHistory": {
+    "graphLabel": "過去 {{total}} 日間の稼働履歴",
+    "dayLabel": "{{date}}: 稼働率 {{uptime}}%",
+    "dayLabelWithIncidents": "{{date}}: 稼働率 {{uptime}}%、インシデント {{total}} 件",
+    "dayLabelNoData": "{{date}}: データなし",
+    "dayLabelNoDataWithIncidents": "{{date}}: データなし、インシデント {{total}} 件",
+    "uptime": "稼働率",
+    "noMonitoringData": "この日の監視データはありません",
+    "incidents": "インシデント",
+    "noIncidents": "インシデントなし",
+    "noIncidentsDescription": "この日に報告されたインシデントはありません。",
+    "declared": "報告日時",
+    "oneIncidentOnThisDay": "この日に 1 件のインシデントが報告されました",
+    "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました"
+  },
+  "liveStatus": {
+    "updated": "{{time}}に更新",
+    "refresh": "更新",
+    "refreshing": "更新中",
+    "refreshFailed": "更新できませんでした。最後に取得した状態を表示しています。"
+  },
+  "search": {
+    "label": "リソースを検索",
+    "placeholder": "リソースを検索",
+    "clear": "検索をクリア",
+    "resultCount": "{{total}} 件中 {{matched}} 件のリソース",
+    "noMatchesInGroup": "ここに検索条件に一致するリソースはありません。",
+    "noResultsTitle": "一致するリソースがありません",
+    "noResultsDescription": "このページに「{{query}}」に一致するものはありません。より短い語句で検索してください。"
+  },
   "incidents": {
     "title": "インシデント",
     "singular": "インシデント",

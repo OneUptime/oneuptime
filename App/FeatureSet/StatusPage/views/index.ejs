@@ -2,7 +2,7 @@
 <html lang="<%= typeof lang !== 'undefined' && lang ? lang : 'en' %>">
   <head>
     <meta charset="utf-8" />
-    <meta name="referrer" content="no-referrer" />
+    <%- include('../../../../Common/Server/Views/Partials/SensitiveUrlToken') -%>
     <script>
       (function (handoffWindow) {
         var storageKey = "oneuptime-status-page-login-code";
@@ -123,7 +123,7 @@
     
     <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
         <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){if(w.__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__){return;}w[l]=w[l]||[];w[l].push({'gtm.start':
+<script>(function(w,d,s,l,i){if(w.__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__||w.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__){return;}w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);

@@ -154,7 +154,7 @@ OneUptime은 일반적인 Docker 모니터링 시나리오에 대한 템플릿�
 - `resource.container.id` — 전체 컨테이너 ID
 - `resource.container.runtime` — 항상 `docker`
 - `attributes["log.iostream"]` — `stdout` 또는 `stderr`
-- `severityText` / `severityNumber` — 스트림에서 파생됨: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — 줄에 있는 레벨 키워드에서 읽음(`app.INFO:`, `{"level":"warn"}`, `[ERROR]`). 인식 가능한 레벨이 없는 줄은 스트림으로 폴백: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — 컨테이너 프로세스에서 내보낸 원시 로그 줄
 - `time` — 해당 줄에 대한 Docker 데몬의 타임스탬프
 

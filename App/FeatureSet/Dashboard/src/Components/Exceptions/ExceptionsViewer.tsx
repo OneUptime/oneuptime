@@ -12,6 +12,7 @@ import {
   ActiveFilter,
   FacetConfig,
   FacetData,
+  FacetValue,
   HistogramBucket,
   HistogramSeriesOption,
   SearchHelpRow,
@@ -46,15 +47,19 @@ import {
   isExceptionAttributeFacetKey,
 } from "../../Utils/ExceptionsAttributeScope";
 import {
+  EXCEPTION_ERROR_CLASS_COLUMN,
   EXCEPTION_FIELD_ALIASES,
   EXCEPTION_SERVICE_COLUMN,
   ExceptionFieldFilters,
   ExceptionSearchFilters,
   ExceptionServiceOption,
   NO_MATCH_ENTITY_ID,
+  ResolvedExceptionErrorClasses,
   ResolvedExceptionServices,
+  canonicalizeExceptionErrorClass,
   hasSearchDsl,
   parseExceptionSearch,
+  resolveExceptionErrorClasses,
   resolveExceptionServiceChipId,
   resolveExceptionServiceIds,
   splitExceptionFieldPredicates,
@@ -67,6 +72,10 @@ import {
 import Dictionary from "Common/Types/Dictionary";
 import Search from "Common/Types/BaseDatabase/Search";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import ErrorClass, {
+  NON_ACTIONABLE_ERROR_CLASSES,
+  isNonActionableErrorClass,
+} from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -158,6 +167,12 @@ const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
     example: "env:production",
   },
   {
+    syntax: "class:<class>",
+    description:
+      "Filter by fault class — code-fault, user-error, expected-denial, infrastructure, unknown",
+    example: "class:user-error",
+  },
+  {
     syntax: "@<attr>:<value>",
     description: "Filter by attribute",
     example: "@http.status_code:500",
@@ -216,6 +231,54 @@ const EXCEPTION_STATUS_VALUES: ReadonlyArray<ExceptionStatus> = [
   "all",
 ];
 
+/**
+ * Which fault classes the list is looking at.
+ *
+ * The split exists because an exception group carries an `errorClass` saying
+ * WHOSE problem it is (see Common/Types/Telemetry/ErrorClass), and two of the
+ * five classes — user-error and expected-denial — describe something working
+ * as designed: a caller sent nonsense, or an auth check refused a request.
+ * Those are worth keeping and worth counting, but they are not defects, and
+ * left in the default list they bury the ones that are.
+ *
+ * - "issues"      — everything EXCEPT the non-actionable classes. The default.
+ * - "user-errors" — only the non-actionable classes: the drawer the default
+ *                   sweeps things into, one click away rather than invisible.
+ * - "all"         — no class clause at all.
+ */
+export type ExceptionClassScope = "issues" | "user-errors" | "all";
+
+const EXCEPTION_CLASS_SCOPE_VALUES: ReadonlyArray<ExceptionClassScope> = [
+  "issues",
+  "user-errors",
+  "all",
+];
+
+const DEFAULT_EXCEPTION_CLASS_SCOPE: ExceptionClassScope = "issues";
+
+/*
+ * A class selection that cannot match anything (the "Issues" lens plus a
+ * user-error chip, say) has to show NOTHING — the same rule `@service:` uses
+ * for a name no service has. A string outside the ErrorClass vocabulary is a
+ * value the NOT NULL column can never hold, which forces the empty result
+ * rather than quietly dropping one of the two contradicting filters.
+ */
+const NO_MATCH_ERROR_CLASS: string = "__no_such_error_class__";
+
+/*
+ * Sentence-case labels for the raw enum values, used by the facet sidebar and
+ * by the chips it creates. "Unclassified" rather than "Unknown" because the
+ * value means "triage could not decide", which reads as an accusation of the
+ * reader otherwise.
+ */
+const ERROR_CLASS_DISPLAY_NAMES: Record<string, string> = {
+  [ErrorClass.CodeFault]: "Code fault",
+  [ErrorClass.UserError]: "User error",
+  [ErrorClass.ExpectedDenial]: "Expected denial",
+  [ErrorClass.Infrastructure]: "Infrastructure",
+  [ErrorClass.Unknown]: "Unclassified",
+};
+
 interface InitialUrlState {
   search: string;
   filters: Array<ActiveFilter>;
@@ -223,6 +286,7 @@ interface InitialUrlState {
   page: number;
   pageSize: number;
   status: ExceptionStatus | null;
+  classScope: ExceptionClassScope | null;
 }
 
 /*
@@ -314,7 +378,14 @@ function readInitialUrlState(): InitialUrlState {
       ? (statusRaw as ExceptionStatus)
       : null;
 
-  return { search, filters, timeRange, page, pageSize, status };
+  const classRaw: string | null = params.get("class");
+  const classScope: ExceptionClassScope | null =
+    classRaw &&
+    EXCEPTION_CLASS_SCOPE_VALUES.includes(classRaw as ExceptionClassScope)
+      ? (classRaw as ExceptionClassScope)
+      : null;
+
+  return { search, filters, timeRange, page, pageSize, status, classScope };
 }
 
 export interface ExceptionsViewerProps {
@@ -335,6 +406,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   const [status, setStatus] = useState<ExceptionStatus>(
     initialUrlState.status || defaultStatus,
+  );
+
+  const [classScope, setClassScope] = useState<ExceptionClassScope>(
+    initialUrlState.classScope || DEFAULT_EXCEPTION_CLASS_SCOPE,
   );
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
@@ -443,7 +518,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       params.set("status", status);
     }
 
-    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
+    /*
+     * The class lens rides in `class=`, written only when it differs from the
+     * default — the same rule `status` follows above — but it needs the
+     * explicit null. writeTelemetryViewerUrlState clears the params named in
+     * TelemetryViewerUrlParamNames on every write, which is what lets `status`
+     * DISAPPEAR when it returns to its default; `class` is not in that list
+     * (it lives in a shared file this change does not own), so nothing would
+     * ever delete it. Left to rot, a stale `class=user-errors` would sit in
+     * the address bar after the user switched back to Issues and re-apply
+     * itself on the next refresh, and on every link shared from that page.
+     */
+    writeTelemetryViewerUrlState({
+      ...Object.fromEntries(params.entries()),
+      class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
+    });
   }, [
     submittedSearch,
     activeFilters,
@@ -452,6 +541,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     pageSize,
     status,
     defaultStatus,
+    classScope,
   ]);
 
   // Load services / hosts / docker hosts / k8s clusters once
@@ -707,6 +797,106 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     return merged;
   }, [facetGroups, searchFieldFilters]);
 
+  /*
+   * `class:` tokens, resolved against the ErrorClass vocabulary here rather
+   * than compiled into a query, for the same reason `@service:` is: the
+   * transports cannot all carry it. See resolveExceptionErrorClasses.
+   */
+  const resolvedErrorClasses: ResolvedExceptionErrorClasses = useMemo(() => {
+    return resolveExceptionErrorClasses(
+      parsedSearch.fieldPredicates[EXCEPTION_ERROR_CLASS_COLUMN] || [],
+    );
+  }, [parsedSearch]);
+
+  /*
+   * The ONE clause the `errorClass` column carries, combining every source
+   * that has an opinion about it: the class lens, an `errorClass` facet chip,
+   * and a typed `class:` token.
+   *
+   * They are intersected in one place rather than written one after another,
+   * which is the whole point of building it here: a column can hold a single
+   * clause, so written in sequence whichever ran last would silently win
+   * while the other control stayed lit on screen. An empty intersection — the
+   * "Issues" lens plus a `user-error` chip — is a real answer and shows an
+   * empty list, with both controls visible and either one removable.
+   */
+  const errorClassClause: string | Includes | IncludesNone | null =
+    useMemo(() => {
+      /*
+       * Canonicalised because a chip stores its value verbatim: the search
+       * bar turns `class:User-Error` into a chip out of the raw token, and
+       * the column only ever holds the kebab-case spelling.
+       */
+      const chipValues: Array<string> = (
+        columnLiterals[EXCEPTION_ERROR_CLASS_COLUMN] || []
+      ).map(canonicalizeExceptionErrorClass);
+
+      // Positive constraints AND together; null means "nobody constrained it".
+      let included: Array<string> | null =
+        resolvedErrorClasses.includedClasses === null
+          ? null
+          : [...resolvedErrorClasses.includedClasses];
+
+      if (chipValues.length > 0) {
+        included =
+          included === null
+            ? [...chipValues]
+            : included.filter((value: string): boolean => {
+                return chipValues.includes(value);
+              });
+      }
+
+      const excluded: Array<string> = [...resolvedErrorClasses.excludedClasses];
+
+      if (classScope === "user-errors") {
+        const nonActionable: Array<string> = [...NON_ACTIONABLE_ERROR_CLASSES];
+        included =
+          included === null
+            ? nonActionable
+            : included.filter((value: string): boolean => {
+                return isNonActionableErrorClass(value);
+              });
+      } else if (classScope === "issues") {
+        /*
+         * The default is an EXCLUSION, never an allow-list of the classes we
+         * consider real. It compiles to `"errorClass" NOT IN ('user-error',
+         * 'expected-denial')`, so a row whose class this build has never
+         * heard of — written by a newer release, or by a triage runner
+         * echoing an LLM — stays in the Issues list; an allow-list would drop
+         * exactly those rows, and an exception nobody could classify is the
+         * one most likely to be a real bug. (The column is NOT NULL DEFAULT
+         * 'unknown' for the same reason: in SQL `NULL NOT IN (...)` is NULL
+         * rather than true, so over a nullable column this clause would have
+         * hidden every unclassified row instead of showing it.)
+         */
+        for (const value of NON_ACTIONABLE_ERROR_CLASSES) {
+          if (!excluded.includes(value)) {
+            excluded.push(value);
+          }
+        }
+      }
+
+      if (resolvedErrorClasses.matchedNothing) {
+        return NO_MATCH_ERROR_CLASS;
+      }
+
+      if (included !== null) {
+        const allowed: Array<string> = included.filter(
+          (value: string): boolean => {
+            return !excluded.includes(value);
+          },
+        );
+
+        if (allowed.length === 0) {
+          return NO_MATCH_ERROR_CLASS;
+        }
+
+        return allowed.length === 1 ? allowed[0]! : new Includes(allowed);
+      }
+
+      return excluded.length > 0 ? new IncludesNone(excluded) : null;
+    }, [classScope, columnLiterals, resolvedErrorClasses]);
+
   const resourceIds: Array<string> = useMemo(() => {
     const ids: Set<string> = new Set<string>(resolvedServices.serviceIds);
     for (const facetKey of RESOURCE_FACET_KEYS) {
@@ -904,9 +1094,34 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      * stores and still mean one thing.
      */
     for (const column of Object.keys(columnLiterals)) {
+      /*
+       * errorClass is skipped: it is folded into the class lens below, which
+       * intersects a typed / chipped class with the selected segment. Writing
+       * it here as well would mean two assignments to one column, and the
+       * loser would be a filter still showing as active in the UI.
+       */
+      if (column === EXCEPTION_ERROR_CLASS_COLUMN) {
+        continue;
+      }
+
       const values: Array<string> = columnLiterals[column]!;
       (q as Record<string, unknown>)[column] =
         values.length === 1 ? values[0]! : new Includes(values);
+    }
+
+    /*
+     * The resolved class clause. Null only when nothing constrained the
+     * column — "All" with no chip and no `class:` token.
+     *
+     * NOTE: this narrows the LIST and the error-class facet (counted from the
+     * same Postgres rows), but NOT the chart or the other facet counts: those
+     * are aggregated from the ClickHouse ExceptionInstance table, which has
+     * no errorClass column because the class lives on the Postgres exception
+     * group. See the note in fetchHistogram.
+     */
+    if (errorClassClause !== null) {
+      (q as Record<string, unknown>)[EXCEPTION_ERROR_CLASS_COLUMN] =
+        errorClassClause;
     }
 
     /*
@@ -952,6 +1167,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     props.primaryEntityId,
     status,
     columnLiterals,
+    errorClassClause,
     resourceIds,
     resolvedServices,
     parsedSearch,
@@ -1042,6 +1258,22 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (parsedSearch.freeText.length > 0) {
       payload["messageSearchText"] = parsedSearch.freeText;
     }
+    /*
+     * The class lens is deliberately NOT sent, because there is nowhere to
+     * send it: this endpoint aggregates ClickHouse ExceptionInstance rows and
+     * the fault class is a column on the Postgres exception GROUP, so the
+     * chart has no class dimension. The `fingerprints` escape hatch below
+     * cannot carry it either — that list is capped at
+     * MAX_SCOPED_FINGERPRINTS, and "every group that is an issue" is not a
+     * bounded list.
+     *
+     * So the chart counts occurrences of every class while the list under it
+     * shows one lens. That is the known cost of the storage split, and it is
+     * part of why the lens is a labelled control the user can see rather than
+     * a silent default. Carrying errorClass onto the instance rows at ingest
+     * is what would close it.
+     */
+
     /*
      * Instance scope: the endpoint has no attribute dimension and takes
      * literal lists only, but it accepts `fingerprints` — the resolved scope
@@ -1202,6 +1434,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         title: "Environment",
         priority: 7,
       },
+      /*
+       * Last on purpose: the segmented control above the list is the primary
+       * way to move between lenses, and this facet is the breakdown behind it
+       * — "how much is the Issues lens hiding, and of what".
+       */
+      {
+        key: EXCEPTION_ERROR_CLASS_COLUMN,
+        title: "Error Class",
+        valueDisplayMap: ERROR_CLASS_DISPLAY_NAMES,
+        priority: 8,
+      },
     ];
   }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
 
@@ -1304,6 +1547,106 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   useEffect(() => {
     void fetchFacets();
   }, [fetchFacets]);
+
+  const [errorClassFacetValues, setErrorClassFacetValues] = useState<
+    Array<FacetValue>
+  >([]);
+
+  /*
+   * The same query the list runs, minus the class clause.
+   *
+   * Counting the classes UNDER the lens would make the facet useless: from
+   * inside "Issues" it would report "User error 0" and the drawer the lens
+   * sweeps into would look empty. Every other filter still applies, so the
+   * breakdown describes the slice the user is actually looking at.
+   */
+  const errorClassFacetQuery: Query<TelemetryException> = useMemo(() => {
+    const scopeless: Query<TelemetryException> = { ...query };
+    delete (scopeless as Record<string, unknown>)[EXCEPTION_ERROR_CLASS_COLUMN];
+    return scopeless;
+  }, [query]);
+
+  /*
+   * The error-class facet is counted here rather than by
+   * /telemetry/exceptions/facets like every other facet, because that
+   * endpoint aggregates the ClickHouse ExceptionInstance table and the fault
+   * class is a column on the Postgres exception GROUP. Asked for this facet
+   * it would fall through to its attributes-map branch and answer "No values
+   * found" forever. Counting the same Postgres rows the list reads is also
+   * the only way these numbers can agree with it.
+   *
+   * One count per class — five small indexed COUNTs, issued together, on the
+   * same cadence as the list fetch beside them.
+   */
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    const loadErrorClassCounts: () => Promise<void> =
+      async (): Promise<void> => {
+        const classes: Array<ErrorClass> = Object.values(ErrorClass);
+
+        try {
+          const counts: Array<number> = await Promise.all(
+            classes.map((errorClass: ErrorClass): Promise<number> => {
+              const classQuery: Query<TelemetryException> = {
+                ...errorClassFacetQuery,
+              };
+              (classQuery as Record<string, unknown>)[
+                EXCEPTION_ERROR_CLASS_COLUMN
+              ] = errorClass;
+
+              return ModelAPI.count({
+                modelType: TelemetryException,
+                query: classQuery,
+              });
+            }),
+          );
+
+          if (isCancelled) {
+            return;
+          }
+
+          const values: Array<FacetValue> = [];
+
+          classes.forEach((errorClass: ErrorClass, index: number): void => {
+            const count: number = counts[index] || 0;
+            // Empty classes are left out, as the server-side facets do.
+            if (count > 0) {
+              values.push({ value: errorClass, count });
+            }
+          });
+
+          values.sort((a: FacetValue, b: FacetValue): number => {
+            return b.count - a.count;
+          });
+
+          setErrorClassFacetValues(values);
+        } catch {
+          // Facets are non-critical; an empty section beats a broken page.
+          if (!isCancelled) {
+            setErrorClassFacetValues([]);
+          }
+        }
+      };
+
+    void loadErrorClassCounts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [errorClassFacetQuery]);
+
+  /*
+   * The backend facets plus the one this component counts itself. Merged
+   * here rather than into `facetData` state so a facet refetch cannot drop
+   * the class counts, and a class recount cannot drop the rest.
+   */
+  const mergedFacetData: FacetData = useMemo(() => {
+    return {
+      ...facetData,
+      [EXCEPTION_ERROR_CLASS_COLUMN]: errorClassFacetValues,
+    };
+  }, [facetData, errorClassFacetValues]);
 
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
@@ -1466,6 +1809,70 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </div>
   );
 
+  /*
+   * The class lens, built as a VISIBLE, removable control alongside the
+   * status pills rather than a default baked into the query.
+   *
+   * The default hides every user error and expected denial, which is most of
+   * what makes an Issues list unreadable — but a filter nobody can see is a
+   * filter nobody can turn off. A developer hunting the BadDataException they
+   * just triggered would find nothing and conclude the exception was never
+   * recorded, which is a worse failure than the noise this removes. So the
+   * lens says what it is doing and takes one click to widen.
+   */
+  const classPills: ReactElement = (
+    <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
+      {(
+        [
+          ["issues", "Issues", "Hide user errors and expected denials"],
+          [
+            "user-errors",
+            "User errors",
+            "Only user errors and expected denials — the classes the Issues lens hides",
+          ],
+          ["all", "All", "Every exception, whatever its fault class"],
+        ] as Array<[ExceptionClassScope, string, string]>
+      ).map(
+        ([key, label, description]: [
+          ExceptionClassScope,
+          string,
+          string,
+        ]): ReactElement => {
+          const isActive: boolean = classScope === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              title={description}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+              onClick={() => {
+                setClassScope(key);
+                setPage(1);
+              }}
+            >
+              {label}
+            </button>
+          );
+        },
+      )}
+    </div>
+  );
+
+  /*
+   * Two independent lenses on the same list — status and fault class — so
+   * they read as two groups rather than one seven-button row.
+   */
+  const leadingActions: ReactElement = (
+    <div className="flex flex-wrap items-center gap-2">
+      {statusPills}
+      {classPills}
+    </div>
+  );
+
   const trailingActions: ReactElement | null =
     status === "unresolved" && exceptions.length > 0 ? (
       <button
@@ -1530,8 +1937,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         "type",
         "service",
         "env",
+        "class",
         ...telemetryAttributes.filter((attr: string): boolean => {
-          return attr !== "type" && attr !== "service" && attr !== "env";
+          return (
+            attr !== "type" &&
+            attr !== "service" &&
+            attr !== "env" &&
+            attr !== "class"
+          );
         }),
       ]}
       searchValueSuggestions={attributeValueSuggestions}
@@ -1592,7 +2005,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }
 
         if (aliased) {
-          handleFacetInclude(aliased, cleanValue);
+          /*
+           * A chip stores what the COLUMN holds, so a class is canonicalised
+           * on the way in: chipped as typed, `class:User-Error` would match
+           * no row, and the Error Class facet could not label it either.
+           */
+          handleFacetInclude(
+            aliased,
+            aliased === EXCEPTION_ERROR_CLASS_COLUMN
+              ? canonicalizeExceptionErrorClass(cleanValue)
+              : cleanValue,
+          );
           return true;
         }
 
@@ -1615,11 +2038,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setTimeRange(value);
         setPage(1);
       }}
-      toolbarLeadingActions={statusPills}
+      toolbarLeadingActions={leadingActions}
       toolbarTrailingActions={trailingActions}
       // Facets
       showFacetSidebar={true}
-      facetData={facetData}
+      facetData={mergedFacetData}
       facetConfigs={facetConfigs}
       facetLoading={facetLoading}
       onFacetInclude={handleFacetInclude}

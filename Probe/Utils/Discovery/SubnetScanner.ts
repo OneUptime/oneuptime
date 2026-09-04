@@ -90,6 +90,50 @@ export interface SubnetScanSnmpConfig {
   port: number;
 }
 
+/*
+ * What the sweep has found SO FAR, handed to SubnetScanConfig.onProgress at
+ * the end of every segment (OneUptime issues #3598 and #3599).
+ *
+ * A sweep used to be one atomic unit of work: nothing at all was known about
+ * it until it finished, so a 15,360-address range reported "0 of 15360" for
+ * however long it ran, an abandoned sweep threw away every host it had
+ * already confirmed, and auto-import — which only looks at Completed scans —
+ * could not touch a single one of the hundreds of devices sitting in the
+ * probe's memory. This is the shape that makes those results leave the probe
+ * while the sweep is still going.
+ */
+export interface SubnetScanProgress {
+  /*
+   * Addresses the sweep has finished with. Counts each address ONCE, when its
+   * segment completes; the ICMP-filtered fallback re-probes addresses already
+   * counted here and so does not move this number, which is why it can sit at
+   * `totalHostCount` while the sweep is still working.
+   */
+  sweptHostCount: number;
+  // Every address the target expands to. Constant for the whole sweep.
+  totalHostCount: number;
+  /*
+   * Everything found so far, address-ascending — a COPY, so a consumer that
+   * holds on to it (an upload in flight, say) cannot see the live array grow
+   * underneath it or mutate what the sweep is still counting.
+   *
+   * Carries no `dnsHostname`: reverse DNS runs once, after the sweep has won
+   * its deadline race (see attachReverseDnsHostnames), so partial results are
+   * named by address and the final upload is what names them.
+   */
+  discoveredHosts: Array<DiscoveredHost>;
+  // Hosts that answered SNMP so far. Always 0 on an ICMP-only sweep.
+  snmpResponderCount: number;
+  /*
+   * Hosts that answered the ICMP pre-sweep so far, or undefined once the
+   * pre-sweep has broken — the same rule as SubnetScanResult's field, for the
+   * same reason: a partial count must never be reported as a real one.
+   */
+  respondedToPingCount?: number | undefined;
+  // True when this sweep asks no host for SNMP. See SubnetScanResult.
+  isIcmpOnlySweep: boolean;
+}
+
 export interface SubnetScanConfig {
   /*
    * The address space to sweep, in either notation ScanTargetUtil accepts:
@@ -97,6 +141,29 @@ export interface SubnetScanConfig {
    * `cidr` to match the NetworkDeviceDiscoveryScan column it is read from.
    */
   cidr: string;
+  /*
+   * Called at the end of every segment with what the sweep has found so far.
+   *
+   * Optional: a sweep with no callback behaves exactly as it did before
+   * incremental results existed. The scanner AWAITS it (so a caller can
+   * serialize its own uploads) but never lets it fail the sweep — a throw or
+   * a rejection is caught and logged, because a sweep that found forty hosts
+   * found forty hosts whether or not anybody could be told about it.
+   *
+   * Callers that talk to the network here must not block: the whole sweep
+   * runs inside FetchScans' deadline race, so time spent in this callback is
+   * time charged to the sweep. FetchScans therefore fires its upload and
+   * returns, keeping only an in-flight guard.
+   */
+  onProgress?:
+    | ((progress: SubnetScanProgress) => Promise<void> | void)
+    | undefined;
+  /*
+   * Fixed worker count for both passes, overriding the size-derived value
+   * getSweepConcurrency picks. Unset (or 0) means "work it out", which is
+   * what every caller but a test and a deliberately-tuned probe should do.
+   */
+  maxConcurrency?: number | undefined;
   /*
    * Whether to ask each live host for its SNMP system group, or stop at the
    * ping that found it (OneUptime issue #3445). Read off the scan row through
@@ -222,8 +289,84 @@ export interface SubnetScanResult {
   reverseDnsResolvedCount?: number | undefined;
 }
 
-// Sweeping the whole subnet at once would exhaust sockets; probe in waves.
-const CONCURRENCY: number = 32;
+/*
+ * Sweeping the whole subnet at once would exhaust sockets; probe in waves.
+ *
+ * The wave SIZE is derived from how much address space the scan actually has
+ * to cover (getSweepConcurrency), not fixed. It used to be a flat 32 for every
+ * sweep, and that number is the arithmetic behind OneUptime issue #3598: a
+ * dead address costs ~1s in the ICMP pass and ~2s per credential set in the
+ * SNMP one, so 32 workers put a hard floor of 8 minutes on the ICMP pass of a
+ * 15,360-address range and another 16 minutes on the SNMP pass when the
+ * ICMP-filtered fallback fires — before SNMP v3's extra engine-discovery round
+ * trip, and before a second or third credential set multiplies the SNMP half
+ * again. A /24 and a /17 were given the same 32 workers, so the cost of a
+ * large scan grew strictly linearly with nothing to absorb it.
+ *
+ * The floor stays 32 so a small sweep behaves exactly as it always has.
+ */
+const MIN_SWEEP_CONCURRENCY: number = 32;
+
+/*
+ * The ICMP ceiling is lower than the SNMP one, and the asymmetry is about
+ * what a worker actually holds.
+ *
+ * An ICMP probe FORKS the OS `ping` binary (isHostAliveByPing, via the same
+ * library the Ping monitor uses), so N workers means N live child processes —
+ * each with its own PID, file descriptors and ~1MB of RSS. An SNMP probe is a
+ * UDP socket inside this process, which costs a file descriptor and a buffer.
+ * A probe container is small, and 256 concurrent `ping` processes on one is a
+ * different proposition from 256 sockets.
+ */
+const MAX_ICMP_SWEEP_CONCURRENCY: number = 128;
+const MAX_SNMP_SWEEP_CONCURRENCY: number = 256;
+
+/*
+ * Hard ceiling on an operator-supplied override, so a typo in an environment
+ * variable cannot fork ten thousand processes at once.
+ */
+const MAX_OVERRIDE_SWEEP_CONCURRENCY: number = 1024;
+
+/*
+ * Roughly how long ONE pass over the target should take, and the whole input
+ * to the concurrency choice: workers = hosts x seconds-per-host / this.
+ *
+ * Two minutes is chosen against the two numbers on either side of it. Below
+ * it sits the segment cadence — progress has to be reported often enough to
+ * be worth reporting — and above it sit the probe's 90-minute sweep deadline
+ * and the server's 2-hour abandoned-scan reaper, which every pass of every
+ * legitimate sweep has to fit inside together.
+ */
+const TARGET_PASS_DURATION_IN_SECONDS: number = 120;
+
+/*
+ * A dead address costs about a second in the ICMP pass (PING_TIMEOUT_IN_SECONDS)
+ * and about two in the SNMP one (probeHostWithConfig's 2000ms, once per
+ * credential set). The concurrency arithmetic uses the SNMP figure for both
+ * passes: it is the expensive half, it is the half the ICMP-filtered fallback
+ * runs over the WHOLE range, and sizing to the cheaper one would leave exactly
+ * the pass that needs the workers short of them.
+ */
+const SECONDS_PER_DEAD_HOST: number = 2;
+
+/*
+ * How many waves of workers make up one segment.
+ *
+ * A segment is the unit of incremental progress: its ICMP pass, then its SNMP
+ * pass, then one call to onProgress. Too small and the sweep pays a
+ * synchronisation barrier (and an upload) for a handful of addresses; too
+ * large and a long sweep goes quiet for minutes at a time. Eight waves is
+ * ~16 seconds of ICMP at any concurrency, which is a good cadence for a
+ * progress bar and negligible overhead for the sweep.
+ */
+const SEGMENT_WAVES: number = 8;
+
+/*
+ * Floor on the segment size, so a small sweep is ONE segment and behaves
+ * exactly as it did before segmenting existed — the entire target pinged
+ * before anything is SNMP-probed.
+ */
+const MIN_SEGMENT_SIZE: number = 512;
 /*
  * ICMP pre-sweep timeout. The `ping` library takes seconds (it maps this to
  * the OS ping's reply-wait flag). Kept short: this is a reachability gate,
@@ -294,6 +437,31 @@ export default class SubnetScanner {
     }
 
     /*
+     * How wide each pass runs, and how much address space one segment covers.
+     *
+     * Derived from the target's size rather than fixed, so a /24 keeps the
+     * 32 workers it has always had while a 15,360-address range gets the
+     * ~128 it needs to finish inside a coffee break rather than a working
+     * day (OneUptime issue #3598). Both passes take their concurrency from
+     * the same call so an operator's override means one thing.
+     */
+    const icmpConcurrency: number = SubnetScanner.getSweepConcurrency({
+      hostCount: hosts.length,
+      maxConcurrency: MAX_ICMP_SWEEP_CONCURRENCY,
+      override: config.maxConcurrency,
+    });
+
+    const snmpConcurrency: number = SubnetScanner.getSweepConcurrency({
+      hostCount: hosts.length,
+      maxConcurrency: MAX_SNMP_SWEEP_CONCURRENCY,
+      override: config.maxConcurrency,
+    });
+
+    const segmentSize: number = SubnetScanner.getSegmentSize(
+      Math.max(icmpConcurrency, snmpConcurrency),
+    );
+
+    /*
      * ICMP pre-sweep state. Best-effort: the first infrastructure failure
      * (ping binary missing, ICMP socket privileges — an error, not a clean
      * "host down") flips the flag and every host is SNMP-probed directly,
@@ -301,7 +469,7 @@ export default class SubnetScanner {
      *
      * "Best-effort" holds only while SNMP is the real probe. An ICMP-only sweep
      * has nothing to fall back TO, so the flag is fatal there — see the guard
-     * after phase 1.
+     * after the segment loop.
      */
     let isPingSweepAvailable: boolean = true;
     /*
@@ -313,122 +481,6 @@ export default class SubnetScanner {
     let pingFailureReason: string = "";
     const pingAliveHosts: Set<string> = new Set<string>();
 
-    // Phase 1 — ICMP pre-sweep across the whole target.
-    await SubnetScanner.runConcurrently(
-      hosts,
-      async (host: string): Promise<void> => {
-        if (!isPingSweepAvailable) {
-          return;
-        }
-
-        try {
-          if (await SubnetScanner.isHostAliveByPing(host)) {
-            pingAliveHosts.add(host);
-          }
-        } catch (pingErr) {
-          /*
-           * A rejection means pinging itself failed (a dead host resolves
-           * cleanly with alive=false). Disable the pre-sweep for the rest of
-           * the scan; hosts already confirmed alive stay known-alive.
-           */
-          isPingSweepAvailable = false;
-          pingFailureReason =
-            pingFailureReason ||
-            String(pingErr).substring(0, SNMP_ERROR_EXCERPT_LENGTH);
-          logger.warn(
-            "Discovery ICMP pre-sweep unavailable (" +
-              pingErr +
-              "). " +
-              (isSnmpEnabled
-                ? "Falling back to SNMP-probing every host."
-                : "This scan checks ICMP only, so it has nothing to fall back to and will be reported as failed."),
-          );
-        }
-      },
-    );
-
-    /*
-     * An ICMP-only sweep ends here: the ping IS the probe, so the hosts that
-     * answered it are the whole result.
-     *
-     * Recorded with snmpReachable FALSE rather than undefined. The flag means
-     * "this host was asked for SNMP and did not answer" everywhere else, and an
-     * ICMP-only host is in exactly that position from the importer's point of
-     * view — it has no system group, no vendor OID and no credentials, so it
-     * must import as a monitor-backed device (DiscoveryImportEligibility).
-     * Undefined would read as a legacy SNMP responder and import as an
-     * SNMP-polled device that could never be polled.
-     */
-    if (!isSnmpEnabled) {
-      /*
-       * No fallback exists in this mode, so an unusable ping is a failed scan
-       * rather than a clean zero. Reporting "0 of 254 answered" for a probe
-       * that never sent a single echo is the exact false negative the ICMP
-       * pre-sweep's own privilege detection was added to prevent — it would
-       * read as "this subnet is empty", and the one fact that explains it (this
-       * container cannot open an ICMP socket) would live only in a probe log.
-       */
-      if (!isPingSweepAvailable && pingAliveHosts.size === 0) {
-        throw new Error(
-          "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
-            "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
-            "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
-            "Ping reported: " +
-            (pingFailureReason || "unknown error"),
-        );
-      }
-
-      const pingOnlyHosts: Array<DiscoveredHost> = hosts
-        .filter((host: string) => {
-          return pingAliveHosts.has(host);
-        })
-        .map((host: string) => {
-          /*
-           * Byte-identical to the ping-only record phase 2 writes below, so
-           * the whole import path works unchanged: the flag is what makes
-           * DiscoveryImportEligibility hand these hosts to the Monitor
-           * method, and DiscoveredDeviceBuilder returns before it touches a
-           * credential. Undefined would read as a legacy SNMP responder and
-           * import an SNMP-polled device that could never be polled.
-           */
-          return {
-            ipAddress: host,
-            snmpReachable: false,
-          };
-        });
-
-      /*
-       * Already in ascending order: `hosts` comes out of expandTarget sorted
-       * and this filter preserves that, unlike the SNMP path below where
-       * hosts are appended in completion order and have to be sorted.
-       */
-      return {
-        discoveredHosts: pingOnlyHosts,
-        scannedHostCount: hosts.length,
-        // No port was dialled, and an empty list is the only honest answer.
-        scannedPorts: [],
-        /*
-         * Not "every credential found nobody" — no credential was TRIED. An
-         * entry per config here would invite the status message to name
-         * credentials this sweep never used.
-         */
-        responderCountByConfigId: {},
-        respondedToPingCount: pingAliveHosts.size,
-        snmpErrorHostCount: 0,
-        mostCommonSnmpError: undefined,
-        icmpFilteredFallbackHostCount: 0,
-        isIcmpOnlySweep: true,
-        /*
-         * The pre-sweep broke, but not before confirming hosts. Those are real
-         * and worth reporting; the range they came from is not complete, and
-         * the status message has to say so rather than let a partial tally
-         * read as the whole subnet.
-         */
-        isIcmpSweepIncomplete: !isPingSweepAvailable,
-      };
-    }
-
-    // Phase 2 — SNMP probe, plus the phase 3 fallback below.
     const discoveredHosts: Array<DiscoveredHost> = [];
     const probedHosts: Set<string> = new Set<string>();
     const snmpErrorCounts: Map<string, number> = new Map<string, number>();
@@ -449,6 +501,44 @@ export default class SubnetScanner {
 
     let snmpResponderCount: number = 0;
     let snmpErrorHostCount: number = 0;
+    /*
+     * Addresses whose segment has finished. NOT bumped by the fallback pass
+     * below, which re-probes addresses this already counted — see
+     * SubnetScanProgress.sweptHostCount.
+     */
+    let sweptHostCount: number = 0;
+
+    const pingHost: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      if (!isPingSweepAvailable) {
+        return;
+      }
+
+      try {
+        if (await SubnetScanner.isHostAliveByPing(host)) {
+          pingAliveHosts.add(host);
+        }
+      } catch (pingErr) {
+        /*
+         * A rejection means pinging itself failed (a dead host resolves
+         * cleanly with alive=false). Disable the pre-sweep for the rest of
+         * the scan; hosts already confirmed alive stay known-alive.
+         */
+        isPingSweepAvailable = false;
+        pingFailureReason =
+          pingFailureReason ||
+          String(pingErr).substring(0, SNMP_ERROR_EXCERPT_LENGTH);
+        logger.warn(
+          "Discovery ICMP pre-sweep unavailable (" +
+            pingErr +
+            "). " +
+            (isSnmpEnabled
+              ? "Falling back to SNMP-probing every host."
+              : "This scan checks ICMP only, so it has nothing to fall back to and will be reported as failed."),
+        );
+      }
+    };
 
     const probeHost: (host: string) => Promise<void> = async (
       host: string,
@@ -543,13 +633,174 @@ export default class SubnetScanner {
       }
     };
 
-    const firstPassHosts: Array<string> = isPingSweepAvailable
-      ? hosts.filter((host: string) => {
-          return pingAliveHosts.has(host);
-        })
-      : hosts;
+    /*
+     * One report of what the sweep holds right now.
+     *
+     * Awaited so a caller can serialize its own work against the sweep, and
+     * wrapped so it can never do more than that: whatever the callback does,
+     * this sweep's results are the sweep's results.
+     */
+    const emitProgress: () => Promise<void> = async (): Promise<void> => {
+      if (!config.onProgress) {
+        return;
+      }
 
-    await SubnetScanner.runConcurrently(firstPassHosts, probeHost);
+      try {
+        await config.onProgress({
+          sweptHostCount: sweptHostCount,
+          totalHostCount: hosts.length,
+          discoveredHosts: SubnetScanner.sortByAddress([...discoveredHosts]),
+          snmpResponderCount: snmpResponderCount,
+          respondedToPingCount: isPingSweepAvailable
+            ? pingAliveHosts.size
+            : undefined,
+          isIcmpOnlySweep: !isSnmpEnabled,
+        });
+      } catch (progressErr) {
+        logger.warn(
+          `Discovery sweep of ${config.cidr} could not report progress (the sweep itself is unaffected): ${progressErr}`,
+        );
+      }
+    };
+
+    /*
+     * The sweep, one segment at a time.
+     *
+     * The passes used to be global: every address in the target was pinged
+     * before a single one was SNMP-probed, and nothing left the probe until
+     * both passes were done. On a 15,360-address range that is eight minutes
+     * of silence before the first host can possibly be known, and a sweep
+     * abandoned at the deadline reported nothing at all despite having found
+     * hundreds of devices (OneUptime issue #3598).
+     *
+     * Interleaving them per segment changes no result — the ICMP gate, the
+     * credential ordering and the counters are all carried across segments —
+     * but it means hosts start being known within seconds, and known hosts
+     * can be uploaded while the rest of the range is still being swept, which
+     * is what lets auto-import see them (OneUptime issue #3599).
+     *
+     * A sweep small enough to fit in one segment (MIN_SEGMENT_SIZE, 512
+     * addresses) behaves exactly as it always did.
+     */
+    for (
+      let segmentStart: number = 0;
+      segmentStart < hosts.length;
+      segmentStart += segmentSize
+    ) {
+      const segment: Array<string> = hosts.slice(
+        segmentStart,
+        segmentStart + segmentSize,
+      );
+
+      // Phase 1 — ICMP pre-sweep across this segment.
+      if (isPingSweepAvailable) {
+        await SubnetScanner.runConcurrently(segment, icmpConcurrency, pingHost);
+      }
+
+      if (isSnmpEnabled) {
+        /*
+         * Phase 2 — SNMP probe. Gated on the pre-sweep when it is working; the
+         * whole segment when it is not, which is the "SNMP-probe every host"
+         * fallback the pre-sweep has always had. Addresses skipped by the gate
+         * get their chance after the loop, if the sweep needs it.
+         */
+        const firstPassHosts: Array<string> = isPingSweepAvailable
+          ? segment.filter((host: string) => {
+              return pingAliveHosts.has(host);
+            })
+          : segment;
+
+        await SubnetScanner.runConcurrently(
+          firstPassHosts,
+          snmpConcurrency,
+          probeHost,
+        );
+      } else {
+        /*
+         * An ICMP-only sweep ends at the ping: the hosts that answered it are
+         * the whole result for this segment.
+         *
+         * Recorded with snmpReachable FALSE rather than undefined. The flag
+         * means "this host was asked for SNMP and did not answer" everywhere
+         * else, and an ICMP-only host is in exactly that position from the
+         * importer's point of view — it has no system group, no vendor OID and
+         * no credentials, so it must import as a monitor-backed device
+         * (DiscoveryImportEligibility). Undefined would read as a legacy SNMP
+         * responder and import as an SNMP-polled device that could never be
+         * polled. Byte-identical to the ping-only record phase 2 writes above.
+         *
+         * `segment` is address-ascending and so is the whole loop, so these
+         * need no sorting, unlike the SNMP path where hosts are appended in
+         * completion order.
+         */
+        for (const host of segment) {
+          if (pingAliveHosts.has(host)) {
+            discoveredHosts.push({
+              ipAddress: host,
+              snmpReachable: false,
+            });
+          }
+        }
+      }
+
+      sweptHostCount += segment.length;
+
+      await emitProgress();
+
+      /*
+       * An ICMP-only sweep whose ping broke has nothing left to do: there is
+       * no second probe to fall back to, and every remaining segment would be
+       * a no-op. Stop rather than spinning through the rest of the range.
+       */
+      if (!isSnmpEnabled && !isPingSweepAvailable) {
+        break;
+      }
+    }
+
+    if (!isSnmpEnabled) {
+      /*
+       * No fallback exists in this mode, so an unusable ping is a failed scan
+       * rather than a clean zero. Reporting "0 of 254 answered" for a probe
+       * that never sent a single echo is the exact false negative the ICMP
+       * pre-sweep's own privilege detection was added to prevent — it would
+       * read as "this subnet is empty", and the one fact that explains it (this
+       * container cannot open an ICMP socket) would live only in a probe log.
+       */
+      if (!isPingSweepAvailable && pingAliveHosts.size === 0) {
+        throw new Error(
+          "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
+            "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
+            "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
+            "Ping reported: " +
+            (pingFailureReason || "unknown error"),
+        );
+      }
+
+      return {
+        discoveredHosts: discoveredHosts,
+        scannedHostCount: hosts.length,
+        // No port was dialled, and an empty list is the only honest answer.
+        scannedPorts: [],
+        /*
+         * Not "every credential found nobody" — no credential was TRIED. An
+         * entry per config here would invite the status message to name
+         * credentials this sweep never used.
+         */
+        responderCountByConfigId: {},
+        respondedToPingCount: pingAliveHosts.size,
+        snmpErrorHostCount: 0,
+        mostCommonSnmpError: undefined,
+        icmpFilteredFallbackHostCount: 0,
+        isIcmpOnlySweep: true,
+        /*
+         * The pre-sweep broke, but not before confirming hosts. Those are real
+         * and worth reporting; the range they came from is not complete, and
+         * the status message has to say so rather than let a partial tally
+         * read as the whole subnet.
+         */
+        isIcmpSweepIncomplete: !isPingSweepAvailable,
+      };
+    }
 
     /*
      * Phase 3 — the ICMP gate must never be able to silence a subnet.
@@ -565,37 +816,50 @@ export default class SubnetScanner {
      * So when the gated pass finds NO SNMP responder at all, re-probe the
      * hosts it skipped. The cost lands only on scans that would otherwise have
      * returned nothing, and it buys back the entire ICMP-filtered case.
+     *
+     * The OTHER way an address can reach here unprobed is a pre-sweep that
+     * broke partway: segments before the break were gated, segments after it
+     * were not, so the gated ones left ICMP-silent addresses behind. Those get
+     * probed too — that is what "falling back to SNMP-probing every host" has
+     * always meant — but they are NOT counted as an ICMP-filtered fallback,
+     * which is a statement about a working pre-sweep finding nothing.
      */
     let icmpFilteredFallbackHostCount: number = 0;
 
-    /*
-     * `!isSnmpEnabled` is unreachable here — the ICMP-only branch above
-     * returned — and is stated anyway because of what this fallback does if it
-     * ever is reached: it SNMP-probes every remaining address in the range,
-     * with community "public" over v2c (probeHost defaults both). On a scan
-     * that asked for no SNMP that would be an unauthenticated sweep of a
-     * customer subnet, and it cannot be undone after the fact.
-     */
-    if (isSnmpEnabled && isPingSweepAvailable && snmpResponderCount === 0) {
-      const skippedHosts: Array<string> = hosts.filter((host: string) => {
-        return !probedHosts.has(host);
-      });
+    const skippedHosts: Array<string> = hosts.filter((host: string) => {
+      return !probedHosts.has(host);
+    });
 
-      if (skippedHosts.length > 0) {
+    if (skippedHosts.length > 0) {
+      if (!isPingSweepAvailable) {
+        logger.warn(
+          `Discovery sweep of ${config.cidr}: the ICMP pre-sweep stopped working partway through, so ${skippedHosts.length} address(es) gated out before it broke are being SNMP-probed directly.`,
+        );
+
+        await SubnetScanner.probeInSegments(
+          skippedHosts,
+          segmentSize,
+          snmpConcurrency,
+          probeHost,
+          emitProgress,
+        );
+      } else if (snmpResponderCount === 0) {
         icmpFilteredFallbackHostCount = skippedHosts.length;
         logger.warn(
-          `Discovery sweep of ${config.cidr} found no SNMP responder among the ${firstPassHosts.length} host(s) that answered ICMP. Re-probing the ${skippedHosts.length} ICMP-silent host(s) over SNMP in case ICMP is filtered on this network.`,
+          `Discovery sweep of ${config.cidr} found no SNMP responder among the ${pingAliveHosts.size} host(s) that answered ICMP. Re-probing the ${skippedHosts.length} ICMP-silent host(s) over SNMP in case ICMP is filtered on this network.`,
         );
-        await SubnetScanner.runConcurrently(skippedHosts, probeHost);
+
+        await SubnetScanner.probeInSegments(
+          skippedHosts,
+          segmentSize,
+          snmpConcurrency,
+          probeHost,
+          emitProgress,
+        );
       }
     }
 
-    discoveredHosts.sort((a: DiscoveredHost, b: DiscoveredHost) => {
-      return (
-        SubnetScanner.ipToLong(a.ipAddress) -
-        SubnetScanner.ipToLong(b.ipAddress)
-      );
-    });
+    SubnetScanner.sortByAddress(discoveredHosts);
 
     return {
       discoveredHosts: discoveredHosts,
@@ -615,6 +879,104 @@ export default class SubnetScanner {
       mostCommonSnmpError: SubnetScanner.getMostCommonError(snmpErrorCounts),
       icmpFilteredFallbackHostCount: icmpFilteredFallbackHostCount,
     };
+  }
+
+  /*
+   * How many workers one pass over `hostCount` addresses runs with.
+   *
+   * Public and pure so the sizing can be pinned directly: it is the single
+   * lever between "a /17 finishes in minutes" and "a /17 runs for most of a
+   * day" (OneUptime issue #3598), and it has to hold three properties at once
+   * — a small sweep keeps the 32 workers it always had, a large one scales
+   * with its size, and nothing ever exceeds the pass's ceiling.
+   *
+   * An explicit override wins outright, clamped only against a typo.
+   */
+  public static getSweepConcurrency(data: {
+    hostCount: number;
+    maxConcurrency: number;
+    override?: number | undefined;
+  }): number {
+    if (data.override && data.override > 0) {
+      return Math.min(
+        Math.floor(data.override),
+        MAX_OVERRIDE_SWEEP_CONCURRENCY,
+      );
+    }
+
+    const hostCount: number = Math.max(0, Math.floor(data.hostCount));
+
+    /*
+     * A sweep can never usefully run more workers than it has addresses, and
+     * a target smaller than the floor should not spin up 32 workers for 6
+     * hosts.
+     */
+    const sized: number = Math.ceil(
+      (hostCount * SECONDS_PER_DEAD_HOST) / TARGET_PASS_DURATION_IN_SECONDS,
+    );
+
+    return Math.min(
+      Math.max(sized, MIN_SWEEP_CONCURRENCY),
+      data.maxConcurrency,
+      Math.max(hostCount, 1),
+    );
+  }
+
+  /*
+   * How much address space one segment covers — the unit of incremental
+   * progress. See SEGMENT_WAVES and MIN_SEGMENT_SIZE.
+   */
+  public static getSegmentSize(concurrency: number): number {
+    return Math.max(MIN_SEGMENT_SIZE, concurrency * SEGMENT_WAVES);
+  }
+
+  /*
+   * Runs `work` over `hosts` segment by segment, reporting progress after
+   * each — the fallback pass's half of the incremental sweep.
+   *
+   * Progress is reported but `sweptHostCount` is NOT advanced here: every
+   * address in this list was already counted by the segment loop that gated
+   * it out. The reporting still matters, because this pass is where an
+   * ICMP-filtered subnet's entire inventory is found, and it can be the
+   * longest part of the sweep.
+   */
+  private static async probeInSegments(
+    hosts: Array<string>,
+    segmentSize: number,
+    concurrency: number,
+    work: (host: string) => Promise<void>,
+    onSegmentComplete: () => Promise<void>,
+  ): Promise<void> {
+    for (
+      let segmentStart: number = 0;
+      segmentStart < hosts.length;
+      segmentStart += segmentSize
+    ) {
+      await SubnetScanner.runConcurrently(
+        hosts.slice(segmentStart, segmentStart + segmentSize),
+        concurrency,
+        work,
+      );
+
+      await onSegmentComplete();
+    }
+  }
+
+  /*
+   * Sorts discovered hosts by address, in place, and hands the same array
+   * back. Shared by the sweep's own final ordering and by every progress
+   * snapshot, so a partial result and the final result are ordered the same
+   * way.
+   */
+  private static sortByAddress(
+    hosts: Array<DiscoveredHost>,
+  ): Array<DiscoveredHost> {
+    return hosts.sort((a: DiscoveredHost, b: DiscoveredHost) => {
+      return (
+        SubnetScanner.ipToLong(a.ipAddress) -
+        SubnetScanner.ipToLong(b.ipAddress)
+      );
+    });
   }
 
   /*
@@ -752,12 +1114,17 @@ export default class SubnetScanner {
   }
 
   /*
-   * Runs `work` over `items` with at most CONCURRENCY in flight. Sweeping a
+   * Runs `work` over `items` with at most `concurrency` in flight. Sweeping a
    * whole subnet at once would exhaust sockets (and, for the ICMP pass, fork a
    * ping process per address), so probe in waves.
+   *
+   * The wave size is a parameter rather than a constant because the two passes
+   * hold different resources — child processes vs UDP sockets — and because it
+   * scales with the target's size; see getSweepConcurrency.
    */
   private static async runConcurrently(
     items: Array<string>,
+    concurrency: number,
     work: (item: string) => Promise<void>,
   ): Promise<void> {
     let cursor: number = 0;
@@ -769,7 +1136,7 @@ export default class SubnetScanner {
     };
 
     const workers: Array<Promise<void>> = [];
-    for (let i: number = 0; i < Math.min(CONCURRENCY, items.length); i++) {
+    for (let i: number = 0; i < Math.min(concurrency, items.length); i++) {
       workers.push(worker());
     }
 

@@ -12,7 +12,7 @@ import ScheduledMaintenanceCustomField from "../../../../Models/DatabaseModels/S
 import StatusPageCustomField from "../../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../../Models/DatabaseModels/TeamMemberCustomField";
-import { AddCustomFieldValueMapping1790900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1790900000000-AddCustomFieldValueMapping";
+import { AddCustomFieldValueMapping1791400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791400000000-AddCustomFieldValueMapping";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 
 /*
@@ -44,7 +44,7 @@ const MIGRATIONS_DIRECTORY: string = path.join(
 
 const MIGRATION_PATH: string = path.join(
   MIGRATIONS_DIRECTORY,
-  "1790900000000-AddCustomFieldValueMapping.ts",
+  "1791400000000-AddCustomFieldValueMapping.ts",
 );
 
 const SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
@@ -128,12 +128,12 @@ describe("the value-mapping migration", () => {
    * throws no error, logs nothing and simply never runs.
    */
   test("is registered in SchemaMigrations/Index.ts so it actually runs", () => {
-    expect(SchemaMigrations).toContain(AddCustomFieldValueMapping1790900000000);
+    expect(SchemaMigrations).toContain(AddCustomFieldValueMapping1791400000000);
   });
 
   test("its class name matches the `name` TypeORM records in the migrations table", () => {
-    expect(new AddCustomFieldValueMapping1790900000000().name).toBe(
-      "AddCustomFieldValueMapping1790900000000",
+    expect(new AddCustomFieldValueMapping1791400000000().name).toBe(
+      "AddCustomFieldValueMapping1791400000000",
     );
   });
 
@@ -192,6 +192,11 @@ describe("the value-mapping migration", () => {
         return parseInt(match[1]!, 10);
       });
 
-    expect(Math.max(...timestamps)).toBe(1790900000000);
+    const ownTimestamp: number = parseInt(
+      MIGRATION_TIMESTAMP_PREFIX.exec(path.basename(MIGRATION_PATH))![1]!,
+      10,
+    );
+
+    expect(Math.max(...timestamps)).toBe(ownTimestamp);
   });
 });

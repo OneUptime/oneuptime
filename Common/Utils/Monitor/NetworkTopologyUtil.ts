@@ -42,6 +42,21 @@ export interface TopologyDeviceInput {
   lastPolledAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
   pollingIntervalInMinutes?: number | undefined;
+  /*
+   * How this device's health is established. NULL, empty and anything
+   * unrecognised read as Probe — see NetworkDeviceMonitoringMethodUtil.parse,
+   * which is why an omitted value keeps every existing caller on the poll
+   * rule unchanged.
+   *
+   * Read only when `monitorStatus` below is absent, and load-bearing there:
+   * a monitor-backed device (monitoringMethod "Monitor") with nothing
+   * stamped yet is drawn "unknown", which is what the device list says
+   * about it too. Without this the poll columns above would decide — and on
+   * a device switched over from SNMP they hold the last thing a probe found
+   * before it stopped asking, so a months-old lastSeenAt would draw the node
+   * red while its row in the device list reads Pending.
+   */
+  monitoringMethod?: string | null | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
@@ -1654,9 +1669,13 @@ export default class NetworkTopologyUtil {
 
   /*
    * The shared reachability rule (DeviceReachabilityUtil), mapped onto the
-   * graph's three node states. "Pending" — never polled — is the graph's
-   * "unknown", which is what keeps a device nothing walks from being drawn
-   * as a failure.
+   * graph's three node states. "Pending" — never polled, or monitor-backed
+   * with nothing reported yet — is the graph's "unknown", which is what
+   * keeps a device nothing walks from being drawn as a failure.
+   *
+   * Only reached with no stamped status (deviceStatus took every stamped
+   * one), so the monitoring method is the one fact left that tells the rule
+   * whether the poll columns are evidence or leftovers.
    */
   private static statusFromPoll(
     device: TopologyDeviceInput,
@@ -1668,6 +1687,7 @@ export default class NetworkTopologyUtil {
         lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
         pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        monitoringMethod: device.monitoringMethod,
       },
       now,
     );

@@ -7,7 +7,7 @@ import ProxyConfig from "../../ProxyConfig";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import VMRunner from "Common/Server/Utils/VM/VMRunner";
 
 export interface CustomCodeMonitorOptions {
@@ -64,6 +64,7 @@ export default class CustomCodeMonitor {
              * refused either way.
              */
             allowPrivateNetworkRequests: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+            privateNetworkAccessIsAllowed: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
             privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
           },
         });
@@ -93,7 +94,8 @@ export default class CustomCodeMonitor {
          * monitor criteria keep working.
          */
         if (result.scriptError) {
-          logger.error(result.scriptError);
+          // Their script, their throw — never ours.
+          logger.error(result.scriptError, EXTERNAL_FAULT);
           scriptResult.scriptError =
             result.scriptError.message || result.scriptError.toString();
         }

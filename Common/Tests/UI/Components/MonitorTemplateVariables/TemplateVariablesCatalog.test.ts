@@ -235,6 +235,21 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
     ],
   },
   {
+    monitorType: MonitorType.Database,
+    title: "Database Health",
+    keys: [
+      "isOnline",
+      "responseTimeInMs",
+      "failureCause",
+      "connectionError",
+      "engineVersion",
+      "collectedGroups",
+      "unavailableGroups",
+      "collectionIssueSummary",
+      "metrics",
+    ],
+  },
+  {
     monitorType: MonitorType.ExternalStatusPage,
     title: "External Status Page",
     keys: [

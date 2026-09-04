@@ -1,5 +1,7 @@
-import { NetworkTopologyDeviceRole } from "../Monitor/SnmpMonitor/NetworkTopology";
-import { NetworkTopologyNodeShape } from "../Monitor/SnmpMonitor/NetworkTopology";
+import {
+  NetworkTopologyDeviceRole,
+  NetworkTopologyNodeShape,
+} from "../Monitor/SnmpMonitor/NetworkTopology";
 
 /*
  * The device roles seeded into every project.

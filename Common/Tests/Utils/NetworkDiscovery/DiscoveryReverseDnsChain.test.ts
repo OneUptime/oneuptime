@@ -213,12 +213,13 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
       "10.18.166.55",
     ]);
 
-    // Naming a host by DNS must not change how it is monitored.
+    /*
+     * Naming a host by DNS must not change how it is monitored: a ping-only
+     * host is a Probe device the scan's probe pings, with polling on.
+     */
     for (const device of devices) {
-      expect(device.monitoringMethod).toBe(
-        NetworkDeviceMonitoringMethod.Monitor,
-      );
-      expect(device.isPollingEnabled).toBe(false);
+      expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+      expect(device.isPollingEnabled).toBe(true);
     }
   });
 
@@ -764,8 +765,8 @@ describe("Reverse DNS, probe payload to created NetworkDevice", () => {
     // Everything the retry must NOT have changed.
     expect(retry.hostname).toBe("10.18.166.51");
     expect(retry.hostname).toBe(firstAttempt.hostname);
-    expect(retry.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
-    expect(retry.isPollingEnabled).toBe(false);
+    expect(retry.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
+    expect(retry.isPollingEnabled).toBe(true);
     expect(retry.projectId).toBe(PROJECT_ID);
   });
 

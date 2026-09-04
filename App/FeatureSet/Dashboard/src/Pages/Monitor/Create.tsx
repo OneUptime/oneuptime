@@ -8,8 +8,10 @@ import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -69,6 +71,16 @@ import {
   buildThreatIntelFeedMonitorPrefill,
 } from "../../Utils/SecurityEventsMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import {
+  MonitorCriteriaSeedIds,
+  PING_MONITOR_INTERVAL,
+  PingMonitorOrigin,
+  buildPingMonitorForAddress,
+} from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import PingMonitorSeedIds from "../../Components/NetworkDevice/PingMonitorSeedIds";
+import { bindMonitorToDevice } from "../../Components/NetworkDevice/PingMonitorProvisioning";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -207,6 +219,28 @@ const MonitorCreate: FunctionComponent<
     null,
   );
   const [isLoadingProbes, setIsLoadingProbes] = useState<boolean>(true);
+
+  /*
+   * Probes pinned by a "Create Ping Monitor" deep link from a monitor-backed
+   * device (see preSeedPingMonitorForMonitorBackedDevice). Kept apart from
+   * defaultProbeIds on purpose: loadProbes and the pre-seed run concurrently
+   * and would otherwise race on one setter, with whichever finished last
+   * silently winning the form. The merge before the render prefers this one
+   * whenever it is set and the loaded probe list contains it.
+   */
+  const [deviceProbeIds, setDeviceProbeIds] = useState<Array<string> | null>(
+    null,
+  );
+
+  /*
+   * The device a monitor created from that deep link is bound to afterwards
+   * (NetworkDevice.monitorId), and the loading gate for the bind itself. A
+   * ref rather than state: onSuccess is its only reader and nothing renders
+   * from it.
+   */
+  const bindToNetworkDeviceId: MutableRefObject<ObjectID | null> =
+    useRef<ObjectID | null>(null);
+  const [isBinding, setIsBinding] = useState<boolean>(false);
 
   const loadProbes: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -428,16 +462,130 @@ const MonitorCreate: FunctionComponent<
   };
 
   /*
+   * "Create Ping Monitor" from a monitor-backed device's Overview or
+   * Monitors page — the second shape the Network Device deep link can take.
+   *
+   * A monitor-backed device is polled by nothing: the monitor bound through
+   * NetworkDevice.monitorId IS its health, and until one is bound its status
+   * reads "Pending" forever (OneUptime/oneuptime#3447). So the form opens on
+   * the same Ping monitor the discovery import and the device list's bulk
+   * action build — type, interval, criteria, incident suppression — pointed
+   * at the device's address, and onSuccess binds it to the device
+   * (bindCreatedMonitorToDevice) instead of leaving the operator to find the
+   * binding under the device's Settings by hand.
+   *
+   * Seeding the SNMP shape here would be wrong twice over: a Network Device
+   * monitor expects a device a probe walks, and creating it binds nothing.
+   */
+  const preSeedPingMonitorForMonitorBackedDevice: (data: {
+    networkDeviceId: string;
+    device: NetworkDevice;
+  }) => Promise<void> = async (data: {
+    networkDeviceId: string;
+    device: NetworkDevice;
+  }): Promise<void> => {
+    let monitor: Monitor;
+
+    try {
+      /*
+       * A project missing an operational status or a severity throws an
+       * operator-facing message that names the fix; it replaces the form
+       * rather than opening one that cannot be saved.
+       */
+      const seedIds: MonitorCriteriaSeedIds =
+        await PingMonitorSeedIds.resolve();
+
+      monitor = buildPingMonitorForAddress({
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        address: data.device.hostname || "",
+        deviceName: data.device.name || "",
+        seedIds: seedIds,
+        origin: PingMonitorOrigin.DevicePage,
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      return;
+    }
+
+    bindToNetworkDeviceId.current = new ObjectID(data.networkDeviceId);
+
+    /*
+     * A device switched from SNMP to monitor-backed keeps its probe, and that
+     * probe is the one that can reach it: the project's defaults include
+     * global probes on the public internet, which cannot reach an RFC1918
+     * address and would drive the device straight to "Offline" — a worse
+     * answer than "Pending", because it reads as an outage. A device with no
+     * probe of its own falls through to the defaults, which the operator can
+     * change on the Probes step. The pin also needs the probe list to have
+     * loaded this probe — the merge before the render checks that, so a
+     * failed load submits no selection rather than an empty one.
+     */
+    setDeviceProbeIds(
+      data.device.probeId ? [data.device.probeId.toString()] : null,
+    );
+
+    setInitialValues({
+      name: monitor.name || "",
+      description: monitor.description || "",
+      monitorType: MonitorType.Ping,
+      monitorSteps: monitor.monitorSteps!.toJSON(),
+      monitoringInterval: PING_MONITOR_INTERVAL,
+    });
+  };
+
+  /*
    * "Create monitor for this device" deep link from the Network Device
-   * pages: pre-select the Network Device type, reference the device in the
-   * step, and seed the Recommended Alert Pack criteria (device unreachable
-   * → incident, interface down → incident, utilization / errors → alerts)
-   * so alerting on a device is one review-and-save instead of assembling
-   * the monitor by hand.
+   * pages. What it seeds depends on how the device is monitored:
+   *
+   *   SNMP           - pre-select the Network Device type, reference the
+   *                    device in the step, and seed the Recommended Alert
+   *                    Pack criteria (device unreachable → incident,
+   *                    interface down → incident, utilization / errors →
+   *                    alerts) so alerting on a device is one
+   *                    review-and-save instead of assembling the monitor by
+   *                    hand.
+   *   Monitor-backed - a Ping monitor on the device's address, bound to the
+   *                    device once created; see
+   *                    preSeedPingMonitorForMonitorBackedDevice.
+   *
+   * The device is read once, up front, because the branch needs its
+   * monitoring method and the Ping branch needs its address and probe.
    */
   const preSeedFromNetworkDeviceLink: (
     networkDeviceId: string,
   ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
+    let device: NetworkDevice | null = null;
+
+    try {
+      device = await ModelAPI.getItem({
+        modelType: NetworkDevice,
+        id: new ObjectID(networkDeviceId),
+        select: {
+          name: true,
+          hostname: true,
+          monitoringMethod: true,
+          probeId: true,
+        },
+      });
+    } catch {
+      /*
+       * Recoverable: an unreadable device seeds the SNMP shape with a
+       * generic name, exactly as before this branched — the monitoring
+       * method parses NULL as SNMP, which is what every device was.
+       */
+    }
+
+    if (
+      device &&
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)
+    ) {
+      await preSeedPingMonitorForMonitorBackedDevice({
+        networkDeviceId: networkDeviceId,
+        device: device,
+      });
+      return;
+    }
+
     const monitorSteps: MonitorStepsType = new MonitorStepsType();
     const monitorStep: MonitorStep | undefined =
       monitorSteps.data?.monitorStepsInstanceArray[0];
@@ -454,20 +602,7 @@ const MonitorCreate: FunctionComponent<
       oids: [],
     };
 
-    let deviceName: string = "";
-
-    try {
-      const device: NetworkDevice | null = await ModelAPI.getItem({
-        modelType: NetworkDevice,
-        id: new ObjectID(networkDeviceId),
-        select: {
-          name: true,
-        },
-      });
-      deviceName = device?.name || "";
-    } catch {
-      // Recoverable: the monitor name just falls back to a generic one.
-    }
+    const deviceName: string = device?.name || "";
 
     try {
       const monitorStatusList: ListResult<MonitorStatus> =
@@ -718,6 +853,60 @@ const MonitorCreate: FunctionComponent<
     }
   }, []);
 
+  /*
+   * The second half of the monitor-backed deep link: point the device at the
+   * monitor the form just created. Binding re-stamps the device with the
+   * monitor's current status through NetworkDeviceService.onUpdateSuccess,
+   * so its pill resolves on the next render instead of waiting for the
+   * monitor's next status CHANGE (OneUptime/oneuptime#3392) — which is why
+   * the operator lands on the DEVICE, where that result is visible, rather
+   * than on the monitor.
+   *
+   * ModelForm does not await onSuccess, so this must never reject: a bind
+   * that fails is reported here, in place of the form. The monitor exists
+   * either way and is deliberately NOT deleted — unlike the bulk action's
+   * cleanup, the operator just reviewed and saved this one on purpose — so
+   * the message says where to finish the binding by hand.
+   */
+  const bindCreatedMonitorToDevice: (data: {
+    deviceId: ObjectID;
+    createdMonitor: Monitor;
+  }) => Promise<void> = async (data: {
+    deviceId: ObjectID;
+    createdMonitor: Monitor;
+  }): Promise<void> => {
+    setIsBinding(true);
+
+    try {
+      if (!data.createdMonitor.id) {
+        throw new BadDataException(
+          "the server did not return the new monitor's id",
+        );
+      }
+
+      await bindMonitorToDevice({
+        deviceId: data.deviceId,
+        monitorId: data.createdMonitor.id,
+      });
+
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+          {
+            modelId: data.deviceId,
+          },
+        ),
+      );
+    } catch (err) {
+      setIsBinding(false);
+      setError(
+        `The monitor was created but could not be bound to the device: ${API.getFriendlyMessage(
+          err,
+        )}. Bind it under the device's Settings → Monitor.`,
+      );
+    }
+  };
+
   const fetchMonitorTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
   ): Promise<void> => {
@@ -766,6 +955,32 @@ const MonitorCreate: FunctionComponent<
     setIsLoading(false);
   };
 
+  /*
+   * Which probes the form opens with. A monitor-backed device's own probe
+   * beats the project defaults — it is the one that can reach the device —
+   * but it is pinned only when the probe list actually loaded it: BasicForm
+   * drops any initial value that is not among the options, and an explicit
+   * empty selection is honoured by the server as "attach no probes" — a
+   * monitor nothing evaluates (see probeMiscDataProps in
+   * Components/NetworkDevice/PingMonitorProvisioning.ts). With no usable pin
+   * the defaults apply, and with no defaults either no selection is
+   * submitted: null here means "submit no selection", which the server
+   * treats as "use the defaults", exactly as when the probe list could not
+   * be loaded.
+   */
+  const pinnedDeviceProbes: Array<string> | null =
+    deviceProbeIds &&
+    deviceProbeIds.every((probeId: string): boolean => {
+      return probeOptions.some((option: DropdownOption): boolean => {
+        return option.value === probeId;
+      });
+    })
+      ? deviceProbeIds
+      : null;
+
+  const seededProbes: Array<string> | null =
+    pinnedDeviceProbes ?? defaultProbeIds;
+
   return (
     <Fragment>
       {/*
@@ -782,9 +997,11 @@ const MonitorCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {(isLoading || isLoadingProbes) && <PageLoader isVisible={true} />}
+          {(isLoading || isLoadingProbes || isBinding) && (
+            <PageLoader isVisible={true} />
+          )}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !isLoadingProbes && !error && (
+          {!isLoading && !isLoadingProbes && !isBinding && !error && (
             <ModelForm<Monitor>
               modelType={Monitor}
               name="Create New Monitor"
@@ -794,8 +1011,8 @@ const MonitorCreate: FunctionComponent<
                  * The form reads initialValues once, on mount - which is why
                  * the render above waits for the probe list.
                  */
-                defaultProbeIds
-                  ? { ...initialValues, probes: defaultProbeIds }
+                seededProbes
+                  ? { ...initialValues, probes: seededProbes }
                   : initialValues
               }
               fields={[
@@ -1004,6 +1221,25 @@ const MonitorCreate: FunctionComponent<
                     monitor_type: createdItem.monitorType || "",
                   },
                 );
+
+                const deviceToBind: ObjectID | null =
+                  bindToNetworkDeviceId.current;
+
+                if (deviceToBind) {
+                  /*
+                   * Not awaited — ModelForm does not await onSuccess — and
+                   * the helper reports its own failure, so there is nothing
+                   * for a rejection handler to do.
+                   */
+                  bindCreatedMonitorToDevice({
+                    deviceId: deviceToBind,
+                    createdMonitor: createdItem,
+                  }).catch(() => {
+                    // Unreachable: the helper catches everything it does.
+                  });
+                  return;
+                }
+
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(
                     RouteUtil.populateRouteParams(
