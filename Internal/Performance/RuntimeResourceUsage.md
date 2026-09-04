@@ -85,6 +85,10 @@ active ingestion request.
   unrelated timers, late settlement, and 10,000 completed jobs without lingering
   deadline handles.
 
+The follow-up [ConcurrentIngestResourceUsage.md](./ConcurrentIngestResourceUsage.md)
+covers concurrent log/trace cache loads, metric catalog construction, writer
+admission, and shared probe connectivity checks.
+
 ## Next recommendations
 
 1. **Measure each production role under the same workload.** The existing

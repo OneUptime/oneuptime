@@ -28,7 +28,7 @@ import {
   matchGrokPattern,
 } from "Common/Utils/Grok/Grok";
 import logger from "Common/Server/Utils/Logger";
-import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
 export interface LoadedPipeline {
@@ -67,22 +67,22 @@ const MAX_CACHED_PROJECTS: number = 10_000;
 const MAX_LOGGED_INVALID_GROK_PATTERNS: number = 1000;
 const loggedInvalidGrokPatterns: Set<string> = new Set<string>();
 
-const pipelineCache: InMemoryTTLCache<Array<LoadedPipeline>> =
-  new InMemoryTTLCache<Array<LoadedPipeline>>(MAX_CACHED_PROJECTS);
+const pipelineCache: PipelineCache<Array<LoadedPipeline>> = new PipelineCache<
+  Array<LoadedPipeline>
+>(MAX_CACHED_PROJECTS, CACHE_TTL_MS);
 
 export class LogPipelineService {
   public static async loadPipelines(
     projectId: ObjectID,
   ): Promise<Array<LoadedPipeline>> {
-    const cacheKey: string = projectId.toString();
-    const cached: Array<LoadedPipeline> | undefined =
-      pipelineCache.get(cacheKey);
+    return pipelineCache.getOrLoad(projectId.toString(), () => {
+      return LogPipelineService.loadPipelinesFromDatabase(projectId);
+    });
+  }
 
-    // Empty arrays are truthy — zero-pipeline projects stay negatively cached.
-    if (cached) {
-      return cached;
-    }
-
+  private static async loadPipelinesFromDatabase(
+    projectId: ObjectID,
+  ): Promise<Array<LoadedPipeline>> {
     const pipelineService: DatabaseService<LogPipeline> =
       new DatabaseService<LogPipeline>(LogPipeline);
 
@@ -143,7 +143,6 @@ export class LogPipelineService {
       });
     }
 
-    pipelineCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 
