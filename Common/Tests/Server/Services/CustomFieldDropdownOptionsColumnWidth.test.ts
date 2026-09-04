@@ -152,6 +152,21 @@ describe("custom-field dropdownOptions entity declarations", () => {
   });
 
   test.each(CUSTOM_FIELD_MODELS)(
+    "$tableName is the table name the model itself declares",
+    ({ tableName, modelClass }: CustomFieldModelUnderTest) => {
+      /*
+       * Ties the tableName strings above to the models, so the SQL contract
+       * tests below are not self-referential. Without this the migration
+       * could ALTER a table that does not exist and every assertion built
+       * from CUSTOM_FIELD_MODELS would still agree with it.
+       */
+      expect(
+        (new modelClass() as unknown as { tableName: string }).tableName,
+      ).toBe(tableName);
+    },
+  );
+
+  test.each(CUSTOM_FIELD_MODELS)(
     "$tableName.dropdownOptions is a text column, not a bounded varchar",
     ({ modelClass }: CustomFieldModelUnderTest) => {
       expect(dropdownOptionsColumnArgs(modelClass).options.type).toBe(

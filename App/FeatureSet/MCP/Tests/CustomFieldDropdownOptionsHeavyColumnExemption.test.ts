@@ -14,6 +14,7 @@ import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustom
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import { JSONObject } from "Common/Types/JSON";
@@ -64,6 +65,51 @@ const CUSTOM_FIELD_MODELS: Array<CustomFieldModelUnderTest> = [
 ];
 
 describe("MCP default select: custom-field dropdownOptions", () => {
+  test("every model in the registry with a dropdownOptions column is covered here", () => {
+    /*
+     * Derived from the model registry (DatabaseModels/Index), not from the
+     * hand list below, so a tenth custom-field model added later cannot ship
+     * with dropdownOptions still excluded from the MCP default select. A model
+     * has to be in the registry to reach MCP at all, so it shows up here the
+     * moment it is added.
+     */
+    const declaring: Array<string> = (
+      DatabaseModels as Array<CustomFieldModelConstructor>
+    )
+      .filter((modelClass: CustomFieldModelConstructor) => {
+        return new modelClass()
+          .getTableColumns()
+          .columns.includes("dropdownOptions");
+      })
+      .map((modelClass: CustomFieldModelConstructor) => {
+        return (new modelClass() as unknown as { tableName: string }).tableName;
+      })
+      .sort();
+
+    const covered: Array<string> = CUSTOM_FIELD_MODELS.map(
+      (model: CustomFieldModelUnderTest) => {
+        return model.tableName;
+      },
+    ).sort();
+
+    expect(declaring).toEqual(covered);
+    expect(declaring.length).toBeGreaterThan(0);
+  });
+
+  test.each(CUSTOM_FIELD_MODELS)(
+    "$tableName is the table name the model itself declares",
+    ({ tableName, modelClass }: CustomFieldModelUnderTest) => {
+      /*
+       * The exemption keys are `<tableName>.<columnName>`, so a tableName here
+       * that drifts from the model's own would make every assertion below
+       * agree with a key MCP never builds at runtime.
+       */
+      expect(
+        (new modelClass() as unknown as { tableName: string }).tableName,
+      ).toBe(tableName);
+    },
+  );
+
   test.each(CUSTOM_FIELD_MODELS)(
     "$tableName.dropdownOptions is included in the default select despite being a text column",
     ({ tableName }: CustomFieldModelUnderTest) => {
