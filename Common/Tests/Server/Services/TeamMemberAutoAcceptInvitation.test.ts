@@ -1,11 +1,14 @@
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import Project from "../../../Models/DatabaseModels/Project";
+import Team from "../../../Models/DatabaseModels/Team";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
+import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
@@ -177,6 +180,12 @@ let addRuleSpy: jest.SpyInstance;
 let findUserByIdSpy: jest.SpyInstance;
 
 beforeEach(() => {
+  const team: Team = new Team(TEAM_ID);
+  jest.spyOn(TeamService, "findOneBy").mockResolvedValue(team);
+  jest
+    .spyOn(TeamPermissionService, "assertCanGrantTeamPermissions")
+    .mockResolvedValue(undefined);
+
   /*
    * The SCIM push-groups guard runs for every non-root create, so it has to
    * answer before anything else in onBeforeCreate is reachable.
