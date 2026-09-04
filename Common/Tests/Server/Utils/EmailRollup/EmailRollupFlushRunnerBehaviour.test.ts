@@ -236,7 +236,7 @@ describe("EmailRollupFlushRunner - one flush", () => {
 
       await EmailRollupFlushRunner.runSweep({ now: NOW });
 
-      expect(harness.callLog).toEqual(["stamp", "send"]);
+      expect(harness.callLog).toEqual(["preferences", "stamp", "send"]);
     });
 
     test("a throwing send leaves the items stamped, so a broken mailer cannot re-spam every epoch", async () => {

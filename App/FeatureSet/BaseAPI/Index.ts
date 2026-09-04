@@ -1010,9 +1010,7 @@ import TelemetryUsageBillingService, {
 import UserNotificationRuleService, {
   Service as UserNotificationRuleServiceType,
 } from "Common/Server/Services/UserNotificationRuleService";
-import UserNotificationSettingService, {
-  Service as UserNotificationSettingServiceType,
-} from "Common/Server/Services/UserNotificationSettingService";
+import UserNotificationSettingAPI from "Common/Server/API/UserNotificationSettingAPI";
 import UserOnCallLogService, {
   Service as UserNotificationLogServiceType,
 } from "Common/Server/Services/UserOnCallLogService";
@@ -1356,7 +1354,6 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
-import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
@@ -4431,10 +4428,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<UserNotificationSetting, UserNotificationSettingServiceType>(
-        UserNotificationSetting,
-        UserNotificationSettingService,
-      ).getRouter(),
+      new UserNotificationSettingAPI().getRouter(),
     );
 
     app.use(

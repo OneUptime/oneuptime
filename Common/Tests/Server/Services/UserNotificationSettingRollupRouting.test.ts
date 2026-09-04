@@ -52,6 +52,8 @@ import {
 import fs from "fs";
 import path from "path";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import DatabaseConfig from "../../../Server/DatabaseConfig";
+import URL from "../../../Types/API/URL";
 
 /*
  * sendUserNotification's email branch now runs through EmailRollupWriter
@@ -513,6 +515,145 @@ describe("UserNotificationSettingService.sendUserNotification - rollup routing",
    */
 
   describe("the email envelope", () => {
+    test.each([
+      "11111111-1111-4111-8111-111111111111",
+      "44444444-4444-4444-8444-444444444444",
+    ])(
+      "links directly to the sending project's preferences: %s",
+      async (projectId: string) => {
+        const dashboardUrl: URL = URL.fromString(
+          "https://self-hosted.example.com/dashboard",
+        );
+        jest
+          .spyOn(DatabaseConfig, "getDashboardUrl")
+          .mockResolvedValue(dashboardUrl);
+        const data: SendUserNotificationData = notificationData({
+          projectId: new ObjectID(projectId),
+        });
+        Object.freeze(data.emailEnvelope.vars);
+        Object.freeze(data.emailEnvelope);
+
+        await UserNotificationSettingService.sendUserNotification(data);
+
+        const sent: EmailEnvelope = sendMail.mock
+          .calls[0]?.[0] as EmailEnvelope;
+        expect(sent.vars["notificationPreferencesUrl"]).toBe(
+          `https://self-hosted.example.com/dashboard/${projectId}/user-settings/notification-settings`,
+        );
+        expect(sent.subject).toBe(data.emailEnvelope.subject);
+        expect(sent.templateType).toBe(data.emailEnvelope.templateType);
+        expect(sent.vars["incidentViewLink"]).toBe(
+          data.emailEnvelope.vars["incidentViewLink"],
+        );
+        expect(data.emailEnvelope.vars).not.toHaveProperty(
+          "notificationPreferencesUrl",
+        );
+        expect(dashboardUrl.toString()).toBe(
+          "https://self-hosted.example.com/dashboard",
+        );
+        expect(JSON.stringify(sendWebhook.mock.calls)).not.toContain(
+          "notificationPreferencesUrl",
+        );
+        expect(JSON.stringify(sendDm.mock.calls)).not.toContain(
+          "notificationPreferencesUrl",
+        );
+      },
+    );
+
+    test("replaces a stale preferences URL without modifying the producer's variables", async () => {
+      const data: SendUserNotificationData = notificationData();
+      data.emailEnvelope.vars["notificationPreferencesUrl"] =
+        "https://old.example.com/other-project";
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(
+          URL.fromString("https://current.example.com/dashboard"),
+        );
+
+      await UserNotificationSettingService.sendUserNotification(data);
+
+      const sent: EmailEnvelope = sendMail.mock.calls[0]?.[0] as EmailEnvelope;
+      expect(sent.vars["notificationPreferencesUrl"]).toBe(
+        `https://current.example.com/dashboard/${PROJECT_ID.toString()}/user-settings/notification-settings`,
+      );
+      expect(data.emailEnvelope.vars["notificationPreferencesUrl"]).toBe(
+        "https://old.example.com/other-project",
+      );
+    });
+
+    test("does not mistake the preferences URL for the resource link in a rollup", async () => {
+      deferEveryEmail();
+      const data: SendUserNotificationData = notificationData();
+      data.emailEnvelope.vars = {};
+
+      await UserNotificationSettingService.sendUserNotification(data);
+
+      const item: UserNotificationEmailRollupItem = (
+        createItem.mock.calls[0]?.[0] as {
+          data: UserNotificationEmailRollupItem;
+        }
+      ).data;
+      expect(item.viewLink).toBeUndefined();
+      expect(sendMail).not.toHaveBeenCalled();
+    });
+
+    test("keeps every delivery channel working if the preferences URL cannot be built", async () => {
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockRejectedValue(new Error("URL unavailable"));
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      const sent: EmailEnvelope = sendMail.mock.calls[0]?.[0] as EmailEnvelope;
+      expect(sent.vars).not.toHaveProperty("notificationPreferencesUrl");
+      expect(sendMail).toHaveBeenCalledTimes(1);
+      expect(sendSms).toHaveBeenCalledTimes(1);
+      expect(makeCall).toHaveBeenCalledTimes(1);
+      expect(sendPush).toHaveBeenCalledTimes(1);
+      expect(sendTelegram).toHaveBeenCalledTimes(1);
+      expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+      expect(sendDm).toHaveBeenCalledTimes(2);
+      expect(sendWebhook).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not build email preferences when email is disabled", async () => {
+      findSettings.mockResolvedValue({
+        ...allChannelsOn(),
+        alertByEmail: false,
+      } as never);
+      const getDashboardUrl: jest.SpyInstance = jest.spyOn(
+        DatabaseConfig,
+        "getDashboardUrl",
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(getDashboardUrl).not.toHaveBeenCalled();
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(sendSms).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not build email preferences without a verified email address", async () => {
+      findEmails.mockResolvedValue([] as never);
+      const getDashboardUrl: jest.SpyInstance = jest.spyOn(
+        DatabaseConfig,
+        "getDashboardUrl",
+      );
+
+      await UserNotificationSettingService.sendUserNotification(
+        notificationData(),
+      );
+
+      expect(getDashboardUrl).not.toHaveBeenCalled();
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(sendSms).toHaveBeenCalledTimes(1);
+    });
+
     test("is deep-equal before and after the call, whether the email is deferred", async () => {
       deferEveryEmail();
 

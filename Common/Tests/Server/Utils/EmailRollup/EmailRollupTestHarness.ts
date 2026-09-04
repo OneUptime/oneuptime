@@ -7,6 +7,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import UserEmailService from "../../../../Server/Services/UserEmailService";
 import UserNotificationEmailRollupBatchService from "../../../../Server/Services/UserNotificationEmailRollupBatchService";
 import UserNotificationEmailRollupItemService from "../../../../Server/Services/UserNotificationEmailRollupItemService";
+import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import logger from "../../../../Server/Utils/Logger";
 import UserNotificationEmailRollupBatch, {
   RollupBatchStatus,
@@ -102,6 +103,8 @@ export interface RollupHarness {
   batches: Array<FakeBatchRow>;
   // UserEmail rows: { _id, id, userId, projectId, isVerified, email }.
   userEmails: Array<FakeRow>;
+  // Current event preferences; queued events start enabled at enqueue time.
+  notificationSettings: Array<FakeRow>;
   // Project rows: { _id, id, name }.
   projects: Array<FakeRow>;
 
@@ -114,7 +117,8 @@ export interface RollupHarness {
 
   /*
    * An ordered trace of the collaborator calls whose ORDER is load-bearing.
-   * "stamp" is pushed by the item updateBy, "send" by MailService.sendMail:
+   * "preferences" is pushed by the settings read, "stamp" by the item
+   * updateBy, and "send" by MailService.sendMail:
    * stamp-before-send is the property that stops a permanently failing send
    * re-spamming an address every epoch, and it is only observable as an
    * ordering.
@@ -165,6 +169,7 @@ export function emptyRollupHarness(): RollupHarness {
     items: [],
     batches: [],
     userEmails: [],
+    notificationSettings: [],
     projects: [],
     sendAttempts: [],
     sent: [],
@@ -367,7 +372,53 @@ export function seedItem(
 
   harness.items.push(row);
 
+  /*
+   * An owner email only enters the queue when its event is enabled. Seed that
+   * initial preference once; tests can then disable or remove it before the
+   * flush to exercise changes made while the email was waiting.
+   */
+  const hasSetting: boolean = harness.notificationSettings.some(
+    (setting: FakeRow): boolean => {
+      return (
+        toKey(setting["projectId"]) === toKey(row.projectId) &&
+        toKey(setting["userId"]) === toKey(row.userId) &&
+        setting["eventType"] === row.eventType
+      );
+    },
+  );
+
+  if (!hasSetting) {
+    seedNotificationSetting(harness, {
+      projectId: row.projectId,
+      userId: row.userId,
+      eventType: row.eventType,
+    });
+  }
+
   return row;
+}
+
+export function seedNotificationSetting(
+  harness: RollupHarness,
+  data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    eventType: NotificationSettingEventType;
+    alertByEmail?: boolean | undefined;
+  },
+): FakeRow {
+  const id: ObjectID = ObjectID.generate();
+  const setting: FakeRow = {
+    _id: id,
+    id: id,
+    projectId: data.projectId,
+    userId: data.userId,
+    eventType: data.eventType,
+    alertByEmail: data.alertByEmail ?? true,
+  };
+
+  harness.notificationSettings.push(setting);
+  return setting;
 }
 
 export function seedVerifiedEmail(
@@ -648,6 +699,31 @@ export function installRollupHarness(harness: RollupHarness): void {
     }) as never);
 
   // -- The recipient re-validation ----------------------------------------
+
+  jest
+    .spyOn(UserNotificationSettingService, "findBy")
+    .mockImplementation(((args: {
+      query?: Record<string, unknown>;
+      select?: Record<string, unknown>;
+      limit?: unknown;
+      skip?: number;
+    }) => {
+      harness.callLog.push("preferences");
+      const matched: Array<FakeRow> = harness.notificationSettings.filter(
+        (row: FakeRow): boolean => {
+          return matchesQuery(args.query, row);
+        },
+      );
+      const skip: number = args.skip ?? 0;
+
+      return Promise.resolve(
+        matched
+          .slice(skip, skip + toLimit(args.limit, matched.length))
+          .map((row: FakeRow): FakeRow => {
+            return applySelect(row, args.select);
+          }),
+      );
+    }) as never);
 
   jest.spyOn(UserEmailService, "findBy").mockImplementation(((args: {
     query?: Record<string, unknown>;
