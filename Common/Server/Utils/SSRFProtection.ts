@@ -22,9 +22,11 @@ import net from "net";
  * legitimate reason to reach one of them and none at all to reach the other:
  *
  *   FORBIDDEN — loopback, unspecified, link-local (the 169.254.169.254 cloud
- *     metadata endpoint lives here), multicast, reserved, broadcast, and the
- *     hostnames that name them. Refused in every deployment. The only way past
- *     is an exact entry in the instance's PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.
+ *     metadata endpoint lives here), cloud-platform control endpoints,
+ *     IPv4-translation infrastructure, multicast, reserved, broadcast, and
+ *     the hostnames that name them. Refused in every deployment. The only way
+ *     past is an exact entry in the instance's
+ *     PRIVATE_NETWORK_WEBHOOK_ALLOWLIST.
  *
  *   PRIVATE — RFC-1918, CGNAT, IPv6 unique-local and site-local. Refused by
  *     default, which is the only correct answer for multi-tenant SaaS, but a
@@ -69,6 +71,20 @@ export interface WebhookTargetValidationOptions {
   allowPrivateNetworkTargets?: boolean | undefined;
 
   /*
+   * A trusted caller's already-resolved private-network policy. The Probe
+   * cannot read the API server's webhook environment, so its custom-code
+   * bridge supplies the probe-local policy through this option instead.
+   *
+   * This value is deliberately powerless without
+   * `allowPrivateNetworkTargets: true`: the former says the deployment allows
+   * private egress, while the latter says this particular sink is eligible to
+   * use that exception. When supplied, true or false, this policy is
+   * authoritative and webhook configuration is not consulted. Only an absent
+   * value retains the legacy webhook policy.
+   */
+  privateNetworkAccessIsAllowed?: boolean | undefined;
+
+  /*
    * What to call the thing in error messages. Defaults to "Webhook URL",
    * which is what most callers guard — but the same guard also sits on the
    * sandboxed axios bridge, and telling the author of a monitor that their
@@ -85,6 +101,18 @@ export interface WebhookTargetValidationOptions {
    * filing the bug this feature came from.
    */
   privateNetworkHint?: string | undefined;
+}
+
+export interface ValidatedWebhookTargetAddress {
+  address: string;
+  family: number;
+}
+
+export interface ValidatedWebhookTarget {
+  /* Canonical WHATWG URL — the same interpretation Axios dispatches. */
+  url: globalThis.URL;
+  /* Exact results from the policy-validation lookup, for socket pinning. */
+  addresses: Array<ValidatedWebhookTargetAddress>;
 }
 
 const DEFAULT_TARGET_LABEL: string = "Webhook URL";
@@ -157,6 +185,33 @@ export default class SSRFProtection {
     rawUrl: string | URL,
     options?: WebhookTargetValidationOptions,
   ): Promise<void> {
+    await SSRFProtection.validateWebhookTarget(rawUrl, options, false);
+  }
+
+  /*
+   * Validate and return the exact addresses approved by that same DNS pass.
+   * A caller must pin these into its socket lookup; resolving the hostname a
+   * second time after validation reopens the DNS-rebinding window.
+   */
+  public static async validateAndResolveWebhookTarget(
+    rawUrl: string | URL,
+    options?: WebhookTargetValidationOptions,
+  ): Promise<ValidatedWebhookTarget> {
+    const result: ValidatedWebhookTarget | null =
+      await SSRFProtection.validateWebhookTarget(rawUrl, options, true);
+
+    if (!result) {
+      throw new BadDataException("Request URL could not be resolved safely.");
+    }
+
+    return result;
+  }
+
+  private static async validateWebhookTarget(
+    rawUrl: string | URL,
+    options: WebhookTargetValidationOptions | undefined,
+    returnValidatedTarget: boolean,
+  ): Promise<ValidatedWebhookTarget | null> {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
     const privateNetworkHint: string =
       options?.privateNetworkHint ?? DEFAULT_PRIVATE_NETWORK_HINT;
@@ -230,6 +285,15 @@ export default class SSRFProtection {
      */
     const whatwgHostname: string = SSRFProtection.getBareHostname(rawUrl);
 
+    let canonicalUrl: globalThis.URL | null = null;
+    if (returnValidatedTarget) {
+      try {
+        canonicalUrl = new globalThis.URL(rawUrl.toString());
+      } catch {
+        throw new BadDataException(`${label} is not a valid URL`);
+      }
+    }
+
     const hostnames: Array<string> =
       whatwgHostname && whatwgHostname !== hostname
         ? [hostname, whatwgHostname]
@@ -243,8 +307,13 @@ export default class SSRFProtection {
      * it was before the exception existed.
      */
     const isOptedIn: boolean = options?.allowPrivateNetworkTargets === true;
+    const shouldUseWebhookPolicy: boolean =
+      options?.privateNetworkAccessIsAllowed === undefined;
     const isPrivateTierAllowed: boolean =
-      isOptedIn && PrivateNetworkWebhookConfig.isPrivateNetworkAllowed();
+      isOptedIn &&
+      (shouldUseWebhookPolicy
+        ? PrivateNetworkWebhookConfig.isPrivateNetworkAllowed()
+        : options?.privateNetworkAccessIsAllowed === true);
 
     /*
      * A host the operator named outright needs no further inspection — not the
@@ -255,7 +324,7 @@ export default class SSRFProtection {
     const isHostAllowlisted: (host: string) => boolean = (
       host: string,
     ): boolean => {
-      if (!isOptedIn) {
+      if (!isOptedIn || !shouldUseWebhookPolicy) {
         return false;
       }
 
@@ -285,12 +354,23 @@ export default class SSRFProtection {
       }
     }
 
+    const resolvedAddressesByHostname: Map<
+      string,
+      Array<ValidatedWebhookTargetAddress>
+    > = new Map<string, Array<ValidatedWebhookTargetAddress>>();
+
     for (const host of hostnames) {
-      if (SSRFProtection.isIpLiteral(host) || isHostAllowlisted(host)) {
+      const isConnectionHostname: boolean =
+        returnValidatedTarget && host === whatwgHostname;
+
+      if (
+        SSRFProtection.isIpLiteral(host) ||
+        (isHostAllowlisted(host) && !isConnectionHostname)
+      ) {
         continue;
       }
 
-      let resolved: Array<{ address: string }> = [];
+      let resolved: Array<{ address: string; family: number }> = [];
       try {
         resolved = await dns.promises.lookup(host, { all: true });
       } catch {
@@ -299,11 +379,38 @@ export default class SSRFProtection {
         );
       }
 
-      for (const entry of resolved) {
-        const address: string = entry.address.toLowerCase();
+      if (resolved.length === 0 && isConnectionHostname) {
+        throw new BadDataException(
+          `${label} hostname could not be resolved via DNS.`,
+        );
+      }
+
+      const normalizedAddresses: Array<ValidatedWebhookTargetAddress> =
+        resolved.map(
+          (entry: {
+            address: string;
+            family: number;
+          }): ValidatedWebhookTargetAddress => {
+            const address: string = entry.address.toLowerCase();
+            return {
+              address: address,
+              family: entry.family || net.isIP(address),
+            };
+          },
+        );
+
+      resolvedAddressesByHostname.set(host, normalizedAddresses);
+
+      if (isHostAllowlisted(host)) {
+        continue;
+      }
+
+      for (const entry of normalizedAddresses) {
+        const address: string = entry.address;
 
         if (
           isOptedIn &&
+          shouldUseWebhookPolicy &&
           PrivateNetworkWebhookConfig.isAddressAllowed(address)
         ) {
           continue;
@@ -325,6 +432,33 @@ export default class SSRFProtection {
         }
       }
     }
+
+    if (!returnValidatedTarget) {
+      return null;
+    }
+
+    if (!canonicalUrl || !whatwgHostname) {
+      throw new BadDataException(`${label} is not a valid URL`);
+    }
+
+    if (SSRFProtection.isIpLiteral(whatwgHostname)) {
+      const address: string = SSRFProtection.stripZoneId(whatwgHostname);
+      return {
+        url: canonicalUrl,
+        addresses: [{ address: address, family: net.isIP(address) }],
+      };
+    }
+
+    const addresses: Array<ValidatedWebhookTargetAddress> | undefined =
+      resolvedAddressesByHostname.get(whatwgHostname);
+
+    if (!addresses || addresses.length === 0) {
+      throw new BadDataException(
+        `${label} hostname could not be resolved via DNS.`,
+      );
+    }
+
+    return { url: canonicalUrl, addresses: addresses };
   }
 
   /*
@@ -484,7 +618,9 @@ export default class SSRFProtection {
    * IPv4-compatible (::/96), NAT64 (64:ff9b::/96), 6to4 (2002::/16), and
    * Teredo (2001:0000::/32) - are handed to the IPv4 classifier, so an
    * embedded 10.0.0.1 is PRIVATE and an embedded 169.254.169.254 is FORBIDDEN
-   * exactly as the bare forms are.
+   * exactly as the bare forms are. Cloud-provider service addresses and
+   * translation prefixes that should never be monitor targets are FORBIDDEN
+   * outright, before the general unique-local/public verdicts are considered.
    */
   private static classifyIpv6(address: string): WebhookAddressTier {
     const groups: Array<number> | null = SSRFProtection.expandIpv6(address);
@@ -528,6 +664,17 @@ export default class SSRFProtection {
       return WebhookAddressTier.Forbidden;
     }
 
+    /*
+     * ::ffff:0:0:0/96 — legacy SIIT IPv4-translatable prefix (RFC 2765).
+     * Unlike ::ffff:0:0/96 below, the embedded bits do not describe a target
+     * that can be safely classified as public. The translation endpoint is
+     * infrastructure and must not become reachable through the private-network
+     * opt-in.
+     */
+    if (isZeroThrough(4) && groups[4] === 0xffff && groups[5] === 0) {
+      return WebhookAddressTier.Forbidden;
+    }
+
     // ::ffff:0:0/96 — IPv4-mapped.
     if (isZeroThrough(5) && groups[5] === 0xffff) {
       return SSRFProtection.classifyIpv4(embeddedIpv4(6));
@@ -543,6 +690,11 @@ export default class SSRFProtection {
       groups[5] === 0
     ) {
       return SSRFProtection.classifyIpv4(embeddedIpv4(6));
+    }
+
+    // 64:ff9b:1::/48 — local-use IPv4/IPv6 translation prefix (RFC 8215).
+    if (groups[0] === 0x0064 && groups[1] === 0xff9b && groups[2] === 1) {
+      return WebhookAddressTier.Forbidden;
     }
 
     // ::/96 — IPv4-compatible (deprecated, still routable by some stacks).
@@ -569,6 +721,23 @@ export default class SSRFProtection {
 
     const first: number = groups[0] as number;
 
+    // fd00:ec2::/32 — AWS IPv6 link-local service range.
+    if (first === 0xfd00 && groups[1] === 0x0ec2) {
+      return WebhookAddressTier.Forbidden;
+    }
+
+    // fd20:ce::254 — Google Cloud's IPv6 metadata server.
+    if (
+      first === 0xfd20 &&
+      groups[1] === 0x00ce &&
+      groups.slice(2, 7).every((group: number) => {
+        return group === 0;
+      }) &&
+      groups[7] === 0x0254
+    ) {
+      return WebhookAddressTier.Forbidden;
+    }
+
     // fe80::/10 — link-local.
     if ((first & 0xffc0) === 0xfe80) {
       return WebhookAddressTier.Forbidden;
@@ -586,6 +755,11 @@ export default class SSRFProtection {
 
     // fec0::/10 — site-local. Deprecated by RFC 3879, still routed on some networks.
     if ((first & 0xffc0) === 0xfec0) {
+      return WebhookAddressTier.Private;
+    }
+
+    // 2001:db8::/32 — documentation-only, never a globally reachable target.
+    if (first === 0x2001 && groups[1] === 0x0db8) {
       return WebhookAddressTier.Private;
     }
 
@@ -634,6 +808,26 @@ export default class SSRFProtection {
 
     const [first, second] = octets as [number, number, number, number];
 
+    /*
+     * Cloud-platform service addresses that are outside ordinary link-local
+     * space. Alibaba's endpoint sits inside CGNAT and Azure's WireServer uses
+     * a globally-routable-looking address, so both must be checked before the
+     * general PRIVATE/Public ranges below.
+     */
+    if (
+      (first === 100 &&
+        second === 100 &&
+        octets[2] === 100 &&
+        octets[3] === 200) ||
+      (first === 168 &&
+        second === 63 &&
+        octets[2] === 129 &&
+        octets[3] === 16) ||
+      (first === 192 && second === 0 && octets[2] === 0 && octets[3] === 192)
+    ) {
+      return WebhookAddressTier.Forbidden;
+    }
+
     if (first === 0) {
       return WebhookAddressTier.Forbidden; // 0.0.0.0/8 — "this host".
     }
@@ -659,6 +853,19 @@ export default class SSRFProtection {
     }
     if (first === 100 && (second & 0xc0) === 64) {
       return WebhookAddressTier.Private; // CGNAT 100.64/10
+    }
+    if (first === 192 && second === 0 && octets[2] === 0) {
+      return WebhookAddressTier.Private; // IETF protocol assignments 192.0.0/24
+    }
+    if (first === 198 && (second & 0xfe) === 18) {
+      return WebhookAddressTier.Private; // benchmarking 198.18/15
+    }
+    if (
+      (first === 192 && second === 0 && octets[2] === 2) ||
+      (first === 198 && second === 51 && octets[2] === 100) ||
+      (first === 203 && second === 0 && octets[2] === 113)
+    ) {
+      return WebhookAddressTier.Private; // RFC 5737 documentation ranges
     }
 
     return WebhookAddressTier.Public;

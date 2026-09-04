@@ -453,6 +453,18 @@ describe("HttpTimingAgents.create", () => {
     ).toBe(false);
   });
 
+  it("cannot have keep-alive switched back on by the caller's HTTP options", () => {
+    const agents: TimedAgents = HttpTimingAgents.create(
+      new HttpTimingCollector(),
+      undefined,
+      { keepAlive: true },
+    );
+
+    expect(
+      (agents.httpAgent as unknown as { keepAlive: boolean }).keepAlive,
+    ).toBe(false);
+  });
+
   it("attaches the collector to the socket the agent creates", () => {
     /*
      * The wiring between the two classes: create() overrides createConnection
