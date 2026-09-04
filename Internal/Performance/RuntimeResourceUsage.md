@@ -98,11 +98,12 @@ admission, and shared probe connectivity checks.
    equal traffic, fleet size, and deployment settings, including bursts and a
    sustained run. The local Docker development app also runs five frontend build
    watchers, so its container memory is not a production API-process baseline.
-2. **Coalesce concurrent telemetry cache misses and batch processor reads.**
-   The log/trace pipeline loaders cache projects for 60 seconds but still load
-   processor lists per pipeline. Concurrent cold loads can repeat the same
-   database work. A follow-up should share in-flight loads and fetch processors
-   in batches, with rejection/retry, tenant-isolation, and invalidation tests.
+2. **Batch remaining processor reads.**
+   Concurrent log/trace cache misses now share a load, as documented in
+   [ConcurrentIngestResourceUsage.md](./ConcurrentIngestResourceUsage.md).
+   Each pipeline still reads its own processor list. A batching follow-up must
+   preserve per-pipeline query limits and processor order while reducing those
+   remaining database round trips.
 3. **Bound the remaining on-call backlog sweeps.**
    `UserOnCallLog/ExecutePendingExecutions.ts` and
    `OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts` still collect whole

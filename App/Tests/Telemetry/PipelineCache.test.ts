@@ -297,6 +297,32 @@ describe("pipeline cache shared loads", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
+  test.each([101, -1])(
+    "an abandoned project releases ownership capacity when the clock reaches %i",
+    async (time: number) => {
+      const now: jest.SpyInstance = jest.spyOn(Date, "now").mockReturnValue(0);
+      const cache: PipelineCache<string> = new PipelineCache(1, 100);
+      const abandoned: Deferred<string> = deferred();
+      const old: Promise<string> = cache.getOrLoad("abandoned", () => {
+        return abandoned.promise;
+      });
+      now.mockReturnValue(time);
+      const load: jest.Mock = jest.fn().mockResolvedValue("active");
+      expect(
+        await Promise.all([
+          cache.getOrLoad("active", load),
+          cache.getOrLoad("active", load),
+        ]),
+      ).toEqual(["active", "active"]);
+      expect(await cache.getOrLoad("active", load)).toBe("active");
+      expect(load).toHaveBeenCalledTimes(1);
+      abandoned.resolve("old");
+      expect(await old).toBe("old");
+      expect(await cache.getOrLoad("active", load)).toBe("active");
+      expect(load).toHaveBeenCalledTimes(1);
+    },
+  );
+
   test("completion releases pending slots across repeated unique project bursts", async () => {
     const cache: PipelineCache<number> = new PipelineCache(2, 100);
     const load: jest.Mock = jest.fn().mockResolvedValue(1);

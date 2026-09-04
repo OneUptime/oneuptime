@@ -63,6 +63,21 @@ export default class PipelineCache<T> {
      * but do not populate the cache or share work until a slot becomes free.
      * Without ownership, an old overflow load could overwrite a newer result.
      */
+    if (this.loading.size >= this.maxEntries) {
+      /*
+       * Quiet projects must not occupy every slot forever after a stalled load.
+       * In insertion order, checking the oldest slot makes admission O(1).
+       */
+      const oldest: [string, PendingLoad<T>] | undefined = this.loading
+        .entries()
+        .next().value;
+      if (
+        oldest &&
+        (now < oldest[1].startedAt || now - oldest[1].startedAt > this.ttlMs)
+      ) {
+        this.loading.delete(oldest[0]);
+      }
+    }
     if (this.loading.size < this.maxEntries) {
       tracked = true;
       this.loading.set(key, { promise: pending, startedAt: now });

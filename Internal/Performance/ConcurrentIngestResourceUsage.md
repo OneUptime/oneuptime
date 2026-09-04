@@ -22,6 +22,7 @@ retry. Results for different projects and signals remain independent.
 Pending entries are also capped at 10,000 per signal. Overflow requests still
 load, but do not share or cache their result without an ownership slot. A pending
 load older than 60 seconds stops attracting new callers; it is not cancelled.
+At capacity, an expired oldest slot is reclaimed for a new project.
 Its original callers receive its outcome, but a superseded load cannot overwrite
 newer configuration or remove a replacement's pending entry. No cleanup timers
 are added.
@@ -128,8 +129,8 @@ node --require ts-node/register/transpile-only scripts/benchmark-metric-catalog.
 
 ## Regression coverage
 
-The focused run passes 354 tests across 16 suites, including 140 new regression
-and scale cases: 122 pipeline/cache tests, 45 metric-ingestion tests, 86 writer
+The focused run passes 356 tests across 16 suites, including 142 new regression
+and scale cases: 124 pipeline/cache tests, 45 metric-ingestion tests, 86 writer
 tests, and 101 probe tests. Tests assert work counts and behavior rather than
 machine-dependent timing thresholds.
 
