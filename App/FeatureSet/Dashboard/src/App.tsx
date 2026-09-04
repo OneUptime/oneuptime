@@ -1,5 +1,6 @@
 import AIChatPanel from "./Components/AIChat/AIChatPanel";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
+import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
@@ -378,6 +379,7 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <AIChatPanel />
       <DashboardCommandPalette />
+      <DashboardKeyboardShortcuts />
       {/*
        * Contain page-level render errors here. Without a boundary a single
        * throwing component (or a lazy chunk that 404s after a deploy) unmounts
