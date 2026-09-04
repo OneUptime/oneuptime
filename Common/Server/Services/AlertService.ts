@@ -10,6 +10,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import DatabaseService from "./DatabaseService";
+import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
+import CustomFieldMappingService from "./CustomFieldMappingService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertStateService from "./AlertStateService";
@@ -270,6 +272,20 @@ export class Service extends DatabaseService<Model> {
 
     await this.validateProjectScopedReferences(updateBy);
 
+    /*
+     * Two cases, one call. The Custom Fields modal saves the WHOLE bag back
+     * (it has no server-side merge), so a mapped value would be clobbered by
+     * any manual edit of a neighbouring field; and re-pointing the alert at
+     * another monitor changes what the mapped fields should hold. Both are
+     * folded into this payload so the row is written once, with an audit entry,
+     * workflow payload and realtime event that carry the value that was
+     * actually stored.
+     */
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: updateBy,
+    });
+
     return { updateBy, carryForward: null };
   }
 
@@ -421,6 +437,21 @@ export class Service extends DatabaseService<Model> {
           service: MonitorStatusService,
         },
       ],
+    });
+
+    /*
+     * Custom fields configured to inherit from the alert's monitor are stamped
+     * here rather than in onCreateSuccess: `customFields` is a column on this
+     * very row, and the onCreateSuccess chain below is un-awaited and runs
+     * after the API response, so a value written there would be missing from
+     * the alert the caller is handed back. Before the counter increment, for
+     * the reason given above — although applyMappingsToCreate is written not
+     * to throw, because a custom field failing to inherit must never stop an
+     * alert from being opened.
+     */
+    await CustomFieldMappingService.applyMappingsToCreate({
+      definitionModelType: AlertCustomField,
+      createBy: createBy,
     });
 
     const alertCounterResult: {
@@ -1205,6 +1236,12 @@ ${alert.remediationNotes || "No remediation notes provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    CustomFieldMappingService.restampAfterMultiRowUpdate({
+      definitionModelType: AlertCustomField,
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
+
     /*
      * Correcting a timestamp is the whole point of making these fields
      * editable, so the numbers derived from them have to move. Without this

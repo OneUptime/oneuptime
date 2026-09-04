@@ -8,6 +8,8 @@ import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
+import CustomFieldMappingService from "./CustomFieldMappingService";
 import AIRunService from "./AIRunService";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
@@ -556,6 +558,18 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * Re-apply mapped custom field values. Covers the Custom Fields modal
+     * saving the whole bag back over a mapped value, and the incident's
+     * monitors being added or removed — both change what a mapped field should
+     * hold, and folding the answer into this payload keeps it one write with a
+     * truthful audit entry.
+     */
+    await CustomFieldMappingService.applyMappingsToUpdate({
+      definitionModelType: IncidentCustomField,
+      updateBy: updateBy,
+    });
+
     return {
       updateBy: updateBy,
       carryForward: carryForward,
@@ -1013,6 +1027,21 @@ export class Service extends DatabaseService<Model> {
       createBy.data.subscriberNotificationStatusOnIncidentCreated =
         StatusPageSubscriberNotificationStatus.Pending;
     }
+
+    /*
+     * Last, because the incident template copy above can still be adding
+     * monitors and mapped custom fields are resolved from the final set.
+     *
+     * In onBeforeCreate rather than onCreateSuccess because `customFields` is
+     * a column on this row and the onCreateSuccess chain is un-awaited — a
+     * value written there would be missing from the incident the caller gets
+     * back. Written not to throw: a custom field failing to inherit must not
+     * stop an incident from being declared.
+     */
+    await CustomFieldMappingService.applyMappingsToCreate({
+      definitionModelType: IncidentCustomField,
+      createBy: createBy,
+    });
 
     return {
       createBy,
@@ -1914,6 +1943,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    CustomFieldMappingService.restampAfterMultiRowUpdate({
+      definitionModelType: IncidentCustomField,
+      updateBy: onUpdate.updateBy,
+      updatedItemIds: updatedItemIds,
+    });
+
     /*
      * Correcting a timestamp is the whole point of making these fields
      * editable, so the numbers derived from them have to move. Without this

@@ -576,6 +576,7 @@ import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from ".
 import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTelemetryIngestionKeyType";
 import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400000000-SessionReplayRecordEverySessionByDefault";
 import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-WidenCustomFieldDropdownOptions";
+import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
 
 export default [
   InitialMigration,
@@ -1156,4 +1157,5 @@ export default [
   AddTelemetryIngestionKeyType1791300000000,
   SessionReplayRecordEverySessionByDefault1791400000000,
   WidenCustomFieldDropdownOptions1791500000000,
+  AddCustomFieldValueMapping1791600000000,
 ];
