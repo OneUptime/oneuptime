@@ -6,6 +6,7 @@ import {
 import {
   DEVICE_INTERFACES_FACET_KEY,
   DEVICE_INTERFACES_FACET_OPTIONS,
+  DEVICE_SNMP_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
   DeviceInterfacesFacetValue,
@@ -209,17 +210,38 @@ describe("DEVICE_SUMMARY_TILES", () => {
   });
 
   /*
-   * The counts now include monitor-backed devices — the server keeps
+   * The counts include monitor-backed devices — the server keeps
    * `isReachable` in step with the bound monitor's status — so a caption
-   * that credits every verdict to "the last SNMP poll" describes half the
-   * fleet. The poll may still be named, but only beside the monitor.
+   * that credits every verdict to a poll describes half the fleet. The poll
+   * may still be named, but only beside the monitor.
    */
   test("the Up and Down captions credit the bound monitor as well as the poll", () => {
     for (const key of ["devices-up", "devices-down"]) {
       const caption: string = tileByKey(key).caption;
 
       expect(caption).toContain("bound monitor");
-      expect(caption).toContain("SNMP poll");
+      expect(caption).toContain("last poll");
+    }
+  });
+
+  /*
+   * ...and the poll they name is a PING first.
+   *
+   * A probe pings every device it polls and walks only the ones that have
+   * usable SNMP credentials, so most of a fleet is never walked at all. The
+   * captions used to say "the last SNMP poll", which described a poll those
+   * devices never had: an operator reading it on a pinged-only device goes
+   * looking for credentials, or for interface counts that were never
+   * collected, to explain a number the ping produced. Naming both — "(ping
+   * or SNMP)" — is the only wording that is true of every device in the
+   * count.
+   */
+  test("the Up and Down captions do not promise an SNMP poll the device never had", () => {
+    for (const key of ["devices-up", "devices-down"]) {
+      const caption: string = tileByKey(key).caption;
+
+      expect(caption.toLowerCase()).toContain("ping");
+      expect(caption).not.toMatch(/SNMP poll/i);
     }
   });
 
@@ -310,6 +332,20 @@ describe("the chip each tile stands for", () => {
   test("every selection uses the only operator its chip supports", () => {
     for (const tile of DEVICE_SUMMARY_TILES) {
       expect(tile.selection.operator).toBe("is");
+    }
+  });
+
+  /*
+   * The bar has an SNMP chip — "the last walk succeeded / failed / was never
+   * attempted" — and no tile moves it. That is deliberate: the strip is read
+   * as a breakdown of the fleet, and its three Status counts sum to the fleet
+   * size precisely because they partition ONE column. A fourth card counting
+   * failing walks would sit in that row of numbers as though it were a fourth
+   * slice, while in fact its devices are already counted under Up.
+   */
+  test("no tile moves the SNMP chip, which cuts across the Status counts", () => {
+    for (const tile of DEVICE_SUMMARY_TILES) {
+      expect(tile.selection.facetKey).not.toBe(DEVICE_SNMP_FACET_KEY);
     }
   });
 

@@ -2,6 +2,7 @@ import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
+import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkSite from "./NetworkSite";
 import Probe from "./Probe";
@@ -130,6 +131,19 @@ import {
  * This is the same shape siteId gets above, and deliberately so.
  */
 @Index(["projectId", "oidTemplateId"])
+/*
+ * "Which devices use this SNMP Credential Profile?" - the count the profile
+ * delete guard refuses on (NetworkSnmpCredentialProfileService.onBeforeDelete),
+ * the Credentials column's filter on the device list, and the FK's own
+ * ON DELETE SET NULL scan.
+ *
+ * Project-prefixed and composite for the reason written at the top of this
+ * block, and the reason the oidTemplateId index above is: a bare column
+ * index on a nullable FK is one btree entry per row of the product's hottest
+ * table, paid on every poll, to serve queries that all carry a projectId
+ * anyway.
+ */
+@Index(["projectId", "snmpCredentialProfileId"])
 /*
  * The other half of the Overview's attention list: reachable devices with the
  * most dark ports.
@@ -700,6 +714,103 @@ export default class NetworkDevice extends BaseModel {
   public oidTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "snmpCredentialProfileId",
+    type: TableColumnType.Entity,
+    modelType: NetworkSnmpCredentialProfile,
+    title: "SNMP Credential Profile",
+    description:
+      "The reusable SNMP credential set this device is walked with when it carries no credentials of its own. Resolution at poll time: the device's own credentials, then this profile, then the profile on the device's site; with none of the three the device is pinged only. The link is live: editing the profile changes the next poll of every device using it.",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkSnmpCredentialProfile;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "snmpCredentialProfileId" })
+  public snmpCredentialProfile?: NetworkSnmpCredentialProfile = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  /*
+   * No bare @Index() here on purpose: the composite
+   * (projectId, snmpCredentialProfileId) declared on the class serves every
+   * query that reads this column, and all of them carry a projectId.
+   */
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "SNMP Credential Profile ID",
+    description: "ID of the SNMP Credential Profile this device is walked with",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public snmpCredentialProfileId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
@@ -814,7 +925,7 @@ export default class NetworkDevice extends BaseModel {
     nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: NetworkDeviceMonitoringMethod.Snmp,
+    default: NetworkDeviceMonitoringMethod.Probe,
   })
   public monitoringMethod?: string = undefined;
 
@@ -2369,6 +2480,70 @@ export default class NetworkDevice extends BaseModel {
     type: ColumnType.Boolean,
   })
   public isReachable?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is SNMP Reachable",
+    description:
+      "Whether the most recent SNMP walk of this device succeeded. Separate from isReachable, which is the ping verdict: a device that answers ping but not SNMP is Up with a failing SNMP walk, which almost always means wrong credentials or SNMP disabled on the device. NULL means no walk was attempted — the device has no usable SNMP credentials (it is pinged only) or has never been polled. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isSnmpReachable?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last SNMP Seen At",
+    description:
+      "When the last SUCCESSFUL SNMP walk of this device completed — the moment its interfaces, inventory and health OIDs were last refreshed. Only moves on a successful walk, so it stays honest while lastSeenAt keeps moving on ping alone. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastSnmpSeenAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

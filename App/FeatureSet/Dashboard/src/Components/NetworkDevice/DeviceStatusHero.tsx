@@ -2,10 +2,20 @@ import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NEVER_POLLED_PENDING_TOOLTIP,
   NO_MONITOR_QUALIFIER,
+  NO_PROBE_QUALIFIER,
+  NO_SNMP_INTERFACES_LABEL,
   NetworkDeviceStatus,
+  PROBE_POLLED_DOWN_TOOLTIP,
+  PROBE_POLLED_UP_TOOLTIP,
+  SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getStaleTooltip,
+  hasNoSnmpInventory,
+  isSnmpFailing,
   isUnboundMonitorBackedDevice,
+  isUnpolledProbeDevice,
 } from "./DeviceStatusUtil";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -32,10 +42,11 @@ export interface ComponentProps {
 
 /*
  * Status hero for the device Overview: answers "is this device OK right
- * now?" in one glance — reachability (from the SNMP walk, or from the bound
- * Monitor for a device nothing polls), monitor-evaluated status,
- * interface up/down bar, hardware uptime, and where the device lives
- * (site + probe) — before the user reads anything else on the page.
+ * now?" in one glance — reachability (from the probe's poll: a ping, plus
+ * the SNMP walk when the device has credentials; or from the bound Monitor
+ * for a device nothing polls), the walk's own state, monitor-evaluated
+ * status, interface up/down bar, hardware uptime, and where the device
+ * lives (site + probe) — before the user reads anything else on the page.
  */
 const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -131,6 +142,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
    */
   const isUnbound: boolean =
     isMonitorBacked && isUnboundMonitorBackedDevice(device);
+  /*
+   * The probe-polled counterparts. "No probe" is the Pending that never
+   * resolves by itself on THIS kind of device; "SNMP failing" qualifies an
+   * Up — the device answers ping, the walk does not, and the interfaces and
+   * inventory below are as old as the last walk that did.
+   */
+  const isUnpolled: boolean = !isMonitorBacked && isUnpolledProbeDevice(device);
+  const isWalkFailing: boolean = !isMonitorBacked && isSnmpFailing(device);
 
   const getReachabilityPill: GetReachabilityPillFunction = (): ReactElement => {
     if (reachability === NetworkDeviceStatus.Up) {
@@ -142,7 +161,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           tooltip={
             isMonitorBacked
               ? "The monitor bound to this device reports it healthy."
-              : "The last SNMP poll reached this device."
+              : PROBE_POLLED_UP_TOOLTIP
           }
         />
       );
@@ -157,7 +176,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           tooltip={
             isMonitorBacked
               ? "The monitor bound to this device reports it offline."
-              : "The last SNMP poll could not reach this device."
+              : PROBE_POLLED_DOWN_TOOLTIP
           }
         />
       );
@@ -173,7 +192,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             ? UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP
             : isMonitorBacked
               ? BOUND_MONITOR_PENDING_TOOLTIP
-              : "This device has not been polled yet."
+              : NEVER_POLLED_PENDING_TOOLTIP
         }
       />
     );
@@ -208,6 +227,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       (!lastSeenAt || lastPolledAt.getTime() > lastSeenAt.getTime()),
   );
 
+  // The last SUCCESSFUL walk — the age of everything the walk collects.
+  const lastSnmpSeenAt: Date | null = device.lastSnmpSeenAt
+    ? OneUptimeDate.fromString(device.lastSnmpSeenAt)
+    : null;
+
   const uptimeText: string | null = device.lastRebootedAt
     ? OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
         OneUptimeDate.fromString(device.lastRebootedAt),
@@ -219,7 +243,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
    * The two ways out of "No monitor bound". The create link carries the
    * device id, so the monitor form seeds a Ping monitor on this device's
    * address and binds it on save; Settings is where an existing monitor is
-   * bound instead.
+   * bound instead — and where SNMP credentials are added.
    */
   const createPingMonitorRoute: Route = Route.fromString(
     `${RouteUtil.populateRouteParams(
@@ -242,6 +266,54 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       )
     : null;
 
+  type GetSnmpLineFunction = () => ReactElement;
+
+  /*
+   * The walk's own state, separate from reachability. A device that answers
+   * ping while its walk fails reads Up — correctly — and this line is where
+   * the operator learns that its interfaces and inventory are not being
+   * refreshed, and why. NULL is "no walk was attempted": nothing has polled
+   * the device yet, or it has been polled and has no usable credentials.
+   */
+  const getSnmpLine: GetSnmpLineFunction = (): ReactElement => {
+    if (device.isSnmpReachable === true) {
+      return (
+        <span className="text-gray-500">
+          {lastSnmpSeenAt
+            ? `OK, last walk ${OneUptimeDate.fromNow(lastSnmpSeenAt)}`
+            : "OK"}
+        </span>
+      );
+    }
+
+    if (device.isSnmpReachable === false) {
+      return (
+        <span className="font-medium text-amber-700">
+          {lastSnmpSeenAt
+            ? `Failing since ${OneUptimeDate.fromNow(lastSnmpSeenAt)}`
+            : "Failing — no walk has succeeded yet"}
+        </span>
+      );
+    }
+
+    if (!lastPolledAt) {
+      return <span className="text-gray-400">Not polled yet</span>;
+    }
+
+    return (
+      <span className="text-gray-500">
+        Not configured — add SNMP credentials in{" "}
+        <AppLink
+          to={settingsRoute}
+          className="font-medium text-indigo-600 hover:underline"
+        >
+          Settings
+        </AppLink>{" "}
+        for interfaces and inventory
+      </span>
+    );
+  };
+
   return (
     <div
       data-testid="device-status-hero"
@@ -250,7 +322,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
       <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-6">
         <div>
           <div className="text-sm font-medium text-gray-500">Reachability</div>
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {getReachabilityPill()}
             {isUnbound && (
               <Pill
@@ -260,12 +332,30 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 tooltip={NO_MONITOR_QUALIFIER.tooltip}
               />
             )}
+            {isUnpolled && (
+              <Pill
+                text={NO_PROBE_QUALIFIER.text}
+                color={Gray500}
+                size={PillSize.Normal}
+                tooltip={NO_PROBE_QUALIFIER.tooltip}
+              />
+            )}
+            {isWalkFailing && (
+              <Pill
+                text={SNMP_FAILING_QUALIFIER.text}
+                color={Yellow500}
+                size={PillSize.Normal}
+                tooltip={SNMP_FAILING_QUALIFIER.tooltip}
+              />
+            )}
             {reachabilityResult.isStale && (
               <Pill
                 text="Stale"
                 color={Yellow500}
                 size={PillSize.Normal}
-                tooltip={`No SNMP poll has been attempted in the last ${reachabilityResult.staleWindowInMinutes} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.`}
+                tooltip={getStaleTooltip(
+                  reachabilityResult.staleWindowInMinutes,
+                )}
               />
             )}
           </div>
@@ -276,11 +366,22 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 ? "Reported by the monitor bound to this device"
                 : lastSeenAt
                   ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-                  : "Never answered a poll"}
+                  : isUnpolled
+                    ? "Nothing polls this device yet"
+                    : "Never answered a poll"}
           </div>
           {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
             <div className="mt-0.5 text-xs text-gray-400">
               {`Last polled ${OneUptimeDate.fromNow(lastPolledAt)}`}
+            </div>
+          )}
+          {!isMonitorBacked && (
+            <div
+              data-testid="device-status-hero-snmp"
+              className="mt-1.5 text-xs"
+            >
+              <span className="font-medium text-gray-500">SNMP: </span>
+              {getSnmpLine()}
             </div>
           )}
         </div>
@@ -322,22 +423,44 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
 
         <div>
           <div className="text-sm font-medium text-gray-500">Interfaces</div>
-          <div className="mt-1.5 text-sm">
-            <span className="font-semibold text-emerald-700">
-              {interfacesUp} up
-            </span>
-            <span className="text-gray-400"> · </span>
-            <span
-              className={
-                interfacesDown > 0
-                  ? "font-semibold text-red-700"
-                  : "text-gray-500"
-              }
+          {/*
+           * Interface counts come from a successful SNMP walk and nothing
+           * else. A device that is pinged and never walked has none — "0 up
+           * · 0 down" would claim it has no working ports, which is a
+           * different and wrong claim.
+           */}
+          {isMonitorBacked ? (
+            <div
+              className="mt-1.5 text-sm text-gray-400"
+              title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
             >
-              {interfacesDown} down
-            </span>
-          </div>
-          {interfacesTotal > 0 && (
+              Not collected
+            </div>
+          ) : hasNoSnmpInventory(device) ? (
+            <div
+              className="mt-1.5 text-sm text-gray-400"
+              title={NO_SNMP_INTERFACES_LABEL.tooltip}
+            >
+              {NO_SNMP_INTERFACES_LABEL.text}
+            </div>
+          ) : (
+            <div className="mt-1.5 text-sm">
+              <span className="font-semibold text-emerald-700">
+                {interfacesUp} up
+              </span>
+              <span className="text-gray-400"> · </span>
+              <span
+                className={
+                  interfacesDown > 0
+                    ? "font-semibold text-red-700"
+                    : "text-gray-500"
+                }
+              >
+                {interfacesDown} down
+              </span>
+            </div>
+          )}
+          {!isMonitorBacked && interfacesTotal > 0 && (
             <div
               className="mt-2 flex h-1.5 w-full max-w-[10rem] overflow-hidden rounded-full bg-gray-100"
               title={`${interfacesUp} up, ${interfacesDown} down, ${interfacesOther} disabled of ${interfacesTotal} interfaces`}
@@ -390,8 +513,22 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         <div>
           <div className="text-sm font-medium text-gray-500">Polled By</div>
           <div className="mt-1.5 text-sm text-gray-900">
-            {device.probe?.name || (
-              <span className="text-gray-400">No probe</span>
+            {isMonitorBacked ? (
+              /*
+               * A monitor-backed device has no probe BY DESIGN — "No probe"
+               * on it reads as a lookup failure and sends operators hunting
+               * for one to assign (#3447).
+               */
+              <span
+                className="text-gray-400"
+                title="Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them."
+              >
+                Not polled
+              </span>
+            ) : (
+              device.probe?.name || (
+                <span className="text-gray-400">No probe</span>
+              )
             )}
           </div>
           {(device.vendor || device.deviceModel) && (

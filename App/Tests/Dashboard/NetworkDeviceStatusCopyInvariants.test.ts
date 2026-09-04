@@ -13,7 +13,6 @@ import {
 import {
   HOSTNAME_FIELD_DESCRIPTION,
   MONITORING_METHOD_FIELD_DESCRIPTION,
-  MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/MonitoringMethodFormFields";
 import fs from "fs";
 import path from "path";
@@ -135,11 +134,21 @@ describe("the counts describe both kinds of device", () => {
     expect(pendingOption.toLowerCase()).toContain("no monitor bound");
   });
 
-  test("the Overview's attention card no longer attributes every outage to an SNMP poll", () => {
+  /*
+   * The card ranks every unreachable device in the project, and there are
+   * three ways to become one: a failed PING, a failed SNMP walk, or a bound
+   * monitor reporting offline. Naming SNMP is wrong twice over now — a
+   * ping-only device (a phone, a camera, a PDU with no credentials) has no
+   * SNMP poll to have failed, and a device that answers ping while its walk
+   * fails is not in this list at all; it wears the "SNMP failing" pill and
+   * is ranked below, which is the clause after this one. "The last poll" is
+   * the honest word for what all of them have in common.
+   */
+  test("the Overview's attention card does not attribute every outage to an SNMP poll", () => {
     const overview: string = readCode("Pages", "NetworkDevice", "Overview.tsx");
 
     expect(overview).toContain(
-      "the last SNMP poll, or the bound monitor, could not reach them",
+      "the last poll, or the bound monitor, could not reach them",
     );
     expect(overview).toContain("Monitor reports offline");
     expect(overview).toContain("device.isMonitorBacked");
@@ -219,7 +228,12 @@ describe('the "No monitor" qualifier is one word on every surface', () => {
 });
 
 describe("the forms explain the method and the hostname the same way", () => {
-  const METHOD_SURFACES: Array<{ name: string; parts: Array<string> }> = [
+  /*
+   * The two forms that REGISTER a device. Neither asks how it is monitored:
+   * every device they create is probe-polled, and the bound-monitor override
+   * is a decision taken later, on a device that already exists.
+   */
+  const REGISTRATION_SURFACES: Array<{ name: string; parts: Array<string> }> = [
     {
       name: "the device create form",
       parts: ["Pages", "NetworkDevice", "Devices.tsx"],
@@ -231,7 +245,7 @@ describe("the forms explain the method and the hostname the same way", () => {
   ];
 
   const HOSTNAME_SURFACES: Array<{ name: string; parts: Array<string> }> = [
-    ...METHOD_SURFACES,
+    ...REGISTRATION_SURFACES,
     {
       name: "the device Overview card",
       parts: ["Pages", "NetworkDevice", "View", "Index.tsx"],
@@ -243,55 +257,47 @@ describe("the forms explain the method and the hostname the same way", () => {
   ];
 
   /*
-   * The topology dialog has no "create a Ping monitor" opt-in, so it must
-   * use the sentence that makes no such promise; the create form picks the
-   * promising variant only when the operator will be offered the box.
+   * Asserted as an ABSENCE, because the method question came with a
+   * paragraph explaining itself: a form that grows the picker back grows the
+   * copy back with it, and the copy is the cheaper thing to watch for.
    */
-  test("the topology dialog uses the shared description that promises nothing", () => {
-    const modal: string = readCode(
-      "Components",
-      "Topology",
-      "AddNeighborToMonitoringModal.tsx",
-    );
+  test.each(REGISTRATION_SURFACES)(
+    "$name has no monitoring-method picker to explain",
+    ({ parts }: { parts: Array<string> }) => {
+      const code: string = readCode(...parts);
 
-    expect(modal).toContain(
-      "description: MONITORING_METHOD_FIELD_DESCRIPTION,",
-    );
-    expect(modal).not.toContain(
-      "MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER",
-    );
-  });
+      expect(code).not.toContain("monitoringMethod: true");
+      expect(code).not.toContain("MONITORING_METHOD_FIELD_DESCRIPTION");
+      expect(code).not.toContain("MONITORING_METHOD_OPTIONS");
+    },
+  );
 
-  test("the create form promises the Ping monitor only to someone who may create one", () => {
-    const devices: string = readCode("Pages", "NetworkDevice", "Devices.tsx");
-
-    expect(devices).toContain(
-      "MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER",
-    );
-    expect(devices).toContain("MONITORING_METHOD_FIELD_DESCRIPTION,");
-    // The choice is made by the same gate that hides the opt-in itself.
-    expect(devices).toMatch(
-      /PermissionGate\.check\(new Monitor\(\), ModelAction\.Create\)\s*\.isAllowed\s*\? MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER : MONITORING_METHOD_FIELD_DESCRIPTION/,
-    );
-  });
-
-  test("neither method description reads as a prerequisite", () => {
-    for (const description of [
-      MONITORING_METHOD_FIELD_DESCRIPTION,
-      MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER,
-    ]) {
-      expect(description).not.toContain("bind it to an existing");
-      expect(description).toContain("now or later");
-    }
-  });
-
-  test("only the create form's variant promises a monitor will be created", () => {
+  /*
+   * The one surface that still asks is the device's Settings page, where the
+   * question is "should this device be an exception?" rather than "how does
+   * monitoring work?". Its sentence must not read as a prerequisite — the
+   * old one said "bind it to an existing Ping or IP monitor", which sounds
+   * like something to go and do first — and it has to say that the override
+   * is the unusual answer.
+   */
+  test("the method description reads as an exception, not a prerequisite", () => {
     expect(MONITORING_METHOD_FIELD_DESCRIPTION).not.toContain(
-      "created for you",
+      "bind it to an existing",
     );
-    expect(MONITORING_METHOD_FIELD_DESCRIPTION_WITH_PING_OFFER).toContain(
-      "created for you",
+    expect(MONITORING_METHOD_FIELD_DESCRIPTION).toContain(
+      "Probe is the normal choice",
     );
+    expect(MONITORING_METHOD_FIELD_DESCRIPTION).toContain(
+      "Pick Bound monitor only when",
+    );
+  });
+
+  /*
+   * And it must be honest about the device with no credentials, which is the
+   * whole point of ping-first polling: it is not unmonitored, it is pinged.
+   */
+  test("the method description says a device without SNMP is still polled", () => {
+    expect(MONITORING_METHOD_FIELD_DESCRIPTION).toContain("simply pinged");
   });
 
   test.each(HOSTNAME_SURFACES)(
@@ -303,9 +309,24 @@ describe("the forms explain the method and the hostname the same way", () => {
     },
   );
 
-  test("the hostname description covers both kinds of device", () => {
-    expect(HOSTNAME_FIELD_DESCRIPTION).toContain("SNMP device");
+  /*
+   * The address means something different to each kind of device, and the
+   * one sentence has to be true of all of them: a probe-polled device is
+   * PINGED here (which is what makes a credential-less device monitorable at
+   * all), walked here only once it has credentials, and a monitor-backed
+   * device is not polled here at all.
+   *
+   * The two negative assertions are the claims this copy used to make. "SNMP
+   * device" was the old name for a probe-polled one, and saying the address
+   * is where SNMP happens promises a walk to the phone, camera or PDU that
+   * will only ever be pinged.
+   */
+  test("the hostname description covers every kind of device", () => {
+    expect(HOSTNAME_FIELD_DESCRIPTION).toContain("pinged here");
+    expect(HOSTNAME_FIELD_DESCRIPTION).toContain("once it has credentials");
     expect(HOSTNAME_FIELD_DESCRIPTION).toContain("monitor-backed device");
+
     expect(HOSTNAME_FIELD_DESCRIPTION).not.toContain("will poll via SNMP");
+    expect(HOSTNAME_FIELD_DESCRIPTION).not.toContain("An SNMP device");
   });
 });

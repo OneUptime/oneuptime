@@ -209,6 +209,33 @@ const EXPECTED_SECTIONS: Array<ExpectedMenuSection> = [
           "OID Collection Templates",
         ],
       },
+      /*
+       * The named credential sets a device is walked WITH, beside the OID
+       * templates that say what it COLLECTS. Settings rather than Rules:
+       * nothing here runs on its own, it is a definition a device points at.
+       */
+      {
+        title: "SNMP Credentials",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: [
+          "Project",
+          "Network",
+          "Settings",
+          "SNMP Credentials",
+        ],
+      },
+      /*
+       * Alert policies are a definition too ("alert on devices like these"),
+       * which is why they sit here and not under Rules: the engine that
+       * provisions the monitors is what runs, and it has no page of its own.
+       */
+      {
+        title: "Alert Policies",
+        pageMapKey: PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
+        getBreadcrumbs: getNetworkDeviceBreadcrumbs,
+        breadcrumbTitles: ["Project", "Network", "Settings", "Alert Policies"],
+      },
       {
         title: "Site Types",
         pageMapKey: PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES,
@@ -350,7 +377,7 @@ describe("Network side menu", () => {
       await renderNetworkMenu();
 
       expect(isExpanded("Settings")).toBe(false);
-      expect(linksIn("Settings")).toHaveLength(3);
+      expect(linksIn("Settings")).toHaveLength(5);
 
       fireEvent.click(sectionToggle("Settings"));
       expect(isExpanded("Settings")).toBe(true);
@@ -362,11 +389,11 @@ describe("Network side menu", () => {
   });
 
   describe("coverage", () => {
-    test("keeps all nineteen destinations reachable exactly once", async () => {
+    test("keeps all twenty-one destinations reachable exactly once", async () => {
       await renderNetworkMenu();
 
-      expect(EXPECTED_ENTRIES).toHaveLength(19);
-      expect(allLinks()).toHaveLength(19);
+      expect(EXPECTED_ENTRIES).toHaveLength(21);
+      expect(allLinks()).toHaveLength(21);
       expect(hrefsInMenu().sort()).toEqual(
         EXPECTED_ENTRIES.map(expectedHref).sort(),
       );

@@ -156,15 +156,25 @@ export interface OverviewAttentionDevice {
   name: string;
   lastSeenAt: string | null;
   interfacesDown: number;
-  // Down devices lead the list; the rest are up devices with dark ports.
+  /*
+   * Down devices lead the list; the rest are up devices whose SNMP walk is
+   * failing, or that carry dark ports.
+   */
   isDown: boolean;
   /*
-   * Whether a bound monitor, rather than an SNMP poll, is what judged this
+   * Whether a bound monitor, rather than a probe's poll, is what judged this
    * device — so the row can say "Monitor reports offline" instead of
    * "Never answered" (which is what a NULL lastSeenAt reads as on a device
    * nothing polls).
    */
   isMonitorBacked: boolean;
+  /*
+   * An Up device whose last SNMP walk failed: it answers ping, so it is
+   * reachable, but its interfaces and inventory have stopped refreshing.
+   * The row says "SNMP failing" for it rather than counting ports the walk
+   * has not seen lately.
+   */
+  isSnmpFailing: boolean;
 }
 
 export interface OverviewAttentionSite {
@@ -241,6 +251,8 @@ export async function fetchNetworkOverview(): Promise<NetworkOverviewSummary> {
           interfacesDown: readNumber(entry, "interfacesDown"),
           isDown: entry["isDown"] === true,
           isMonitorBacked: entry["isMonitorBacked"] === true,
+          // Absent from an older server's row reads as "the walk is fine".
+          isSnmpFailing: entry["isSnmpFailing"] === true,
         };
       })
       .filter((device: OverviewAttentionDevice): boolean => {

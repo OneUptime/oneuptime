@@ -18,28 +18,31 @@ import ObjectID from "../../../Types/ObjectID";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 
 /*
- * The create form's "Create a Ping monitor for this device" opt-in.
+ * The create form's "Also create a Ping monitor for incidents" opt-in.
  *
- * A monitor-backed device registered by hand used to leave the operator two
- * more screens away from a status: create a Ping monitor on the address
- * they just typed, then come back and bind it. The form now offers to do
- * both when it saves — the same opt-in the discovery import's Review dialog
- * has — and the properties that make it SAFE rather than merely present are
- * all invisible in a screenshot:
+ * Every device this form registers is probe-polled: its probe pings it on a
+ * schedule, so it has a status from its first poll and needs no monitor to
+ * read Up or Down. What it has no way to do on its own is RAISE something —
+ * an incident, a page, an alert — and until alert policies land, a Ping
+ * monitor created on the device's address and bound to it is the only
+ * one-click way to get that. So the opt-in stays, and says that instead.
+ *
+ * The properties that make it SAFE rather than merely present are all
+ * invisible in a screenshot:
  *
  *   - it is OFF by default (monitors are billable and plan-limited, and a
  *     hidden checkbox that defaulted on would still be submitted);
- *   - it is offered only for a monitor-backed device with no monitor picked,
- *     and only to someone allowed to create a monitor;
+ *   - it is offered only to someone allowed to create a monitor, because a
+ *     box that fails on save is worse than no box;
  *   - the device is created FIRST and the monitor second, so a plan limit or
  *     a permission gap on the monitor never costs the operator the device;
  *   - an empty probe selection sends no `probes` key (an explicit empty
  *     selection means "attach nothing" to the server);
- *   - a failure is shown on the page and the device stays listed, unbound —
- *     which is now an allowed, explained state;
+ *   - a failure is shown on the page and the device stays listed and polled,
+ *     with nothing alerting on it — which is an allowed, explained state;
  *   - the list is refreshed afterwards, because the table refetches BEFORE
- *     onCreateSuccess runs and would otherwise show "No monitor" on a device
- *     that was bound a moment later.
+ *     onCreateSuccess runs, and would otherwise show the new device as
+ *     carrying no monitor when one was bound to it a moment later.
  *
  * ModelTable is replaced by a prop recorder and its create hooks are called
  * directly — the point is what the page does around the create, not the
@@ -98,10 +101,6 @@ const DEVICE_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "33333333-0000-4000-8000-000000000001",
 );
-const EXISTING_MONITOR_ID: ObjectID = new ObjectID(
-  "33333333-0000-4000-8000-000000000002",
-);
-
 jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
@@ -388,33 +387,20 @@ function isShown(field: CapturedFormField, values: FormValuesLike): boolean {
   return field.showIf ? field.showIf(values) : true;
 }
 
-const MONITOR_BACKED: FormValuesLike = {
-  monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+/*
+ * The form values a half-filled create form holds. There is no monitoring
+ * method among them any more — the form does not ask — so this is every
+ * device it can create.
+ */
+const DEVICE: FormValuesLike = {
   name: "lobby-ap-01",
   hostname: "10.0.0.7",
 };
 
-const SNMP: FormValuesLike = {
-  monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
-  name: "core-switch-01",
-  hostname: "10.0.0.1",
-};
-
-function deviceBeingCreated(data: {
-  method: NetworkDeviceMonitoringMethod;
-  selectedMonitorId?: ObjectID | undefined;
-}): NetworkDevice {
+function deviceBeingCreated(): NetworkDevice {
   const item: NetworkDevice = new NetworkDevice();
   item.name = "lobby-ap-01";
   item.hostname = "10.0.0.7";
-  item.monitoringMethod = data.method;
-
-  if (data.selectedMonitorId) {
-    // ModelForm turns the entity dropdown into a model carrying only _id.
-    const picked: Monitor = new Monitor();
-    picked._id = data.selectedMonitorId.toString();
-    item.monitor = picked;
-  }
 
   return item;
 }
@@ -424,7 +410,7 @@ function createdDevice(): NetworkDevice {
   device.id = DEVICE_ID;
   device.name = "lobby-ap-01";
   device.hostname = "10.0.0.7";
-  device.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+  device.monitoringMethod = NetworkDeviceMonitoringMethod.Probe;
   return device;
 }
 
@@ -432,21 +418,13 @@ function createdDevice(): NetworkDevice {
 async function runCreate(
   props: CapturedTableProps,
   data: {
-    method: NetworkDeviceMonitoringMethod;
     miscDataProps: Record<string, unknown>;
-    selectedMonitorId?: ObjectID | undefined;
   },
 ): Promise<NetworkDevice> {
   expect(props.onBeforeCreate).toBeDefined();
   expect(props.onCreateSuccess).toBeDefined();
 
-  await props.onBeforeCreate!(
-    deviceBeingCreated({
-      method: data.method,
-      selectedMonitorId: data.selectedMonitorId,
-    }),
-    data.miscDataProps,
-  );
+  await props.onBeforeCreate!(deviceBeingCreated(), data.miscDataProps);
 
   return props.onCreateSuccess!(createdDevice());
 }
@@ -483,6 +461,11 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       });
       expect(checkbox.showEvenIfPermissionDoesNotExist).toBe(true);
       expect(checkbox.fieldType).toBe(FormFieldSchemaType.Checkbox);
+      /*
+       * No defaultValue AT ALL, which is what "off" means here: BasicForm
+       * seeds a defaultValue with no showIf check, so a box that defaulted on
+       * would spend the operator's monitor quota even while hidden.
+       */
       expect(checkbox.defaultValue).toBeUndefined();
       expect(checkbox.required).toBe(false);
 
@@ -495,33 +478,40 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       expect(stepIds).toContain("probe-and-site");
     });
 
-    test("the checkbox is offered for a monitor-backed device with no monitor picked", async () => {
+    /*
+     * The title carries the whole offer, because the checkbox is the one
+     * field an operator decides on without reading anything else: "also"
+     * says the device is already monitored without it, "for incidents" says
+     * what it adds, and "(optional)" says it may be skipped.
+     */
+    test("the checkbox is worded as an addition, not as the way to get a status", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
       const checkbox: CapturedFormField = overrideFieldFor(
         props,
         CREATE_PING_MONITOR_FIELD_KEY,
       );
 
-      expect(isShown(checkbox, MONITOR_BACKED)).toBe(true);
+      expect(checkbox.title).toBe(
+        "Also create a Ping monitor for incidents (optional)",
+      );
     });
 
-    test("the checkbox is hidden for an SNMP device", async () => {
+    /*
+     * Offered for every device this form creates. It used to be offered only
+     * for a monitor-backed device with nothing bound, because a monitor was
+     * the only thing that could give such a device a status; a probe-polled
+     * device has one either way, and the monitor is what alerts on it.
+     */
+    test("the checkbox is offered for the device being registered", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
+      const checkbox: CapturedFormField = overrideFieldFor(
+        props,
+        CREATE_PING_MONITOR_FIELD_KEY,
+      );
 
-      expect(
-        isShown(overrideFieldFor(props, CREATE_PING_MONITOR_FIELD_KEY), SNMP),
-      ).toBe(false);
-    });
-
-    test("the checkbox is hidden once a monitor is picked", async () => {
-      const props: CapturedTableProps = await renderDevicesPage();
-
-      expect(
-        isShown(overrideFieldFor(props, CREATE_PING_MONITOR_FIELD_KEY), {
-          ...MONITOR_BACKED,
-          monitor: EXISTING_MONITOR_ID.toString(),
-        }),
-      ).toBe(false);
+      expect(isShown(checkbox, DEVICE)).toBe(true);
+      // Nothing about the device can hide it - not even an empty form.
+      expect(isShown(checkbox, {})).toBe(true);
     });
 
     test("the checkbox is hidden for someone who may not create a monitor", async () => {
@@ -530,23 +520,33 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       expect(
-        isShown(
-          overrideFieldFor(props, CREATE_PING_MONITOR_FIELD_KEY),
-          MONITOR_BACKED,
-        ),
+        isShown(overrideFieldFor(props, CREATE_PING_MONITOR_FIELD_KEY), DEVICE),
       ).toBe(false);
     });
 
-    test("the checkbox explains the cost and what an unticked box means", async () => {
+    /*
+     * The copy has to say the monitor is an ADDITION — an operator who reads
+     * it as "this is how the device gets a status" will tick it for every
+     * device in the estate and pay for all of them.
+     */
+    test("the checkbox says the probe already gives the device a status", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
       const checkbox: CapturedFormField = overrideFieldFor(
         props,
         CREATE_PING_MONITOR_FIELD_KEY,
       );
 
+      expect(checkbox.description).toContain("already pings this device");
+      expect(checkbox.description).toContain("incident");
       expect(checkbox.description).toContain("counts towards your plan");
-      expect(checkbox.description).toContain('"No monitor"');
-      expect(checkbox.description).toContain("Incidents are off");
+      expect(checkbox.description).toContain("incidents are off");
+      /*
+       * "No monitor" is the pill a monitor-backed device with nothing bound
+       * wears. No device created by this form can ever read it, so promising
+       * it here would send the operator hunting for a state that cannot
+       * happen.
+       */
+      expect(checkbox.description).not.toContain("No monitor");
     });
 
     test("the probe picker appears only once the box is ticked, and lists the project's probes", async () => {
@@ -564,15 +564,25 @@ describe("the create form's Create a Ping monitor opt-in", () => {
         { label: "Branch probe", value: "probe-1" },
       ]);
 
-      expect(isShown(probes, MONITOR_BACKED)).toBe(false);
+      expect(isShown(probes, DEVICE)).toBe(false);
       expect(
         isShown(probes, {
-          ...MONITOR_BACKED,
+          ...DEVICE,
           [CREATE_PING_MONITOR_FIELD_KEY]: true,
         }),
       ).toBe(true);
+    });
+
+    test("the probe picker is hidden from someone who is not offered the box", async () => {
+      canCreateMonitor = false;
+
+      const props: CapturedTableProps = await renderDevicesPage();
+
       expect(
-        isShown(probes, { ...SNMP, [CREATE_PING_MONITOR_FIELD_KEY]: true }),
+        isShown(overrideFieldFor(props, PING_PROBES_FIELD_KEY), {
+          ...DEVICE,
+          [CREATE_PING_MONITOR_FIELD_KEY]: true,
+        }),
       ).toBe(false);
     });
   });
@@ -582,7 +592,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       const returned: NetworkDevice = await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: {
           [CREATE_PING_MONITOR_FIELD_KEY]: true,
           [PING_PROBES_FIELD_KEY]: ["probe-1"],
@@ -622,10 +631,9 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       // onBeforeCreate alone must not touch the API.
-      await props.onBeforeCreate!(
-        deviceBeingCreated({ method: NetworkDeviceMonitoringMethod.Monitor }),
-        { [CREATE_PING_MONITOR_FIELD_KEY]: true },
-      );
+      await props.onBeforeCreate!(deviceBeingCreated(), {
+        [CREATE_PING_MONITOR_FIELD_KEY]: true,
+      });
 
       expect(modelApiCreate).not.toHaveBeenCalled();
     });
@@ -634,7 +642,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
 
@@ -649,7 +656,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: {
           [CREATE_PING_MONITOR_FIELD_KEY]: true,
           [PING_PROBES_FIELD_KEY]: [
@@ -665,40 +671,16 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       expect(createCall.miscDataProps).toEqual({ probes: ["probe-1"] });
     });
 
+    /*
+     * The box is off unless ticked, and an unticked box sends nothing at all
+     * (ModelForm drops a false override) — so an absent flag is the normal
+     * case, not an edge one, and it must cost the operator nothing.
+     */
     test("does nothing when the box was not ticked", async () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: {},
-      });
-
-      expect(modelApiCreate).not.toHaveBeenCalled();
-      expect(modelApiUpdateById).not.toHaveBeenCalled();
-    });
-
-    /*
-     * The checkbox is hidden for these, but a hidden field's value is still
-     * submitted — so the guard has to live here, not only in showIf.
-     */
-    test("does nothing for an SNMP device even if the flag arrives", async () => {
-      const props: CapturedTableProps = await renderDevicesPage();
-
-      await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Snmp,
-        miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
-      });
-
-      expect(modelApiCreate).not.toHaveBeenCalled();
-    });
-
-    test("does nothing when a monitor was picked, even if the flag arrives", async () => {
-      const props: CapturedTableProps = await renderDevicesPage();
-
-      await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
-        selectedMonitorId: EXISTING_MONITOR_ID,
-        miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
 
       expect(modelApiCreate).not.toHaveBeenCalled();
@@ -710,7 +692,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const toggleBefore: string | undefined = props.refreshToggle;
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
 
@@ -740,7 +721,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const toggleBefore: string | undefined = props.refreshToggle;
 
       const returned: NetworkDevice = await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
 
@@ -759,7 +739,13 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       );
       expect(notice.textContent).toContain("lobby-ap-01 was created");
       expect(notice.textContent).toContain("monitor limit");
-      expect(notice.textContent).toContain('"No monitor"');
+      /*
+       * What was lost is the ALERTING, and only that: the device exists and
+       * its probe polls it. A notice that implied the device had no status
+       * would send the operator to fix something that is not broken.
+       */
+      expect(notice.textContent).toContain("its probe polls it");
+      expect(notice.textContent).toContain("Create Ping Monitor");
 
       await waitFor(() => {
         expect(capturedTableProps?.refreshToggle).not.toBe(toggleBefore);
@@ -774,7 +760,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
 
@@ -794,7 +779,6 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       const props: CapturedTableProps = await renderDevicesPage();
 
       await runCreate(props, {
-        method: NetworkDeviceMonitoringMethod.Monitor,
         miscDataProps: { [CREATE_PING_MONITOR_FIELD_KEY]: true },
       });
       expect(modelApiCreate).toHaveBeenCalledTimes(1);

@@ -742,12 +742,17 @@ describe("the two halves of the product cannot disagree", () => {
   });
 
   /*
-   * The no-monitor path — the ordinary case for every SNMP-walked switch,
-   * and so for most of an 80,000-device estate — has to go through the same
-   * shared reachability rule the map uses, not a freshness comparison
-   * written by hand.
+   * The reachability path — every probe-polled device, and so most of an
+   * 80,000-device estate — has to go through the same shared rule the map
+   * uses, not a freshness comparison written by hand.
+   *
+   * It is reached more often than "unstamped" suggests. A probe-polled
+   * device is judged by its own poll whether or not a monitor has stamped a
+   * status on it: an "interface down → Offline" criterion writes that stamp
+   * on a switch answering every ping, and the classifier deliberately leaves
+   * it informational. Only a monitor-backed device's stamp is its verdict.
    */
-  test("the unstamped path defers to the shared reachability rule", () => {
+  test("the reachability path defers to the shared rule, and the stamp is gated on the method", () => {
     const UTIL: string = squash(
       fs.readFileSync(
         path.join(
@@ -765,6 +770,15 @@ describe("the two halves of the product cannot disagree", () => {
     );
     expect(UTIL).toContain("DeviceReachabilityUtil.getStatus(");
     expect(UTIL).toContain("NetworkDeviceReachability.Pending");
+    /*
+     * The gate that sends a probe-polled device down that path even when it
+     * carries a stamp. Dropping the `isMonitorBacked &&` compiles, passes
+     * every other assertion in this file, and turns one dark access port
+     * into a red site card above a device list of green rows.
+     */
+    expect(UTIL).toContain(
+      squash("isMonitorBacked && (device.monitorStatusIsOffline === true ||"),
+    );
     // The map's own fallback goes through the same util.
     const TOPOLOGY_UTIL: string = squash(
       fs.readFileSync(

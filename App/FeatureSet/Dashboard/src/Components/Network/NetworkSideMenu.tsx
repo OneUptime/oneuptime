@@ -212,6 +212,36 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.List,
         },
         {
+          /*
+           * Beside the OID templates on purpose: both are named sets a
+           * device links to rather than copies from — one says what a
+           * device COLLECTS, this says what it is walked WITH.
+           */
+          link: {
+            title: "SNMP Credentials",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Key,
+        },
+        {
+          /*
+           * A definition, not a rule: a policy is the intent "alert on
+           * devices like these"; the engine that provisions the monitors
+           * is what runs, and it is not something an operator opens.
+           */
+          link: {
+            title: "Alert Policies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
+            ),
+          },
+          icon: IconProp.Alert,
+        },
+        {
           link: {
             title: "Site Types",
             to: RouteUtil.populateRouteParams(

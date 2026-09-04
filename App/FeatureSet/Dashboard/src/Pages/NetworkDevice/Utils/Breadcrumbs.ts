@@ -127,6 +127,14 @@ export function getNetworkDeviceBreadcrumbs(
       PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
       ["Project", "Network", "Settings", "Device Roles"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
+      ["Project", "Network", "Settings", "SNMP Credentials"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
+      ["Project", "Network", "Settings", "Alert Policies"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

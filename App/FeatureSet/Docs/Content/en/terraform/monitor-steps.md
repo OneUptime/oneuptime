@@ -253,7 +253,7 @@ Common `check_on` values by monitor type:
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
-| Network Device (SNMP) | `SNMP Device Is Online`, `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
+| Network Device (SNMP) | `SNMP Device Is Online` (reachable by ping or SNMP), `SNMP Walk Is Succeeding` (false is reachable-but-not-walkable), `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
 
 Common `filter_type` values:
 

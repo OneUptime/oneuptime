@@ -5,7 +5,10 @@ import ObjectID from "../../Types/ObjectID";
 import SnmpScanConfigUtil, {
   DiscoveryScanSnmpConfig,
 } from "./SnmpScanConfigUtil";
-import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
+import {
+  isPingOnlyDiscoveredHost,
+  monitoringMethodForDiscoveredHost,
+} from "./DiscoveryImportEligibility";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
 /*
@@ -167,7 +170,8 @@ export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
 }
 
 /*
- * The scan columns the builder copies onto an SNMP device. The
+ * The scan columns the builder copies onto a device: the probe onto every
+ * device, the credentials onto the ones that answered SNMP. The
  * NetworkDeviceDiscoveryScan model satisfies this structurally, so both the
  * dashboard (holding a scan model) and the rule engine (holding a scan row it
  * selected itself) can pass their scan straight in.
@@ -177,7 +181,7 @@ export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
  * (and are still mirrored from the list's first entry). Neither is read
  * directly here — SnmpScanConfigUtil reconciles the two — but BOTH have to be
  * SELECTED by every caller, or the credentials silently arrive undefined and
- * the device is created unable to poll. That is what
+ * the device is created as a ping-only one. That is what
  * Common/Tests/Server/Services/AutoImportScanCredentialSelect.test.ts pins.
  */
 export interface DiscoveredDeviceScanSource {
@@ -197,11 +201,18 @@ export interface DiscoveredDeviceScanSource {
 /**
  * The NetworkDevice a discovered host imports as.
  *
- * An SNMP-reachable host becomes a polled device carrying the scan's probe
- * and credentials. A ping-only host becomes a monitor-backed device with no
- * probe, no credentials and polling off: it is recorded so it can belong to a
- * site and appear on the topology map, and binding a monitor to it stays a
- * separate, deliberate step.
+ * Every host becomes a Probe device polled by the scan's probe — the probe
+ * that just proved the host answers, so the one that can keep asking. An
+ * SNMP-reachable host also carries the credential set that answered it, so
+ * its first poll walks it for interfaces, inventory and health. A ping-only
+ * host carries no credentials at all: the probe pings it and nothing more, it
+ * has a status from its first poll, and adding credentials later on its
+ * Settings page is what turns the walk on.
+ *
+ * (It used to import as a monitor-backed device with no probe and polling
+ * off, which left it on "Pending" until an operator hand-bound a Ping monitor
+ * — issue #3447. Reachability is a built-in capability of every probe-polled
+ * device now, so that dead end is gone.)
  *
  * The caller supplies the name (normally `buildDeviceName(host)`) so the
  * name-collision retry can rebuild the same device under
@@ -263,12 +274,41 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
     monitoringMethodForDiscoveredHost(host);
   device.monitoringMethod = monitoringMethod;
 
-  if (monitoringMethod === NetworkDeviceMonitoringMethod.Monitor) {
+  /*
+   * The scan's probe, on EVERY device. It is the probe that just reached this
+   * host — over ping at the very least — so it is the one that can keep
+   * polling it. Written explicitly rather than left to the column default:
+   * a Probe device with no probe is claimed by nothing and never polls, which
+   * is the "Pending forever" the whole change exists to end.
+   */
+  if (data.scan.probeId) {
+    // Re-wrapped: the scan may hold a serialized id rather than an ObjectID.
+    device.probeId = new ObjectID(data.scan.probeId.toString());
+  }
+
+  /*
+   * Polling on, for both kinds of host. The column defaults to true, but this
+   * function is the recipe both import paths share and "the probe polls this
+   * device" is the whole point of it, so the recipe says so itself rather
+   * than trusting a default that a ping-only host used to override to false.
+   */
+  device.isPollingEnabled = true;
+
+  if (isPingOnlyDiscoveredHost(host)) {
     /*
-     * A ping-only host is never SNMP-polled, so the vendor-template
-     * auto-apply (which keys off a polled sysObjectID) stays off too.
+     * A ping-only host carries NO credentials, decided BEFORE any config is
+     * looked up: `snmpConfigId` and `snmpReachable` are two fields of the
+     * same probe-written jsonb row, and nothing enforces that a ping-only row
+     * leaves the first one unset. A device that answered nothing but a ping
+     * must not import carrying a community string it rejected — it would be
+     * walked with it on every poll and read as an SNMP failure rather than
+     * as the credential-less device it is. The probe pings it and nothing
+     * more until credentials are added on its Settings page.
+     *
+     * The OID template and the vendor-template auto-apply stay off too: both
+     * key off SNMP data — a polled sysObjectID, a walked OID list — that
+     * this host did not supply and will not until it has credentials.
      */
-    device.isPollingEnabled = false;
     return device;
   }
 
@@ -278,11 +318,6 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
 
   if (data.autoApplyVendorHealthTemplate) {
     device.autoApplyVendorHealthTemplate = true;
-  }
-
-  if (data.scan.probeId) {
-    // Re-wrapped: the scan may hold a serialized id rather than an ObjectID.
-    device.probeId = new ObjectID(data.scan.probeId.toString());
   }
 
   /*

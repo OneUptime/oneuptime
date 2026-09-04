@@ -1907,11 +1907,13 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
   });
 
   /*
-   * The copy IS the feature here. An ICMP-only scan finds addresses and
-   * nothing else — no name, no model, no vendor — and everything it imports
-   * arrives as a device with polling off. An operator who is not told that
-   * reads an empty device page as a broken import rather than as the scan they
-   * asked for.
+   * The copy IS the feature here, and it has two halves. An ICMP-only scan
+   * finds addresses and nothing else — no name, no model, no vendor — but what
+   * it imports is NOT inert: discovery brings every host in as a probe-polled
+   * device, so the scan's own probe pings it on a schedule from the moment it
+   * lands. An operator told only the first half reads an inventory-less device
+   * page as a broken import; an operator told neither assumes an ICMP-only
+   * scan leaves them with nothing being watched at all.
    */
   test("the toggle says what an ICMP-only scan does and does not give you", async () => {
     await renderPage();
@@ -1921,11 +1923,18 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
     expect(description).toContain("ICMP-only");
     expect(description).toContain("no credentials are asked for");
     /*
-     * Points at the dialog's own "Create a Ping monitor" option rather than at
-     * hand-binding, because every host an ICMP-only scan finds is a host
-     * without SNMP — which is exactly the set that option covers.
+     * Ping-first import: there is no ping-only special case in discovery any
+     * more, so the toggle has to name what the operator actually ends up with
+     * — a device pinged by the probe that ran the scan — rather than pointing
+     * at a monitor they would have to create by hand to get anything watched.
      */
-    expect(description).toContain("Ping monitor");
+    expect(description).toContain("pinged by the scan's probe");
+    /*
+     * And the way out of an inventory-less device. Credentials are additive
+     * rather than a choice the scan locked in, so turning SNMP off here is
+     * never a decision the operator has to re-run a scan to undo.
+     */
+    expect(description).toContain("add SNMP credentials later");
   });
 
   test("the SNMP step is removed for a scan that will send no SNMP", async () => {

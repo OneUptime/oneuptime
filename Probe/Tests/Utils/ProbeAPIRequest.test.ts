@@ -27,6 +27,13 @@ describe("getDefaultRequestBody", () => {
     expect(ProbeAPIRequest.getDefaultRequestBody()).toEqual({
       probeKey: "test-probe-key",
       probeId: "11111111-2222-3333-4444-555555555555",
+      /*
+       * The capability list rides every request: the server hands
+       * credential-less (ping-only) network devices only to probes that
+       * declare "networkDevicePing", because an older probe would walk
+       * such a device with community "public" and report it Down.
+       */
+      probeCapabilities: ["networkDevicePing"],
     });
   });
 });

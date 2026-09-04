@@ -5,17 +5,20 @@ import path from "path";
 /*
  * WHY THIS FILE EXISTS
  *
- * OneUptime/oneuptime#3447: a host that answers ping but not SNMP imports as a
- * monitor-backed NetworkDevice — no probe, nothing polling it, by design. But
- * nothing was ever bound to report its health either, so it sat on "Pending"
- * with "No probe found", "0 / 0" interfaces and "Last Seen: Never" forever,
- * while the operator's own `ping -t` answered every time. Fourteen discovered
- * hosts meant fourteen hand-made monitors and fourteen device edits to escape.
+ * OneUptime/oneuptime#3447: a host that answered ping but not SNMP used to
+ * import as a monitor-backed NetworkDevice — no probe, nothing polling it —
+ * and sat on "Pending" with "No probe found", "0 / 0" interfaces and "Last
+ * Seen: Never" forever, while the operator's own `ping -t` answered every
+ * time. Fourteen discovered hosts meant fourteen hand-made monitors and
+ * fourteen device edits to escape.
  *
- * The fix is an opt-in on the Review dialog: create a Ping monitor per
- * ping-only host and bind it at device-create time. The properties below are
- * the ones that make it correct rather than merely present, and every one of
- * them is invisible in a screenshot:
+ * Under ping-first polling that dead end is gone: a ping-only host imports as
+ * a Probe device the scan's probe pings, and has a status from its first
+ * poll. What the Review dialog's opt-in still provides is the one-click path
+ * to INCIDENTS — a Ping monitor per ping-only host, bound at device-create
+ * time, until alert policies land. The properties below are the ones that
+ * make it correct rather than merely present, and every one of them is
+ * invisible in a screenshot:
  *
  *   - The monitor must be created BEFORE the device and its id carried onto
  *     the device. Binding afterwards would leave a window where the device is
@@ -188,8 +191,10 @@ describe("the monitor is created before the device and bound to it", () => {
     const loop: string = importLoop();
 
     /*
-     * An SNMP host is polled by its probe and has no use for a ping monitor;
-     * creating one anyway would be a billable surprise.
+     * An SNMP host is walked by its probe and can be alerted on through a
+     * Network Device monitor template; the Ping opt-in is for the hosts that
+     * have nothing else, and creating one for every host would be a billable
+     * surprise.
      */
     expect(loop).toContain(
       "if (pingMonitorSeedIds && isPingOnlyDiscoveredHost(entry))",
@@ -326,13 +331,14 @@ describe("a monitor is an enhancement to the import, not a precondition", () => 
     const section: string = importSection();
 
     /*
-     * The two need different words: one set is in the inventory with nothing
-     * reporting on it, the other is not in the inventory at all. Collapsing
-     * them into one sentence tells the operator to retry an import that
-     * already succeeded.
+     * The two need different words: one set is in the inventory, pinged by
+     * the probe, and merely without a monitor to raise incidents; the other
+     * is not in the inventory at all. Collapsing them into one sentence tells
+     * the operator to retry an import that already succeeded.
      */
     expect(section).toContain("const monitorFailures: Array<string> = []");
     expect(section).toContain("Imported, but no Ping monitor could be created");
+    expect(section).toContain("pinged by the probe");
   });
 
   test("a monitor-only problem still keeps the dialog open", () => {

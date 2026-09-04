@@ -11,6 +11,7 @@ import Services from "../../../Server/Services/Index";
 import UserNotificationEmailRollupSettingService from "../../../Server/Services/UserNotificationEmailRollupSettingService";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddUserNotificationEmailRollupSetting1791100000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1791100000000-AddUserNotificationEmailRollupSetting";
+import { AddUserNotificationEmailRollup1791000000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1791000000000-AddUserNotificationEmailRollup";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
 import Permission from "../../../Types/Permission";
@@ -280,13 +281,32 @@ describe("the row goes away with whatever it was a preference about", () => {
 });
 
 describe("migration registration", () => {
-  test("it is the last registered migration, and its three names agree", () => {
-    expect(SchemaMigrations).toContain(
+  /*
+   * Registered, and registered AFTER the rollup migration whose table this
+   * one adds a setting for — creating the setting before the thing it
+   * settles would fail on the foreign key.
+   *
+   * This used to assert the migration was LAST in the array. That held only
+   * until the next migration landed on master, and it failed on the merge
+   * rather than on any mistake in this file: "last" is a fact about whoever
+   * merged most recently, not about this migration's correctness. Ordering
+   * against the migration it genuinely depends on is the assertion that was
+   * meant.
+   */
+  test("it is registered after the migration it builds on, and its names agree", () => {
+    const position: number = SchemaMigrations.indexOf(
       AddUserNotificationEmailRollupSetting1791100000000,
     );
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddUserNotificationEmailRollupSetting1791100000000,
+
+    expect(position).toBeGreaterThan(-1);
+
+    const rollupPosition: number = SchemaMigrations.indexOf(
+      AddUserNotificationEmailRollup1791000000000,
     );
+
+    expect(rollupPosition).toBeGreaterThan(-1);
+    expect(position).toBeGreaterThan(rollupPosition);
+
     expect(MIGRATION_SOURCE).toContain(
       'public name: string = "AddUserNotificationEmailRollupSetting1791100000000";',
     );

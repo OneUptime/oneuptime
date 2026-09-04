@@ -39,6 +39,8 @@ import {
 import Route from "Common/Types/API/Route";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -480,6 +482,7 @@ const NetworkSites: FunctionComponent<
           { title: "Site Details", id: "site-details" },
           { title: "Hierarchy", id: "hierarchy" },
           { title: "Location", id: "location" },
+          { title: "Monitoring Defaults", id: "monitoring-defaults" },
         ]}
         formFields={[
           {
@@ -576,6 +579,43 @@ const NetworkSites: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "-89.6501",
+          },
+          {
+            field: {
+              probe: true,
+            },
+            title: "Default Probe",
+            stepId: "monitoring-defaults",
+            sectionTitle: "Monitoring Defaults",
+            sectionDescription:
+              "What a device registered into this site starts out with. Set these once and a device can be added by name and address alone.",
+            description:
+              "The probe that pings and walks devices in this site unless a device names its own. A device created into this site with no probe inherits it (so does one moved here without a probe); devices that already have a probe keep it. Pick a custom probe deployed on this site's network — a probe on the public internet cannot reach a private address.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Probe,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default probe",
+          },
+          {
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "Default SNMP Credential Profile",
+            stepId: "monitoring-defaults",
+            description:
+              "The SNMP credentials devices in this site are walked with when neither the device nor its own profile carries any. With a profile here, a device added to this site is walked over SNMP from its first poll; without one anywhere it is pinged only.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSnmpCredentialProfile,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "No default credential profile",
           },
         ]}
         columns={[

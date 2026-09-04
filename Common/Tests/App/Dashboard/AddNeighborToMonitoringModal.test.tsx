@@ -14,6 +14,7 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "../../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 
 /*
  * Issue #3435 — what the "Add to Monitoring" dialog actually opens with.
@@ -25,6 +26,12 @@ import {
  * initialValues object is type-safe, render-safe, and puts the operator back
  * to retyping what OneUptime already discovered.
  *
+ * Every device the dialog creates is probe-polled: there is no monitoring
+ * method to choose, the probe is required for a phone exactly as for a
+ * switch, and the SNMP step is optional for both. The cases below that used
+ * to split on "will this device be polled?" now assert that no such split
+ * exists.
+ *
  * The form itself is configuration passed as props, so ModelFormModal is
  * mocked to capture them and the capture is asserted directly — the same
  * approach DiscoveryScanWizardValidation.test.tsx uses for the Discovery
@@ -35,11 +42,18 @@ type CapturedModalProps = {
   title: string;
   description: string;
   initialValues: Record<string, unknown>;
+  onBeforeCreate?:
+    | ((
+        item: NetworkDevice,
+        miscDataProps: Record<string, unknown>,
+      ) => Promise<NetworkDevice>)
+    | undefined;
   formProps: {
-    steps: Array<{ id: string; title: string }>;
+    steps: Array<{ id: string; title: string; showIf?: unknown }>;
     fields: Array<{
       field: Record<string, boolean>;
       required?: boolean | undefined;
+      stepId?: string | undefined;
       dropdownOptions?: Array<{ label: string; value: string }> | undefined;
     }>;
   };
@@ -250,13 +264,49 @@ describe("the Add to Monitoring dialog", () => {
   });
 
   /*
-   * A phone is never SNMP-walkable, so opening on SNMP would create a device
-   * that queues a walk it can only fail and then reads "pending" forever.
+   * There is no monitoring-method question any more. A phone is never
+   * SNMP-walkable, but it is pingable — and pinging is all a probe-polled
+   * device needs to have a status — so the dialog asks nothing and writes
+   * Probe on the way out. ModelForm sends only the fields it renders, which
+   * is why the method travels through onBeforeCreate rather than
+   * initialValues: a seeded value with no field behind it would never reach
+   * the server.
    */
-  test("opens a leaf device on monitor-backed rather than SNMP", async () => {
+  test("asks no monitoring-method question and writes Probe on the way out", async () => {
     const props: CapturedModalProps = await openDialog();
 
-    expect(props.initialValues["monitoringMethod"]).toBe("Monitor");
+    expect(fieldFor(props, "monitoringMethod")).toBeUndefined();
+    expect(props.initialValues["monitoringMethod"]).toBeUndefined();
+    expect(props.onBeforeCreate).toBeDefined();
+
+    const device: NetworkDevice = await props.onBeforeCreate!(
+      new NetworkDevice(),
+      {},
+    );
+
+    expect(device.monitoringMethod).toBe("Probe");
+  });
+
+  /*
+   * And the same for an infrastructure peer: the method is not a function of
+   * the role, so a switch and a phone leave the dialog identically.
+   */
+  test("writes Probe for a walkable peer too", async () => {
+    const props: CapturedModalProps = await openDialog({
+      ...PHONE_NODE,
+      role: "switch",
+      roleKey: "switch",
+      roleLabel: "Switch",
+      roleId: SWITCH_ROLE_ID,
+      isSnmpWalkableRole: true,
+    });
+
+    const device: NetworkDevice = await props.onBeforeCreate!(
+      new NetworkDevice(),
+      {},
+    );
+
+    expect(device.monitoringMethod).toBe("Probe");
   });
 
   /*
@@ -309,20 +359,22 @@ describe("the Add to Monitoring dialog", () => {
   });
 
   /*
-   * The probe is only offered to a device something will actually poll —
-   * a monitor-backed device has no poller, and the field is hidden on that
-   * branch anyway.
+   * The probe is inherited for EVERY device. It used to be withheld from a
+   * leaf device, which opened on a monitor-backed branch with the probe
+   * field hidden; a phone is as probe-polled as a switch now, so the probe
+   * its neighbours agree on is the right head start for both. The phone
+   * fixture carries the handset's isSnmpWalkableRole: false, which is
+   * exactly the case the seed used to be withheld from.
    */
-  test("inherits a probe for a device that will be polled", async () => {
+  test("inherits a probe for a leaf device", async () => {
+    const props: CapturedModalProps = await openDialog();
+
+    expect(props.initialValues["probe"]).toBe("probe-a");
+  });
+
+  test("inherits a probe for a walkable device", async () => {
     const props: CapturedModalProps = await openDialog({
       ...PHONE_NODE,
-      /*
-       * The whole role stamp, not just `role`: the configured
-       * isSnmpWalkableRole is what decides the monitoring method now, and the
-       * phone fixture carries the handset's (false). Overriding only the
-       * built-in role would leave the flag saying "nothing will poll this",
-       * which is the opposite of what this test is about.
-       */
       role: "switch",
       roleKey: "switch",
       roleLabel: "Switch",
@@ -330,14 +382,19 @@ describe("the Add to Monitoring dialog", () => {
       isSnmpWalkableRole: true,
     });
 
-    expect(props.initialValues["monitoringMethod"]).toBe("SNMP");
     expect(props.initialValues["probe"]).toBe("probe-a");
   });
 
-  test("does not hand a probe to a device nothing will poll", async () => {
+  /*
+   * Required for a phone exactly as for a switch: a probe-polled device with
+   * no probe is claimed by nothing and never polls, which is the "Pending
+   * forever" this flow exists to end. The server does not insist, so the
+   * form does.
+   */
+  test("requires a probe for a leaf device", async () => {
     const props: CapturedModalProps = await openDialog();
 
-    expect(props.initialValues["probe"]).toBeUndefined();
+    expect(fieldFor(props, "probe")?.required).toBe(true);
   });
 
   /*
@@ -361,16 +418,16 @@ describe("the Add to Monitoring dialog", () => {
   });
 
   /*
-   * The create form on the Devices list requires a monitor for a
-   * monitor-backed device. Here it must not: an operator adopting a phone
-   * from the map has no Ping monitor for it yet, and the server has always
-   * allowed the two to be bound later — the same contract the discovery
-   * import relies on.
+   * No Monitor binding field at all. The binding is the override for gear a
+   * probe cannot reach, chosen on a device's Settings page; a neighbour the
+   * probe just heard about from the switch beside it is, by construction,
+   * reachable — so the dialog does not offer a field whose only honest value
+   * here is "empty".
    */
-  test("does not demand a monitor that does not exist yet", async () => {
+  test("has no monitor binding field", async () => {
     const props: CapturedModalProps = await openDialog();
 
-    expect(fieldFor(props, "monitor")?.required).toBe(false);
+    expect(fieldFor(props, "monitor")).toBeUndefined();
   });
 
   test("still demands the two things a device cannot exist without", async () => {
@@ -414,18 +471,62 @@ describe("the Add to Monitoring dialog", () => {
     ]);
   });
 
-  test("walks the operator through the same steps the Devices form does", async () => {
+  test("walks the operator through Device Details, Probe & Site and SNMP", async () => {
     const props: CapturedModalProps = await openDialog();
 
     expect(
       props.formProps.steps.map((step: { id: string }) => {
         return step.id;
       }),
-    ).toEqual([
-      "monitoring-method",
-      "device-details",
-      "probe-and-site",
-      "snmp",
-    ]);
+    ).toEqual(["device-details", "probe-and-site", "snmp"]);
+  });
+
+  /*
+   * The SNMP step is walked through by every device, a phone included. It
+   * used to be hidden wholesale for a leaf device (nothing polled it, so
+   * nothing could use a credential); now the probe walks whatever it has
+   * credentials for, and leaving the step empty is the "ping only" answer.
+   */
+  test("shows the SNMP step to a leaf device, unconditionally", async () => {
+    const props: CapturedModalProps = await openDialog();
+
+    const snmpStep: { id: string; showIf?: unknown } | undefined =
+      props.formProps.steps.find((step: { id: string }) => {
+        return step.id === "snmp";
+      });
+
+    expect(snmpStep).toBeDefined();
+    expect(snmpStep?.showIf).toBeUndefined();
+    expect(fieldFor(props, "snmpVersion")).toBeDefined();
+    expect(fieldFor(props, "snmpCommunityString")?.required).toBe(false);
+  });
+
+  /*
+   * Every step the wizard declares is claimed by a field, and every field
+   * names a declared step — the two silent failures NetworkFormStepsInvariants
+   * pins against the source, asserted here against the props the form is
+   * actually handed.
+   */
+  test("every field lands on a step the wizard declares, and no step is empty", async () => {
+    const props: CapturedModalProps = await openDialog();
+
+    const declared: Array<string> = props.formProps.steps.map(
+      (step: { id: string }) => {
+        return step.id;
+      },
+    );
+    const used: Array<string> = props.formProps.fields.map(
+      (field: { stepId?: string | undefined }) => {
+        return field.stepId || "";
+      },
+    );
+
+    for (const stepId of used) {
+      expect(declared).toContain(stepId);
+    }
+
+    for (const stepId of declared) {
+      expect(used).toContain(stepId);
+    }
   });
 });

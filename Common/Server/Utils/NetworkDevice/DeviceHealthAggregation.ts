@@ -135,7 +135,7 @@ const DEVICE_HEALTH_DISCRIMINATOR_COLUMNS: Array<AggregateColumn> = [
    * forever).
    *
    * Dropping it from the group keys would therefore not be a harmless
-   * simplification: a bucket that mixed SNMP and monitor-backed devices with
+   * simplification: a bucket that mixed probe-polled and monitor-backed devices with
    * the same poll facts would classify all of them by the poll rule. On a
    * real fleet it also costs nothing, because `monitoringMethod` is almost
    * perfectly correlated with whether the device carries a stamped monitor
@@ -276,7 +276,7 @@ export interface DeviceHealthGroup {
   monitorStatusId: string | null;
   /*
    * Null for rows written before the column existed, which
-   * `NetworkDeviceMonitoringMethodUtil.parse` reads as SNMP.
+   * `NetworkDeviceMonitoringMethodUtil.parse` reads as Probe.
    */
   monitoringMethod: string | null;
   isReachable: boolean | null;
@@ -380,7 +380,7 @@ export function deviceHealthInputForGroup(data: {
      */
     pollingIntervalInMinutes: undefined,
     /*
-     * Carried verbatim — the classifier parses it, and NULL reads as SNMP
+     * Carried verbatim — the classifier parses it, and NULL reads as Probe
      * there. See the discriminator column for why a bucket cannot drop it.
      */
     monitoringMethod: group.monitoringMethod,
