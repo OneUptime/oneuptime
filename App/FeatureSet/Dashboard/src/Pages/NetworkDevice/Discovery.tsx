@@ -1416,6 +1416,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   <div className="text-sm text-gray-900">
                     {outcome.respondedHostSummary}
                   </div>
+                  {/*
+                   * "Scanning - 1,024 of 15,360 addresses swept so far".
+                   *
+                   * Without it the line above is read as this sweep's verdict
+                   * on the range, and a long scan that is working perfectly
+                   * looks like a finished scan of the wrong subnet (OneUptime
+                   * issue #3598). Blue rather than grey because it is the one
+                   * line here that describes something still happening.
+                   */}
+                  {outcome.progressSummary && (
+                    <div className="text-xs text-blue-600">
+                      {outcome.progressSummary}
+                    </div>
+                  )}
                   {outcome.pingOnlyHostCount > 0 && (
                     <div className="text-xs text-gray-500">
                       {`+ ${outcome.pingOnlyHostCount} alive without SNMP`}
@@ -1583,8 +1597,31 @@ const NetworkDeviceDiscovery: FunctionComponent<
             title: "Review Results",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
+            /*
+             * A RUNNING scan qualifies too, once it has found something.
+             *
+             * A sweep uploads what it has found every 30 seconds, so the hosts
+             * on an In Progress row are as real as a finished scan's — the
+             * probe found them; it simply has more of the range to cover. On a
+             * long scan, waiting for the whole range is what made hundreds of
+             * already-discovered switches unimportable for a day (OneUptime
+             * issues #3598 and #3599), and the import itself is idempotent per
+             * (project, address), so re-opening the dialog when more hosts
+             * arrive costs nothing.
+             *
+             * Gated on there being results rather than on the status alone: a
+             * scan that has just been claimed has an empty dialog to offer,
+             * which is a worse answer than no button.
+             */
             isVisible: (item: NetworkDeviceDiscoveryScan): boolean => {
-              return item.status === "Completed";
+              if (item.status === "Completed") {
+                return true;
+              }
+
+              return (
+                item.status === "In Progress" &&
+                getDiscoveredHosts(item).length > 0
+              );
             },
             onClick: async (
               item: NetworkDeviceDiscoveryScan,

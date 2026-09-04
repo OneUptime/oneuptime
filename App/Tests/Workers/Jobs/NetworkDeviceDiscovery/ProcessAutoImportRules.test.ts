@@ -241,4 +241,52 @@ describe("NetworkDeviceDiscovery:ProcessAutoImportRules worker", () => {
     );
     expect(mockedLogger.error).not.toHaveBeenCalled();
   });
+  /*
+   * github.com/OneUptime/oneuptime/issues/3599 — the sweep must offer the
+   * engine a scan that is still RUNNING, not only a finished one.
+   *
+   * A discovery sweep uploads what it has found every 30 seconds, and each
+   * upload clears the marker this query filters on. Reading only finished
+   * scans is what left 527 already-discovered switches unimportable for a
+   * whole day while the sweep that found them was still going.
+   */
+  test("offers the engine running scans as well as finished ones", async () => {
+    await runWorkerTick();
+
+    const query: Record<string, unknown> = (
+      scanService.findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    /*
+     * QueryHelper.any builds a raw TypeORM FindOperator, so the accepted
+     * values have to be read back out of its parameters — a test that only
+     * asserted "it is some operator" would pass for a filter that accepts the
+     * wrong statuses.
+     */
+    const parameters: Record<string, Array<string>> = (
+      query["status"] as {
+        _objectLiteralParameters: Record<string, Array<string>>;
+      }
+    )._objectLiteralParameters;
+
+    expect([...Object.values(parameters)[0]!].sort()).toEqual([
+      "Completed",
+      "In Progress",
+    ]);
+  });
+
+  /*
+   * The marker is still the whole protocol: a scan whose results have been
+   * processed is not offered again until something clears it, and for a
+   * running scan that something is its next partial upload.
+   */
+  test("still asks only for scans whose results have not been processed", async () => {
+    await runWorkerTick();
+
+    const query: Record<string, unknown> = (
+      scanService.findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["autoImportProcessedAt"]).toBeDefined();
+  });
 });

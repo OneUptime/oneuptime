@@ -3,6 +3,8 @@ import NetworkDeviceDiscoveryScan, {
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { isPingOnlyDiscoveredHost } from "./DiscoveredHostFilter";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import { isDiscoveryScanInProgress } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 
 /*
  * Pure, react-free reading of "what did this discovery scan actually find".
@@ -23,10 +25,35 @@ import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 
 export interface DiscoveryScanOutcome {
   /*
-   * "12 of 254 hosts", or null when the scan has not reported yet (Pending /
-   * In Progress) and there is nothing honest to show.
+   * "12 of 254 hosts", or null when the scan has reported nothing at all and
+   * there is nothing honest to show.
    */
   respondedHostSummary: string | null;
+  /*
+   * "Scanning - 1,024 of 15,360 addresses swept so far", for a scan that is
+   * still running and has already reported some of its range.
+   *
+   * Null for every other scan, and this is the line that stops the summary
+   * above being read as a verdict. A running sweep uploads what it has found
+   * every 30 seconds, so `scannedHostCount` on an In Progress row is
+   * "addresses covered so far" rather than the size of the target — without
+   * saying so, a 15,360-address scan renders as "4 of 1024 hosts" and looks
+   * like a finished sweep of a subnet that is not the one being scanned
+   * (OneUptime issue #3598).
+   *
+   * The denominator is derived from the scan's own target rather than stored,
+   * so it needs no column and cannot disagree with what the probe is
+   * sweeping. Null when the target cannot be parsed — there is no total to
+   * quote then, and a made-up one would be worse than none.
+   */
+  progressSummary: string | null;
+  /*
+   * True while the scan is mid-sweep. Callers use it to decide whether the
+   * numbers beside it are a running total (the Review dialog says so, and the
+   * dialog itself is reachable during a sweep precisely because the hosts are
+   * real).
+   */
+  isInProgress: boolean;
   /*
    * True when the scan has reported host counts. The explanation below is
    * worth showing WITHOUT them — a scan that never ran has no counts and is
@@ -97,6 +124,48 @@ export function countPingOnlyHosts(
   }).length;
 }
 
+/*
+ * The "still scanning" line, or null when there is nothing useful to say.
+ *
+ * Needs three things at once, which is why it is a function rather than a
+ * ternary at the call site: the scan has to be running, it has to have
+ * reported at least once (a claimed scan that has not sent a thing yet gets
+ * the unclaimed/claimed explanation instead), and its target has to be
+ * parseable into a total worth quoting.
+ */
+function buildProgressSummary(
+  scan: NetworkDeviceDiscoveryScan | null | undefined,
+  hasReported: boolean,
+  isInProgress: boolean,
+): string | null {
+  if (!isInProgress || !hasReported) {
+    return null;
+  }
+
+  const sweptHostCount: number | undefined | null = scan?.scannedHostCount;
+
+  if (typeof sweptHostCount !== "number") {
+    return null;
+  }
+
+  const totalHostCount: number = ScanTargetUtil.countHosts(scan?.cidr || "");
+
+  /*
+   * A malformed (or unselected) target counts 0. Quoting "of 0" would be
+   * nonsense, and so would quoting a total smaller than what has already been
+   * swept — which is what a row written by a probe too old to send progress
+   * looks like, since its scannedHostCount is the whole range.
+   */
+  if (totalHostCount <= 0 || totalHostCount <= sweptHostCount) {
+    return null;
+  }
+
+  return (
+    `Scanning - ${sweptHostCount.toLocaleString("en-US")} of ` +
+    `${totalHostCount.toLocaleString("en-US")} addresses swept so far`
+  );
+}
+
 /**
  * Everything the scans list needs to render one row's result cell.
  *
@@ -112,6 +181,8 @@ export function summarizeDiscoveryScan(
 
   const hasReported: boolean =
     respondedHostCount !== undefined && respondedHostCount !== null;
+
+  const isInProgress: boolean = isDiscoveryScanInProgress(scan);
 
   /*
    * Asked through ScanModeUtil so this page, the probe and the ingest endpoint
@@ -132,6 +203,8 @@ export function summarizeDiscoveryScan(
         ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts answered ping`
         : `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
       : null,
+    progressSummary: buildProgressSummary(scan, hasReported, isInProgress),
+    isInProgress: isInProgress,
     hasReported: hasReported,
     /*
      * Every host an ICMP-only sweep found is ping-only by construction, and
