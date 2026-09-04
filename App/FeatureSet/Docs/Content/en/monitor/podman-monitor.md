@@ -155,7 +155,7 @@ In addition to metrics, the Podman Agent tails every container's log file via th
 - `resource.container.id` — the full container ID
 - `resource.container.runtime` — always `podman`
 - `attributes["log.iostream"]` — `stdout` or `stderr`
-- `severityText` / `severityNumber` — derived from the stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — read from a level keyword in the line (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); lines with no recognisable level fall back to the stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — the raw log line emitted by the container process
 - `time` — the container engine's timestamp for the line
 

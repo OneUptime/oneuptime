@@ -28,6 +28,12 @@ import {
  *   - App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts
  *       NetworkDeviceDiscoveryScan.status/startedAt/statusMessage when a
  *       probe claims a Pending scan
+ *   - App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts
+ *       discoveredDevices/respondedHostCount/scannedHostCount/statusMessage/
+ *       autoImportProcessedAt when a RUNNING sweep posts what it has found so
+ *       far (OneUptime issues #3598 and #3599). This one lands every 30
+ *       seconds for the whole length of a sweep, which is why it may not pay
+ *       for the full pipeline either.
  *
  * The conversion dropped NOTHING: the model declares no update workflow, no
  * audit logging and no realtime events. But the fast path skips hooks
@@ -51,6 +57,22 @@ import {
  *
  * Pure model-metadata + class-shape tests — no Postgres, no Redis.
  */
+
+/*
+ * What a running sweep's progress write stamps: results, and the auto-import
+ * marker that makes them importable within the minute (OneUptime issue #3599).
+ *
+ * Deliberately NOT the run state — status, startedAt, completedAt, nextScanAt
+ * all belong to the run and are written once, by the final result. A progress
+ * write that touched any of them would end the run early.
+ */
+const PROGRESS_WRITE_COLUMNS: Array<string> = [
+  "discoveredDevices",
+  "respondedHostCount",
+  "scannedHostCount",
+  "statusMessage",
+  "autoImportProcessedAt",
+];
 
 describe("discovery-scan claim hookless write safety preconditions", () => {
   describe("NetworkDeviceDiscoveryScan model (claim write in DiscoveryScan.ts)", () => {
@@ -91,6 +113,8 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         "status",
         "startedAt",
         "statusMessage",
+        // ...and every column the running-sweep progress write stamps.
+        ...PROGRESS_WRITE_COLUMNS,
       ];
       for (const column of fastPathColumns) {
         expect(scan.isTableColumn(column)).toBe(true);
@@ -187,6 +211,14 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         "status",
         "startedAt",
         "statusMessage",
+        /*
+         * The progress write's columns get the same treatment, and need it
+         * more: it lands every 30 seconds for the whole length of a sweep,
+         * where the claim lands once. If a hook ever grows to care about a
+         * result column, this fails before that write starts silently
+         * skipping it.
+         */
+        ...PROGRESS_WRITE_COLUMNS,
       ];
 
       for (const column of claimWriteColumns) {

@@ -6,6 +6,10 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
+import {
+  getTableCellClassName,
+  getTableCellContentClassName,
+} from "./CellClassName";
 import Columns from "./Types/Columns";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -395,17 +399,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           )}
           {props.columns &&
             renderedColumns.map((column: Column<T>, i: number) => {
-              let className: string =
-                "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
               /*
-               * Compared against the rendered count, not the declared one:
-               * with any column filtered out the two differ, and the extra
-               * right padding would land on the wrong cell - or on none.
+               * Shared with the loading skeleton, so the two can no longer
+               * drift, and the one place that decides whether this cell's
+               * text may wrap.
                */
-              if (i === renderedColumns.length - 1) {
-                className =
-                  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              }
+              const className: string = getTableCellClassName<T>({
+                column: column,
+                isLastRenderedColumn: i === renderedColumns.length - 1,
+              });
 
               let columnContent: React.ReactNode = null;
 
@@ -479,12 +481,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 columnContent = column.getElement(props.item);
               }
 
-              const contentWrapperClassName: string = column.contentClassName
-                ? column.contentClassName
-                : "";
+              /*
+               * The column's own classes, plus the width cap a wrapping
+               * column gets - which has to sit on this div rather than on the
+               * <td>, because max-width is ignored on a table-cell box.
+               */
+              const contentWrapperClassName: string =
+                getTableCellContentClassName<T>(column);
 
-              const actionsContainerClassName: string = column.contentClassName
-                ? `flex justify-end ${column.contentClassName}`
+              const actionsContainerClassName: string = contentWrapperClassName
+                ? `flex justify-end ${contentWrapperClassName}`
                 : "flex justify-end";
 
               return (

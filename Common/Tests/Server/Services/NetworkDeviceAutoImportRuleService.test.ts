@@ -1,5 +1,7 @@
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
+import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPolicyService";
+import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
@@ -97,9 +99,31 @@ function mockMonitorTemplate(
     delete monitorTemplate.projectId;
   }
 
+  /*
+   * A template is only selectable if no Network Alert Policy already
+   * provisions from it, so every accepting case has to answer that question
+   * too. "No policy claims it" is the default; the cases about the conflict
+   * itself override this spy.
+   */
+  jest.spyOn(NetworkAlertPolicyService, "findBy").mockResolvedValue([]);
+
   return jest
     .spyOn(MonitorTemplateService, "findOneById")
     .mockResolvedValue(monitorTemplate);
+}
+
+/*
+ * The other side of the exclusivity rule: this template already belongs to a
+ * policy.
+ */
+function mockPolicyOwnsTemplate(): jest.SpyInstance {
+  const policy: NetworkAlertPolicy = new NetworkAlertPolicy();
+  policy._id = "99999999-9999-4999-8999-999999999999";
+  policy.projectId = PROJECT_ID;
+
+  return jest
+    .spyOn(NetworkAlertPolicyService, "findBy")
+    .mockResolvedValue([policy]);
 }
 
 describe("NetworkDeviceAutoImportRule monitor template column access", () => {
@@ -417,11 +441,15 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 
-  it("rejects selecting a template when ping-only hosts are included without a lookup", async () => {
-    const findTemplateSpy: jest.SpyInstance = jest.spyOn(
-      MonitorTemplateService,
-      "findOneById",
-    );
+  /*
+   * Ping-only hosts import as Probe devices under ping-first polling, so a
+   * rule that includes them may carry a Network Device monitor template
+   * like any other: the template is validated the ordinary way, and the
+   * refusal that used to live here ("Rules that include ping-only hosts
+   * cannot select a Network Device monitor template") is gone.
+   */
+  it("allows selecting a template on a rule that includes ping-only hosts", async () => {
+    const findTemplateSpy: jest.SpyInstance = mockMonitorTemplate();
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
@@ -430,11 +458,9 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
           includePingOnlyHosts: true,
         }),
       ),
-    ).rejects.toThrow(
-      "Rules that include ping-only hosts cannot select a Network Device monitor template.",
-    );
+    ).resolves.toBeDefined();
 
-    expect(findTemplateSpy).not.toHaveBeenCalled();
+    expect(findTemplateSpy).toHaveBeenCalledTimes(1);
   });
 
   it("allows exclusion and ping-only rules when no template is selected", async () => {
@@ -450,6 +476,57 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     ).resolves.toBeDefined();
 
     expect(findTemplateSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * THE INVARIANT THIS CASE EXISTS FOR. A provisioned monitor's provenance is
+   * the pair (device, template) — the partial unique index Monitor carries —
+   * so one template has room for exactly one provisioner per device. Sharing
+   * a template between a rule and a policy would have the rule provision a
+   * monitor on import that the policy's engine then believes it owns, and
+   * delete the moment that device left the policy's scope: an import rule
+   * silently losing its monitors because somebody edited a site list.
+   *
+   * NetworkAlertPolicyService refuses the mirror image (a policy on a
+   * template a rule uses). Both halves have to exist, or whichever thing is
+   * created second wins by accident.
+   */
+  it("refuses a template a network alert policy already provisions from", async () => {
+    mockMonitorTemplate();
+    mockPolicyOwnsTemplate();
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).rejects.toThrow(
+      "This Monitor Template is used by a network alert policy; pick a different template.",
+    );
+  });
+
+  it("asks about policies within the rule's own project", async () => {
+    mockMonitorTemplate();
+    const policySpy: jest.SpyInstance = mockPolicyOwnsTemplate();
+
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).rejects.toThrow(BadDataException);
+
+    /*
+     * Project-keyed, so another tenant's policy on a template of the same id
+     * can never refuse this project's rule — and can never be inferred from
+     * the refusal either.
+     */
+    expect(policySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          projectId: PROJECT_ID,
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      }),
+    );
   });
 });
 
@@ -729,8 +806,15 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 
-  it("rejects enabling ping-only hosts on a template-backed rule", async () => {
-    mockExistingRule({ monitorTemplateId: TEMPLATE_ID });
+  /*
+   * Toggling ping-only hosts has no bearing on the template any more, so
+   * it is not a provisioning change either: no row snapshot, no template
+   * lookup, and certainly no refusal.
+   */
+  it("lets ping-only hosts be enabled on a template-backed rule without a lookup", async () => {
+    const findRulesSpy: jest.SpyInstance = mockExistingRule({
+      monitorTemplateId: TEMPLATE_ID,
+    });
     const findTemplateSpy: jest.SpyInstance = jest.spyOn(
       MonitorTemplateService,
       "findOneById",
@@ -740,8 +824,9 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeUpdate monitor template val
       (NetworkDeviceAutoImportRuleService as any).onBeforeUpdate(
         makeUpdateBy({ includePingOnlyHosts: true }),
       ),
-    ).rejects.toThrow(BadDataException);
+    ).resolves.toBeDefined();
 
+    expect(findRulesSpy).not.toHaveBeenCalled();
     expect(findTemplateSpy).not.toHaveBeenCalled();
   });
 

@@ -37,7 +37,17 @@ const NOINDEX_META: RegExp =
   /<meta\s+name="robots"\s+content="noindex,\s*nofollow">/;
 
 function renderIndexPage(variables: JSONObject): string {
-  return ejs.render(fs.readFileSync(INDEX_TEMPLATE, "utf8"), variables);
+  return ejs.render(
+    fs.readFileSync(INDEX_TEMPLATE, "utf8"),
+    variables,
+    /*
+     * The template opens <head> with an include of the shared
+     * sensitive-URL-token partial, and ejs resolves that relative path against
+     * `filename`. Without it every render below throws on the include rather
+     * than reaching the robots tag it means to assert.
+     */
+    { filename: INDEX_TEMPLATE },
+  );
 }
 
 describe("the status page index template", () => {

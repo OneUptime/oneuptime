@@ -572,7 +572,9 @@ import { AddTelemetryExceptionErrorClass1790900000000 } from "./1790900000000-Ad
 import { AddEnterpriseLicenseUsageProvenance1790900000000 } from "./1790900000000-AddEnterpriseLicenseUsageProvenance";
 import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-AddUserNotificationEmailRollup";
 import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
-import { WidenCustomFieldDropdownOptions1791200000000 } from "./1791200000000-WidenCustomFieldDropdownOptions";
+import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "./1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
+import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTelemetryIngestionKeyType";
+import { WidenCustomFieldDropdownOptions1791400000000 } from "./1791400000000-WidenCustomFieldDropdownOptions";
 
 export default [
   InitialMigration,
@@ -1149,5 +1151,7 @@ export default [
   AddEnterpriseLicenseUsageProvenance1790900000000,
   AddUserNotificationEmailRollup1791000000000,
   AddUserNotificationEmailRollupSetting1791100000000,
-  WidenCustomFieldDropdownOptions1791200000000,
+  AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,
+  AddTelemetryIngestionKeyType1791300000000,
+  WidenCustomFieldDropdownOptions1791400000000,
 ];

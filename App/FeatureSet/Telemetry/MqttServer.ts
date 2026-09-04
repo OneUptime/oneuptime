@@ -15,6 +15,11 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyGuard, {
+  TelemetryIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
+import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import IoTDeviceCredentialService, {
   IoTDeviceCredentialContext,
 } from "Common/Server/Services/IoTDeviceCredentialService";
@@ -204,16 +209,48 @@ async function resolveAuthContext(
     return null;
   }
 
-  const projectId: ObjectID | null =
-    await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
-      projectSecretKey,
-    );
+  const policy: TelemetryIngestionKeyPolicy | null =
+    await TelemetryIngestionKeyService.getPolicyFromSecretKey(projectSecretKey);
 
-  if (!projectId) {
+  if (!policy) {
     return null;
   }
 
-  return { projectId };
+  /*
+   * Kill switch, expiry, and the key TYPE.
+   *
+   * The type check matters MORE here than on the gRPC port, not less. This
+   * broker's WebSocket listener rides the ordinary HTTP ingress, so unlike
+   * raw MQTT over TCP it is reachable straight from page JavaScript — which
+   * means a Browser key lifted out of a customer's page source could be
+   * replayed into MQTT ingest by the same script that scraped it, from any
+   * origin, with no Origin check to fail (a WebSocket handshake's Origin is
+   * not something this broker inspects). No OneUptime browser SDK publishes
+   * MQTT; browser keys exist for OTLP and session replay. So a Browser key
+   * presented at CONNECT has no honest explanation, and is refused.
+   */
+  const refusal: TelemetryIngestionKeyRefusal | null =
+    TelemetryIngestionKeyGuard.getRefusal({
+      policy: policy,
+      surface: TelemetryIngestSurface.Mqtt,
+    });
+
+  if (refusal) {
+    /*
+     * CONNACK rc=4 carries no reason string on the wire — MQTT 3.1.1 has no
+     * field for one — so this log line is the only place the WHY exists.
+     * It names the key id and the refusal reason and never the credential:
+     * on this transport the password IS the ingestion key, which is why
+     * nothing in this file ever logs it.
+     */
+    logger.warn(
+      `MQTT: ingestion key ${policy.ingestionKeyId.toString()} refused — ${refusal.reason}.`,
+      { service: "telemetry" },
+    );
+    return null;
+  }
+
+  return { projectId: policy.projectId };
 }
 
 async function handleAuthorizePublish(

@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * so the ALTER rewrites nothing and, unlike DROP + ADD, keeps every option
  * list customers have already configured.
  */
-export class WidenCustomFieldDropdownOptions1791200000000
+export class WidenCustomFieldDropdownOptions1791400000000
   implements MigrationInterface
 {
-  public name: string = "WidenCustomFieldDropdownOptions1791200000000";
+  public name: string = "WidenCustomFieldDropdownOptions1791400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*

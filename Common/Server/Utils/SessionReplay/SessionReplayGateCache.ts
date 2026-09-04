@@ -20,6 +20,7 @@ import {
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
 } from "../../../Types/Rum/SessionReplay";
 import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
+import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
 
 /*
  * Resolves the session-replay policy for one (project, appIdentifier) pair,
@@ -391,11 +392,13 @@ export default class SessionReplayGateCache {
   /*
    * Is `origin` covered by the application's allowlist?
    *
-   * Exact origin match, case-insensitive, plus a single leading "*." host
-   * wildcard so a customer with per-tenant subdomains does not have to
-   * enumerate thousands of them. Deliberately no scheme wildcard and no
-   * path matching: an allowlist entry is an origin, and anything looser
-   * would defeat the point of having one.
+   * The matching itself lives in Common/Utils/Telemetry/OriginAllowList so
+   * that this gate and the Browser telemetry-ingestion-key gate cannot drift
+   * apart - two allowlists with subtly different wildcard rules would be a
+   * confusing and exploitable split. What stays HERE is the empty-list
+   * policy, which is the one thing the two callers disagree about: session
+   * replay reads empty as "any origin", a Browser ingestion key reads it as
+   * "nothing". See the class comment in OriginAllowList.
    */
   public static isOriginAllowed(
     policy: SessionReplayGatePolicy,
@@ -422,52 +425,10 @@ export default class SessionReplayGateCache {
     /*
      * A configured allowlist is still enforced strictly: once the customer has
      * named their origins, a request without an Origin header is refused
-     * rather than waved through.
+     * rather than waved through. OriginAllowList.matches answers false for a
+     * missing or blank origin, so that rule is carried by the delegate.
      */
-    if (!origin) {
-      return false;
-    }
-
-    const normalizedOrigin: string = origin.trim().toLowerCase();
-
-    if (!normalizedOrigin) {
-      return false;
-    }
-
-    for (const allowed of policy.allowedOrigins) {
-      const normalizedAllowed: string = allowed.trim().toLowerCase();
-
-      if (!normalizedAllowed) {
-        continue;
-      }
-
-      if (normalizedAllowed === normalizedOrigin) {
-        return true;
-      }
-
-      const wildcardIndex: number = normalizedAllowed.indexOf("://*.");
-
-      if (wildcardIndex === -1) {
-        continue;
-      }
-
-      const scheme: string = normalizedAllowed.substring(0, wildcardIndex + 3);
-      const suffix: string = normalizedAllowed.substring(wildcardIndex + 4);
-
-      /*
-       * suffix keeps its leading dot, so "https://*.example.com" matches
-       * "https://a.example.com" but NOT "https://evilexample.com".
-       */
-      if (
-        normalizedOrigin.startsWith(scheme) &&
-        normalizedOrigin.endsWith(suffix) &&
-        normalizedOrigin.length > scheme.length + suffix.length
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return OriginAllowList.matches(origin, policy.allowedOrigins);
   }
 
   /*

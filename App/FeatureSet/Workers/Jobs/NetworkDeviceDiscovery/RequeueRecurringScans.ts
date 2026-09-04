@@ -38,19 +38,19 @@ import logger from "Common/Server/Utils/Logger";
  * it. nextScanAt is cleared on re-queue so a scan the probe never picks up
  * (probe offline) cannot be re-queued twice.
  *
- * discoveredDevices from the previous run are intentionally KEPT: the
- * dashboard's "Review Results" flow is only reachable while status is
- * Completed, so stale results are not reviewable during the re-run anyway,
+ * discoveredDevices from the previous run are intentionally KEPT: a re-queued
+ * scan is Pending, and neither the Review dialog nor auto-import reads a
+ * Pending row, so stale results are not reachable during the re-run anyway —
  * and the ingest endpoint overwrites them the moment new results arrive.
  * Clearing them here would only destroy the last good inventory.
  */
 /*
  * A discovery sweep is bounded work: at the ScanTargetUtil.MAX_SCAN_HOSTS
- * ceiling (32,768 addresses) 32 workers with 1s ping + 2s SNMP timeouts
- * finish in well under an hour even when the ICMP pre-sweep is unavailable
- * and every address is SNMP-probed directly. A scan still In Progress after
- * this long means the probe that claimed it died mid-scan (crash, redeploy,
- * decommission) and will never report back.
+ * ceiling (32,768 addresses) SubnetScanner sizes its worker pool to the
+ * target, so even the worst case — an unavailable ICMP pre-sweep and every
+ * address probed over SNMP — finishes in minutes rather than hours. A scan
+ * still In Progress after this long means the probe that claimed it died
+ * mid-scan (crash, redeploy, decommission) and will never report back.
  */
 const STALE_IN_PROGRESS_HOURS: number = 2;
 
@@ -74,6 +74,31 @@ RunCron(
           startedAt: QueryHelper.lessThan(
             OneUptimeDate.getSomeHoursAgo(STALE_IN_PROGRESS_HOURS),
           ),
+          /*
+           * ...and SILENT for that long, not merely running for it.
+           *
+           * A sweep uploads what it has found every 30 seconds now
+           * (Probe/Jobs/Discovery/FetchScans.ts), and every one of those
+           * uploads touches the row. So a probe that is demonstrably alive and
+           * demonstrably finding hosts keeps this clock reset, and a probe
+           * that died leaves it running from its last word — which is what
+           * "the probe did not report a result" was always meant to detect.
+           *
+           * Without this the reaper is a second, hidden deadline: an operator
+           * who raises PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS past two hours for a
+           * range that legitimately needs it would have the server mark the
+           * scan Failed underneath a probe that was still sweeping it, and the
+           * probe's eventual result would land on a row already declared dead.
+           *
+           * startedAt is kept in the query as well: the two together say "this
+           * run began long ago AND has gone quiet", which is the actual
+           * condition, and it keeps a scan whose only write was its claim
+           * (an older probe that reports nothing until the end) reaped exactly
+           * as it was before.
+           */
+          updatedAt: QueryHelper.lessThan(
+            OneUptimeDate.getSomeHoursAgo(STALE_IN_PROGRESS_HOURS),
+          ),
         },
         select: {
           _id: true,
@@ -87,7 +112,7 @@ RunCron(
 
     for (const scan of staleScans) {
       logger.warn(
-        `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been In Progress for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
+        `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been In Progress and silent for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
       );
 
       await NetworkDeviceDiscoveryScanService.updateOneById({
@@ -95,7 +120,7 @@ RunCron(
         // Cast: same DeepPartial-recursion workaround as below.
         data: {
           status: "Failed",
-          statusMessage: `The probe did not report a result within ${STALE_IN_PROGRESS_HOURS} hours. It may have gone offline mid-scan.`,
+          statusMessage: `The probe reported nothing about this scan for ${STALE_IN_PROGRESS_HOURS} hours - not even progress - so it may have gone offline mid-scan. Any hosts below are the ones it had already found and sent.`,
           completedAt: OneUptimeDate.getCurrentDate(),
           // Recurring scans become due immediately; ignored for one-shots.
           nextScanAt: OneUptimeDate.getCurrentDate(),

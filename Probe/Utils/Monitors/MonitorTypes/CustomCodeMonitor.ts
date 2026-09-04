@@ -64,6 +64,7 @@ export default class CustomCodeMonitor {
              * refused either way.
              */
             allowPrivateNetworkRequests: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+            privateNetworkAccessIsAllowed: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
             privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
           },
         });

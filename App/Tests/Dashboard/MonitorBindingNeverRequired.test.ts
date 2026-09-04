@@ -20,16 +20,24 @@ import path from "path";
  * could not explain why the same device was fine to save from three other
  * places.
  *
- * The fix is one line, which is precisely why it needs pinning: it is the
- * kind of line that comes back in a well-meant "the monitor is what gives
- * the device a status, so surely it should be required" refactor. This
- * reads every NetworkDevice form and asserts that the Monitor binding is
- * optional on all of them, and worded the same way on all of them.
+ * That form no longer asks for a monitor AT ALL. Registering a device says
+ * what the device is; every device it creates is probe-polled, and binding a
+ * monitor is an override applied afterwards, on the device's Settings page.
+ * So the surface that used to demand a binding is now the surface that must
+ * not offer one — a create form with a Monitor dropdown is a create form
+ * asking which of two monitoring stories the operator wants, which is the
+ * question this whole change removed.
+ *
+ * What is left to pin is one form and one shape: the Settings page's Monitor
+ * field is optional, and worded in the shared sentence, because "the monitor
+ * is what gives the device a status, so surely it should be required" is a
+ * well-meant refactor that comes back.
  *
  * METHOD. Source-text assertions, comments stripped and whitespace squashed,
  * the same approach as MonitorBackedDeviceColumnHonesty.test.ts — the App
  * suite runs in a plain Node environment with no React renderer, so the
- * forms cannot be mounted and submitted.
+ * forms cannot be mounted and submitted. The BEHAVIOUR of the create form's
+ * fields is pinned in Common/Tests/App/Dashboard, which can render them.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -45,10 +53,25 @@ const DASHBOARD_SRC: string = path.join(
  * Every form that can write NetworkDevice.monitorId. Paths are relative to
  * the Dashboard's `src/` and use "/" regardless of platform — they are split
  * before joining.
+ *
+ * There is one. The topology map's "Add to Monitoring" dialog and the
+ * Devices list's create form both dropped their binding field when the
+ * monitoring-method question went: every device either of them creates is
+ * probe-polled (AddNeighborToMonitoringWiring.test.ts and the NO_BINDING
+ * surfaces below pin that). Both still appear in HOSTNAME_SURFACES.
  */
 const NETWORK_DEVICE_FORMS: Array<string> = [
-  "Pages/NetworkDevice/Devices.tsx",
   "Pages/NetworkDevice/View/Settings.tsx",
+];
+
+/*
+ * The forms that create a device and must NOT ask for a monitor. A binding
+ * offered here is not a small extra field: it is the monitoring-method
+ * question wearing a different hat, and the device it produces is the one
+ * kind nothing polls.
+ */
+const NO_BINDING_FORMS: Array<string> = [
+  "Pages/NetworkDevice/Devices.tsx",
   "Components/Topology/AddNeighborToMonitoringModal.tsx",
 ];
 
@@ -104,6 +127,37 @@ function monitorField(page: string): string {
   return code.slice(start, end);
 }
 
+describe("the forms that register a device do not ask for a monitor", () => {
+  test.each(NO_BINDING_FORMS)("%s has no Monitor field", (page: string) => {
+    const code: string = readCode(page);
+
+    expect(code).not.toContain("field: { monitor: true, }");
+    /*
+     * And no leftovers of the field that was there: the shared copy is the
+     * binding's, and a form that still imports it is a form one paste away
+     * from offering it again.
+     */
+    expect(code).not.toContain("MONITOR_BINDING_FIELD_DESCRIPTION");
+    expect(code).not.toContain("MONITOR_BINDING_FIELD_PLACEHOLDER");
+  });
+
+  /*
+   * The other half of the same removal. `monitoringMethod` is what the
+   * binding field used to branch on, so a form that asks the question again
+   * will grow the field back to answer it.
+   */
+  test.each(NO_BINDING_FORMS)(
+    "%s asks no monitoring-method question",
+    (page: string) => {
+      const code: string = readCode(page);
+
+      expect(code).not.toContain("field: { monitoringMethod: true, }");
+      expect(code).not.toContain("MONITORING_METHOD_OPTIONS");
+      expect(code).not.toContain('id: "monitoring-method"');
+    },
+  );
+});
+
 describe("the Monitor binding is optional on every NetworkDevice form", () => {
   test.each(NETWORK_DEVICE_FORMS)(
     "%s marks the field required: false",
@@ -144,7 +198,12 @@ describe("the Monitor binding is optional on every NetworkDevice form", () => {
   );
 });
 
-describe("the three forms explain the optional binding the same way", () => {
+describe("the binding is explained by the shared sentence, not a local one", () => {
+  /*
+   * Shared even though one form now uses it, because the words are also what
+   * the Overview hero and the device list's "No monitor" tooltip send an
+   * operator here expecting to read. A local copy drifts from those.
+   */
   test.each(NETWORK_DEVICE_FORMS)(
     "%s uses the shared description and placeholder",
     (page: string) => {
@@ -205,8 +264,15 @@ describe("the hostname is explained the same way on every surface", () => {
     },
   );
 
+  /*
+   * The address is used differently by each kind of device, and one sentence
+   * serves all four surfaces, so it has to name both cases. "SNMP device"
+   * was the old name for a probe-polled one and is retired: the address is
+   * where the device is PINGED, with the SNMP walk as an upgrade that
+   * happens only once credentials resolve.
+   */
   test("the shared description covers both kinds of device", () => {
-    expect(HOSTNAME_FIELD_DESCRIPTION).toContain("SNMP device");
+    expect(HOSTNAME_FIELD_DESCRIPTION).toContain("probe-polled device");
     expect(HOSTNAME_FIELD_DESCRIPTION).toContain("monitor-backed device");
   });
 });

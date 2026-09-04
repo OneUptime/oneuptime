@@ -280,7 +280,11 @@ describe("a sweep that cannot run at all", () => {
 
     expect(reportedResult()["success"]).toBe(false);
     expect(String(reportedResult()["statusMessage"])).toContain("aes-256-gcm");
-    expect(reportedResult()["discoveredDevices"]).toEqual([]);
+    /*
+     * A failure report carries no host list at all, so it cannot erase hosts
+     * a running sweep had already uploaded (OneUptime issue #3598).
+     */
+    expect(reportedResult()).not.toHaveProperty("discoveredDevices");
   });
 
   test("a target that is too large fails rather than sweeping a subset", async () => {

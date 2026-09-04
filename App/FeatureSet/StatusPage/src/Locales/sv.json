@@ -57,6 +57,36 @@
     "today": "I dag",
     "notAvailable": "Inte tillgänglig"
   },
+  "uptimeHistory": {
+    "graphLabel": "Drifttidshistorik för de senaste {{total}} dagarna",
+    "dayLabel": "{{date}}: {{uptime}} % drifttid",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}} % drifttid, {{total}} incidenter",
+    "dayLabelNoData": "{{date}}: inga data",
+    "dayLabelNoDataWithIncidents": "{{date}}: inga data, {{total}} incidenter",
+    "uptime": "Drifttid",
+    "noMonitoringData": "Inga övervakningsdata för den här dagen",
+    "incidents": "Incidenter",
+    "noIncidents": "Inga incidenter",
+    "noIncidentsDescription": "Inga incidenter rapporterades den här dagen.",
+    "declared": "Registrerad",
+    "oneIncidentOnThisDay": "1 incident rapporterad den här dagen",
+    "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen"
+  },
+  "liveStatus": {
+    "updated": "Uppdaterad {{time}}",
+    "refresh": "Uppdatera",
+    "refreshing": "Uppdaterar",
+    "refreshFailed": "Det gick inte att uppdatera. Visar den senast kända statusen."
+  },
+  "search": {
+    "label": "Sök resurser",
+    "placeholder": "Sök resurser",
+    "clear": "Rensa sökning",
+    "resultCount": "{{matched}} av {{total}} resurser",
+    "noMatchesInGroup": "Inga resurser här matchar din sökning.",
+    "noResultsTitle": "Inga matchande resurser",
+    "noResultsDescription": "Ingenting på den här sidan matchar ”{{query}}”. Prova en kortare sökning."
+  },
   "incidents": {
     "title": "Incidenter",
     "singular": "Incident",

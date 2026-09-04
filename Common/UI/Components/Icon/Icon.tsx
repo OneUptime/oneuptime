@@ -930,6 +930,17 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
       />,
     );
+  } else if (icon === IconProp.Keyboard) {
+    return getSvgWrapper(
+      <React.Fragment>
+        <rect x="2.25" y="5.25" width="19.5" height="13.5" rx="2.25" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 9.75h.008M9.75 9.75h.008M13.5 9.75h.008M17.25 9.75h.008M7.5 13.5h.008M11.25 13.5h.008M15 13.5h.008M7.5 16.5h9"
+        />
+      </React.Fragment>,
+    );
   } else if (icon === IconProp.Error) {
     return getSvgWrapper(
       <path

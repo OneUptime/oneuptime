@@ -6,14 +6,25 @@ import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
   DeviceReachabilityResult,
+  NEVER_POLLED_PENDING_TOOLTIP,
   NO_MONITOR_QUALIFIER,
+  NO_PROBE_QUALIFIER,
+  NO_SNMP_INTERFACES_LABEL,
   NetworkDeviceStatus,
+  PROBE_POLLED_DOWN_TOOLTIP,
+  PROBE_POLLED_UP_TOOLTIP,
+  SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getStaleTooltip,
+  hasNoSnmpInventory,
+  isSnmpFailing,
   isUnboundMonitorBackedDevice,
+  isUnpolledProbeDevice,
 } from "../../../Components/NetworkDevice/DeviceStatusUtil";
 import Route from "Common/Types/API/Route";
-import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
+import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -25,8 +36,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * Every device assigned to this site — same status language as the main
  * device list (Up / Down / Pending, decided by the outcome of the last
- * SNMP poll rather than by how long ago it happened, or by the bound
- * Monitor for a device nothing polls).
+ * poll — ping or SNMP — rather than by how long ago it happened, or by
+ * the bound Monitor for a device nothing polls), with the same qualifier
+ * pills beside it.
  */
 const NetworkSiteDevices: FunctionComponent<
   PageComponentProps
@@ -87,14 +99,16 @@ const NetworkSiteDevices: FunctionComponent<
 
               /*
                * Same verdict either way, but never the same sentence: a
-               * device nothing polls has no "last SNMP poll" to talk
-               * about, and telling its operator to go and check a probe it
-               * does not have is how a real ping outage gets missed.
+               * device nothing polls has no "last poll" to talk about, and
+               * telling its operator to go and check a probe it does not
+               * have is how a real ping outage gets missed.
                */
               const isMonitorBacked: boolean = reachability.isMonitorBacked;
 
+              let verdictPill: ReactElement;
+
               if (reachability.status === NetworkDeviceStatus.Up) {
-                return (
+                verdictPill = (
                   <Pill
                     text="Up"
                     color={Green}
@@ -102,14 +116,12 @@ const NetworkSiteDevices: FunctionComponent<
                     tooltip={
                       isMonitorBacked
                         ? "The monitor bound to this device reports it healthy."
-                        : "The last SNMP poll reached this device."
+                        : PROBE_POLLED_UP_TOOLTIP
                     }
                   />
                 );
-              }
-
-              if (reachability.status === NetworkDeviceStatus.Down) {
-                return (
+              } else if (reachability.status === NetworkDeviceStatus.Down) {
+                verdictPill = (
                   <Pill
                     text="Down"
                     color={Red500}
@@ -117,48 +129,94 @@ const NetworkSiteDevices: FunctionComponent<
                     tooltip={
                       isMonitorBacked
                         ? "The monitor bound to this device reports it offline."
-                        : "The last SNMP poll could not reach this device."
+                        : PROBE_POLLED_DOWN_TOOLTIP
+                    }
+                  />
+                );
+              } else {
+                verdictPill = (
+                  <Pill
+                    text="Pending"
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={
+                      isMonitorBacked && isUnboundMonitorBackedDevice(item)
+                        ? UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP
+                        : isMonitorBacked
+                          ? BOUND_MONITOR_PENDING_TOOLTIP
+                          : NEVER_POLLED_PENDING_TOOLTIP
                     }
                   />
                 );
               }
 
               /*
-               * Pending is the verdict; "No monitor" is the qualifier that
-               * says whether it will ever change on its own. See
-               * NO_MONITOR_QUALIFIER for why it is a second pill and not a
-               * fourth verdict.
+               * The qualifiers: second pills beside the verdict, never a
+               * fourth verdict — see the qualifier notes in
+               * DeviceStatusUtil. "No monitor" and "No probe" are the two
+               * Pendings that never resolve on their own; "SNMP failing"
+               * qualifies an Up whose walk is not keeping up; "Stale" says
+               * nothing has polled the device lately.
                */
+              const qualifierPills: Array<ReactElement> = [];
+
               if (isMonitorBacked && isUnboundMonitorBackedDevice(item)) {
-                return (
-                  <div className="flex items-center gap-1.5">
-                    <Pill
-                      text="Pending"
-                      color={Gray500}
-                      size={PillSize.Small}
-                      tooltip={UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP}
-                    />
-                    <Pill
-                      text={NO_MONITOR_QUALIFIER.text}
-                      color={Gray500}
-                      size={PillSize.Small}
-                      tooltip={NO_MONITOR_QUALIFIER.tooltip}
-                    />
-                  </div>
+                qualifierPills.push(
+                  <Pill
+                    key="no-monitor"
+                    text={NO_MONITOR_QUALIFIER.text}
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={NO_MONITOR_QUALIFIER.tooltip}
+                  />,
                 );
               }
 
+              if (!isMonitorBacked && isUnpolledProbeDevice(item)) {
+                qualifierPills.push(
+                  <Pill
+                    key="no-probe"
+                    text={NO_PROBE_QUALIFIER.text}
+                    color={Gray500}
+                    size={PillSize.Small}
+                    tooltip={NO_PROBE_QUALIFIER.tooltip}
+                  />,
+                );
+              }
+
+              if (!isMonitorBacked && isSnmpFailing(item)) {
+                qualifierPills.push(
+                  <Pill
+                    key="snmp-failing"
+                    text={SNMP_FAILING_QUALIFIER.text}
+                    color={Yellow500}
+                    size={PillSize.Small}
+                    tooltip={SNMP_FAILING_QUALIFIER.tooltip}
+                  />,
+                );
+              }
+
+              if (reachability.isStale) {
+                qualifierPills.push(
+                  <Pill
+                    key="stale"
+                    text="Stale"
+                    color={Yellow500}
+                    size={PillSize.Small}
+                    tooltip={getStaleTooltip(reachability.staleWindowInMinutes)}
+                  />,
+                );
+              }
+
+              if (qualifierPills.length === 0) {
+                return verdictPill;
+              }
+
               return (
-                <Pill
-                  text="Pending"
-                  color={Gray500}
-                  size={PillSize.Small}
-                  tooltip={
-                    isMonitorBacked
-                      ? BOUND_MONITOR_PENDING_TOOLTIP
-                      : "This device has not been polled yet."
-                  }
-                />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {verdictPill}
+                  {qualifierPills}
+                </div>
               );
             },
           },
@@ -209,6 +267,49 @@ const NetworkSiteDevices: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: NetworkDevice): ReactElement => {
+              /*
+               * Interface counts are written by a successful SNMP walk and
+               * by nothing else. On a monitor-backed device, or on one that
+               * is pinged and never walked, "0 / 0" is not zero interfaces —
+               * it is never collected, which is a different claim (#3447).
+               */
+              if (
+                NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                  item.monitoringMethod,
+                )
+              ) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device."
+                  >
+                    —
+                  </span>
+                );
+              }
+
+              if (hasNoSnmpInventory(item)) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title={NO_SNMP_INTERFACES_LABEL.tooltip}
+                  >
+                    {NO_SNMP_INTERFACES_LABEL.text}
+                  </span>
+                );
+              }
+
+              if (!item.lastPolledAt) {
+                return (
+                  <span
+                    className="text-sm text-gray-400"
+                    title="Interfaces are collected by the first successful SNMP walk. This device has not been polled yet."
+                  >
+                    —
+                  </span>
+                );
+              }
+
               const up: number = (item.interfacesUp as number) || 0;
               const down: number = (item.interfacesDown as number) || 0;
               return (

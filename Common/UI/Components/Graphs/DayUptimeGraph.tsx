@@ -6,10 +6,13 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import UptimeEvent from "../../../Utils/Uptime/Event";
@@ -19,6 +22,20 @@ export type Event = UptimeEvent;
 export interface BarChartRule {
   barColor: Color;
   uptimePercentGreaterThanOrEqualTo: number;
+}
+
+/*
+ * Everything the tooltip shows for one day, handed to onBarClick so that a
+ * caller opening a dialog can show the same reading rather than a strictly
+ * poorer one. Before this existed the only way to see a day's uptime was to
+ * hover it, which is not something a touch screen or a keyboard can do.
+ */
+export interface UptimeBarDaySummary {
+  date: Date;
+  uptimePercent: number;
+  hasEvents: boolean;
+  statusDurations: Array<StatusDuration>;
+  incidents: Array<UptimeBarTooltipIncident>;
 }
 
 export interface ComponentProps {
@@ -31,15 +48,57 @@ export interface ComponentProps {
   defaultBarColor: Color;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
   onBarClick?:
-    | ((date: Date, incidents: Array<UptimeBarTooltipIncident>) => void)
+    | ((
+        date: Date,
+        incidents: Array<UptimeBarTooltipIncident>,
+        summary: UptimeBarDaySummary,
+      ) => void)
     | undefined;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * Wording for the accessible names. Defaults to English, matching the
+   * tooltip; the status page passes translated strings.
+   */
+  labels?: UptimeHistoryLabels | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [days, setDays] = useState<number>(0);
+
+  /*
+   * The strip is one tab stop with a roving tabindex inside it - see
+   * DayUptimeGraphUtil. null means "nothing focused yet", which resolves to
+   * today rather than to three months ago.
+   */
+  const [focusedBarIndex, setFocusedBarIndex] = useState<number | null>(null);
+  const barRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
+    useRef<Array<HTMLButtonElement | null>>([]);
+
+  /*
+   * Set only by a key press, so that moving focus is a thing the widget does
+   * in response to the keyboard and never a thing it does to a visitor who
+   * simply clicked. Focus is applied in an effect rather than in the handler
+   * because the bar the visitor is moving to may not be the same DOM node
+   * after the render that the key press causes.
+   */
+  const shouldRestoreFocus: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!shouldRestoreFocus.current) {
+      return;
+    }
+
+    shouldRestoreFocus.current = false;
+
+    if (focusedBarIndex === null) {
+      return;
+    }
+
+    barRefs.current[focusedBarIndex]?.focus();
+  }, [focusedBarIndex]);
 
   useEffect(() => {
     setDays(
@@ -49,6 +108,40 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       ),
     );
   }, [props.startDate, props.endDate]);
+
+  const activeBarIndex: number = DayUptimeGraphUtil.getActiveBarIndex({
+    storedIndex: focusedBarIndex,
+    barCount: days,
+  });
+
+  type MoveFocusFunction = (event: React.KeyboardEvent, index: number) => void;
+
+  const moveFocus: MoveFocusFunction = (
+    event: React.KeyboardEvent,
+    index: number,
+  ): void => {
+    const nextIndex: number | null = DayUptimeGraphUtil.getNextFocusIndex({
+      key: event.key,
+      currentIndex: index,
+      barCount: days,
+    });
+
+    if (nextIndex === null) {
+      // Not ours: Tab, Enter and Space must keep their normal meaning.
+      return;
+    }
+
+    event.preventDefault();
+    shouldRestoreFocus.current = true;
+    setFocusedBarIndex(nextIndex);
+
+    /*
+     * Focused here as well as in the effect: when the strip does not re-render
+     * (the index it was already on), the effect does not run, and focus must
+     * still land somewhere real.
+     */
+    barRefs.current[nextIndex]?.focus();
+  };
 
   type GetIncidentsForDayFunction = (
     startOfDay: Date,
@@ -236,8 +329,33 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       });
     }
 
-    const hasDayIncidents: boolean = dayIncidents.length > 0;
-    const isClickable: boolean = hasDayIncidents && Boolean(props.onBarClick);
+    /*
+     * Every day opens, not only the days that happen to carry an incident.
+     * The uptime reading and the status breakdown used to live in a hover
+     * tooltip and nowhere else, which put them out of reach of every phone
+     * and every keyboard - and a phone is how most people read a status page
+     * during an outage.
+     */
+    const isClickable: boolean = Boolean(props.onBarClick);
+
+    const summary: UptimeBarDaySummary = {
+      date: todaysDay,
+      uptimePercent: uptimePercentForTheDay,
+      hasEvents: hasEvents,
+      statusDurations: statusDurations,
+      incidents: dayIncidents,
+    };
+
+    const ariaLabel: string = DayUptimeGraphUtil.getDayAriaLabel({
+      dateLabel: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        todaysDay,
+        true,
+      ),
+      hasEvents: hasEvents,
+      uptimePercent: uptimePercentForTheDay,
+      incidentCount: dayIncidents.length,
+      labels: props.labels,
+    });
 
     return (
       <Tooltip
@@ -250,22 +368,56 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             statusDurations={statusDurations}
             incidents={dayIncidents}
             onIncidentClick={props.onIncidentClick}
+            labels={props.labels}
           />
         }
       >
-        <div
-          className={`${className}${isClickable ? " cursor-pointer hover:opacity-80" : ""}`}
+        <button
+          type="button"
+          ref={(element: HTMLButtonElement | null) => {
+            barRefs.current[dayNumber] = element;
+          }}
+          data-testid="uptime-bar"
+          data-day-index={dayNumber}
+          aria-label={ariaLabel}
+          /*
+           * One tab stop for the whole strip. Ninety bars per resource across
+           * a page of resources would otherwise bury the footer behind
+           * thousands of Tab presses.
+           */
+          tabIndex={DayUptimeGraphUtil.getBarTabIndex({
+            index: dayNumber,
+            activeIndex: activeBarIndex,
+          })}
+          /*
+           * The focus indicator is drawn *inside* the bar (a negative outline
+           * offset), not around it. Callers wrap this strip in an
+           * overflow-x-auto scroller so it can be swiped on a phone, and
+           * overflow-x also clips vertically - anything drawn outside the
+           * bar's own box loses its top and bottom edge to that scroller. Two
+           * pixels of indigo inside a seven pixel bar reads clearly against
+           * every bar colour and cannot be clipped by anything.
+           */
+          className={`${className} relative block p-0 border-0 appearance-none focus:outline-none focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-600${
+            isClickable ? " cursor-pointer hover:opacity-80" : ""
+          }`}
           style={{
             backgroundColor: color.toString(),
+          }}
+          onFocus={() => {
+            setFocusedBarIndex(dayNumber);
+          }}
+          onKeyDown={(event: React.KeyboardEvent) => {
+            moveFocus(event, dayNumber);
           }}
           onClick={
             isClickable
               ? () => {
-                  props.onBarClick!(todaysDay, dayIncidents);
+                  props.onBarClick!(todaysDay, dayIncidents, summary);
                 }
               : undefined
           }
-        ></div>
+        />
       </Tooltip>
     );
   };
@@ -282,8 +434,21 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     return elements;
   };
 
+  /*
+   * Deliberately not overflow-hidden any more: it clipped the focus ring of
+   * the first and last bar, which is the one part of this widget a keyboard
+   * user has to be able to see.
+   */
   return (
-    <div className="flex space-x-0.5 rounded overflow-hidden">
+    <div
+      className="flex space-x-0.5 rounded"
+      role="group"
+      aria-label={DayUptimeGraphUtil.getGraphAriaLabel({
+        dayCount: days,
+        labels: props.labels,
+      })}
+      data-testid="day-uptime-graph"
+    >
       {getUptimeGraph()}
     </div>
   );

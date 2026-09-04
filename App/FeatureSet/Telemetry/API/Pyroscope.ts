@@ -2,6 +2,7 @@ import TelemetryIngest, {
   TelemetryRequest,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
   ExpressRequest,
@@ -51,7 +52,7 @@ router.post(
   MultipartFormDataMiddleware,
   mapBearerTokenMiddleware,
   setProfilesProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -70,7 +71,7 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   mapBearerTokenMiddleware,
   setProfilesProductType,
-  TelemetryIngest.isAuthorizedServiceMiddleware,
+  TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

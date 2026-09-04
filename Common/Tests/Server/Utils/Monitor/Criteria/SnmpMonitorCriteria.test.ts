@@ -760,3 +760,199 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
   });
 });
+
+/*
+ * Ping-first polling. A device with no usable SNMP credentials is only
+ * pinged, and the walk pipeline hands its monitors a response with
+ * `snmpResponse` undefined - never a synthesized failure. Every criterion
+ * that reads the walk must then be NOT EVALUATED (null) rather than
+ * breaching, while reachability keeps reading the top-level isOnline.
+ */
+function buildPingOnlyDataToProcess(input: {
+  isOnline: boolean;
+}): ProbeMonitorResponse {
+  return {
+    projectId: ObjectID.generate(),
+    monitorId: ObjectID.generate(),
+    monitorStepId: ObjectID.generate(),
+    probeId: ObjectID.generate(),
+    failureCause: input.isOnline ? "" : "Request timed out",
+    isOnline: input.isOnline,
+    pingResponse: {
+      packetsSent: 2,
+      packetsReceived: input.isOnline ? 2 : 0,
+      packetLossPercent: input.isOnline ? 0 : 100,
+      avgRoundTripTimeInMs: input.isOnline ? 1.5 : undefined,
+    },
+    monitoredAt: new Date(),
+  };
+}
+
+describe("SnmpMonitorCriteria — ping-first polling", () => {
+  describe("a poll that ran no walk evaluates no walk-dependent criterion", () => {
+    const walkDependentFilters: Array<CriteriaFilter> = [
+      {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+      {
+        checkOn: CheckOn.SnmpOidExists,
+        filterType: FilterType.False,
+        value: undefined,
+        snmpMonitorOptions: { oid: PSU_OID },
+      },
+      {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.EqualTo,
+        value: "3",
+        snmpMonitorOptions: { oid: PSU_OID },
+      },
+      {
+        checkOn: CheckOn.SnmpResponseTime,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      },
+      {
+        checkOn: CheckOn.SnmpInterfaceIsDown,
+        filterType: FilterType.False,
+        value: undefined,
+      },
+      {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.LessThan,
+        value: 100,
+      },
+      {
+        checkOn: CheckOn.SnmpInterfaceErrorsPerSecond,
+        filterType: FilterType.LessThan,
+        value: 100,
+      },
+    ];
+
+    for (const criteriaFilter of walkDependentFilters) {
+      /*
+       * Each of these filters is chosen to MATCH an empty/absent walk if it
+       * were evaluated ("OID Exists is False", "Interface Is Down is
+       * False", "Walk Is Succeeding is False"), which is exactly the
+       * false incident a ping-only device must never raise.
+       */
+      test(`${criteriaFilter.checkOn} is not evaluated (null) on a reachable ping-only poll`, async () => {
+        const result: string | null =
+          await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+            dataToProcess: buildPingOnlyDataToProcess({ isOnline: true }),
+            criteriaFilter,
+          });
+
+        expect(result).toBeNull();
+      });
+    }
+  });
+
+  describe("SnmpIsOnline reads device reachability, with or without a walk", () => {
+    test("a reachable ping-only poll satisfies 'Is Online = True'", async () => {
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: buildPingOnlyDataToProcess({ isOnline: true }),
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        });
+
+      expect(result).toBeTruthy();
+    });
+
+    test("an unreachable ping-only poll satisfies 'Is Online = False' (the unreachable incident)", async () => {
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: buildPingOnlyDataToProcess({ isOnline: false }),
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        });
+
+      expect(result).toBeTruthy();
+    });
+
+    /*
+     * ICMP-filtered SNMP gear: the walk succeeded, so the device is
+     * reachable even though the top-level verdict is what is read - the
+     * pipeline stamps isOnline = ping || walk, and that is what arrives.
+     */
+    test("reads the top-level verdict, not the walk's: a failed walk on a reachable device is still online", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        isOnline: false,
+      });
+      dataToProcess.isOnline = true;
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        });
+
+      expect(result).toBeTruthy();
+    });
+  });
+
+  describe("SnmpWalkIsSucceeding reads the walk itself", () => {
+    test("a failed walk satisfies 'Walk Is Succeeding = False' (the walk-failing alert)", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        isOnline: false,
+      });
+      // The device still answers ping; only the walk is broken.
+      dataToProcess.isOnline = true;
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpWalkIsSucceeding,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        });
+
+      expect(result).toBeTruthy();
+    });
+
+    test("a successful walk satisfies 'Walk Is Succeeding = True' and not 'False'", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        isOnline: true,
+      });
+
+      expect(
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpWalkIsSucceeding,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        }),
+      ).toBeTruthy();
+
+      expect(
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter: {
+            checkOn: CheckOn.SnmpWalkIsSucceeding,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).toBeNull();
+    });
+  });
+});

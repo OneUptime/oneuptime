@@ -192,6 +192,10 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSnmpIsOnlineObservation(
           input,
         );
+      case CheckOn.SnmpWalkIsSucceeding:
+        return MonitorCriteriaObservationBuilder.describeSnmpWalkIsSucceedingObservation(
+          input,
+        );
       case CheckOn.SnmpResponseTime:
         return MonitorCriteriaObservationBuilder.describeSnmpResponseTimeObservation(
           input,
@@ -1468,25 +1472,58 @@ export default class MonitorCriteriaObservationBuilder {
     return { snmpResponse, oid, oidResponse };
   }
 
+  /*
+   * "Is Online" is device reachability - ping OR a successful walk - which
+   * is the top-level isOnline the walk pipeline stamps, not the walk's own
+   * verdict. A device with no credentials is only pinged, so reading the
+   * walk here would describe every such device as "SNMP response was
+   * unavailable" on a poll that found it perfectly reachable.
+   */
   private static describeSnmpIsOnlineObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    if (!probeResponse || probeResponse.isOnline === undefined) {
+      return "Device reachability was not recorded.";
+    }
+
+    if (probeResponse.isOnline) {
+      return "Device is reachable (answered ping or SNMP).";
+    }
+
+    if (probeResponse.failureCause) {
+      return `Device is unreachable by ping and SNMP: ${probeResponse.failureCause}`;
+    }
+
+    return "Device is unreachable by ping and SNMP.";
+  }
+
+  /*
+   * The walk itself, separately from reachability. No walk on this poll is
+   * a distinct, non-failure state: it is what a ping-only device looks like
+   * every cycle, and the criterion is not evaluated for it.
+   */
+  private static describeSnmpWalkIsSucceedingObservation(input: {
     dataToProcess: DataToProcess;
   }): string | null {
     const snmpResponse: SnmpMonitorResponse | null =
       MonitorCriteriaObservationBuilder.getSnmpResponse(input);
 
     if (!snmpResponse) {
-      return "SNMP response was unavailable.";
+      return "No SNMP walk ran on this poll (the device is only pinged).";
     }
 
     if (snmpResponse.isOnline) {
-      return "SNMP device is online.";
+      return "SNMP walk succeeded.";
     }
 
     if (snmpResponse.failureCause) {
-      return `SNMP device is offline: ${snmpResponse.failureCause}`;
+      return `SNMP walk failed: ${snmpResponse.failureCause}`;
     }
 
-    return "SNMP device is offline.";
+    return "SNMP walk failed.";
   }
 
   private static describeSnmpResponseTimeObservation(input: {

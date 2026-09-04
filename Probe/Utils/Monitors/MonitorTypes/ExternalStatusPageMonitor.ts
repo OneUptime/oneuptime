@@ -2,14 +2,34 @@ import OnlineCheck from "../../OnlineCheck";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
-import Sleep from "Common/Types/Sleep";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
-import axios, { AxiosResponse } from "axios";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import TimeoutException from "Common/Types/Exception/TimeoutException";
+import Headers from "Common/Types/API/Headers";
+import HTTPMethod from "Common/Types/API/HTTPMethod";
+import HTTPResponseBodyReader from "Common/Utils/HTTPResponseBodyReader";
+import HttpMonitorRequest, {
+  HttpMonitorExecutionContext,
+  PreparedHttpMonitorRequest,
+  RedirectRequest,
+} from "../HttpMonitorRequest";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { XMLParser } from "fast-xml-parser";
+
+/*
+ * XML object graphs can be tens of times larger than the wire representation.
+ * Status feeds are normally small, so keep a tighter streaming ceiling and
+ * structural bounds before fast-xml-parser materializes attacker-controlled
+ * nodes in the shared probe process.
+ */
+export const EXTERNAL_STATUS_PAGE_XML_MAX_RESPONSE_BYTES: number = 512 * 1024;
+export const EXTERNAL_STATUS_PAGE_XML_MAX_ELEMENT_COUNT: number = 5000;
+export const EXTERNAL_STATUS_PAGE_XML_MAX_DEPTH: number = 64;
+const HTML_DOCTYPE_PATTERN: RegExp = /^<!doctype\s+html(?:\s|>)/i;
 
 export interface ExternalStatusPageQueryOptions {
   timeout?: number | undefined;
@@ -18,6 +38,12 @@ export interface ExternalStatusPageQueryOptions {
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
+  executionContext?: HttpMonitorExecutionContext | undefined;
+}
+
+interface ExternalStatusPageQueryOptionsWithExecutionContext
+  extends ExternalStatusPageQueryOptions {
+  executionContext: HttpMonitorExecutionContext;
 }
 
 // Normalized component, before scoping is applied. Shared across structured providers.
@@ -127,6 +153,194 @@ interface IncidentIoResponse {
 }
 
 export default class ExternalStatusPageMonitorUtil {
+  private static isTimeoutError(error: unknown): boolean {
+    if (error instanceof TimeoutException) {
+      return true;
+    }
+
+    const errorCode: unknown = (error as { code?: unknown })?.code;
+    if (
+      typeof errorCode === "string" &&
+      ["ECONNABORTED", "ETIMEDOUT", "ERR_CANCELED"].includes(
+        errorCode.toUpperCase(),
+      )
+    ) {
+      return true;
+    }
+
+    const message: string = (
+      error instanceof Error ? error.message : String(error)
+    ).toLowerCase();
+
+    return (
+      message.includes("timeout") ||
+      message.includes("timed out") ||
+      message.includes("etimeout") ||
+      message.includes("econnaborted")
+    );
+  }
+
+  private static isFailClosedError(error: unknown): boolean {
+    return (
+      error instanceof BadDataException ||
+      ExternalStatusPageMonitorUtil.isTimeoutError(error)
+    );
+  }
+
+  private static async readBudgetedResponseBody(
+    response: AxiosResponse,
+    executionContext: HttpMonitorExecutionContext,
+    requestedResponseType: AxiosRequestConfig["responseType"] | undefined,
+    maximumResponseBytes?: number | undefined,
+  ): Promise<void> {
+    const body: Buffer = await HTTPResponseBodyReader.read(response.data, {
+      budget: executionContext.responseBodyBudget,
+      statusCode: response.status,
+      headers: response.headers,
+      limitRedirectResponseBody: true,
+      maximumResponseBytes: maximumResponseBytes,
+    });
+    const text: string = HTTPResponseBodyReader.decodeUtf8(body);
+
+    if (requestedResponseType === "text") {
+      response.data = text;
+      return;
+    }
+
+    if (!text) {
+      response.data = "";
+      return;
+    }
+
+    try {
+      response.data = JSON.parse(text) as unknown;
+    } catch {
+      response.data = text;
+    }
+  }
+
+  private static async guardedGet(
+    initialUrl: string,
+    options: {
+      executionContext: HttpMonitorExecutionContext;
+      headers?: Headers | undefined;
+      responseType?: AxiosRequestConfig["responseType"] | undefined;
+      validateStatus?: ((status: number) => boolean) | undefined;
+      maximumResponseBytes?: number | undefined;
+    },
+  ): Promise<AxiosResponse> {
+    let currentUrl: string = initialUrl;
+    let currentHeaders: Headers = { ...(options.headers || {}) };
+    let redirectsFollowed: number = 0;
+    const finalStatusIsAccepted: (status: number) => boolean =
+      options.validateStatus ||
+      ((status: number): boolean => {
+        return status >= 200 && status < 300;
+      });
+
+    while (true) {
+      const requestUrl: string = currentUrl;
+      const requestHeaders: Headers = currentHeaders;
+      const prepared: PreparedHttpMonitorRequest =
+        await options.executionContext.run(
+          async (): Promise<PreparedHttpMonitorRequest> => {
+            return await HttpMonitorRequest.prepare(requestUrl, {
+              headers: requestHeaders,
+            });
+          },
+        );
+      const axiosOptions: AxiosRequestConfig = {
+        timeout: options.executionContext.remainingTimeoutInMs(),
+        headers: prepared.headers,
+        validateStatus: (status: number): boolean => {
+          return (
+            [301, 302, 303, 307, 308].includes(status) ||
+            finalStatusIsAccepted(status)
+          );
+        },
+        maxRedirects: 0,
+        proxy: false,
+        /*
+         * Axios must not pre-empt the streamed reader: its Node adapter drops
+         * the chunk that crosses maxContentLength before our cumulative
+         * budget can charge those already-received bytes.
+         */
+        maxContentLength: -1,
+        maxBodyLength: prepared.maxBodyLength,
+        responseType: "stream",
+        signal: options.executionContext.signal,
+      };
+
+      if (prepared.httpAgent) {
+        axiosOptions.httpAgent = prepared.httpAgent;
+      }
+      if (prepared.httpsAgent) {
+        axiosOptions.httpsAgent = prepared.httpsAgent;
+      }
+
+      const response: AxiosResponse = await options.executionContext.run(
+        async (): Promise<AxiosResponse> => {
+          try {
+            const axiosResponse: AxiosResponse = await axios.get(
+              prepared.dispatchUrl,
+              axiosOptions,
+            );
+            await ExternalStatusPageMonitorUtil.readBudgetedResponseBody(
+              axiosResponse,
+              options.executionContext,
+              options.responseType,
+              options.maximumResponseBytes,
+            );
+            return axiosResponse;
+          } catch (error: unknown) {
+            if (axios.isAxiosError(error) && error.response) {
+              await ExternalStatusPageMonitorUtil.readBudgetedResponseBody(
+                error.response,
+                options.executionContext,
+                options.responseType,
+                options.maximumResponseBytes,
+              );
+            }
+            throw error;
+          }
+        },
+      );
+
+      const responseHeaders: Headers = {};
+      const location: unknown = response.headers?.["location"];
+      if (typeof location === "string") {
+        responseHeaders["location"] = location;
+      }
+
+      const redirect: RedirectRequest | null =
+        HttpMonitorRequest.getRedirectRequest({
+          currentUrl: currentUrl,
+          statusCode: response.status,
+          responseHeaders: responseHeaders,
+          currentMethod: HTTPMethod.GET,
+          requestHeaders: currentHeaders,
+          redirectsFollowed: redirectsFollowed,
+        });
+
+      if (!redirect) {
+        if (!finalStatusIsAccepted(response.status)) {
+          throw new AxiosError(
+            `Request failed with status code ${response.status}`,
+            AxiosError.ERR_BAD_RESPONSE,
+            response.config,
+            response.request,
+            response,
+          );
+        }
+        return response;
+      }
+
+      currentUrl = redirect.url;
+      currentHeaders = redirect.headers;
+      redirectsFollowed++;
+    }
+  }
+
   public static async fetch(
     config: MonitorStepExternalStatusPageMonitor,
     options?: ExternalStatusPageQueryOptions,
@@ -142,6 +356,17 @@ export default class ExternalStatusPageMonitorUtil {
     if (!options.attempts) {
       options.attempts = [];
     }
+
+    const ownsExecutionContext: boolean = !options.executionContext;
+    if (!options.executionContext) {
+      options.executionContext = new HttpMonitorExecutionContext(
+        options.timeout ?? config.timeout ?? 10000,
+      );
+    }
+    const executionContext: HttpMonitorExecutionContext =
+      options.executionContext;
+    const queryOptions: ExternalStatusPageQueryOptionsWithExecutionContext =
+      options as ExternalStatusPageQueryOptionsWithExecutionContext;
 
     logger.debug(
       `External Status Page Query: ${options?.monitorId?.toString()} ${config.statusPageUrl} - Retry: ${options?.currentRetryCount}`,
@@ -167,20 +392,20 @@ export default class ExternalStatusPageMonitorUtil {
          */
         response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
           config,
-          options,
+          queryOptions,
         );
 
         if (!response) {
           response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
             config,
-            options,
+            queryOptions,
           );
         }
 
         if (!response) {
           response = await ExternalStatusPageMonitorUtil.tryRssAtomFeed(
             config,
-            options,
+            queryOptions,
           );
         }
       } else if (
@@ -188,12 +413,12 @@ export default class ExternalStatusPageMonitorUtil {
       ) {
         response = await ExternalStatusPageMonitorUtil.tryAtlassianStatuspage(
           config,
-          options,
+          queryOptions,
         );
       } else if (provider === ExternalStatusPageProviderType.IncidentIo) {
         response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
           config,
-          options,
+          queryOptions,
         );
       } else if (
         provider === ExternalStatusPageProviderType.RSS ||
@@ -201,7 +426,7 @@ export default class ExternalStatusPageMonitorUtil {
       ) {
         response = await ExternalStatusPageMonitorUtil.tryRssAtomFeed(
           config,
-          options,
+          queryOptions,
         );
       }
 
@@ -209,7 +434,7 @@ export default class ExternalStatusPageMonitorUtil {
         // If all methods fail, just check if the URL is reachable
         response = await ExternalStatusPageMonitorUtil.tryBasicHttpCheck(
           config,
-          options,
+          queryOptions,
         );
       }
 
@@ -281,14 +506,21 @@ export default class ExternalStatusPageMonitorUtil {
        * ?? not ||: a caller asking for zero retries means zero, not "fall
        * through to the config default".
        */
-      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
+      if (
+        !ExternalStatusPageMonitorUtil.isFailClosedError(err) &&
+        options.currentRetryCount < (options.retry ?? config.retries ?? 3) &&
+        executionContext.canWait(1000)
+      ) {
         options.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await executionContext.sleep(1000);
         return await ExternalStatusPageMonitorUtil.fetch(config, options);
       }
 
       // Check if the probe is online
-      if (!options.isOnlineCheckRequest) {
+      if (
+        !ExternalStatusPageMonitorUtil.isFailClosedError(err) &&
+        !options.isOnlineCheckRequest
+      ) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
             `ExternalStatusPageMonitor - Probe is not online. Cannot fetch ${options?.monitorId?.toString()} ${config.statusPageUrl} - ERROR: ${err}`,
@@ -298,10 +530,7 @@ export default class ExternalStatusPageMonitorUtil {
       }
 
       const isTimeout: boolean =
-        (err as Error).message?.toLowerCase().includes("timeout") ||
-        (err as Error).message?.toLowerCase().includes("timed out") ||
-        (err as Error).message?.toLowerCase().includes("etimeout") ||
-        (err as Error).message?.toLowerCase().includes("econnaborted");
+        ExternalStatusPageMonitorUtil.isTimeoutError(err);
 
       if (isTimeout) {
         return {
@@ -331,6 +560,11 @@ export default class ExternalStatusPageMonitorUtil {
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,
       };
+    } finally {
+      if (ownsExecutionContext) {
+        executionContext.dispose();
+        delete options.executionContext;
+      }
     }
   }
 
@@ -492,16 +726,10 @@ export default class ExternalStatusPageMonitorUtil {
 
   private static async tryAtlassianStatuspage(
     config: MonitorStepExternalStatusPageMonitor,
-    options: ExternalStatusPageQueryOptions,
+    options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
       const baseUrl: string = config.statusPageUrl.replace(/\/+$/, "");
-      /*
-       * options.timeout first: it carries the caller's per-step setting,
-       * and reading config.timeout ahead of it meant the step setting could
-       * never win.
-       */
-      const timeout: number = options.timeout || config.timeout || 10000;
       const headers: Record<string, string> = {
         Accept: "application/json",
         "User-Agent": "OneUptime-Probe/1.0",
@@ -509,8 +737,8 @@ export default class ExternalStatusPageMonitorUtil {
 
       // Fetch status
       const statusUrl: string = `${baseUrl}/api/v2/status.json`;
-      const statusResponse: AxiosResponse = await axios.get(statusUrl, {
-        timeout: timeout,
+      const statusResponse: AxiosResponse = await this.guardedGet(statusUrl, {
+        executionContext: options.executionContext,
         headers: headers,
         validateStatus: (status: number) => {
           return status < 500;
@@ -536,10 +764,10 @@ export default class ExternalStatusPageMonitorUtil {
       const components: Array<RawExternalComponent> = [];
       try {
         const componentsUrl: string = `${baseUrl}/api/v2/components.json`;
-        const componentsResponse: AxiosResponse = await axios.get(
+        const componentsResponse: AxiosResponse = await this.guardedGet(
           componentsUrl,
           {
-            timeout: timeout,
+            executionContext: options.executionContext,
             headers: headers,
           },
         );
@@ -576,6 +804,9 @@ export default class ExternalStatusPageMonitorUtil {
           }
         }
       } catch (err) {
+        if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+          throw err;
+        }
         logger.debug(
           `Failed to fetch Atlassian components for ${baseUrl}: ${err}`,
         );
@@ -586,10 +817,13 @@ export default class ExternalStatusPageMonitorUtil {
       const incidents: Array<RawExternalIncident> = [];
       try {
         const incidentsUrl: string = `${baseUrl}/api/v2/incidents/unresolved.json`;
-        const incidentsResponse: AxiosResponse = await axios.get(incidentsUrl, {
-          timeout: timeout,
-          headers: headers,
-        });
+        const incidentsResponse: AxiosResponse = await this.guardedGet(
+          incidentsUrl,
+          {
+            executionContext: options.executionContext,
+            headers: headers,
+          },
+        );
 
         const incidentsData: AtlassianUnresolvedIncidentsResponse =
           incidentsResponse.data as AtlassianUnresolvedIncidentsResponse;
@@ -607,6 +841,9 @@ export default class ExternalStatusPageMonitorUtil {
           });
         }
       } catch (err) {
+        if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+          throw err;
+        }
         logger.debug(
           `Failed to fetch Atlassian unresolved incidents for ${baseUrl}: ${err}`,
         );
@@ -625,6 +862,9 @@ export default class ExternalStatusPageMonitorUtil {
         rawBody: JSON.stringify(statusData),
       });
     } catch (err) {
+      if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+        throw err;
+      }
       logger.debug(
         `Atlassian Statuspage API failed for ${config.statusPageUrl}: ${err}`,
       );
@@ -634,7 +874,7 @@ export default class ExternalStatusPageMonitorUtil {
 
   private static async tryIncidentIo(
     config: MonitorStepExternalStatusPageMonitor,
-    options: ExternalStatusPageQueryOptions,
+    options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
       const rawUrl: string = config.statusPageUrl.startsWith("http")
@@ -648,8 +888,8 @@ export default class ExternalStatusPageMonitorUtil {
       // incident.io status pages expose their data via a proxy endpoint keyed by host.
       const apiUrl: string = `${origin}/proxy/${host}`;
 
-      const apiResponse: AxiosResponse = await axios.get(apiUrl, {
-        timeout: options.timeout || config.timeout || 10000,
+      const apiResponse: AxiosResponse = await this.guardedGet(apiUrl, {
+        executionContext: options.executionContext,
         headers: {
           Accept: "application/json",
           "User-Agent": "OneUptime-Probe/1.0",
@@ -693,7 +933,7 @@ export default class ExternalStatusPageMonitorUtil {
       }
 
       // Build a component_id -> { name, groupName, status } map.
-      const componentMap: Record<string, RawExternalComponent> = {};
+      const componentMap: Map<string, RawExternalComponent> = new Map();
 
       const ensureComponent: (
         id: string | undefined,
@@ -705,16 +945,18 @@ export default class ExternalStatusPageMonitorUtil {
         if (!id) {
           return null;
         }
-        if (!componentMap[id]) {
-          componentMap[id] = {
+        let entry: RawExternalComponent | undefined = componentMap.get(id);
+        if (!entry) {
+          entry = {
             name: name || id,
             status: "operational",
             groupName: undefined,
           };
-        } else if (name && componentMap[id].name === id) {
-          componentMap[id].name = name;
+          componentMap.set(id, entry);
+        } else if (name && entry.name === id) {
+          entry.name = name;
         }
-        return componentMap[id] || null;
+        return entry;
       };
 
       // Flat component list from the summary.
@@ -752,8 +994,9 @@ export default class ExternalStatusPageMonitorUtil {
         }
       }
 
-      const components: Array<RawExternalComponent> =
-        Object.values(componentMap);
+      const components: Array<RawExternalComponent> = Array.from(
+        componentMap.values(),
+      );
 
       // Active incidents.
       const ongoingIncidents: Array<IncidentIoIncident> =
@@ -765,7 +1008,7 @@ export default class ExternalStatusPageMonitorUtil {
             affectedComponentNames: (incident.affected_components || [])
               .map((affected: IncidentIoAffectedComponent) => {
                 return affected.component_id
-                  ? componentMap[affected.component_id]?.name || ""
+                  ? componentMap.get(affected.component_id)?.name || ""
                   : "";
               })
               .filter((name: string) => {
@@ -785,6 +1028,9 @@ export default class ExternalStatusPageMonitorUtil {
         rawBody: JSON.stringify(data).slice(0, 100000),
       });
     } catch (err) {
+      if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+        throw err;
+      }
       logger.debug(
         `incident.io status page API failed for ${config.statusPageUrl}: ${err}`,
       );
@@ -794,19 +1040,20 @@ export default class ExternalStatusPageMonitorUtil {
 
   private static async tryRssAtomFeed(
     config: MonitorStepExternalStatusPageMonitor,
-    options: ExternalStatusPageQueryOptions,
+    options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
       const feedUrl: string = config.statusPageUrl.replace(/\/+$/, "");
 
-      const response: AxiosResponse = await axios.get(feedUrl, {
-        timeout: options.timeout || config.timeout || 10000,
+      const response: AxiosResponse = await this.guardedGet(feedUrl, {
+        executionContext: options.executionContext,
         headers: {
           Accept:
             "application/rss+xml, application/atom+xml, application/xml, text/xml",
           "User-Agent": "OneUptime-Probe/1.0",
         },
         responseType: "text",
+        maximumResponseBytes: EXTERNAL_STATUS_PAGE_XML_MAX_RESPONSE_BYTES,
       });
 
       const body: string = response.data as string;
@@ -820,6 +1067,19 @@ export default class ExternalStatusPageMonitorUtil {
       if (!trimmed.startsWith("<")) {
         return null;
       }
+
+      /*
+       * Auto detection deliberately falls back to a basic reachability check
+       * for an ordinary HTML status page. A standards-compliant page commonly
+       * begins with <!DOCTYPE html>; treat that declaration as a strong HTML
+       * signal before the XML safety check rejects declarations in real feed
+       * documents. The body is never parsed in this branch.
+       */
+      if (ExternalStatusPageMonitorUtil.startsWithHtmlDoctype(trimmed)) {
+        return null;
+      }
+
+      ExternalStatusPageMonitorUtil.assertXmlIsSafeToParse(body);
 
       const parser: XMLParser = new XMLParser({
         ignoreAttributes: false,
@@ -851,10 +1111,120 @@ export default class ExternalStatusPageMonitorUtil {
 
       return null;
     } catch (err) {
+      if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+        throw err;
+      }
       logger.debug(
         `RSS/Atom feed parsing failed for ${config.statusPageUrl}: ${err}`,
       );
       return null;
+    }
+  }
+
+  private static startsWithHtmlDoctype(body: string): boolean {
+    let remaining: string = body.trimStart();
+
+    /*
+     * HTML documents may legally put comments or processing instructions
+     * before their doctype. Skip only complete leading constructs; malformed
+     * input continues into the fail-closed XML safety scanner below.
+     */
+    while (remaining.startsWith("<!--") || remaining.startsWith("<?")) {
+      const terminator: string = remaining.startsWith("<!--") ? "-->" : "?>";
+      const endIndex: number = remaining.indexOf(terminator);
+      if (endIndex === -1) {
+        return false;
+      }
+      remaining = remaining.slice(endIndex + terminator.length).trimStart();
+    }
+
+    return HTML_DOCTYPE_PATTERN.test(remaining);
+  }
+
+  private static assertXmlIsSafeToParse(body: string): void {
+    let elementCount: number = 0;
+    let depth: number = 0;
+    let cursor: number = 0;
+
+    while (cursor < body.length) {
+      const tagStart: number = body.indexOf("<", cursor);
+      if (tagStart === -1) {
+        break;
+      }
+
+      if (body.startsWith("<!--", tagStart)) {
+        const commentEnd: number = body.indexOf("-->", tagStart + 4);
+        cursor = commentEnd === -1 ? body.length : commentEnd + 3;
+        continue;
+      }
+
+      if (body.startsWith("<![CDATA[", tagStart)) {
+        const cdataEnd: number = body.indexOf("]]>", tagStart + 9);
+        cursor = cdataEnd === -1 ? body.length : cdataEnd + 3;
+        continue;
+      }
+
+      if (body.startsWith("<?", tagStart)) {
+        const instructionEnd: number = body.indexOf("?>", tagStart + 2);
+        cursor = instructionEnd === -1 ? body.length : instructionEnd + 2;
+        continue;
+      }
+
+      /*
+       * Reject DTD/entity declarations rather than asking the parser to
+       * interpret another attacker-controlled expansion mechanism.
+       */
+      if (body.startsWith("<!", tagStart)) {
+        throw new BadDataException(
+          "Remote XML response contains an unsupported declaration.",
+        );
+      }
+
+      let tagEnd: number = -1;
+      let quote: '"' | "'" | null = null;
+      for (let index: number = tagStart + 1; index < body.length; index++) {
+        const character: string = body[index]!;
+        if (quote) {
+          if (character === quote) {
+            quote = null;
+          }
+          continue;
+        }
+        if (character === '"' || character === "'") {
+          quote = character;
+          continue;
+        }
+        if (character === ">") {
+          tagEnd = index;
+          break;
+        }
+      }
+      if (tagEnd === -1) {
+        break;
+      }
+
+      const tag: string = body.slice(tagStart + 1, tagEnd).trim();
+      if (tag.startsWith("/")) {
+        depth = Math.max(0, depth - 1);
+      } else if (tag) {
+        elementCount++;
+        if (elementCount > EXTERNAL_STATUS_PAGE_XML_MAX_ELEMENT_COUNT) {
+          throw new BadDataException(
+            "Remote XML response exceeded the allowed element count.",
+          );
+        }
+
+        if (!tag.endsWith("/")) {
+          depth++;
+          if (depth > EXTERNAL_STATUS_PAGE_XML_MAX_DEPTH) {
+            throw new BadDataException(
+              "Remote XML response exceeded the allowed nesting depth.",
+            );
+          }
+        }
+      }
+
+      cursor = tagEnd + 1;
     }
   }
 
@@ -989,38 +1359,30 @@ export default class ExternalStatusPageMonitorUtil {
 
   private static async tryBasicHttpCheck(
     config: MonitorStepExternalStatusPageMonitor,
-    options: ExternalStatusPageQueryOptions,
+    options: ExternalStatusPageQueryOptionsWithExecutionContext,
   ): Promise<ExternalStatusPageMonitorResponse> {
-    try {
-      const response: AxiosResponse = await axios.get(config.statusPageUrl, {
-        timeout: options.timeout || config.timeout || 10000,
+    const response: AxiosResponse = await this.guardedGet(
+      config.statusPageUrl,
+      {
+        executionContext: options.executionContext,
         headers: {
           "User-Agent": "OneUptime-Probe/1.0",
         },
         validateStatus: () => {
           return true;
         },
-      });
+      },
+    );
 
-      const isOnline: boolean = response.status >= 200 && response.status < 400;
+    const isOnline: boolean = response.status >= 200 && response.status < 400;
 
-      return {
-        isOnline: isOnline,
-        overallStatus: isOnline ? "reachable" : "unreachable",
-        componentStatuses: [],
-        activeIncidentCount: 0,
-        responseTimeInMs: 0,
-        failureCause: isOnline ? "" : `HTTP status ${response.status}`,
-      };
-    } catch (err) {
-      return {
-        isOnline: false,
-        overallStatus: "unreachable",
-        componentStatuses: [],
-        activeIncidentCount: 0,
-        responseTimeInMs: 0,
-        failureCause: (err as Error).message || (err as Error).toString(),
-      };
-    }
+    return {
+      isOnline: isOnline,
+      overallStatus: isOnline ? "reachable" : "unreachable",
+      componentStatuses: [],
+      activeIncidentCount: 0,
+      responseTimeInMs: 0,
+      failureCause: isOnline ? "" : `HTTP status ${response.status}`,
+    };
   }
 }

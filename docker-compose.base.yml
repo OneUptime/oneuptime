@@ -391,9 +391,8 @@ services:
       # falling back to --no-sandbox.
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Whether Custom JavaScript Code monitors on this probe may reach
-      # private network addresses. Every other monitor type already can; this
-      # one inherits the API server's SSRF guard through the shared sandbox.
+      # Bundled probes auto-register as global probes, so the process ignores
+      # this private-probe opt-in and always enforces public-only HTTP egress.
       # See config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
@@ -442,9 +441,8 @@ services:
       PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
       PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
-      # Whether Custom JavaScript Code monitors on this probe may reach
-      # private network addresses. Every other monitor type already can; this
-      # one inherits the API server's SSRF guard through the shared sandbox.
+      # Bundled probes auto-register as global probes, so the process ignores
+      # this private-probe opt-in and always enforces public-only HTTP egress.
       # See config.example.env.
       PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: ${PROBE_ALLOW_PRIVATE_NETWORK_MONITORS:-false}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}

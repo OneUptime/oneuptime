@@ -86,6 +86,9 @@ import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
 
+// Network Alert Policies
+import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";

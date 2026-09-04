@@ -107,6 +107,7 @@ import BackfillMonitorBackedDeviceStatus from "./BackfillMonitorBackedDeviceStat
 import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNotificationSettingsForUsers";
 import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
+import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -395,6 +396,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * NULLs and the re-stamp is re-derived from the binding.
    */
   new BackfillMonitorBackedDeviceReachability(),
+  /*
+   * Ping-first polling renamed the probe-polled monitoring method from "SNMP"
+   * to "Probe": the assigned probe pings every device it is given and walks
+   * it over SNMP only when credentials exist. Every runtime reader already
+   * parses NULL, "", "SNMP" and anything unrecognised as Probe, so nothing
+   * misbehaves on the old rows — this makes the column SAY what it means,
+   * for the raw SQL that filters on it (claimDevicesForPolling, the device
+   * facets) and for anyone reading the table. Monitor-backed devices are
+   * left monitor-backed (a "monitor" spelling is normalised to "Monitor");
+   * none is converted to Probe, because their probeId was never set.
+   * Id-paged over the whole fleet, idempotent: canonical rows are untouched.
+   */
+  new NormalizeNetworkDeviceMonitoringMethod(),
 ];
 
 export default DataMigrations;

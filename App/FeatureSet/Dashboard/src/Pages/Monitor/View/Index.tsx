@@ -73,6 +73,7 @@ import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSumm
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
+import { UptimeBarDaySummary } from "Common/UI/Components/Graphs/DayUptimeGraph";
 import Color from "Common/Types/Color";
 import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
 
@@ -131,6 +132,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedDayIncidents, setSelectedDayIncidents] = useState<
     Array<UptimeBarTooltipIncident>
   >([]);
+  const [selectedDaySummary, setSelectedDaySummary] =
+    useState<UptimeBarDaySummary | null>(null);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -780,9 +783,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onBarClick={(
             date: Date,
             incidents: Array<UptimeBarTooltipIncident>,
+            summary: UptimeBarDaySummary,
           ) => {
             setSelectedDay(date);
             setSelectedDayIncidents(incidents);
+            setSelectedDaySummary(summary);
           }}
         />
       </Card>
@@ -791,6 +796,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <UptimeBarDayModal
           date={selectedDay}
           incidents={selectedDayIncidents}
+          uptimePercent={selectedDaySummary?.uptimePercent}
+          hasEvents={selectedDaySummary?.hasEvents}
+          statusDurations={selectedDaySummary?.statusDurations}
           onIncidentClick={(incidentId: string) => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW]!, {
@@ -801,6 +809,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onClose={() => {
             setSelectedDay(null);
             setSelectedDayIncidents([]);
+            setSelectedDaySummary(null);
           }}
         />
       )}

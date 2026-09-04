@@ -20,8 +20,9 @@ import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/Ne
  * repairs every device from now on; this repairs the ones already saved.
  *
  * The same walk clears the poll columns on those rows. A device switched over
- * from SNMP kept the last thing its probe found — lastSeenAt, lastPolledAt,
- * the interface counts — and those keep describing a device nothing polls:
+ * from probe polling kept the last thing its probe found — lastSeenAt,
+ * lastPolledAt, the interface counts, the SNMP walk's own verdict and last
+ * success — and those keep describing a device nothing polls:
  * DeviceReachabilityUtil's legacy branch judges a row with lastSeenAt and no
  * isReachable by freshness, and the network summary's "degraded" query is
  * `isReachable = true AND interfacesDown > 0`. The transition itself clears
@@ -69,6 +70,8 @@ export default class BackfillMonitorBackedDeviceReachability extends DataMigrati
           lastSeenAt: true,
           lastPolledAt: true,
           isReachable: true,
+          isSnmpReachable: true,
+          lastSnmpSeenAt: true,
           interfacesUp: true,
           interfacesDown: true,
         },
@@ -87,10 +90,10 @@ export default class BackfillMonitorBackedDeviceReachability extends DataMigrati
 
         /*
          * Filtered here rather than in the query because monitoringMethod is
-         * free text: the parse is the contract (NULL, "" and anything
-         * unrecognised read as SNMP; case and whitespace variants read as
-         * Monitor). An SNMP device's isReachable belongs to its walk and
-         * must never be rewritten from a monitor binding.
+         * free text: the parse is the contract (NULL, "", the legacy "SNMP"
+         * and anything unrecognised read as Probe; case and whitespace
+         * variants read as Monitor). A Probe device's isReachable belongs to
+         * its poll and must never be rewritten from a monitor binding.
          */
         if (
           !NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
@@ -113,6 +116,8 @@ export default class BackfillMonitorBackedDeviceReachability extends DataMigrati
               data: {
                 lastSeenAt: null,
                 lastPolledAt: null,
+                isSnmpReachable: null,
+                lastSnmpSeenAt: null,
                 interfacesUp: null,
                 interfacesDown: null,
               },
@@ -157,12 +162,15 @@ export default class BackfillMonitorBackedDeviceReachability extends DataMigrati
 /*
  * True when the row still carries anything a poll wrote. Zero counts: an
  * `interfacesDown` of 0 is a finding, not an absence, and only NULL means
- * "nothing polls this".
+ * "nothing polls this". `false` counts the same way for `isSnmpReachable`:
+ * a failed walk is a verdict the probe reached, and only NULL means no walk.
  */
 function hasPollResidue(device: NetworkDevice): boolean {
   return [
     device.lastSeenAt,
     device.lastPolledAt,
+    device.isSnmpReachable,
+    device.lastSnmpSeenAt,
     device.interfacesUp,
     device.interfacesDown,
   ].some((value: unknown) => {

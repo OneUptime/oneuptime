@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { IsBillingEnabled } from "../../../../Server/EnvironmentConfig";
 import DataSourceEgressGuard, {
   AddressVerdict,
+  EgressGuardOptions,
+  EgressLookupFunction,
   EgressResolveFunction,
   ResolvedAddress,
 } from "../../../../Server/Utils/DataSource/EgressGuard";
@@ -74,11 +76,39 @@ const captureRejection: CaptureRejectionFunction = async (
 
 const bothFlags: Array<boolean> = [true, false];
 
+interface LookupResult {
+  error: NodeJS.ErrnoException | null;
+  address: string | Array<ResolvedAddress>;
+  family?: number | undefined;
+}
+
+function callLookup(
+  lookup: EgressLookupFunction,
+  options: { all?: boolean | undefined; family?: number | undefined },
+): Promise<LookupResult> {
+  return new Promise((resolve: (result: LookupResult) => void) => {
+    lookup(
+      "validated.example.com",
+      options,
+      (
+        error: NodeJS.ErrnoException | null,
+        address: string | Array<ResolvedAddress>,
+        family?: number,
+      ): void => {
+        resolve({ error: error, address: address, family: family });
+      },
+    );
+  });
+}
+
 describe("DataSourceEgressGuard.checkAddress - IPv4 always blocked", () => {
   const alwaysBlockedIpv4: Array<[string, string]> = [
     ["127.0.0.1", "loopback address"],
     ["127.255.255.254", "loopback address"],
     ["169.254.169.254", "link-local address (cloud metadata range)"],
+    ["100.100.100.200", "cloud metadata address"],
+    ["168.63.129.16", "cloud platform metadata address"],
+    ["192.0.0.192", "cloud metadata address"],
     ["0.0.0.0", "unspecified address"],
     ["224.0.0.1", "multicast address"],
     ["240.0.0.1", "reserved address"],
@@ -169,6 +199,13 @@ describe("DataSourceEgressGuard.checkAddress - IPv6 always blocked", () => {
     ["ff02::1", "multicast address"],
     ["::ffff:127.0.0.1", "loopback address"],
     ["64:ff9b::7f00:0001", "loopback address"],
+    ["fd00:ec2::23", "cloud metadata address"],
+    ["fd00:ec2::254", "cloud metadata address"],
+    ["fd00:ec2:ffff:ffff:ffff:ffff:ffff:ffff", "cloud metadata address"],
+    ["fd20:ce::254", "cloud metadata address"],
+    ["64:ff9b:1::", "IPv4 translation address"],
+    ["64:ff9b:1:7f00:0:100::", "IPv4 translation address"],
+    ["::ffff:0:7f00:1", "IPv4 translation address"],
   ];
 
   for (const entry of alwaysBlockedIpv6) {
@@ -194,12 +231,27 @@ describe("DataSourceEgressGuard.checkAddress - IPv6 always blocked", () => {
       expect(verdict.reason).toBeDefined();
     });
   }
+
+  test("addresses immediately outside AWS's cloud-local IPv6 prefix remain ordinary ULA addresses", () => {
+    for (const address of [
+      "fd00:ec1:ffff:ffff:ffff:ffff:ffff:ffff",
+      "fd00:ec3::",
+    ]) {
+      expect(check(address, false)).toEqual({ blocked: false });
+      expect(check(address, true)).toEqual({
+        blocked: true,
+        reason: "private network address",
+        isPrivateNetwork: true,
+      });
+    }
+  });
 });
 
 describe("DataSourceEgressGuard.checkAddress - IPv6 private ranges", () => {
   const privateIpv6: Array<[string, string]> = [
     ["fc00::1", "private network address"],
     ["fd12:3456::1", "private network address"],
+    ["fec0::1", "private network address"],
     ["2001:db8::1", "documentation address"],
     ["::ffff:10.0.0.1", "private network address"],
     ["64:ff9b::0a00:0001", "private network address"],
@@ -229,6 +281,80 @@ describe("DataSourceEgressGuard.checkAddress - IPv6 private ranges", () => {
       expect(verdict.reason).toBeUndefined();
     });
   }
+});
+
+describe("DataSourceEgressGuard.checkAddress - IPv6 transition mechanisms", () => {
+  const alwaysBlockedTransitionAddresses: Array<[string, string]> = [
+    ["::127.0.0.1", "loopback address"],
+    ["2002:7f00:0001::", "loopback address"],
+    ["2002:a9fe:a9fe::", "link-local address (cloud metadata range)"],
+    ["2001:0:7f00:0001:0:0:f7f7:f7f7", "loopback address"],
+    ["2001:0:0808:0808:0:0:80ff:fffe", "loopback address"],
+  ];
+
+  for (const entry of alwaysBlockedTransitionAddresses) {
+    const address: string = entry[0];
+    const expectedReason: string = entry[1];
+
+    for (const flag of bothFlags) {
+      test(`${address} cannot tunnel an always-blocked IPv4 address when blockPrivateAddresses=${flag}`, () => {
+        const verdict: AddressVerdict = check(address, flag);
+        expect(verdict).toEqual({
+          blocked: true,
+          reason: expectedReason,
+        });
+      });
+    }
+  }
+
+  const privateTransitionAddresses: Array<string> = [
+    "::10.0.0.1",
+    "2002:0a00:0001::",
+    // Teredo server address is 10.0.0.1; client address is public 8.8.8.8.
+    "2001:0:0a00:0001:0:0:f7f7:f7f7",
+    // Teredo server address is public; inverted client address is 10.0.0.1.
+    "2001:0:0808:0808:0:0:f5ff:fffe",
+  ];
+
+  for (const address of privateTransitionAddresses) {
+    test(`${address} is blocked as private when private networks are disabled`, () => {
+      expect(check(address, true)).toEqual({
+        blocked: true,
+        reason: "private network address",
+        isPrivateNetwork: true,
+      });
+    });
+
+    test(`${address} is allowed when private networks are enabled`, () => {
+      expect(check(address, false)).toEqual({ blocked: false });
+    });
+  }
+
+  const publicTransitionAddresses: Array<string> = [
+    "::8.8.8.8",
+    "2002:0808:0808::",
+    "2001:0:0808:0808:0:0:f7f7:f7f7",
+  ];
+
+  for (const address of publicTransitionAddresses) {
+    for (const flag of bothFlags) {
+      test(`${address} remains public when blockPrivateAddresses=${flag}`, () => {
+        expect(check(address, flag)).toEqual({ blocked: false });
+      });
+    }
+  }
+
+  test("an always-blocked Teredo endpoint takes precedence over a private endpoint", () => {
+    /*
+     * The server is private 10.0.0.1 and the inverted client is loopback
+     * 127.0.0.1. The loopback verdict must win so operator guidance never
+     * suggests that the private-network switch could make this route safe.
+     */
+    expect(check("2001:0:0a00:0001:0:0:80ff:fffe", true)).toEqual({
+      blocked: true,
+      reason: "loopback address",
+    });
+  });
 });
 
 describe("DataSourceEgressGuard.checkAddress - invalid input", () => {
@@ -316,6 +442,66 @@ describe("DataSourceEgressGuard.assertHostnameAllowed", () => {
     expect(error.message).toContain("private network");
   });
 
+  test("appends operator guidance when a private address is rejected", async () => {
+    const privateNetworkHint: string =
+      " Enable private monitor targets on a trusted probe to allow this range.";
+    const error: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed("10.0.0.5", {
+        blockPrivateAddresses: true,
+        targetLabel: "Monitor target",
+        privateNetworkHint: privateNetworkHint,
+      }),
+    );
+
+    expect(error instanceof BadDataException).toBe(true);
+    expect(error.message).toBe(
+      `Monitor target host 10.0.0.5 is not allowed: private network address.${privateNetworkHint}`,
+    );
+  });
+
+  test("appends operator guidance for a private IPv4 destination tunneled through IPv6", async () => {
+    const privateNetworkHint: string = " Configure a private probe.";
+    const error: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed("2002:0a00:0001::", {
+        blockPrivateAddresses: true,
+        targetLabel: "Monitor target",
+        privateNetworkHint: privateNetworkHint,
+      }),
+    );
+
+    expect(error.message).toContain(privateNetworkHint);
+  });
+
+  test("does not append private-network guidance for an always-blocked address", async () => {
+    const privateNetworkHint: string =
+      " THIS_HINT_MUST_NOT_APPEAR_FOR_LOOPBACK.";
+    const error: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed("127.0.0.1", {
+        blockPrivateAddresses: true,
+        targetLabel: "Monitor target",
+        privateNetworkHint: privateNetworkHint,
+      }),
+    );
+
+    expect(error.message).toContain("loopback address");
+    expect(error.message).not.toContain(privateNetworkHint);
+  });
+
+  test("does not append private-network guidance for a tunneled metadata address", async () => {
+    const privateNetworkHint: string =
+      " THIS_HINT_MUST_NOT_APPEAR_FOR_METADATA.";
+    const error: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed("2002:a9fe:a9fe::", {
+        blockPrivateAddresses: true,
+        targetLabel: "Monitor target",
+        privateNetworkHint: privateNetworkHint,
+      }),
+    );
+
+    expect(error.message).toContain("link-local address");
+    expect(error.message).not.toContain(privateNetworkHint);
+  });
+
   test("resolves a hostname through the injected resolver and returns all public addresses", async () => {
     const resolvedAddresses: Array<ResolvedAddress> = [
       { address: "93.184.216.34", family: 4 },
@@ -346,6 +532,68 @@ describe("DataSourceEgressGuard.assertHostnameAllowed", () => {
     expect(error.message).toContain("db.example.com");
     expect(error.message).toContain("10.0.0.5");
     expect(error.message).toContain("private network");
+  });
+
+  test("makes blocked, missing, and empty DNS answers indistinguishable to tenant-facing callers", async () => {
+    const privateResolver: Resolver = makeResolver([
+      { address: "10.23.45.67", family: 4 },
+    ]);
+    const missingResolveFunction: EgressResolveFunction = (
+      _hostname: string,
+    ): Promise<Array<ResolvedAddress>> => {
+      return Promise.reject(new Error("getaddrinfo ENOTFOUND"));
+    };
+    const emptyResolver: Resolver = makeResolver([]);
+    const safeOptions: EgressGuardOptions = {
+      blockPrivateAddresses: true,
+      targetLabel: "Monitor target",
+      includeResolvedAddressInError: false,
+    };
+    const hostname: string = "service-name.example.com";
+
+    const blockedError: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed(hostname, {
+        ...safeOptions,
+        resolveFunction: privateResolver.resolveFunction,
+      }),
+    );
+    const missingError: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed(hostname, {
+        ...safeOptions,
+        resolveFunction: missingResolveFunction,
+      }),
+    );
+    const emptyError: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed(hostname, {
+        ...safeOptions,
+        resolveFunction: emptyResolver.resolveFunction,
+      }),
+    );
+
+    const expectedMessage: string =
+      "Monitor target host service-name.example.com could not be reached.";
+    for (const error of [blockedError, missingError, emptyError]) {
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(expectedMessage);
+      expect(error.message).not.toContain("10.23.45.67");
+      expect(error.message).not.toContain("ENOTFOUND");
+      expect(error.message).not.toContain("private network");
+    }
+  });
+
+  test("always blocks a hostname resolving to Oracle metadata even with the flag off", async () => {
+    const resolver: Resolver = makeResolver([
+      { address: "192.0.0.192", family: 4 },
+    ]);
+    const error: Error = await captureRejection(
+      DataSourceEgressGuard.assertHostnameAllowed("metadata.example.com", {
+        blockPrivateAddresses: false,
+        resolveFunction: resolver.resolveFunction,
+      }),
+    );
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toContain("192.0.0.192");
+    expect(error.message).toContain("cloud metadata");
   });
 
   test("allows a mixed public/private answer when the flag is off", async () => {
@@ -529,17 +777,23 @@ describe("DataSourceEgressGuard.assertUrlAllowed", () => {
     expect(error.message).toContain("192.168.1.1");
   });
 
-  test("always rejects the cloud metadata endpoint as a literal URL host", async () => {
-    const error: Error = await captureRejection(
-      DataSourceEgressGuard.assertUrlAllowed(
-        "http://169.254.169.254/latest/meta-data",
-        { blockPrivateAddresses: false },
-      ),
-    );
-    expect(error instanceof BadDataException).toBe(true);
-    expect(error.message).toContain("169.254.169.254");
-    expect(error.message).toContain("link-local");
-  });
+  test.each([
+    ["169.254.169.254", "link-local"],
+    ["192.0.0.192", "cloud metadata"],
+  ])(
+    "always rejects cloud metadata host %s as a literal URL even with private networks enabled",
+    async (address: string, expectedReason: string) => {
+      const error: Error = await captureRejection(
+        DataSourceEgressGuard.assertUrlAllowed(
+          `http://${address}/latest/meta-data`,
+          { blockPrivateAddresses: false },
+        ),
+      );
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toContain(address);
+      expect(error.message).toContain(expectedReason);
+    },
+  );
 
   test("rejects a bracketed IPv6 loopback URL host", async () => {
     const error: Error = await captureRejection(
@@ -549,6 +803,41 @@ describe("DataSourceEgressGuard.assertUrlAllowed", () => {
     );
     expect(error instanceof BadDataException).toBe(true);
     expect(error.message).toContain("loopback");
+  });
+});
+
+describe("DataSourceEgressGuard.createPinnedLookup", () => {
+  const mixedAddresses: Array<ResolvedAddress> = [
+    { address: "93.184.216.34", family: 4 },
+    { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
+  ];
+
+  test("honors the socket's requested address family for single and all-address lookups", async () => {
+    const lookup: EgressLookupFunction =
+      DataSourceEgressGuard.createPinnedLookup(mixedAddresses);
+
+    await expect(callLookup(lookup, { family: 6 })).resolves.toEqual({
+      error: null,
+      address: mixedAddresses[1]!.address,
+      family: 6,
+    });
+    await expect(callLookup(lookup, { family: 4, all: true })).resolves.toEqual(
+      {
+        error: null,
+        address: [mixedAddresses[0]],
+        family: undefined,
+      },
+    );
+  });
+
+  test("returns ENOTFOUND instead of dialing another family when none is available", async () => {
+    const result: LookupResult = await callLookup(
+      DataSourceEgressGuard.createPinnedLookup([mixedAddresses[0]!]),
+      { family: 6 },
+    );
+
+    expect(result.error?.code).toBe("ENOTFOUND");
+    expect(result.address).toBe("");
   });
 });
 

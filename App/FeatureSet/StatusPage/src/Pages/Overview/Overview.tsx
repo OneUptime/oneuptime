@@ -21,7 +21,6 @@ import URL from "Common/Types/API/URL";
 import { Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -57,6 +56,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -75,6 +75,12 @@ import ResourceGroupSection from "Common/UI/Components/StatusPage/ResourceGroupS
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import Color from "Common/Types/Color";
+import StatusPageResourceSearchUtil, {
+  StatusPageResourceSearchResult,
+} from "Common/Utils/StatusPage/ResourceSearch";
+import StatusPageLiveRefreshUtil from "../../Utils/LiveRefresh";
+import LastUpdated from "../../Components/LiveStatus/LastUpdated";
+import ResourceSearchBox from "../../Components/Search/ResourceSearchBox";
 
 const parseAxisValues: (raw?: string) => Array<string> = (
   raw?: string,
@@ -127,6 +133,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * A status page is read while an incident is running, from a tab that has
+   * often been open a while. It therefore refreshes itself and says how old
+   * what you are looking at is - see StatusPageLiveRefreshUtil. A refresh that
+   * fails leaves the last known status on screen and says so, rather than
+   * replacing a page that says "operational" with an error.
+   */
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(() => {
+    return OneUptimeDate.getCurrentDate();
+  });
+
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [
     scheduledMaintenanceEventsPublicNotes,
     setScheduledMaintenanceEventsPublicNotes,
@@ -235,12 +256,30 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
-  const loadPage: PromiseVoidFunction = async (): Promise<void> => {
+  type LoadPageFunction = (options?: {
+    isSilent?: boolean | undefined;
+  }) => Promise<void>;
+
+  const loadPage: LoadPageFunction = async (options?: {
+    isSilent?: boolean | undefined;
+  }): Promise<void> => {
+    /*
+     * A silent load is a background refresh: it must not blank the page it is
+     * refreshing, must not re-run the page's custom JavaScript, and must not
+     * turn a transient network failure into an error page.
+     */
+    const isSilent: boolean = Boolean(options?.isSilent);
+
     try {
       if (!StatusPageUtil.getStatusPageId()) {
         return;
       }
-      setIsLoading(true);
+
+      if (isSilent) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
 
       const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
       if (!id) {
@@ -438,11 +477,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
       // Parse Data.
       setCurrentStatus(overallStatus);
 
+      setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+      setRefreshError(null);
+      setIsRefreshing(false);
       setIsLoading(false);
-      props.onLoadComplete();
+
+      if (!isSilent) {
+        props.onLoadComplete();
+      }
     } catch (err) {
       if (err instanceof HTTPErrorResponse) {
         await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
+      }
+
+      if (isSilent) {
+        /*
+         * Keep what is on screen. A visitor watching an incident would rather
+         * see a minute-old status marked as such than an error where the
+         * status used to be.
+         */
+        setRefreshError(API.getFriendlyMessage(err));
+        setIsRefreshing(false);
+        return;
       }
 
       setError(API.getFriendlyMessage(err));
@@ -459,6 +515,105 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPreviewPage(),
     StatusPageUtil.isPrivateStatusPage(),
   ]);
+
+  /*
+   * The background refresh loop.
+   *
+   * Everything the tick reads lives in a ref rather than in the effect's
+   * closure: the effect is mounted once, and a closure over isRefreshing or
+   * lastRefreshedAt would keep firing against the values they had at mount.
+   */
+  const loadPageRef: React.MutableRefObject<LoadPageFunction> =
+    useRef<LoadPageFunction>(loadPage);
+  loadPageRef.current = loadPage;
+
+  const lastRefreshedAtRef: React.MutableRefObject<Date> =
+    useRef<Date>(lastRefreshedAt);
+  lastRefreshedAtRef.current = lastRefreshedAt;
+
+  const isBusyRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  isBusyRef.current = isRefreshing || isLoading;
+
+  const refreshNow: (data: { isSilent: boolean }) => void = (data: {
+    isSilent: boolean;
+  }): void => {
+    loadPageRef.current({ isSilent: data.isSilent }).catch(() => {
+      /*
+       * loadPage already routed the failure into refreshError or error; this
+       * only stops an unhandled rejection from reaching the console of a page
+       * whose whole point is to look calm.
+       */
+    });
+  };
+
+  useEffect(() => {
+    const considerRefreshing: () => void = (): void => {
+      const shouldRefresh: boolean = StatusPageLiveRefreshUtil.shouldRefreshNow(
+        {
+          secondsSinceLastRefresh: StatusPageLiveRefreshUtil.getSecondsSince({
+            from: lastRefreshedAtRef.current,
+            now: OneUptimeDate.getCurrentDate(),
+          }),
+          /*
+           * document.visibilityState is absent in some embedded webviews;
+           * treat "cannot tell" as visible rather than as a page that never
+           * updates.
+           */
+          isDocumentVisible:
+            typeof document === "undefined" ||
+            document.visibilityState !== "hidden",
+          isAlreadyRefreshing: isBusyRef.current,
+        },
+      );
+
+      if (shouldRefresh) {
+        refreshNow({ isSilent: true });
+      }
+    };
+
+    /*
+     * Checked more often than the interval it enforces, so that a tab brought
+     * back after ten minutes refreshes on the way in rather than up to a
+     * minute later, and so that the readout is never a whole interval stale.
+     */
+    const timer: ReturnType<typeof setInterval> = setInterval(
+      considerRefreshing,
+      15 * 1000,
+    );
+
+    document.addEventListener("visibilitychange", considerRefreshing);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", considerRefreshing);
+    };
+  }, []);
+
+  /*
+   * Which resources the visitor is looking for. Memoised on the query and the
+   * payload: this walks every resource and every group, and real status pages
+   * reach four figures of both, so it must not be redone for a render that
+   * changed neither.
+   */
+  const searchResult: StatusPageResourceSearchResult = useMemo(() => {
+    return StatusPageResourceSearchUtil.search({
+      query: searchQuery,
+      statusPageResources: statusPageResources,
+      statusPageGroups: resourceGroups,
+      statusPageGroupTreeIndex: groupTreeIndex,
+    });
+  }, [searchQuery, statusPageResources, resourceGroups, groupTreeIndex]);
+
+  type IsResourceVisibleFunction = (resource: StatusPageResource) => boolean;
+
+  const isResourceVisible: IsResourceVisibleFunction = (
+    resource: StatusPageResource,
+  ): boolean => {
+    return StatusPageResourceSearchUtil.isResourceVisible({
+      resource: resource,
+      result: searchResult,
+    });
+  };
 
   /*
    * A group's rolled up status or uptime. Which of the two (or neither) is
@@ -629,6 +784,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         // if it's not a monitor or a monitor group, then continue. This should ideally not happen.
 
         if (!resource.monitor && !resource.monitorGroupId) {
+          continue;
+        }
+
+        // Filtered out by the search box, if one is running.
+        if (!isResourceVisible(resource)) {
           continue;
         }
 
@@ -813,7 +973,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
           data-testid="status-page-group-empty"
         >
           <Icon icon={IconProp.Inbox} className="h-4 w-4 text-gray-400" />
-          {t("overview.noResourcesInGroup")}
+          {searchResult.isActive
+            ? t("search.noMatchesInGroup", {
+                defaultValue: "No resources here match your search.",
+              })
+            : t("overview.noResourcesInGroup")}
         </div>,
       );
     }
@@ -880,7 +1044,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const resourcesInGroup: Array<StatusPageResource> =
       statusPageResources.filter((resource: StatusPageResource) => {
-        return resource.statusPageGroupId?.toString() === group._id?.toString();
+        return (
+          resource.statusPageGroupId?.toString() === group._id?.toString() &&
+          isResourceVisible(resource)
+        );
       });
 
     type CellContent = {
@@ -1231,7 +1398,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
   }): ReactElement => {
     const group: StatusPageGroup = data.node.group;
 
-    const childGroups: Array<StatusPageGroup> = data.node.children.map(
+    /*
+     * Sub groups the search left standing. A group is kept when anything in
+     * its subtree matched, so dropping the rest here cannot orphan a match.
+     */
+    const visibleChildNodes: Array<StatusPageGroupTreeNode> =
+      data.node.children.filter((child: StatusPageGroupTreeNode) => {
+        return StatusPageResourceSearchUtil.isGroupVisible({
+          statusPageGroup: child.group,
+          result: searchResult,
+        });
+      });
+
+    const childGroups: Array<StatusPageGroup> = visibleChildNodes.map(
       (child: StatusPageGroupTreeNode) => {
         return child.group;
       },
@@ -1243,12 +1422,22 @@ const Overview: FunctionComponent<PageComponentProps> = (
         statusPageResources: statusPageResources,
       });
 
+    /*
+     * What this group would actually draw. Counting the unfiltered list here
+     * would leave a group whose matches are all in a sub group rendering an
+     * empty resource list above them.
+     */
+    const visibleDirectResources: Array<StatusPageResource> =
+      directResources.filter((resource: StatusPageResource) => {
+        return isResourceVisible(resource);
+      });
+
     const isGrid: boolean = group.viewMode === StatusPageGroupViewMode.Grid;
 
     const showOwnResources: boolean =
       StatusPageGroupNestingLayoutUtil.shouldRenderOwnResources({
-        ownResourceCount: directResources.length,
-        subGroupCount: childGroups.length,
+        ownResourceCount: visibleDirectResources.length,
+        subGroupCount: visibleChildNodes.length,
       });
 
     /*
@@ -1282,6 +1471,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         rollupLabel={rollup?.label}
         rollupColor={rollup?.color}
         isInitiallyExpanded={group.isExpandedByDefault}
+        /*
+         * A match folded inside a collapsed group is indistinguishable from no
+         * match at all, so a running search opens the groups it kept.
+         */
+        autoExpand={searchResult.isActive}
         resourcesElement={
           showOwnResources ? (
             isGrid ? (
@@ -1297,9 +1491,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ) : undefined
         }
         subGroupsElement={
-          data.node.children.length > 0 ? (
+          visibleChildNodes.length > 0 ? (
             <>
-              {data.node.children.map((childNode: StatusPageGroupTreeNode) => {
+              {visibleChildNodes.map((childNode: StatusPageGroupTreeNode) => {
                 return renderResourceGroup({ node: childNode });
               })}
             </>
@@ -1477,7 +1671,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
           </div>
 
-          <div>
+          {/*
+           * A polite live region so a background refresh that changes the
+           * overall status announces itself. React leaves the DOM alone when
+           * the sentence has not changed, so this stays quiet on the refreshes
+           * that change nothing.
+           */}
+          <div role="status" aria-live="polite">
             {currentStatus && statusPageResources.length > 0 && (
               <Alert
                 size={AlertSize.Large}
@@ -1531,6 +1731,32 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
           </div>
 
+          {StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+            statusPageResourceCount: statusPageResources.length,
+            statusPageGroupCount: resourceGroups.length,
+          }) && (
+            <LastUpdated
+              lastRefreshedAt={lastRefreshedAt}
+              isRefreshing={isRefreshing}
+              refreshError={refreshError}
+              onRefreshClick={() => {
+                refreshNow({ isSilent: true });
+              }}
+            />
+          )}
+
+          {StatusPageResourceSearchUtil.shouldShowSearch({
+            resourceCount: statusPageResources.length,
+            groupCount: resourceGroups.length,
+          }) && (
+            <ResourceSearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              matchedCount={searchResult.matchedResourceCount}
+              totalCount={searchResult.totalResourceCount}
+            />
+          )}
+
           {/*
            * Groups on their own are enough to draw this block. Gating it on
            * resources meant a page whose whole group hierarchy was built but
@@ -1541,8 +1767,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
             statusPageGroupCount: resourceGroups.length,
           }) && (
             <div className="mt-5 mb-6 space-y-3 sm:space-y-5">
-              {statusPageResources.filter((resources: StatusPageResource) => {
-                return !resources.statusPageGroupId;
+              {statusPageResources.filter((resource: StatusPageResource) => {
+                return (
+                  !resource.statusPageGroupId && isResourceVisible(resource)
+                );
               }).length > 0 ? (
                 <div
                   className={StatusPageGroupNestingLayoutUtil.getUngroupedResourcesCardClassName()}
@@ -1558,9 +1786,41 @@ const Overview: FunctionComponent<PageComponentProps> = (
               ) : (
                 <></>
               )}
-              {groupTree.map((node: StatusPageGroupTreeNode) => {
-                return renderResourceGroup({ node: node });
-              })}
+              {groupTree
+                .filter((node: StatusPageGroupTreeNode) => {
+                  return StatusPageResourceSearchUtil.isGroupVisible({
+                    statusPageGroup: node.group,
+                    result: searchResult,
+                  });
+                })
+                .map((node: StatusPageGroupTreeNode) => {
+                  return renderResourceGroup({ node: node });
+                })}
+
+              {/*
+               * A search that matched nothing must say so. Without this the
+               * page simply lost its resources section, which reads as a
+               * broken page rather than as an answer.
+               */}
+              {searchResult.isActive &&
+              searchResult.matchedResourceCount === 0 &&
+              searchResult.visibleGroupIds.size === 0 ? (
+                <EmptyState
+                  paddingClassName="py-10 sm:py-14"
+                  id="search-empty-state"
+                  icon={IconProp.Search}
+                  title={t("search.noResultsTitle", {
+                    defaultValue: "No matching resources",
+                  })}
+                  description={t("search.noResultsDescription", {
+                    query: searchQuery.trim(),
+                    defaultValue:
+                      'Nothing on this page matches "{{query}}". Try a shorter search.',
+                  })}
+                />
+              ) : (
+                <></>
+              )}
             </div>
           )}
 

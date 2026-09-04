@@ -26,8 +26,11 @@ import {
  *   - the NAME is what the map re-matches on, so decorating it silently
  *     splits one device into a floating new node plus a surviving stranger;
  *   - the HOSTNAME decides whether the flow is one click or a form;
- *   - the MONITORING METHOD decides whether the new device queues a walk it
- *     can only ever fail.
+ *   - the ROLE SEED decides whether a guess made from the peer's advertised
+ *     name is written onto the device as a permanent classifier override;
+ *   - the MONITORING METHOD is Probe for every device — the probe pings it,
+ *     and walks it only once it has credentials — so no device adopted here
+ *     queues a walk it can only ever fail.
  *
  * The component around it cannot be rendered here (the App suite runs in a
  * plain Node environment), which is exactly why the decisions live in a pure
@@ -455,7 +458,7 @@ describe("buildNeighborAdoptionDraft", () => {
       role: "router",
     });
 
-    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Snmp);
+    expect(draft.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Probe);
     expect(draft.deviceRole).toBeUndefined();
   });
 
@@ -480,29 +483,50 @@ describe("buildNeighborAdoptionDraft", () => {
   });
 
   /*
-   * A desk phone is never SNMP-walkable. Defaulting it to SNMP would create
-   * a device that queues a walk it can only fail and then reads "pending"
-   * forever, with the operator hunting a credential that was never the
-   * problem.
+   * Every adopted neighbour is probe-polled, a desk phone included. The probe
+   * that polls the switch the phone hangs off can ping the phone, and a
+   * device with no credentials is pinged and nothing more — it does not
+   * queue a walk it can only fail, which is what made the old default to a
+   * monitor-backed device necessary. That branch is gone: there is no role
+   * for which the draft answers Monitor.
    */
-  test("a leaf device defaults to monitor-backed rather than SNMP", () => {
+  test("every device is probe-polled, whatever its role", () => {
     expect(draftForPhone().monitoringMethod).toBe(
-      NetworkDeviceMonitoringMethod.Monitor,
+      NetworkDeviceMonitoringMethod.Probe,
     );
 
-    for (const role of ["printer", "camera", "host"] as const) {
+    for (const role of [
+      "phone",
+      "printer",
+      "camera",
+      "host",
+      "switch",
+      "router",
+      "firewall",
+      "wirelessAccessPoint",
+      "unknown",
+      undefined,
+    ] as const) {
       expect(draftForPhone({ ...PHONE, role: role }).monitoringMethod).toBe(
-        NetworkDeviceMonitoringMethod.Monitor,
+        NetworkDeviceMonitoringMethod.Probe,
       );
     }
   });
 
   /*
-   * And the other way: an unidentified box hanging off a switch port is far
-   * more often a switch nobody has added yet than it is a kiosk, so an
-   * unclassified peer defaults to the product's primary path.
+   * What walkability still decides: whether the classified role is written
+   * onto the device. A phone, a printer, a camera and a plain host are never
+   * walked, so the guess from their neighbours is the only evidence there
+   * will ever be and it is seeded; an infrastructure peer is about to be
+   * walked and its sysDescr will answer better, so the guess is withheld —
+   * and an unidentified box on a switch port is far more often a switch
+   * nobody has added yet than it is a kiosk, so it is treated as walkable.
    */
-  test("infrastructure and unclassified peers default to SNMP", () => {
+  test("a leaf device is seeded with its role; a walkable one is not", () => {
+    for (const role of ["phone", "printer", "camera", "host"] as const) {
+      expect(draftForPhone({ ...PHONE, role: role }).deviceRole).toBe(role);
+    }
+
     for (const role of [
       "switch",
       "router",
@@ -510,9 +534,9 @@ describe("buildNeighborAdoptionDraft", () => {
       "wirelessAccessPoint",
       undefined,
     ] as const) {
-      expect(draftForPhone({ ...PHONE, role: role }).monitoringMethod).toBe(
-        NetworkDeviceMonitoringMethod.Snmp,
-      );
+      expect(
+        draftForPhone({ ...PHONE, role: role }).deviceRole,
+      ).toBeUndefined();
     }
   });
 

@@ -76,7 +76,19 @@ export enum CheckOn {
   SnmpOidValue = "SNMP OID Value",
   SnmpOidExists = "SNMP OID Exists",
   SnmpResponseTime = "SNMP Response Time (in ms)",
+  /*
+   * Device reachability: true when the device answered ping OR its SNMP
+   * walk succeeded. The label predates ping-first polling; the value is
+   * load-bearing (stored in monitor criteria) so it stays as it is.
+   */
   SnmpIsOnline = "SNMP Device Is Online",
+  /*
+   * The SNMP walk itself. Not evaluated at all on a poll that ran no walk
+   * (a device without credentials), so "is False" means "the walk was
+   * attempted and failed" - credentials, agent, or an ACL - never "there
+   * was nothing to walk".
+   */
+  SnmpWalkIsSucceeding = "SNMP Walk Is Succeeding",
   SnmpInterfaceIsDown = "SNMP Interface Is Down",
   SnmpTrapReceived = "SNMP Trap Received (Trap OID)",
   SnmpInterfaceUtilizationPercent = "SNMP Interface Utilization (in %)",
@@ -346,6 +358,7 @@ export class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||

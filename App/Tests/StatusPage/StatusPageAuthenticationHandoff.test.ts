@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import ejs from "ejs";
 import fs from "fs";
 import path from "path";
 
@@ -35,10 +36,25 @@ describe("Status Page authentication handoff", () => {
     "Utils",
     "LoginCode.ts",
   );
-  const statusPageIndex: string = fs
-    .readFileSync(
-      path.join(FEATURE_SET, "StatusPage", "views", "index.ejs"),
-      "utf8",
+  /*
+   * Rendered, not read as raw template text. The no-referrer tag and the
+   * token-scrubbing bootstrap reach this page through an include of the shared
+   * Common/Server/Views/Partials/SensitiveUrlToken partial, so a text-only read
+   * sees the include directive and none of what it contributes — and the
+   * ordering asserted below is an ordering in the page a browser actually
+   * receives. `filename` is what lets ejs resolve that relative include.
+   */
+  const indexTemplatePath: string = path.join(
+    FEATURE_SET,
+    "StatusPage",
+    "views",
+    "index.ejs",
+  );
+  const statusPageIndex: string = ejs
+    .render(
+      fs.readFileSync(indexTemplatePath, "utf8"),
+      { title: "Acme Status", enableGoogleTagManager: true },
+      { filename: indexTemplatePath },
     )
     .replace(/\s+/g, " ");
   const authenticationApi: string = readCode(

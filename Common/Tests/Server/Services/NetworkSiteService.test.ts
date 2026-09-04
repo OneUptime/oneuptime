@@ -281,9 +281,18 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
+        /*
+         * An ordinary probe-polled device - no monitoringMethod, which parses
+         * to Probe - whose last poll got nothing back. Its poll outcome is
+         * its vote, so the site's worst-of lands on the project's offline row
+         * and the timeline has to roll.
+         */
         {
           id: DEVICE_ID,
-          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -320,9 +329,20 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OFFLINE_STATUS_ID }),
       devices: [
+        /*
+         * The device votes offline (its poll got nothing back) and the site
+         * already reads offline. The device has to CONTRIBUTE a verdict for
+         * this to be the "unchanged" case rather than the "nothing to say"
+         * case - a device with no poll columns at all would be Pending, which
+         * takes the same branch for an entirely different reason and would
+         * leave this assertion passing while proving nothing.
+         */
         {
           id: DEVICE_ID,
-          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -350,17 +370,108 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     expect(spies.timelineCreate).not.toHaveBeenCalled();
   });
 
-  it("uses the SNMP fallback for devices without a stamped status", async () => {
+  it("a probe-polled device with no stamped status votes with its poll", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
         {
           id: DEVICE_ID,
-          // Unmonitored, and its last poll could not reach it.
+          // Nothing has ever stamped it, and its last poll got nothing back.
           isReachable: false,
           lastPolledAt: new Date(Date.now() - 60 * 1000),
           lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
           pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
+  });
+
+  /*
+   * Health precedence, and which device the site card is describing.
+   *
+   * A stamped MonitorStatus is a device's verdict only on a MONITOR-BACKED
+   * device. A Network Device monitor watching a switch's SNMP walk stamps the
+   * device it watches, so an "interface down -> Offline" criterion stamps
+   * Offline on a switch that answers every ping - and letting that vote
+   * turned this site card and the topology node above it red while every
+   * device row underneath read Up. The pill, the card and the map now read
+   * the same rule: for a probe-polled device the poll decides.
+   */
+  it("a probe-polled device stamped Offline does not turn the site offline while it answers", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OFFLINE_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          // The stamp its own monitor wrote for a dark interface...
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          // ...on a switch that answered its last poll.
+          isReachable: true,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OPERATIONAL_STATUS_ID.toString(),
+    );
+  });
+
+  it("the same probe-polled device DOES turn the site offline once its poll fails", async () => {
+    /*
+     * The stamp is unchanged; only the poll outcome moved, and the site
+     * follows it. This is the half of the rule that stops "the stamp does not
+     * vote" from quietly becoming "a probe-polled device can never take its
+     * site offline" - which would be the same bug with the colours swapped.
+     */
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OFFLINE_STATUS_ID.toString(),
+    );
+  });
+
+  it("a monitor-backed device still votes with its stamped status", async () => {
+    /*
+     * The override, and the reason the stamp is carried at all: nothing polls
+     * this device, so it has no poll columns whatsoever. Reachability alone
+     * would call it Pending and the site would keep whatever it said before;
+     * its bound Monitor's status is its entire verdict, and it is offline.
+     */
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+          currentMonitorStatusId: OFFLINE_STATUS_ID,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -493,9 +604,13 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
+        // One ordinary probe-polled device, and its last poll got nothing back.
         {
           id: DEVICE_ID,
-          currentMonitorStatusId: OFFLINE_STATUS_ID,
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
       maintainedSiteIds: [],
@@ -2213,8 +2328,8 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
    * the server derives it from the bound monitor's status. These cases pin
    * that derivation: `isReachable = !MonitorStatus.isOfflineState`, read
    * from the status row ONCE per call and only when a monitor-backed
-   * device is in the set, while an SNMP device's isReachable stays the
-   * walk's to write.
+   * device is in the set, while a probe-polled device's isReachable stays
+   * its own poll's to write.
    */
   describe("isReachable for monitor-backed devices", () => {
     const SECOND_DEVICE_ID: ObjectID = new ObjectID(
@@ -2233,7 +2348,7 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
       } as unknown as NetworkDevice;
     }
 
-    function snmpDevice(
+    function probePolledDevice(
       id: ObjectID,
       monitoringMethod: string | undefined,
     ): NetworkDevice {
@@ -2359,11 +2474,11 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
       expect(stampedData(stamp)[0].isReachable).toBe(true);
     });
 
-    it("never reads the status row for an all-SNMP set, and stamps the id only", async () => {
+    it("never reads the status row for an all-probe-polled set, and stamps the id only", async () => {
       const { stamp, status } = mockBoundDevices([
-        snmpDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Snmp),
-        // A row written before the column existed: NULL reads as SNMP.
-        snmpDevice(SECOND_DEVICE_ID, undefined),
+        probePolledDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Probe),
+        // A row written before the column existed: NULL reads as Probe.
+        probePolledDevice(SECOND_DEVICE_ID, undefined),
       ]);
 
       await NetworkSiteService.onMonitorStatusChanged({
@@ -2378,7 +2493,7 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
         expect(data.currentMonitorStatusId.toString()).toBe(
           OFFLINE_STATUS_ID.toString(),
         );
-        // The walk owns an SNMP device's isReachable: the key is absent, not undefined.
+        // The poll owns a probe-polled device's isReachable: the key is absent, not undefined.
         expect(data).not.toHaveProperty("isReachable");
         expect(Object.keys(data)).toEqual(["currentMonitorStatusId"]);
       }
@@ -2386,9 +2501,9 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
 
     it("in a mixed set only the monitor-backed rows get isReachable, from one status read", async () => {
       const { stamp, status } = mockBoundDevices([
-        snmpDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Snmp),
+        probePolledDevice(DEVICE_ID, NetworkDeviceMonitoringMethod.Probe),
         monitorBackedDevice(SECOND_DEVICE_ID),
-        snmpDevice(THIRD_DEVICE_ID, undefined),
+        probePolledDevice(THIRD_DEVICE_ID, undefined),
       ]);
       status.mockResolvedValue(fakeStatus(true));
 

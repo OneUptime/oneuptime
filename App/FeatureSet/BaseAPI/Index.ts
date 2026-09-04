@@ -1659,6 +1659,18 @@ import NetworkDeviceRoleService, {
   Service as NetworkDeviceRoleServiceType,
 } from "Common/Server/Services/NetworkDeviceRoleService";
 
+// NetworkSnmpCredentialProfile
+import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
+import NetworkSnmpCredentialProfileService, {
+  Service as NetworkSnmpCredentialProfileServiceType,
+} from "Common/Server/Services/NetworkSnmpCredentialProfileService";
+
+// NetworkAlertPolicy
+import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkAlertPolicyService, {
+  Service as NetworkAlertPolicyServiceType,
+} from "Common/Server/Services/NetworkAlertPolicyService";
+
 // NetworkDeviceOidTemplate
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkDeviceOidTemplateService, {
@@ -5253,6 +5265,27 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkDeviceRole, NetworkDeviceRoleServiceType>(
         NetworkDeviceRole,
         NetworkDeviceRoleService,
+      ).getRouter(),
+    );
+
+    // network snmp credential profile
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSnmpCredentialProfile,
+        NetworkSnmpCredentialProfileServiceType
+      >(
+        NetworkSnmpCredentialProfile,
+        NetworkSnmpCredentialProfileService,
+      ).getRouter(),
+    );
+
+    // network alert policy
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkAlertPolicy, NetworkAlertPolicyServiceType>(
+        NetworkAlertPolicy,
+        NetworkAlertPolicyService,
       ).getRouter(),
     );
 

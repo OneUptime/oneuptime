@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import NetworkDeviceMonitoringMethod, {
+  LEGACY_SNMP_MONITORING_METHOD,
+} from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
@@ -20,8 +22,8 @@ import path from "path";
  * polls, and whose health is its bound monitor's stamped status — read as
  * "Pending" there forever, whatever its pill said. The service fix stamps
  * `isReachable` from the monitor on every binding and status change from
- * now on, and clears the poll residue a device carries over from SNMP at
- * the moment it switches. Neither reaches a device that was bound, or
+ * now on, and clears the poll residue a device carries over from probe
+ * polling at the moment it switches. Neither reaches a device that was bound, or
  * switched, before the fix shipped; this walks those once.
  *
  * What is pinned here is the shape of that walk: which rows it asks for
@@ -82,6 +84,8 @@ function makeDevice(data: {
   lastSeenAt?: Date | undefined;
   lastPolledAt?: Date | undefined;
   isReachable?: boolean | undefined;
+  isSnmpReachable?: boolean | undefined;
+  lastSnmpSeenAt?: Date | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
 }): NetworkDevice {
@@ -97,6 +101,12 @@ function makeDevice(data: {
   }
   if (data.isReachable !== undefined) {
     device.isReachable = data.isReachable;
+  }
+  if (data.isSnmpReachable !== undefined) {
+    device.isSnmpReachable = data.isSnmpReachable;
+  }
+  if (data.lastSnmpSeenAt !== undefined) {
+    device.lastSnmpSeenAt = data.lastSnmpSeenAt;
   }
   if (data.interfacesUp !== undefined) {
     device.interfacesUp = data.interfacesUp;
@@ -261,15 +271,15 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
       expect((findArgs["props"] as JSONObject)["isRoot"]).toBe(true);
     });
 
-    test("a page mixing SNMP and monitor-backed rows refreshes only the monitor-backed ones", async () => {
-      const snmp: ObjectID = ObjectID.generate();
+    test("a page mixing Probe and monitor-backed rows refreshes only the monitor-backed ones", async () => {
+      const probe: ObjectID = ObjectID.generate();
       const spelledLowerCase: ObjectID = ObjectID.generate();
       const canonical: ObjectID = ObjectID.generate();
 
       deviceService.findBy.mockResolvedValue([
         makeDevice({
-          deviceId: snmp,
-          monitoringMethod: NetworkDeviceMonitoringMethod.Snmp,
+          deviceId: probe,
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
         }),
         makeDevice({ deviceId: spelledLowerCase, monitoringMethod: "monitor" }),
         makeDevice({
@@ -298,7 +308,7 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
     });
 
     /*
-     * monitoringMethod decides whether a row is walked, and the four poll
+     * monitoringMethod decides whether a row is walked, and the six poll
      * columns decide whether it needs a residue write. A select that
      * dropped one of the latter would read it as "nothing there" and skip
      * a write that was needed.
@@ -316,6 +326,8 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
         "lastSeenAt",
         "lastPolledAt",
         "isReachable",
+        "isSnmpReachable",
+        "lastSnmpSeenAt",
         "interfacesUp",
         "interfacesDown",
       ]) {
@@ -422,11 +434,13 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
     });
 
     /*
-     * A device switched over from SNMP before the transition started
-     * clearing: the four poll columns go, and `isReachable` is left to the
-     * re-stamp, which derives it from the monitor.
+     * A device switched over from probe polling before the transition
+     * started clearing: the six poll columns go — the SNMP walk's own
+     * verdict and last success among them, since nothing walks a
+     * monitor-backed device — and `isReachable` is left to the re-stamp,
+     * which derives it from the monitor.
      */
-    test("clears the four poll columns of a device switched over from SNMP", async () => {
+    test("clears the six poll columns of a device switched over from probe polling", async () => {
       const switched: ObjectID = ObjectID.generate();
 
       deviceService.findBy.mockResolvedValue([
@@ -436,6 +450,8 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
           lastSeenAt: new Date("2026-08-01T00:00:00.000Z"),
           lastPolledAt: new Date("2026-08-01T00:00:00.000Z"),
           isReachable: true,
+          isSnmpReachable: true,
+          lastSnmpSeenAt: new Date("2026-08-01T00:00:00.000Z"),
           interfacesUp: 22,
           interfacesDown: 2,
         }),
@@ -449,6 +465,8 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
       expect(writes[0]!.data).toEqual({
         lastSeenAt: null,
         lastPolledAt: null,
+        isSnmpReachable: null,
+        lastSnmpSeenAt: null,
         interfacesUp: null,
         interfacesDown: null,
       });
@@ -456,12 +474,19 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
     });
 
     /*
-     * Any one of the four is enough, and zero counts: an interfacesDown of
-     * 0 is a finding the probe made, not an absence.
+     * Any one of the six is enough, and zero counts: an interfacesDown of
+     * 0 is a finding the probe made, not an absence. So does `false` for
+     * isSnmpReachable — a failed walk is a verdict, and only NULL is "no
+     * walk".
      */
     test.each([
       ["lastSeenAt", { lastSeenAt: new Date("2026-08-01T00:00:00.000Z") }],
       ["lastPolledAt", { lastPolledAt: new Date("2026-08-01T00:00:00.000Z") }],
+      ["isSnmpReachable of false", { isSnmpReachable: false }],
+      [
+        "lastSnmpSeenAt",
+        { lastSnmpSeenAt: new Date("2026-08-01T00:00:00.000Z") },
+      ],
       ["interfacesUp", { interfacesUp: 4 }],
       ["interfacesDown of zero", { interfacesDown: 0 }],
     ])(
@@ -530,14 +555,14 @@ describe("BackfillMonitorBackedDeviceReachability", () => {
     });
 
     /*
-     * The query matches the enum value, but the column is free text and
-     * the parse is the contract: NULL, "" and anything unrecognised read as
-     * SNMP, and an SNMP device's poll columns are its walk's own — they
-     * must never be cleared from here, nor its stamp re-derived from a
-     * monitor binding.
+     * The column is free text and the parse is the contract: NULL, "", the
+     * legacy "SNMP" and anything unrecognised read as Probe, and a Probe
+     * device's poll columns are its poll's own — they must never be cleared
+     * from here, nor its stamp re-derived from a monitor binding.
      */
     test.each([
-      ["SNMP", NetworkDeviceMonitoringMethod.Snmp],
+      ["Probe", NetworkDeviceMonitoringMethod.Probe],
+      ["the legacy SNMP spelling", LEGACY_SNMP_MONITORING_METHOD],
       ["a NULL method, from before the column existed", undefined],
       ["an empty string", ""],
       ["a typo", "Monitorr"],

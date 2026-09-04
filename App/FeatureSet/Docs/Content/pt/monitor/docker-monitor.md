@@ -154,7 +154,7 @@ Além das métricas, o Agente Docker acompanha o arquivo `*-json.log` de cada co
 - `resource.container.id` — o ID completo do contêiner
 - `resource.container.runtime` — sempre `docker`
 - `attributes["log.iostream"]` — `stdout` ou `stderr`
-- `severityText` / `severityNumber` — derivado do stream: `stderr` → `ERROR`, `stdout` → `INFO`
+- `severityText` / `severityNumber` — lido de uma palavra-chave de nível na linha (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); linhas sem um nível reconhecível recorrem ao stream: `stderr` → `ERROR`, `stdout` → `INFO`
 - `body` — a linha de log bruta emitida pelo processo do contêiner
 - `time` — o timestamp do daemon Docker para a linha
 
