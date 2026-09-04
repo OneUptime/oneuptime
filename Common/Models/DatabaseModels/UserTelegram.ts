@@ -17,7 +17,6 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import Text from "../../Types/Text";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -356,9 +355,6 @@ class UserTelegram extends BaseModel {
     computed: true,
     required: true,
     type: TableColumnType.ShortText,
-    forceGetDefaultValueOnCreate: () => {
-      return Text.generateRandomNumber(6);
-    },
   })
   @Column({
     type: ColumnType.ShortText,

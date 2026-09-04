@@ -190,6 +190,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               "Any strong random string. OneUptime rejects webhook calls whose X-Telegram-Bot-Api-Secret-Token header does not match this value.",
             placeholder: "e.g. a 32+ char random string",
             validation: {
+              minLength: 32,
               maxLength: 100,
               noSpaces: true,
             },
