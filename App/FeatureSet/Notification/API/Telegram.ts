@@ -1,16 +1,24 @@
 import { getTelegramConfig, TelegramConfig } from "../Config";
 import TelegramService from "../Services/TelegramService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TelegramMessage from "Common/Types/Telegram/TelegramMessage";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
-import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import MasterAdminAuthorization from "Common/Server/Middleware/MasterAdminAuthorization";
+import VerificationCodeRateLimit, {
+  VerificationCodeRateLimitBucket,
+  VerificationCodeRateLimitDecision,
+  VerificationCodeRateLimitOutcome,
+} from "Common/Server/Middleware/VerificationCodeRateLimit";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import UserTelegramService from "Common/Server/Services/UserTelegramService";
+import UserTelegramService, {
+  TelegramVerificationOutcome,
+  TelegramVerificationResult,
+} from "Common/Server/Services/UserTelegramService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import TelegramVerificationToken from "Common/Server/Utils/TelegramVerificationToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -29,6 +37,31 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 const router: ExpressRouter = Express.getRouter();
+const WEBHOOK_CONFIG_LOG_INTERVAL_MS: number = 60 * 1000;
+/*
+ * These values deliberately have bounded cardinality. VerificationCodeRateLimit
+ * creates an item counter before it decides whether the shared user/IP counter
+ * is over budget. Deriving this segment from an untrusted header or command
+ * would therefore let a caller allocate one Redis key per distinct guess.
+ *
+ * The limiter includes userKey in the item-counter key, so these constants are
+ * still independently scoped per trusted client IP and Telegram chat.
+ */
+const INVALID_WEBHOOK_SECRET_RATE_LIMIT_ITEM_KEY: string =
+  "telegram-webhook-invalid-secret";
+const TELEGRAM_START_RATE_LIMIT_ITEM_KEY: string = "telegram-start";
+let lastWebhookConfigErrorLoggedAt: number = 0;
+
+function shouldLogWebhookConfigError(): boolean {
+  const now: number = Date.now();
+
+  if (now - lastWebhookConfigErrorLoggedAt < WEBHOOK_CONFIG_LOG_INTERVAL_MS) {
+    return false;
+  }
+
+  lastWebhookConfigErrorLoggedAt = now;
+  return true;
+}
 
 router.post(
   "/send",
@@ -113,8 +146,7 @@ router.post(
 
 router.post(
   "/test",
-  UserMiddleware.getUserMiddleware,
-  UserMiddleware.requireUserAuthentication,
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const body: JSONObject = req.body as JSONObject;
@@ -136,12 +168,12 @@ router.post(
         disableWebPagePreview: true,
       };
 
-      await TelegramService.sendTelegram(message, {
-        projectId: body["projectId"]
-          ? new ObjectID(body["projectId"] as string)
-          : undefined,
-        isSensitive: false,
-      });
+      /*
+       * This tests the instance-wide bot configuration. It must never charge,
+       * recharge, or write a notification log against a caller-selected
+       * tenant, even for a master administrator.
+       */
+      await TelegramService.sendTelegram(message, { isSensitive: false });
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
@@ -154,36 +186,65 @@ router.post(
   "/webhook",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const globalConfig: GlobalConfig | null =
-        await GlobalConfigService.findOneBy({
-          query: {
-            _id: ObjectID.getZeroObjectID().toString(),
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            telegramWebhookSecretToken: true,
-          },
-        });
-
       const configuredSecret: string | undefined =
-        globalConfig?.telegramWebhookSecretToken?.trim() || undefined;
+        await GlobalConfigService.getTelegramWebhookSecretToken();
 
-      if (configuredSecret) {
-        const providedSecret: string | undefined =
-          (req.headers["x-telegram-bot-api-secret-token"] as
-            | string
-            | undefined) || undefined;
+      /*
+       * A missing configured secret must disable the public webhook, not
+       * silently turn authentication off. Telegram is configured with this
+       * same value via setWebhook; requests without an exact constant-time
+       * match never reach parsing, rate limiting, or the database.
+       */
+      if (
+        !configuredSecret ||
+        !TelegramVerificationToken.isWebhookSecretStrong(configuredSecret)
+      ) {
+        if (shouldLogWebhookConfigError()) {
+          logger.error(
+            "Rejected Telegram webhook — no strong webhook secret is configured.",
+            getLogAttributesFromRequest(req as any),
+          );
+        }
+        res.sendStatus(503);
+        return;
+      }
 
-        if (providedSecret !== configuredSecret) {
+      const providedHeader: string | string[] | undefined = req.headers[
+        "x-telegram-bot-api-secret-token"
+      ] as string | string[] | undefined;
+      const providedSecret: string | undefined = Array.isArray(providedHeader)
+        ? providedHeader[0]
+        : providedHeader;
+
+      if (
+        !TelegramVerificationToken.isWebhookSecretValid({
+          configuredSecret,
+          providedSecret,
+        })
+      ) {
+        const clientIp: string = VerificationCodeRateLimit.resolveClientIp(req);
+        const invalidSecretDecision: VerificationCodeRateLimitDecision =
+          await VerificationCodeRateLimit.consume({
+            itemKey: INVALID_WEBHOOK_SECRET_RATE_LIMIT_ITEM_KEY,
+            userKey: `telegram-webhook:${clientIp}`,
+            clientIp,
+            bucket: VerificationCodeRateLimitBucket.Verify,
+          });
+
+        if (
+          invalidSecretDecision.outcome ===
+            VerificationCodeRateLimitOutcome.Allowed ||
+          (invalidSecretDecision.outcome ===
+            VerificationCodeRateLimitOutcome.RateLimited &&
+            invalidSecretDecision.isFirstRejectionInWindow)
+        ) {
           logger.warn(
             "Rejected Telegram webhook — secret token mismatch.",
             getLogAttributesFromRequest(req as any),
           );
-          res.sendStatus(403);
-          return;
         }
+        res.sendStatus(403);
+        return;
       }
 
       const update: JSONObject = req.body as JSONObject;
@@ -212,6 +273,35 @@ router.post(
       const parts: Array<string> = text.trim().split(/\s+/);
       const code: string | undefined = parts[1];
 
+      const rateLimitDecision: VerificationCodeRateLimitDecision =
+        await VerificationCodeRateLimit.consume({
+          itemKey: TELEGRAM_START_RATE_LIMIT_ITEM_KEY,
+          userKey: `telegram-chat:${chatId}`,
+          /*
+           * Telegram forwards every update from its own infrastructure, so the
+           * HTTP source address is shared by every user. The stable chat id is
+           * the meaningful client identity for this webhook.
+           */
+          clientIp: `telegram-chat:${chatId}`,
+          bucket: VerificationCodeRateLimitBucket.Verify,
+        });
+
+      if (
+        rateLimitDecision.outcome !== VerificationCodeRateLimitOutcome.Allowed
+      ) {
+        if (
+          rateLimitDecision.outcome ===
+            VerificationCodeRateLimitOutcome.RateLimited &&
+          rateLimitDecision.isFirstRejectionInWindow
+        ) {
+          await sendBotReply(
+            chatId,
+            "❌ Too many verification attempts. Please wait and open OneUptime to request a new link.",
+          );
+        }
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
       if (!code) {
         await sendBotReply(
           chatId,
@@ -220,47 +310,39 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      const match: UserTelegram | null = await UserTelegramService.findOneBy({
-        query: {
+      const verificationResult: TelegramVerificationResult =
+        await UserTelegramService.claimVerificationCode({
           verificationCode: code,
-        },
-        select: {
-          _id: true,
-          userId: true,
-          projectId: true,
-          isVerified: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!match) {
-        await sendBotReply(
-          chatId,
-          "❌ That verification code is invalid or expired. Please open OneUptime and request a new one.",
-        );
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      if (match.isVerified) {
-        await sendBotReply(
-          chatId,
-          "✅ This Telegram account is already linked to OneUptime. You're all set.",
-        );
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      await UserTelegramService.updateOneById({
-        id: match.id!,
-        data: {
-          isVerified: true,
           telegramChatId: chatId,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        });
+
+      if (
+        verificationResult.outcome !== TelegramVerificationOutcome.Verified ||
+        !verificationResult.item
+      ) {
+        await sendBotReply(
+          chatId,
+          "❌ That verification link is invalid, expired, or has already been used. Please open OneUptime and request a new one.",
+        );
+        return Response.sendEmptySuccessResponse(req, res);
+      }
+
+      const match: UserTelegram = verificationResult.item;
+
+      if (
+        !match.projectId ||
+        !match.userId ||
+        !(await UserTelegramService.hasActiveProjectMembership({
+          projectId: match.projectId,
+          userId: match.userId,
+        }))
+      ) {
+        await sendBotReply(
+          chatId,
+          "❌ That verification link is invalid, expired, or has already been used. Please open OneUptime and request a new one.",
+        );
+        return Response.sendEmptySuccessResponse(req, res);
+      }
 
       try {
         await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
