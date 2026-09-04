@@ -50,8 +50,9 @@ import ObjectID from "../../../Types/ObjectID";
  *     nothing. Filesystem utilization is per-mountpoint, so it groups by the
  *     unprefixed `mountpoint` datapoint label the hostmetrics receiver sets
  *     (read the same way in App/FeatureSet/Dashboard/src/Pages/Host/View/
- *     Overview.tsx). Host templates for per-device disk I/O or network
- *     interfaces do not exist yet; when one is added it groups by `device`.
+ *     Overview.tsx), plus the `device` label the same datapoint carries.
+ *     Host templates for per-device disk I/O or network interfaces do not
+ *     exist yet; when one is added it groups by `device`.
  *
  * Each table is exhaustive both ways — a new template with no row here fails
  * loudly, which forces the group-by decision to be made deliberately.
@@ -113,8 +114,17 @@ const EXPECTED_HOST_GROUP_BY: Array<GroupByExpectation> = [
   { id: "host-high-memory", groupByAttributeKeys: [] },
   { id: "host-high-load-average", groupByAttributeKeys: [] },
   { id: "host-high-processes", groupByAttributeKeys: [] },
-  // Per-entity within the host: one series (and one incident) per mount.
-  { id: "host-high-filesystem", groupByAttributeKeys: ["mountpoint"] },
+  /*
+   * Per-entity within the host: one series (and one incident) per mount.
+   * `device` rides along as identity the alert can NAME - it is constant
+   * for a mount so it adds no series, and "/var is 95% full on
+   * /dev/nvme0n1p2" is a materially different page from "/var is 95%
+   * full" when / sits on the same device.
+   */
+  {
+    id: "host-high-filesystem",
+    groupByAttributeKeys: ["mountpoint", "device"],
+  },
 ];
 
 function buildDockerArgs(): DockerAlertTemplateArgs {
@@ -280,7 +290,7 @@ describe("Alert template group-by keys", () => {
     }
   });
 
-  test("the host filesystem template is grouped per mountpoint", () => {
+  test("the host filesystem template is grouped per mountpoint, and names its device", () => {
     const filesystemTemplate: HostAlertTemplate | undefined =
       HOST_TEMPLATES.find((template: HostAlertTemplate) => {
         return template.id === "host-high-filesystem";
@@ -291,6 +301,20 @@ describe("Alert template group-by keys", () => {
     const step: MonitorStep =
       filesystemTemplate!.getMonitorStep(buildHostArgs());
 
-    expect(MonitorStep.getGroupByAttributeKeys(step)).toEqual(["mountpoint"]);
+    const keys: Array<string> = MonitorStep.getGroupByAttributeKeys(step);
+
+    /*
+     * `mountpoint` is the identity - one incident per mount, which is
+     * what stops a second mount filling up from being silenced behind
+     * the first one's open incident.
+     *
+     * `device` is identity the ALERT CAN NAME. The hostmetrics receiver
+     * puts it on the same datapoint and it is constant for a given
+     * mount, so it costs no extra series, and "/var is 95% full on
+     * /dev/nvme0n1p2" is a materially different page from "/var is 95%
+     * full" when / sits on the same device. See SeriesLabelDisplay,
+     * which renders both onto the alert title and description.
+     */
+    expect(keys).toEqual(["mountpoint", "device"]);
   });
 });

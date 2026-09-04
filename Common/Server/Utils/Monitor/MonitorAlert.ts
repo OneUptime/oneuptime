@@ -26,6 +26,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import SeriesContextEnricher from "./SeriesContextEnricher";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
 } from "./SeriesResourceLinker";
@@ -534,13 +535,35 @@ export default class MonitorAlert {
               seriesLabels,
             });
 
-          alert.title = MonitorTemplateUtil.processTemplateString({
-            value: criteriaAlert.title,
-            storageMap,
+          /*
+           * Render the criteria's template, then make it say WHICH
+           * series it is about.
+           *
+           * The criteria title is one fixed string shared by every
+           * series on the monitor, so without the enricher a cluster
+           * with fifty saturated pods produced fifty alerts whose
+           * titles were character-for-character identical - and the
+           * alert list, the Slack message and the phone notification
+           * all showed the same undifferentiated line. The enricher is
+           * a no-op when the monitor is not grouped, and when the
+           * rendered text already names the series (because the user
+           * put `{{seriesResourceSuffix}}` or the raw label variables
+           * in their own template).
+           */
+          alert.title = SeriesContextEnricher.enrichTitle({
+            title: MonitorTemplateUtil.processTemplateString({
+              value: criteriaAlert.title,
+              storageMap,
+            }),
+            seriesLabels,
           });
-          alert.description = MonitorTemplateUtil.processTemplateString({
-            value: criteriaAlert.description,
-            storageMap,
+          alert.description = SeriesContextEnricher.enrichDescription({
+            description: MonitorTemplateUtil.processTemplateString({
+              value: criteriaAlert.description,
+              storageMap,
+            }),
+            seriesLabels,
+            monitorType: input.monitor.monitorType,
           });
 
           /*
