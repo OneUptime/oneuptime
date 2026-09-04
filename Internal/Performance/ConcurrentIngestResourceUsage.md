@@ -85,7 +85,7 @@ over wall-clock comparisons. Heap deltas vary with V8 and collection timing.
 | Same burst: distinct retained configuration graphs | 1,000 | 1 |
 | Same burst: sampled retained JS heap | 19.89 MiB | 0.10 MiB |
 | Same burst: process CPU in recorded run | 325.63 ms | 3.05 ms |
-| 2,000 services, 4 metrics, 24,000 observations: catalog median CPU | 2,069.12 ms | 4.08 ms |
+| 2,000 services, 4 metrics, 24,000 observations: catalog median CPU | 1,743.25 ms | 4.17 ms |
 | Same catalog: existing-service ID reads during membership scans | 39,996,000 | 0 |
 | 200 writer producers, 100-row chunks, 1,000-row limit: admitted rows while inserts stall | 20,000 | 1,000 |
 | Same writer workload: sampled live JS heap increase | 23.20 MiB | 12.35 MiB |
@@ -129,9 +129,9 @@ node --require ts-node/register/transpile-only scripts/benchmark-metric-catalog.
 
 ## Regression coverage
 
-The focused run passes 356 tests across 16 suites, including 142 new regression
-and scale cases: 124 pipeline/cache tests, 45 metric-ingestion tests, 86 writer
-tests, and 101 probe tests. Tests assert work counts and behavior rather than
+The focused run passes 393 tests across 19 suites, including 143 new regression
+and scale cases: 124 pipeline/cache tests, 46 metric-ingestion tests, 86 writer
+tests, 101 probe tests, and 36 existing monitor-sweep tests. Tests assert work counts and behavior rather than
 machine-dependent timing thresholds.
 
 - Pipeline cache unit tests exercise 10,000 overlapping callers, empty values,

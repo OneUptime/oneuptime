@@ -44,6 +44,12 @@ let metadataByName: Map<string, TelemetryServiceMetadata>;
 let rows: Array<JSONObject>;
 let indexCatalog: jest.SpyInstance;
 
+type IngestTestMethods = Record<string, any> & {
+  resolveTelemetryResource: (data: {
+    attributes: JSONArray;
+  }) => Promise<TelemetryServiceMetadata>;
+};
+
 function makeMetric(
   data: {
     name?: string;
@@ -126,8 +132,8 @@ function catalogServiceIds(
 beforeEach(() => {
   metadataByName = new Map();
   rows = [];
-  const ingest: Record<string, any> =
-    OtelMetricsIngestService as unknown as Record<string, any>;
+  const ingest: IngestTestMethods =
+    OtelMetricsIngestService as unknown as IngestTestMethods;
   jest.spyOn(ingest, "runBatchHostEnrichment").mockResolvedValue(undefined);
   for (const method of AUTO_DISCOVERY_METHODS) {
     jest.spyOn(ingest, method).mockResolvedValue(null);

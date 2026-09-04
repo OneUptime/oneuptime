@@ -170,6 +170,22 @@ describe("request-scoped metric catalog", () => {
     ).toBeUndefined();
   });
 
+  test("preserves explicitly empty description and unit from the first observation", () => {
+    const catalog: MetricCatalog = new MetricCatalog();
+    const serviceId: ObjectID = ObjectID.generate();
+
+    addMetric(catalog, serviceId, { description: "", unit: "" });
+    addMetric(catalog, ObjectID.generate(), {
+      description: "Later description",
+      unit: "requests",
+    });
+
+    expect(
+      catalog.metricNameServiceNameMap["requests.total"]!.description,
+    ).toBe("");
+    expect(catalog.metricNameServiceNameMap["requests.total"]!.unit).toBe("");
+  });
+
   test("does not share membership or mutable model objects across requests", () => {
     const first: MetricCatalog = new MetricCatalog();
     const second: MetricCatalog = new MetricCatalog();

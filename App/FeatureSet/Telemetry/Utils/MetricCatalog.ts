@@ -39,8 +39,12 @@ export default class MetricCatalog {
     if (!metricType) {
       metricType = new MetricType();
       metricType.name = data.name;
-      metricType.description = data.description;
-      metricType.unit = data.unit;
+      if (data.description !== undefined) {
+        metricType.description = data.description;
+      }
+      if (data.unit !== undefined) {
+        metricType.unit = data.unit;
+      }
       metricType.services = [];
       this.metricNameServiceNameMap[data.name] = metricType;
     }
