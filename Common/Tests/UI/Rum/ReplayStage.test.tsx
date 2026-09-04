@@ -139,6 +139,8 @@ class FakeReplayer implements ReplayerLike {
   public readonly iframe: HTMLIFrameElement;
   public readonly wrapper: HTMLElement;
   public readonly initialEvents: Array<SessionReplayRecordedEvent>;
+  /* The config the stage constructed this Replayer with. */
+  public readonly constructorConfig: Record<string, unknown>;
   public readonly added: Array<SessionReplayRecordedEvent> = [];
   public readonly playOffsets: Array<number | undefined> = [];
   public readonly pauseOffsets: Array<number | undefined> = [];
@@ -150,8 +152,12 @@ class FakeReplayer implements ReplayerLike {
   public isDestroyed: boolean = false;
   public currentTimeMs: number = 0;
 
-  public constructor(events: Array<SessionReplayRecordedEvent>) {
+  public constructor(
+    events: Array<SessionReplayRecordedEvent>,
+    config?: Record<string, unknown>,
+  ) {
     this.initialEvents = events;
+    this.constructorConfig = config ?? {};
     this.iframe = document.createElement("iframe");
     this.wrapper = document.createElement("div");
   }
@@ -278,7 +284,14 @@ function makeHarness(options: {
 function renderStage(
   harness: Harness,
   props?: { isPlaying?: boolean },
-): { rerender: (isPlaying: boolean) => void } {
+): {
+  rerender: (isPlaying: boolean) => void;
+  seek: (offsetMs: number) => void;
+} {
+  let seekRequest: { offsetMs: number; token: number } | null = null;
+  let seekToken: number = 0;
+  let latestIsPlaying: boolean = props?.isPlaying ?? false;
+
   const element: (isPlaying: boolean) => React.ReactElement = (
     isPlaying: boolean,
   ): React.ReactElement => {
@@ -287,15 +300,16 @@ function renderStage(
         loader={harness.loader}
         replayerFactory={(
           events: Array<SessionReplayRecordedEvent>,
+          config: Record<string, unknown>,
         ): ReplayerLike => {
-          const replayer: FakeReplayer = new FakeReplayer(events);
+          const replayer: FakeReplayer = new FakeReplayer(events, config);
           harness.replayers.push(replayer);
           return replayer;
         }}
         isPlaying={isPlaying}
         speed={1}
         skipInactive={false}
-        seekRequest={null}
+        seekRequest={seekRequest}
         onTimeUpdate={(offsetMs: number): void => {
           harness.timeUpdates.push(offsetMs);
         }}
@@ -321,7 +335,13 @@ function renderStage(
 
   return {
     rerender: (isPlaying: boolean): void => {
+      latestIsPlaying = isPlaying;
       result.rerender(element(isPlaying));
+    },
+    seek: (offsetMs: number): void => {
+      seekToken++;
+      seekRequest = { offsetMs: offsetMs, token: seekToken };
+      result.rerender(element(latestIsPlaying));
     },
   };
 }
@@ -556,6 +576,201 @@ describe("ReplayStage transport state", () => {
     expect(harness.replayers.length).toBe(1);
     expect(harness.replayers[0]!.playOffsets).toEqual([0]);
     expect(harness.replayers[0]!.pauseOffsets).toEqual([]);
+  });
+
+  it("applies a Play pressed after the Replayer already exists", async () => {
+    /*
+     * The plain case, and the one the reported "Play does nothing" was
+     * about. The stage holds its live Replayer in a REF, so the effect that
+     * applies play/pause cannot see one appear; it only re-runs when
+     * isPlaying changes. Anything that leaves the intent and the applied
+     * state out of step - a rebuild, an error, a Replayer swapped between
+     * the press and the apply - used to leave the button saying "playing"
+     * over a stage that was not.
+     */
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+    });
+
+    const stage: { rerender: (isPlaying: boolean) => void } = renderStage(
+      harness,
+      { isPlaying: false },
+    );
+
+    await flush();
+
+    expect(harness.replayers.length).toBe(1);
+    expect(harness.replayers[0]!.playOffsets).toEqual([]);
+
+    act((): void => {
+      stage.rerender(true);
+    });
+
+    expect(harness.replayers[0]!.playOffsets).toEqual([0]);
+
+    act((): void => {
+      stage.rerender(false);
+    });
+
+    /*
+     * Pausing is applied to the SAME Replayer, not by rebuilding one. The
+     * leading 0 is the build's own pause(withinSegment); the undefined is
+     * this press, which pauses in place rather than seeking.
+     */
+    expect(harness.replayers.length).toBe(1);
+    expect(harness.replayers[0]!.pauseOffsets).toEqual([0, undefined]);
+  });
+
+  it("does not re-issue play on a rebuild that already applied the intent", async () => {
+    /*
+     * A rebuild - a seek across a snapshot anchor, or a gap jump - applies
+     * the current transport state itself. Re-asserting it afterwards would
+     * restart rrweb's timer at the same offset on every one of them, for
+     * nothing, so the re-assert has to be able to tell "the build already
+     * did this" from "the viewer changed their mind while it ran".
+     */
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2, { hasFullSnapshot: true }),
+        makeEntry(3),
+      ],
+    });
+
+    const stage: {
+      rerender: (isPlaying: boolean) => void;
+      seek: (offsetMs: number) => void;
+    } = renderStage(harness, { isPlaying: true });
+
+    await flush();
+
+    expect(harness.replayers.length).toBe(1);
+    expect(harness.replayers[0]!.playOffsets).toEqual([0]);
+
+    /* Seek into chunk 2, which anchors a new segment. */
+    act((): void => {
+      stage.seek(2 * CHUNK_MS + 1000);
+    });
+
+    await flush();
+
+    expect(harness.replayers.length).toBe(2);
+    expect(harness.replayers[1]!.playOffsets).toEqual([1000]);
+  });
+
+  it("kicks a fetch immediately when Play resumes a stalled recording", async () => {
+    /*
+     * rrweb emits Finish whenever it drains what it has been given, which
+     * with chunk streaming is a stall rather than the end. If the viewer
+     * pauses there and presses Play again, waiting for the next 200ms tick
+     * to decide it is time to fetch means the first thing they see after
+     * pressing Play is a frozen stage.
+     */
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+      ],
+    });
+
+    const stage: { rerender: (isPlaying: boolean) => void } = renderStage(
+      harness,
+      { isPlaying: true },
+    );
+
+    await flush();
+
+    /* The stall: rrweb ran out of events while more chunks exist. */
+    act((): void => {
+      harness.replayers[0]!.handlers.get("finish")!(undefined);
+    });
+
+    expect(harness.playingChanges).toEqual([]);
+
+    act((): void => {
+      stage.rerender(false);
+    });
+
+    /*
+     * No clock has been advanced in this test, so nothing has been fed yet:
+     * anything that lands below is the press doing it, not a tick.
+     */
+    expect(harness.replayers[0]!.added).toEqual([]);
+
+    act((): void => {
+      stage.rerender(true);
+    });
+
+    await flush();
+
+    expect(harness.replayers[0]!.added.length).toBeGreaterThan(0);
+    /* And it resumed the cast rather than only topping the buffer up. */
+    expect(harness.replayers[0]!.playOffsets.length).toBeGreaterThan(1);
+  });
+});
+
+describe("ReplayStage Replayer configuration", () => {
+  it("draws the pointer trail, so recorded mouse movement is visible", async () => {
+    /*
+     * rrweb records mousemove either way; what it does NOT do is draw a
+     * system cursor. With the tail off, a viewer sees a dot at eight
+     * positions a second and cannot tell deliberate movement from a jump -
+     * which is what "mouse movement is not rendered during playback"
+     * describes.
+     */
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    renderStage(harness);
+    await flush();
+
+    const config: Record<string, unknown> =
+      harness.replayers[0]!.constructorConfig;
+
+    expect(config["mouseTail"]).not.toBe(false);
+    expect(config["mouseTail"]).toEqual(
+      expect.objectContaining({ lineWidth: expect.any(Number) }),
+    );
+  });
+
+  it("bounds how fast skip-inactive may fast-forward", async () => {
+    /*
+     * rrweb's own default maxSpeed is 360x, which is far faster than this
+     * player can be fed: events arrive one 15-second chunk at a time over
+     * an authenticated fetch, so a 360x sprint drains the fed range in
+     * milliseconds and lands in the stalled state again and again. Capping
+     * it at the top of the manual speed control keeps skipping useful and
+     * never faster than the loader can keep up with.
+     */
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    renderStage(harness);
+    await flush();
+
+    const maxSpeed: unknown =
+      harness.replayers[0]!.constructorConfig["maxSpeed"];
+
+    expect(typeof maxSpeed).toBe("number");
+    expect(maxSpeed as number).toBeLessThanOrEqual(8);
+    expect(maxSpeed as number).toBeGreaterThan(1);
+  });
+
+  it("never enables canvas replay, which would drop the iframe sandbox", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    renderStage(harness);
+    await flush();
+
+    expect(harness.replayers[0]!.constructorConfig["UNSAFE_replayCanvas"]).toBe(
+      false,
+    );
   });
 });
 

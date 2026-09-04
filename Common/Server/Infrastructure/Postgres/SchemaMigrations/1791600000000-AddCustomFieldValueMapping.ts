@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddCustomFieldValueMapping1791400000000
+export class AddCustomFieldValueMapping1791600000000
   implements MigrationInterface
 {
-  public name: string = "AddCustomFieldValueMapping1791400000000";
+  public name: string = "AddCustomFieldValueMapping1791600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

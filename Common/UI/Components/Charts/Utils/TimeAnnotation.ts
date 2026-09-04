@@ -2,7 +2,9 @@ import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
+import SeriesPoints from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
+import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisUtil from "./XAxis";
 
 interface AxisBuckets {
@@ -16,17 +18,38 @@ interface AxisBuckets {
    */
   labelToIndex: Map<string, number>;
   formatter: (value: Date) => string;
+  /*
+   * The axis's own maximum, kept alongside the slots because the slots no
+   * longer imply it — see getWindowEndInMs.
+   */
+  xAxisMax: XAxisMaxMin;
 }
 
 export default class TimeAnnotationUtil {
-  private static getAxisBuckets(xAxis: XAxis): AxisBuckets {
-    const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
+  /*
+   * `seriesPoints` is not used to place anything — it is what lets this
+   * rebuild the SAME slot array DataPointUtil built. XAxisUtil drops an
+   * unfillable trailing slot, and whether it does depends on the series, so
+   * an annotation resolved against a grid built without them would index
+   * into an array one longer than the chart's rows: every marker in the
+   * final bucket would land past the end of the axis. Chart wrappers pass
+   * the series they are drawing; callers that pass none get the raw grid,
+   * which is what DataPointUtil gives them too.
+   */
+  private static getAxisBuckets(
+    xAxis: XAxis,
+    seriesPoints?: Array<SeriesPoints> | undefined,
+  ): AxisBuckets {
+    const intervals: Array<Date> = XAxisUtil.getRenderableIntervals({
       xAxisMin: xAxis.options.min,
       xAxisMax: xAxis.options.max,
+      precision: xAxis.options.precision,
+      seriesPoints: seriesPoints,
     });
     const formatter: (value: Date) => string = XAxisUtil.getFormatter({
       xAxisMin: xAxis.options.min,
       xAxisMax: xAxis.options.max,
+      precision: xAxis.options.precision,
     });
     const labels: Array<string> = intervals.map((interval: Date) => {
       return formatter(interval);
@@ -38,14 +61,32 @@ export default class TimeAnnotationUtil {
         labelToIndex.set(label, index);
       }
     }
-    return { intervals, labels, labelToIndex, formatter };
+    return {
+      intervals,
+      labels,
+      labelToIndex,
+      formatter,
+      xAxisMax: xAxis.options.max,
+    };
   }
 
   /*
    * End of the charted window: last bucket start plus one bucket width
    * (buckets extend past their start date).
+   *
+   * Held up to the axis's own maximum, because the grid can legitimately
+   * stop SHORT of it — XAxisUtil drops a trailing slot no data could land
+   * in. Reconstructing the window from the slots alone would then pull this
+   * bound backwards by a bucket and start rejecting the very markers that
+   * sit at the window edge as "outside the charted window": on an alert the
+   * declared-at marker is at the window end exactly, and it would vanish
+   * from the chart it exists to annotate. Such a marker resolves instead to
+   * the last bucket that is still on the axis, which is where its data is.
    */
-  private static getWindowEndInMs(intervals: Array<Date>): number {
+  private static getWindowEndInMs(
+    intervals: Array<Date>,
+    xAxisMax: XAxisMaxMin,
+  ): number {
     const lastInterval: Date | undefined = intervals[intervals.length - 1];
     if (!lastInterval) {
       return Number.NEGATIVE_INFINITY;
@@ -55,7 +96,11 @@ export default class TimeAnnotationUtil {
     const bucketWidthInMs: number = secondToLastInterval
       ? lastInterval.getTime() - secondToLastInterval.getTime()
       : 0;
-    return lastInterval.getTime() + bucketWidthInMs;
+    const gridEndInMs: number = lastInterval.getTime() + bucketWidthInMs;
+    const axisMaxInMs: number =
+      typeof xAxisMax === "number" ? xAxisMax : xAxisMax.getTime();
+
+    return Math.max(gridEndInMs, axisMaxInMs);
   }
 
   /*
@@ -113,7 +158,10 @@ export default class TimeAnnotationUtil {
     if (!firstInterval || data.date.getTime() < firstInterval.getTime()) {
       return null;
     }
-    if (data.date.getTime() > this.getWindowEndInMs(intervals)) {
+    if (
+      data.date.getTime() >
+      this.getWindowEndInMs(intervals, data.buckets.xAxisMax)
+    ) {
       return null;
     }
 
@@ -130,8 +178,16 @@ export default class TimeAnnotationUtil {
   public static formatTimeReferenceLines(data: {
     timeReferenceLines: Array<ChartTimeReferenceLineProps>;
     xAxis: XAxis;
+    /*
+     * The series the chart is drawing. Only used to rebuild the same slot
+     * array the rows were built from — see getAxisBuckets.
+     */
+    seriesPoints?: Array<SeriesPoints> | undefined;
   }): Array<FormattedTimeReferenceLine> {
-    const buckets: AxisBuckets = this.getAxisBuckets(data.xAxis);
+    const buckets: AxisBuckets = this.getAxisBuckets(
+      data.xAxis,
+      data.seriesPoints,
+    );
 
     const formatted: Array<FormattedTimeReferenceLine> = [];
     for (const timeReferenceLine of data.timeReferenceLines) {
@@ -154,15 +210,26 @@ export default class TimeAnnotationUtil {
   public static formatReferenceRegions(data: {
     referenceRegions: Array<ChartReferenceRegionProps>;
     xAxis: XAxis;
+    /*
+     * The series the chart is drawing. Only used to rebuild the same slot
+     * array the rows were built from — see getAxisBuckets.
+     */
+    seriesPoints?: Array<SeriesPoints> | undefined;
   }): Array<FormattedReferenceRegion> {
-    const buckets: AxisBuckets = this.getAxisBuckets(data.xAxis);
+    const buckets: AxisBuckets = this.getAxisBuckets(
+      data.xAxis,
+      data.seriesPoints,
+    );
     const firstInterval: Date | undefined = buckets.intervals[0];
     const lastIndex: number = buckets.labels.length - 1;
     const lastLabel: string | undefined = buckets.labels[lastIndex];
     if (!firstInterval || lastLabel === undefined) {
       return [];
     }
-    const windowEndInMs: number = this.getWindowEndInMs(buckets.intervals);
+    const windowEndInMs: number = this.getWindowEndInMs(
+      buckets.intervals,
+      buckets.xAxisMax,
+    );
 
     const formatted: Array<FormattedReferenceRegion> = [];
     for (const referenceRegion of data.referenceRegions) {

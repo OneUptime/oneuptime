@@ -12,7 +12,7 @@ import ScheduledMaintenanceCustomField from "../../../../Models/DatabaseModels/S
 import StatusPageCustomField from "../../../../Models/DatabaseModels/StatusPageCustomField";
 import TeamCustomField from "../../../../Models/DatabaseModels/TeamCustomField";
 import TeamMemberCustomField from "../../../../Models/DatabaseModels/TeamMemberCustomField";
-import { AddCustomFieldValueMapping1791400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791400000000-AddCustomFieldValueMapping";
+import { AddCustomFieldValueMapping1791600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791600000000-AddCustomFieldValueMapping";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 
 /*
@@ -44,7 +44,7 @@ const MIGRATIONS_DIRECTORY: string = path.join(
 
 const MIGRATION_PATH: string = path.join(
   MIGRATIONS_DIRECTORY,
-  "1791400000000-AddCustomFieldValueMapping.ts",
+  "1791600000000-AddCustomFieldValueMapping.ts",
 );
 
 const SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
@@ -128,12 +128,12 @@ describe("the value-mapping migration", () => {
    * throws no error, logs nothing and simply never runs.
    */
   test("is registered in SchemaMigrations/Index.ts so it actually runs", () => {
-    expect(SchemaMigrations).toContain(AddCustomFieldValueMapping1791400000000);
+    expect(SchemaMigrations).toContain(AddCustomFieldValueMapping1791600000000);
   });
 
   test("its class name matches the `name` TypeORM records in the migrations table", () => {
-    expect(new AddCustomFieldValueMapping1791400000000().name).toBe(
-      "AddCustomFieldValueMapping1791400000000",
+    expect(new AddCustomFieldValueMapping1791600000000().name).toBe(
+      "AddCustomFieldValueMapping1791600000000",
     );
   });
 

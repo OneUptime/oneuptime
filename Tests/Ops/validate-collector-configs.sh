@@ -75,6 +75,10 @@ ENV_ARGS=(
   -e "DOCKER_HOST_NAME=validate-only"
   -e "DOCKER_SWARM_CLUSTER_NAME=validate-only"
   -e "PODMAN_HOST_NAME=validate-only"
+  # The docker_stats receiver's api_version. An unset variable resolves to an
+  # empty string, which validate accepts and the receiver reads as its own 1.25
+  # default — so validate the value the images and compose files actually ship.
+  -e "DOCKER_API_VERSION=1.44"
   -e "APP_VERSION=validate-only"
   -e "HOSTNAME=validate-only"
   -e "NODE_IP=127.0.0.1"

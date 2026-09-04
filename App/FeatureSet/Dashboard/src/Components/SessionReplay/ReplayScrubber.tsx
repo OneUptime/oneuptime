@@ -432,7 +432,15 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           })}
         </div>
 
-        <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+        {/*
+         * Off by default; see DEFAULT_SKIP_INACTIVE. The title says what it
+         * costs, because "why did the recording jump" is otherwise a
+         * mystery a viewer has no way to connect back to this checkbox.
+         */}
+        <label
+          className="inline-flex items-center gap-1.5 text-xs text-gray-600"
+          title="Fast-forward through stretches with no user interaction. Playback jumps rather than showing every idle second."
+        >
           <input
             type="checkbox"
             className="h-3.5 w-3.5 rounded border-gray-300"

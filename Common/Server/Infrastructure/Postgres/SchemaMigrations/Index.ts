@@ -574,7 +574,9 @@ import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-Add
 import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
 import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "./1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTelemetryIngestionKeyType";
-import { AddCustomFieldValueMapping1791400000000 } from "./1791400000000-AddCustomFieldValueMapping";
+import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400000000-SessionReplayRecordEverySessionByDefault";
+import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-WidenCustomFieldDropdownOptions";
+import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
 
 export default [
   InitialMigration,
@@ -1153,5 +1155,7 @@ export default [
   AddUserNotificationEmailRollupSetting1791100000000,
   AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,
   AddTelemetryIngestionKeyType1791300000000,
-  AddCustomFieldValueMapping1791400000000,
+  SessionReplayRecordEverySessionByDefault1791400000000,
+  WidenCustomFieldDropdownOptions1791500000000,
+  AddCustomFieldValueMapping1791600000000,
 ];

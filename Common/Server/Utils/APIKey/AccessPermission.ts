@@ -91,9 +91,12 @@ export default class APIKeyAccessPermission {
     projectId: ObjectID,
     apiKeyId: ObjectID,
   ): Promise<UserTenantAccessPermission> {
-    // get team permissions (cached — see ApiKeyPermissionService).
+    // Get only this key's permissions in this project (cached by both ids).
     const apiKeyPermissionRows: Array<ApiKeyPermissionRow> =
-      await ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId);
+      await ApiKeyPermissionService.findPermissionsByApiKeyId(
+        apiKeyId,
+        projectId,
+      );
 
     const userPermissions: Array<UserPermission> = apiKeyPermissionRows.map(
       (row: ApiKeyPermissionRow): UserPermission => {

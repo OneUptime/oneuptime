@@ -9,6 +9,10 @@ import React, {
 import ReactDOM from "react-dom";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
+import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import ChartGroup, {
   Chart,
   ChartMetricInfo,
@@ -170,6 +174,14 @@ export interface ComponentProps {
    * instance's own panels only.
    */
   chartSyncId?: string | undefined;
+  /*
+   * The AggregationInterval the results were actually fetched with, when the
+   * host pinned one. Charts plot server-side buckets, so this is the axis's
+   * grid step — see getChartGridPrecision. Hosts that do not pin (they let
+   * the server derive the interval from the window) can omit it; the same
+   * derivation then runs here over the same window.
+   */
+  aggregationInterval?: AggregationInterval | undefined;
 }
 
 /*
@@ -2117,6 +2129,46 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * The grid step for every panel: the interval the ROWS were bucketed at,
+   * not one re-guessed from the window's length.
+   *
+   * These charts plot server-side buckets, so a slot is only meaningful if
+   * it corresponds to one. Left to XAxisUtil's duration ladder the two drift
+   * apart in both directions — see XAxisOptions.precision — and the drift is
+   * what the alert Metrics tab was showing: a 5-minute snapshot drew a
+   * 30-second grid over one-minute rows, so every other slot was blank and
+   * the axis ran a full minute past the last real point.
+   *
+   * `props.aggregationInterval` is the interval the query was actually
+   * pinned to, which is what a host that aligned its window has (aligning
+   * floors the start, and the derivation must stay on the RAW window or a
+   * window sitting on a tier boundary changes resolution). Hosts that render
+   * MetricCharts directly do not align, so deriving from their window
+   * reproduces the same answer the server did.
+   */
+  const getChartGridPrecision: () => XAxisPrecision | undefined = ():
+    | XAxisPrecision
+    | undefined => {
+    const startDate: Date | undefined = props.metricViewData.startAndEndDate
+      ?.startValue as Date | undefined;
+    const endDate: Date | undefined = props.metricViewData.startAndEndDate
+      ?.endValue as Date | undefined;
+
+    if (!startDate || !endDate) {
+      return undefined;
+    }
+
+    const interval: AggregationInterval =
+      AggregationIntervalUtil.getAggregationIntervalForWindow({
+        startDate: startDate,
+        endDate: endDate,
+        aggregationInterval: props.aggregationInterval,
+      });
+
+    return XAxisUtil.getPrecisionForAggregationInterval(interval);
+  };
+
+  /*
    * Write a new Top-N onto every member query of a panel. Preferred path:
    * hand the parent a full replacement queryConfigs array (persists
    * `metricQueryData.topN` and triggers the parent's fetch). Fallback when
@@ -2904,6 +2956,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   OneUptimeDate.getCurrentDate(),
                   -1,
                 ),
+              precision: getChartGridPrecision(),
               aggregateType: xAxisAggregationType,
             },
           },
@@ -3204,6 +3257,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   OneUptimeDate.getCurrentDate(),
                   -1,
                 ),
+              precision: getChartGridPrecision(),
               aggregateType: XAxisAggregateType.Average,
             },
           },

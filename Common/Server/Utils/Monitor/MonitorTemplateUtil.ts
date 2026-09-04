@@ -32,6 +32,8 @@ import ExternalStatusPageMonitorResponse, {
 } from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Typeof from "../../../Types/Typeof";
+import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
@@ -626,6 +628,33 @@ export default class MonitorTemplateUtil {
       }
       storageMap["seriesLabels"] = data.seriesLabels;
     }
+
+    /*
+     * Ready-made renderings of the series identity.
+     *
+     * These are set unconditionally - to "" when the monitor is not
+     * grouped, or when its labels carry no usable value - and that is
+     * the whole point. `VMUtil.replaceValueInPlace` leaves a placeholder
+     * it cannot resolve in the output verbatim, so a title written as
+     * `"Pod CPU high{{seriesResourceSuffix}}"` would otherwise render
+     * with the braces still in it on any monitor without a group-by.
+     * Always defining them makes the variables safe to use in a shipped
+     * template that has to work for grouped and ungrouped monitors
+     * alike.
+     */
+    storageMap["seriesResourceSuffix"] = SeriesLabelDisplay.buildTitleSuffix(
+      data.seriesLabels,
+    );
+    storageMap["seriesResourceSummary"] = SeriesLabelDisplay.buildInlineSummary(
+      data.seriesLabels,
+    );
+    storageMap["seriesResourceBlock"] = SeriesLabelDisplay.buildMarkdownBlock(
+      data.seriesLabels,
+    );
+    storageMap["seriesDebugCommands"] = SeriesDebugHints.buildMarkdownBlock({
+      monitorType: data.monitorType,
+      seriesLabels: data.seriesLabels,
+    });
 
     /*
      * Monitor identity fields. Always exposed (when a monitor is provided),

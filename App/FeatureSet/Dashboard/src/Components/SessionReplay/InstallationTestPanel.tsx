@@ -330,17 +330,31 @@ const InstallationTestPanel: FunctionComponent = (): ReactElement => {
           : "Fine for getting started, wrong for production. Your ingestion key is visible in your page's JavaScript and has no origin binding of its own, so until you list your domains anyone who copies it can write forged recordings into this project.",
     });
 
-    const isErrorTriggered: boolean =
-      status.captureTrigger !== "Always" && status.samplePercentage === 0;
+    const isAlways: boolean = status.captureTrigger === "Always";
+
+    /*
+     * Two configurations record nothing at all for an ordinary visit, and
+     * both look exactly like a broken install from the outside. They are
+     * called out as warnings rather than info because "no recording
+     * appeared" is the single most reported symptom and this row is the
+     * answer to it.
+     */
+    const recordsNothing: boolean = isAlways && status.samplePercentage === 0;
+    const errorTriggeredOnly: boolean =
+      !isAlways && status.samplePercentage === 0;
 
     rows.push({
-      state: "info",
-      title: `Capture: ${status.captureTrigger || "OnErrorOrFrustration"}, ${
+      state: recordsNothing || errorTriggeredOnly ? "warn" : "pass",
+      title: `Capture: ${status.captureTrigger || "Always"}, ${
         status.samplePercentage
       }% sampled`,
-      detail: isErrorTriggered
-        ? "Recordings upload only when an error or frustration signal fires. A healthy visit produces no recording — that is expected, not a broken install."
-        : "Sampled sessions upload from their first event; the rest only on error or frustration.",
+      detail: recordsNothing
+        ? "Nothing is recorded: the trigger is Always but the sample percentage is 0, so no session is ever eligible. Raise the sample percentage in the application's replay policy."
+        : errorTriggeredOnly
+          ? "Recordings upload only when an error or frustration signal fires, so a healthy visit produces no recording. That is this setting working as configured — switch the trigger to Always if you want every session watchable."
+          : isAlways
+            ? "Every sampled session uploads from its first event, so an ordinary visit is just as watchable as a broken one."
+            : "Sampled sessions upload from their first event; the rest only on error or frustration.",
     });
 
     rows.push({

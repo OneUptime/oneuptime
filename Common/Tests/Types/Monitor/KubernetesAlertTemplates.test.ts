@@ -19,9 +19,18 @@ import ObjectID from "../../../Types/ObjectID";
  *      name (`resource.k8s.node.name`), not the bare `k8s.node.name`.
  *      OneUptime stamps OTel resource attributes with a `resource.` prefix
  *      at ingest, so the bare key would match nothing and collapse every
- *      node into one mislabeled series. The key differs per template — the
- *      HPA template groups per HPA and the pod-limit templates per pod —
- *      so each case carries its own expected key.
+ *      node into one mislabeled series. The key SET differs per template —
+ *      the HPA template groups per namespace+HPA and the pod-limit
+ *      templates per namespace+pod — so each case carries its own
+ *      expected set, and both queries must carry exactly that set or the
+ *      formula's fingerprint join silently finds nothing.
+ *
+ *      Namespace is in those sets because a Kubernetes object name is
+ *      unique only within a namespace, and because the set is also what
+ *      the resulting alert can NAME (see SeriesLabelDisplay). Node is
+ *      deliberately NOT: kubeletstats always carries it but the
+ *      k8s_cluster side only gets it from the best-effort k8sattributes
+ *      processor, and a key only one side carries breaks the join.
  *
  *   2. The aggregation differs by numerator shape:
  *        - Request utilization sums MANY container series per node, and both
@@ -53,7 +62,12 @@ interface RatioTemplateCase {
   resultAlias: string;
   aggregation: MetricsAggregationType;
   threshold: number;
-  groupBy: string;
+  /*
+   * The full group-by key SET, in order. Both queries must carry exactly
+   * this, or the two halves of the ratio hash to fingerprints that never
+   * meet and the formula silently evaluates against an empty operand.
+   */
+  groupBy: Array<string>;
 }
 
 const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
@@ -67,7 +81,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_cpu_request_utilization",
     aggregation: MetricsAggregationType.Sum,
     threshold: 90,
-    groupBy: "resource.k8s.node.name",
+    groupBy: ["resource.k8s.node.name"],
   },
   {
     id: "k8s-node-memory-request-utilization",
@@ -78,7 +92,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_memory_request_utilization",
     aggregation: MetricsAggregationType.Sum,
     threshold: 90,
-    groupBy: "resource.k8s.node.name",
+    groupBy: ["resource.k8s.node.name"],
   },
   // Usage utilization — Avg/Avg (one series per node, cross-receiver).
   {
@@ -90,7 +104,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_cpu_utilization",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
-    groupBy: "resource.k8s.node.name",
+    groupBy: ["resource.k8s.node.name"],
   },
   {
     id: "k8s-high-memory",
@@ -101,17 +115,17 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_memory_utilization",
     aggregation: MetricsAggregationType.Avg,
     threshold: 85,
-    groupBy: "resource.k8s.node.name",
+    groupBy: ["resource.k8s.node.name"],
   },
   /*
    * Autoscaling / limit saturation — Avg/Avg, and NOT keyed on the node.
    *
-   * The HPA ratio groups per HPA object; the two pod-limit ratios group
-   * per pod. Locking the group-by key here is the point of these cases:
-   * these were the first ratio templates in this file not keyed on
-   * `resource.k8s.node.name`, so a copy-paste of the node key would
-   * silently collapse every HPA (or every pod) into one mislabeled
-   * series that still renders and still alerts.
+   * The HPA ratio groups per namespace+HPA object; the two pod-limit
+   * ratios group per namespace+pod. Locking the group-by set here is the
+   * point of these cases: these were the first ratio templates in this
+   * file not keyed on `resource.k8s.node.name`, so a copy-paste of the
+   * node key would silently collapse every HPA (or every pod) into one
+   * mislabeled series that still renders and still alerts.
    */
   {
     id: "k8s-hpa-at-max-replicas",
@@ -122,7 +136,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "hpa_replica_saturation",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
-    groupBy: "resource.k8s.hpa.name",
+    groupBy: ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
   },
   {
     id: "k8s-pod-memory-limit-saturation",
@@ -133,7 +147,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "pod_memory_limit_saturation",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
-    groupBy: "resource.k8s.pod.name",
+    groupBy: ["resource.k8s.namespace.name", "resource.k8s.pod.name"],
   },
   {
     id: "k8s-pod-cpu-limit-saturation",
@@ -144,7 +158,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "pod_cpu_limit_saturation",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
-    groupBy: "resource.k8s.pod.name",
+    groupBy: ["resource.k8s.namespace.name", "resource.k8s.pod.name"],
   },
 ];
 
@@ -225,15 +239,17 @@ describe("KubernetesAlertTemplates - per-series ratio templates", () => {
        * Decision (1): group by the resource-prefixed attribute on BOTH
        * queries so the per-series fingerprints line up for the formula join.
        */
-      expect(numerator.metricQueryData.groupByAttributeKeys).toEqual([
+      expect(numerator.metricQueryData.groupByAttributeKeys).toEqual(
         tc.groupBy,
-      ]);
-      expect(denominator.metricQueryData.groupByAttributeKeys).toEqual([
+      );
+      expect(denominator.metricQueryData.groupByAttributeKeys).toEqual(
         tc.groupBy,
-      ]);
+      );
 
-      // The `resource.` prefix is load-bearing — a bare OTel key matches nothing.
-      expect(tc.groupBy.startsWith("resource.")).toBe(true);
+      for (const key of tc.groupBy) {
+        // The `resource.` prefix is load-bearing — a bare OTel key matches nothing.
+        expect(key.startsWith("resource.")).toBe(true);
+      }
 
       // Formula divides numerator by denominator and scales to a percentage.
       expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(

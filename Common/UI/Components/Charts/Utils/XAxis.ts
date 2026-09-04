@@ -1,11 +1,56 @@
+import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
 import OneUptimeDate from "../../../../Types/Date";
 import NotImplementedException from "../../../../Types/Exception/NotImplementedException";
+import SeriesPoints from "../Types/SeriesPoints";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
 
 export default class XAxisUtil {
   private static cloneDate(value: Date): Date {
     return new Date(value.getTime());
+  }
+
+  /*
+   * The grid step a caller should pin when its points are buckets the
+   * analytics backend produced, rather than raw samples.
+   *
+   * This is the bridge between the two ladders. AggregationInterval is what
+   * the server was asked to bucket by (AggregationIntervalUtil owns that
+   * decision, and the server compiles it into `toStartOfInterval`);
+   * XAxisPrecision is the step this file walks the axis at. Pinning the
+   * translation of one to the other is what makes "one slot == one backend
+   * bucket" a fact rather than a coincidence of two duration ladders
+   * agreeing.
+   *
+   * `Total` is the one interval with no grid at all — it collapses the whole
+   * window into a single aggregate whose timestamp is the earliest sample,
+   * not a bucket start — so it pins nothing and the duration ladder applies.
+   */
+  public static getPrecisionForAggregationInterval(
+    interval: AggregationInterval,
+  ): XAxisPrecision | undefined {
+    switch (interval) {
+      case AggregationInterval.Minute:
+        return XAxisPrecision.EVERY_MINUTE;
+      case AggregationInterval.FiveMinutes:
+        return XAxisPrecision.EVERY_FIVE_MINUTES;
+      case AggregationInterval.FifteenMinutes:
+        return XAxisPrecision.EVERY_FIFTEEN_MINUTES;
+      case AggregationInterval.ThirtyMinutes:
+        return XAxisPrecision.EVERY_THIRTY_MINUTES;
+      case AggregationInterval.Hour:
+        return XAxisPrecision.EVERY_HOUR;
+      case AggregationInterval.Day:
+        return XAxisPrecision.EVERY_DAY;
+      case AggregationInterval.Week:
+        return XAxisPrecision.EVERY_WEEK;
+      case AggregationInterval.Month:
+        return XAxisPrecision.EVERY_MONTH;
+      case AggregationInterval.Year:
+        return XAxisPrecision.EVERY_YEAR;
+      default:
+        return undefined;
+    }
   }
 
   /*
@@ -110,7 +155,18 @@ export default class XAxisUtil {
   public static getPrecision(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;
+    precision?: XAxisPrecision | undefined;
   }): XAxisPrecision {
+    /*
+     * An explicit pin wins outright — see XAxisOptions.precision for why a
+     * caller that knows the bucket size must not have it re-guessed from the
+     * window duration. Checked before the Date guard so a pinned axis stays
+     * pinned regardless of how its bounds are expressed.
+     */
+    if (data.precision) {
+      return data.precision;
+    }
+
     if (
       typeof data.xAxisMax === "number" ||
       typeof data.xAxisMin === "number"
@@ -184,6 +240,7 @@ export default class XAxisUtil {
   public static getPrecisionIntervals(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;
+    precision?: XAxisPrecision | undefined;
   }): Array<Date> {
     const precision: XAxisPrecision = XAxisUtil.getPrecision(data);
 
@@ -280,9 +337,169 @@ export default class XAxisUtil {
     return intervals;
   }
 
+  /*
+   * How much of the LAST slot's bucket has to lie inside the window before
+   * an empty slot is worth an axis position. Half.
+   *
+   * The bound has to sit somewhere between the two ends it separates, and
+   * both ends are real:
+   *
+   *  - Near zero coverage means the bucket is not in the window in any
+   *    meaningful sense. The alert snapshot that prompted this covered
+   *    243 MILLISECONDS of a 60-second bucket (its window ends at the
+   *    instant the alert was declared, which fell just past a minute
+   *    boundary); a window that ends exactly on a boundary covers none of
+   *    the next bucket at all. Those slots cannot carry data, and an
+   *    unfillable slot at the right-hand edge is the reported gap.
+   *  - Most-of-the-bucket coverage means an empty slot is INFORMATION.
+   *    "Last 7 days" ends mid-afternoon, so today's bucket is ~60% inside
+   *    the window; if a count chart has nothing in it, that empty final bar
+   *    says "nothing today", and dropping the tick would hide it.
+   *
+   * A half-covered bucket is the natural line between "barely touched" and
+   * "genuinely part of this window", and it keeps every rolling window
+   * anchored at `now` — where the in-progress bucket is on average half
+   * elapsed — on the safe side.
+   */
+  private static readonly MIN_TRAILING_BUCKET_COVERAGE: number = 0.5;
+
+  /*
+   * The intervals a chart should actually RENDER, which is the raw grid
+   * minus a trailing slot that no data could ever land in.
+   *
+   * getPrecisionIntervals walks inclusively to the window end, so the final
+   * slot is the start of whichever bucket CONTAINS that end. That bucket
+   * runs past the end of the window, so the query never covered all of it —
+   * and when the window ends at or just after a bucket boundary it covered
+   * essentially none of it. The backend returns rows only for buckets that
+   * had samples, so such a slot comes back empty every time; and because the
+   * recharts x-axis is categorical over exactly these slots, an empty one at
+   * the end is not a rounding detail — it stretches the axis a whole bucket
+   * past the last plotted point. On a 5-minute alert snapshot that is a
+   * fifth of the chart left blank.
+   *
+   * Only ever ONE slot is dropped, and only when BOTH hold:
+   *
+   *  - it carries no data, so a live in-progress bucket keeps rendering
+   *    (dropping populated trailing buckets would make every now-anchored
+   *    chart lag by a bucket — the opposite complaint), and
+   *  - the window covers less than half of it, so an empty bucket that the
+   *    window really does span stays on the axis.
+   *
+   * Dropping at most one is what keeps a genuine outage visible: a source
+   * that stopped reporting three buckets before the window end still leaves
+   * two blank slots on the axis, which is the truth. Callers with no series
+   * to check get the raw grid unchanged.
+   */
+  public static getRenderableIntervals(data: {
+    xAxisMin: XAxisMaxMin;
+    xAxisMax: XAxisMaxMin;
+    precision?: XAxisPrecision | undefined;
+    seriesPoints?: Array<SeriesPoints> | undefined;
+  }): Array<Date> {
+    const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals(data);
+
+    if (!data.seriesPoints || intervals.length < 2) {
+      return intervals;
+    }
+
+    const lastInterval: Date = intervals[intervals.length - 1]!;
+    const previousInterval: Date = intervals[intervals.length - 2]!;
+
+    /*
+     * Bucket width read off the grid itself rather than recomputed from the
+     * precision: the walk steps in wall-clock time, so a month, a year or a
+     * daylight-saving day is exactly as wide as the grid says it is.
+     */
+    const bucketWidthInMs: number =
+      lastInterval.getTime() - previousInterval.getTime();
+    if (bucketWidthInMs <= 0) {
+      return intervals;
+    }
+
+    /*
+     * Emptiness — and the bucket boundary below — are decided with the SAME
+     * formatter that DataPointUtil uses to place a datapoint on a row.
+     * Anything else would let the two disagree about which bucket the last
+     * slot IS, and the whole point of trimming here rather than in
+     * DataPointUtil is that the rows, the categorical axis and the
+     * annotation indexes are built from one array.
+     */
+    const formatter: (value: Date) => string = XAxisUtil.getFormatter(data);
+    const lastLabel: string = formatter(lastInterval);
+
+    /*
+     * A slot's DATE and the bucket it collects into are not the same thing.
+     * The walk starts at the window's own start, so on most charts the grid
+     * is anchored mid-bucket: a "last 7 days" axis stepping a day from
+     * 28 Aug 14:42 ends on a slot dated 4 Sep 14:42, which the formatter
+     * floors to the label "4 Sep" — the bucket [4 Sep 00:00, 5 Sep 00:00),
+     * of which the window covers nearly fifteen hours.
+     *
+     * Coverage can therefore only be measured off the slot's date when the
+     * slot IS its bucket's start, which is what this asks: a slot on a
+     * boundary has a different label one millisecond before it. When the
+     * grid is anchored mid-bucket the window necessarily spans everything
+     * from the bucket's real start up to the window end, which is most of
+     * it, so the slot stays — the conservative answer, and the one that
+     * keeps an empty "today" bar on a daily count chart.
+     *
+     * The alert snapshot is the aligned case (MetricView floors the window
+     * start onto the bucket grid), which is exactly when the slot date is
+     * the bucket start and the coverage measured below is the real one.
+     */
+    const isSlotOnBucketBoundary: boolean =
+      formatter(new Date(lastInterval.getTime() - 1)) !== lastLabel;
+    if (!isSlotOnBucketBoundary) {
+      return intervals;
+    }
+
+    const windowEndInMs: number =
+      typeof data.xAxisMax === "number"
+        ? data.xAxisMax
+        : OneUptimeDate.fromString(data.xAxisMax).getTime();
+    const coverage: number =
+      (windowEndInMs - lastInterval.getTime()) / bucketWidthInMs;
+    if (coverage >= XAxisUtil.MIN_TRAILING_BUCKET_COVERAGE) {
+      return intervals;
+    }
+
+    const slotLabels: Set<string> = new Set<string>(
+      intervals.map((interval: Date) => {
+        return formatter(interval);
+      }),
+    );
+
+    let hasAnyData: boolean = false;
+    for (const series of data.seriesPoints) {
+      for (const point of series.data) {
+        const label: string = formatter(point.x);
+        if (label === lastLabel) {
+          // The trailing bucket is populated — it stays.
+          return intervals;
+        }
+        if (!hasAnyData && slotLabels.has(label)) {
+          hasAnyData = true;
+        }
+      }
+    }
+
+    /*
+     * A chart with nothing on it anywhere keeps its full grid, so an empty
+     * chart still draws an axis spanning the window the user asked for
+     * instead of one silently a bucket short.
+     */
+    if (!hasAnyData) {
+      return intervals;
+    }
+
+    return intervals.slice(0, intervals.length - 1);
+  }
+
   public static getFormatter(data: {
     xAxisMin: XAxisMaxMin;
     xAxisMax: XAxisMaxMin;
+    precision?: XAxisPrecision | undefined;
   }): (value: Date) => string {
     const precision: XAxisPrecision = XAxisUtil.getPrecision(data);
 

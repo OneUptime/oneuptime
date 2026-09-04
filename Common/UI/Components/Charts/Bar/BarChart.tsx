@@ -97,8 +97,10 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       return TimeAnnotationUtil.formatTimeReferenceLines({
         timeReferenceLines: props.timeReferenceLines,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps marker indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.timeReferenceLines, props.xAxis]);
+    }, [props.timeReferenceLines, props.xAxis, props.data]);
 
   const formattedReferenceRegions: Array<FormattedReferenceRegion> =
     useMemo(() => {
@@ -108,8 +110,10 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       return TimeAnnotationUtil.formatReferenceRegions({
         referenceRegions: props.referenceRegions,
         xAxis: props.xAxis,
+        // Same series the rows were built from — keeps region indexes aligned.
+        seriesPoints: props.data || [],
       });
-    }, [props.referenceRegions, props.xAxis]);
+    }, [props.referenceRegions, props.xAxis, props.data]);
 
   const hasNoData: boolean =
     !props.data ||

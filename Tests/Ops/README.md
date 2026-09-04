@@ -198,6 +198,91 @@ or an expr string one backslash short. It runs on every PR from the
 cd Tests/Ops && npm run validate-collector-configs
 ```
 
+### `ContainerAgentDockerApiVersion.test.js`
+
+The `docker_stats` receiver has to name the Docker Engine API version it speaks,
+and a daemon refuses a client _newer_ than its own maximum. With a literal
+`"1.44"` baked into the image there was no way out on Docker Engine 20.10 (max
+API 1.41) short of replacing the config: the receiver fails to start, the
+collector exits with it, and the container restart-loops. The version is now the
+`DOCKER_API_VERSION` environment variable, defaulting to `1.44` in the image
+`ENV` and in each compose file's pass-through.
+
+Everything this suite asserts was **measured** against
+`otel/opentelemetry-collector-contrib:0.154.0` and a real daemon, not assumed —
+see the header comment for the full table. Three measurements matter:
+
+| `api_version`         | on the wire            | collector             |
+| --------------------- | ---------------------- | --------------------- |
+| omitted               | `/v1.44/`              | starts                |
+| `""` (unset or empty) | `HEAD /_ping` then max | starts                |
+| too new / too old     | —                      | exits, pipeline fails |
+
+So the receiver's own default is **1.44**, and `1.25` is its accepted _minimum_,
+not its default. The configs used to say the opposite ("the receiver default is
+`1.25`, which modern daemons reject"), which made an unset variable look
+dangerous when it is not; a test now fails if that claim comes back.
+
+An empty `api_version` is safe: the receiver falls back to Docker SDK
+**auto-negotiation** — one `HEAD /_ping`, then the daemon's own maximum — which
+works against any daemon. That makes it a real escape hatch for operators who
+cannot easily read their daemon's maximum, so the READMEs and docs pages
+describe it and a test keeps that documentation honest.
+
+Because empty is meaningful, every pass-through uses `${VAR-1.44}` and **not**
+`${VAR:-1.44}`. Both Compose and the shell treat `:-` as "substitute when unset
+_or_ empty", which would silently swallow the escape hatch; the colon-less form
+only fills in when the variable is absent entirely. A test pins that distinction
+so it does not get tidied back.
+
+The config itself keeps a plain `${env:DOCKER_API_VERSION}`. Upstream's own
+`envprovider` test table shows that confmap's `:-` applies only when the variable
+is genuinely unset (`{value: "", uri: "env:MY_VAR:-foo", expectedVal: ""}`), so a
+`${env:…:-1.44}` default would not catch an empty value either — and the unset
+case already degrades to auto-negotiation, which is the safer outcome.
+
+The inventory pollers are the other client of that API. Rather than
+pattern-matching their source, the suite **runs** each script's `API_VERSION`
+resolution block under `sh` and asserts the URL it produces: unset →
+`http://localhost/v1.44`, explicitly empty → `http://localhost` (unversioned, the
+curl analogue of negotiating), explicit → that version. It also asserts
+`DockerSwarmAgent/docker-compose.yml` passes the variable to the
+`oneuptime-docker-swarm-inventory` sidecar, the container that actually runs the
+script, which the collector service's entry does not reach. `DockerAgent`'s and
+`PodmanAgent`'s scripts are not wired into their images today (`Dockerfile.tpl`
+copies only the collector config, and nothing references `entrypoint.sh`), so for
+them the assertion guards the comment rather than a running path.
+
+The remaining blocks are cross-checks: a **lockstep** comparison so a bump
+applied to one agent and not the rest fails; a check that the agents baking an
+image are exactly the ones with a `Dockerfile.tpl`; a check that `AGENTS` covers
+**every** `docker_stats` receiver in the repo, so a fourth agent added later with
+a literal pin cannot slip past; and a **locale parity** check that all 16
+translations of `docker-host.md` and `podman-host.md` document the variable and
+carry the troubleshooting entry, since the English page racing ahead of the other
+15 is the normal way this rots.
+
+### `ContainerAgentDockerApiVersionRuntime.test.js`
+
+The runtime counterpart. The suite above pins the _shape_ of the plumbing by
+reading files; this one pins the _behaviour_ that shape exists to produce, by
+running the pinned collector image against a real daemon: a version above the
+daemon's maximum kills the collector, one below its minimum does too, and an
+empty value starts fine via auto-negotiation.
+
+It needs Docker and pulls an image, so it is **off by default** and never runs in
+the normal `npm test` or CI path:
+
+```bash
+RUN_CONTAINER_AGENT_RUNTIME_TESTS=1 npm test
+```
+
+It adapts to whatever daemon it finds — the API version bounds are read from that
+daemon, and any case the daemon cannot demonstrate (for example `1.25` on a
+daemon whose floor is low enough to accept it) is skipped with a reason rather
+than failed. A guard test that always runs reports why the suite is idle, so it
+cannot rot into permanent silence.
+
 ## Utils
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
