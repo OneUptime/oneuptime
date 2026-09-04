@@ -64,11 +64,12 @@ docker compose up -d
 
 ## Variables d'environnement
 
-| Variable                  | Requis | Description                                                                                                                                      |
-| ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ONEUPTIME_URL`           | Oui    | L'URL de votre instance OneUptime (par exemple `https://oneuptime.com` ou votre hôte auto-hébergé)                                               |
-| `ONEUPTIME_SERVICE_TOKEN` | Oui    | Jeton d'ingestion de télémétrie depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_                                                         |
-| `DOCKER_HOST_NAME`        | Non    | Nom convivial pour cet hôte. La valeur par défaut est `docker-host`. Définissez-le sur une valeur stable par hôte (par exemple `prod-docker-01`) |
+| Variable                  | Requis | Description                                                                                                                                                                                                          |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Oui    | L'URL de votre instance OneUptime (par exemple `https://oneuptime.com` ou votre hôte auto-hébergé)                                                                                                                   |
+| `ONEUPTIME_SERVICE_TOKEN` | Oui    | Jeton d'ingestion de télémétrie depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_                                                                                                                  |
+| `DOCKER_HOST_NAME`        | Non    | Nom convivial pour cet hôte. La valeur par défaut est `docker-host`. Définissez-le sur une valeur stable par hôte (par exemple `prod-docker-01`)                                                                     |
+| `DOCKER_API_VERSION`      | Non    | Version de l'API Docker Engine utilisée par l'agent. La valeur par défaut est `1.44` ; abaissez-la sur les hôtes dont le démon est plus ancien, ou laissez-la vide pour la négocier automatiquement (voir Dépannage) |
 
 ## Vérifier l'installation
 
@@ -141,6 +142,28 @@ Si votre instance est en HTTP uniquement, utilisez `http://` et le port appropri
 ### Permission refusée pour le socket Docker
 
 Le conteneur de l'agent doit s'exécuter en tant que root (`--user 0:0`) pour accéder à `/var/run/docker.sock`. Assurez-vous que l'indicateur `--user 0:0` (ou `user: "0:0"` dans Compose) est présent.
+
+### L'agent redémarre avec « client version is too new »
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+Un démon refuse un client plus récent que sa propre version maximale : le récepteur ne démarre donc jamais et le collecteur s'arrête avec lui. Vérifiez la version maximale du démon et transmettez-la à l'agent :
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Ajoutez ensuite `-e DOCKER_API_VERSION=1.41` (ou la valeur obtenue) à `docker run`, ou définissez `DOCKER_API_VERSION` dans Compose. Les démons plus récents continuent de servir les anciennes versions de l'API, ce paramètre reste donc valide après une mise à niveau.
+
+Si vous préférez ne pas rechercher ce numéro, définissez `DOCKER_API_VERSION` sur une **chaîne vide**. L'agent demande alors au SDK Docker de négocier la version avec le démon (un `HEAD /_ping`, puis la version maximale du démon lui-même), ce qui fonctionne aussi bien avec les anciens démons qu'avec les nouveaux :
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### L'agent s'affiche comme déconnecté
 

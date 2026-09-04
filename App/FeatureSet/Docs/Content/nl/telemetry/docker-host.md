@@ -69,6 +69,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | Ja      | De URL van je OneUptime-instantie (bijvoorbeeld `https://oneuptime.com` of je zelf-gehoste host)                          |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja      | Telemetry ingestion token uit _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_                                            |
 | `DOCKER_HOST_NAME`        | Nee     | Vriendelijke naam voor deze host. Standaard `docker-host`. Stel hem in op iets stabiels per host (bijv. `prod-docker-01`) |
+| `DOCKER_API_VERSION`      | Nee     | De Docker Engine API-versie die de agent spreekt. Standaard `1.44`; verlaag hem op hosts met een oudere daemon, of laat hem leeg om automatisch te onderhandelen (zie Probleemoplossing) |
 
 ## De installatie verifiëren
 
@@ -141,6 +142,35 @@ Als je instantie alleen HTTP gebruikt, gebruik dan `http://` en de juiste poort.
 ### Toegang tot Docker-socket geweigerd
 
 De agent-container moet als root draaien (`--user 0:0`) om toegang te krijgen tot `/var/run/docker.sock`. Zorg ervoor dat de vlag `--user 0:0` (of `user: "0:0"` in Compose) aanwezig is.
+
+### Agent herstart met "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+Een daemon weigert een client die nieuwer is dan zijn eigen maximum, waardoor de receiver
+nooit start en de collector er samen mee afsluit. Controleer het maximum van de daemon en
+geef dat door aan de agent:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Voeg vervolgens `-e DOCKER_API_VERSION=1.41` (of de waarde die je hebt gekregen) toe aan
+`docker run`, of stel `DOCKER_API_VERSION` in in Compose. Nieuwere daemons bedienen nog
+steeds oudere API-versies, dus de instelling blijft geldig na een upgrade.
+
+Als je het nummer liever niet opzoekt, stel `DOCKER_API_VERSION` dan in op de **lege
+string**. De agent vraagt de Docker SDK dan om de versie met de daemon te onderhandelen
+(één `HEAD /_ping`, daarna het eigen maximum van de daemon), wat werkt met zowel oude als
+nieuwe daemons:
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent wordt weergegeven als losgekoppeld
 

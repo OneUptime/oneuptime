@@ -69,6 +69,7 @@ docker compose up -d
 | `ONEUPTIME_URL`           | 是       | 你的 OneUptime 实例 URL（例如 `https://oneuptime.com` 或你自托管的主机地址）                    |
 | `ONEUPTIME_SERVICE_TOKEN` | 是       | 来自 _项目设置 → 遥测与 APM → 摄取密钥_ 的遥测摄取令牌                                       |
 | `DOCKER_HOST_NAME`        | 否       | 该主机的友好名称。默认值为 `docker-host`。请为每台主机设置一个稳定的值（例如 `prod-docker-01`） |
+| `DOCKER_API_VERSION`      | 否       | agent 所使用的 Docker Engine API 版本。默认值为 `1.44`；如果主机上的守护进程版本较旧，请将其调低，或将其设置为空以自动协商版本（参见故障排查） |
 
 ## 验证安装
 
@@ -141,6 +142,28 @@ docker compose down
 ### Docker Socket 权限被拒绝（Permission Denied）
 
 agent 容器必须以 root 身份运行（`--user 0:0`）才能访问 `/var/run/docker.sock`。请确保 `--user 0:0` 标志（或 Compose 中的 `user: "0:0"`）存在。
+
+### Agent 反复重启并提示 "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+守护进程会拒绝版本高于其自身上限的客户端，因此该 receiver 永远无法启动，collector 也会随之退出。请先查询守护进程支持的最高版本，再把它传给 agent：
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+然后在 `docker run` 中加上 `-e DOCKER_API_VERSION=1.41`（或你查到的值），或者在 Compose 中设置 `DOCKER_API_VERSION`。较新的守护进程仍然支持较旧的 API 版本，因此升级之后该设置依然有效。
+
+如果你不想去查这个版本号，可以把 `DOCKER_API_VERSION` 设置为**空字符串**。这样 agent 会让 Docker SDK 与守护进程协商版本（先发送一次 `HEAD /_ping`，然后采用守护进程自身的最高版本），无论守护进程新旧都能正常工作：
+
+```bash
+docker run -d ... -e DOCKER_API_VERSION= ...
+```
 
 ### Agent 显示为已断开连接
 
