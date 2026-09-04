@@ -203,7 +203,17 @@ export function buildHostMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
-  groupByAttributeKey?: string | undefined;
+  /**
+   * Attributes to split the metric by, one alert per group.
+   *
+   * More than one key is not just finer grouping — the group-by set is
+   * exactly what the resulting alert can name. `mountpoint` alone says
+   * WHICH mount filled up; adding `device` also says which physical
+   * disk, which is the difference between "/var is full" and "/var is
+   * full and it is on the same device as /". See SeriesLabelDisplay,
+   * which renders these onto the alert's title and description.
+   */
+  groupByAttributeKeys?: Array<string> | undefined;
 }): MonitorStepHostMonitor {
   return {
     hostIdentifier: args.hostIdentifier,
@@ -224,8 +234,9 @@ export function buildHostMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
-            ...(args.groupByAttributeKey
-              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+            ...(args.groupByAttributeKeys &&
+            args.groupByAttributeKeys.length > 0
+              ? { groupByAttributeKeys: args.groupByAttributeKeys }
               : {}),
           },
         },
@@ -346,7 +357,15 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
          * first one's open incident.
          */
         aggregationType: MetricsAggregationType.Max,
-        groupByAttributeKey: "mountpoint",
+        /*
+         * `mountpoint` is the identity — one incident per mount.
+         * `device` rides along because the hostmetrics receiver puts it
+         * on the same datapoint, it is constant for a given mount (so it
+         * adds no series), and it is the first thing anyone asks after
+         * "which mount?": /var at 95% on the same device as / is a
+         * different problem from /var on its own disk.
+         */
+        groupByAttributeKeys: ["mountpoint", "device"],
       }),
       offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,

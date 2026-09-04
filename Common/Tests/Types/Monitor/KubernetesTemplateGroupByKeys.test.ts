@@ -30,6 +30,23 @@ import ObjectID from "../../../Types/ObjectID";
  *   - Cluster-scalar templates must stay UNGROUPED. etcd leadership, API
  *     server throttling and scheduler queue depth are one value for the
  *     cluster; splitting them invents series that do not exist.
+ *
+ *   - The key set is also the ALERT'S VOCABULARY. Series labels are
+ *     stored on the alert and rendered into its title and description
+ *     (SeriesLabelDisplay / SeriesContextEnricher), so a key left out
+ *     here is a fact the on-call engineer does not get. That is why the
+ *     namespace-scoped objects group by namespace as well as their own
+ *     name: `k8s.pod.name` alone is not a Kubernetes identity, and
+ *     "Pod: checkout-7d9f-2xk" with no namespace is a `kubectl` guess.
+ *
+ *   - A key that only ONE side of a RATIO template carries is worse than
+ *     a missing label: the two queries join by series fingerprint, so
+ *     the formula silently stops producing values and the monitor stops
+ *     alerting entirely. `k8s.namespace.name` is stamped directly by
+ *     both kubeletstats and the k8s_cluster receiver and is safe;
+ *     `k8s.node.name` on the k8s_cluster side only arrives via the
+ *     best-effort k8sattributes processor and is deliberately NOT in any
+ *     ratio template's key set. See buildKubernetesRatioMonitorConfig.
  */
 
 interface TemplateGroupByCase {
@@ -42,8 +59,12 @@ interface TemplateGroupByCase {
 const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
   {
     id: "k8s-crashloopbackoff",
-    groupByKeys: ["resource.k8s.pod.name"],
-    why: "restarts belong to one pod's containers",
+    groupByKeys: [
+      "resource.k8s.namespace.name",
+      "resource.k8s.pod.name",
+      "resource.k8s.container.name",
+    ],
+    why: "restarts belong to one CONTAINER of one pod, and the alert has to name which",
   },
   {
     id: "k8s-pod-pending",
@@ -67,13 +88,16 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
   },
   {
     id: "k8s-deployment-replica-mismatch",
-    groupByKeys: ["resource.k8s.deployment.name"],
-    why: "a stuck rollout belongs to one Deployment object",
+    groupByKeys: [
+      "resource.k8s.namespace.name",
+      "resource.k8s.deployment.name",
+    ],
+    why: "a stuck rollout belongs to one Deployment object, which is namespace-scoped",
   },
   {
     id: "k8s-job-failures",
-    groupByKeys: ["resource.k8s.job.name"],
-    why: "one failing Job must not hide the next",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.job.name"],
+    why: "one failing Job must not hide the next; Job names repeat across namespaces",
   },
   {
     id: "k8s-etcd-no-leader",
@@ -97,8 +121,8 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
   },
   {
     id: "k8s-daemonset-unavailable",
-    groupByKeys: ["resource.k8s.daemonset.name"],
-    why: "the incident names one DaemonSet",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.daemonset.name"],
+    why: "the incident names one DaemonSet, which is namespace-scoped",
   },
   {
     id: "k8s-node-cpu-request-utilization",
@@ -112,18 +136,18 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
   },
   {
     id: "k8s-hpa-at-max-replicas",
-    groupByKeys: ["resource.k8s.hpa.name"],
-    why: "saturation belongs to one HPA object",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.hpa.name"],
+    why: "saturation belongs to one HPA object, which is namespace-scoped",
   },
   {
     id: "k8s-pod-memory-limit-saturation",
-    groupByKeys: ["resource.k8s.pod.name"],
-    why: "the pod about to be OOMKilled is the one to page on",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.pod.name"],
+    why: "the pod about to be OOMKilled is the one to page on, and a pod name alone is not an identity",
   },
   {
     id: "k8s-pod-cpu-limit-saturation",
-    groupByKeys: ["resource.k8s.pod.name"],
-    why: "the throttled pod is the one to page on",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.pod.name"],
+    why: "the throttled pod is the one to page on, and a pod name alone is not an identity",
   },
 ];
 
@@ -204,6 +228,63 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
       }
     },
   );
+
+  /*
+   * Kubernetes object names are unique per (namespace, kind), not
+   * globally. A template that groups by a namespace-scoped object's name
+   * alone therefore does two wrong things at once: two same-named
+   * objects in different namespaces collapse into one series (so the
+   * second one's breach is silenced behind the first one's open alert),
+   * and the alert it does raise cannot be acted on without guessing the
+   * namespace.
+   */
+  const NAMESPACE_SCOPED_OBJECT_KEYS: Array<string> = [
+    "resource.k8s.pod.name",
+    "resource.k8s.container.name",
+    "resource.k8s.deployment.name",
+    "resource.k8s.statefulset.name",
+    "resource.k8s.daemonset.name",
+    "resource.k8s.job.name",
+    "resource.k8s.cronjob.name",
+    "resource.k8s.hpa.name",
+  ];
+
+  test.each(
+    EXPECTED_GROUP_BY.filter((tc: TemplateGroupByCase) => {
+      return tc.groupByKeys.some((key: string) => {
+        return NAMESPACE_SCOPED_OBJECT_KEYS.includes(key);
+      });
+    }),
+  )(
+    "$id groups a namespace-scoped object and therefore also by namespace",
+    (tc: TemplateGroupByCase) => {
+      expect(tc.groupByKeys).toContain("resource.k8s.namespace.name");
+    },
+  );
+
+  test("every query of a template shares one group-by key set", () => {
+    /*
+     * Ratio templates join their two queries by series fingerprint,
+     * which is computed from this key set. Two queries with different
+     * key sets produce fingerprints that never meet, the formula
+     * evaluates against an empty operand, and the monitor stops
+     * alerting without any error anywhere.
+     */
+    for (const template of getAllKubernetesAlertTemplates()) {
+      const step: MonitorStep = template.getMonitorStep(buildArgs());
+
+      const keySets: Array<string> = (
+        (step.data?.kubernetesMonitor?.metricViewConfig?.queryConfigs ||
+          []) as Array<any>
+      ).map((queryConfig: any) => {
+        return JSON.stringify(
+          queryConfig.metricQueryData.groupByAttributeKeys || [],
+        );
+      });
+
+      expect(new Set(keySets).size).toBeLessThanOrEqual(1);
+    }
+  });
 
   test("grouped templates are the majority of the shipped set", () => {
     const grouped: number = EXPECTED_GROUP_BY.filter(
