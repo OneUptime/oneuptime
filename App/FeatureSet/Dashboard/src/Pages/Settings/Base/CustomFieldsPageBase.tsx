@@ -7,9 +7,8 @@ import {
 } from "Common/Types/CustomField/CustomFieldMappingCatalog";
 import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
 import MapFromCustomFieldInput from "Common/UI/Components/CustomFields/MapFromCustomFieldInput";
-import {
+import Field, {
   CustomElementProps,
-  Field,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -273,9 +272,6 @@ const CustomFieldsPageBase: (
           field: {
             mapFromCustomFieldName: true,
           } as any,
-          selectMoreFields: {
-            mapFromResourceType: true,
-          } as any,
           title: "Mapped From",
           type: FieldType.Element,
           noValueMessage: "-",
@@ -305,6 +301,16 @@ const CustomFieldsPageBase: (
     <Fragment>
       <ModelTable<CustomFieldsBaseModels>
         modelType={props.modelType}
+        {...(canMapValues
+          ? {
+              /*
+               * The "Mapped From" column renders mapFromResourceType, which is
+               * not the column's own `field`. Without selecting it here it
+               * comes back undefined and the column reads as unmapped.
+               */
+              selectMoreFields: { mapFromResourceType: true } as any,
+            }
+          : {})}
         userPreferencesKey="custom-fields-table"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

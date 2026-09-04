@@ -261,63 +261,106 @@ const buildMonitorSource: BuildMonitorSourceFunction = (data: {
   };
 };
 
-const CUSTOM_FIELD_MAPPING_TARGETS: Array<CustomFieldMappingTargetEntry> = [
-  {
-    targetName: "Alert",
-    definitionTableName: new AlertCustomField().tableName!,
-    getTargetService: (): DatabaseServiceLike => {
-      return AlertService as unknown as DatabaseServiceLike;
-    },
-    getDefinitionService: (): DatabaseServiceLike => {
-      return AlertCustomFieldService as unknown as DatabaseServiceLike;
-    },
-    sources: [
-      buildMonitorSource({
-        isManySources: false,
+/*
+ * Built on FIRST USE, not at module load.
+ *
+ * `new AlertCustomField().tableName` reads metadata that the model's
+ * @TableMetadata decorator installs when the class is defined. This module
+ * sits in an import cycle (AlertService/IncidentService/ScheduledMaintenance
+ * Service import it and it imports them back), so it can be reached while
+ * those modules — and the model classes they pull in — are still
+ * initialising. At that point `tableName` is `undefined`, the catalog lookup
+ * below misses, and buildMonitorSource throws AT IMPORT TIME, taking down
+ * everything that transitively imports IncidentService, BaseAPI included.
+ * The `!` assertion is what kept tsc quiet about it.
+ *
+ * Deferring construction is the same discipline this file already applies to
+ * every service reference, for the same reason.
+ *
+ * MEMOISED DELIBERATELY, not rebuilt per call: CustomFieldMappingService
+ * .propagateFromSourceRecord matches `mapping.source === pair.source` by
+ * REFERENCE across two separate accessor calls. Handing out fresh objects
+ * would leave that filter matching nothing and propagation would silently
+ * stop working.
+ */
+let CUSTOM_FIELD_MAPPING_TARGETS: Array<CustomFieldMappingTargetEntry> | null =
+  null;
+
+type BuildCustomFieldMappingTargetsFunction =
+  () => Array<CustomFieldMappingTargetEntry>;
+
+const buildCustomFieldMappingTargets: BuildCustomFieldMappingTargetsFunction =
+  (): Array<CustomFieldMappingTargetEntry> => {
+    return [
+      {
+        targetName: "Alert",
         definitionTableName: new AlertCustomField().tableName!,
-      }),
-    ],
-  },
-  {
-    targetName: "Incident",
-    definitionTableName: new IncidentCustomField().tableName!,
-    getTargetService: (): DatabaseServiceLike => {
-      return IncidentService as unknown as DatabaseServiceLike;
-    },
-    getDefinitionService: (): DatabaseServiceLike => {
-      return IncidentCustomFieldService as unknown as DatabaseServiceLike;
-    },
-    sources: [
-      buildMonitorSource({
-        isManySources: true,
+        getTargetService: (): DatabaseServiceLike => {
+          return AlertService as unknown as DatabaseServiceLike;
+        },
+        getDefinitionService: (): DatabaseServiceLike => {
+          return AlertCustomFieldService as unknown as DatabaseServiceLike;
+        },
+        sources: [
+          buildMonitorSource({
+            isManySources: false,
+            definitionTableName: new AlertCustomField().tableName!,
+          }),
+        ],
+      },
+      {
+        targetName: "Incident",
         definitionTableName: new IncidentCustomField().tableName!,
-      }),
-    ],
-  },
-  {
-    targetName: "Scheduled Maintenance",
-    definitionTableName: new ScheduledMaintenanceCustomField().tableName!,
-    getTargetService: (): DatabaseServiceLike => {
-      return ScheduledMaintenanceService as unknown as DatabaseServiceLike;
-    },
-    getDefinitionService: (): DatabaseServiceLike => {
-      return ScheduledMaintenanceCustomFieldService as unknown as DatabaseServiceLike;
-    },
-    sources: [
-      buildMonitorSource({
-        isManySources: true,
+        getTargetService: (): DatabaseServiceLike => {
+          return IncidentService as unknown as DatabaseServiceLike;
+        },
+        getDefinitionService: (): DatabaseServiceLike => {
+          return IncidentCustomFieldService as unknown as DatabaseServiceLike;
+        },
+        sources: [
+          buildMonitorSource({
+            isManySources: true,
+            definitionTableName: new IncidentCustomField().tableName!,
+          }),
+        ],
+      },
+      {
+        targetName: "Scheduled Maintenance",
         definitionTableName: new ScheduledMaintenanceCustomField().tableName!,
-      }),
-    ],
-  },
-];
+        getTargetService: (): DatabaseServiceLike => {
+          return ScheduledMaintenanceService as unknown as DatabaseServiceLike;
+        },
+        getDefinitionService: (): DatabaseServiceLike => {
+          return ScheduledMaintenanceCustomFieldService as unknown as DatabaseServiceLike;
+        },
+        sources: [
+          buildMonitorSource({
+            isManySources: true,
+            definitionTableName: new ScheduledMaintenanceCustomField()
+              .tableName!,
+          }),
+        ],
+      },
+    ];
+  };
+
+type GetTargetsFunction = () => Array<CustomFieldMappingTargetEntry>;
+
+const getTargets: GetTargetsFunction =
+  (): Array<CustomFieldMappingTargetEntry> => {
+    if (!CUSTOM_FIELD_MAPPING_TARGETS) {
+      CUSTOM_FIELD_MAPPING_TARGETS = buildCustomFieldMappingTargets();
+    }
+
+    return CUSTOM_FIELD_MAPPING_TARGETS;
+  };
 
 export type GetCustomFieldMappingTargetsFunction =
   () => Array<CustomFieldMappingTargetEntry>;
 
 export const getCustomFieldMappingTargets: GetCustomFieldMappingTargetsFunction =
   (): Array<CustomFieldMappingTargetEntry> => {
-    return CUSTOM_FIELD_MAPPING_TARGETS;
+    return getTargets();
   };
 
 export type GetCustomFieldMappingTargetFunction = (
@@ -332,11 +375,9 @@ export const getCustomFieldMappingTarget: GetCustomFieldMappingTargetFunction =
       return undefined;
     }
 
-    return CUSTOM_FIELD_MAPPING_TARGETS.find(
-      (target: CustomFieldMappingTargetEntry) => {
-        return target.definitionTableName === definitionTableName;
-      },
-    );
+    return getTargets().find((target: CustomFieldMappingTargetEntry) => {
+      return target.definitionTableName === definitionTableName;
+    });
   };
 
 /**
@@ -362,7 +403,7 @@ export const getCustomFieldMappingTargetsForSource: GetCustomFieldMappingTargets
       source: CustomFieldMappingSourceEntry;
     }> = [];
 
-    for (const target of CUSTOM_FIELD_MAPPING_TARGETS) {
+    for (const target of getTargets()) {
       for (const source of target.sources) {
         if (source.info.resource === resource) {
           matches.push({ target: target, source: source });

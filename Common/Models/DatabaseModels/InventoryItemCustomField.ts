@@ -331,8 +331,7 @@ export default class InventoryItemCustomField extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public mapFromResourceType?: CustomFieldMappingSourceResource =
-    undefined;
+  public mapFromResourceType?: CustomFieldMappingSourceResource = undefined;
 
   @ColumnAccessControl({
     create: [
