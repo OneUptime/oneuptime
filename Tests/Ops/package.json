@@ -2,10 +2,11 @@
   "name": "@oneuptime/ops-tests",
   "version": "12.0.33",
   "private": true,
-  "description": "Static/structural tests for the repo's ops config: ClickHouse config.d drop-ins, docker-compose mounts, and the backup/restore scripts. No services required.",
+  "description": "Static/structural tests for the repo's ops config: ClickHouse config.d drop-ins, docker-compose mounts, the container agents' collector configs, and the backup/restore scripts. `npm test` needs no services; `npm run validate-collector-configs` additionally needs docker and helm.",
   "type": "commonjs",
   "scripts": {
-    "test": "jest --config ./jest.config.json --runInBand"
+    "test": "jest --config ./jest.config.json --runInBand",
+    "validate-collector-configs": "bash ./validate-collector-configs.sh"
   },
   "devDependencies": {
     "jest": "^28.1.3",

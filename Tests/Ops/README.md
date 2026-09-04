@@ -10,6 +10,10 @@ Run them from this directory:
 cd Tests/Ops && npm test
 ```
 
+The one exception is `validate-collector-configs.sh`, which is deliberately not
+part of `npm test`: it runs the real collector binary over the agent configs and
+therefore needs docker and helm. See its section below.
+
 or from the repo root:
 
 ```sh
@@ -89,6 +93,35 @@ stderr — PSR-3/Monolog and Go zap/logrus both do by default — as ERROR. The
 config now reads a level keyword out of the body first and keeps the stream
 mapping as the fallback.
 
+**A keyword counts only where a level actually sits.** The first version of the
+read was an unanchored scan that took the leftmost level word anywhere in the
+recombined body, and it cost more than it looked: `{"status":"ok","error":null}`
+on stdout became Error, `Recovered from panic, continuing` became Fatal, and —
+because `=` was a trailing delimiter but not a leading one — logfmt's
+`level=error` was invisible while a level word later in the same message was
+not, turning a genuine error into Information. The scan is now field-aware, and
+matches exactly two shapes:
+
+1. **Line preamble.** The keyword is on the first line of the record and
+   everything before it is preamble: punctuation, digits, and word tokens that
+   end on a structural delimiter. `[ERROR] …`, `app.INFO: …`,
+   `2026-08-31 07:25:04 INFO …`, `… - myapp - INFO - …`, `level=error …`. Prose
+   is not preamble — `Connection error, retrying` stops dead at `Connection `,
+   because a bare word followed by a space is not a preamble token. The
+   repetition is lazy, so the FIRST keyword in preamble position wins rather
+   than the last.
+2. **Level field.** The keyword is the value of a level-ish key anywhere in the
+   line — `level` / `lvl` / `severity` / `severity_text` / `levelname` /
+   `log.level` / `log_level` — quoted or not, separated by `:` or `=`. That is
+   zap and logrus JSON, and logfmt whose level is not the first field.
+
+The preamble branch is anchored, so when it matches it is the leftmost match and
+beats a level field further along the same line. Both branches take end of body
+as a trailing delimiter, which is what settles the old Docker/Podman divergence:
+Docker's json-file driver keeps the trailing newline in the `log` field and
+Podman's CRI format does not, so a line ending on its level used to be read
+differently by the two agents.
+
 The chain is five stanza operators of YAML, duplicated across three agent images
 **and** the Kubernetes agent's DaemonSet ConfigMap
 (`HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml`).
@@ -105,48 +138,65 @@ and both leave the agent worse than the stream-only behaviour it replaced:
   config the collector refuses to start on.
 - **A keyword the regex captures has no severity mapping.** stanza's built-in
   `default` preset knows trace/debug/info/warn/warning/error/err/fatal and
-  nothing else — `notice`, `crit`, `critical` and `panic` are supplied by the
-  config's own `mapping:` block. A keyword without one does not error and does
-  not drop the record: `severity_parser` leaves it **Unspecified**. So the suite
-  walks every alternative in the regex and asserts each resolves to a real OTel
-  severity number, and then that each survives OneUptime's ingest
-  (`OtelLogsIngestService.getSeverityText`, which re-derives severityText from
-  severityNumber) as a real `LogSeverity` rather than Unspecified.
+  nothing else — `notice`, `crit`, `critical`, `panic`, `alert`, `emerg` and
+  `emergency` are supplied by the config's own `mapping:` block. A keyword
+  without one does not error and does not drop the record: `severity_parser`
+  leaves it **Unspecified**. So the suite walks every alternative in the regex
+  and asserts each resolves to a real OTel severity number, and then that each
+  survives OneUptime's ingest (`OtelLogsIngestService.getSeverityText`, which
+  re-derives severityText from severityNumber) as a real `LogSeverity` rather
+  than Unspecified. It also asserts the list covers all eight PSR-3 levels,
+  which is the hole `ALERT` and `EMERGENCY` used to sit in.
 
 On top of that it pins the operator graph (nothing unreachable, `log.iostream`
 populated before the fallback reads it, both branches converging on the severity
 parser and then the cleanup), runs the real regex over a corpus of Monolog, zap,
-nginx, logback, Python, .NET and klog lines, and holds the three agents and the
-Kubernetes ConfigMap to one identical chain.
+logfmt, nginx, logback, Python, .NET and klog lines, and holds the three agents
+and the Kubernetes ConfigMap to one identical chain.
 
 The expectations are not guesses: each config was run through the real
 `otelcol-contrib` 0.154.0 — the version the images are built `FROM` — over a
 fixture log file, and the severity this suite predicts is the severity the
-collector emitted.
+collector emitted. The pattern is additionally cross-checked against Go's
+`regexp` package, which is the same RE2 implementation stanza's `regex_parser`
+and expr-lang's `matches` both use.
 
-The last block, **`characterization: what the keyword scan gets wrong`**, is not
-a list of things the suite approves of. Deciding severity by scanning for a
-keyword has a price, and these tests are the record of it:
+The block **`regression: what the unanchored keyword scan got wrong`** is the
+old characterization block turned the right way up. Every line in it is one the
+unanchored scan got wrong, now asserted in the direction it is supposed to go:
 
-- **Escalation.** A benign stdout line that mentions a level word in prose used
-  to be `Information` and is now `Error`, or `Fatal`. `{"status":"ok","error":null}`
-  → Error. `Recovered from panic, continuing` → Fatal.
-- **Inversion.** A genuine stderr error whose message contains an earlier level
-  word used to be `Error` and is now `Information` — a real error hidden, which
-  is the worse of the two.
-- **logfmt is invisible.** `=` is in the pattern's _trailing_ delimiter class
-  but not its leading one, so `level=error` can never be captured while a level
-  word later in the same message can. That is Grafana, Traefik, Prometheus,
-  Loki, the Docker daemon and the HashiCorp tools.
-- **PSR-3 `ALERT` and `EMERGENCY` are missing** from the keyword list, so
-  Monolog's two most severe levels fall back to the stream.
+- **Escalation.** A benign stdout line that mentions a level word in prose was
+  `Information` and became `Error`, or `Fatal`. Thirty level-free stdout lines
+  (eleven of which were reclassified) are asserted to reach the fallback.
+- **Inversion.** A genuine stderr error whose message contained an earlier level
+  word was `Error` and became `Information` — a real error hidden, the worse of
+  the two.
+- **logfmt.** `level=error` is now read, wherever in the line it sits.
+- **PSR-3 `ALERT` and `EMERGENCY`** are in the keyword list and in the mapping.
 
-Fixing those means making the scan field-aware — or at minimum adding `=` to the
-leading class — in all four copies of the chain at once. Until then these tests
-say what is actually happening, and changing them should be a deliberate act.
-Two smaller limitations are pinned the same way: the **leftmost** level word
-wins, and a body ending on the keyword needs a trailing delimiter (Docker keeps
-the newline in the log field, Podman's CRI format does not).
+Two more properties are pinned because they are easy to break while widening the
+pattern: only the first line of a recombined body can supply a preamble level,
+and the pattern must stay cheap on pathological input — the Kubernetes API-mode
+tailer runs the same source through JavaScript's backtracking engine rather than
+RE2, where a pattern that is linear in RE2 can still be exponential.
+
+### `validate-collector-configs.sh`
+
+Not part of `npm test`, because it needs docker and helm. It runs
+`otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.154.0`
+image over the three agent configs and over both collector ConfigMaps rendered
+out of the `kubernetes-agent` chart.
+
+That is not a YAML check. `validate` constructs every component and builds the
+stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
+expressions — the Go-side class of error the jest suite structurally cannot see:
+a malformed regex, an `output`/`default` naming an operator that does not exist,
+or an expr string one backslash short. It runs on every PR from the
+"Ops Config Test" workflow.
+
+```sh
+cd Tests/Ops && npm run validate-collector-configs
+```
 
 ## Utils
 
