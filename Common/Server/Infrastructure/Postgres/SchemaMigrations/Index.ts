@@ -574,6 +574,7 @@ import { AddUserNotificationEmailRollup1791000000000 } from "./1791000000000-Add
 import { AddUserNotificationEmailRollupSetting1791100000000 } from "./1791100000000-AddUserNotificationEmailRollupSetting";
 import { AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000 } from "./1791200000000-AddNetworkSnmpCredentialProfilesAndAlertPolicies";
 import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTelemetryIngestionKeyType";
+import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400000000-SessionReplayRecordEverySessionByDefault";
 
 export default [
   InitialMigration,
@@ -1152,4 +1153,5 @@ export default [
   AddUserNotificationEmailRollupSetting1791100000000,
   AddNetworkSnmpCredentialProfilesAndAlertPolicies1791200000000,
   AddTelemetryIngestionKeyType1791300000000,
+  SessionReplayRecordEverySessionByDefault1791400000000,
 ];

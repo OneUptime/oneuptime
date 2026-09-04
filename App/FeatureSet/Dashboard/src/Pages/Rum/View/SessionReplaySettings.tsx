@@ -139,7 +139,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               ),
             required: false,
             description:
-              "On error or frustration keeps a rolling in-memory buffer and only uploads when something actually went wrong, which costs roughly 15x less and stores far less end-user data. Always uploads every sampled session from its first event.",
+              "Always (default) uploads every sampled session from its first event, so an ordinary session is just as watchable as a broken one. On error or frustration keeps a rolling in-memory buffer and only uploads when something actually went wrong, which costs roughly 15x less and stores far less end-user data — pick it when storage or data minimisation matters more than being able to watch a session that did not fail.",
           },
           {
             field: { sessionReplaySamplePercentage: true },
@@ -147,9 +147,9 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
             stepId: "recording",
             fieldType: FormFieldSchemaType.Number,
             required: false,
-            placeholder: "0",
+            placeholder: "100",
             description:
-              "Percentage of sessions eligible for recording, decided once per session from a hash of the session id so a session is never half-recorded. 0 means only the capture trigger above produces recordings.",
+              "Percentage of sessions eligible for recording, decided once per session from a hash of the session id so a session is never half-recorded. 100 by default. This is the dial for cost: with the Always trigger, halving it halves both the bytes stored and the end-user data at rest. 0 with the Always trigger records nothing at all.",
             validation: { minValue: 0, maxValue: 100 },
           },
           {

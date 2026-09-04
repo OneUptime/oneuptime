@@ -26,10 +26,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * Shown in place of an empty session list. An empty list has two very
  * different causes and the list itself cannot tell them apart: either the
  * recorder was never installed, or it is installed and working and simply
- * has not seen a session worth uploading yet (the default capture trigger
- * only uploads when something goes wrong, so a healthy hour produces
- * nothing). Somebody looking at zero rows needs both explanations and the
- * snippet, right there — not a link to go and find them.
+ * has not seen a session worth uploading yet — which under the default
+ * Always trigger means no traffic, and under an error-triggered policy
+ * means a healthy hour. Somebody looking at zero rows needs both
+ * explanations and the snippet, right there — not a link to go and find
+ * them.
  *
  * The install snippet is duplicated from InstallationTestPanel rather than
  * shared, and deliberately so for now: that panel's version is rendered
@@ -180,15 +181,18 @@ connect-src ${oneuptimeUrl};`}
           </>
         </Step>
 
-        <Step index={4} title="Trigger something worth recording">
+        <Step index={4} title="Check the capture policy">
           <>
-            By default the recorder keeps a rolling buffer in memory and only
-            uploads when an error or a frustration signal (rage click, dead
-            click, refresh rage) fires. A visit where nothing goes wrong
-            produces no recording at all — that is the intended behaviour, not a
-            broken install. To record every session instead, set the capture
-            trigger to <em>Always</em> or raise the sample percentage in this
-            application&apos;s settings.
+            By default the recorder uploads <em>every</em> session as it
+            records, so any visit to an instrumented page should produce a row
+            here within a minute or so. If this application&apos;s capture
+            trigger has been set to <em>On error or frustration</em>, the
+            recorder instead keeps a rolling buffer in memory and uploads only
+            when an error or a frustration signal (rage click, dead click,
+            refresh rage) fires — a visit where nothing goes wrong then produces
+            no recording at all, which is the intended behaviour and not a
+            broken install. A sample percentage of 0 records nothing under
+            either trigger. Both live in this application&apos;s settings.
           </>
         </Step>
       </div>

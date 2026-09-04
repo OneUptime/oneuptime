@@ -2,9 +2,12 @@
 
 ## Overview
 
-Session Replay records what a real user saw in your web app and lets you play it back next to the error, trace and log data from the same session. It is built for debugging a failure, not for marketing analytics: by default the recorder holds a rolling buffer in memory and uploads **only when something actually goes wrong**.
+Session Replay records what a real user saw in your web app and lets you play it back next to the error, trace and log data from the same session. **By default every session is recorded**, not only the ones that broke — the sessions where nothing threw are where you find the checkout nobody completed, the form everybody abandoned and the page a customer says "looked wrong".
 
-That default matters. It means a recording almost always exists for the sessions you care about, while sessions where nothing went wrong are never uploaded at all — roughly 15x less data stored, and 15x less of your users' screens leaving their devices.
+If you would rather store less, there are two dials and they compose:
+
+- **Sample percentage** (100% by default) decides how many sessions are eligible at all. Halve it and you halve both the bytes stored and the end-user data at rest. The decision is made once per session from a hash of the session id, so a session is never half-recorded.
+- **Capture trigger** set to _On error or frustration_ makes the recorder hold a rolling buffer in memory and upload **only when something actually goes wrong**. A recording then exists for very nearly every failed session while costing roughly 15x less than recording everyone — at the price of never being able to watch a session that did not fail.
 
 ## Prerequisites
 
@@ -39,8 +42,8 @@ The script at `/v1/recorder.js` is a small loader. It fetches your application's
 | Session Replay enabled | **on** | Per-application switch. Turn it off to stop recording for one application. |
 | Masking mode | **Mask sensitive inputs only** | Passwords and card / one-time-code fields are masked. The rest of the page — static text and ordinary input values — is recorded as it looked. See the warning below. |
 | Consent mode | **Not required** | Uploads start immediately. Set *Require explicit* if you need a per-session consent handshake, which most EU deployments will. |
-| Capture trigger | **On error or frustration** | Upload only when something goes wrong. |
-| Sample percentage | **0%** | Additional random sampling on top of the trigger. |
+| Capture trigger | **Always** | Every sampled session uploads from its first event. Set *On error or frustration* to upload only when something goes wrong. |
+| Sample percentage | **100%** | Share of sessions eligible for recording. This is the dial for cost. |
 | Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
 | Capture user identity | **on** | The end-user reference your page supplies is stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous. |
 | Capture country | **on** | Country only, never an IP address. |
@@ -189,7 +192,7 @@ Every playback is recorded in an audit trail — who watched which session, when
 
 ## Troubleshooting
 
-Session replay records into memory and uploads only when something goes wrong, so **a healthy page makes exactly one request to OneUptime per page load** — the config fetch — and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab that is indistinguishable from an installation that does not work.
+If you have set the capture trigger to _On error or frustration_, the recorder records into memory and uploads only when something goes wrong, so **a healthy page makes exactly one request to OneUptime per page load** — the config fetch — and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab that is indistinguishable from an installation that does not work. Under the default _Always_ trigger you should instead see a chunk `POST` roughly every 15 seconds; if you do not, the install is genuinely broken.
 
 The recorder can tell you which one you are looking at. Turn on diagnostics in the failing browser:
 

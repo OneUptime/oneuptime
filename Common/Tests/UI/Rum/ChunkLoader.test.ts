@@ -716,6 +716,76 @@ describe("ChunkLoader timeline events", () => {
     expect(extracted[3]!.message).toBe("");
   });
 
+  it("carries a network event's trace id through to the panel row", () => {
+    /*
+     * The link from "this request failed" to the backend trace of the
+     * request. The recorder has always put traceId on the network payload
+     * (NetworkRecorder.record), and the extractor used to drop it on the
+     * floor, so a player that had already downloaded and decoded the id
+     * could not offer the one click that makes the correlation useful.
+     */
+    const extracted: Array<{ kind: string; traceId?: string }> =
+      ChunkLoader.extractTimelineEvents(makeEntry(0), [
+        { type: 2, timestamp: baseTs, data: {} },
+        customEvent(
+          "oneuptime.network",
+          {
+            method: "GET",
+            url: "https://api.example.com/cart",
+            status: 500,
+            durationMs: 40,
+            responseBytes: 0,
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          },
+          baseTs + 100,
+        ) as never,
+      ]);
+
+    expect(extracted[0]!.kind).toBe("network");
+    expect(extracted[0]!.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+  });
+
+  it("leaves traceId absent rather than empty when there is none", () => {
+    /*
+     * Absent, not "" — the panel renders a trace link on the presence of
+     * the key, and an empty string would put a dead link on every row of
+     * an application with no trace propagation configured. An empty or
+     * non-string value on the wire has to reach the same absence as a
+     * missing one.
+     */
+    const rows: Array<{ traceId?: string }> = [
+      ChunkLoader.extractTimelineEvents(makeEntry(0), [
+        { type: 2, timestamp: baseTs, data: {} },
+        customEvent(
+          "oneuptime.network",
+          { method: "GET", url: "/a", status: 200 },
+          baseTs + 1,
+        ) as never,
+      ])[0]!,
+      ChunkLoader.extractTimelineEvents(makeEntry(0), [
+        { type: 2, timestamp: baseTs, data: {} },
+        customEvent(
+          "oneuptime.network",
+          { method: "GET", url: "/b", status: 200, traceId: "" },
+          baseTs + 1,
+        ) as never,
+      ])[0]!,
+      ChunkLoader.extractTimelineEvents(makeEntry(0), [
+        { type: 2, timestamp: baseTs, data: {} },
+        customEvent(
+          "oneuptime.network",
+          { method: "GET", url: "/c", status: 200, traceId: 12345 },
+          baseTs + 1,
+        ) as never,
+      ])[0]!,
+    ];
+
+    for (const row of rows) {
+      expect(row.traceId).toBeUndefined();
+      expect("traceId" in row).toBe(false);
+    }
+  });
+
   it("clamps a skewed timestamp inside its chunk's window", () => {
     const extracted: Array<{ offsetMs: number }> =
       ChunkLoader.extractTimelineEvents(makeEntry(1), [
