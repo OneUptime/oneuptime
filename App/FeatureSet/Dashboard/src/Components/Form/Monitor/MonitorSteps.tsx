@@ -13,7 +13,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -479,7 +478,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             <MonitorStepElement
               monitorType={props.monitorType}
               allMonitorSteps={monitorSteps}
-              key={index}
+              key={i.data?.id || index}
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
@@ -496,35 +495,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               defaultIncidentSeverityId={defaultIncidentSeverityId}
               defaultAlertSeverityId={defaultAlertSeverityId}
               monitorName={props.monitorName}
-              /*
-               * onDelete={() => {
-               *     // remove the criteria filter
-               * const index: number | undefined =
-               * monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
-               *     return item.data?.id === value.data?.id;
-               * })
-               */
-
-              /*
-               * if (index === undefined) {
-               *     return;
-               * }
-               *     const newMonitorSteps: Array<MonitorStep> = [
-               *         ...(monitorSteps.data
-               *             ?.monitorStepsInstanceArray || []),
-               *     ];
-               *     newMonitorSteps.splice(index, 1);
-               *     setMonitorSteps(
-               *         new MonitorSteps().fromJSON({
-               *             _type: 'MonitorSteps',
-               *             value: {
-               *                 monitorStepsInstanceArray:
-               *                     newMonitorSteps,
-               *             },
-               *         })
-               *     );
-               * }}
-               */
               onChange={(value: MonitorStep) => {
                 const index: number | undefined =
                   monitorSteps.data?.monitorStepsInstanceArray.findIndex(
@@ -533,7 +503,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                     },
                   );
 
-                if (index === undefined) {
+                if (index === undefined || index < 0) {
                   return;
                 }
 
@@ -549,34 +519,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         },
       )}
 
-      {/* <Button
-                title="Add Step"
-                onClick={() => {
-                    const newMonitorSteps: Array<MonitorStep> = [
-                        ...(monitorSteps.data?.monitorStepsInstanceArray || []),
-                    ];
-                    newMonitorSteps.push(new MonitorStep());
-
-                    monitorSteps.data = {
-                        monitorStepsInstanceArray: newMonitorSteps,
-                    };
-
-                    setMonitorSteps(
-                        new MonitorSteps().fromJSON(monitorSteps.toJSON())
-                    );
-                }}
-            /> */}
-
-      <HorizontalRule />
-
-      <div className="mt-4">
+      <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5">
         <FieldLabelElement
-          title="Default Monitor Status"
-          description="What should the monitor status be when none of the above criteria is met?"
+          title="Default status"
+          description="Use this status when no enabled rule matches."
           required={true}
         />
 
         <Dropdown
+          ariaLabel="Default status"
+          className="mt-3"
           value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
             return (
               i.value ===

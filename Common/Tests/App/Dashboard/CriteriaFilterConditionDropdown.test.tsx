@@ -212,7 +212,7 @@ describe("The criteria Filter Condition dropdown", () => {
         />,
       );
 
-      screen.getByText("Add Filter").click();
+      screen.getByText("Add condition").click();
 
       const added: CriteriaFilter = lastFilterListFrom(onChange)[1]!;
 
@@ -245,7 +245,7 @@ describe("The criteria Filter Condition dropdown", () => {
         />,
       );
 
-      screen.getByText("Add Filter").click();
+      screen.getByText("Add condition").click();
 
       const added: CriteriaFilter = lastFilterListFrom(onChange)[1]!;
 

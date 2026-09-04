@@ -256,7 +256,7 @@ async function mountWith(data: {
    * bare loader.
    */
   await waitFor(() => {
-    expect(screen.getByText("Default Monitor Status")).toBeInTheDocument();
+    expect(screen.getByText("Default status")).toBeInTheDocument();
   });
 
   return {

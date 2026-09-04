@@ -186,9 +186,9 @@ function pickFromDropdown(placeholder: string, optionLabel: string): void {
   fireEvent.click(screen.getByText(optionLabel));
 }
 
-const ALERT_SWITCH: RegExp = /When filters match, create an alert/;
-const INCIDENT_SWITCH: RegExp = /When filters match, declare an incident/;
-const STATUS_SWITCH: RegExp = /When filters match, change monitor status/;
+const ALERT_SWITCH: RegExp = /Create an alert/;
+const INCIDENT_SWITCH: RegExp = /Declare an incident/;
+const STATUS_SWITCH: RegExp = /Change monitor status/;
 
 describe("Monitor criteria action switches", () => {
   afterEach(() => {
@@ -392,7 +392,7 @@ describe("Monitor criteria action switches", () => {
       expect(switchFor(STATUS_SWITCH)).toHaveAttribute("aria-checked", "true");
     });
 
-    test("still shows on for a criteria saved before the flag existed", () => {
+    test("a saved status does not turn an explicitly disabled action on", () => {
       renderCriteria(
         buildCriteria({
           changeMonitorStatus: false,
@@ -400,7 +400,7 @@ describe("Monitor criteria action switches", () => {
         }),
       );
 
-      expect(switchFor(STATUS_SWITCH)).toHaveAttribute("aria-checked", "true");
+      expect(switchFor(STATUS_SWITCH)).toHaveAttribute("aria-checked", "false");
     });
 
     test("shows off for a criteria that does not change status at all", () => {

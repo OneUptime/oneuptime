@@ -264,14 +264,14 @@ describe("MonitorCriteriaInstance", () => {
       expect(error).toContain("Name is required");
     });
 
-    test("returns error when description is empty", () => {
+    test("accepts an empty optional rule description", () => {
       const instance: MonitorCriteriaInstance = buildValidInstance();
       instance.data!.description = "";
       const error: string | null = MonitorCriteriaInstance.getValidationError(
         instance,
         MonitorType.Ping,
       );
-      expect(error).toContain("Description is required");
+      expect(error).toBeNull();
     });
 
     test("returns error when an incident is missing its severity", () => {

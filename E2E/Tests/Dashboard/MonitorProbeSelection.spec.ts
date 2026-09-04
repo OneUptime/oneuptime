@@ -200,7 +200,7 @@ test.describe("Monitor probe selection", () => {
     await page.getByTestId(submitButtonTestId).click();
 
     // Step 2: criteria. Wait for the async defaults, then fill the URL.
-    await expect(page.getByText("Monitor Criteria").first()).toBeVisible({
+    await expect(page.getByText("Alert rules").first()).toBeVisible({
       timeout: 60000,
     });
     const destination: Locator = page

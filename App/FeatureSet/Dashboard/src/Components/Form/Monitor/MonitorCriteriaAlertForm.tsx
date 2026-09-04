@@ -9,9 +9,10 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import CollapsibleSection from "./MonitorFormSection";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -59,21 +60,23 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Check if optional sections have content
-  const hasDescription: boolean = Boolean(criteriaAlert.description);
-  const hasOwnershipOrLabels: boolean = Boolean(
-    criteriaAlert.labelIds?.length ||
-      criteriaAlert.ownerTeamIds?.length ||
-      criteriaAlert.ownerUserIds?.length,
-  );
-  const hasNotifications: boolean = Boolean(
-    criteriaAlert.onCallPolicyIds?.length,
-  );
-  const hasAdvancedOptions: boolean = Boolean(
-    criteriaAlert.autoResolveAlert ||
-      criteriaAlert.remediationNotes ||
-      criteriaAlert.isPrivate === true,
-  );
+  const titleInputId: string = useId();
+  const [isTitleTouched, setIsTitleTouched] = useState<boolean>(false);
+  const ownerCount: number =
+    (criteriaAlert.ownerTeamIds?.length || 0) +
+    (criteriaAlert.ownerUserIds?.length || 0);
+  const detailSummary: string =
+    [
+      criteriaAlert.description ? "Description" : "",
+      ownerCount ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"}` : "",
+      criteriaAlert.labelIds?.length
+        ? `${criteriaAlert.labelIds.length} label${criteriaAlert.labelIds.length === 1 ? "" : "s"}`
+        : "",
+      criteriaAlert.isPrivate ? "Private" : "",
+      criteriaAlert.remediationNotes ? "Remediation notes" : "",
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Optional";
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);
@@ -86,7 +89,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      View dynamic values
     </button>
   );
 
@@ -101,18 +104,28 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   ) : null;
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-4">
       {templateVariablesModal}
       {/* Required Fields - Always Visible */}
-      <div className="space-y-4">
-        <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="sm:col-span-2">
           <FieldLabelElement
-            title="Alert Title"
-            description={<span>Title for the alert. {templateDocsLink}</span>}
+            title="Alert title"
+            htmlFor={titleInputId}
+            description={templateDocsLink}
             required={true}
           />
           <Input
+            id={titleInputId}
             value={criteriaAlert.title}
+            onBlur={() => {
+              setIsTitleTouched(true);
+            }}
+            error={
+              isTitleTouched && !criteriaAlert.title?.trim()
+                ? "Alert title is required"
+                : undefined
+            }
             placeholder="e.g., {{monitorName}} is degraded"
             onChange={(value: string) => {
               updateField("title", value);
@@ -123,6 +136,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement title="Severity" required={true} />
           <Dropdown
+            ariaLabel="Alert severity"
             value={props.alertSeverityDropdownOptions.find(
               (i: DropdownOption) => {
                 return i.value === criteriaAlert.alertSeverityId?.toString();
@@ -140,224 +154,226 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Description - Collapsible */}
-      <CollapsibleSection
-        title="Description"
-        description="Optional alert description"
-        badge={hasDescription ? "Set" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasDescription}
-      >
-        <div>
-          <FieldLabelElement
-            title="Alert Description"
-            description={
-              <span>Description for the alert. {templateDocsLink}</span>
+      <div>
+        <FieldLabelElement
+          title="Notify on-call"
+          description="Select the on-call policies to notify."
+        />
+        <Dropdown
+          ariaLabel="Alert on-call policies"
+          value={props.onCallPolicyDropdownOptions.filter(
+            (i: DropdownOption) => {
+              return criteriaAlert.onCallPolicyIds?.some((id: ObjectID) => {
+                return id.toString() === i.value;
+              });
+            },
+          )}
+          options={props.onCallPolicyDropdownOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            if (Array.isArray(value)) {
+              updateField(
+                "onCallPolicyIds",
+                value.map((v: DropdownValue) => {
+                  return new ObjectID(v.toString());
+                }),
+              );
+            } else {
+              updateField("onCallPolicyIds", []);
             }
-          />
-          <MarkdownEditor
-            initialValue={criteriaAlert.description || ""}
-            placeholder="Describe the alert..."
-            onChange={(value: string) => {
-              updateField("description", value);
-            }}
-          />
-        </div>
-      </CollapsibleSection>
+          }}
+          isMultiSelect={true}
+          placeholder="Select On-Call Policies"
+        />
+      </div>
 
-      {/* Ownership & Labels - Collapsible */}
+      <Checkbox
+        ariaLabel="Auto-resolve alert"
+        value={criteriaAlert.autoResolveAlert || false}
+        title="Auto-resolve alert"
+        description="Resolve automatically when this rule no longer matches."
+        onChange={(value: boolean) => {
+          updateField("autoResolveAlert", value);
+        }}
+      />
+
       <CollapsibleSection
-        title="Ownership & Labels"
-        description="Assign owners and labels to the alert"
-        badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasOwnershipOrLabels}
+        title="Alert details"
+        badge={detailSummary}
+        defaultCollapsed={true}
       >
-        <div className="space-y-4">
-          <div>
-            <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this alert"
-            />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
+        <div className="space-y-5 border-t border-gray-200 pt-4">
+          {/* Description */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">Description</h4>
+            <div>
+              <FieldLabelElement
+                title="Alert Description"
+                description={
+                  <span>Description for the alert. {templateDocsLink}</span>
                 }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
+              />
+              <MarkdownEditor
+                initialValue={criteriaAlert.description || ""}
+                placeholder="Describe the alert..."
+                onChange={(value: string) => {
+                  updateField("description", value);
+                }}
+              />
+            </div>
+          </section>
 
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this alert"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
-          </div>
+          {/* Ownership & Labels */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Owners and labels
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <FieldLabelElement
+                  title="Owner Teams"
+                  description="Teams that will own and be notified about this alert"
+                />
+                <Dropdown
+                  ariaLabel="Alert owner teams"
+                  value={props.teamDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaAlert.ownerTeamIds?.some(
+                        (id: ObjectID) => {
+                          return id.toString() === i.value;
+                        },
+                      );
+                    },
+                  )}
+                  options={props.teamDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "ownerTeamIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("ownerTeamIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Teams"
+                />
+              </div>
 
-          <div>
-            <FieldLabelElement
-              title="Labels"
-              description="Labels to categorize the alert"
-            />
-            <Dropdown
-              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaAlert.labelIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.labelDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "labelIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("labelIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Labels"
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
+              <div>
+                <FieldLabelElement
+                  title="Owner Users"
+                  description="Users that will own and be notified about this alert"
+                />
+                <Dropdown
+                  ariaLabel="Alert owner users"
+                  value={props.userDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaAlert.ownerUserIds?.some(
+                        (id: ObjectID) => {
+                          return id.toString() === i.value;
+                        },
+                      );
+                    },
+                  )}
+                  options={props.userDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "ownerUserIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("ownerUserIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Users"
+                />
+              </div>
 
-      {/* On-Call - Collapsible */}
-      <CollapsibleSection
-        title="On-Call"
-        description="Configure on-call policy escalation"
-        badge={hasNotifications ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasNotifications}
-      >
-        <div>
-          <FieldLabelElement
-            title="On-Call Policies"
-            description="Execute these on-call policies when this alert is created"
-          />
-          <Dropdown
-            value={props.onCallPolicyDropdownOptions.filter(
-              (i: DropdownOption) => {
-                return criteriaAlert.onCallPolicyIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              },
-            )}
-            options={props.onCallPolicyDropdownOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (Array.isArray(value)) {
-                updateField(
-                  "onCallPolicyIds",
-                  value.map((v: DropdownValue) => {
-                    return new ObjectID(v.toString());
-                  }),
-                );
-              } else {
-                updateField("onCallPolicyIds", []);
-              }
-            }}
-            isMultiSelect={true}
-            placeholder="Select On-Call Policies"
-          />
-        </div>
-      </CollapsibleSection>
+              <div>
+                <FieldLabelElement
+                  title="Labels"
+                  description="Labels to categorize the alert"
+                />
+                <Dropdown
+                  ariaLabel="Alert labels"
+                  value={props.labelDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaAlert.labelIds?.some((id: ObjectID) => {
+                        return id.toString() === i.value;
+                      });
+                    },
+                  )}
+                  options={props.labelDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "labelIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("labelIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Labels"
+                />
+              </div>
+            </div>
+          </section>
 
-      {/* Advanced Options - Collapsible */}
-      <CollapsibleSection
-        title="Advanced Options"
-        description="Auto-resolve and remediation settings"
-        badge={hasAdvancedOptions ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasAdvancedOptions}
-      >
-        <div className="space-y-4">
-          <div>
-            <Checkbox
-              value={criteriaAlert.autoResolveAlert || false}
-              title="Auto Resolve Alert"
-              description="Automatically resolve this alert when this criteria is no longer met"
-              onChange={(value: boolean) => {
-                updateField("autoResolveAlert", value);
-              }}
-            />
-          </div>
+          {/* Advanced Options */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Visibility and remediation
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <Checkbox
+                  value={criteriaAlert.isPrivate === true}
+                  title="Private Alert"
+                  ariaLabel="Private Alert"
+                  description="When enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert."
+                  onChange={(value: boolean) => {
+                    updateField("isPrivate", value);
+                  }}
+                />
+              </div>
 
-          <div>
-            <Checkbox
-              value={criteriaAlert.isPrivate === true}
-              title="Private Alert"
-              description="When enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert."
-              onChange={(value: boolean) => {
-                updateField("isPrivate", value);
-              }}
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Remediation Notes"
-              description={
-                <span>
-                  Notes for on-call engineer to resolve this alert.{" "}
-                  {templateDocsLink}
-                </span>
-              }
-            />
-            <MarkdownEditor
-              initialValue={criteriaAlert.remediationNotes || ""}
-              placeholder="Steps to resolve this alert..."
-              onChange={(value: string) => {
-                updateField("remediationNotes", value);
-              }}
-            />
-          </div>
+              <div>
+                <FieldLabelElement
+                  title="Remediation Notes"
+                  description={
+                    <span>
+                      Notes for on-call engineer to resolve this alert.{" "}
+                      {templateDocsLink}
+                    </span>
+                  }
+                />
+                <MarkdownEditor
+                  initialValue={criteriaAlert.remediationNotes || ""}
+                  placeholder="Steps to resolve this alert..."
+                  onChange={(value: string) => {
+                    updateField("remediationNotes", value);
+                  }}
+                />
+              </div>
+            </div>
+          </section>
         </div>
       </CollapsibleSection>
     </div>

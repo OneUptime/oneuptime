@@ -34,7 +34,7 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import CollapsibleSection from "./MonitorFormSection";
 import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
@@ -192,14 +192,6 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [
-    showAdvancedOptionsRequestBodyAndHeaders,
-    setShowAdvancedOptionsRequestBodyAndHeaders,
-  ] = useState<boolean>(false);
-
-  const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
-    useState<boolean>(false);
-
   const [useTlsClientCertificate, setUseTlsClientCertificate] =
     useState<boolean>(
       Boolean(
@@ -208,11 +200,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           props.value?.data?.tlsClientKeyPassphrase,
       ),
     );
-
-  const [
-    showSyntheticMonitorAdvancedOptions,
-    setShowSyntheticMonitorAdvancedOptions,
-  ] = useState<boolean>(false);
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
   const [telemetryEntities, setTelemetryEntities] = useState<
@@ -633,28 +620,23 @@ return {
   useEffect(() => {
     if (props.monitorType === MonitorType.API) {
       setDestinationFieldTitle("API URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the API you want to monitor?",
-      );
+      setDestinationFieldDescription("Enter the endpoint to check.");
     } else if (props.monitorType === MonitorType.Website) {
       setDestinationFieldTitle("Website URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the website you want to monitor?",
-      );
+      setDestinationFieldDescription("Enter the page to check.");
     } else if (props.monitorType === MonitorType.Ping) {
       setDestinationFieldTitle("Ping Hostname or IP address");
-      setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
-      );
+      setDestinationFieldDescription("Enter a hostname or IP address.");
     } else if (props.monitorType === MonitorType.IP) {
       setDestinationFieldTitle("IP Address");
-      setDestinationFieldDescription(
-        "Whats the IP address you want to monitor?",
-      );
+      setDestinationFieldDescription("Enter the IP address to check.");
     } else if (props.monitorType === MonitorType.Port) {
       setDestinationFieldTitle("Hostname or IP address");
+      setDestinationFieldDescription("Enter a hostname or IP address.");
+    } else if (props.monitorType === MonitorType.SSLCertificate) {
+      setDestinationFieldTitle("Certificate URL");
       setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
+        "Enter the HTTPS address whose certificate you want to check.",
       );
     }
   }, [props.monitorType]);
@@ -701,12 +683,11 @@ return {
         <div>
           <FieldLabelElement
             title={"Request Timeout (seconds)"}
-            description={
-              "How long to wait for a response before timing out. Defaults to 60 seconds. Maximum is 60 seconds."
-            }
+            description={"Wait up to 60 seconds for a response."}
             required={false}
           />
           <Input
+            ariaLabel="Request timeout (seconds)"
             initialValue={
               monitorStep.data?.requestTimeoutInMs
                 ? Math.round(
@@ -735,11 +716,12 @@ return {
           <FieldLabelElement
             title={"Retries on Failure"}
             description={
-              "How many times to retry if the check fails. Set to 0 for no retries. Defaults to 3. Maximum is 3."
+              "Retry failed checks up to 3 times. Set 0 to turn retries off."
             }
             required={false}
           />
           <Input
+            ariaLabel="Retries on failure"
             initialValue={
               monitorStep.data?.retryCount !== undefined &&
               monitorStep.data?.retryCount !== null
@@ -767,12 +749,12 @@ return {
   };
 
   return (
-    <div className="mt-5 space-y-6">
+    <div className="space-y-5" data-testid="monitor-step-editor">
       {/* Monitor Target Card */}
       {hasMonitorDestination && (
         <Card
-          title="Monitor Target"
-          description="Configure what you want to monitor"
+          title="What to monitor"
+          description="Choose the resource this monitor will check."
         >
           <div className="space-y-4">
             <div>
@@ -782,7 +764,16 @@ return {
                 required={true}
               />
               <Input
-                initialValue={destinationInputValue}
+                ariaLabel={destinationFieldTitle}
+                value={destinationInputValue}
+                placeholder={
+                  props.monitorType === MonitorType.Ping ||
+                  props.monitorType === MonitorType.Port
+                    ? "example.com or 192.0.2.1"
+                    : props.monitorType === MonitorType.IP
+                      ? "192.0.2.1"
+                      : "https://example.com"
+                }
                 disableSpellCheck={true}
                 onBlur={() => {
                   setTouched({
@@ -793,7 +784,9 @@ return {
                   if (!monitorStep?.data?.monitorDestination?.toString()) {
                     setErrors({
                       ...errors,
-                      destination: "Destination is required",
+                      destination: destinationInputValue.trim()
+                        ? errors["destination"] || "Enter a valid destination."
+                        : "Destination is required",
                     });
                   } else {
                     setErrors({
@@ -812,6 +805,19 @@ return {
                 }
                 onChange={(value: string) => {
                   let destination: IP | URL | Hostname | undefined = undefined;
+
+                  if (!value.trim()) {
+                    if (monitorStep.data) {
+                      monitorStep.data.monitorDestination = undefined;
+                    }
+                    setDestinationInputValue(value);
+                    setErrors({
+                      ...errors,
+                      destination: "Destination is required",
+                    });
+                    props.onChange?.(MonitorStep.clone(monitorStep));
+                    return;
+                  }
 
                   try {
                     if (props.monitorType === MonitorType.IP) {
@@ -838,6 +844,14 @@ return {
                       destination = URL.fromString(value);
                     }
 
+                    if (
+                      destination instanceof URL &&
+                      !destination.hostname?.toString()
+                    ) {
+                      destination = undefined;
+                      throw new Error("A hostname is required.");
+                    }
+
                     setErrors({
                       ...errors,
                       destination: "",
@@ -856,8 +870,8 @@ return {
                     }
                   }
 
-                  if (destination) {
-                    monitorStep.setMonitorDestination(destination);
+                  if (monitorStep.data) {
+                    monitorStep.data.monitorDestination = destination;
                   }
 
                   setDestinationInputValue(value);
@@ -917,10 +931,31 @@ return {
                   required={true}
                 />
                 <Input
+                  ariaLabel="Port"
+                  type={InputType.NUMBER}
                   initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                  error={errors["port"]}
                   onChange={(value: string) => {
-                    const port: Port = new Port(value);
-                    monitorStep.setPort(port);
+                    const port: number = Number(value);
+                    if (
+                      !value.trim() ||
+                      !Number.isInteger(port) ||
+                      port < 0 ||
+                      port > 65535
+                    ) {
+                      if (monitorStep.data) {
+                        monitorStep.data.monitorDestinationPort = undefined;
+                      }
+                      setErrors({
+                        ...errors,
+                        port: value
+                          ? "Enter a whole number from 0 to 65535."
+                          : "Port is required",
+                      });
+                    } else {
+                      monitorStep.setPort(new Port(port));
+                      setErrors({ ...errors, port: "" });
+                    }
                     if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
                     }
@@ -932,11 +967,12 @@ return {
             {props.monitorType === MonitorType.API && (
               <div>
                 <FieldLabelElement
-                  title={"API Request Type"}
-                  description={"What is the type of the API request?"}
+                  title={"Request method"}
+                  description={"GET is suitable for most endpoints."}
                   required={true}
                 />
                 <Dropdown
+                  ariaLabel="Request method"
                   initialValue={requestTypeDropdownOptions.find(
                     (i: DropdownOption) => {
                       return (
@@ -966,19 +1002,11 @@ return {
       {/* Advanced Options - Collapsible Section for API monitors */}
       {props.monitorType === MonitorType.API && (
         <CollapsibleSection
-          title="Advanced Options"
-          description="Request headers, body, and redirect settings"
-          badge={hasAdvancedOptionsConfigured ? "Configured" : undefined}
+          title="Advanced request settings"
+          description="Headers, request body, certificates, timeout and retries"
+          badge={hasAdvancedOptionsConfigured ? "Customized" : undefined}
           variant="card"
-          defaultCollapsed={
-            !hasAdvancedOptionsConfigured &&
-            !showAdvancedOptionsRequestBodyAndHeaders
-          }
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowAdvancedOptionsRequestBodyAndHeaders(true);
-            }
-          }}
+          defaultCollapsed={true}
         >
           <div className="space-y-4">
             <div>
@@ -1019,7 +1047,7 @@ return {
                 title={"Request Body (in JSON)"}
                 description={
                   <p>
-                    Request Headers to send in JSON.{" "}
+                    Request body to send in JSON.{" "}
                     <Link
                       className="underline"
                       openInNewTab={true}
@@ -1072,8 +1100,9 @@ return {
             <div>
               <CheckboxElement
                 initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                ariaLabel="Do not follow redirects"
                 title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
+                description="Check the original response without following its redirect."
                 onChange={(value: boolean) => {
                   monitorStep.setDoNotFollowRedirects(value);
                   if (props.onChange) {
@@ -1088,6 +1117,7 @@ return {
                 initialValue={
                   monitorStep.data?.allowSelfSignedCertificates || false
                 }
+                ariaLabel="Allow self-signed certificates"
                 title={"Allow self-signed certificates"}
                 description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
                 onChange={(value: boolean) => {
@@ -1102,6 +1132,7 @@ return {
             <div>
               <CheckboxElement
                 initialValue={useTlsClientCertificate}
+                ariaLabel="Use client certificate (mTLS)"
                 title={"Use client certificate (mTLS)"}
                 description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
                 onChange={(value: boolean) => {
@@ -1221,36 +1252,19 @@ return {
       {/* Advanced Options - Collapsible Section for Website monitors */}
       {props.monitorType === MonitorType.Website && (
         <CollapsibleSection
-          title="Advanced Options"
-          description="Redirect and TLS settings"
-          badge={
-            monitorStep.data?.doNotFollowRedirects ||
-            monitorStep.data?.allowSelfSignedCertificates ||
-            monitorStep.data?.tlsClientCertificate ||
-            monitorStep.data?.tlsClientKey
-              ? "Configured"
-              : undefined
-          }
+          title="Advanced request settings"
+          description="Redirects, certificates, timeout and retries"
+          badge={hasAdvancedOptionsConfigured ? "Customized" : undefined}
           variant="card"
-          defaultCollapsed={
-            !monitorStep.data?.doNotFollowRedirects &&
-            !monitorStep.data?.allowSelfSignedCertificates &&
-            !monitorStep.data?.tlsClientCertificate &&
-            !monitorStep.data?.tlsClientKey &&
-            !showDoNotFollowRedirects
-          }
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowDoNotFollowRedirects(true);
-            }
-          }}
+          defaultCollapsed={true}
         >
           <div className="space-y-4">
             <div>
               <CheckboxElement
                 initialValue={monitorStep.data?.doNotFollowRedirects || false}
+                ariaLabel="Do not follow redirects"
                 title={"Do not follow redirects"}
-                description="Please check this if you do not want to follow redirects."
+                description="Check the original response without following its redirect."
                 onChange={(value: boolean) => {
                   monitorStep.setDoNotFollowRedirects(value);
                   if (props.onChange) {
@@ -1265,6 +1279,7 @@ return {
                 initialValue={
                   monitorStep.data?.allowSelfSignedCertificates || false
                 }
+                ariaLabel="Allow self-signed certificates"
                 title={"Allow self-signed certificates"}
                 description="Check this to skip TLS certificate validation (e.g. accept self-signed or untrusted certificates)."
                 onChange={(value: boolean) => {
@@ -1279,6 +1294,7 @@ return {
             <div>
               <CheckboxElement
                 initialValue={useTlsClientCertificate}
+                ariaLabel="Use client certificate (mTLS)"
                 title={"Use client certificate (mTLS)"}
                 description="Authenticate to the endpoint with a client certificate and private key, like curl --cert / --key."
                 onChange={(value: boolean) => {
@@ -1401,7 +1417,7 @@ return {
         props.monitorType === MonitorType.Port ||
         props.monitorType === MonitorType.SSLCertificate) && (
         <CollapsibleSection
-          title="Advanced Options"
+          title="Advanced request settings"
           description="Timeout and retry settings"
           badge={
             monitorStep.data?.requestTimeoutInMs !== undefined ||
@@ -1410,10 +1426,7 @@ return {
               : undefined
           }
           variant="card"
-          defaultCollapsed={
-            monitorStep.data?.requestTimeoutInMs === undefined &&
-            monitorStep.data?.retryCount === undefined
-          }
+          defaultCollapsed={true}
         >
           <div className="space-y-4">{renderTimeoutAndRetryFields()}</div>
         </CollapsibleSection>
@@ -1970,15 +1983,11 @@ return {
       {/* Synthetic Monitor Advanced Options */}
       {props.monitorType === MonitorType.SyntheticMonitor && (
         <CollapsibleSection
-          title="Advanced Options"
+          title="Advanced request settings"
           description="Retry settings and more"
           variant="card"
-          defaultCollapsed={!showSyntheticMonitorAdvancedOptions}
-          onToggle={(isCollapsed: boolean) => {
-            if (!isCollapsed) {
-              setShowSyntheticMonitorAdvancedOptions(true);
-            }
-          }}
+          defaultCollapsed={true}
+          badge={monitorStep.data?.retryCountOnError ? "Customized" : undefined}
         >
           <div>
             <FieldLabelElement
@@ -2012,27 +2021,10 @@ return {
         </CollapsibleSection>
       )}
 
-      {/* Test Monitor Card - only shown for probeable monitors */}
-      {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (
-        <Card
-          title="Test Monitor"
-          description="Verify your monitor configuration before saving"
-          className="bg-blue-50 border-blue-200"
-        >
-          <MonitorTestForm
-            monitorId={props.monitorId}
-            monitorSteps={props.allMonitorSteps}
-            monitorType={props.monitorType}
-            probes={props.probes}
-            buttonSize={ButtonSize.Normal}
-          />
-        </Card>
-      )}
-
       {/* Monitor Criteria Section */}
       <Card
-        title="Monitor Criteria"
-        description="Add Monitoring Criteria for this monitor. Monitor different properties."
+        title="Alert rules"
+        description="Choose when this monitor changes status or notifies your team."
       >
         <MonitorCriteriaElement
           monitorType={props.monitorType}
@@ -2058,6 +2050,23 @@ return {
           }}
         />
       </Card>
+
+      {/* Test Monitor Card - only shown for probeable monitors */}
+      {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (
+        <CollapsibleSection
+          title="Try your monitor"
+          description="Run a check from a probe before saving. This is optional."
+          defaultCollapsed={true}
+        >
+          <MonitorTestForm
+            monitorId={props.monitorId}
+            monitorSteps={props.allMonitorSteps}
+            monitorType={props.monitorType}
+            probes={props.probes}
+            buttonSize={ButtonSize.Normal}
+          />
+        </CollapsibleSection>
+      )}
     </div>
   );
 };

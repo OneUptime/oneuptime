@@ -2,6 +2,7 @@ import MonitorCriteriaIncidentForm, {
   IncidentRoleOption,
 } from "./MonitorCriteriaIncidentForm";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -41,11 +42,27 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
   }, [incidents]);
 
   return (
-    <div className="mt-4">
+    <div className="space-y-5">
+      {incidents.length === 0 && (
+        <Button
+          title="Configure incident"
+          buttonStyle={ButtonStyleType.OUTLINE}
+          onClick={() => {
+            setIncidents([
+              {
+                title: "",
+                description: "",
+                incidentSeverityId: undefined,
+                id: ObjectID.generate().toString(),
+              },
+            ]);
+          }}
+        />
+      )}
       {incidents.map((i: CriteriaIncident, index: number) => {
         return (
           <MonitorCriteriaIncidentForm
-            key={index}
+            key={i?.id || index}
             incidentSeverityDropdownOptions={
               props.incidentSeverityDropdownOptions
             }
@@ -57,17 +74,6 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             monitorType={props.monitorType}
             seriesAttributeKeys={props.seriesAttributeKeys}
             initialValue={i}
-            /*
-             * onDelete={() => {
-             *     // remove the criteria filter
-             *     const index: number = incidents.indexOf(i);
-             *     const newIncidents: Array<CriteriaIncident> = [
-             *         ...incidents,
-             *     ];
-             *     newIncidents.splice(index, 1);
-             *     setIncidents(newIncidents);
-             * }}
-             */
             onChange={(value: CriteriaIncident) => {
               const index: number = incidents.indexOf(i);
               const newIncidents: Array<CriteriaIncident> = [...incidents];
@@ -77,21 +83,6 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
           />
         );
       })}
-
-      {/** Future Proofing */}
-      {/* <Button
-                title="Add Incident"
-                onClick={() => {
-                    const newIncidents: Array<CriteriaIncident> = [
-                        ...incidents,
-                    ];
-                    newIncidents.push({
-                        title: '',
-                        description: '',
-                        incidentSeverityId: undefined,
-                    });
-                }}
-            /> */}
     </div>
   );
 };

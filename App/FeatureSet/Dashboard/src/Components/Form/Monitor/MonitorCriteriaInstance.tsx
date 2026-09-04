@@ -27,12 +27,10 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Radio from "Common/UI/Components/Radio/Radio";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import CollapsibleSection from "./MonitorFormSection";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useId,
   useMemo,
   useState,
@@ -117,48 +115,26 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       props.isNetworkDeviceCatalogueLoaded,
     ]);
 
-  const [defaultMonitorStatusId, setDefaultMonitorStatusId] = useState<
-    ObjectID | undefined
-  >(monitorCriteriaInstance?.data?.monitorStatusId);
-
-  const filterConditionOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
-
   const [errors, setErrors] = useState<Dictionary<string>>({});
   const [touched, setTouched] = useState<Dictionary<boolean>>({});
-
-  useEffect(() => {
-    // set first value as default
-    if (
-      props.monitorStatusDropdownOptions.length > 0 &&
-      !defaultMonitorStatusId &&
-      props.monitorStatusDropdownOptions[0] &&
-      props.monitorStatusDropdownOptions[0].value
-    ) {
-      setDefaultMonitorStatusId(
-        new ObjectID(props.monitorStatusDropdownOptions[0].value.toString()),
-      );
-    }
-  }, [props.monitorStatusDropdownOptions]);
+  const ruleNameId: string = useId();
+  const ruleDescriptionId: string = useId();
+  const alertSwitchLabelId: string = useId();
+  const incidentSwitchLabelId: string = useId();
+  const enabledSwitchLabelId: string = useId();
 
   /*
-   * The switch reads the flag first, like the other two actions do, and falls
-   * back to "a status was picked" only for criteria saved before
-   * changeMonitorStatus existed. Reading the status id alone showed the switch
-   * OFF for a criteria whose flag is on but whose status was never chosen -
-   * the state where the criteria acts and the form says it does not.
+   * The evaluator gates each action on its flag. Retained configuration,
+   * including a saved status id, must never make a disabled action look active.
    */
-  const [showMonitorStatusChangeControl, setShowMonitorStatusChangeControl] =
-    useState<boolean>(
-      Boolean(props.value?.data?.changeMonitorStatus) ||
-        Boolean(props.value?.data?.monitorStatusId?.id),
-    );
-  const [showIncidentControl, setShowIncidentControl] = useState<boolean>(
-    props.value?.data?.createIncidents || false,
+  const showMonitorStatusChangeControl: boolean = Boolean(
+    monitorCriteriaInstance.data?.changeMonitorStatus,
   );
-
-  const [showAlertControl, setShowAlertControl] = useState<boolean>(
-    props.value?.data?.createAlerts || false,
+  const showIncidentControl: boolean = Boolean(
+    monitorCriteriaInstance.data?.createIncidents,
+  );
+  const showAlertControl: boolean = Boolean(
+    monitorCriteriaInstance.data?.createAlerts,
   );
 
   const [showIncidentGrouping, setShowIncidentGrouping] = useState<boolean>(
@@ -192,219 +168,105 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // Calculate summary information for badges
   const filterCount: number =
     monitorCriteriaInstance?.data?.filters?.length || 0;
-  const filterCondition: FilterCondition =
-    monitorCriteriaInstance?.data?.filterCondition || FilterCondition.All;
-  const filterSummary: string = `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? `, ${filterCondition === FilterCondition.All ? "ALL" : "ANY"} match` : ""}`;
-
-  // Calculate actions summary
-  const getActionsSummary: () => string = (): string => {
-    const actions: Array<string> = [];
-    if (showMonitorStatusChangeControl) {
-      const statusOption: DropdownOption | undefined =
-        props.monitorStatusDropdownOptions.find((i: DropdownOption) => {
-          return (
-            i.value === monitorCriteriaInstance?.data?.monitorStatusId?.id ||
-            undefined
-          );
-        });
-      if (statusOption) {
-        actions.push(`Status: ${statusOption.label}`);
-      }
-    }
-    if (showAlertControl) {
-      const alertCount: number =
-        monitorCriteriaInstance?.data?.alerts?.length || 0;
-      actions.push(`${alertCount} alert${alertCount !== 1 ? "s" : ""}`);
-    }
-    if (showIncidentControl) {
-      const incidentCount: number =
-        monitorCriteriaInstance?.data?.incidents?.length || 0;
-      actions.push(
-        `${incidentCount} incident${incidentCount !== 1 ? "s" : ""}`,
-      );
-    }
-    return actions.length > 0 ? actions.join(", ") : "No actions";
-  };
-
   const hasActions: boolean =
     showMonitorStatusChangeControl || showAlertControl || showIncidentControl;
 
   const isEnabled: boolean = monitorCriteriaInstance?.data?.isEnabled !== false;
 
   return (
-    <div className="mt-4">
-      {/* Criteria Name and Description */}
-      <div className="mb-4">
-        <div className="mt-3">
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <FieldLabelElement
+          title="Rule name"
+          htmlFor={ruleNameId}
+          required={true}
+        />
+        <Input
+          id={ruleNameId}
+          value={monitorCriteriaInstance?.data?.name?.toString() || ""}
+          placeholder="e.g. Website is unavailable"
+          onBlur={() => {
+            setTouched({ ...touched, name: true });
+            setErrors({
+              ...errors,
+              name: monitorCriteriaInstance?.data?.name?.trim()
+                ? ""
+                : "Rule name is required",
+            });
+          }}
+          error={touched["name"] && errors["name"] ? errors["name"] : undefined}
+          onChange={(value: string) => {
+            setErrors({
+              ...errors,
+              name: value.trim() ? "" : "Rule name is required",
+            });
+            monitorCriteriaInstance.setName(value);
+            props.onChange?.(
+              MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+            );
+          }}
+        />
+        <CollapsibleSection
+          title="Rule description"
+          badge={
+            monitorCriteriaInstance.data?.description ? "Added" : "Optional"
+          }
+          defaultCollapsed={true}
+        >
           <FieldLabelElement
-            title={"Criteria Name"}
-            description={
-              "Any friendly name for this criteria, that will help you remember later."
-            }
-            required={true}
-          />
-          <Input
-            value={monitorCriteriaInstance?.data?.name?.toString() || ""}
-            onBlur={() => {
-              setTouched({
-                ...touched,
-                name: true,
-              });
-
-              if (!monitorCriteriaInstance?.data?.name) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-            }}
-            error={
-              touched["name"] && errors["name"] ? errors["name"] : undefined
-            }
-            placeholder="Online Criteria"
-            onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  name: "Name is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  name: "",
-                });
-              }
-
-              monitorCriteriaInstance.setName(value);
-              if (props.onChange) {
-                props.onChange(
-                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                );
-              }
-            }}
-          />
-        </div>
-        <div className="mt-4">
-          <FieldLabelElement
-            title={"Criteria Description"}
-            description={
-              "Any friendly description for this criteria, that will help you remember later."
-            }
-            required={true}
+            title="Description"
+            htmlFor={ruleDescriptionId}
+            description="Add context for your team, if helpful."
           />
           <TextArea
+            id={ruleDescriptionId}
             value={monitorCriteriaInstance?.data?.description?.toString() || ""}
-            onBlur={() => {
-              setTouched({
-                ...touched,
-                description: true,
-              });
-
-              if (!monitorCriteriaInstance?.data?.description) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
-            }}
-            error={
-              touched["description"] && errors["description"]
-                ? errors["description"]
-                : undefined
-            }
+            placeholder="What should your team know about this rule?"
             onChange={(value: string) => {
-              if (!value) {
-                setErrors({
-                  ...errors,
-                  description: "Description is required",
-                });
-              } else {
-                setErrors({
-                  ...errors,
-                  description: "",
-                });
-              }
               monitorCriteriaInstance.setDescription(value);
-              if (props.onChange) {
-                props.onChange(
-                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                );
-              }
+              props.onChange?.(
+                MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+              );
             }}
-            placeholder="This criteria checks if the monitor is online."
           />
-        </div>
+        </CollapsibleSection>
       </div>
 
-      {/* Filters Section - Collapsible */}
-      <CollapsibleSection
-        title={
-          props.monitorType === MonitorType.Kubernetes ||
-          props.monitorType === MonitorType.Metrics
-            ? "Alert Rules"
-            : "Filters"
-        }
-        description={
-          props.monitorType === MonitorType.Kubernetes ||
-          props.monitorType === MonitorType.Metrics
-            ? "Define when this alert should trigger based on metric values."
-            : "Add criteria for different monitor properties."
-        }
-        badge={filterSummary}
-        variant="bordered"
-        defaultCollapsed={false}
-        className="mb-4"
+      <section
+        className="rounded-xl border border-gray-200 bg-white"
+        aria-label="When"
       >
-        <div>
-          <div className="mb-3">
-            <FieldLabelElement
-              title={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Match Condition"
-                  : "Filter Condition"
-              }
-              description={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Should all rules match, or just any one of them?"
-                  : "Select All if you want all the criteria to be met. Select any if you like any criteria to be met."
-              }
-              required={true}
-            />
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h3 className="text-sm font-semibold text-gray-900">When</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Choose the conditions that trigger this rule.
+          </p>
+        </div>
+        <div className="space-y-4 p-4">
+          {filterCount > 1 && (
             <Radio
+              ariaLabel="Match conditions"
+              className="flex flex-wrap gap-x-6 !space-y-0"
               value={
                 monitorCriteriaInstance?.data?.filterCondition ||
                 FilterCondition.All
               }
-              options={filterConditionOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
+              options={[
+                { label: "All conditions match", value: FilterCondition.All },
+                { label: "Any condition matches", value: FilterCondition.Any },
+              ]}
+              onChange={(value: DropdownValue | null) => {
                 monitorCriteriaInstance.setFilterCondition(
                   value as FilterCondition,
                 );
-                if (props.onChange) {
-                  props.onChange(
-                    MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                  );
-                }
+                props.onChange?.(
+                  MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                );
               }}
             />
-          </div>
+          )}
 
           <NetworkDeviceCriteriaCatalogueContext.Provider
             value={networkDeviceCatalogue}
@@ -428,24 +290,24 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             />
           </NetworkDeviceCriteriaCatalogueContext.Provider>
         </div>
-      </CollapsibleSection>
+      </section>
 
-      {/* Actions Section - Collapsible */}
-      <CollapsibleSection
-        title="Actions"
-        description="Configure what happens when filters match."
-        badge={getActionsSummary()}
-        variant="bordered"
-        defaultCollapsed={!hasActions}
-        className="mb-4"
+      <section
+        className="rounded-xl border border-gray-200 bg-white"
+        aria-label="Then"
       >
-        <div>
-          <div className="mt-2">
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h3 className="text-sm font-semibold text-gray-900">Then</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Choose what happens when this rule matches.
+          </p>
+        </div>
+        <div className="divide-y divide-gray-100 px-4">
+          <div className="py-4">
             <Toggle
               value={Boolean(showMonitorStatusChangeControl)}
-              title="When filters match, change monitor status."
+              title="Change monitor status"
               onChange={(value: boolean) => {
-                setShowMonitorStatusChangeControl(value);
                 monitorCriteriaInstance.setChangeMonitorStatus(value);
 
                 if (!value) {
@@ -459,48 +321,52 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
               }}
             />
+            {showMonitorStatusChangeControl && (
+              <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                <FieldLabelElement
+                  title="Change monitor status to"
+                  required={true}
+                />
+                <Dropdown
+                  ariaLabel="Change monitor status to"
+                  placeholder="Select monitor status"
+                  value={props.monitorStatusDropdownOptions.find(
+                    (i: DropdownOption) => {
+                      return (
+                        i.value ===
+                          monitorCriteriaInstance?.data?.monitorStatusId?.id ||
+                        undefined
+                      );
+                    },
+                  )}
+                  options={props.monitorStatusDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    monitorCriteriaInstance.setMonitorStatusId(
+                      value ? new ObjectID(value.toString()) : undefined,
+                    );
+                    if (props.onChange) {
+                      props.onChange(
+                        MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {showMonitorStatusChangeControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement
-                title="Change monitor status to"
-                description="What would you like the monitor status to be when the criteria have been met?"
-              />
-              <Dropdown
-                value={props.monitorStatusDropdownOptions.find(
-                  (i: DropdownOption) => {
-                    return (
-                      i.value ===
-                        monitorCriteriaInstance?.data?.monitorStatusId?.id ||
-                      undefined
-                    );
-                  },
-                )}
-                options={props.monitorStatusDropdownOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  monitorCriteriaInstance.setMonitorStatusId(
-                    value ? new ObjectID(value.toString()) : undefined,
-                  );
-                  if (props.onChange) {
-                    props.onChange(
-                      MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                    );
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          <div className="mt-4">
+          <div className="py-4">
+            <span id={alertSwitchLabelId} className="sr-only">
+              Create an alert
+            </span>
             <Toggle
               value={showAlertControl}
-              title="When filters match, create an alert."
-              tooltip="When you create an alert, it is used to notify the team but is not shown on the status page."
+              title="Create an alert"
+              ariaLabelledby={alertSwitchLabelId}
+              description="Notify your team about a problem."
               onChange={(value: boolean) => {
-                setShowAlertControl(value);
                 monitorCriteriaInstance.setCreateAlerts(value);
 
                 /*
@@ -531,42 +397,44 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
               }}
             />
+            {showAlertControl && (
+              <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                <MonitorCriteriaAlertsForm
+                  initialValue={monitorCriteriaInstance?.data?.alerts || []}
+                  alertSeverityDropdownOptions={
+                    props.alertSeverityDropdownOptions
+                  }
+                  onCallPolicyDropdownOptions={
+                    props.onCallPolicyDropdownOptions
+                  }
+                  labelDropdownOptions={props.labelDropdownOptions}
+                  teamDropdownOptions={props.teamDropdownOptions}
+                  userDropdownOptions={props.userDropdownOptions}
+                  monitorType={props.monitorType}
+                  seriesAttributeKeys={seriesAttributeKeys}
+                  onChange={(value: Array<CriteriaAlert>) => {
+                    monitorCriteriaInstance.setAlerts(value);
+                    if (props.onChange) {
+                      props.onChange(
+                        MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {showAlertControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement title="Create Alert" />
-
-              <MonitorCriteriaAlertsForm
-                initialValue={monitorCriteriaInstance?.data?.alerts || []}
-                alertSeverityDropdownOptions={
-                  props.alertSeverityDropdownOptions
-                }
-                onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-                labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
-                userDropdownOptions={props.userDropdownOptions}
-                monitorType={props.monitorType}
-                seriesAttributeKeys={seriesAttributeKeys}
-                onChange={(value: Array<CriteriaAlert>) => {
-                  monitorCriteriaInstance.setAlerts(value);
-                  if (props.onChange) {
-                    props.onChange(
-                      MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                    );
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          <div className="mt-4">
+          <div className="py-4">
+            <span id={incidentSwitchLabelId} className="sr-only">
+              Declare an incident
+            </span>
             <Toggle
               value={showIncidentControl}
-              title="When filters match, declare an incident."
-              tooltip="When you delcare an incident, it is used to notify the team and is shown on the status page as well."
+              title="Declare an incident"
+              ariaLabelledby={incidentSwitchLabelId}
+              description="Track the issue and coordinate a response."
               onChange={(value: boolean) => {
-                setShowIncidentControl(value);
                 monitorCriteriaInstance.setCreateIncidents(value);
 
                 // Seed on the way ON only - see the alert switch above.
@@ -592,52 +460,60 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
               }}
             />
-          </div>
-
-          {showIncidentControl && (
-            <div className="mt-4 ml-6 p-3 bg-gray-50 rounded-md border border-gray-100">
-              <FieldLabelElement title="Create Incident" />
-
-              <MonitorCriteriaIncidentsForm
-                initialValue={monitorCriteriaInstance?.data?.incidents || []}
-                incidentSeverityDropdownOptions={
-                  props.incidentSeverityDropdownOptions
-                }
-                onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-                labelDropdownOptions={props.labelDropdownOptions}
-                teamDropdownOptions={props.teamDropdownOptions}
-                userDropdownOptions={props.userDropdownOptions}
-                incidentRoleOptions={props.incidentRoleOptions}
-                monitorType={props.monitorType}
-                seriesAttributeKeys={seriesAttributeKeys}
-                onChange={(value: Array<CriteriaIncident>) => {
-                  monitorCriteriaInstance.setIncidents(value);
-                  if (props.onChange) {
-                    props.onChange(
-                      MonitorCriteriaInstance.clone(monitorCriteriaInstance),
-                    );
+            {showIncidentControl && (
+              <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                <MonitorCriteriaIncidentsForm
+                  initialValue={monitorCriteriaInstance?.data?.incidents || []}
+                  incidentSeverityDropdownOptions={
+                    props.incidentSeverityDropdownOptions
                   }
-                }}
-              />
-            </div>
+                  onCallPolicyDropdownOptions={
+                    props.onCallPolicyDropdownOptions
+                  }
+                  labelDropdownOptions={props.labelDropdownOptions}
+                  teamDropdownOptions={props.teamDropdownOptions}
+                  userDropdownOptions={props.userDropdownOptions}
+                  incidentRoleOptions={props.incidentRoleOptions}
+                  monitorType={props.monitorType}
+                  seriesAttributeKeys={seriesAttributeKeys}
+                  onChange={(value: Array<CriteriaIncident>) => {
+                    monitorCriteriaInstance.setIncidents(value);
+                    if (props.onChange) {
+                      props.onChange(
+                        MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          {!hasActions && (
+            <p className="py-3 text-xs text-gray-500">
+              Turn on an action to use this rule.
+            </p>
           )}
         </div>
-      </CollapsibleSection>
+      </section>
 
       {/* Settings — criteria enable toggle + (incoming request) incident grouping */}
       <CollapsibleSection
-        title="Settings"
-        description="Configure additional settings for this criteria."
+        title="Advanced rule settings"
+        description="Pause this rule or customize how incoming events are grouped."
         badge={isEnabled ? "Enabled" : "Disabled"}
         variant="bordered"
         defaultCollapsed={!showIncidentGrouping}
         className="mb-4"
       >
         <div className="mt-2">
+          <span id={enabledSwitchLabelId} className="sr-only">
+            Enable this rule
+          </span>
           <Toggle
             value={isEnabled}
-            title="Enable this criteria"
-            description="When disabled, this criteria will not be evaluated. It will not change the monitor status, create incidents, or trigger alerts."
+            title="Enable this rule"
+            ariaLabelledby={enabledSwitchLabelId}
+            description="Paused rules do not run or trigger actions."
             onChange={(value: boolean) => {
               monitorCriteriaInstance.setIsEnabled(value);
               if (props.onChange) {
@@ -844,7 +720,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           icon={IconProp.Trash}
-          title="Delete Criteria"
+          title="Delete rule"
         />
       </div>
     </div>

@@ -9,6 +9,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
@@ -62,127 +63,137 @@ export interface ComponentProps {
   offlineMonitorStatusId?: ObjectID | undefined;
 }
 
-interface CriteriaCollapsedState {
-  [key: string]: boolean;
-}
-
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [emptyCriteria] = useState<MonitorCriteria>(() => {
+    return new MonitorCriteria();
+  });
+  const [expandedRuleId, setExpandedRuleId] = useState<string | null>(null);
   const [showCantDeleteModal, setShowCantDeleteModal] =
-    React.useState<boolean>(false);
+    useState<boolean>(false);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState<string>("");
+  const monitorCriteria: MonitorCriteria = props.value || emptyCriteria;
+  const rules: Array<MonitorCriteriaInstance> =
+    monitorCriteria.data?.monitorCriteriaInstanceArray || [];
 
-  const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
-
-  // Track collapsed state for each criteria instance
-  const [collapsedState, setCollapsedState] = useState<CriteriaCollapsedState>(
-    {},
-  );
-
-  const toggleCriteriaCollapsed: (id: string) => void = (id: string): void => {
-    setCollapsedState((prev: CriteriaCollapsedState) => {
-      return {
-        ...prev,
-        [id]: !prev[id],
-      };
-    });
-  };
-
-  const getCriteriaSummary: (instance: MonitorCriteriaInstance) => string = (
-    instance: MonitorCriteriaInstance,
-  ): string => {
-    const parts: Array<string> = [];
-
-    // Filter count
-    const filterCount: number = instance.data?.filters?.length || 0;
-    const filterCondition: FilterCondition =
-      instance.data?.filterCondition || FilterCondition.All;
-    parts.push(
-      `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? ` (${filterCondition === FilterCondition.All ? "ALL" : "ANY"})` : ""}`,
+  const updateRules: (value: Array<MonitorCriteriaInstance>) => void = (
+    value: Array<MonitorCriteriaInstance>,
+  ): void => {
+    props.onChange?.(
+      MonitorCriteria.fromJSON({
+        _type: "MonitorCriteria",
+        value: { monitorCriteriaInstanceArray: value },
+      }),
     );
-
-    // Actions
-    const actions: Array<string> = [];
-    if (instance.data?.monitorStatusId) {
-      actions.push("status change");
-    }
-    if (instance.data?.createAlerts) {
-      actions.push("alerts");
-    }
-    if (instance.data?.createIncidents) {
-      actions.push("incidents");
-    }
-
-    if (actions.length > 0) {
-      parts.push(actions.join(", "));
-    }
-
-    return parts.join(" | ");
   };
 
-  const getCriteriaHeaderColor: (
-    instance: MonitorCriteriaInstance,
-  ) => string = (instance: MonitorCriteriaInstance): string => {
-    if (instance.data?.isEnabled === false) {
-      return "border-l-gray-300";
+  const moveRule: (source: number, destination: number) => void = (
+    source: number,
+    destination: number,
+  ): void => {
+    if (
+      source === destination ||
+      destination < 0 ||
+      destination >= rules.length
+    ) {
+      return;
     }
-    return "border-l-blue-500";
+    const reordered: Array<MonitorCriteriaInstance> = [...rules];
+    const [movedRule] = reordered.splice(source, 1);
+    if (!movedRule) {
+      return;
+    }
+    reordered.splice(destination, 0, movedRule);
+    updateRules(reordered);
+    setReorderAnnouncement(
+      `${movedRule.data?.name || "Rule"} moved to position ${destination + 1} of ${rules.length}.`,
+    );
   };
 
   const handleDragEnd: (result: DropResult) => void = (
     result: DropResult,
   ): void => {
-    if (!result.destination) {
-      return;
+    if (result.destination) {
+      moveRule(result.source.index, result.destination.index);
     }
+  };
 
-    const sourceIndex: number = result.source.index;
-    const destinationIndex: number = result.destination.index;
-
-    if (sourceIndex === destinationIndex) {
-      return;
+  const getConditionSummary: (instance: MonitorCriteriaInstance) => string = (
+    instance: MonitorCriteriaInstance,
+  ): string => {
+    const filters: Array<CriteriaFilter> = instance.data?.filters || [];
+    if (filters.length === 0) {
+      return "Add a condition to decide when this rule applies";
     }
+    const connector: string =
+      instance.data?.filterCondition === FilterCondition.Any ? " or " : " and ";
+    const summary: string = filters
+      .slice(0, 2)
+      .map((filter: CriteriaFilter) => {
+        return CriteriaFilterUtil.translateFilterToText(filter)
+          .replace(/^Check if /, "")
+          .trim()
+          .replace(/\.$/, "");
+      })
+      .join(connector);
+    return `${summary}${filters.length > 2 ? ` · +${filters.length - 2} more` : ""}`;
+  };
 
-    const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
-      ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
-    ];
-    const [movedItem] = newMonitorCriterias.splice(sourceIndex, 1);
-    if (!movedItem) {
-      return;
+  const getActionSummary: (instance: MonitorCriteriaInstance) => string = (
+    instance: MonitorCriteriaInstance,
+  ): string => {
+    const actions: Array<string> = [];
+    if (instance.data?.changeMonitorStatus) {
+      const status: DropdownOption | undefined =
+        props.monitorStatusDropdownOptions.find((option: DropdownOption) => {
+          return (
+            option.value.toString() ===
+            instance.data?.monitorStatusId?.toString()
+          );
+        });
+      actions.push(
+        status ? `Set status to ${status.label}` : "Choose a monitor status",
+      );
     }
-    newMonitorCriterias.splice(destinationIndex, 0, movedItem);
-
-    props.onChange?.(
-      MonitorCriteria.fromJSON({
-        _type: "MonitorCriteria",
-        value: {
-          monitorCriteriaInstanceArray: newMonitorCriterias,
-        },
-      }),
-    );
+    if (instance.data?.createAlerts) {
+      actions.push("Create an alert");
+    }
+    if (instance.data?.createIncidents) {
+      actions.push("Declare an incident");
+    }
+    return actions.length > 0 ? actions.join(" · ") : "No actions selected";
   };
 
   return (
-    <div className="mt-4">
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">
+        Rules run from top to bottom. Put higher-priority rules first.
+      </p>
+      <p className="sr-only" role="status" aria-live="polite">
+        {reorderAnnouncement}
+      </p>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="monitor-criteria-list">
+        <Droppable
+          droppableId={`monitor-criteria-list-${props.monitorStep.data?.id || "step"}`}
+        >
           {(droppableProvided: DroppableProvided) => {
             return (
               <div
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
+                className="space-y-3"
               >
-                {monitorCriteria.data?.monitorCriteriaInstanceArray.map(
-                  (i: MonitorCriteriaInstance, index: number) => {
+                {rules.map(
+                  (instance: MonitorCriteriaInstance, index: number) => {
                     const criteriaId: string =
-                      i.data?.id || `criteria-${index}`;
-                    const isCollapsed: boolean =
-                      collapsedState[criteriaId] || false;
-                    const criteriaName: string =
-                      i.data?.name || "Unnamed Criteria";
-                    const isCriteriaDisabled: boolean =
-                      i.data?.isEnabled === false;
-
+                      instance.data?.id || `criteria-${index}`;
+                    const isExpanded: boolean = expandedRuleId === criteriaId;
+                    const ruleName: string =
+                      instance.data?.name || `Rule ${index + 1}`;
+                    const isDisabled: boolean =
+                      instance.data?.isEnabled === false;
+                    const panelId: string = `rule-editor-${criteriaId}`;
                     return (
                       <Draggable
                         draggableId={criteriaId}
@@ -194,213 +205,139 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                             <div
                               ref={draggableProvided.innerRef}
                               {...draggableProvided.draggableProps}
-                              className={`mb-4 border rounded-lg overflow-hidden border-l-4 bg-white ${getCriteriaHeaderColor(i)}`}
+                              className={`rounded-xl border bg-white transition-colors ${isExpanded ? "border-indigo-300 shadow-sm" : "border-gray-200"}`}
+                              data-testid="monitor-rule-card"
                             >
-                              {/* Collapsible Header */}
-                              <div
-                                className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                                onClick={() => {
-                                  toggleCriteriaCollapsed(criteriaId);
-                                }}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e: React.KeyboardEvent) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    toggleCriteriaCollapsed(criteriaId);
-                                  }
-                                }}
-                                aria-expanded={!isCollapsed}
-                              >
-                                <div className="flex items-center flex-1 min-w-0">
-                                  <div
-                                    {...draggableProvided.dragHandleProps}
-                                    onClick={(e: React.MouseEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    onKeyDown={(e: React.KeyboardEvent) => {
-                                      e.stopPropagation();
-                                    }}
-                                    className="mr-2 flex-shrink-0 cursor-ns-resize text-gray-400 hover:text-gray-600"
-                                    aria-label="Drag to reorder criteria"
-                                    title="Drag to reorder"
-                                  >
-                                    <Icon
-                                      icon={IconProp.GripVertical}
-                                      className="w-4 h-4"
-                                    />
+                              <div className="flex items-start gap-2 p-3 sm:p-4">
+                                <div
+                                  {...draggableProvided.dragHandleProps}
+                                  className="mt-1 flex-shrink-0 cursor-grab rounded p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  aria-label={`Drag to reorder rule: ${ruleName}`}
+                                >
+                                  <Icon
+                                    icon={IconProp.GripVertical}
+                                    className="h-4 w-4"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  className="min-w-0 flex-1 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                  aria-label={`${isExpanded ? "Close" : "Edit"} rule: ${ruleName}`}
+                                  aria-expanded={isExpanded}
+                                  aria-controls={panelId}
+                                  onClick={() => {
+                                    setExpandedRuleId(
+                                      isExpanded ? null : criteriaId,
+                                    );
+                                  }}
+                                >
+                                  <span className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-400">
+                                      {index + 1}.
+                                    </span>
+                                    <span
+                                      className={`text-sm font-semibold ${isDisabled ? "text-gray-500" : "text-gray-900"}`}
+                                    >
+                                      {ruleName}
+                                    </span>
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${isDisabled ? "bg-gray-100 text-gray-500" : "bg-emerald-50 text-emerald-700"}`}
+                                    >
+                                      {isDisabled ? "Disabled" : "Enabled"}
+                                    </span>
+                                  </span>
+                                  <span className="mt-2 block break-words text-sm text-gray-600">
+                                    <span className="font-medium text-gray-800">
+                                      When{" "}
+                                    </span>
+                                    {getConditionSummary(instance)}
+                                  </span>
+                                  <span className="mt-1 block break-words text-xs text-gray-500">
+                                    <span className="font-medium text-gray-700">
+                                      Then{" "}
+                                    </span>
+                                    {getActionSummary(instance)}
+                                  </span>
+                                </button>
+                                <div className="flex flex-shrink-0 items-center gap-1">
+                                  <div className="flex flex-col sm:flex-row">
+                                    <button
+                                      type="button"
+                                      disabled={index === 0}
+                                      aria-label={`Move rule up: ${ruleName}`}
+                                      title="Move up"
+                                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
+                                      onClick={() => {
+                                        moveRule(index, index - 1);
+                                      }}
+                                    >
+                                      <Icon
+                                        icon={IconProp.ArrowUp}
+                                        className="h-4 w-4"
+                                      />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={index === rules.length - 1}
+                                      aria-label={`Move rule down: ${ruleName}`}
+                                      title="Move down"
+                                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
+                                      onClick={() => {
+                                        moveRule(index, index + 1);
+                                      }}
+                                    >
+                                      <Icon
+                                        icon={IconProp.ArrowDown}
+                                        className="h-4 w-4"
+                                      />
+                                    </button>
                                   </div>
                                   <Icon
                                     icon={
-                                      isCollapsed
-                                        ? IconProp.ChevronRight
+                                      isExpanded
+                                        ? IconProp.ChevronUp
                                         : IconProp.ChevronDown
                                     }
-                                    className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0"
+                                    className="ml-1 h-4 w-4 text-gray-400"
                                   />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center flex-wrap gap-2">
-                                      <span
-                                        className={`text-sm font-semibold ${
-                                          isCriteriaDisabled
-                                            ? "text-gray-500"
-                                            : "text-gray-900"
-                                        }`}
-                                      >
-                                        {criteriaName}
-                                      </span>
-                                      {isCriteriaDisabled && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 font-medium">
-                                          Disabled
-                                        </span>
-                                      )}
-                                      {isCollapsed && (
-                                        <span className="text-xs text-gray-500 truncate">
-                                          {getCriteriaSummary(i)}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {!isCollapsed && i.data?.description && (
-                                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                        {i.data.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center ml-2">
-                                  <span className="text-xs text-gray-400 mr-2">
-                                    {index + 1} of{" "}
-                                    {
-                                      monitorCriteria.data
-                                        ?.monitorCriteriaInstanceArray.length
-                                    }
-                                  </span>
                                 </div>
                               </div>
-
-                              {/* Collapsible Content */}
-                              <div
-                                className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                                  isCollapsed ? "max-h-0" : "max-h-[5000px]"
-                                }`}
-                              >
-                                <div className="px-4 pb-4 bg-white">
+                              {isExpanded && (
+                                <div
+                                  id={panelId}
+                                  className="border-t border-gray-100 px-4 pb-4 sm:px-6"
+                                >
                                   <MonitorCriteriaInstanceElement
-                                    monitorType={props.monitorType}
-                                    monitorStep={props.monitorStep}
-                                    networkDeviceOidCatalogue={
-                                      props.networkDeviceOidCatalogue
-                                    }
-                                    networkDeviceInterfaceNames={
-                                      props.networkDeviceInterfaceNames
-                                    }
-                                    isNetworkDeviceCatalogueLoaded={
-                                      props.isNetworkDeviceCatalogueLoaded
-                                    }
-                                    monitorStatusDropdownOptions={
-                                      props.monitorStatusDropdownOptions
-                                    }
-                                    incidentSeverityDropdownOptions={
-                                      props.incidentSeverityDropdownOptions
-                                    }
-                                    alertSeverityDropdownOptions={
-                                      props.alertSeverityDropdownOptions
-                                    }
-                                    onCallPolicyDropdownOptions={
-                                      props.onCallPolicyDropdownOptions
-                                    }
-                                    labelDropdownOptions={
-                                      props.labelDropdownOptions
-                                    }
-                                    teamDropdownOptions={
-                                      props.teamDropdownOptions
-                                    }
-                                    userDropdownOptions={
-                                      props.userDropdownOptions
-                                    }
-                                    incidentRoleOptions={
-                                      props.incidentRoleOptions
-                                    }
-                                    value={i}
+                                    {...props}
+                                    value={instance}
                                     onDelete={() => {
-                                      if (
-                                        monitorCriteria.data
-                                          ?.monitorCriteriaInstanceArray
-                                          .length === 1
-                                      ) {
+                                      if (rules.length === 1) {
                                         setShowCantDeleteModal(true);
                                         return;
                                       }
-
-                                      // remove the criteria filter
-                                      const criteriaIndex: number | undefined =
-                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
-                                          (item: MonitorCriteriaInstance) => {
-                                            return item.data?.id === i.data?.id;
+                                      updateRules(
+                                        rules.filter(
+                                          (
+                                            _: MonitorCriteriaInstance,
+                                            ruleIndex: number,
+                                          ) => {
+                                            return ruleIndex !== index;
                                           },
-                                        );
-
-                                      if (criteriaIndex === undefined) {
-                                        return;
-                                      }
-
-                                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                                        [
-                                          ...(monitorCriteria.data
-                                            ?.monitorCriteriaInstanceArray ||
-                                            []),
-                                        ];
-                                      newMonitorCriterias.splice(
-                                        criteriaIndex,
-                                        1,
+                                        ),
                                       );
-                                      props.onChange?.(
-                                        MonitorCriteria.fromJSON({
-                                          _type: "MonitorCriteria",
-                                          value: {
-                                            monitorCriteriaInstanceArray: [
-                                              ...newMonitorCriterias,
-                                            ],
-                                          },
-                                        }),
-                                      );
+                                      setExpandedRuleId(null);
                                     }}
                                     onChange={(
                                       value: MonitorCriteriaInstance,
                                     ) => {
-                                      const criteriaIndex: number | undefined =
-                                        monitorCriteria.data?.monitorCriteriaInstanceArray.findIndex(
-                                          (item: MonitorCriteriaInstance) => {
-                                            return (
-                                              item.data?.id === value.data?.id
-                                            );
-                                          },
-                                        );
-
-                                      if (criteriaIndex === undefined) {
-                                        return;
-                                      }
-                                      const newMonitorCriterias: Array<MonitorCriteriaInstance> =
-                                        [
-                                          ...(monitorCriteria.data
-                                            ?.monitorCriteriaInstanceArray ||
-                                            []),
-                                        ];
-                                      newMonitorCriterias[criteriaIndex] =
-                                        value;
-                                      props.onChange?.(
-                                        MonitorCriteria.fromJSON({
-                                          _type: "MonitorCriteria",
-                                          value: {
-                                            monitorCriteriaInstanceArray:
-                                              newMonitorCriterias,
-                                          },
-                                        }),
-                                      );
+                                      const updated: Array<MonitorCriteriaInstance> =
+                                        [...rules];
+                                      updated[index] = value;
+                                      updateRules(updated);
                                     }}
                                   />
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         }}
@@ -414,80 +351,51 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
           }}
         </Droppable>
       </DragDropContext>
-      <div className="mt-4 -ml-3 flex">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button
-          title="Add Criteria"
+          title="Add rule"
+          buttonStyle={ButtonStyleType.OUTLINE}
           buttonSize={ButtonSize.Small}
           icon={IconProp.Add}
           onClick={() => {
-            const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
-              ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
-            ];
-
-            const newMonitorCriteria: MonitorCriteriaInstance =
+            const newRule: MonitorCriteriaInstance =
               new MonitorCriteriaInstance();
-
-            /*
-             * The type-agnostic seed filter on a fresh criteria is an
-             * "Is Online" check, which most monitor types do not offer.
-             * Replace it with one this monitor type can actually render,
-             * so the new criteria opens with both dropdowns filled in.
-             */
-            if (newMonitorCriteria.data) {
-              newMonitorCriteria.data.filters = [
+            if (newRule.data) {
+              newRule.data.name = "New rule";
+              newRule.data.filters = [
                 CriteriaFilterUtil.getDefaultCriteriaFilter(props.monitorType),
               ];
+              setExpandedRuleId(newRule.data.id);
             }
-
-            newMonitorCriterias.push(newMonitorCriteria);
-            props.onChange?.(
-              MonitorCriteria.fromJSON({
-                _type: "MonitorCriteria",
-                value: {
-                  monitorCriteriaInstanceArray: newMonitorCriterias,
-                },
-              }),
-            );
+            updateRules([...rules, newRule]);
           }}
         />
-        {props.monitorType === MonitorType.NetworkDevice ? (
+        {props.monitorType === MonitorType.NetworkDevice && (
           <Button
-            title="Add Recommended Alerts"
+            title="Add recommended alerts"
             buttonSize={ButtonSize.Small}
             icon={IconProp.Star}
             onClick={() => {
-              const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
-                ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
+              updateRules([
+                ...rules,
                 ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
                   downMonitorStatusId: props.offlineMonitorStatusId,
                 }),
-              ];
-              props.onChange?.(
-                MonitorCriteria.fromJSON({
-                  _type: "MonitorCriteria",
-                  value: {
-                    monitorCriteriaInstanceArray: newMonitorCriterias,
-                  },
-                }),
-              );
+              ]);
             }}
           />
-        ) : (
-          <></>
         )}
       </div>
-      {showCantDeleteModal ? (
+      {showCantDeleteModal && (
         <ConfirmModal
-          description={`We need at least one criteria for this monitor. We cant delete one remaining criteria.`}
-          title={`Cannot delete last remaining criteria.`}
+          description="Keep at least one rule so this monitor can determine its status. You can edit or disable this rule instead."
+          title="Keep one rule"
           onSubmit={() => {
             setShowCantDeleteModal(false);
           }}
           submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText="Close"
+          submitButtonText="Got it"
         />
-      ) : (
-        <></>
       )}
     </div>
   );

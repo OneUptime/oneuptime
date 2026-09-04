@@ -12,9 +12,10 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import CollapsibleSection from "./MonitorFormSection";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -81,25 +82,27 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Check if optional sections have content
-  const hasDescription: boolean = Boolean(criteriaIncident.description);
-  const hasOwnershipOrLabels: boolean = Boolean(
-    criteriaIncident.labelIds?.length ||
-      criteriaIncident.ownerTeamIds?.length ||
-      criteriaIncident.ownerUserIds?.length,
-  );
-  const hasNotifications: boolean = Boolean(
-    criteriaIncident.onCallPolicyIds?.length,
-  );
-  const hasAdvancedOptions: boolean = Boolean(
-    criteriaIncident.autoResolveIncident ||
-      criteriaIncident.remediationNotes ||
-      criteriaIncident.showIncidentOnStatusPage === false ||
-      criteriaIncident.isPrivate === true,
-  );
-  const hasIncidentTeam: boolean = Boolean(
-    criteriaIncident.incidentMemberRoles?.length,
-  );
+  const titleInputId: string = useId();
+  const [isTitleTouched, setIsTitleTouched] = useState<boolean>(false);
+  const ownerCount: number =
+    (criteriaIncident.ownerTeamIds?.length || 0) +
+    (criteriaIncident.ownerUserIds?.length || 0);
+  const detailSummary: string =
+    [
+      criteriaIncident.description ? "Description" : "",
+      ownerCount ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"}` : "",
+      criteriaIncident.labelIds?.length
+        ? `${criteriaIncident.labelIds.length} label${criteriaIncident.labelIds.length === 1 ? "" : "s"}`
+        : "",
+      criteriaIncident.isPrivate ? "Private" : "",
+      criteriaIncident.remediationNotes ? "Remediation notes" : "",
+      criteriaIncident.incidentMemberRoles?.length ? "Incident roles" : "",
+      criteriaIncident.showIncidentOnStatusPage === false
+        ? "Hidden on status pages"
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Optional";
 
   // Helper to get user for a single-user role
   const getUserForRole: (roleId: string) => ObjectID | undefined = (
@@ -190,7 +193,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       }}
       className="underline text-blue-600 hover:text-blue-800"
     >
-      Learn about dynamic templates
+      View dynamic values
     </button>
   );
 
@@ -205,20 +208,30 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   ) : null;
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-4">
       {templateVariablesModal}
       {/* Required Fields - Always Visible */}
-      <div className="space-y-4">
-        <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="sm:col-span-2">
           <FieldLabelElement
-            title="Incident Title"
+            title="Incident title"
+            htmlFor={titleInputId}
             description={
               <span>Title for the incident. {templateDocsLink}</span>
             }
             required={true}
           />
           <Input
+            id={titleInputId}
             value={criteriaIncident.title}
+            onBlur={() => {
+              setIsTitleTouched(true);
+            }}
+            error={
+              isTitleTouched && !criteriaIncident.title?.trim()
+                ? "Incident title is required"
+                : undefined
+            }
             placeholder="e.g., {{monitorName}} is down"
             onChange={(value: string) => {
               updateField("title", value);
@@ -229,6 +242,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement title="Severity" required={true} />
           <Dropdown
+            ariaLabel="Incident severity"
             value={props.incidentSeverityDropdownOptions.find(
               (i: DropdownOption) => {
                 return (
@@ -248,337 +262,345 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Description - Collapsible */}
-      <CollapsibleSection
-        title="Description"
-        description="Optional incident description"
-        badge={hasDescription ? "Set" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasDescription}
-      >
-        <div>
-          <FieldLabelElement
-            title="Incident Description"
-            description={
-              <span>Description for the incident. {templateDocsLink}</span>
+      <div>
+        <FieldLabelElement
+          title="Notify on-call"
+          description="Select the on-call policies to notify."
+        />
+        <Dropdown
+          ariaLabel="Incident on-call policies"
+          value={props.onCallPolicyDropdownOptions.filter(
+            (i: DropdownOption) => {
+              return criteriaIncident.onCallPolicyIds?.some((id: ObjectID) => {
+                return id.toString() === i.value;
+              });
+            },
+          )}
+          options={props.onCallPolicyDropdownOptions}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            if (Array.isArray(value)) {
+              updateField(
+                "onCallPolicyIds",
+                value.map((v: DropdownValue) => {
+                  return new ObjectID(v.toString());
+                }),
+              );
+            } else {
+              updateField("onCallPolicyIds", []);
             }
-          />
-          <MarkdownEditor
-            initialValue={criteriaIncident.description || ""}
-            placeholder="Describe the incident..."
-            onChange={(value: string) => {
-              updateField("description", value);
-            }}
-          />
-        </div>
-      </CollapsibleSection>
+          }}
+          isMultiSelect={true}
+          placeholder="Select On-Call Policies"
+        />
+      </div>
 
-      {/* On-Call - Collapsible */}
+      <Checkbox
+        ariaLabel="Auto-resolve incident"
+        value={criteriaIncident.autoResolveIncident || false}
+        title="Auto-resolve incident"
+        description="Resolve automatically when this rule no longer matches."
+        onChange={(value: boolean) => {
+          updateField("autoResolveIncident", value);
+        }}
+      />
+
       <CollapsibleSection
-        title="On-Call"
-        description="Configure on-call policy escalation"
-        badge={hasNotifications ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasNotifications}
+        title="Incident details"
+        badge={detailSummary}
+        defaultCollapsed={true}
       >
-        <div>
-          <FieldLabelElement
-            title="On-Call Policies"
-            description="Execute these on-call policies when this incident is created"
-          />
-          <Dropdown
-            value={props.onCallPolicyDropdownOptions.filter(
-              (i: DropdownOption) => {
-                return criteriaIncident.onCallPolicyIds?.some(
-                  (id: ObjectID) => {
-                    return id.toString() === i.value;
-                  },
-                );
-              },
-            )}
-            options={props.onCallPolicyDropdownOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (Array.isArray(value)) {
-                updateField(
-                  "onCallPolicyIds",
-                  value.map((v: DropdownValue) => {
-                    return new ObjectID(v.toString());
-                  }),
-                );
-              } else {
-                updateField("onCallPolicyIds", []);
-              }
-            }}
-            isMultiSelect={true}
-            placeholder="Select On-Call Policies"
-          />
-        </div>
-      </CollapsibleSection>
+        <div className="space-y-5 border-t border-gray-200 pt-4">
+          {/* Description */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">Description</h4>
+            <div>
+              <FieldLabelElement
+                title="Incident Description"
+                description={
+                  <span>Description for the incident. {templateDocsLink}</span>
+                }
+              />
+              <MarkdownEditor
+                initialValue={criteriaIncident.description || ""}
+                placeholder="Describe the incident..."
+                onChange={(value: string) => {
+                  updateField("description", value);
+                }}
+              />
+            </div>
+          </section>
 
-      {/* Incident Roles - Collapsible */}
-      {props.incidentRoleOptions && props.incidentRoleOptions.length > 0 && (
-        <CollapsibleSection
-          title="Incident Roles"
-          description="Pre-assign team members to incident roles"
-          badge={hasIncidentTeam ? "Configured" : undefined}
-          variant="bordered"
-          defaultCollapsed={!hasIncidentTeam}
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">
-              Optionally assign users to incident roles. These users will be
-              automatically assigned when the incident is created.
-            </p>
-            {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
-              if (role.canAssignMultipleUsers) {
-                // Multi-user role
-                const selectedUserIds: Array<ObjectID> = getUsersForRole(
-                  role.id,
-                );
-                return (
-                  <div key={role.id}>
-                    <FieldLabelElement
-                      title={role.name}
-                      description={
-                        <span>
-                          Assign multiple users to the {role.name} role{" "}
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
-                            Multiple
-                          </span>
-                        </span>
-                      }
-                    />
-                    <Dropdown
-                      value={props.userDropdownOptions.filter(
-                        (i: DropdownOption) => {
-                          return selectedUserIds.some((id: ObjectID) => {
-                            return id.toString() === i.value;
-                          });
-                        },
-                      )}
-                      options={props.userDropdownOptions}
-                      onChange={(
-                        value: DropdownValue | Array<DropdownValue> | null,
-                      ) => {
-                        if (Array.isArray(value)) {
-                          setUsersForRole(
-                            role.id,
-                            value.map((v: DropdownValue) => {
-                              return new ObjectID(v.toString());
-                            }),
-                          );
-                        } else {
-                          setUsersForRole(role.id, []);
-                        }
-                      }}
-                      isMultiSelect={true}
-                      placeholder={`Select ${role.name}...`}
-                    />
-                  </div>
-                );
-              }
-              // Single-user role
-              const selectedUserId: ObjectID | undefined = getUserForRole(
-                role.id,
-              );
-              return (
-                <div key={role.id}>
-                  <FieldLabelElement
-                    title={role.name}
-                    description={`Assign a user to the ${role.name} role`}
-                  />
-                  <Dropdown
-                    value={
-                      selectedUserId
-                        ? props.userDropdownOptions.find(
-                            (i: DropdownOption) => {
-                              return i.value === selectedUserId.toString();
-                            },
-                          )
-                        : undefined
-                    }
-                    options={props.userDropdownOptions}
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setUserForRole(
+          {/* Incident Roles */}
+          {props.incidentRoleOptions &&
+            props.incidentRoleOptions.length > 0 && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">
+                  Incident roles
+                </h4>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Optionally assign users to incident roles. These users will
+                    be automatically assigned when the incident is created.
+                  </p>
+                  {props.incidentRoleOptions.map((role: IncidentRoleOption) => {
+                    if (role.canAssignMultipleUsers) {
+                      // Multi-user role
+                      const selectedUserIds: Array<ObjectID> = getUsersForRole(
                         role.id,
-                        value ? new ObjectID(value.toString()) : undefined,
                       );
-                    }}
-                    placeholder={`Select ${role.name}...`}
-                  />
+                      return (
+                        <div key={role.id}>
+                          <FieldLabelElement
+                            title={role.name}
+                            description={
+                              <span>
+                                Assign multiple users to the {role.name} role{" "}
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
+                                  Multiple
+                                </span>
+                              </span>
+                            }
+                          />
+                          <Dropdown
+                            ariaLabel={role.name}
+                            value={props.userDropdownOptions.filter(
+                              (i: DropdownOption) => {
+                                return selectedUserIds.some((id: ObjectID) => {
+                                  return id.toString() === i.value;
+                                });
+                              },
+                            )}
+                            options={props.userDropdownOptions}
+                            onChange={(
+                              value:
+                                | DropdownValue
+                                | Array<DropdownValue>
+                                | null,
+                            ) => {
+                              if (Array.isArray(value)) {
+                                setUsersForRole(
+                                  role.id,
+                                  value.map((v: DropdownValue) => {
+                                    return new ObjectID(v.toString());
+                                  }),
+                                );
+                              } else {
+                                setUsersForRole(role.id, []);
+                              }
+                            }}
+                            isMultiSelect={true}
+                            placeholder={`Select ${role.name}...`}
+                          />
+                        </div>
+                      );
+                    }
+                    // Single-user role
+                    const selectedUserId: ObjectID | undefined = getUserForRole(
+                      role.id,
+                    );
+                    return (
+                      <div key={role.id}>
+                        <FieldLabelElement
+                          title={role.name}
+                          description={`Assign a user to the ${role.name} role`}
+                        />
+                        <Dropdown
+                          ariaLabel={role.name}
+                          value={
+                            selectedUserId
+                              ? props.userDropdownOptions.find(
+                                  (i: DropdownOption) => {
+                                    return (
+                                      i.value === selectedUserId.toString()
+                                    );
+                                  },
+                                )
+                              : undefined
+                          }
+                          options={props.userDropdownOptions}
+                          onChange={(
+                            value: DropdownValue | Array<DropdownValue> | null,
+                          ) => {
+                            setUserForRole(
+                              role.id,
+                              value
+                                ? new ObjectID(value.toString())
+                                : undefined,
+                            );
+                          }}
+                          placeholder={`Select ${role.name}...`}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </CollapsibleSection>
-      )}
+              </section>
+            )}
 
-      {/* Ownership & Labels - Collapsible */}
-      <CollapsibleSection
-        title="Ownership & Labels"
-        description="Assign owners and labels to the incident"
-        badge={hasOwnershipOrLabels ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasOwnershipOrLabels}
-      >
-        <div className="space-y-4">
-          <div>
-            <FieldLabelElement
-              title="Owner Teams"
-              description="Teams that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.teamDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerTeamIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.teamDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerTeamIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerTeamIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Teams"
-            />
-          </div>
+          {/* Ownership & Labels */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Owners and labels
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <FieldLabelElement
+                  title="Owner Teams"
+                  description="Teams that will own and be notified about this incident"
+                />
+                <Dropdown
+                  ariaLabel="Incident owner teams"
+                  value={props.teamDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaIncident.ownerTeamIds?.some(
+                        (id: ObjectID) => {
+                          return id.toString() === i.value;
+                        },
+                      );
+                    },
+                  )}
+                  options={props.teamDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "ownerTeamIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("ownerTeamIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Teams"
+                />
+              </div>
 
-          <div>
-            <FieldLabelElement
-              title="Owner Users"
-              description="Users that will own and be notified about this incident"
-            />
-            <Dropdown
-              value={props.userDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.ownerUserIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.userDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "ownerUserIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("ownerUserIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Users"
-            />
-          </div>
+              <div>
+                <FieldLabelElement
+                  title="Owner Users"
+                  description="Users that will own and be notified about this incident"
+                />
+                <Dropdown
+                  ariaLabel="Incident owner users"
+                  value={props.userDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaIncident.ownerUserIds?.some(
+                        (id: ObjectID) => {
+                          return id.toString() === i.value;
+                        },
+                      );
+                    },
+                  )}
+                  options={props.userDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "ownerUserIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("ownerUserIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Users"
+                />
+              </div>
 
-          <div>
-            <FieldLabelElement
-              title="Labels"
-              description="Labels to categorize the incident"
-            />
-            <Dropdown
-              value={props.labelDropdownOptions.filter((i: DropdownOption) => {
-                return criteriaIncident.labelIds?.some((id: ObjectID) => {
-                  return id.toString() === i.value;
-                });
-              })}
-              options={props.labelDropdownOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (Array.isArray(value)) {
-                  updateField(
-                    "labelIds",
-                    value.map((v: DropdownValue) => {
-                      return new ObjectID(v.toString());
-                    }),
-                  );
-                } else {
-                  updateField("labelIds", []);
-                }
-              }}
-              isMultiSelect={true}
-              placeholder="Select Labels"
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
+              <div>
+                <FieldLabelElement
+                  title="Labels"
+                  description="Labels to categorize the incident"
+                />
+                <Dropdown
+                  ariaLabel="Incident labels"
+                  value={props.labelDropdownOptions.filter(
+                    (i: DropdownOption) => {
+                      return criteriaIncident.labelIds?.some((id: ObjectID) => {
+                        return id.toString() === i.value;
+                      });
+                    },
+                  )}
+                  options={props.labelDropdownOptions}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (Array.isArray(value)) {
+                      updateField(
+                        "labelIds",
+                        value.map((v: DropdownValue) => {
+                          return new ObjectID(v.toString());
+                        }),
+                      );
+                    } else {
+                      updateField("labelIds", []);
+                    }
+                  }}
+                  isMultiSelect={true}
+                  placeholder="Select Labels"
+                />
+              </div>
+            </div>
+          </section>
 
-      {/* Advanced Options - Collapsible */}
-      <CollapsibleSection
-        title="Advanced Options"
-        description="Auto-resolve and remediation settings"
-        badge={hasAdvancedOptions ? "Configured" : undefined}
-        variant="bordered"
-        defaultCollapsed={!hasAdvancedOptions}
-      >
-        <div className="space-y-4">
-          <div>
-            <Checkbox
-              value={criteriaIncident.autoResolveIncident || false}
-              title="Auto Resolve Incident"
-              description="Automatically resolve this incident when this criteria is no longer met"
-              onChange={(value: boolean) => {
-                updateField("autoResolveIncident", value);
-              }}
-            />
-          </div>
+          {/* Advanced Options */}
+          <section className="space-y-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Visibility and remediation
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <Checkbox
+                  value={criteriaIncident.showIncidentOnStatusPage !== false}
+                  title="Show Incident on Status Page"
+                  ariaLabel="Show Incident on Status Page"
+                  description="When disabled, this incident will not be visible on your public status pages"
+                  onChange={(value: boolean) => {
+                    updateField("showIncidentOnStatusPage", value);
+                  }}
+                />
+              </div>
 
-          <div>
-            <Checkbox
-              value={criteriaIncident.showIncidentOnStatusPage !== false}
-              title="Show Incident on Status Page"
-              description="When disabled, this incident will not be visible on your public status pages"
-              onChange={(value: boolean) => {
-                updateField("showIncidentOnStatusPage", value);
-              }}
-            />
-          </div>
+              <div>
+                <Checkbox
+                  value={criteriaIncident.isPrivate === true}
+                  title="Private Incident"
+                  ariaLabel="Private Incident"
+                  description="When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages."
+                  onChange={(value: boolean) => {
+                    updateField("isPrivate", value);
+                  }}
+                />
+              </div>
 
-          <div>
-            <Checkbox
-              value={criteriaIncident.isPrivate === true}
-              title="Private Incident"
-              description="When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages."
-              onChange={(value: boolean) => {
-                updateField("isPrivate", value);
-              }}
-            />
-          </div>
-
-          <div>
-            <FieldLabelElement
-              title="Remediation Notes"
-              description={
-                <span>
-                  Notes for on-call engineer to resolve this incident.{" "}
-                  {templateDocsLink}
-                </span>
-              }
-            />
-            <MarkdownEditor
-              initialValue={criteriaIncident.remediationNotes || ""}
-              placeholder="Steps to resolve this incident..."
-              onChange={(value: string) => {
-                updateField("remediationNotes", value);
-              }}
-            />
-          </div>
+              <div>
+                <FieldLabelElement
+                  title="Remediation Notes"
+                  description={
+                    <span>
+                      Notes for on-call engineer to resolve this incident.{" "}
+                      {templateDocsLink}
+                    </span>
+                  }
+                />
+                <MarkdownEditor
+                  initialValue={criteriaIncident.remediationNotes || ""}
+                  placeholder="Steps to resolve this incident..."
+                  onChange={(value: string) => {
+                    updateField("remediationNotes", value);
+                  }}
+                />
+              </div>
+            </div>
+          </section>
         </div>
       </CollapsibleSection>
     </div>

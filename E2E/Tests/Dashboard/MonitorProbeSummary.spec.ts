@@ -221,7 +221,7 @@ test.describe("Monitor summary probe picker", () => {
     await page.getByTestId(submitButtonTestId).click();
 
     // Step 2: criteria.
-    await expect(page.getByText("Monitor Criteria").first()).toBeVisible({
+    await expect(page.getByText("Alert rules").first()).toBeVisible({
       timeout: 60000,
     });
     const destination: Locator = page

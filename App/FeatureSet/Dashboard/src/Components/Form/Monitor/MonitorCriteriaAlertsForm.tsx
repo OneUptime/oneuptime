@@ -40,11 +40,11 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
   }, [alerts]);
 
   return (
-    <div className="mt-4">
+    <div className="space-y-5">
       {alerts.map((i: CriteriaAlert, index: number) => {
         return (
           <MonitorCriteriaAlertForm
-            key={index}
+            key={i?.id || index}
             alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
             onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
             labelDropdownOptions={props.labelDropdownOptions}
@@ -53,17 +53,6 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
             monitorType={props.monitorType}
             seriesAttributeKeys={props.seriesAttributeKeys}
             initialValue={i}
-            /*
-             * onDelete={() => {
-             *     // remove the criteria filter
-             *     const index: number = alerts.indexOf(i);
-             *     const newAlerts: Array<CriteriaAlert> = [
-             *         ...alerts,
-             *     ];
-             *     newAlerts.splice(index, 1);
-             *     setAlerts(newAlerts);
-             * }}
-             */
             onChange={(value: CriteriaAlert) => {
               const index: number = alerts.indexOf(i);
               const newAlerts: Array<CriteriaAlert> = [...alerts];
@@ -73,21 +62,6 @@ const MonitorCriteriaAlertsForm: FunctionComponent<ComponentProps> = (
           />
         );
       })}
-
-      {/** Future Proofing */}
-      {/* <Button
-                title="Add Alert"
-                onClick={() => {
-                    const newAlerts: Array<CriteriaAlert> = [
-                        ...alerts,
-                    ];
-                    newAlerts.push({
-                        title: '',
-                        description: '',
-                        alertSeverityId: undefined,
-                    });
-                }}
-            /> */}
     </div>
   );
 };

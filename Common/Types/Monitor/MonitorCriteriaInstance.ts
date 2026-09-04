@@ -103,7 +103,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
    * missing here falls through to `new MonitorCriteriaInstance()` and
    * ships an unnamed criteria whose "Is Online" filter no evaluator on
    * this path reads - a rule that can never fire and cannot be saved,
-   * since getValidationError requires a name and a description.
+   * since getValidationError requires a name.
    */
   public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
     return (
@@ -1577,10 +1577,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     if (!value.data.name) {
       return `Name is required for criteria "${value.data.name}"`;
-    }
-
-    if (!value.data.description) {
-      return `Description is required for criteria "${value.data.name}"`;
     }
 
     /*

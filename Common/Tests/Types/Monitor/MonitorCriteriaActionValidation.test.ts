@@ -365,13 +365,11 @@ describe("MonitorCriteriaInstance.getValidationError - per-action gating", () =>
   });
 
   describe("checks that are not action-gated still run", () => {
-    test("the criteria's own name and description are still required", () => {
+    test("a name remains required and the rule description is optional", () => {
       expect(validate(buildCriteria({ name: "" }))).toContain(
         "Name is required",
       );
-      expect(validate(buildCriteria({ description: "" }))).toContain(
-        "Description is required",
-      );
+      expect(validate(buildCriteria({ description: "" }))).toBeNull();
     });
 
     test("filters are still required and still type-checked", () => {
