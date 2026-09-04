@@ -6,7 +6,12 @@ import RumSessionErasureRequest, {
   RumSessionErasureRequestType,
 } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import LogService from "Common/Server/Services/LogService";
+import SpanService from "Common/Server/Services/SpanService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import { EVERY_DAY, EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -213,15 +218,20 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
   };
 });
 
+import RunCron from "../../FeatureSet/Workers/Utils/Cron";
 import {
   buildRumApplicationScopeClause,
   buildSessionDeleteStatement,
   chunkSessionIds,
+  ERASURE_JOB_SCHEDULE,
+  eraseSessionBatch,
   getErasedSessionsKey,
   MAX_ERASURE_ATTEMPTS,
   MAX_SESSION_IDS_PER_MUTATION,
+  MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
   processErasureRequest,
   purgeErasedSessionsFromActivitySet,
+  ResolvedErasureTargets,
   resolveTargetSessionIds,
   writeErasureTombstones,
 } from "../../FeatureSet/Workers/Jobs/Rum/ProcessSessionErasureRequests";
@@ -341,6 +351,30 @@ describe("Rum:ProcessSessionErasureRequests delete statement", () => {
     expect(Object.values(statement.query_params)).toContain(
       projectId.toString(),
     );
+  });
+
+  test("pinnedCopiesOnly narrows the same mutation to the materializer's copies", () => {
+    /*
+     * Unpinning reuses erasure's delete shape but must leave the
+     * ordinary rows (and their ordinary retention) alone.
+     */
+    const pinnedOnly: Statement = buildSessionDeleteStatement({
+      databaseName: databaseName,
+      tableName: AnalyticsTableName.RumSessionChunk,
+      projectId: projectId,
+      sessionIds: [sessionId],
+      pinnedCopiesOnly: true,
+    });
+
+    const full: Statement = buildSessionDeleteStatement({
+      databaseName: databaseName,
+      tableName: AnalyticsTableName.RumSessionChunk,
+      projectId: projectId,
+      sessionIds: [sessionId],
+    });
+
+    expect(pinnedOnly.query).toContain("AND isPinnedCopy = true");
+    expect(full.query).not.toContain("isPinnedCopy");
   });
 });
 
@@ -1052,5 +1086,323 @@ describe("Rum:ProcessSessionErasureRequests retry-or-fail", () => {
     ).resolves.toBeUndefined();
 
     expect(harness.markFailed).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * Cadence. Daily meant a subject's request sat "Pending" for up to a day
+ * with the recording still playable; the throttles that protect
+ * ClickHouse are the caps and the tombstone filter, not the cadence.
+ */
+describe("Rum:ProcessSessionErasureRequests schedule", () => {
+  test("the job is registered every 15 minutes, no longer daily", () => {
+    expect(ERASURE_JOB_SCHEDULE).toBe(EVERY_FIFTEEN_MINUTE);
+    expect(ERASURE_JOB_SCHEDULE).not.toBe(EVERY_DAY);
+
+    const registration: Array<unknown> | undefined = (
+      RunCron as unknown as ReturnType<typeof jest.fn>
+    ).mock.calls.find((call: Array<unknown>): boolean => {
+      return call[0] === "Rum:ProcessSessionErasureRequests";
+    });
+
+    expect(registration).toBeDefined();
+    expect((registration![1] as { schedule: string }).schedule).toBe(
+      EVERY_FIFTEEN_MINUTE,
+    );
+  });
+});
+
+/*
+ * With runs 15 minutes apart, a session whose ALTER ... DELETE is still
+ * rewriting parts is still visible to the next run's lookup. Re-erasing
+ * it would double the mutation load and double-count the subject.
+ */
+describe("Rum:ProcessSessionErasureRequests tombstone-aware targets", () => {
+  function explicitRequest(data: {
+    ids: Array<string>;
+    attempts?: number | undefined;
+  }): RumSessionErasureRequest {
+    const request: RumSessionErasureRequest = new RumSessionErasureRequest();
+
+    request.id = new ObjectID("6600000000000000000000d4");
+    request.projectId = projectId;
+    request.requestType = RumSessionErasureRequestType.BySessionId;
+    request.targetValue = data.ids.join(",");
+    request.attempts = data.attempts || 0;
+
+    return request;
+  }
+
+  function lookupRequest(attempts?: number): RumSessionErasureRequest {
+    const request: RumSessionErasureRequest = new RumSessionErasureRequest();
+
+    request.id = new ObjectID("6600000000000000000000d4");
+    request.projectId = projectId;
+    request.requestType = RumSessionErasureRequestType.ByIdentifiedUserKey;
+    request.targetValue = "user-42";
+    request.attempts = attempts || 0;
+
+    return request;
+  }
+
+  function idsOf(count: number): Array<string> {
+    return Array.from(
+      { length: count },
+      (_unused: unknown, index: number): string => {
+        return `session-${index}`;
+      },
+    );
+  }
+
+  test("a first attempt skips sessions an earlier run already tombstoned", async () => {
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: ["session-1"],
+    });
+
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: databaseName,
+      request: explicitRequest({
+        ids: ["session-0", "session-1", "session-2"],
+      }),
+    });
+
+    expect(targets.sessionIds).toEqual(["session-0", "session-2"]);
+    expect(targets.alreadyErased).toBe(1);
+    expect(targets.moreMayRemain).toBe(false);
+  });
+
+  test("a RETRY re-submits tombstoned sessions: the failed attempt may have died before its mutations", async () => {
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: ["session-1"],
+    });
+
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: databaseName,
+      request: explicitRequest({
+        ids: ["session-0", "session-1"],
+        attempts: 1,
+      }),
+    });
+
+    expect(targets.sessionIds).toEqual(["session-0", "session-1"]);
+    expect(targets.alreadyErased).toBe(0);
+  });
+
+  test("an explicit list longer than one run advances past what earlier runs erased", async () => {
+    /*
+     * Before the filter the cap was a plain slice(0, cap), so a list of
+     * more than cap ids re-erased the same first slice on every run and
+     * never reached the rest.
+     */
+    const ids: Array<string> = idsOf(MAX_SESSION_IDS_PER_REQUEST_PER_RUN + 2);
+
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: ["session-0"],
+    });
+
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: databaseName,
+      request: explicitRequest({ ids: ids }),
+    });
+
+    expect(targets.sessionIds.length).toBe(MAX_SESSION_IDS_PER_REQUEST_PER_RUN);
+    expect(targets.sessionIds).not.toContain("session-0");
+    expect(targets.sessionIds[0]).toBe("session-1");
+    expect(targets.moreMayRemain).toBe(true);
+  });
+
+  test("a lookup that fills its page reports more may remain even when every row is already tombstoned", async () => {
+    const ids: Array<string> = idsOf(MAX_SESSION_IDS_PER_REQUEST_PER_RUN);
+
+    sessionService.executeQuery = (): Promise<unknown> => {
+      return Promise.resolve(
+        resultSetOf(
+          ids.map((id: string): JSONObject => {
+            return { sessionId: id };
+          }),
+        ),
+      );
+    };
+
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: ids,
+    });
+
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: databaseName,
+      request: lookupRequest(),
+    });
+
+    /*
+     * Nothing new to submit this run, but the page was full, so the
+     * subject may have sessions beyond it: the request must stay Pending
+     * rather than be reported complete.
+     */
+    expect(targets.sessionIds).toEqual([]);
+    expect(targets.alreadyErased).toBe(MAX_SESSION_IDS_PER_REQUEST_PER_RUN);
+    expect(targets.moreMayRemain).toBe(true);
+  });
+
+  test("a lookup that does not fill its page is the end of the subject", async () => {
+    sessionService.executeQuery = (): Promise<unknown> => {
+      return Promise.resolve(resultSetOf([{ sessionId: "session-0" }]));
+    };
+
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
+      databaseName: databaseName,
+      request: lookupRequest(),
+    });
+
+    expect(targets.sessionIds).toEqual(["session-0"]);
+    expect(targets.moreMayRemain).toBe(false);
+  });
+
+  test("the tombstone read fails closed when Redis is down", async () => {
+    mockRedis.connected = false;
+
+    await expect(
+      resolveTargetSessionIds({
+        databaseName: databaseName,
+        request: explicitRequest({ ids: ["session-0"] }),
+      }),
+    ).rejects.toThrow("Redis is not connected");
+  });
+
+  test("a request with more remaining is requeued to Pending, not marked complete", async () => {
+    const ids: Array<string> = idsOf(MAX_SESSION_IDS_PER_REQUEST_PER_RUN);
+
+    sessionService.executeQuery = (): Promise<unknown> => {
+      return Promise.resolve(
+        resultSetOf(
+          ids.map((id: string): JSONObject => {
+            return { sessionId: id };
+          }),
+        ),
+      );
+    };
+
+    await writeErasureTombstones({
+      projectId: projectId.toString(),
+      sessionIds: ids,
+    });
+
+    const markInProgress: ReturnType<typeof jest.fn> = jest
+      .spyOn(RumSessionErasureRequestService, "markInProgress")
+      .mockResolvedValue(undefined as never) as unknown as ReturnType<
+      typeof jest.fn
+    >;
+    const updateOneById: ReturnType<typeof jest.fn> = jest
+      .spyOn(RumSessionErasureRequestService, "updateOneById")
+      .mockResolvedValue(undefined as never) as unknown as ReturnType<
+      typeof jest.fn
+    >;
+    const markCompleted: ReturnType<typeof jest.fn> = jest
+      .spyOn(RumSessionErasureRequestService, "markCompleted")
+      .mockResolvedValue(undefined as never) as unknown as ReturnType<
+      typeof jest.fn
+    >;
+
+    try {
+      await processErasureRequest({
+        databaseName: databaseName,
+        request: lookupRequest(),
+      });
+
+      expect(markInProgress).toHaveBeenCalledTimes(1);
+      expect(markCompleted).not.toHaveBeenCalled();
+      expect(updateOneById).toHaveBeenCalledTimes(1);
+
+      const update: { data: Record<string, unknown> } = updateOneById.mock
+        .calls[0]![0] as never;
+
+      expect(update.data["status"]).toBe(
+        RumSessionErasureRequestStatus.Pending,
+      );
+      /* No attempt is charged: waiting on a mutation is not a failure. */
+      expect(update.data["attempts"]).toBeUndefined();
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+});
+
+/*
+ * Erasure must take the pin with it: a RumSessionPin row that survives
+ * the recording renders as "Pinned" over a 404 and keeps the pin's reason
+ * and incident link as a record of the erased subject.
+ */
+describe("Rum:ProcessSessionErasureRequests removes pins", () => {
+  test("eraseSessionBatch deletes the sessions' pins after the mutations are queued", async () => {
+    const order: Array<string> = [];
+
+    chunkService.executeQuery = (): Promise<unknown> => {
+      return Promise.resolve(resultSetOf([{ chunkCount: 7 }]));
+    };
+
+    const analyticsServices: Array<{ name: string; service: unknown }> = [
+      { name: "chunks", service: RumSessionChunkService },
+      { name: "headers", service: RumSessionService },
+      { name: "logs", service: LogService },
+      { name: "spans", service: SpanService },
+      { name: "exceptions", service: ExceptionInstanceService },
+    ];
+
+    for (const entry of analyticsServices) {
+      jest
+        .spyOn(entry.service as { execute: () => Promise<unknown> }, "execute")
+        .mockImplementation(((): Promise<unknown> => {
+          order.push(entry.name);
+          return Promise.resolve({});
+        }) as never);
+    }
+
+    const deleteBy: ReturnType<typeof jest.fn> = jest
+      .spyOn(RumSessionPinService, "deleteBy")
+      .mockImplementation(((): Promise<number> => {
+        order.push("pins");
+        return Promise.resolve(1);
+      }) as never) as unknown as ReturnType<typeof jest.fn>;
+
+    try {
+      const chunksDeleted: number = await eraseSessionBatch({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: [sessionId, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      });
+
+      expect(chunksDeleted).toBe(7);
+      expect(order).toEqual([
+        "chunks",
+        "headers",
+        "logs",
+        "spans",
+        "exceptions",
+        "pins",
+      ]);
+
+      const call: {
+        query: { projectId: ObjectID; sessionId: unknown };
+        props: { isRoot: boolean };
+      } = deleteBy.mock.calls[0]![0] as never;
+
+      expect(call.query.projectId.toString()).toBe(projectId.toString());
+
+      /*
+       * QueryHelper.any renders an IN (...) operator whose ids travel as
+       * bound parameters; the serialized operator is the stable way to
+       * see that every erased id is in it.
+       */
+      const sessionFilter: string = JSON.stringify(call.query.sessionId);
+
+      expect(sessionFilter).toContain(sessionId);
+      expect(sessionFilter).toContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      expect(call.props.isRoot).toBe(true);
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });

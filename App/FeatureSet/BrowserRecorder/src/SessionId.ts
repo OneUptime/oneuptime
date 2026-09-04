@@ -98,15 +98,124 @@ export default class SessionId {
   }
 
   /*
+   * The session id currently in storage, without touching it. What a live
+   * recorder compares its own identity against: localStorage is shared by
+   * every tab of the origin, so a different id here means another tab has
+   * already rotated the session.
+   */
+  public static readStoredSessionId(): string | null {
+    const stored: StoredSessionState | null = SessionId.readStoredSession();
+
+    return stored ? stored.sessionId : null;
+  }
+
+  /*
+   * Has another tab moved the shared session on from `currentSessionId`?
+   *
+   * Two tabs both idle past the rollover: the first to tick rotates, writes
+   * a new id with fresh activity, and seals the old session with a final
+   * chunk. The second tab's tick then reads that fresh activity, decides
+   * "no rotation needed", and keeps posting chunks under the id the first
+   * tab just sealed - a "final" session that keeps growing, plus the other
+   * tab's footage in a session of its own. Nothing re-synced them until a
+   * reload.
+   *
+   * Returns the identity to ADOPT - the stored session, with its own start
+   * time and a chunk counter reset for this tab - when storage holds a
+   * different session that is itself still live. Returns null when storage
+   * agrees with the caller, is empty, is corrupt, or is due to rotate
+   * anyway; every one of those is shouldRotate()'s decision to make, and
+   * making it here too would mint a session the caller did not ask for.
+   */
+  public static syncWithStorage(
+    currentSessionId: string,
+    nowUnixMs: number,
+    tabId: string,
+  ): SessionIdentityState | null {
+    const stored: StoredSessionState | null = SessionId.readStoredSession();
+
+    if (!stored || stored.sessionId === currentSessionId) {
+      return null;
+    }
+
+    const decision: SessionRotationDecision =
+      SessionIdentity.shouldRotateSession(stored, nowUnixMs);
+
+    if (decision.shouldRotate) {
+      return null;
+    }
+
+    SessionId.resetChunkIndex(tabId);
+
+    return {
+      sessionId: stored.sessionId,
+      tabId: tabId,
+      sessionStartUnixMs: stored.sessionStartUnixMs,
+      previousSessionId: currentSessionId,
+    };
+  }
+
+  /*
+   * Be told when another tab writes the shared session record.
+   *
+   * The `storage` event fires in every OTHER tab of the origin when a key
+   * changes, which is exactly the tab that needs to know, and never in the
+   * tab that wrote. Returns the unsubscribe function. Registration itself
+   * cannot throw into the host page: a window without addEventListener
+   * simply gets no notifications and the flush-tick sync still runs.
+   */
+  public static subscribeToSessionChanges(
+    listener: (storedSessionId: string | null) => void,
+    windowRef: Window = window,
+  ): () => void {
+    const onStorage: (event: StorageEvent) => void = (
+      event: StorageEvent,
+    ): void => {
+      if (event.key !== SESSION_STORAGE_KEY) {
+        return;
+      }
+
+      try {
+        listener(SessionId.readStoredSessionId());
+      } catch {
+        /* A listener that throws must not throw into the host page. */
+      }
+    };
+
+    try {
+      windowRef.addEventListener("storage", onStorage as EventListener);
+    } catch {
+      return (): void => {
+        /* Nothing was registered. */
+      };
+    }
+
+    return (): void => {
+      try {
+        windowRef.removeEventListener("storage", onStorage as EventListener);
+      } catch {
+        /* See above. */
+      }
+    };
+  }
+
+  /*
    * Resolve the session id, rotating when SessionIdentity says to.
    *
    * previousSessionId and rotationReason are returned (and later reported)
    * so a support engineer looking at two adjacent 20-minute sessions can
    * tell "the user went to lunch" from "the recorder lost its state".
+   *
+   * `currentSessionId` is the id the caller is rotating AWAY from. When it
+   * is given and storage already holds a DIFFERENT live session, that
+   * session is adopted rather than a third one minted: another tab won the
+   * race to rotate, and minting here would leave the two tabs on two ids
+   * for one person. A compare-and-set, in effect, on the stored record.
    */
   public static resolveSession(
     nowUnixMs: number,
     tabId: string,
+    currentSessionId?: string,
   ): SessionIdentityState {
     const stored: StoredSessionState | null = SessionId.readStoredSession();
 
@@ -120,10 +229,21 @@ export default class SessionId {
         lastActivityUnixMs: nowUnixMs,
       });
 
+      const adopted: boolean =
+        currentSessionId !== undefined && currentSessionId !== stored.sessionId;
+
+      if (adopted) {
+        /* Another tab's rotation: same reset a minted session gets. */
+        SessionId.resetChunkIndex(tabId);
+      }
+
       return {
         sessionId: stored.sessionId,
         tabId: tabId,
         sessionStartUnixMs: stored.sessionStartUnixMs,
+        ...(adopted && currentSessionId
+          ? { previousSessionId: currentSessionId }
+          : {}),
       };
     }
 

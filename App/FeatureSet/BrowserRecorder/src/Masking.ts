@@ -1,4 +1,5 @@
 import CommonMasking from "Common/Utils/Rum/Masking";
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 
 /*
@@ -52,13 +53,23 @@ const SUPPRESSED_STICKY_ATTRIBUTES: Array<string> = [
 /*
  * The exact rrweb maskInputOptions object, per mode.
  *
- * There is NO "creditcard" key in rrweb: it keys on HTML input *types*, and
- * card fields are type="text" or live in a cross-origin PSP iframe. Card
- * protection comes from maskAllInputs plus maskAllText plus the
- * autocomplete heuristic in Common Masking, never from an option that does
- * not exist. Pinned by a snapshot test so a fictional key fails CI.
+ * rrweb keys this table on HTML input *types* AND on tag names
+ * (rrweb-snapshot maskInputValue: `maskInputOptions[tagName] ||
+ * maskInputOptions[type]`). The `input` key is the tag-name entry and is
+ * what routes EVERY input through maskInputFn whatever its type - including
+ * type="hidden", which rrweb's own type list omits, and any type it has
+ * never heard of. `hidden` is listed too so the intent survives a reader
+ * who only checks the type keys.
+ *
+ * There is NO "creditcard" key in rrweb: card fields are type="text" or
+ * live in a cross-origin PSP iframe. Card protection comes from routing
+ * every input through maskInputFn plus maskAllText plus the autocomplete
+ * heuristic in Common Masking, never from an option that does not exist.
+ * Pinned by a snapshot test so a fictional key fails CI.
  */
 export interface MaskInputOptionsShape {
+  input: boolean;
+  hidden: boolean;
   color: boolean;
   date: boolean;
   "datetime-local": boolean;
@@ -78,6 +89,8 @@ export interface MaskInputOptionsShape {
 }
 
 const MASK_INPUT_OPTIONS: Readonly<MaskInputOptionsShape> = Object.freeze({
+  input: true,
+  hidden: true,
   color: true,
   date: true,
   "datetime-local": true,
@@ -98,7 +111,59 @@ const MASK_INPUT_OPTIONS: Readonly<MaskInputOptionsShape> = Object.freeze({
 
 /* Selector for fields whose sensitivity we can decide without an attribute. */
 const ALWAYS_SENSITIVE_SELECTOR: string =
-  'input[type="password"], input[autocomplete*="password"], input[autocomplete*="cc-"], input[autocomplete*="one-time-code"]';
+  'input[type="password"], input[type="hidden"], input[autocomplete*="password"], input[autocomplete*="cc-"], input[autocomplete*="one-time-code"]';
+
+/*
+ * Attribute masking under MaskAllText.
+ *
+ * rrweb's maskTextFn sees text NODES only; attributes are serialised
+ * verbatim, and rrweb 2.1.1 has no maskAttributeFn. So `<img alt="Alice
+ * Smith">`, `<a title="alice@example.com">`, `<input placeholder="Enter
+ * your SSN">` and `<a href="mailto:...">` all survived a MaskAllText
+ * recording and rendered in the player. These are the attributes whose
+ * value is TEXT a person could read, masked with the same bucketed
+ * transform as a text node.
+ */
+const TEXT_LIKE_ATTRIBUTES: Array<string> = [
+  "alt",
+  "title",
+  "placeholder",
+  "label",
+  "aria-label",
+  "aria-description",
+  "aria-valuetext",
+  "aria-placeholder",
+  "aria-roledescription",
+];
+
+/*
+ * `value` is text on these elements. On input / textarea / select it is the
+ * field value, which rrweb routes through maskInputFn and the sticky
+ * suppression already covers; on progress / meter / li it is a number the
+ * player needs to draw the element.
+ */
+const VALUE_IS_TEXT_TAGS: Array<string> = ["option", "data", "button"];
+
+/*
+ * A data-* value that is a short token, not text. Frameworks drive CSS
+ * attribute selectors off these (`[data-state="open"]`, `[data-theme]`),
+ * so masking them would break the replay's LAYOUT rather than protect
+ * anything; a value with whitespace, an @, or real length is free text and
+ * is masked. A short pseudonymous id survives, which URL scrubbing already
+ * accepts for path segments under 32 characters.
+ */
+const DATA_ATTRIBUTE_TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_.:/-]{0,32}$/;
+
+/* Links that carry the contact detail in the URL itself. */
+const CONTACT_HREF_PATTERN: RegExp = /^(mailto|tel|sms|callto|facetime):/i;
+
+/* Elements whose href is a navigation the player never follows. */
+const LINK_TAGS: Array<string> = ["a", "area"];
+
+const ABSOLUTE_HTTP_URL_PATTERN: RegExp = /^https?:\/\//i;
+
+/* rrweb-snapshot NodeType.Element. */
+const SERIALIZED_ELEMENT_NODE: number = 2;
 
 export default class Masking {
   private readonly maskingMode: SessionReplayMaskingMode;
@@ -140,11 +205,12 @@ export default class Masking {
   /*
    * rrweb's maskInputFn. Called with the current value and the element.
    *
-   * rrweb is configured with maskAllInputs: true in EVERY mode, so this
-   * function is the single place that decides whether a value survives.
-   * Leaving the decision to rrweb's maskInputOptions would key it on the
-   * input's current type, which a "show password" toggle mutates - the
-   * exact bug the sticky WeakSet exists to prevent.
+   * Every input reaches this function in EVERY mode (the `input` tag key in
+   * MASK_INPUT_OPTIONS, see getRrwebMaskingOptions), so it is the single
+   * place that decides whether a value survives. Leaving the decision to
+   * rrweb's type-keyed table would key it on the input's current type,
+   * which a "show password" toggle mutates - the exact bug the sticky
+   * WeakSet exists to prevent.
    *
    * When a value is masked the returned mask is constant-width: returning
    * anything derived from the real value, including its length, is the
@@ -162,6 +228,16 @@ export default class Masking {
      */
     if (type === "file") {
       return CommonMasking.maskFileInputValue();
+    }
+
+    /*
+     * Hidden inputs are masked in every mode. Nobody sees them on the page,
+     * so nothing is lost from the replay, and what they hold - CSRF tokens,
+     * user ids, pre-filled emails, order totals - is exactly what a viewer
+     * must not be able to read out of a recording.
+     */
+    if (type === "hidden") {
+      return CommonMasking.maskInputValue();
     }
 
     if (
@@ -269,6 +345,15 @@ export default class Masking {
       return true;
     }
 
+    /*
+     * Sticky as well as masked: a hidden field later mutated to type="text"
+     * (a "show details" toggle, a form builder's debug mode) must not start
+     * leaking the value it held while hidden.
+     */
+    if (type === "hidden") {
+      return true;
+    }
+
     const autocomplete: string = element.getAttribute("autocomplete") || "";
 
     return CommonMasking.isStickySensitiveAutocomplete(autocomplete);
@@ -331,8 +416,13 @@ export default class Masking {
       this.markIfSensitive(node);
     }
 
+    const tagName: string =
+      node && node instanceof Element && node.tagName
+        ? node.tagName.toLowerCase()
+        : "";
+
     if (!this.isSticky(node)) {
-      return attributes;
+      return this.maskAttributes(tagName, attributes);
     }
 
     const kept: Record<string, unknown> = {};
@@ -347,7 +437,218 @@ export default class Masking {
       keptCount++;
     }
 
-    return keptCount > 0 ? kept : null;
+    return keptCount > 0 ? this.maskAttributes(tagName, kept) : null;
+  }
+
+  /*
+   * Mask the text-like attributes of one element's attribute record under
+   * MaskAllText. Returns the SAME object when nothing changed (so callers
+   * can keep an identity check), a copy otherwise. In the other two modes
+   * page text is recorded verbatim by policy, and so are these.
+   *
+   * `tagName` is "" when the caller does not know the element (a mutation
+   * whose node the mirror no longer has); the tag-specific rules then err
+   * toward masking.
+   */
+  public maskAttributes(
+    tagName: string,
+    attributes: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (!this.isMaskAllText()) {
+      return attributes;
+    }
+
+    let masked: Record<string, unknown> | null = null;
+
+    for (const key of Object.keys(attributes)) {
+      const value: unknown = attributes[key];
+
+      if (typeof value !== "string" || !value) {
+        continue;
+      }
+
+      const replacement: string | null = Masking.maskAttributeValue(
+        tagName,
+        key,
+        value,
+      );
+
+      if (replacement === null || replacement === value) {
+        continue;
+      }
+
+      if (!masked) {
+        masked = { ...attributes };
+      }
+
+      masked[key] = replacement;
+    }
+
+    return masked || attributes;
+  }
+
+  /*
+   * The replacement for one attribute, or null to leave it alone. Pure and
+   * static so the rule is testable without a DOM.
+   */
+  public static maskAttributeValue(
+    tagName: string,
+    name: string,
+    value: string,
+  ): string | null {
+    const key: string = name.toLowerCase();
+    const tag: string = tagName.toLowerCase();
+
+    if (TEXT_LIKE_ATTRIBUTES.includes(key)) {
+      return CommonMasking.maskText(value);
+    }
+
+    if (key === "value" && (tag === "" || VALUE_IS_TEXT_TAGS.includes(tag))) {
+      return CommonMasking.maskText(value);
+    }
+
+    if (key.startsWith("data-")) {
+      return DATA_ATTRIBUTE_TOKEN_PATTERN.test(value)
+        ? null
+        : CommonMasking.maskText(value);
+    }
+
+    /*
+     * An inline document is markup, and markup is text. The player renders
+     * an empty frame in its place - which is what it renders for every
+     * cross-origin iframe already.
+     */
+    if (key === "srcdoc") {
+      return "";
+    }
+
+    if (key === "href" && (tag === "" || LINK_TAGS.includes(tag))) {
+      return Masking.maskHref(value);
+    }
+
+    /*
+     * src, srcset and poster stay: the player needs them to draw the image,
+     * and an image URL is a reference rather than readable text. A query
+     * string on one can carry a signed token, which is a known limit of the
+     * MaskAllText promise and is documented as such.
+     */
+    return null;
+  }
+
+  /*
+   * A link's destination is text when it IS the contact detail (mailto:,
+   * tel:) and a URL otherwise. URLs go through the same scrubber as every
+   * other URL the recorder emits; links are never followed in the player, so
+   * nothing structural is lost. Fragment-only and javascript: hrefs are left
+   * alone - one is an anchor id, the other is code.
+   */
+  public static maskHref(value: string): string | null {
+    const match: RegExpMatchArray | null = value.match(CONTACT_HREF_PATTERN);
+
+    if (match) {
+      return `${(match[1] || "").toLowerCase()}:[redacted]`;
+    }
+
+    if (ABSOLUTE_HTTP_URL_PATTERN.test(value) || value.startsWith("/")) {
+      return UrlScrubber.scrub(value);
+    }
+
+    return null;
+  }
+
+  /*
+   * Walk a serialised rrweb node tree - a FullSnapshot's `node`, or the
+   * `node` of each mutation `adds` entry - and mask the text-like
+   * attributes of every element in place. Depth-bounded iteration rather
+   * than recursion: a deep document must not blow the stack inside rrweb's
+   * emit.
+   *
+   * Returns how many attributes were rewritten.
+   */
+  public sanitiseSerializedNode(root: unknown): number {
+    if (!this.isMaskAllText() || !root || typeof root !== "object") {
+      return 0;
+    }
+
+    let rewritten: number = 0;
+    const stack: Array<Record<string, unknown>> = [
+      root as Record<string, unknown>,
+    ];
+
+    while (stack.length > 0) {
+      const node: Record<string, unknown> = stack.pop()!;
+
+      if (
+        node["type"] === SERIALIZED_ELEMENT_NODE &&
+        node["attributes"] &&
+        typeof node["attributes"] === "object"
+      ) {
+        const attributes: Record<string, unknown> = node[
+          "attributes"
+        ] as Record<string, unknown>;
+        const tagName: string =
+          typeof node["tagName"] === "string" ? node["tagName"] : "";
+
+        const masked: Record<string, unknown> = this.maskAttributes(
+          tagName,
+          attributes,
+        );
+
+        if (masked !== attributes) {
+          for (const key of Object.keys(masked)) {
+            if (masked[key] !== attributes[key]) {
+              rewritten++;
+            }
+          }
+
+          node["attributes"] = masked;
+        }
+      }
+
+      const children: unknown = node["childNodes"];
+
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child && typeof child === "object") {
+            stack.push(child as Record<string, unknown>);
+          }
+        }
+      }
+    }
+
+    return rewritten;
+  }
+
+  /*
+   * The two event shapes the recorder hands over. A FullSnapshot carries
+   * `data.node`; a mutation carries `data.adds[]`, each with a `node`.
+   * Everything else is left alone. Returns how many attributes were
+   * rewritten, for tests and diagnostics.
+   */
+  public sanitiseEventData(data: Record<string, unknown>): number {
+    if (!this.isMaskAllText()) {
+      return 0;
+    }
+
+    let rewritten: number = 0;
+
+    if (data["node"] && typeof data["node"] === "object") {
+      rewritten += this.sanitiseSerializedNode(data["node"]);
+    }
+
+    const adds: unknown = data["adds"];
+
+    if (Array.isArray(adds)) {
+      for (const add of adds) {
+        if (add && typeof add === "object") {
+          rewritten += this.sanitiseSerializedNode(
+            (add as Record<string, unknown>)["node"],
+          );
+        }
+      }
+    }
+
+    return rewritten;
   }
 
   /*
@@ -398,13 +699,17 @@ export default class Masking {
   } {
     return {
       /*
-       * Always true, in every mode - but it no longer means "mask every
-       * input". It means "route every input through maskInputFn", which
-       * is the only way this module gets to apply its own sticky
-       * per-node policy instead of rrweb's type-keyed one. maskInput
-       * above is what decides; see its header.
+       * FALSE, in every mode - and that is what routes every input through
+       * maskInputFn. rrweb's record() DISCARDS the maskInputOptions it was
+       * handed whenever maskAllInputs is true and substitutes its own
+       * type-keyed table (rrweb.js:14279), which has no entry for
+       * type="hidden" or for the tag name: with `true`, hidden inputs never
+       * reached maskInput and their values went out verbatim in every mode.
+       * With `false`, rrweb uses MASK_INPUT_OPTIONS as given, whose `input`
+       * key matches every <input> by tag name. maskInput above is what then
+       * decides; see its header.
        */
-      maskAllInputs: true,
+      maskAllInputs: false,
       maskInputOptions: MASK_INPUT_OPTIONS,
       maskTextClass: "oneuptime-mask",
       maskTextSelector: this.getMaskTextSelector(),

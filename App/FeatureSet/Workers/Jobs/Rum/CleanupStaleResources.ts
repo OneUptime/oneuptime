@@ -40,6 +40,13 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * The two jobs are deliberately split by cutoff so they cannot fight over
  * the same entries: the finalizer owns everything newer than the abandon
  * cutoff, this job only touches what is older than it.
+ *
+ * Nothing this job reaps is lost for good. A session whose activity entry
+ * is gone still has its provisional header in ClickHouse, and the
+ * finalizer's hourly sweep (sweepNeverFinalizedSessions) seals every
+ * header that is still unfinalized past the abandon window — so the
+ * honest description of a reaped entry is "finalized late by the sweep",
+ * not "unrecoverable".
  * ------------------------------------------------------------------
  */
 
@@ -76,21 +83,24 @@ export async function pruneAbandonedSessionActivity(): Promise<number> {
 
     try {
       /*
-       * A project still in the index whose activity key is GONE is the one
-       * failure this job can see and nothing else can: the ingest path
-       * EXPIREs the key on every accepted chunk, so the key only vanishes
-       * when no chunk has arrived for the whole TTL. If the finalizer has
-       * been down for that long, Redis has just silently discarded the
-       * entire queue of unfinalized sessions and every one of them stays
-       * provisional forever. The drain paths remove a project from the
-       * index when its ZSET empties, so reaching here with a missing key
-       * means the key expired rather than drained.
+       * A project still in the index whose activity key is GONE is the
+       * NORMAL end of a drain, not a failure: Redis deletes a sorted set
+       * the moment its last member is ZREMed, and the finalizer removes
+       * members one session at a time but only prunes the project from
+       * the index on a LATER run, when a read of the set comes back
+       * empty. Both jobs run every five minutes, so this job routinely
+       * lands in that gap. The other way the key vanishes — no chunk
+       * arrived for the ingest path's whole 6h TTL while members were
+       * still queued — is indistinguishable from here and equally
+       * recoverable: the finalizer's sweep seals whatever those members
+       * pointed at. So the index entry is dropped quietly; the sweep's
+       * own counters are where a stuck finalizer shows up.
        */
       const activeKeyExists: number = await client.exists(activeKey);
 
       if (activeKeyExists === 0) {
-        logger.warn(
-          `${JOB_NAME}: the activity key for project ${projectId} expired while the project was still indexed. Any sessions it held were never finalized and are now unrecoverable; check whether Rum:FinalizeSessions has been failing.`,
+        logger.debug(
+          `${JOB_NAME}: project ${projectId} has no activity key (drained or expired); dropping it from the index. Any session left unfinalized is sealed by the finalizer's sweep.`,
         );
 
         await client.srem(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
@@ -117,7 +127,7 @@ export async function pruneAbandonedSessionActivity(): Promise<number> {
         removed += await client.zrem(activeKey, abandoned);
 
         logger.warn(
-          `${JOB_NAME}: reaped ${abandoned.length} abandoned session activity entr(ies) for project ${projectId}. Their chunks either never arrived or expired before finalization.`,
+          `${JOB_NAME}: reaped ${abandoned.length} session activity entr(ies) older than ${Math.round(SESSION_REPLAY_ACTIVITY_ABANDON_MS / 60000)} minutes for project ${projectId}; the finalizer never got to them. Their headers are sealed by the finalizer's sweep; if this repeats every run, check whether Rum:FinalizeSessions is failing.`,
         );
       }
 
@@ -125,9 +135,11 @@ export async function pruneAbandonedSessionActivity(): Promise<number> {
 
       if (remaining === 0) {
         /*
-         * Safe to drop from the index: the ingest path SADDs the project
-         * back on every accepted chunk, so the worst case is one wasted
-         * ZRANGEBYSCORE on the next finalizer run.
+         * Safe to drop from the index: the ingest path does not maintain
+         * it, but the finalizer's periodic reconcile SCANs the keyspace
+         * and re-adds any project whose activity key reappears, so the
+         * worst case is a project waiting one reconcile interval (ten
+         * minutes) for its next batch of ended sessions.
          */
         await client.srem(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
       }

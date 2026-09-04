@@ -3,8 +3,11 @@ import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import ErrorRecorder, {
   CompiledIgnorePatterns,
   ERROR_CUSTOM_EVENT_TAG,
+  MAX_ERRORS_RECORDED,
   MAX_IGNORE_PATTERNS,
+  REPEAT_MARKER_INTERVAL_MS,
   RecordedError,
+  RecordedErrorPayload,
 } from "../src/ErrorRecorder";
 
 describe("ErrorRecorder", (): void => {
@@ -179,12 +182,60 @@ describe("ErrorRecorder", (): void => {
     expect(JSON.stringify(errors)).not.toContain("4111111111111111");
   });
 
-  it("caps how many errors it records", (): void => {
+  it("caps how many DISTINCT errors it records", (): void => {
     for (let i: number = 0; i < 200; i++) {
-      throwError("boom");
+      throwError(`boom ${i}`);
     }
 
-    expect(recorder.getRecordedCount()).toBe(100);
+    expect(recorder.getRecordedCount()).toBe(MAX_ERRORS_RECORDED);
+    expect(errors).toHaveLength(MAX_ERRORS_RECORDED + 1);
+  });
+
+  /*
+   * The cap used to exhaust silently: the first NEW error after it - the
+   * one that explained the failure - was dropped with nothing to say so.
+   */
+  it("emits one cap marker, once, when a distinct error is dropped", (): void => {
+    for (let i: number = 0; i < MAX_ERRORS_RECORDED + 20; i++) {
+      throwError(`boom ${i}`);
+    }
+
+    const markers: Array<RecordedErrorPayload> = customEvents
+      .map((event: { tag: string; payload: unknown }): RecordedErrorPayload => {
+        return event.payload as RecordedErrorPayload;
+      })
+      .filter((payload: RecordedErrorPayload): boolean => {
+        return payload.isCapMarker === true;
+      });
+
+    expect(markers).toHaveLength(1);
+    expect(markers[0]?.message).toContain(`${MAX_ERRORS_RECORDED} distinct`);
+    expect(recorder.hasReachedCap()).toBe(true);
+  });
+
+  it("starts a fresh cap and forgets old fingerprints when the session rotates", (): void => {
+    for (let i: number = 0; i < MAX_ERRORS_RECORDED + 1; i++) {
+      throwError(`boom ${i}`);
+    }
+
+    expect(recorder.hasReachedCap()).toBe(true);
+
+    recorder.resetForNewSession();
+
+    expect(recorder.getRecordedCount()).toBe(0);
+    expect(recorder.hasReachedCap()).toBe(false);
+    expect(recorder.getOccurrenceCount()).toBe(0);
+
+    /* An error first seen in the OLD session is a first occurrence again. */
+    const before: number = customEvents.length;
+
+    throwError("boom 0");
+
+    expect(recorder.getRecordedCount()).toBe(1);
+    expect(customEvents).toHaveLength(before + 1);
+    expect(
+      (customEvents[before]?.payload as RecordedErrorPayload).isRepeat,
+    ).toBeUndefined();
   });
 
   it("stops listening after stop", (): void => {
@@ -193,6 +244,277 @@ describe("ErrorRecorder", (): void => {
     throwError("boom");
 
     expect(errors).toHaveLength(0);
+  });
+});
+
+/*
+ * A capture-phase `error` listener on window also hears the non-bubbling
+ * `error` event an <img>, <script> or <link> fires when its resource fails
+ * to load - a plain Event with no message, no filename and no stack. It used
+ * to be recorded as a JavaScript error with an empty message, and, having
+ * nothing to exclude it, it was trigger-worthy: one broken image or one
+ * ad-blocked tag uploaded the session under the Error reason.
+ */
+describe("ErrorRecorder resource failures", (): void => {
+  interface ObservedError {
+    error: RecordedError;
+    isTriggerWorthy: boolean;
+  }
+
+  let observed: Array<ObservedError> = [];
+  let emitted: Array<RecordedErrorPayload> = [];
+  let recorder: ErrorRecorder;
+
+  beforeEach((): void => {
+    observed = [];
+    emitted = [];
+
+    recorder = new ErrorRecorder({
+      emitCustomEvent: (_tag: string, payload: unknown): void => {
+        emitted.push(payload as RecordedErrorPayload);
+      },
+      maskMessage: (message: string): string => {
+        return `masked:${message}`;
+      },
+      scrubUrl: (url: string): string => {
+        return UrlScrubber.scrub(url, []);
+      },
+      onError: (
+        _atUnixMs: number,
+        error: RecordedError,
+        isTriggerWorthy: boolean,
+      ): void => {
+        observed.push({ error: error, isTriggerWorthy: isTriggerWorthy });
+      },
+    });
+
+    recorder.start(window);
+  });
+
+  afterEach((): void => {
+    recorder.stop(window);
+    document.body.innerHTML = "";
+  });
+
+  it("records a failed image as kind resource with a useful message, and never triggers", (): void => {
+    const image: HTMLImageElement = document.createElement("img");
+    image.setAttribute(
+      "src",
+      "https://cdn.example.com/avatars/alice@example.com.png?sig=abc",
+    );
+    document.body.appendChild(image);
+
+    /* What the browser dispatches: a plain, non-bubbling Event on the element. */
+    image.dispatchEvent(new Event("error"));
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.isTriggerWorthy).toBe(false);
+    expect(observed[0]?.error.kind).toBe("resource");
+    expect(observed[0]?.error.tagName).toBe("img");
+    expect(observed[0]?.error.message).toBe(
+      "masked:Resource failed to load: <img>",
+    );
+    /* The URL is scrubbed, like every other URL this module emits. */
+    expect(observed[0]?.error.source).toBe(
+      "https://cdn.example.com/avatars/[redacted]",
+    );
+    expect(JSON.stringify(emitted)).not.toContain("sig=abc");
+  });
+
+  it("classifies a failed script and stylesheet the same way", (): void => {
+    const script: HTMLScriptElement = document.createElement("script");
+    script.setAttribute("src", "https://tags.example.net/blocked.js");
+    document.body.appendChild(script);
+    script.dispatchEvent(new Event("error"));
+
+    const link: HTMLLinkElement = document.createElement("link");
+    link.setAttribute("href", "https://cdn.example.com/missing.css");
+    document.head.appendChild(link);
+    link.dispatchEvent(new Event("error"));
+
+    expect(
+      observed.map((entry: ObservedError): string => {
+        return `${entry.error.kind}:${entry.error.tagName}:${entry.isTriggerWorthy}`;
+      }),
+    ).toEqual(["resource:script:false", "resource:link:false"]);
+    expect(observed[1]?.error.source).toBe(
+      "https://cdn.example.com/missing.css",
+    );
+  });
+
+  it("still treats a real ErrorEvent on the window as a JavaScript error", (): void => {
+    window.dispatchEvent(
+      new ErrorEvent("error", {
+        message: "genuine failure",
+        filename: "https://shop.example.com/app.js",
+      }),
+    );
+
+    expect(observed[0]?.error.kind).toBe("error");
+    expect(observed[0]?.isTriggerWorthy).toBe(true);
+  });
+
+  /*
+   * The loader stub's pre-load buffer records `event.message || ""` for
+   * whatever its own capture listener hears, and replays it here. An empty,
+   * sourceless, stackless "error" is a resource failure by another route
+   * and must not be the reason a recording uploads.
+   */
+  it("never lets an empty, sourceless error trigger an upload", (): void => {
+    recorder.record({ kind: "error", message: "" }, Date.now() - 500);
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.isTriggerWorthy).toBe(false);
+  });
+});
+
+/*
+ * Nothing de-duplicated: a page throwing in a requestAnimationFrame loop
+ * spent the whole cap on one error inside two seconds, and every distinct
+ * error after that was silently lost.
+ */
+describe("ErrorRecorder de-duplication", (): void => {
+  interface ObservedError {
+    atUnixMs: number;
+    error: RecordedError;
+    isTriggerWorthy: boolean;
+  }
+
+  let observed: Array<ObservedError> = [];
+  let emitted: Array<RecordedErrorPayload> = [];
+  let recorder: ErrorRecorder;
+
+  beforeEach((): void => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1_700_000_000_000);
+
+    observed = [];
+    emitted = [];
+
+    recorder = new ErrorRecorder({
+      emitCustomEvent: (_tag: string, payload: unknown): void => {
+        emitted.push(payload as RecordedErrorPayload);
+      },
+      maskMessage: (message: string): string => {
+        return message;
+      },
+      scrubUrl: (url: string): string => {
+        return url;
+      },
+      onError: (
+        atUnixMs: number,
+        error: RecordedError,
+        isTriggerWorthy: boolean,
+      ): void => {
+        observed.push({
+          atUnixMs: atUnixMs,
+          error: error,
+          isTriggerWorthy: isTriggerWorthy,
+        });
+      },
+    });
+
+    recorder.start(window);
+  });
+
+  afterEach((): void => {
+    recorder.stop(window);
+    jest.useRealTimers();
+  });
+
+  const throwAt: (message: string, line: number) => void = (
+    message: string,
+    line: number,
+  ): void => {
+    window.dispatchEvent(
+      new ErrorEvent("error", {
+        message: message,
+        filename: "https://shop.example.com/app.js",
+        lineno: line,
+        colno: 1,
+      }),
+    );
+  };
+
+  it("counts a repeating error against its fingerprint, not the cap", (): void => {
+    for (let i: number = 0; i < 500; i++) {
+      throwAt("loop failure", 10);
+    }
+
+    expect(recorder.getRecordedCount()).toBe(1);
+    expect(recorder.getOccurrenceCount()).toBe(500);
+    expect(recorder.hasReachedCap()).toBe(false);
+
+    /* The next DISTINCT error is still recorded. */
+    throwAt("the real problem", 99);
+
+    expect(recorder.getRecordedCount()).toBe(2);
+    expect(observed[observed.length - 1]?.error.message).toBe(
+      "the real problem",
+    );
+  });
+
+  it("emits a rate-limited repeat marker carrying the running count", (): void => {
+    throwAt("loop failure", 10);
+
+    for (let i: number = 0; i < 9; i++) {
+      throwAt("loop failure", 10);
+    }
+
+    /* Inside the interval: nothing but the first occurrence. */
+    expect(emitted).toHaveLength(1);
+
+    jest.setSystemTime(Date.now() + REPEAT_MARKER_INTERVAL_MS);
+    throwAt("loop failure", 10);
+
+    expect(emitted).toHaveLength(2);
+    expect(emitted[1]?.isRepeat).toBe(true);
+    expect(emitted[1]?.occurrences).toBe(11);
+    expect(emitted[1]?.message).toBe("loop failure");
+
+    /* And the marker reports through onError with the original verdict. */
+    expect(observed).toHaveLength(2);
+    expect(observed[1]?.isTriggerWorthy).toBe(true);
+  });
+
+  it("tells errors apart by location and first frame, not message alone", (): void => {
+    throwAt("Cannot read properties of undefined", 10);
+    throwAt("Cannot read properties of undefined", 20);
+
+    const stacked: Error = new Error("Cannot read properties of undefined");
+    stacked.stack = "Error: x\n    at render (app.js:30:2)";
+
+    window.dispatchEvent(
+      new ErrorEvent("error", {
+        message: "Cannot read properties of undefined",
+        filename: "https://shop.example.com/app.js",
+        lineno: 10,
+        colno: 1,
+        error: stacked,
+      }),
+    );
+
+    expect(recorder.getRecordedCount()).toBe(3);
+  });
+
+  it("fingerprints the raw error deterministically", (): void => {
+    const error: RecordedError = {
+      kind: "error",
+      message: "boom",
+      source: "https://x.test/a.js",
+      lineNumber: 1,
+      columnNumber: 2,
+      stack:
+        "Error: boom\n    at f (https://x.test/a.js:1:2)\n    at g (b.js:9:9)",
+    };
+
+    expect(ErrorRecorder.fingerprintOf(error)).toBe(
+      ErrorRecorder.fingerprintOf({ ...error }),
+    );
+    expect(ErrorRecorder.fingerprintOf(error)).toContain(
+      "at f (https://x.test/a.js:1:2)",
+    );
+    expect(ErrorRecorder.fingerprintOf(error)).not.toContain("at g");
   });
 });
 

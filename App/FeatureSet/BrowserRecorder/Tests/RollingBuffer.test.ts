@@ -136,6 +136,120 @@ describe("RollingBuffer", (): void => {
     expect(buffer.getByteSize()).toBeLessThanOrEqual(250);
   });
 
+  /*
+   * The overflow case used to evict from the FRONT of the sole segment, which
+   * is where its Meta and FullSnapshot live - so the first things to go were
+   * the only two events that make the rest replayable. Under
+   * OnErrorOrFrustration on any page whose minute of activity exceeds the
+   * cap, the recording captured BECAUSE of the error opened with a chunk
+   * the player could not render.
+   */
+  it("keeps the Meta and FullSnapshot pinned when a single segment overflows", (): void => {
+    const buffer: RollingBuffer = new RollingBuffer(60000, 350);
+
+    buffer.push(
+      makeEvent({ isCheckout: true, type: 4, bytes: 50, json: "meta" }),
+    );
+    buffer.push(
+      makeEvent({ isCheckout: true, type: 2, bytes: 100, json: "snap" }),
+    );
+    buffer.push(makeEvent({ bytes: 100, json: "content-1" }));
+    buffer.push(makeEvent({ bytes: 100, json: "content-2" }));
+    buffer.push(makeEvent({ bytes: 100, json: "content-3" }));
+
+    expect(buffer.hasOverflowed()).toBe(true);
+    expect(buffer.getByteSize()).toBeLessThanOrEqual(350);
+    expect(buffer.getDroppedEventCount()).toBe(1);
+
+    const drained: Array<string> = buffer
+      .drain()
+      .map((event: BufferedEvent): string => {
+        return event.json;
+      });
+
+    /* Opens on the checkout; the OLDEST incremental is what went. */
+    expect(drained).toEqual(["meta", "snap", "content-2", "content-3"]);
+  });
+
+  it("asks for a fresh checkout after an overflow, and stops once one arrives", (): void => {
+    const buffer: RollingBuffer = new RollingBuffer(60000, 350);
+
+    buffer.push(makeEvent({ isCheckout: true, type: 4, bytes: 50 }));
+    buffer.push(makeEvent({ isCheckout: true, type: 2, bytes: 100 }));
+    buffer.push(makeEvent({ bytes: 100 }));
+
+    expect(buffer.needsFreshCheckout()).toBe(false);
+
+    buffer.push(makeEvent({ bytes: 100 }));
+    buffer.push(makeEvent({ bytes: 100 }));
+
+    expect(buffer.needsFreshCheckout()).toBe(true);
+
+    /* The recorder takes the snapshot it was asked for. */
+    buffer.push(
+      makeEvent({ isCheckout: true, type: 4, bytes: 50, json: "meta-2" }),
+    );
+    buffer.push(
+      makeEvent({ isCheckout: true, type: 2, bytes: 100, json: "snap-2" }),
+    );
+
+    expect(buffer.needsFreshCheckout()).toBe(false);
+
+    /*
+     * And the damaged segment was evictable whole, as segments should be:
+     * the new checkout pushed the total back over the cap, so the OLD
+     * segment went, not more of its history.
+     */
+    expect(buffer.getSegmentCount()).toBe(1);
+
+    buffer.push(makeEvent({ bytes: 100, json: "content-after" }));
+
+    expect(buffer.getSegmentCount()).toBe(1);
+    expect(
+      buffer.drain().map((event: BufferedEvent): string => {
+        return event.json;
+      }),
+    ).toEqual(["meta-2", "snap-2", "content-after"]);
+  });
+
+  /*
+   * A snapshot bigger than the whole buffer cannot be trimmed at all.
+   * Nothing is evicted (dropping the snapshot would leave nothing playable),
+   * the overflow is disclosed, and a fresh - hopefully smaller - checkout is
+   * requested.
+   */
+  it("discloses an overflow it cannot trim when the snapshot alone exceeds the cap", (): void => {
+    const buffer: RollingBuffer = new RollingBuffer(60000, 200);
+
+    buffer.push(makeEvent({ isCheckout: true, type: 4, bytes: 50 }));
+    buffer.push(makeEvent({ isCheckout: true, type: 2, bytes: 5000 }));
+    buffer.push(makeEvent({ bytes: 100 }));
+
+    expect(buffer.getEventCount()).toBe(3);
+    expect(buffer.getDroppedEventCount()).toBe(0);
+    expect(buffer.hasOverflowed()).toBe(true);
+    expect(buffer.needsFreshCheckout()).toBe(true);
+  });
+
+  it("clears the checkout request on drain and clear", (): void => {
+    const buffer: RollingBuffer = new RollingBuffer(60000, 200);
+
+    buffer.push(makeEvent({ isCheckout: true, type: 2, bytes: 5000 }));
+    buffer.push(makeEvent({ bytes: 100 }));
+
+    expect(buffer.needsFreshCheckout()).toBe(true);
+
+    buffer.drain();
+
+    expect(buffer.needsFreshCheckout()).toBe(false);
+
+    buffer.push(makeEvent({ isCheckout: true, type: 2, bytes: 5000 }));
+    buffer.push(makeEvent({ bytes: 100 }));
+    buffer.clear();
+
+    expect(buffer.needsFreshCheckout()).toBe(false);
+  });
+
   it("never drops the last remaining event", (): void => {
     const buffer: RollingBuffer = new RollingBuffer(60000, 10);
 

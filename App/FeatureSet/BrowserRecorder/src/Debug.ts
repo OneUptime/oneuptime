@@ -49,7 +49,14 @@ export const DEBUG_QUERY_PARAM: string = "oneuptime_debug";
 /* The init global, read here as well as in Config so it works pre-tag. */
 const INIT_OPTIONS_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY__";
 
-const LOG_PREFIX: string = "[OneUptime Session Replay]";
+/*
+ * Exported so ConsoleRecorder can recognise - and refuse to record - the
+ * recorder's own diagnostics. Debug writes through console.warn/info, which
+ * ConsoleRecorder patches, so with diagnostics on every line below used to
+ * land in the customer's replay as a console entry, masked and truncated by
+ * our own recorder, and eat the per-page console cap along the way.
+ */
+export const LOG_PREFIX: string = "[OneUptime Session Replay]";
 
 /* What every `code` below means, and what to do about it. */
 export const DEBUG_DOCS_URL: string =

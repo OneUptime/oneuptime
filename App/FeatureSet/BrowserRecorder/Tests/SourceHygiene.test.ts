@@ -61,6 +61,13 @@ function readSources(): Array<{ name: string; contents: string }> {
 describe("source hygiene", (): void => {
   const sources: Array<{ name: string; contents: string }> = readSources();
 
+  /*
+   * Every module the package is built from, plus the two that are landing
+   * alongside this list (ClickRecorder, DecisionBeacon). A module missing
+   * from the directory fails; a module present in the directory but not in
+   * this list fails too, so a stray file cannot ride into the bundle
+   * unnoticed. The two landing modules are optional until they land.
+   */
   it("has the full set of modules", (): void => {
     const names: Array<string> = sources
       .map((source: { name: string }): string => {
@@ -68,7 +75,7 @@ describe("source hygiene", (): void => {
       })
       .sort();
 
-    expect(names).toEqual([
+    const required: Array<string> = [
       "Chunker.ts",
       "Config.ts",
       "Consent.ts",
@@ -88,7 +95,40 @@ describe("source hygiene", (): void => {
       "RouteRecorder.ts",
       "SessionId.ts",
       "Transport.ts",
-    ]);
+    ];
+
+    const landing: Array<string> = ["ClickRecorder.ts", "DecisionBeacon.ts"];
+
+    for (const name of required) {
+      expect(names).toContain(name);
+    }
+
+    const unexpected: Array<string> = names.filter((name: string): boolean => {
+      return !required.includes(name) && !landing.includes(name);
+    });
+
+    expect(unexpected).toEqual([]);
+  });
+
+  /*
+   * The chunk body is `<envelope JSON>\n<payload>` with only the PAYLOAD
+   * gzipped, which the envelope's payloadEncoding declares. A
+   * Content-Encoding header would describe a body that is not gzip: the
+   * server never read it, but any proxy or CDN that honours it would try to
+   * inflate the envelope line and reject or corrupt every chunk.
+   */
+  it("never sets a Content-Encoding request header", (): void => {
+    const contentEncoding: RegExp = /content-encoding/i;
+
+    const offenders: Array<string> = sources
+      .filter((source: { contents: string }): boolean => {
+        return contentEncoding.test(source.contents);
+      })
+      .map((source: { name: string }): string => {
+        return source.name;
+      });
+
+    expect(offenders).toEqual([]);
   });
 
   /*

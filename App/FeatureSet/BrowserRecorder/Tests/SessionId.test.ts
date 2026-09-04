@@ -200,6 +200,158 @@ describe("SessionId", (): void => {
     });
   });
 
+  /*
+   * localStorage is shared by every tab of the origin. When two tabs are
+   * both idle past the rollover, the first to tick rotates and seals the old
+   * session; the second used to read the fresh activity the first had just
+   * written, decide nothing needed rotating, and keep posting under the
+   * sealed id for the rest of its life.
+   */
+  describe("cross-tab rotation", (): void => {
+    it("reports no change while storage holds the caller's own session", (): void => {
+      const now: number = Date.now();
+      const mine: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      expect(SessionId.readStoredSessionId()).toBe(mine.sessionId);
+      expect(
+        SessionId.syncWithStorage(mine.sessionId, now + 1000, "tab1"),
+      ).toBeNull();
+    });
+
+    it("adopts the session another tab rotated onto, and restarts this tab's chunk counter", (): void => {
+      const now: number = Date.now();
+      const mine: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      SessionId.getNextChunkIndex("tab1");
+      SessionId.getNextChunkIndex("tab1");
+      expect(SessionId.peekChunkIndex("tab1")).toBe(2);
+
+      /* The other tab rotated after the idle window. */
+      const theirs: SessionIdentityState = SessionId.resolveSession(
+        now + 31 * 60 * 1000,
+        "tab2",
+      );
+
+      expect(theirs.sessionId).not.toBe(mine.sessionId);
+
+      const adopted: SessionIdentityState | null = SessionId.syncWithStorage(
+        mine.sessionId,
+        now + 31 * 60 * 1000 + 5000,
+        "tab1",
+      );
+
+      expect(adopted).not.toBeNull();
+      expect(adopted?.sessionId).toBe(theirs.sessionId);
+      expect(adopted?.sessionStartUnixMs).toBe(theirs.sessionStartUnixMs);
+      expect(adopted?.previousSessionId).toBe(mine.sessionId);
+      expect(adopted?.tabId).toBe("tab1");
+
+      /* Adopted, never minted: storage is untouched. */
+      expect(SessionId.readStoredSessionId()).toBe(theirs.sessionId);
+      expect(SessionId.peekChunkIndex("tab1")).toBe(0);
+    });
+
+    /*
+     * A stored session that is itself due to rotate is not adopted: that is
+     * the caller's own rotation to make, and adopting a dead session would
+     * only be followed by rotating away from it a tick later.
+     */
+    it("does not adopt a stored session that is due to rotate anyway", (): void => {
+      const now: number = Date.now();
+
+      SessionId.resolveSession(now, "tab2");
+
+      expect(
+        SessionId.syncWithStorage("f".repeat(32), now + 31 * 60 * 1000, "tab1"),
+      ).toBeNull();
+    });
+
+    it("reports no change when storage is empty or corrupt", (): void => {
+      expect(
+        SessionId.syncWithStorage("f".repeat(32), Date.now(), "tab1"),
+      ).toBeNull();
+
+      window.localStorage.setItem("oneuptime.replay.session", "{not json");
+
+      expect(
+        SessionId.syncWithStorage("f".repeat(32), Date.now(), "tab1"),
+      ).toBeNull();
+    });
+
+    /*
+     * The rotation write is a compare-and-set: a tab rotating away from id A
+     * that finds storage already on a live id B joins B rather than minting
+     * C and leaving one person split across two sessions.
+     */
+    it("resolveSession adopts rather than mints when another tab already rotated", (): void => {
+      const now: number = Date.now();
+      const mine: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      const theirs: SessionIdentityState = SessionId.resolveSession(
+        now + 31 * 60 * 1000,
+        "tab2",
+      );
+
+      const resolved: SessionIdentityState = SessionId.resolveSession(
+        now + 31 * 60 * 1000 + 1,
+        "tab1",
+        mine.sessionId,
+      );
+
+      expect(resolved.sessionId).toBe(theirs.sessionId);
+      expect(resolved.previousSessionId).toBe(mine.sessionId);
+      expect(resolved.rotationReason).toBeUndefined();
+    });
+
+    it("resolveSession still mints when storage is on the caller's own expired session", (): void => {
+      const now: number = Date.now();
+      const mine: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      const resolved: SessionIdentityState = SessionId.resolveSession(
+        now + 31 * 60 * 1000,
+        "tab1",
+        mine.sessionId,
+      );
+
+      expect(resolved.sessionId).not.toBe(mine.sessionId);
+      expect(resolved.rotationReason).toBe(SessionRotationReason.Idle);
+    });
+
+    it("notifies a subscriber when another tab writes the session key, and only that key", (): void => {
+      const seen: Array<string | null> = [];
+
+      const unsubscribe: () => void = SessionId.subscribeToSessionChanges(
+        (storedSessionId: string | null): void => {
+          seen.push(storedSessionId);
+        },
+        window,
+      );
+
+      const theirs: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab2",
+      );
+
+      /* What the browser fires in the OTHER tabs after that write. */
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "oneuptime.replay.session" }),
+      );
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "some-other-key" }),
+      );
+
+      expect(seen).toEqual([theirs.sessionId]);
+
+      unsubscribe();
+
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "oneuptime.replay.session" }),
+      );
+
+      expect(seen).toHaveLength(1);
+    });
+  });
+
   describe("refresh rage", (): void => {
     it("counts reloads of the same scrubbed path inside the window", (): void => {
       const now: number = Date.now();

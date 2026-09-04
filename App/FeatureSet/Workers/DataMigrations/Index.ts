@@ -108,6 +108,7 @@ import AddShiftReminderNotificationSettingsForUsers from "./AddShiftReminderNoti
 import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
+import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -409,6 +410,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Id-paged over the whole fleet, idempotent: canonical rows are untouched.
    */
   new NormalizeNetworkDeviceMonitoringMethod(),
+  /*
+   * Session replay engagement columns: tags, identity-gated traits, click
+   * and custom-event counters, first-error offset and active time on the
+   * header table, click and custom-event counters on the chunk table.
+   * Metadata-only ADD COLUMN IF NOT EXISTS with 0 / {} defaults; boot
+   * schema-sync performs the same add on clusters, so this is recorded
+   * rather than run there.
+   */
+  new AddSessionReplayEngagementColumns(),
 ];
 
 export default DataMigrations;

@@ -1,3 +1,5 @@
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
+
 /*
  * SPA route changes.
  *
@@ -9,6 +11,16 @@
  *
  * All URLs are scrubbed before they leave: a route change is exactly where a
  * password-reset token or a magic link shows up.
+ *
+ * Hash routers (Angular's HashLocationStrategy, React's HashRouter, Vue's
+ * hash mode, every `#/`-routed admin tool) keep the whole route in the
+ * fragment. UrlScrubber drops the fragment, so comparing scrubbed URLs saw
+ * `#/orders` -> `#/orders/42` as no change at all: those apps reported one
+ * page per session and never got a forced snapshot. The fragment's PATH
+ * (a hash beginning `#/` or `#!/`) now takes part in both the comparison and
+ * the stored URL, scrubbed the same way a real path is, while a plain
+ * in-page anchor (`#pricing`) stays ignored and any query inside the hash is
+ * dropped.
  */
 
 export const ROUTE_CUSTOM_EVENT_TAG: string = "oneuptime.route";
@@ -20,16 +32,32 @@ export const ROUTE_CUSTOM_EVENT_TAG: string = "oneuptime.route";
  * a viewer will actually want one. Rate-limited, because an app that
  * replaces its query string on every keystroke would otherwise trigger a
  * snapshot storm - each one a full serialisation of the document.
+ *
+ * DEFERRED, not immediate. Routers call history.pushState and commit the new
+ * tree in a later task; at the instant of the call the DOM is still the page
+ * the user just left, so a synchronous snapshot serialised the OLD route at
+ * full cost and the new one still arrived as a large mutation batch. The
+ * snapshot waits for the next frame to paint and one more macrotask, which
+ * is after the common routers have committed.
  */
 const MIN_MS_BETWEEN_FORCED_SNAPSHOTS: number = 5000;
 
-/* Per-page cap on recorded route events. */
-const MAX_ROUTES_RECORDED: number = 500;
+/*
+ * Per-SESSION cap on recorded route events. Reset by resetForNewSession()
+ * when the recorder rolls the session over.
+ */
+export const MAX_ROUTES_RECORDED: number = 500;
+
+/* A fragment that is a route rather than an in-page anchor. */
+const HASH_ROUTE_PATTERN: RegExp = /^#!?\//;
 
 export interface RecordedRoute {
   from: string;
   to: string;
   kind: "pushState" | "replaceState" | "popstate" | "hashchange";
+
+  /* Set on the single entry emitted when the per-session cap is hit. */
+  isCapMarker?: boolean;
 }
 
 export interface RouteRecorderOptions {
@@ -44,6 +72,13 @@ export interface RouteRecorderOptions {
    * module stays testable without rrweb and without a real DOM.
    */
   requestFullSnapshot: () => void;
+
+  /*
+   * Called ONCE per session when the cap first drops a route change, so the
+   * recorder can attach a fidelity notice to the chunk. Optional so the
+   * wiring can land independently of this module.
+   */
+  onCapReached?: (cap: number) => void;
 }
 
 type HistoryMethod = (
@@ -57,11 +92,16 @@ export default class RouteRecorder {
 
   private started: boolean = false;
   private recordedCount: number = 0;
+  private capReported: boolean = false;
   private lastForcedSnapshotAtMs: number = 0;
   private currentUrl: string = "";
 
   private originalPushState: HistoryMethod | null = null;
   private originalReplaceState: HistoryMethod | null = null;
+
+  /* The deferred snapshot in flight, so a burst of navigations takes one. */
+  private snapshotFrame: number | null = null;
+  private snapshotTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly popstateListener: () => void;
   private readonly hashchangeListener: () => void;
@@ -100,7 +140,7 @@ export default class RouteRecorder {
     const handleNavigation: (kind: RecordedRoute["kind"]) => void = (
       kind: RecordedRoute["kind"],
     ): void => {
-      this.handle(kind);
+      this.handle(kind, windowRef);
     };
 
     if (typeof pushState === "function") {
@@ -153,6 +193,17 @@ export default class RouteRecorder {
 
     windowRef.removeEventListener("popstate", this.popstateListener);
     windowRef.removeEventListener("hashchange", this.hashchangeListener);
+
+    this.cancelDeferredSnapshot(windowRef);
+  }
+
+  /*
+   * A rotated session starts with a fresh cap. The current URL is kept: the
+   * next change is still relative to where the user is.
+   */
+  public resetForNewSession(): void {
+    this.recordedCount = 0;
+    this.capReported = false;
   }
 
   /*
@@ -163,21 +214,23 @@ export default class RouteRecorder {
   public handle(kind: RecordedRoute["kind"], windowRef: Window = window): void {
     const rawUrl: string = windowRef.location.href;
 
-    const from: string = this.options.scrubUrl(this.currentUrl);
-    const to: string = this.options.scrubUrl(rawUrl);
+    const from: string = this.describe(this.currentUrl);
+    const to: string = this.describe(rawUrl);
 
     this.currentUrl = rawUrl;
 
     /*
      * Compared AFTER scrubbing, so a navigation that only changes a dropped
      * query parameter is not reported as a route change. The player would
-     * otherwise show a route lane full of identical entries.
+     * otherwise show a route lane full of identical entries. The scrubbed
+     * form keeps a hash ROUTE, so `#/a` -> `#/b` does compare as a change.
      */
     if (from === to) {
       return;
     }
 
     if (this.recordedCount >= MAX_ROUTES_RECORDED) {
+      this.reportCapOnce(kind, to);
       return;
     }
 
@@ -194,15 +247,148 @@ export default class RouteRecorder {
       MIN_MS_BETWEEN_FORCED_SNAPSHOTS
     ) {
       this.lastForcedSnapshotAtMs = atUnixMs;
-      this.options.requestFullSnapshot();
+      this.deferSnapshot(windowRef);
+    }
+  }
+
+  /*
+   * The first route change past the cap becomes ONE marker in the stream,
+   * so the route lane shows where recording stopped and why instead of
+   * simply ending. Emitted once per session.
+   */
+  private reportCapOnce(kind: RecordedRoute["kind"], to: string): void {
+    if (this.capReported) {
+      return;
+    }
+
+    this.capReported = true;
+
+    const marker: RecordedRoute = {
+      from: to,
+      to: to,
+      kind: kind,
+      isCapMarker: true,
+    };
+
+    this.options.emitCustomEvent(ROUTE_CUSTOM_EVENT_TAG, marker);
+
+    if (this.options.onCapReached) {
+      this.options.onCapReached(MAX_ROUTES_RECORDED);
+    }
+  }
+
+  /*
+   * The scrubbed URL plus, for a hash router, the scrubbed route inside the
+   * fragment. This is what is compared and what is stored.
+   */
+  private describe(rawUrl: string): string {
+    const scrubbed: string = this.options.scrubUrl(rawUrl);
+    const hashRoute: string = RouteRecorder.scrubHashRoute(rawUrl);
+
+    return hashRoute ? `${scrubbed}${hashRoute}` : scrubbed;
+  }
+
+  /*
+   * `#/orders/42?token=x` -> `#/orders/42`, with identifier-shaped segments
+   * redacted exactly as a real path's would be. Empty for a URL whose
+   * fragment is an in-page anchor or absent.
+   */
+  public static scrubHashRoute(rawUrl: string): string {
+    const hashIndex: number = rawUrl.indexOf("#");
+
+    if (hashIndex === -1) {
+      return "";
+    }
+
+    const hash: string = rawUrl.slice(hashIndex);
+
+    if (!HASH_ROUTE_PATTERN.test(hash)) {
+      return "";
+    }
+
+    const prefix: string = hash.startsWith("#!") ? "#!" : "#";
+    let route: string = hash.slice(prefix.length);
+
+    const queryIndex: number = route.indexOf("?");
+
+    if (queryIndex !== -1) {
+      route = route.slice(0, queryIndex);
+    }
+
+    return `${prefix}${UrlScrubber.scrubPath(route)}`;
+  }
+
+  /*
+   * Take the snapshot after the router has had a chance to commit: the next
+   * frame, then one macrotask after it. One in flight at a time; a burst of
+   * navigations inside the window produces one snapshot of wherever the
+   * burst ended.
+   */
+  private deferSnapshot(windowRef: Window): void {
+    if (this.snapshotFrame !== null || this.snapshotTimer !== null) {
+      return;
+    }
+
+    const afterFrame: () => void = (): void => {
+      this.snapshotFrame = null;
+
+      this.snapshotTimer = setTimeout((): void => {
+        this.snapshotTimer = null;
+
+        if (this.started) {
+          this.options.requestFullSnapshot();
+        }
+      }, 0);
+    };
+
+    const raf: unknown = (windowRef as unknown as Record<string, unknown>)[
+      "requestAnimationFrame"
+    ];
+
+    if (typeof raf === "function") {
+      try {
+        this.snapshotFrame = (raf as (callback: () => void) => number).call(
+          windowRef,
+          afterFrame,
+        );
+        return;
+      } catch {
+        /* Fall through to the timer-only path. */
+      }
+    }
+
+    this.snapshotTimer = setTimeout((): void => {
+      this.snapshotTimer = null;
+      afterFrame();
+    }, 0);
+  }
+
+  private cancelDeferredSnapshot(windowRef: Window): void {
+    if (this.snapshotFrame !== null) {
+      try {
+        windowRef.cancelAnimationFrame(this.snapshotFrame);
+      } catch {
+        /* A window without cancelAnimationFrame: the guard in the callback covers it. */
+      }
+
+      this.snapshotFrame = null;
+    }
+
+    if (this.snapshotTimer !== null) {
+      clearTimeout(this.snapshotTimer);
+      this.snapshotTimer = null;
     }
   }
 
   public getCurrentUrl(): string {
-    return this.options.scrubUrl(this.currentUrl);
+    return this.describe(this.currentUrl);
   }
 
   public getRecordedCount(): number {
     return this.recordedCount;
+  }
+
+  public hasReachedCap(): boolean {
+    return this.capReported;
   }
 }

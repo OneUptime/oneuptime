@@ -438,12 +438,25 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
       "errorClickCount",
       "refreshRageCount",
       "routeCount",
+      /*
+       * Engagement counters, added after the table shipped. Optional on
+       * the wire (SessionReplaySignalCounts) and read as 0 when absent, so
+       * they carry an explicit 0 default here: a row from an older
+       * recorder and a row that predates the column both mean "no clicks
+       * counted", and the manifest reports them only when measured.
+       */
+      "clickCount",
+      "customEventCount",
     ].map((key: string): AnalyticsTableColumn => {
+      const isEngagementCounter: boolean =
+        key === "clickCount" || key === "customEventCount";
+
       return new AnalyticsTableColumn({
         key: key,
         title: key,
         description: `Per-chunk ${key}, summed into the session header by the finalizer`,
         required: true,
+        ...(isEngagementCounter && { defaultValue: 0 }),
         type: TableColumnType.Number,
         codec: [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
         accessControl: chunkAccessControl,

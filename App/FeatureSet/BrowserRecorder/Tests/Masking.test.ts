@@ -22,6 +22,8 @@ describe("Masking", (): void => {
         "date",
         "datetime-local",
         "email",
+        "hidden",
+        "input",
         "month",
         "number",
         "password",
@@ -35,6 +37,17 @@ describe("Masking", (): void => {
         "url",
         "week",
       ]);
+    });
+
+    /*
+     * rrweb keys the table on tag names as well as input types
+     * (maskInputValue: `maskInputOptions[tagName] || maskInputOptions[type]`).
+     * The `input` entry is what reaches type="hidden" and every type rrweb
+     * has never heard of.
+     */
+    it("routes every input by tag name, and names hidden explicitly", (): void => {
+      expect(Masking.getMaskInputOptions().input).toBe(true);
+      expect(Masking.getMaskInputOptions().hidden).toBe(true);
     });
 
     it("has no creditcard key", (): void => {
@@ -61,24 +74,261 @@ describe("Masking", (): void => {
 
   describe("maskAllInputs", (): void => {
     /*
-     * True in every mode - including the one that lets ordinary values
-     * through. It does not mean "mask every input"; it means "route every
-     * input through maskInputFn", which is what lets Masking apply its own
-     * sticky per-node policy instead of rrweb's type-keyed one. Setting it
-     * false for MaskSensitiveInputsOnly would hand the decision back to
-     * rrweb and lose the show-password protection.
+     * FALSE in every mode, and the option table is what routes inputs.
+     *
+     * rrweb's record() discards the maskInputOptions it was handed whenever
+     * maskAllInputs is true and substitutes its own type-keyed table
+     * (rrweb.js:14279), which has no entry for type="hidden" or for the tag
+     * name. With `true`, hidden inputs never reached maskInputFn and their
+     * values - CSRF tokens, user ids, pre-filled emails - went out verbatim
+     * in every mode, MaskAllText included. With `false`, rrweb uses the
+     * table as given, whose `input` key matches every <input> by tag name,
+     * so every input still reaches maskInput and the sticky per-node policy
+     * still applies.
      */
     for (const mode of [
       SessionReplayMaskingMode.MaskInputsOnly,
       SessionReplayMaskingMode.MaskSensitiveInputsOnly,
       SessionReplayMaskingMode.MaskAllText,
     ]) {
-      it(`is true in ${mode} mode`, (): void => {
+      it(`is false in ${mode} mode, with the full option table alongside`, (): void => {
         const masking: Masking = new Masking(mode, []);
 
-        expect(masking.getRrwebMaskingOptions().maskAllInputs).toBe(true);
+        expect(masking.getRrwebMaskingOptions().maskAllInputs).toBe(false);
+        expect(masking.getRrwebMaskingOptions().maskInputOptions).toBe(
+          Masking.getMaskInputOptions(),
+        );
       });
     }
+  });
+
+  describe("hidden inputs", (): void => {
+    for (const mode of [
+      SessionReplayMaskingMode.MaskInputsOnly,
+      SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      SessionReplayMaskingMode.MaskAllText,
+    ]) {
+      it(`masks a hidden input's value in ${mode} mode`, (): void => {
+        const masking: Masking = new Masking(mode, []);
+        const input: HTMLInputElement = document.createElement("input");
+        input.setAttribute("type", "hidden");
+
+        expect(masking.maskInput("csrf-9f8e7d6c", input)).not.toContain(
+          "9f8e7d6c",
+        );
+      });
+    }
+
+    /* A hidden field later revealed must not start leaking what it held. */
+    it("is sticky: a hidden field mutated to text stays masked", (): void => {
+      const masking: Masking = new Masking(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        [],
+      );
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "hidden");
+
+      expect(masking.markIfSensitive(input)).toBe(true);
+
+      input.setAttribute("type", "text");
+
+      expect(masking.isSticky(input)).toBe(true);
+      expect(masking.maskInput("user-42@example.com", input)).not.toContain(
+        "example.com",
+      );
+      expect(
+        masking.sanitiseAttributeMutation(input, { value: "leaked" }),
+      ).toBeNull();
+    });
+
+    it("pre-marks hidden fields in the document", (): void => {
+      document.body.innerHTML = `
+        <input type="hidden" name="csrf" value="tok" />
+        <input type="text" id="plain" />
+      `;
+
+      const masking: Masking = maskAll();
+
+      expect(masking.markSensitiveFieldsIn(document)).toBe(1);
+    });
+  });
+
+  /*
+   * rrweb's maskTextFn sees text NODES only; attributes were serialised
+   * verbatim, so alt, title, aria-label, placeholder and mailto: hrefs all
+   * survived a MaskAllText recording.
+   */
+  describe("attribute masking under MaskAllText", (): void => {
+    it("masks the text-like attributes and leaves the structural ones", (): void => {
+      const masking: Masking = maskAll();
+
+      const masked: Record<string, unknown> = masking.maskAttributes("img", {
+        alt: "Alice Hartwell",
+        title: "alice@example.com",
+        src: "https://cdn.example.com/a.png?sig=abc",
+        class: "avatar",
+        "aria-label": "Profile photo of Alice",
+      });
+
+      expect(masked["alt"]).not.toContain("Alice");
+      expect(masked["title"]).not.toContain("alice");
+      expect(masked["aria-label"]).not.toContain("Alice");
+      expect(masked["src"]).toBe("https://cdn.example.com/a.png?sig=abc");
+      expect(masked["class"]).toBe("avatar");
+    });
+
+    it("masks a placeholder", (): void => {
+      expect(
+        Masking.maskAttributeValue("input", "placeholder", "Enter your SSN"),
+      ).not.toContain("SSN");
+    });
+
+    it("masks the value of an option but not of a progress bar", (): void => {
+      expect(
+        Masking.maskAttributeValue("option", "value", "alice@example.com"),
+      ).not.toContain("alice");
+      expect(Masking.maskAttributeValue("progress", "value", "70")).toBeNull();
+      expect(Masking.maskAttributeValue("input", "value", "x")).toBeNull();
+    });
+
+    it("keeps short data-* tokens that drive CSS and masks free text", (): void => {
+      expect(
+        Masking.maskAttributeValue("div", "data-state", "open"),
+      ).toBeNull();
+      expect(
+        Masking.maskAttributeValue("div", "data-id", "u_12345"),
+      ).toBeNull();
+      expect(
+        Masking.maskAttributeValue("div", "data-email", "alice@example.com"),
+      ).not.toContain("alice");
+      expect(
+        Masking.maskAttributeValue("div", "data-note", "Mum's maiden name"),
+      ).not.toContain("maiden");
+    });
+
+    it("redacts contact hrefs and scrubs navigational ones on links only", (): void => {
+      expect(
+        Masking.maskAttributeValue("a", "href", "mailto:alice@example.com"),
+      ).toBe("mailto:[redacted]");
+      expect(Masking.maskAttributeValue("a", "href", "tel:+15551234567")).toBe(
+        "tel:[redacted]",
+      );
+      expect(
+        Masking.maskAttributeValue(
+          "a",
+          "href",
+          "https://shop.example.com/users/alice@example.com?token=abc",
+        ),
+      ).toBe("https://shop.example.com/users/[redacted]");
+      expect(Masking.maskAttributeValue("a", "href", "#top")).toBeNull();
+      /* A stylesheet link is structural: the player needs it. */
+      expect(
+        Masking.maskAttributeValue(
+          "link",
+          "href",
+          "https://cdn.example.com/app.css?v=1",
+        ),
+      ).toBeNull();
+    });
+
+    it("blanks an inline srcdoc document", (): void => {
+      expect(
+        Masking.maskAttributeValue("iframe", "srcdoc", "<p>secret</p>"),
+      ).toBe("");
+    });
+
+    it("returns the same object when nothing needed masking", (): void => {
+      const masking: Masking = maskAll();
+      const attributes: Record<string, unknown> = { class: "a", id: "b" };
+
+      expect(masking.maskAttributes("div", attributes)).toBe(attributes);
+    });
+
+    it("does nothing in the other two modes", (): void => {
+      for (const mode of [
+        SessionReplayMaskingMode.MaskInputsOnly,
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      ]) {
+        const masking: Masking = new Masking(mode, []);
+        const attributes: Record<string, unknown> = { alt: "Alice" };
+
+        expect(masking.maskAttributes("img", attributes)).toBe(attributes);
+        expect(
+          masking.sanitiseEventData({ node: { type: 2, attributes } }),
+        ).toBe(0);
+      }
+    });
+
+    it("applies to attribute mutations on any node, sticky or not", (): void => {
+      const masking: Masking = maskAll();
+      const image: HTMLImageElement = document.createElement("img");
+
+      const sanitised: Record<string, unknown> | null =
+        masking.sanitiseAttributeMutation(image, {
+          alt: "Alice Hartwell",
+          src: "/a.png",
+        });
+
+      expect(sanitised?.["alt"]).not.toContain("Alice");
+      expect(sanitised?.["src"]).toBe("/a.png");
+    });
+
+    it("walks a serialised snapshot tree and the adds of a mutation", (): void => {
+      const masking: Masking = maskAll();
+
+      const snapshot: Record<string, unknown> = {
+        type: 0,
+        childNodes: [
+          {
+            type: 2,
+            tagName: "html",
+            attributes: {},
+            childNodes: [
+              {
+                type: 2,
+                tagName: "img",
+                attributes: { alt: "Alice Hartwell", src: "/a.png" },
+                childNodes: [],
+              },
+              {
+                type: 2,
+                tagName: "a",
+                attributes: {
+                  href: "mailto:alice@example.com",
+                  title: "Alice",
+                },
+                childNodes: [{ type: 3, textContent: "masked elsewhere" }],
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(masking.sanitiseEventData({ node: snapshot })).toBe(3);
+      expect(JSON.stringify(snapshot)).not.toContain("Alice");
+      expect(JSON.stringify(snapshot)).not.toContain("alice@example.com");
+      expect(JSON.stringify(snapshot)).toContain("/a.png");
+
+      const mutation: Record<string, unknown> = {
+        source: 0,
+        adds: [
+          {
+            parentId: 1,
+            nextId: null,
+            node: {
+              type: 2,
+              tagName: "input",
+              attributes: { placeholder: "Enter your SSN", type: "text" },
+              childNodes: [],
+            },
+          },
+        ],
+      };
+
+      expect(masking.sanitiseEventData(mutation)).toBe(1);
+      expect(JSON.stringify(mutation)).not.toContain("SSN");
+      expect(JSON.stringify(mutation)).toContain('"type":"text"');
+    });
   });
 
   describe("MaskSensitiveInputsOnly", (): void => {

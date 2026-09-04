@@ -129,6 +129,25 @@ const COUNTER_COLUMNS: Array<{
     title: "Page Count",
     description: "Distinct route changes observed in this session",
   },
+  /*
+   * Engagement counters. Optional on the wire (an older recorder omits
+   * them, the ingest reads absence as 0), summed per chunk by the
+   * finalizer exactly like the frustration counters above. clickCount is
+   * what the list's "41 clicks" cell and the player's activity heat read
+   * without decoding a chunk.
+   */
+  {
+    key: "clickCount",
+    title: "Click Count",
+    description:
+      "Labelled clicks (oneuptime.click events) across all chunks; capped per chunk by the recorder",
+  },
+  {
+    key: "customEventCount",
+    title: "Custom Event Count",
+    description:
+      "Host-page track() events (oneuptime.custom) across all chunks; capped per chunk by the recorder",
+  },
 ];
 
 /* Low-cardinality device / policy descriptors, all Set-indexed. */
@@ -415,6 +434,29 @@ export default class RumSession extends AnalyticsBaseModel {
           "Observed client-minus-server clock skew, positive when the device runs ahead",
         type: TableColumnType.LongNumber,
       },
+      /*
+       * Engagement aggregates written by the finalizer, both bounded by
+       * SESSION_REPLAY_MAX_SESSION_MS so Int64 (BigNumber) is ample; they
+       * default to 0 because a provisional header has not been measured
+       * yet and the list must not read a null. 0 is also the honest "none"
+       * for firstErrorOffsetMs: a session without errors has no first
+       * error, and the UI only offers "Watch from first error" when
+       * errorCount > 0.
+       */
+      {
+        key: "firstErrorOffsetMs",
+        title: "First Error Offset (ms)",
+        description:
+          "Timeline offset of the first chunk that carried an error, so the list can open playback just before it; 0 when the session has no errors",
+        type: TableColumnType.BigNumber,
+      },
+      {
+        key: "activeMs",
+        title: "Active (ms)",
+        description:
+          "Sum of chunk spans that carried user activity (eventCount >= SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS); durationMs minus this is idle time",
+        type: TableColumnType.BigNumber,
+      },
     ].map(
       (def: {
         key: string;
@@ -435,13 +477,33 @@ export default class RumSession extends AnalyticsBaseModel {
         const isWiderThan64Bits: boolean =
           def.type === TableColumnType.LongNumber;
 
+        /*
+         * BigNumber (Int64) is within T64's range, but the repo-wide codec
+         * test treats every 64-bit-and-wider type as off limits for T64 so
+         * a later widening cannot silently reintroduce the boot failure
+         * above. Plain ZSTD for both.
+         */
+        const isPlainZstd: boolean =
+          isWiderThan64Bits || def.type === TableColumnType.BigNumber;
+
+        /*
+         * The engagement aggregates were added after the table shipped and
+         * are back-filled by ADD COLUMN, so they carry an explicit 0
+         * default: rows written before the column existed read 0 (not
+         * measured is rendered by the API from isFinalized, never from
+         * these), and a provisional header that omits them inserts cleanly.
+         */
+        const isEngagementAggregate: boolean =
+          def.key === "firstErrorOffsetMs" || def.key === "activeMs";
+
         return new AnalyticsTableColumn({
           key: def.key,
           title: def.title,
           description: def.description,
           required: true,
+          ...(isEngagementAggregate && { defaultValue: 0 }),
           type: def.type,
-          codec: isWiderThan64Bits
+          codec: isPlainZstd
             ? { codec: "ZSTD", level: 1 }
             : [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
           accessControl: sessionAccessControl,
@@ -455,11 +517,21 @@ export default class RumSession extends AnalyticsBaseModel {
         title: string;
         description: string;
       }): AnalyticsTableColumn => {
+        /*
+         * The engagement counters were added by ADD COLUMN after the table
+         * shipped; an explicit 0 default makes every pre-existing row and
+         * every older-recorder header read as "no clicks counted" rather
+         * than failing the insert.
+         */
+        const isEngagementCounter: boolean =
+          def.key === "clickCount" || def.key === "customEventCount";
+
         return new AnalyticsTableColumn({
           key: def.key,
           title: def.title,
           description: def.description,
           required: true,
+          ...(isEngagementCounter && { defaultValue: 0 }),
           type: TableColumnType.Number,
           codec: [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
           accessControl: sessionAccessControl,
@@ -650,6 +722,48 @@ export default class RumSession extends AnalyticsBaseModel {
         codec: { codec: "ZSTD", level: 1 },
         accessControl: identityAccessControl,
       });
+
+    /*
+     * Traits the host page attached through identify(ref, traits): plan,
+     * role, tenant. They describe the PERSON, so they sit under the same
+     * narrow identity ACL as identifiedUserLabel and are only written when
+     * the application has user-identity capture on - a separate column
+     * rather than entries in `attributes` precisely so the wider session
+     * ACL can never read them. Capped at SESSION_REPLAY_MAX_TRAIT_KEYS
+     * entries on both sides of the wire. No mapKeysColumn: the only reader
+     * is the bespoke argMax endpoint, which never filters on trait keys.
+     */
+    const identifiedUserTraitsColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "identifiedUserTraits",
+        title: "Identified User Traits",
+        description:
+          "Traits supplied by identify(); only populated when user-identity capture is on, and readable under the same narrower ACL as identifiedUserLabel.",
+        required: true,
+        defaultValue: {},
+        type: TableColumnType.MapStringString,
+        codec: { codec: "ZSTD", level: 3 },
+        accessControl: identityAccessControl,
+      });
+
+    /*
+     * Per-session tags from setTags()/addTag(): build id, experiment arm,
+     * customer tier. They describe the SESSION, not the person, so they
+     * live under the ordinary session ACL and back the list's
+     * tag:key=value search (a HAVING predicate over argMax, hence no skip
+     * index and no mapKeysColumn). Capped at SESSION_REPLAY_MAX_TAG_KEYS.
+     */
+    const tagsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "tags",
+      title: "Tags",
+      description:
+        "Session tags supplied by the host page through setTags()/addTag(); searchable from the session list",
+      required: true,
+      defaultValue: {},
+      type: TableColumnType.MapStringString,
+      codec: { codec: "ZSTD", level: 3 },
+      accessControl: sessionAccessControl,
+    });
 
     /*
      * Reverse-direction correlation. Populated by the finalizer from a
@@ -900,6 +1014,8 @@ export default class RumSession extends AnalyticsBaseModel {
         countryCodeColumn,
         identifiedUserKeyColumn,
         identifiedUserLabelColumn,
+        identifiedUserTraitsColumn,
+        tagsColumn,
         ...correlationArrayColumns,
         fidelityNoticesColumn,
         fullSnapshotChunkIndexesColumn,

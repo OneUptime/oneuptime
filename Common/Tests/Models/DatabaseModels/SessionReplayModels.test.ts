@@ -166,14 +166,21 @@ describe("RumApplication session replay configuration", () => {
     }
   });
 
-  it("is enabled by default, and still captures nothing until something happens", () => {
+  it("is enabled by default and records every session out of the box", () => {
     /*
-     * Recording is on out of the box. The thing that keeps that from meaning
-     * "record everyone continuously" is the capture trigger below: sampling
-     * stays at 0, so a session is only uploaded when it actually goes wrong.
+     * Recording is on out of the box AND sampling is 100%. The previous
+     * defaults (sample 0%, upload only on error or frustration) were the
+     * exact configuration behind issues #3527 / #3601: a customer installed
+     * the recorder, watched it buffer forever, and concluded the product was
+     * broken because a quiet day looks identical to a dead one. A customer
+     * who configures NOTHING must see a recording of their very first
+     * session; sampling down is a deliberate, visible choice made later.
+     *
+     * This test is a tripwire: a regression back to record-nothing defaults
+     * has to change this expectation and say why in the same commit.
      */
     expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(true);
-    expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(0);
+    expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(100);
   });
 
   it("pins the shipped privacy defaults", () => {
@@ -204,8 +211,15 @@ describe("RumApplication session replay configuration", () => {
     expect(getColumn("sessionReplayConsentMode").defaultValue).toBe(
       SessionReplayConsentMode.NotRequired,
     );
+    /*
+     * Always, not OnErrorOrFrustration: with sampling at 100% (asserted
+     * above) the trigger is what decides whether a healthy session is ever
+     * uploaded, and "only broken sessions" made a working install look
+     * dead. The error/frustration trigger remains available per
+     * application for customers who want to trade coverage for bytes.
+     */
     expect(getColumn("sessionReplayCaptureTrigger").defaultValue).toBe(
-      SessionReplayCaptureTrigger.OnErrorOrFrustration,
+      SessionReplayCaptureTrigger.Always,
     );
     /*
      * Identity and country capture are ON, so a support engineer can find

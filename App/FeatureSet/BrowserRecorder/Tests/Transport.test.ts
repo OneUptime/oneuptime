@@ -1,4 +1,5 @@
 import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
   SESSION_REPLAY_CONTENT_TYPE,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SessionReplayChunkEnvelope,
@@ -7,7 +8,10 @@ import {
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import Chunker from "../src/Chunker";
-import Transport, { CompressionResult } from "../src/Transport";
+import Transport, {
+  CompressionResult,
+  RETRY_BACKOFF_MS,
+} from "../src/Transport";
 
 describe("Transport", (): void => {
   const envelope: SessionReplayChunkEnvelope = {
@@ -40,25 +44,42 @@ describe("Transport", (): void => {
   };
 
   let directives: Array<SessionReplayDirective> = [];
+  let directiveReasons: Array<string | null> = [];
   let permanentFailures: Array<string> = [];
+
+  /*
+   * Every transport built in a test is disposed afterwards, because a
+   * retryable failure arms a real setTimeout that would otherwise outlive
+   * the test.
+   */
+  let transports: Array<Transport> = [];
 
   const makeTransport: () => Transport = (): Transport => {
     directives = [];
+    directiveReasons = [];
     permanentFailures = [];
 
-    return new Transport({
+    const transport: Transport = new Transport({
       url: "https://oneuptime.com/session-replay/v1/chunk",
       headers: {
         "x-oneuptime-token": "secret",
         "x-oneuptime-app-identifier": "app-1",
       },
-      onDirective: (directive: SessionReplayDirective): void => {
+      onDirective: (
+        directive: SessionReplayDirective,
+        reason: string | null,
+      ): void => {
         directives.push(directive);
+        directiveReasons.push(reason);
       },
       onPermanentFailure: (reason: string): void => {
         permanentFailures.push(reason);
       },
     });
+
+    transports.push(transport);
+
+    return transport;
   };
 
   const respond: (
@@ -83,17 +104,55 @@ describe("Transport", (): void => {
     } as unknown as Response;
   };
 
+  const globalRecord: Record<string, unknown> = globalThis as unknown as Record<
+    string,
+    unknown
+  >;
+
+  const envelopeAt: (index: number) => SessionReplayChunkEnvelope = (
+    index: number,
+  ): SessionReplayChunkEnvelope => {
+    return { ...envelope, chunkIndex: index };
+  };
+
+  /*
+   * Split a multi-frame body back into its envelopes, the way the server's
+   * parser does: an envelope line, then exactly payloadBytes of payload.
+   */
+  const framesOf: (body: Uint8Array) => Array<SessionReplayChunkEnvelope> = (
+    body: Uint8Array,
+  ): Array<SessionReplayChunkEnvelope> => {
+    const frames: Array<SessionReplayChunkEnvelope> = [];
+    let offset: number = 0;
+
+    while (offset < body.length) {
+      const newlineIndex: number = body.indexOf(0x0a, offset);
+
+      const parsed: SessionReplayChunkEnvelope = JSON.parse(
+        new TextDecoder().decode(body.slice(offset, newlineIndex)),
+      ) as SessionReplayChunkEnvelope;
+
+      frames.push(parsed);
+      offset = newlineIndex + 1 + parsed.payloadBytes;
+    }
+
+    return frames;
+  };
+
   afterEach((): void => {
+    for (const transport of transports) {
+      transport.discardQueue();
+    }
+
+    transports = [];
+
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
   describe("compress", (): void => {
     it("gzips when CompressionStream exists", async (): Promise<void> => {
-      if (
-        typeof (globalThis as unknown as Record<string, unknown>)[
-          "CompressionStream"
-        ] !== "function"
-      ) {
+      if (typeof globalRecord["CompressionStream"] !== "function") {
         /*
          * jsdom has no CompressionStream, which is exactly the fallback path
          * asserted below. The gzip branch is exercised by the E2E fixtures.
@@ -111,8 +170,6 @@ describe("Transport", (): void => {
      * vocabulary is gzip-or-none, so deflate bytes would be stored as garbage.
      */
     it("falls back to identity, never deflate", async (): Promise<void> => {
-      const globalRecord: Record<string, unknown> =
-        globalThis as unknown as Record<string, unknown>;
       const original: unknown = globalRecord["CompressionStream"];
 
       delete globalRecord["CompressionStream"];
@@ -136,8 +193,6 @@ describe("Transport", (): void => {
      * treats it as a reason to start uploading.
      */
     it("never leaks an unhandled rejection when the stream errors", async (): Promise<void> => {
-      const globalRecord: Record<string, unknown> =
-        globalThis as unknown as Record<string, unknown>;
       const original: unknown = globalRecord["CompressionStream"];
 
       const rejections: Array<unknown> = [];
@@ -222,7 +277,7 @@ describe("Transport", (): void => {
         .fn()
         .mockResolvedValue(respond(202, '{"directive":"continue"}'));
 
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const transport: Transport = makeTransport();
 
@@ -243,12 +298,43 @@ describe("Transport", (): void => {
     });
 
     /*
-     * Content-Encoding must be truthful. Claiming gzip on identity bytes makes
-     * the worker hand garbage to gunzip.
+     * No Content-Encoding header, in either encoding. The body is
+     * `<envelope JSON>\n<payload>` and only the payload is gzipped, so a
+     * "Content-Encoding: gzip" header described a body that is not gzip. The
+     * server never read it (the envelope's payloadEncoding is what the parser
+     * branches on), but any proxy or CDN that honours the header would try
+     * to inflate the envelope line and reject or corrupt every chunk.
      */
+    it("never sends Content-Encoding, even when the payload is gzipped", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      await makeTransport().send(envelope, "[{}]");
+
+      const init: Record<string, unknown> = fetchMock.mock
+        .calls[0]?.[1] as Record<string, unknown>;
+      const headers: Record<string, string> = init["headers"] as Record<
+        string,
+        string
+      >;
+
+      expect(headers["Content-Encoding"]).toBeUndefined();
+      expect(headers["content-encoding"]).toBeUndefined();
+
+      /* The envelope, not a header, is where the encoding is declared. */
+      const sent: Array<SessionReplayChunkEnvelope> = framesOf(
+        init["body"] as Uint8Array,
+      );
+
+      expect(sent).toHaveLength(1);
+      expect(["gzip", "identity"]).toContain(sent[0]?.payloadEncoding);
+
+      if (typeof globalRecord["CompressionStream"] === "function") {
+        expect(sent[0]?.payloadEncoding).toBe("gzip");
+      }
+    });
+
     it("omits Content-Encoding when the payload was not compressed", async (): Promise<void> => {
-      const globalRecord: Record<string, unknown> =
-        globalThis as unknown as Record<string, unknown>;
       const originalCompression: unknown = globalRecord["CompressionStream"];
 
       delete globalRecord["CompressionStream"];
@@ -273,7 +359,7 @@ describe("Transport", (): void => {
     });
 
     it("reports the stop directive so a live recorder shuts down", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+      globalRecord["fetch"] = jest
         .fn()
         .mockResolvedValue(respond(204, '{"directive":"stop"}'));
 
@@ -286,9 +372,7 @@ describe("Transport", (): void => {
   describe("error handling", (): void => {
     it("permanently disables on 401 and 403", async (): Promise<void> => {
       for (const status of [401, 403]) {
-        (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
-          .fn()
-          .mockResolvedValue(respond(status));
+        globalRecord["fetch"] = jest.fn().mockResolvedValue(respond(status));
 
         const transport: Transport = makeTransport();
 
@@ -303,9 +387,7 @@ describe("Transport", (): void => {
      * not push the circuit breaker toward self-disabling.
      */
     it("drops a 413 chunk without counting a transport failure", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
-        .fn()
-        .mockResolvedValue(respond(413));
+      globalRecord["fetch"] = jest.fn().mockResolvedValue(respond(413));
 
       const transport: Transport = makeTransport();
 
@@ -319,7 +401,7 @@ describe("Transport", (): void => {
     });
 
     it("throttles on 429 using Retry-After and does not count a failure", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+      globalRecord["fetch"] = jest
         .fn()
         .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
 
@@ -331,28 +413,93 @@ describe("Transport", (): void => {
       expect(transport.getQueueDepth()).toBe(1);
     });
 
-    it("self-disables after three consecutive retryable failures", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+    /*
+     * The server answers 503 with directive "throttle" and retryAfterSeconds
+     * when ITS storage is briefly unavailable (staging-failed,
+     * policy-unavailable, rate-counter-unavailable...). It is asking for
+     * patience, and the shipped recorder counted every one of those answers
+     * as a strike: three storage blips inside 45 s and every live recorder
+     * was dead for the rest of its page's life.
+     */
+    it("honours a 503 throttle with retryAfterSeconds instead of counting a strike", async (): Promise<void> => {
+      jest.useFakeTimers();
+      jest.setSystemTime(1_700_000_000_000);
+
+      globalRecord["fetch"] = jest
         .fn()
-        .mockResolvedValue(respond(503));
+        .mockResolvedValue(
+          respond(
+            503,
+            '{"directive":"throttle","configEpoch":3,"retryAfterSeconds":30,"reason":"staging-failed"}',
+            { "retry-after": "30" },
+          ),
+        );
+
+      const transport: Transport = makeTransport();
+
+      expect(await transport.send(envelope, "[{}]")).toBe(false);
+
+      expect(transport.getFlushFailureCount()).toBe(0);
+      expect(transport.isDisabled()).toBe(false);
+      expect(transport.isThrottled()).toBe(true);
+      expect(transport.isThrottled(Date.now() + 30_001)).toBe(false);
+      expect(transport.getQueueDepth()).toBe(1);
+      expect(transport.getRetryDueAtUnixMs()).toBe(Date.now() + 30_000);
+
+      /* The recorder is told, in the server's own words. */
+      expect(directives).toEqual(["throttle"]);
+      expect(directiveReasons).toEqual(["staging-failed"]);
+    });
+
+    it("treats a 503 with only a Retry-After header as a throttle too", async (): Promise<void> => {
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(503, "", { "retry-after": "20" }));
 
       const transport: Transport = makeTransport();
 
       await transport.send(envelope, "[{}]");
+
+      expect(transport.getFlushFailureCount()).toBe(0);
+      expect(transport.isThrottled()).toBe(true);
+      expect(transport.getQueueDepth()).toBe(1);
+    });
+
+    /*
+     * Three CONSECUTIVE retryable failures, where consecutive means "after
+     * the previous one's backoff ran out and the retry failed again" - not
+     * three flush ticks that happened to land inside one short outage.
+     */
+    it("self-disables after three retryable failures across the backoff windows", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest.fn().mockResolvedValue(respond(503));
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(0), "[{}]");
+      expect(transport.getFlushFailureCount()).toBe(1);
+      expect(transport.isBackingOff()).toBe(true);
+
+      /* A second chunk during the backoff waits; it is not a second strike. */
+      await transport.send(envelopeAt(1), "[{}]");
+      expect(transport.getFlushFailureCount()).toBe(1);
+      expect(transport.getQueueDepth()).toBe(2);
+
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[0]!);
+      expect(transport.getFlushFailureCount()).toBe(2);
       expect(transport.isDisabled()).toBe(false);
 
-      await transport.send(envelope, "[{}]");
-      await transport.send(envelope, "[{}]");
-
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[1]!);
+      expect(transport.getFlushFailureCount()).toBe(3);
       expect(transport.isDisabled()).toBe(true);
       expect(transport.getDisabledReason()).toBe("max-flush-failures");
       expect(permanentFailures).toEqual(["max-flush-failures"]);
     });
 
     it("counts a network rejection as retryable", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
-        .fn()
-        .mockRejectedValue(new Error("offline"));
+      globalRecord["fetch"] = jest.fn().mockRejectedValue(new Error("offline"));
 
       const transport: Transport = makeTransport();
 
@@ -360,6 +507,95 @@ describe("Transport", (): void => {
 
       expect(transport.getFlushFailureCount()).toBe(1);
       expect(transport.getQueueDepth()).toBe(1);
+      expect(transport.isBackingOff()).toBe(true);
+    });
+
+    /*
+     * The recorder fires send() from a 15 s timer without awaiting the
+     * previous call. Two posts in flight during one outage used to add two
+     * strikes to a three-strike breaker; serialising them means one attempt,
+     * one strike, and the other chunks wait in the queue.
+     */
+    it("serialises concurrent sends so one outage is one strike", async (): Promise<void> => {
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest.fn().mockRejectedValue(new Error("offline"));
+
+      const transport: Transport = makeTransport();
+
+      const results: Array<boolean> = await Promise.all([
+        transport.send(envelopeAt(0), "[{}]"),
+        transport.send(envelopeAt(1), "[{}]"),
+        transport.send(envelopeAt(2), "[{}]"),
+      ]);
+
+      expect(results).toEqual([false, false, false]);
+      expect(transport.getFlushFailureCount()).toBe(1);
+      expect(transport.getQueueDepth()).toBe(3);
+      expect(transport.isDisabled()).toBe(false);
+    });
+
+    /*
+     * A quiet page's last chunk used to fail once and never be retried,
+     * because the only drain was the NEXT send and no next chunk ever came.
+     */
+    it("retries a failed chunk on its own timer, without a later send", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValue(respond(202));
+
+      globalRecord["fetch"] = fetchMock;
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(7), "[{}]");
+
+      expect(transport.getQueueDepth()).toBe(1);
+      expect(transport.getRetryDueAtUnixMs()).toBe(
+        Date.now() + RETRY_BACKOFF_MS[0]!,
+      );
+
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[0]!);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getFlushFailureCount()).toBe(0);
+      expect(transport.isBackingOff()).toBe(false);
+      expect(transport.getRetryDueAtUnixMs()).toBe(0);
+
+      const retried: Array<SessionReplayChunkEnvelope> = framesOf(
+        fetchMock.mock.calls[1]?.[1]?.body as Uint8Array,
+      );
+
+      expect(retried[0]?.chunkIndex).toBe(7);
+      expect(retried[0]?.flushFailures).toBe(1);
+    });
+
+    it("resumes on its own once a throttle window ends", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockResolvedValueOnce(respond(429, "", { "retry-after": "10" }))
+        .mockResolvedValue(respond(202));
+
+      globalRecord["fetch"] = fetchMock;
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(0), "[{}]");
+      expect(transport.getQueueDepth()).toBe(1);
+
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.isThrottled()).toBe(false);
     });
 
     /*
@@ -369,25 +605,33 @@ describe("Transport", (): void => {
      * drops the buffer" contract used to hold for the ring buffer and not for
      * the part already handed to the transport.
      */
-    it("drops queued chunks on discardQueue", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
-        .fn()
-        .mockRejectedValue(new Error("offline"));
+    it("drops queued chunks on discardQueue and cancels the retry", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest.fn().mockRejectedValue(new Error("offline"));
 
       const transport: Transport = makeTransport();
 
       await transport.send(envelope, '[{"secret":"page content"}]');
 
       expect(transport.getQueueDepth()).toBe(1);
+      expect(transport.getRetryDueAtUnixMs()).toBeGreaterThan(0);
 
       transport.discardQueue();
 
       expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getRetryDueAtUnixMs()).toBe(0);
 
-      /* And nothing resurrects it: the next send posts only its own chunk. */
+      /* And nothing resurrects it: the timer is gone... */
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[0]! * 2);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      /* ...and the next send posts only its own chunk. */
       await transport.send(envelope, "[{}]");
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -399,26 +643,30 @@ describe("Transport", (): void => {
     });
 
     it("resets the failure count after a success", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
       const fetchMock: jest.Mock = jest
         .fn()
         .mockResolvedValueOnce(respond(503))
         .mockResolvedValue(respond(202));
 
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const transport: Transport = makeTransport();
 
-      await transport.send(envelope, "[{}]");
+      await transport.send(envelopeAt(0), "[{}]");
       expect(transport.getFlushFailureCount()).toBe(1);
 
-      await transport.send(envelope, "[{}]");
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[0]!);
+      expect(transport.getFlushFailureCount()).toBe(0);
+
+      expect(await transport.send(envelopeAt(1), "[{}]")).toBe(true);
       expect(transport.getFlushFailureCount()).toBe(0);
     });
 
     it("stops accepting chunks once disabled", async (): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
-        .fn()
-        .mockResolvedValue(respond(401));
+      globalRecord["fetch"] = jest.fn().mockResolvedValue(respond(401));
 
       const transport: Transport = makeTransport();
 
@@ -429,13 +677,134 @@ describe("Transport", (): void => {
     });
   });
 
-  describe("retry-queue drain", (): void => {
-    const envelopeAt: (index: number) => SessionReplayChunkEnvelope = (
-      index: number,
-    ): SessionReplayChunkEnvelope => {
-      return { ...envelope, chunkIndex: index };
+  /*
+   * A 400 is the server saying "I understood you and the answer is no". When
+   * the answer is about the RECORDER - its wire version, the application it
+   * claims to be - every later chunk gets the same answer, and a recorder
+   * that records, compresses and posts every 15 s to be refused each time is
+   * battery and bandwidth spent on a customer's site for nothing.
+   */
+  describe("deterministic refusals", (): void => {
+    const assertStopsFor: (error: string) => Promise<void> = async (
+      error: string,
+    ): Promise<void> => {
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockResolvedValue(
+          respond(400, JSON.stringify({ error: error, message: "no" })),
+        );
+
+      globalRecord["fetch"] = fetchMock;
+
+      const transport: Transport = makeTransport();
+
+      expect(await transport.send(envelope, "[{}]")).toBe(false);
+      expect(transport.isDisabled()).toBe(true);
+      expect(transport.getDisabledReason()).toBe(`http-400:${error}`);
+      expect(permanentFailures).toEqual([`http-400:${error}`]);
+      expect(transport.getFlushFailureCount()).toBe(0);
+      expect(transport.getQueueDepth()).toBe(0);
+
+      /* Not retried, and later chunks never leave the page. */
+      await transport.send(envelope, "[{}]");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     };
 
+    it.each([
+      "unsupported-wire-version",
+      "app-identifier-mismatch",
+      "missing-app-identifier",
+      "malformed-body",
+    ])(
+      "stops for good on a 400 naming %s",
+      async (error: string): Promise<void> => {
+        await assertStopsFor(error);
+      },
+    );
+
+    it("acts on a stop directive carried by a 4xx body", async (): Promise<void> => {
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(
+          respond(400, '{"directive":"stop","reason":"not-enabled"}'),
+        );
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelope, "[{}]");
+
+      expect(directives).toEqual(["stop"]);
+      expect(directiveReasons).toEqual(["not-enabled"]);
+      expect(transport.getFlushFailureCount()).toBe(0);
+    });
+
+    /*
+     * A 400 that names nothing the recorder can act on is forgiven once - a
+     * single odd frame - but an unbroken run of them is a misconfiguration
+     * the server will keep answering, so the recorder stops rather than
+     * posting into it for the rest of the page's life.
+     */
+    it("stops after three consecutive unexplained 400s", async (): Promise<void> => {
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(400, '{"error":"truncated-payload"}'));
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(0), "[{}]");
+      await transport.send(envelopeAt(1), "[{}]");
+
+      expect(transport.isDisabled()).toBe(false);
+      expect(transport.getDroppedChunkCount()).toBe(2);
+
+      await transport.send(envelopeAt(2), "[{}]");
+
+      expect(transport.isDisabled()).toBe(true);
+      expect(transport.getDisabledReason()).toBe("http-400-repeated");
+      /* Still not a transport failure: the breaker's own count is untouched. */
+      expect(transport.getFlushFailureCount()).toBe(0);
+    });
+
+    it("an accepted chunk resets the run of 400s", async (): Promise<void> => {
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValueOnce(respond(400))
+        .mockResolvedValueOnce(respond(400))
+        .mockResolvedValueOnce(respond(202))
+        .mockResolvedValueOnce(respond(400))
+        .mockResolvedValueOnce(respond(400));
+
+      const transport: Transport = makeTransport();
+
+      for (let index: number = 0; index < 5; index++) {
+        await transport.send(envelopeAt(index), "[{}]");
+      }
+
+      expect(transport.isDisabled()).toBe(false);
+      expect(transport.getDroppedChunkCount()).toBe(4);
+    });
+
+    it("a 413 or 422 never counts toward the run of 400s", async (): Promise<void> => {
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValueOnce(respond(400))
+        .mockResolvedValueOnce(respond(413))
+        .mockResolvedValueOnce(respond(422))
+        .mockResolvedValueOnce(respond(400))
+        .mockResolvedValueOnce(respond(413));
+
+      const transport: Transport = makeTransport();
+
+      for (let index: number = 0; index < 5; index++) {
+        await transport.send(envelopeAt(index), "[{}]");
+      }
+
+      expect(transport.isDisabled()).toBe(false);
+      expect(transport.getDroppedChunkCount()).toBe(5);
+    });
+  });
+
+  describe("retry-queue drain", (): void => {
     /*
      * Loads the retry queue without counting breaker failures: a 429
      * enqueues the refused chunk and throttles, and every send during the
@@ -450,7 +819,7 @@ describe("Transport", (): void => {
       count: number,
       nowRef: { nowMs: number },
     ): Promise<void> => {
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+      globalRecord["fetch"] = jest
         .fn()
         .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
 
@@ -476,7 +845,7 @@ describe("Transport", (): void => {
       return nowRef;
     };
 
-    it("a retryable failure mid-drain preserves every unposted chunk behind it", async (): Promise<void> => {
+    it("a retryable failure mid-drain preserves every unposted chunk, and the current one", async (): Promise<void> => {
       const nowRef: { nowMs: number } = withMockedNow();
       const transport: Transport = makeTransport();
 
@@ -487,18 +856,44 @@ describe("Transport", (): void => {
         .fn()
         .mockResolvedValueOnce(respond(503))
         .mockResolvedValue(respond(202));
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const sent: boolean = await transport.send(envelopeAt(3), "[{}]");
 
-      /* Only chunk 0 (halt) and the current chunk 3 hit the network. */
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(sent).toBe(true);
+      /*
+       * Exactly ONE request: the drained chunk that failed. The current
+       * chunk is not posted straight into the same outage - that would be a
+       * second attempt, and a second strike, for one failure.
+       */
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(sent).toBe(false);
 
-      /* Chunks 0, 1 and 2 are all back in the queue, none dropped. */
-      expect(transport.getQueueDepth()).toBe(3);
+      /* Chunks 0, 1, 2 and 3 are all in the queue in order, none dropped. */
+      expect(transport.getQueueDepth()).toBe(4);
       expect(transport.getDroppedChunkCount()).toBe(0);
       expect(transport.isDisabled()).toBe(false);
+      expect(transport.getFlushFailureCount()).toBe(1);
+
+      /* Once the backoff passes, a later send drains them all, in order. */
+      nowRef.nowMs += RETRY_BACKOFF_MS[0]! + 1;
+
+      await transport.send(envelopeAt(4), "[{}]");
+
+      expect(fetchMock).toHaveBeenCalledTimes(6);
+
+      const indexes: Array<number> = fetchMock.mock.calls
+        .slice(1)
+        .map((call: Array<unknown>): number => {
+          const init: Record<string, unknown> = call[1] as Record<
+            string,
+            unknown
+          >;
+
+          return framesOf(init["body"] as Uint8Array)[0]?.chunkIndex ?? -1;
+        });
+
+      expect(indexes).toEqual([0, 1, 2, 3, 4]);
+      expect(transport.getQueueDepth()).toBe(0);
     });
 
     it("a rejected CHUNK mid-drain is dropped alone and the drain continues", async (): Promise<void> => {
@@ -512,7 +907,7 @@ describe("Transport", (): void => {
         .fn()
         .mockResolvedValueOnce(respond(413))
         .mockResolvedValue(respond(202));
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const sent: boolean = await transport.send(envelopeAt(3), "[{}]");
 
@@ -533,7 +928,7 @@ describe("Transport", (): void => {
       const fetchMock: jest.Mock = jest
         .fn()
         .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const sent: boolean = await transport.send(envelopeAt(1), "[{}]");
 
@@ -558,7 +953,7 @@ describe("Transport", (): void => {
 
       /* Auth breaks while chunks 0 and 1 are queued: 401 disables at once. */
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(401));
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const sent: boolean = await transport.send(envelopeAt(2), "[{}]");
 
@@ -573,6 +968,41 @@ describe("Transport", (): void => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(transport.getQueueDepth()).toBe(0);
       expect(transport.getDroppedChunkCount()).toBe(2);
+    });
+
+    it("gives up on one chunk that keeps failing without giving up on the rest", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      /*
+       * Chunk 0 fails twice, then the network heals for everything - the
+       * drain after the second backoff retries chunk 0 a third time and
+       * succeeds. The point: attempts are per chunk, strikes are per outage,
+       * and a chunk that comes good is never dropped early.
+       */
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValue(respond(202));
+
+      globalRecord["fetch"] = fetchMock;
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(0), "[{}]");
+      await transport.send(envelopeAt(1), "[{}]");
+
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[0]!);
+      expect(transport.getFlushFailureCount()).toBe(2);
+      expect(transport.getQueueDepth()).toBe(2);
+
+      await jest.advanceTimersByTimeAsync(RETRY_BACKOFF_MS[1]!);
+
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getFlushFailureCount()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(0);
+      expect(transport.isDisabled()).toBe(false);
     });
   });
 
@@ -602,7 +1032,7 @@ describe("Transport", (): void => {
     it("uses one keepalive fetch with the auth header", (): void => {
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
 
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       expect(makeTransport().sendTerminal(envelope, "[{}]")).toBe(true);
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -624,7 +1054,7 @@ describe("Transport", (): void => {
     it("declares identity encoding on the envelope it sends", (): void => {
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
 
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       makeTransport().sendTerminal(envelope, "[{}]");
 
@@ -650,13 +1080,135 @@ describe("Transport", (): void => {
     it("drops rather than exceed the keepalive byte cap", (): void => {
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
 
-      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+      globalRecord["fetch"] = fetchMock;
 
       const transport: Transport = makeTransport();
       const huge: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`;
 
       expect(transport.sendTerminal(envelope, huge)).toBe(false);
       expect(fetchMock).not.toHaveBeenCalled();
+      expect(transport.getDroppedChunkCount()).toBe(1);
+    });
+
+    /*
+     * Chunks waiting for a retry when the page goes away used to go away
+     * with it: sendTerminal never looked at the queue, and stop() discarded
+     * it. The page's last request can carry several frames, so they ride
+     * along - as many as fit under the quota, oldest first.
+     */
+    it("carries the retry queue out as extra frames of the final request", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelopeAt(4), '[{"i":4}]');
+      await transport.send(envelopeAt(5), '[{"i":5}]');
+
+      expect(transport.getQueueDepth()).toBe(2);
+
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      expect(
+        transport.sendTerminal({ ...envelopeAt(6), isFinal: true }, "[{}]"),
+      ).toBe(true);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const init: Record<string, unknown> = fetchMock.mock
+        .calls[0]?.[1] as Record<string, unknown>;
+
+      expect(init["keepalive"]).toBe(true);
+
+      const frames: Array<SessionReplayChunkEnvelope> = framesOf(
+        init["body"] as Uint8Array,
+      );
+
+      expect(
+        frames.map((frame: SessionReplayChunkEnvelope): number => {
+          return frame.chunkIndex;
+        }),
+      ).toEqual([4, 5, 6]);
+      expect(frames[2]?.isFinal).toBe(true);
+      expect(
+        frames.every((frame: SessionReplayChunkEnvelope): boolean => {
+          return frame.payloadEncoding === "identity";
+        }),
+      ).toBe(true);
+
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(0);
+      expect(transport.getRetryDueAtUnixMs()).toBe(0);
+    });
+
+    it("drops and counts queued chunks that do not fit under the quota, keeping the final one", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+      const transport: Transport = makeTransport();
+      const big: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 200)}]`;
+
+      await transport.send(envelopeAt(1), big);
+      await transport.send(envelopeAt(2), '[{"i":2}]');
+
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      expect(transport.sendTerminal(envelopeAt(3), "[{}]")).toBe(true);
+
+      const init: Record<string, unknown> = fetchMock.mock
+        .calls[0]?.[1] as Record<string, unknown>;
+      const body: Uint8Array = init["body"] as Uint8Array;
+
+      expect(body.length).toBeLessThanOrEqual(
+        SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+      );
+      expect(
+        framesOf(body).map((frame: SessionReplayChunkEnvelope): number => {
+          return frame.chunkIndex;
+        }),
+      ).toEqual([2, 3]);
+      expect(transport.getDroppedChunkCount()).toBe(1);
+    });
+
+    it("never packs more frames than one request may carry", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+      const transport: Transport = makeTransport();
+
+      for (
+        let index: number = 0;
+        index < MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST;
+        index++
+      ) {
+        await transport.send(envelopeAt(index), "[]");
+      }
+
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      transport.sendTerminal(envelopeAt(99), "[]");
+
+      const init: Record<string, unknown> = fetchMock.mock
+        .calls[0]?.[1] as Record<string, unknown>;
+
+      expect(framesOf(init["body"] as Uint8Array).length).toBe(
+        MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
+      );
       expect(transport.getDroppedChunkCount()).toBe(1);
     });
   });

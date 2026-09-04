@@ -9,17 +9,21 @@
  */
 enum SessionReplayConsentMode {
   /*
-   * Default. Nothing is uploaded until the host page grants consent.
-   * Chunks carry their consentState and the ingest worker drops any
-   * chunk marked Unknown when the application requires explicit consent,
-   * so a recorder that skips the handshake fails closed server-side too.
+   * Nothing is uploaded until the host page grants consent. Chunks carry
+   * their consentState and the ingest worker drops any chunk marked
+   * Unknown when the application requires explicit consent, so a
+   * recorder that skips the handshake fails closed server-side too. Most
+   * EU deployments want this mode; it is not the default because a
+   * page that never calls grantConsent() records nothing at all, which
+   * is indistinguishable from a broken install on day one.
    */
   RequireExplicit = "RequireExplicit",
 
   /*
-   * The customer asserts they have a lawful basis that does not require
-   * a per-session grant (for example an internal admin tool covered by
-   * an employment agreement). Uploads begin immediately.
+   * Default (RumApplication.sessionReplayConsentMode). The customer
+   * asserts they have a lawful basis that does not require a per-session
+   * grant (for example an internal admin tool covered by an employment
+   * agreement). Uploads begin immediately.
    */
   NotRequired = "NotRequired",
 }
