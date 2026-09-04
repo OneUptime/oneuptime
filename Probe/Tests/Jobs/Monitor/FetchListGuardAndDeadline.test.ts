@@ -44,7 +44,6 @@ jest.mock("Common/Server/Utils/BasicCron", () => {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
@@ -125,7 +124,7 @@ beforeEach(() => {
   fetchSpy = jest.spyOn(API, "fetch").mockResolvedValue({ data: [] } as never);
   probeSpy = jest
     .spyOn(MonitorUtil, "probeMonitor")
-    .mockResolvedValue([] as never);
+    .mockResolvedValue(undefined as never);
   errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
     // Keep test output clean; asserted on where it matters.
   });
@@ -147,7 +146,7 @@ describe("monitor probing — per-check deadline", () => {
   });
 
   test("a check that never settles is abandoned at the deadline instead of pending forever", async () => {
-    probeSpy.mockReturnValue(neverSettles<Array<ProbeMonitorResponse>>());
+    probeSpy.mockReturnValue(neverSettles<void>());
 
     const startedAt: number = Date.now();
 
@@ -169,18 +168,15 @@ describe("monitor probing — per-check deadline", () => {
     );
   });
 
-  test("a check that finishes in time returns its results and clears its deadline timer", async () => {
-    const response: Array<ProbeMonitorResponse> = [
-      { monitorId: monitorIdOne } as unknown as ProbeMonitorResponse,
-    ];
-    probeSpy.mockResolvedValue(response as never);
+  test("a check that finishes in time returns no payload and clears its deadline timer", async () => {
+    probeSpy.mockResolvedValue(undefined as never);
 
     // eslint-disable-next-line @typescript-eslint/typedef
     const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 
     await expect(
       probeMonitorWithDeadline(makeMonitor(monitorIdOne), 150),
-    ).resolves.toBe(response);
+    ).resolves.toBeUndefined();
 
     /*
      * The deadline timer must be cleared on the success path too: one
@@ -209,16 +205,12 @@ describe("monitor probing — per-check deadline", () => {
       ],
     } as never);
 
-    const healthyResponse: Array<ProbeMonitorResponse> = [
-      { monitorId: monitorIdTwo } as unknown as ProbeMonitorResponse,
-    ];
-
     probeSpy.mockImplementation((monitor: Monitor): Promise<never> => {
       if (monitor.id?.toString() === monitorIdOne.toString()) {
         // The wedged implementation — no timeout of its own, ever.
         return neverSettles<never>();
       }
-      return Promise.resolve(healthyResponse) as unknown as Promise<never>;
+      return Promise.resolve() as unknown as Promise<never>;
     });
 
     const startedAt: number = Date.now();
@@ -358,5 +350,144 @@ describe("monitor fetch-list cron — per-slot in-flight guard", () => {
      * returns, so node-cron is never held by a probing cycle.
      */
     await expect(runFunction()).resolves.toBeUndefined();
+  });
+});
+
+describe("monitor batch completion logging", () => {
+  beforeEach(() => {
+    fetchSpy.mockResolvedValue({
+      data: [
+        { _id: monitorIdOne.toString(), monitorType: MonitorType.Website },
+        { _id: monitorIdTwo.toString(), monitorType: MonitorType.Website },
+      ],
+    } as never);
+  });
+
+  test("logs a completed monitor while another check is still pending", async () => {
+    let finishSlowCheck: () => void = (): void => {};
+    const slowCheck: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        finishSlowCheck = resolve;
+      },
+    );
+    probeSpy.mockReturnValueOnce(slowCheck);
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const debugSpy = jest.spyOn(logger, "debug").mockImplementation(() => {});
+    let completed: boolean = false;
+    const run: Promise<void> = new FetchListAndProbe("Worker 1")
+      .run()
+      .then(() => {
+        completed = true;
+      });
+
+    try {
+      await flushMicrotasks();
+      expect(probeSpy).toHaveBeenCalledTimes(2);
+      expect(completed).toBe(false);
+      expect(debugSpy).toHaveBeenCalledWith(
+        `Probed monitor ${monitorIdTwo.toString()}`,
+      );
+      expect(debugSpy).not.toHaveBeenCalledWith(
+        `Probed monitor ${monitorIdOne.toString()}`,
+      );
+    } finally {
+      finishSlowCheck();
+      await run;
+    }
+    expect(debugSpy).toHaveBeenCalledWith(
+      `Probed monitor ${monitorIdOne.toString()}`,
+    );
+  });
+
+  test("reports a failed monitor immediately and still waits for another check", async () => {
+    let finishSlowCheck: () => void = (): void => {};
+    const slowCheck: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        finishSlowCheck = resolve;
+      },
+    );
+    const failure: Error = new Error("failed check with response context");
+    probeSpy.mockRejectedValueOnce(failure);
+    probeSpy.mockReturnValueOnce(slowCheck);
+    let completed: boolean = false;
+    const run: Promise<void> = new FetchListAndProbe("Worker 1")
+      .run()
+      .then(() => {
+        completed = true;
+      });
+
+    try {
+      await flushMicrotasks();
+      expect(completed).toBe(false);
+      expect(errorSpy).toHaveBeenCalledWith(failure);
+      expect(errorSpy).toHaveBeenCalledWith("Error in probing monitor:");
+    } finally {
+      finishSlowCheck();
+      await run;
+    }
+    expect(completed).toBe(true);
+  });
+
+  test("starts every check in a large batch without serializing monitoring", async () => {
+    const monitorCount: number = 200;
+    fetchSpy.mockResolvedValue({
+      data: Array.from({ length: monitorCount }, () => {
+        return {
+          _id: ObjectID.generate().toString(),
+          monitorType: MonitorType.Website,
+        };
+      }),
+    } as never);
+    const finishChecks: Array<() => void> = [];
+    probeSpy.mockImplementation(() => {
+      return new Promise<void>((resolve: () => void) => {
+        finishChecks.push(resolve);
+      });
+    });
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const debugSpy = jest.spyOn(logger, "debug").mockImplementation(() => {});
+    const run: Promise<void> = new FetchListAndProbe("Worker 1").run();
+
+    try {
+      await flushMicrotasks();
+      expect(probeSpy).toHaveBeenCalledTimes(monitorCount);
+      expect(finishChecks).toHaveLength(monitorCount);
+    } finally {
+      for (const finish of finishChecks.reverse()) {
+        finish();
+      }
+      await run;
+    }
+
+    expect(
+      debugSpy.mock.calls.filter(
+        ([message]: Parameters<typeof logger.debug>) => {
+          return (
+            typeof message === "string" && message.startsWith("Probed monitor ")
+          );
+        },
+      ),
+    ).toHaveLength(monitorCount);
+  });
+
+  test("a rejection after the deadline remains observed", async () => {
+    let rejectCheck: (error: Error) => void = (): void => {};
+    probeSpy.mockImplementationOnce(() => {
+      return new Promise<void>(
+        (_resolve: () => void, reject: (reason?: unknown) => void) => {
+          rejectCheck = reject;
+        },
+      );
+    });
+
+    await expect(
+      probeMonitorWithDeadline(makeMonitor(monitorIdOne), 10),
+    ).rejects.toThrow("exceeded the 10ms deadline");
+    rejectCheck(new Error("late failure"));
+    await flushMicrotasks();
+    /*
+     * Jest treats an unobserved rejection as a test failure. The deadline
+     * must continue observing the underlying check after releasing its slot.
+     */
   });
 });

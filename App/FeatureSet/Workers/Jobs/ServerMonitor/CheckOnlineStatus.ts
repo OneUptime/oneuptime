@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import runMonitorSweep from "../../Utils/MonitorSweep";
 import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -17,44 +18,37 @@ RunCron(
     try {
       const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(3);
 
-      const serverMonitors: Array<Monitor> = await MonitorService.findAllBy({
-        query: {
-          monitorType: MonitorType.Server,
-          serverMonitorRequestReceivedAt:
-            QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
-          ...MonitorService.getEnabledMonitorQuery(),
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
+      await runMonitorSweep({
+        jobName: "ServerMonitor:CheckOnlineStatus",
+        queries: [
+          {
+            monitorType: MonitorType.Server,
+            serverMonitorRequestReceivedAt:
+              QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
+            ...MonitorService.getEnabledMonitorQuery(),
+            project: {
+              ...ProjectService.getActiveProjectStatusQuery(),
+            },
           },
-        },
-        props: {
-          isRoot: true,
-        },
+        ],
         select: {
           _id: true,
           monitorSteps: true,
         },
-        skip: 0,
-      });
+        processMonitor: async (monitor: Monitor): Promise<void> => {
+          if (!monitor.monitorSteps) {
+            return;
+          }
 
-      // Prepare all monitor resource tasks for parallel processing
-      const monitorResourceTasks: Array<Promise<void>> = [];
+          /*
+           * The sweep already selected monitorSteps, so filter out monitors
+           * with no Is Online criteria here — before paying a per-monitor
+           * re-fetch query for monitors that would be skipped anyway.
+           */
+          if (!shouldProcessRequest(monitor)) {
+            return;
+          }
 
-      for (const monitor of serverMonitors) {
-        if (!monitor.monitorSteps) {
-          continue;
-        }
-
-        /*
-         * The sweep already selected monitorSteps, so filter out monitors
-         * with no Is Online criteria here — before paying a per-monitor
-         * re-fetch query for monitors that would be skipped anyway.
-         */
-        if (!shouldProcessRequest(monitor)) {
-          continue;
-        }
-
-        const monitorTask: Promise<void> = (async () => {
           try {
             /*
              * Re-check freshness right before processing: the monitor may
@@ -112,13 +106,8 @@ RunCron(
             );
             logger.error(error);
           }
-        })();
-
-        monitorResourceTasks.push(monitorTask);
-      }
-
-      // Process all monitor resource tasks in parallel
-      await Promise.allSettled(monitorResourceTasks);
+        },
+      });
     } catch (error) {
       logger.error("Error in ServerMonitor:CheckOnlineStatus");
       logger.error(error);
