@@ -219,8 +219,25 @@ const semaphoreLockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 const semaphoreReleaseMock: jest.Mock =
   Semaphore.release as unknown as jest.Mock;
 const loggerErrorMock: jest.Mock = logger.error as unknown as jest.Mock;
+const loggerWarnMock: jest.Mock = logger.warn as unknown as jest.Mock;
 
 const RECENT_COMPLETED_AT: Date = OneUptimeDate.getCurrentDate();
+
+/*
+ * The values behind a QueryHelper.any() filter.
+ *
+ * QueryHelper.any builds a raw TypeORM FindOperator whose parameters hold the
+ * list, so a status filter cannot be compared to a string any more. Reading
+ * the values back out is what lets a test still say WHICH statuses a query
+ * accepts rather than merely that it is some operator.
+ */
+function statusesMatchedBy(filter: unknown): Array<string> {
+  const parameters: Record<string, Array<string>> = (
+    filter as { _objectLiteralParameters?: Record<string, Array<string>> }
+  )._objectLiteralParameters!;
+
+  return Object.values(parameters)[0]!;
+}
 
 /*
  * The scan's credential sets (issue #3458), and the ids the probe stamps onto
@@ -542,9 +559,19 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(updateCall.data.autoImportProcessedAt).toBeInstanceOf(Date);
     // Nothing was created, so the stored results are not rewritten.
     expect(Object.keys(updateCall.data)).toEqual(["autoImportProcessedAt"]);
+    /*
+     * The compare-and-set is over the run state this pass READ, not over the
+     * literal "Completed" it used to pin: a scan that is still sweeping is
+     * importable now (issue #3599), and its status is exactly what changes
+     * when its run ends. The two host counters ride along because they are
+     * what a running scan's partial uploads move, so a partial landing between
+     * the read and the stamp is caught the way a completion is.
+     */
     expect(updateCall.expectedData).toEqual({
       status: "Completed",
       completedAt: RECENT_COMPLETED_AT,
+      scannedHostCount: null,
+      respondedHostCount: null,
     });
   });
 
@@ -1779,7 +1806,16 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
 
     expect(scanFindOneByMock).toHaveBeenCalledTimes(1);
     const rereadCall: any = scanFindOneByMock.mock.calls[0]![0];
-    expect(rereadCall.query.status).toBe("Completed");
+    /*
+     * The status filter is a SET now, not the single "Completed" it used to
+     * be: a scan that is still sweeping already holds real results, and
+     * refusing to look at them is what left 527 discovered switches
+     * unimportable for a day (issue #3599).
+     */
+    expect(statusesMatchedBy(rereadCall.query.status)).toEqual([
+      "Completed",
+      "In Progress",
+    ]);
     expect(rereadCall.query.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(rereadCall.select.discoveredDevices).toBe(true);
   });
@@ -2023,5 +2059,194 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
       expect(scanFindByMock).not.toHaveBeenCalled();
       expect(monitorCreateMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3599 — "Auto Import Rule can't see
+ * already-discovered devices while the Discovery Scan is still running".
+ *
+ * A discovery sweep reports incrementally now: the probe uploads what it has
+ * found every 30 seconds, so an In Progress scan's row already holds real
+ * hosts. The engine used to read only Completed scans, which meant that on the
+ * 24-hour sweep of #3598 the 527 switches it had already found — stored,
+ * visible in the product, correct — were unimportable for the whole day.
+ *
+ * These tests pin that a running scan's results are treated as first-class,
+ * and that the marker protocol still holds when the row underneath is moving.
+ */
+describe("auto-import from a scan that is still sweeping (issue #3599)", () => {
+  /*
+   * A scan mid-sweep: no completedAt (the run has not ended), and the two
+   * host counters its partial uploads have been moving.
+   */
+  function makeInProgressScan(
+    overrides: Record<string, unknown> = {},
+  ): NetworkDeviceDiscoveryScan {
+    return makeScan({
+      status: "In Progress",
+      completedAt: undefined,
+      scannedHostCount: 4096,
+      respondedHostCount: 12,
+      ...overrides,
+    });
+  }
+
+  it("imports the hosts a running sweep has already found", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeInProgressScan({ discoveredDevices: [makeHost()] }),
+    );
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({ hostsMatched: 1, devicesCreated: 1 });
+    expect(createdDevice(0).hostname).toBe("10.0.0.5");
+  });
+
+  it("asks for a running scan as well as a finished one", async () => {
+    scanFindOneByMock.mockResolvedValue(makeInProgressScan());
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    await processScan();
+
+    const query: any = scanFindOneByMock.mock.calls[0]![0].query;
+
+    expect(statusesMatchedBy(query.status)).toEqual([
+      "Completed",
+      "In Progress",
+    ]);
+  });
+
+  /*
+   * The freshness horizon retires results older than MAX_RESULT_AGE_IN_HOURS
+   * without importing them. It is keyed on completedAt, which a running scan
+   * does not have — and must not be read as "infinitely old". A sweep that has
+   * been running for two hours is the opposite of stale.
+   */
+  it("never treats a running scan's results as too old to import", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeInProgressScan({ discoveredDevices: [makeHost()] }),
+    );
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({ devicesCreated: 1 });
+    expect(loggerWarnMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("stamping it processed without importing"),
+      expect.anything(),
+    );
+  });
+
+  /*
+   * The marker protocol, on a row that is still moving.
+   *
+   * A running scan's status and completedAt do not change between uploads, so
+   * they cannot by themselves tell "the results I evaluated" from "the results
+   * that landed while I was evaluating". The host counters can, and they are
+   * what a partial upload moves.
+   */
+  it("guards the stamp on the run state it actually read, counters included", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeInProgressScan({ discoveredDevices: [makeHost()] }),
+    );
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    await processScan();
+
+    const stamp: any = scanUpdateMock.mock.calls[0]![0];
+
+    expect(stamp.expectedData).toEqual({
+      status: "In Progress",
+      completedAt: null,
+      scannedHostCount: 4096,
+      respondedHostCount: 12,
+    });
+  });
+
+  // The counters are only a version token if they are actually read.
+  it("selects the counters it guards on", async () => {
+    scanFindOneByMock.mockResolvedValue(makeInProgressScan());
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    await processScan();
+
+    const select: any = scanFindOneByMock.mock.calls[0]![0].select;
+
+    expect(select.scannedHostCount).toBe(true);
+    expect(select.respondedHostCount).toBe(true);
+    expect(select.status).toBe(true);
+    expect(select.completedAt).toBe(true);
+  });
+
+  /*
+   * The write-back still retires the hosts this pass consumed, so the Review
+   * dialog stops offering them — on a running scan just as on a finished one.
+   */
+  it("flips isAlreadyRegistered on the rows it imported", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeInProgressScan({
+        discoveredDevices: [makeHost(), makeHost({ ipAddress: "10.0.0.99" })],
+      }),
+    );
+    ruleFindByMock.mockResolvedValue([makeRule({ ipMatchTarget: "10.0.0.5" })]);
+
+    await processScan();
+
+    const written: Array<DiscoveredNetworkDevice> = scanUpdateMock.mock
+      .calls[0]![0].data.discoveredDevices as Array<DiscoveredNetworkDevice>;
+
+    expect(written[0]!.isAlreadyRegistered).toBe(true);
+    expect(written[1]!.isAlreadyRegistered).toBeUndefined();
+  });
+
+  /*
+   * A running scan is offered again on the next tick — its next partial upload
+   * clears the marker — so an address it already imported must read as
+   * registered rather than being created twice.
+   */
+  it("skips an address it already imported when the scan is offered again", async () => {
+    const alreadyImported: NetworkDevice = {
+      id: new ObjectID("55555555-5555-4555-8555-555555555555"),
+      projectId: PROJECT_ID,
+      hostname: "10.0.0.5",
+    } as unknown as NetworkDevice;
+
+    deviceFindByMock.mockResolvedValue([alreadyImported]);
+    scanFindOneByMock.mockResolvedValue(
+      makeInProgressScan({ discoveredDevices: [makeHost()] }),
+    );
+    ruleFindByMock.mockResolvedValue([makeRule()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      hostsMatched: 1,
+      devicesCreated: 0,
+      hostsSkippedAlreadyRegistered: 1,
+    });
+  });
+
+  /*
+   * The manual path, which is where the report came from: "Run Now" said it
+   * had checked 25 hosts while 527 sat in the Devices list, because the scan
+   * that found them had not finished.
+   */
+  it("Run Now reads a running scan's results too", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeInProgressScan({ discoveredDevices: [makeHost()] })]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({ hostsEvaluated: 1, hostsMatched: 1 });
+
+    const listQuery: any = scanFindByMock.mock.calls[0]![0].query;
+    expect(statusesMatchedBy(listQuery.status)).toEqual([
+      "Completed",
+      "In Progress",
+    ]);
   });
 });

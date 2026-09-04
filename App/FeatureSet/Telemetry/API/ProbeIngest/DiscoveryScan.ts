@@ -326,6 +326,61 @@ router.post(
         });
       }
 
+      /*
+       * A PARTIAL result: what the sweep has found so far, sent while it is
+       * still running (OneUptime issues #3598 and #3599).
+       *
+       * A sweep used to be atomic — its hosts existed only in the probe's
+       * memory until the whole range was covered — so a 15,360-address scan
+       * read "0 of 15360" for as long as it ran, a sweep abandoned at the
+       * probe's deadline lost every host it had confirmed, and the
+       * auto-import worker (which looks for results to import) had nothing to
+       * look at until the very end.
+       *
+       * Refused for a scan that is not In Progress. A partial can only be
+       * about the run this row is currently executing: for a Completed or
+       * Failed row it is a straggler from a run that has already had its say,
+       * and storing it would replace the final result — reverse-DNS names and
+       * all — with the snapshot that preceded it.
+       */
+      const isPartial: boolean = req.body["isPartial"] === true;
+
+      if (isPartial && scan.status !== "In Progress") {
+        logger.debug(
+          `Discarding a partial discovery scan result for ${scanId}: the scan is "${scan.status}", so its run has already reported a final result.`,
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          result: "discarded",
+        });
+      }
+
+      const success: boolean = req.body["success"] !== false;
+
+      /*
+       * Whether this report SAYS anything about hosts.
+       *
+       * A run that finished always does, even when the answer is "nothing" —
+       * that is a finding, and the empty list is how it is recorded (a
+       * payload with no key at all, from an older probe, means the same
+       * thing there).
+       *
+       * A run that FAILED is the exception, and the reason this distinction
+       * exists. Its report used to carry `discoveredDevices: []`, which the
+       * server stores; that was harmless while a run's only report was its
+       * last one, but a sweep now uploads what it has found every 30 seconds,
+       * so a run abandoned at the probe's deadline would have its failure
+       * report erase the hundreds of hosts it had already sent — exactly the
+       * loss incremental results exist to prevent (OneUptime issue #3598).
+       *
+       * So a failure report states hosts only when it actually carries a
+       * list. The current probe omits the key entirely and the stored hosts
+       * are left alone; an older probe still sends `[]` and still gets the
+       * behaviour it has always had.
+       */
+      const hasHostReport: boolean =
+        success || Array.isArray(req.body["discoveredDevices"]);
+
       const discoveredDevices: Array<JSONObject> =
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
 
@@ -361,8 +416,6 @@ router.post(
         );
       }
 
-      const success: boolean = req.body["success"] !== false;
-
       /*
        * The probe now reports ping-only hosts too, tagged `snmpReachable:
        * false`, so the array length is the count of ALIVE hosts. respondedHostCount
@@ -394,6 +447,77 @@ router.post(
         ? snmpResponderCount
         : discoveredDevices.length;
 
+      if (isPartial) {
+        /*
+         * Results ONLY. The run state — status, completedAt, the recurrence
+         * schedule — belongs to the run and is written once, by the final
+         * result. A partial that touched any of it would end the run early.
+         *
+         * autoImportProcessedAt is cleared for the same reason the final write
+         * clears it: a NULL marker is the auto-import worker's "the results now
+         * on this row have not been processed" signal
+         * (Workers/Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules.ts). That
+         * is what makes each batch of partial results importable within a
+         * minute of arriving instead of after the whole sweep (issue #3599).
+         */
+        const partial: JSONObject = {
+          autoImportProcessedAt: null,
+        };
+
+        if (hasHostReport) {
+          partial["discoveredDevices"] = discoveredDevices;
+          partial["respondedHostCount"] = respondedHostCount;
+        }
+
+        if (req.body["statusMessage"]) {
+          partial["statusMessage"] = String(
+            req.body["statusMessage"],
+          ).substring(0, MAX_STATUS_MESSAGE_LENGTH);
+        }
+
+        /*
+         * Addresses swept so far, not the size of the range — the probe's
+         * progress message says which of the two the number is.
+         */
+        if (typeof req.body["scannedHostCount"] === "number") {
+          partial["scannedHostCount"] = req.body["scannedHostCount"] as number;
+        }
+
+        /*
+         * The hook-free single-statement write, for the same reasons the claim
+         * endpoint above uses it: this lands every 30 seconds for the whole
+         * length of a sweep, the probe waits on the response, and the full
+         * updateOneById pipeline (permission pre-fetch SELECT + row re-fetch +
+         * save() transaction) is three extra pool round trips for a payload no
+         * hook looks at. The service's only update hooks react to the sweep
+         * columns (cidr, probe, credentials) and the schedule columns, and this
+         * payload touches neither; the disjointness is pinned by
+         * Common/Tests/Server/Services/DiscoveryScanClaimHookFreeSafety.test.ts.
+         *
+         * Guarded on status so a final result landing between the read above
+         * and this write wins: the partial simply affects zero rows.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+          id: scan.id!,
+          // Cast: the model's JSON column makes DeepPartial recursion blow up.
+          data: partial as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          expectedData: {
+            status: "In Progress",
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        });
+
+        logger.debug(
+          `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
+            (ScanModeUtil.isSnmpEnabled(scan)
+              ? `, ${snmpResponderCount} answered SNMP.`
+              : " (ICMP-only scan)."),
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          result: "partial",
+        });
+      }
+
       /*
        * Plain object, NOT a model instance: a `new
        * NetworkDeviceDiscoveryScan()` payload carries non-column base props
@@ -401,10 +525,7 @@ router.post(
        * probe's results.
        */
       const completed: JSONObject = {
-        // Column is a JSON array of host suggestions, stored as-is.
         status: success ? "Completed" : "Failed",
-        discoveredDevices: discoveredDevices,
-        respondedHostCount: respondedHostCount,
         completedAt: OneUptimeDate.getCurrentDate(),
         /*
          * New results, so the auto-import worker's bookkeeping starts over:
@@ -416,6 +537,18 @@ router.post(
          */
         autoImportProcessedAt: null,
       };
+
+      /*
+       * The column is a JSON array of host suggestions, stored as-is — and
+       * only when this report actually carries one. See hasHostReport: a
+       * failure report that mentions no hosts must leave the ones the run had
+       * already uploaded exactly where they are.
+       */
+      if (hasHostReport) {
+        completed["discoveredDevices"] = discoveredDevices;
+        completed["respondedHostCount"] = respondedHostCount;
+      }
+
       if (req.body["statusMessage"]) {
         completed["statusMessage"] = req.body["statusMessage"] as string;
       }

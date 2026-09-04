@@ -201,6 +201,15 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
     await runScan(makeIcmpOnlyScan());
 
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
       /*
@@ -609,8 +618,13 @@ describe("runScan — an ICMP-only sweep that could not run", () => {
     const body: JSONObject = calls[0]!.body;
     expect(body["success"]).toBe(false);
     expect(body["statusMessage"]).toBe(NO_ICMP_AVAILABLE);
-    expect(body["discoveredDevices"]).toEqual([]);
     expect(body["scanId"]).toBe(scanId.toString());
+    /*
+     * NO host list. A failure report that carried an empty array would tell
+     * the server "this run found nothing" and erase whatever the run had
+     * already uploaded as it went (OneUptime issue #3598).
+     */
+    expect(body).not.toHaveProperty("discoveredDevices");
   });
 
   /*

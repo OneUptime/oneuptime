@@ -1,4 +1,6 @@
 import {
+  PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS,
+  PROBE_DISCOVERY_SCAN_CONCURRENCY,
   PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
   PROBE_INGEST_URL,
 } from "../../Config";
@@ -6,6 +8,7 @@ import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import SubnetScanner, {
   DiscoveredHost,
   type SubnetScanConfig,
+  type SubnetScanProgress,
   type SubnetScanResult,
   type SubnetScanSnmpConfig,
 } from "../../Utils/Discovery/SubnetScanner";
@@ -417,6 +420,179 @@ export function buildScanStatusMessage(
 }
 
 /*
+ * The status message a RUNNING sweep carries, replaced by
+ * buildScanStatusMessage's final summary when the sweep ends.
+ *
+ * Exported for tests, and written to be read by an operator watching a scan
+ * that will not finish for another twenty minutes. It has one job the final
+ * summary does not: to say that the numbers beside it are a running total, so
+ * "4 of 15,360" is not read as this sweep's verdict on the range (OneUptime
+ * issue #3598).
+ */
+export function buildScanProgressMessage(progress: SubnetScanProgress): string {
+  const swept: string = progress.sweptHostCount.toLocaleString("en-US");
+  const total: string = progress.totalHostCount.toLocaleString("en-US");
+
+  if (progress.isIcmpOnlySweep) {
+    return clipStatusMessage(
+      `Scan in progress: ${swept} of ${total} addresses swept so far, ` +
+        `${progress.respondedToPingCount ?? 0} answered ICMP ping ` +
+        `(Check SNMP is off for this scan). ` +
+        `These results update as the sweep continues.`,
+    );
+  }
+
+  /*
+   * The ICMP tally is omitted rather than shown as zero once the pre-sweep has
+   * broken, for the same reason SubnetScanResult omits it: a count over an
+   * unknown subset of the range is not a count.
+   */
+  const pingPart: string =
+    progress.respondedToPingCount === undefined
+      ? "the ICMP pre-sweep is unavailable on this probe, so every address is being probed over SNMP"
+      : `${progress.respondedToPingCount} answered ICMP ping`;
+
+  return clipStatusMessage(
+    `Scan in progress: ${swept} of ${total} addresses swept so far, ` +
+      `${pingPart}, ${progress.snmpResponderCount} answered SNMP. ` +
+      `These results update as the sweep continues.`,
+  );
+}
+
+/*
+ * Uploads what a running sweep has found so far, at most once every
+ * PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS.
+ *
+ * Why this exists at all: a sweep's hosts used to live only in the probe's
+ * memory until the whole range was covered. A 15,360-address scan therefore
+ * showed "0 of 15360" for as long as it ran, a sweep abandoned at the deadline
+ * threw away every host it had already confirmed, and the auto-import worker —
+ * which only looks at scans that have finished — could not import one of the
+ * hundreds of devices the probe was already holding (OneUptime issues #3598
+ * and #3599).
+ *
+ * Two rules make this safe to run inside the sweep:
+ *
+ *   - it NEVER blocks the sweep. `report` fires the upload and returns; the
+ *     sweep's deadline race is not spent on the network. A second report
+ *     arriving while one is in flight is dropped rather than queued, so a slow
+ *     server cannot build a backlog of stale uploads.
+ *   - it NEVER fails the sweep. Every rejection is logged and swallowed: a
+ *     partial result is a convenience, and the final upload is the one that
+ *     has to land.
+ *
+ * `settle()` is awaited before the final upload so an in-flight partial cannot
+ * land after it. The server refuses a partial for a scan that is no longer In
+ * Progress as well — belt and braces, because only the server can see the
+ * order the writes actually arrive in.
+ */
+export class ScanProgressReporter {
+  private readonly scanId: string;
+  private readonly resultUrl: URL;
+  private readonly intervalInMs: number;
+  private lastReportedAt: number = 0;
+  private inFlight: Promise<void> | null = null;
+
+  public constructor(data: {
+    scanId: string;
+    resultUrl: URL;
+    intervalInMs?: number | undefined;
+  }) {
+    this.scanId = data.scanId;
+    this.resultUrl = data.resultUrl;
+    this.intervalInMs =
+      data.intervalInMs ?? PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS;
+    /*
+     * The clock starts at construction, not at zero: the claim that put this
+     * scan In Progress has just written the row, and a partial upload one
+     * segment later would only rewrite the same emptiness.
+     */
+    this.lastReportedAt = Date.now();
+  }
+
+  public report(progress: SubnetScanProgress): void {
+    if (this.inFlight) {
+      return;
+    }
+
+    const now: number = Date.now();
+
+    if (now - this.lastReportedAt < this.intervalInMs) {
+      return;
+    }
+
+    this.lastReportedAt = now;
+
+    const upload: Promise<void> = this.upload(progress).finally(() => {
+      this.inFlight = null;
+    });
+
+    /*
+     * Held so settle() can await it, and given its own catch so that an upload
+     * nobody is awaiting yet can never surface as an unhandled rejection and
+     * take the probe process down.
+     */
+    this.inFlight = upload;
+
+    upload.catch(() => {
+      // Already logged in upload(); this only keeps the rejection handled.
+    });
+  }
+
+  // Waits for an in-flight upload, if any. Never throws.
+  public async settle(): Promise<void> {
+    try {
+      await this.inFlight;
+    } catch {
+      // Already logged in upload().
+    }
+  }
+
+  private async upload(progress: SubnetScanProgress): Promise<void> {
+    try {
+      const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+        await API.fetch<JSONArray>({
+          method: HTTPMethod.POST,
+          url: this.resultUrl,
+          data: {
+            ...ProbeAPIRequest.getDefaultRequestBody(),
+            scanId: this.scanId,
+            /*
+             * The flag that stops this being read as a finished run: the
+             * server keeps the scan In Progress, leaves completedAt and the
+             * recurrence schedule alone, and stores only the results.
+             */
+            isPartial: true,
+            success: true,
+            statusMessage: buildScanProgressMessage(progress),
+            discoveredDevices: progress.discoveredHosts as unknown as JSONArray,
+            /*
+             * Addresses swept so far, not the size of the range: the scans
+             * list renders this as the denominator of "N of M hosts", and the
+             * message above says which of the two it is.
+             */
+            scannedHostCount: progress.sweptHostCount,
+          },
+          headers: {},
+          options: ProbeAPIRequest.getDefaultRequestOptions(this.resultUrl),
+        });
+
+      const rejection: string = getRejectionReason(result);
+
+      if (rejection) {
+        logger.debug(
+          `The server did not accept a progress update for discovery scan ${this.scanId}: ${rejection}. The sweep continues and its final result is what counts.`,
+        );
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not send a progress update for discovery scan ${this.scanId}: ${err}. The sweep continues and its final result is what counts.`,
+      );
+    }
+  }
+}
+
+/*
  * node-cron fires every tick regardless of whether the previous run
  * finished. A subnet sweep legitimately runs for many minutes (up to 4096
  * hosts), and a slow/unresponsive server can hang the list fetch itself —
@@ -664,6 +840,18 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
    */
   let snmpConfigs: Array<SubnetScanSnmpConfig> = [];
 
+  const scanIdString: string = scan.id?.toString() || "scan";
+
+  /*
+   * Built outside the try as well, so the failure path below can still wait
+   * for an in-flight partial upload before it reports the sweep failed. Both
+   * ends of a run write the same row, and they have to go in order.
+   */
+  const progressReporter: ScanProgressReporter = new ScanProgressReporter({
+    scanId: scanIdString,
+    resultUrl: resultUrl,
+  });
+
   try {
     logger.debug(
       `Running discovery scan ${scan.id?.toString()} on ${
@@ -696,11 +884,36 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
         cidr: scan.cidr || "",
         isSnmpEnabled: isSnmpEnabled,
         snmpConfigs: snmpConfigs,
+        /*
+         * Results leave the probe while the sweep is still running, so the
+         * scan shows real progress instead of "0 of 15360" for an hour, a
+         * sweep abandoned at the deadline keeps what it found, and the
+         * auto-import worker can act on hosts long before the range is
+         * finished (OneUptime issues #3598 and #3599).
+         */
+        onProgress: (progress: SubnetScanProgress): void => {
+          progressReporter.report(progress);
+        },
+        /*
+         * 0 means "size the pool from the target" — the normal case. A probe
+         * with an explicit PROBE_DISCOVERY_SCAN_CONCURRENCY overrides it.
+         */
+        maxConcurrency: PROBE_DISCOVERY_SCAN_CONCURRENCY || undefined,
       },
-      scan.id?.toString() || "scan",
+      scanIdString,
     );
   } catch (err) {
-    logger.error(`Discovery scan ${scan.id?.toString()} failed: ${err}`);
+    logger.error(`Discovery scan ${scanIdString} failed: ${err}`);
+
+    /*
+     * Let any in-flight partial land BEFORE the failure report, so the run's
+     * last findings are on the row when it is marked Failed rather than
+     * arriving at a row that has already been closed. The server refuses a
+     * partial for a scan that is no longer In Progress, so a straggler is
+     * simply dropped — which is safe, but loses whatever it carried; only
+     * this side can stop the two writes racing in the first place.
+     */
+    await progressReporter.settle();
 
     // Report the SWEEP failure so the scan doesn't sit In Progress forever.
     try {
@@ -713,7 +926,19 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
             scanId: scan.id?.toString(),
             success: false,
             statusMessage: (err as Error).message || String(err),
-            discoveredDevices: [],
+            /*
+             * NO `discoveredDevices` key.
+             *
+             * This used to send an empty array, which the server reads as
+             * "this run found nothing" and writes to the column. That was
+             * harmless while a run's only report was its last one — but a
+             * sweep uploads what it has found every 30 seconds now, so a run
+             * abandoned at the deadline would erase the hundreds of hosts it
+             * had already sent, which is exactly the loss incremental results
+             * exist to prevent (OneUptime issue #3598). Omitting the key
+             * leaves the stored hosts alone; the status message says the run
+             * did not finish.
+             */
           },
           headers: {},
           options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
@@ -779,6 +1004,14 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
    * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts) already
    * self-heals that case.
    */
+  /*
+   * Same ordering guarantee as the failure path: a partial upload still in
+   * flight would otherwise be able to land after this one and replace a
+   * finished scan's results (reverse-DNS names and all) with the snapshot
+   * that preceded them.
+   */
+  await progressReporter.settle();
+
   try {
     const uploadResult: HTTPResponse<JSONArray> | HTTPErrorResponse =
       await API.fetch<JSONArray>({

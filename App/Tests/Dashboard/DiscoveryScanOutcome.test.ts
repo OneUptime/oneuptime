@@ -962,3 +962,142 @@ describe("summarizeDiscoveryScan — junk in the results column, in either mode"
     },
   );
 });
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3598 — a large scan that is still
+ * running.
+ *
+ * A sweep uploads what it has found every 30 seconds now, so an In Progress
+ * row carries real counts — and `scannedHostCount` on such a row means
+ * "addresses covered SO FAR", not the size of the target. Without saying so,
+ * a 15,360-address scan renders as "4 of 1,024 hosts" and looks like a
+ * finished sweep of a subnet that is not the one being scanned.
+ *
+ * The denominator of the progress line is derived from the scan's own target
+ * rather than stored, so it needs no column and cannot disagree with what the
+ * probe is actually sweeping.
+ */
+describe("summarizeDiscoveryScan — a scan that is still sweeping", () => {
+  function runningScan(
+    overrides?: Partial<NetworkDeviceDiscoveryScan>,
+  ): NetworkDeviceDiscoveryScan {
+    return makeScan({
+      status: "In Progress",
+      // The shape from the report: 10 x 256 x 6 = the 15,360 addresses it names.
+      cidr: "10.240-249.0-255.220-225",
+      respondedHostCount: 4,
+      scannedHostCount: 1024,
+      ...overrides,
+    } as Partial<NetworkDeviceDiscoveryScan>);
+  }
+
+  test("says the count is a running total, and how far through the range it is", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(runningScan());
+
+    expect(outcome.isInProgress).toBe(true);
+    expect(outcome.progressSummary).toBe(
+      "Scanning - 1,024 of 15,360 addresses swept so far",
+    );
+  });
+
+  // The headline stays the headline; the progress line sits beneath it.
+  test("still reports what has answered so far", () => {
+    expect(summarizeDiscoveryScan(runningScan()).respondedHostSummary).toBe(
+      "4 of 1024 hosts",
+    );
+  });
+
+  test("a finished scan has no progress line", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(makeScan());
+
+    expect(outcome.isInProgress).toBe(false);
+    expect(outcome.progressSummary).toBeNull();
+  });
+
+  test("a queued scan has no progress line either", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      makeScan({
+        status: "Pending",
+        respondedHostCount: null,
+        scannedHostCount: null,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+    );
+
+    expect(outcome.isInProgress).toBe(false);
+    expect(outcome.progressSummary).toBeNull();
+  });
+
+  /*
+   * A scan claimed seconds ago has reported nothing at all. Its cell already
+   * shows the probe's own explanation (or the unclaimed-scan diagnosis), and
+   * a progress line saying "0 of 15,360" would displace it with a number that
+   * carries no information.
+   */
+  test("a claimed scan that has not reported yet has no progress line", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      makeScan({
+        status: "In Progress",
+        respondedHostCount: null,
+        scannedHostCount: null,
+      } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+    );
+
+    expect(outcome.hasReported).toBe(false);
+    expect(outcome.progressSummary).toBeNull();
+  });
+
+  /*
+   * An older probe reports once, at the end, with scannedHostCount set to the
+   * whole range. If such a report lands while the row still reads In Progress,
+   * "15,360 of 15,360 swept so far" is noise at best — there is no progress
+   * left to describe.
+   */
+  test("no progress line once the swept count has reached the whole range", () => {
+    expect(
+      summarizeDiscoveryScan(runningScan({ scannedHostCount: 15360 }))
+        .progressSummary,
+    ).toBeNull();
+
+    // And none if it somehow exceeds it.
+    expect(
+      summarizeDiscoveryScan(runningScan({ scannedHostCount: 20000 }))
+        .progressSummary,
+    ).toBeNull();
+  });
+
+  /*
+   * The denominator comes from parsing the target. A row whose target cannot
+   * be parsed — or was not selected by the page — has no total to quote, and
+   * inventing one would be worse than leaving the line off.
+   */
+  test("no progress line when the target gives no total", () => {
+    expect(
+      summarizeDiscoveryScan(runningScan({ cidr: "not-a-target" }))
+        .progressSummary,
+    ).toBeNull();
+
+    // A page that did not select the column at all.
+    expect(
+      summarizeDiscoveryScan(
+        runningScan({
+          cidr: undefined,
+        } as unknown as Partial<NetworkDeviceDiscoveryScan>),
+      ).progressSummary,
+    ).toBeNull();
+  });
+
+  test("reads a CIDR target as well as an octet range", () => {
+    expect(
+      summarizeDiscoveryScan(
+        runningScan({ cidr: "10.0.0.0/16", scannedHostCount: 512 }),
+      ).progressSummary,
+    ).toBe("Scanning - 512 of 65,534 addresses swept so far");
+  });
+
+  test("is nullish-safe, like every other reading on this row", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(null);
+
+    expect(outcome.isInProgress).toBe(false);
+    expect(outcome.progressSummary).toBeNull();
+  });
+});

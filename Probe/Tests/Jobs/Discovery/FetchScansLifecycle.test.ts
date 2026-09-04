@@ -185,6 +185,15 @@ describe("runScan — a successful sweep", () => {
     await runScan(makeScan());
 
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       /*
        * A scan row carrying no method column is an SNMP scan — every scan
@@ -507,6 +516,15 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
      * layer below reads a field other than this flag.
      */
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
       snmpConfigs: [],
@@ -616,6 +634,15 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
     await runScan(makeScan({ isSnmpEnabled: true }));
 
     expect(scanSpy).toHaveBeenCalledWith({
+      /*
+       * A running sweep now reports what it has found as it goes, so the
+       * config carries the callback that ships those partial results and the
+       * (unset) concurrency override. Named here rather than matched loosely,
+       * because this object IS the contract between the stored scan and the
+       * sweep.
+       */
+      onProgress: expect.any(Function),
+      maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
       snmpConfigs: [legacyResolvedConfig],
@@ -634,8 +661,14 @@ describe("runScan — failures are reported, never swallowed", () => {
     const body: JSONObject = calls[0]!.body;
     expect(body["success"]).toBe(false);
     expect(body["statusMessage"]).toBe("CIDR too large");
-    expect(body["discoveredDevices"]).toEqual([]);
     expect(body["scanId"]).toBe(scanId.toString());
+    /*
+     * The failure report deliberately mentions NO hosts. It used to send an
+     * empty array, which the server stores — and since a running sweep now
+     * uploads what it has found every 30 seconds, that would erase the hosts
+     * an abandoned run had already reported (OneUptime issue #3598).
+     */
+    expect(body).not.toHaveProperty("discoveredDevices");
   });
 
   test("unreadable v3 credentials fail the scan up front instead of sweeping with wrong ones", async () => {
