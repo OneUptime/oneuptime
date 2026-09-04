@@ -27,6 +27,7 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import SeriesContextEnricher from "./SeriesContextEnricher";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -597,13 +598,28 @@ export default class MonitorIncident {
               seriesLabels,
             });
 
-          incident.title = MonitorTemplateUtil.processTemplateString({
-            value: criteriaIncident.title,
-            storageMap,
+          /*
+           * Render the criteria's template, then make it say WHICH
+           * series it is about. Mirrors MonitorAlert exactly - the two
+           * must agree, or the same breach reads differently depending
+           * on whether the criteria was configured to raise an alert or
+           * an incident. See SeriesContextEnricher for why this is not
+           * done inside the template itself.
+           */
+          incident.title = SeriesContextEnricher.enrichTitle({
+            title: MonitorTemplateUtil.processTemplateString({
+              value: criteriaIncident.title,
+              storageMap,
+            }),
+            seriesLabels,
           });
-          incident.description = MonitorTemplateUtil.processTemplateString({
-            value: criteriaIncident.description,
-            storageMap,
+          incident.description = SeriesContextEnricher.enrichDescription({
+            description: MonitorTemplateUtil.processTemplateString({
+              value: criteriaIncident.description,
+              storageMap,
+            }),
+            seriesLabels,
+            monitorType: input.monitor.monitorType,
           });
 
           /*

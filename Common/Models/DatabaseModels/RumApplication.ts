@@ -1192,14 +1192,14 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Session Replay Capture Trigger",
     description:
-      "OnErrorOrFrustration (default) keeps a rolling in-memory buffer and uploads only when something actually went wrong. Always uploads every sampled session from its first event, which costs materially more and stores materially more end-user data.",
-    defaultValue: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+      "Always (default) uploads every sampled session from its first event, so an ordinary session is just as watchable as a broken one. OnErrorOrFrustration keeps a rolling in-memory buffer and uploads only when something actually went wrong, which costs roughly 15x less and stores far less end-user data.",
+    defaultValue: SessionReplayCaptureTrigger.Always,
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: false,
-    default: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+    default: SessionReplayCaptureTrigger.Always,
   })
   public sessionReplayCaptureTrigger?: SessionReplayCaptureTrigger = undefined;
 
@@ -1237,14 +1237,14 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.Number,
     title: "Session Replay Sample Percentage",
     description:
-      "Percentage of sessions (0 to 100) recorded regardless of whether anything went wrong. 0 by default, so with the default trigger only failing sessions are recorded.",
-    defaultValue: 0,
+      "Percentage of sessions (0 to 100) eligible for recording. 100 by default, so with the default Always trigger every session is recorded. Lower it to cut storage and end-user data at rest; the decision is made once per session from a hash of the session id, so a session is never half-recorded.",
+    defaultValue: 100,
   })
   @Column({
     type: ColumnType.Number,
     nullable: false,
     unique: false,
-    default: 0,
+    default: 100,
   })
   public sessionReplaySamplePercentage?: number = undefined;
 

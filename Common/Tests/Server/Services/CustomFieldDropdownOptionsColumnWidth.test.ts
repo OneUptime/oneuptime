@@ -10,7 +10,7 @@ import TeamMemberCustomField from "../../../Models/DatabaseModels/TeamMemberCust
 import { AddDropdownOptionsToCustomFields1779619108628 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1779619108628-AddDropdownOptionsToCustomFields";
 import { MigrationName1779790539196 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1779790539196-MigrationName";
 import { AddInventoryItemArchiveAndCustomFields1786900000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1786900000000-AddInventoryItemArchiveAndCustomFields";
-import { WidenCustomFieldDropdownOptions1791400000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1791400000000-WidenCustomFieldDropdownOptions";
+import { WidenCustomFieldDropdownOptions1791500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1791500000000-WidenCustomFieldDropdownOptions";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DatabaseModels from "../../../Models/DatabaseModels/Index";
 import ColumnType from "../../../Types/Database/ColumnType";
@@ -270,9 +270,9 @@ describe("custom-field dropdownOptions entity declarations", () => {
   });
 });
 
-describe("WidenCustomFieldDropdownOptions1791400000000 SQL contract", () => {
-  const migration: WidenCustomFieldDropdownOptions1791400000000 =
-    new WidenCustomFieldDropdownOptions1791400000000();
+describe("WidenCustomFieldDropdownOptions1791500000000 SQL contract", () => {
+  const migration: WidenCustomFieldDropdownOptions1791500000000 =
+    new WidenCustomFieldDropdownOptions1791500000000();
 
   test("up() widens exactly the nine custom-field columns to text", async () => {
     const { runner, query } = makeQueryRunner();
@@ -377,21 +377,21 @@ describe("WidenCustomFieldDropdownOptions1791400000000 SQL contract", () => {
   });
 
   test("the class name carries its own timestamp, matching the file name", () => {
-    expect(migration.name).toBe("WidenCustomFieldDropdownOptions1791400000000");
+    expect(migration.name).toBe("WidenCustomFieldDropdownOptions1791500000000");
   });
 });
 
-describe("WidenCustomFieldDropdownOptions1791400000000 registration", () => {
+describe("WidenCustomFieldDropdownOptions1791500000000 registration", () => {
   test("is registered in SchemaMigrations/Index.ts", () => {
     expect(SchemaMigrations).toContain(
-      WidenCustomFieldDropdownOptions1791400000000,
+      WidenCustomFieldDropdownOptions1791500000000,
     );
   });
 
   test("is registered exactly once", () => {
     const occurrences: number = SchemaMigrations.filter(
       (migration: unknown) => {
-        return migration === WidenCustomFieldDropdownOptions1791400000000;
+        return migration === WidenCustomFieldDropdownOptions1791500000000;
       },
     ).length;
     expect(occurrences).toBe(1);
@@ -415,7 +415,7 @@ describe("WidenCustomFieldDropdownOptions1791400000000 registration", () => {
     };
 
     const widenTimestamp: number = timestampOf(
-      WidenCustomFieldDropdownOptions1791400000000,
+      WidenCustomFieldDropdownOptions1791500000000,
     );
 
     for (const creator of [

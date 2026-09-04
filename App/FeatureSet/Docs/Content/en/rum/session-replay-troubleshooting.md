@@ -1,8 +1,10 @@
 # Session Replay Troubleshooting
 
-Session replay records into memory and uploads **only when something goes wrong**. That design is the reason "I see no requests to OneUptime in the Network tab" is usually a recorder working exactly as intended — and it is also the reason a recorder that is genuinely broken looks identical.
+By default session replay records **every** session and uploads it as it goes, so a healthy instrumented page posts a chunk roughly every 15 seconds. If you see no requests to OneUptime in the Network tab at all, something below is the reason.
 
-The recorder can now tell you which of the two you are looking at. Turn on diagnostics, reload once, and read the console.
+The one configuration where silence is normal is capture trigger `OnErrorOrFrustration`: the recorder then holds a rolling buffer in memory and uploads **only when something goes wrong**, which is indistinguishable from a broken install until a trigger fires. Check which one you are on before hunting anything else — the `config-accepted` line below prints it.
+
+The recorder can tell you which of the two you are looking at. Turn on diagnostics, reload once, and read the console.
 
 ## Turn on diagnostics
 
@@ -65,8 +67,8 @@ Output looks like this:
 [OneUptime Session Replay] loader-start: Loader running.
 [OneUptime Session Replay] init-options-read: Init options read. {host: "https://oneuptime.com", appIdentifier: "checkout-web", …}
 [OneUptime Session Replay] config-fetch-start: Requesting the policy. {url: "https://oneuptime.com/telemetry/session-replay/v1/config", …}
-[OneUptime Session Replay] config-accepted: Policy accepted. {captureTrigger: "OnErrorOrFrustration", samplePercentage: 0, …}
-[OneUptime Session Replay] recording: Recording into memory. Nothing uploads until a trigger fires …
+[OneUptime Session Replay] config-accepted: Policy accepted. {captureTrigger: "Always", samplePercentage: 100, …}
+[OneUptime Session Replay] recording: Recording and uploading …
 ```
 
 ## Get the timeline without turning anything on first
@@ -87,7 +89,9 @@ copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2))
 
 Paste either one into your support ticket. It is usually enough on its own.
 
-## The most common answer: nothing is wrong
+## When silence is normal: the error-triggered policy
+
+This section applies only if `config-accepted` printed `captureTrigger: "OnErrorOrFrustration"`. Under the default `Always` policy the recorder posts as it records, and silence means something is genuinely wrong — keep reading past this section.
 
 If the console says this:
 
@@ -95,7 +99,7 @@ If the console says this:
 [OneUptime Session Replay] recording: Recording into memory. Nothing uploads until a trigger fires - call OneUptimeReplay.captureSession() to force one.
 ```
 
-…then the recorder is working. Under the default policy — capture trigger `OnErrorOrFrustration`, sample percentage `0` — a healthy page makes exactly **one** request to OneUptime per page load (the config fetch) and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens.
+…then the recorder is working. Under an error-triggered policy — capture trigger `OnErrorOrFrustration`, sample percentage `0` — a healthy page makes exactly **one** request to OneUptime per page load (the config fetch) and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens.
 
 To prove the whole path end to end, force an upload:
 
@@ -107,7 +111,7 @@ You should immediately see a `POST /telemetry/session-replay/v1/chunk` in the Ne
 
 A `202` with `chunk-accepted` is the one to look for. A **`204`** logs `chunk-not-recorded` instead: the request was fine and the server chose not to store it — over budget, not sampled, or the application is switched off. That is a policy answer, not an installation fault, and the `server-directive` line beside it says which.
 
-If you would rather record every session, set the capture trigger to **Always** and a sample percentage above 0 in _RUM → Session Replay Settings_.
+To go back to recording every session, set the capture trigger to **Always** and a sample percentage above 0 in _RUM → Session Replay Settings_. That is the shipped default.
 
 ## Codes
 
@@ -179,7 +183,7 @@ Every line carries a stable `code`. Look yours up here.
 | code                        | what it means                                                                                                                                                                                                        |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `not-sampled`               | This session lost the sample draw, so **nothing at all** is recorded. Sampling is deterministic in the session id, so reloading will not help this session. Raise the sample percentage.                              |
-| `recording`                 | Recording. Read the detail: `uploading: false` with `captureTrigger: "OnErrorOrFrustration"` is the normal, healthy, no-requests state.                                                                               |
+| `recording`                 | Recording. Read the detail: `uploading: true` is the normal state under the default `Always` trigger. `uploading: false` with `captureTrigger: "OnErrorOrFrustration"` is the other healthy, no-requests state.        |
 | `trigger`                   | Something worth keeping happened. The `reason` is one of `error`, `frustration`, `performance`, `sampled` or `manual`.                                                                                                |
 | `upload-started`            | The buffered pre-roll is being flushed. Chunk POSTs start here.                                                                                                                                                      |
 | `upload-blocked-consent`    | A trigger fired and nothing was uploaded because consent was never granted. Under consent mode `RequireExplicit` your page must call `OneUptimeReplay.grantConsent()` once your banner is accepted.                    |
@@ -224,7 +228,7 @@ Work down this list; it is ordered by how often each one is the answer.
    - **No, and no `loader-start` in the console** → the script never executed. Check that the `<script>` element is in the DOM, that its request succeeded, and your CSP `script-src`.
    - **No, but `privacy-signal` is in the console** → Do Not Track or GPC. Working as designed.
    - **Yes, non-2xx** → see [config fetch statuses](#config-fetch-statuses).
-3. **Is there no chunk `POST`?** Read the `recording` line. `uploading: false` under `OnErrorOrFrustration` is normal — call `OneUptimeReplay.captureSession()` to force one and confirm the path works.
+3. **Is there no chunk `POST`?** Read the `recording` line. Under the default `Always` trigger `uploading` should be `true` and chunks should post about every 15 seconds; `uploading: false` under `OnErrorOrFrustration` is normal — call `OneUptimeReplay.captureSession()` to force one and confirm the path works.
 4. **Still nothing after `captureSession()`?** Look for `upload-blocked-consent` (call `grantConsent()`), `not-sampled`, or `transport-disabled`.
 
 ## The session list says "N chunks missing", or the player draws gaps

@@ -185,8 +185,8 @@ export function buildOnlineCriteriaInstance(args: {
 /**
  * Build a single-query monitor config.
  *
- * `groupByAttributeKey` makes the monitor PER-SERIES: the worker splits
- * the metric by that attribute and every group is evaluated — and paged —
+ * `groupByAttributeKeys` makes the monitor PER-SERIES: the worker splits
+ * the metric by those attributes and every group is evaluated — and paged —
  * on its own, so a cluster of 200 pods raises one incident per unhealthy
  * pod rather than one incident for the whole cluster that then dedupes
  * every later pod away. Omitting it keeps the monitor whole-cluster.
@@ -197,7 +197,17 @@ export function buildOnlineCriteriaInstance(args: {
  * scheduler backlog — where there is exactly one value for the cluster
  * and splitting it would invent series that do not exist.
  *
- * The key is the ClickHouse-stored attribute name, which carries the
+ * Pass MORE than one key when the object's identity genuinely needs
+ * them, and the group-by set is what the alert can name afterwards. A
+ * bare pod name is not an identity — pod names are unique only within a
+ * namespace — and, more practically, an alert that says
+ * "Pod: checkout-7d9f-2xk" without the namespace sends the engineer to
+ * `kubectl` with a guess. The series labels are stored on the alert and
+ * rendered into its title and description (SeriesLabelDisplay), so every
+ * key added here is one more thing the on-call engineer does not have to
+ * go and look up.
+ *
+ * The keys are the ClickHouse-stored attribute names, which carry the
  * `resource.` prefix for OTel resource attributes (see
  * OtelMetricsIngestService — resource attributes are stamped with
  * `prefixKeysWithString: "resource"`). So node grouping is
@@ -213,7 +223,7 @@ export function buildKubernetesMonitorConfig(args: {
   rollingTime: RollingTime;
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
-  groupByAttributeKey?: string | undefined;
+  groupByAttributeKeys?: Array<string> | undefined;
 }): MonitorStepKubernetesMonitor {
   return {
     clusterIdentifier: args.clusterIdentifier,
@@ -236,8 +246,9 @@ export function buildKubernetesMonitorConfig(args: {
               aggegationType: args.aggregationType,
               aggregateBy: {},
             },
-            ...(args.groupByAttributeKey
-              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+            ...(args.groupByAttributeKeys &&
+            args.groupByAttributeKeys.length > 0
+              ? { groupByAttributeKeys: args.groupByAttributeKeys }
               : {}),
           },
         },
@@ -250,8 +261,8 @@ export function buildKubernetesMonitorConfig(args: {
 
 /**
  * Build a per-series ratio monitor: `(numerator / denominator) * 100`,
- * grouped by a single OpenTelemetry attribute so one incident fires per
- * group (e.g. per node).
+ * grouped by one or more OpenTelemetry attributes so one incident fires
+ * per group (e.g. per node, or per namespace+pod).
  *
  * Used for saturation metrics that aren't emitted as a single ready-made
  * series — e.g. node request utilization (summed pod requests ÷ node
@@ -279,17 +290,39 @@ export function buildKubernetesMonitorConfig(args: {
  *     both reported the same row count every minute — fragile across
  *     restarts / missed scrapes / minute-boundary jitter.
  *
- * The group-by key is the ClickHouse-stored attribute name, which carries
- * the `resource.` prefix for OTel resource attributes (see
+ * The group-by keys are the ClickHouse-stored attribute names, which
+ * carry the `resource.` prefix for OTel resource attributes (see
  * OtelMetricsIngestService — resource attributes are stamped with
  * `prefixKeysWithString: "resource"`). So node grouping is
  * `resource.k8s.node.name`, not the bare `k8s.node.name`.
+ *
+ * CHOOSING THE KEYS IS NOT FREE HERE, and the constraint is different
+ * from the single-query builder. The two queries are joined by series
+ * FINGERPRINT — `buildSeriesBreakdown` buckets each query's rows by the
+ * hash of this exact key set — so a key that only ONE side carries
+ * splits the two into fingerprints that never meet, the formula
+ * evaluates against an empty operand, and the monitor silently stops
+ * alerting. Not "alerts less precisely": stops. So only add a key both
+ * metrics are GUARANTEED to carry, from their receivers themselves
+ * rather than from best-effort enrichment:
+ *
+ *   - `k8s.namespace.name` is safe for pod/container/workload ratios:
+ *     kubeletstats stamps it on pod metrics and the k8s_cluster receiver
+ *     stamps it on container and workload metrics, both directly.
+ *
+ *   - `k8s.node.name` is NOT safe on a pod ratio whose denominator is a
+ *     k8s_cluster metric. kubeletstats always has it (the receiver, plus
+ *     the DaemonSet's `resource` processor stamping NODE_NAME); on the
+ *     k8s_cluster side it can only arrive via the k8sattributes
+ *     processor, which is best-effort and depends on pod association
+ *     still resolving. A single-query template over a kubeletstats
+ *     metric has no join to break and may group by it freely.
  */
 export function buildKubernetesRatioMonitorConfig(args: {
   clusterIdentifier: string;
   numeratorMetricName: string;
   denominatorMetricName: string;
-  groupByAttributeKey: string;
+  groupByAttributeKeys: Array<string>;
   numeratorAlias: string;
   denominatorAlias: string;
   resultAlias: string;
@@ -320,7 +353,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
           aggegationType: aggregationType,
           aggregateBy: {},
         },
-        groupByAttributeKeys: [args.groupByAttributeKey],
+        groupByAttributeKeys: args.groupByAttributeKeys,
       },
     };
   };
@@ -379,7 +412,11 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
          * whichever pod in the cluster crashed first. Max over the window
          * therefore becomes "the worst container in THIS pod".
          */
-        groupByAttributeKey: "resource.k8s.pod.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+          "resource.k8s.container.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -488,7 +525,7 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
          * across the fleet is 0 as soon as ANY node is down, and the
          * second node to fail dedupes behind the first one's incident.
          */
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -529,7 +566,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.node.cpu.usage",
         denominatorMetricName: "k8s.node.allocatable_cpu",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "used_cpu",
         denominatorAlias: "alloc_cpu",
         resultAlias: metricAlias,
@@ -583,7 +620,7 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.node.memory.usage",
         denominatorMetricName: "k8s.node.allocatable_memory",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "used_mem",
         denominatorAlias: "alloc_mem",
         resultAlias: metricAlias,
@@ -647,7 +684,10 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
          * (the worker reads `resource.k8s.deployment.name` back off these
          * rows to build the affected-resource breakdown).
          */
-        groupByAttributeKey: "resource.k8s.deployment.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.deployment.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -696,7 +736,10 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
          * arriving and the per-series pass auto-resolves that Job's alert
          * by absence, which is the behaviour we want here.
          */
-        groupByAttributeKey: "resource.k8s.job.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.job.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -888,7 +931,7 @@ const highDiskUsageTemplate: KubernetesAlertTemplate = {
          * the Avg across the fleet dilutes a single full node into the
          * fleet mean and the alert never fires.
          */
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -937,7 +980,10 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
          * one has to own its own alert instead of dedupeing behind
          * whichever DaemonSet in the cluster misscheduled first.
          */
-        groupByAttributeKey: "resource.k8s.daemonset.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.daemonset.name",
+        ],
       }),
       offlineCriteriaInstance: buildOfflineCriteriaInstance({
         offlineMonitorStatusId: args.offlineMonitorStatusId,
@@ -978,7 +1024,7 @@ const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.container.cpu_request",
         denominatorMetricName: "k8s.node.allocatable_cpu",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "req_cpu",
         denominatorAlias: "alloc_cpu",
         resultAlias: metricAlias,
@@ -1025,7 +1071,7 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.container.memory_request",
         denominatorMetricName: "k8s.node.allocatable_memory",
-        groupByAttributeKey: "resource.k8s.node.name",
+        groupByAttributeKeys: ["resource.k8s.node.name"],
         numeratorAlias: "req_mem",
         denominatorAlias: "alloc_mem",
         resultAlias: metricAlias,
@@ -1090,7 +1136,10 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.hpa.current_replicas",
         denominatorMetricName: "k8s.hpa.max_replicas",
-        groupByAttributeKey: "resource.k8s.hpa.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.hpa.name",
+        ],
         numeratorAlias: "current_replicas",
         denominatorAlias: "max_replicas",
         resultAlias: metricAlias,
@@ -1146,7 +1195,10 @@ const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.pod.memory.usage",
         denominatorMetricName: "k8s.container.memory_limit",
-        groupByAttributeKey: "resource.k8s.pod.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+        ],
         numeratorAlias: "used_mem",
         denominatorAlias: "limit_mem",
         resultAlias: metricAlias,
@@ -1218,7 +1270,10 @@ const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
         clusterIdentifier: args.clusterIdentifier,
         numeratorMetricName: "k8s.pod.cpu.utilization",
         denominatorMetricName: "k8s.container.cpu_limit",
-        groupByAttributeKey: "resource.k8s.pod.name",
+        groupByAttributeKeys: [
+          "resource.k8s.namespace.name",
+          "resource.k8s.pod.name",
+        ],
         numeratorAlias: "used_cpu",
         denominatorAlias: "limit_cpu",
         resultAlias: metricAlias,

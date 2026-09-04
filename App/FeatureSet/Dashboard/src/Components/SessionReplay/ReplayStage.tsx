@@ -100,15 +100,30 @@ const REPLAY_DOCUMENT_CSP: string =
  *
  * Importing the package stylesheet would pull a CSS file into the lazily
  * loaded chunk, and the shared esbuild config has no CSS handling wired for
- * dynamically imported chunks. These four rules are the ones without which
- * the cursor and the stage are mispositioned; the mouse-tail canvas is
- * disabled outright (mouseTail: false) so its rules are not needed.
+ * dynamically imported chunks. These are the rules without which the
+ * cursor, its trail and the stage are mispositioned.
+ *
+ * The pointer rules are not decoration. rrweb records mouse movement, but
+ * a replay draws no system cursor of its own, so without a visible pointer
+ * a recording of somebody hunting around a page reads as a still image
+ * with occasional mutations - which is exactly what "mouse movement is not
+ * rendered" reports describe. The cursor is drawn large, ringed and
+ * animated between samples (mousemove is sampled every 100ms, so the
+ * transition is what turns eight positions a second into a movement), and
+ * the tail canvas draws the path it took to get there.
+ *
+ * The .active ripple is rrweb's click affordance: the class lands on the
+ * cursor for the length of a MouseInteraction, and without a rule for it a
+ * click is invisible on playback.
  */
 const REPLAY_STAGE_CSS: string = `
 .oneuptime-replay-stage .replayer-wrapper { position: relative; transform-origin: top left; }
 .oneuptime-replay-stage .replayer-wrapper iframe { border: none; background: #ffffff; }
-.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.45); box-shadow: 0 0 0 2px rgba(73,80,246,0.8); transition: left 0.05s linear, top 0.05s linear; pointer-events: none; }
-.oneuptime-replay-stage .replayer-mouse.active { background: rgba(73,80,246,0.85); }
+.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.35); box-shadow: 0 0 0 2px rgba(73,80,246,0.9), 0 1px 6px rgba(15,23,42,0.35); transition: left 0.08s linear, top 0.08s linear; pointer-events: none; z-index: 2147483647; }
+.oneuptime-replay-stage .replayer-mouse::after { content: ""; display: inline-block; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.4); transform: translate(-50%, -50%); opacity: 0; }
+.oneuptime-replay-stage .replayer-mouse.active::after { animation: oneuptime-replay-click 0.4s ease-in-out 1; }
+.oneuptime-replay-stage .replayer-mouse-tail { position: absolute; pointer-events: none; top: 0; left: 0; z-index: 2147483646; }
+@keyframes oneuptime-replay-click { 0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.4); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(3); } }
 `;
 
 /* Playback clock resolution. Fine enough for a scrubber, cheap enough to run. */
@@ -133,6 +148,16 @@ interface Segment {
   /* End of the fed range, in session offset. */
   fedUntilOffsetMs: number;
   replayer: ReplayerLike;
+  /*
+   * The transport state actually APPLIED to this Replayer, as opposed to
+   * the state the viewer has asked for. buildSegment applies the current
+   * intent itself, and the play/pause effect re-runs on more than a press
+   * of the button, so without somewhere to record what was already applied
+   * the effect cannot tell "nothing to do" from "the viewer changed their
+   * mind" - and would restart rrweb's timer at the same offset on every
+   * seek and every gap jump.
+   */
+  isPlaying: boolean;
 }
 
 /*
@@ -391,7 +416,21 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         const replayer: ReplayerLike = replayerFactory(events, {
           root: container,
           liveMode: false,
-          mouseTail: false,
+          /*
+           * The pointer trail. rrweb draws it on a canvas layered over the
+           * replay iframe, using the same mousemove samples the cursor is
+           * positioned from - no extra recording, no extra bytes. Without
+           * it a viewer sees a dot teleporting eight times a second and
+           * cannot tell deliberate movement from a jump, which is the
+           * difference between watching somebody search a page and
+           * watching a slideshow of where they ended up.
+           */
+          mouseTail: {
+            duration: 800,
+            lineCap: "round",
+            lineWidth: 3,
+            strokeStyle: "rgba(73, 80, 246, 0.5)",
+          },
           /*
            * Canvas replay is never enabled here. rrweb implements it by
            * dropping the strict sandbox for "allow-same-origin allow-scripts",
@@ -403,6 +442,22 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
           useVirtualDom: true,
           speed: speedRef.current,
           skipInactive: skipInactiveRef.current,
+          /*
+           * Bounds how fast skip-inactive may fast-forward. rrweb's own
+           * default is 360x, which is faster than this player can be fed:
+           * events arrive one 15-second chunk at a time over an
+           * authenticated fetch, so a 360x sprint drains the fed range in
+           * milliseconds, rrweb emits Finish, and playback sits stalled
+           * until the next chunk lands - repeatedly, and from the very
+           * first press of Play on any recording that opens with an idle
+           * stretch. That is indistinguishable from a Play button that
+           * does nothing.
+           *
+           * 8x is the top of the manual speed control, so skipping still
+           * skips at the fastest rate the viewer could ask for by hand,
+           * and never faster than the loader can keep up with.
+           */
+          maxSpeed: 8,
           showWarning: false,
           showDebug: false,
         });
@@ -451,6 +506,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
             baseOffsetMs,
           ),
           replayer: replayer,
+          isPlaying: isPlayingRef.current,
         };
 
         stalledRef.current = false;
@@ -703,13 +759,38 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       return;
     }
 
+    /*
+     * Already in the intended state, so there is nothing to apply. This
+     * effect re-runs on more than a press of the button - extendFedRange is
+     * a dependency, and buildSegment applies the current intent itself on
+     * every rebuild - and re-issuing play() on any of those would restart
+     * rrweb's timer at the same offset for nothing.
+     */
+    if (segment.isPlaying === isPlaying) {
+      return;
+    }
+
+    segment.isPlaying = isPlaying;
+
     if (isPlaying) {
+      const wasStalled: boolean = stalledRef.current;
       stalledRef.current = false;
       segment.replayer.play(segment.replayer.getCurrentTime());
+
+      /*
+       * Resuming from a stall must not wait for the next 200ms tick to
+       * decide it is time to fetch. rrweb has already drained everything
+       * it was given, so pressing Play here plays nothing at all until
+       * more events land - and the first thing the viewer sees after
+       * pressing Play is a frozen stage.
+       */
+      if (wasStalled) {
+        void extendFedRange();
+      }
     } else {
       segment.replayer.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, extendFedRange]);
 
   /* Seeks. */
   useEffect(() => {

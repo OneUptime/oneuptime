@@ -291,11 +291,13 @@ export default class SessionReplayIngestService {
      * has already earned its place; re-deciding it by dice roll would discard
      * exactly the sessions the feature exists to keep.
      *
-     * This was the default configuration, and it recorded nothing: the shipped
-     * defaults are captureTrigger OnErrorOrFrustration with samplePercentage 0,
-     * so isSampled() was false for every session and every chunk was refused
-     * with a 204. Only a project that had explicitly turned sampling up could
-     * record at all.
+     * This used to be the default configuration, and it recorded nothing:
+     * the shipped defaults were captureTrigger OnErrorOrFrustration with
+     * samplePercentage 0, so isSampled() was false for every session and
+     * every chunk was refused with a 204. Only a project that had
+     * explicitly turned sampling up could record at all. The defaults are
+     * now Always at 100%, but the reasoning below still governs any
+     * project that has since dialled sampling down.
      *
      * "sampled" is the one reason that must still pass the check, because that
      * is the recorder saying it uploaded on the dice roll alone - and the
