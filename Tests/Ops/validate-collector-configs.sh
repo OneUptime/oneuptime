@@ -15,8 +15,8 @@
 # The Kubernetes agent's config lives inside a Helm template, so it is rendered
 # with `helm template` and lifted out of the ConfigMap first.
 #
-# Needs docker (to run the pinned collector image) and helm. Both are present on
-# GitHub-hosted ubuntu runners.
+# Needs docker (to run the pinned collector image), helm and openssl. All three
+# are present on GitHub-hosted ubuntu runners.
 #
 # Usage: bash Tests/Ops/validate-collector-configs.sh
 
@@ -37,20 +37,33 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 # in the repo — so open it up rather than running the container as root.
 chmod 0755 "${WORK_DIR}"
 
-# `validate` does more than parse: some components stat the paths they were
-# configured with. The node collector's hostmetrics receiver checks its
-# root_path, and the cadvisor prometheus receiver checks the service-account
-# token it authenticates with — both real paths on a Kubernetes node and
-# neither present in this container. Stubbing them is what lets the DaemonSet
-# config be validated AS SHIPPED, rather than with those receivers switched off.
+# `validate` does more than parse: components read the paths they were
+# configured with while the pipeline is being built. The node collector's
+# hostmetrics receiver checks its root_path, and kubeletstats, k8sattributes and
+# the cadvisor prometheus receiver all read the service-account credentials they
+# authenticate with. Those are real paths on a Kubernetes node and none of them
+# exists in this container, so they are stubbed — which is what lets the
+# DaemonSet config be validated AS SHIPPED, rather than with the receivers that
+# are inconvenient to validate switched off.
+#
+# The CA has to be a certificate the Go x509 parser accepts, not a placeholder
+# string: kubeletstats reads it through certutil, and a file it cannot parse
+# fails the same way a missing one does. Nothing is signed or verified with it —
+# `validate` never starts the pipeline, so nothing connects.
 mkdir -p "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
 echo "validate-only" >"${WORK_DIR}/serviceaccount/token"
+openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+  -subj "/CN=otelcol-validate" \
+  -keyout "${WORK_DIR}/serviceaccount/ca.key" \
+  -out "${WORK_DIR}/serviceaccount/ca.crt" 2>/dev/null
 chmod 0755 "${WORK_DIR}/hostfs" "${WORK_DIR}/serviceaccount"
-chmod 0644 "${WORK_DIR}/serviceaccount/token"
+chmod 0644 "${WORK_DIR}/serviceaccount/token" "${WORK_DIR}/serviceaccount/ca.crt"
 
+SERVICE_ACCOUNT_DIR=/var/run/secrets/kubernetes.io/serviceaccount
 STUB_MOUNTS=(
   -v "${WORK_DIR}/hostfs":/host:ro
-  -v "${WORK_DIR}/serviceaccount/token":/var/run/secrets/kubernetes.io/serviceaccount/token:ro
+  -v "${WORK_DIR}/serviceaccount/token":"${SERVICE_ACCOUNT_DIR}/token":ro
+  -v "${WORK_DIR}/serviceaccount/ca.crt":"${SERVICE_ACCOUNT_DIR}/ca.crt":ro
 )
 
 # The configs reference these through ${env:...}. The values are never used —
