@@ -273,7 +273,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "Dropdown Options",
     description:
       "Options and optional colors for dropdown fields. Plain one-per-line values remain supported.",
@@ -281,8 +281,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public dropdownOptions?: string = undefined;
 
