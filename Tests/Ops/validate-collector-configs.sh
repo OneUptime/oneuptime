@@ -66,6 +66,14 @@ ENV_ARGS=(
   -e "HOSTNAME=validate-only"
   -e "NODE_IP=127.0.0.1"
   -e "NODE_NAME=validate-only"
+  # The node collector's kubeletstats and k8sattributes both construct a
+  # Kubernetes client while the pipeline is being built, and client-go's
+  # in-cluster config refuses to load without these two. Nothing connects —
+  # `validate` never starts the pipeline — so any address will do. (The
+  # service-account CA is optional to client-go, which only logs when it is
+  # missing, so the token stub below is all the filesystem it needs.)
+  -e "KUBERNETES_SERVICE_HOST=127.0.0.1"
+  -e "KUBERNETES_SERVICE_PORT=6443"
 )
 
 failures=0
