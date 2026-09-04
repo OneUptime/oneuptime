@@ -133,6 +133,162 @@ describe("JSONFunctions Class", () => {
         x: 3,
       });
     });
+
+    test("builds null-prototype dictionaries at every generated level", () => {
+      const result: JSONObject = JSONFunctions.nestJson({ "a.b": 1 });
+
+      expect(Object.getPrototypeOf(result)).toBeNull();
+      expect(Object.getPrototypeOf(result["a"] as JSONObject)).toBeNull();
+    });
+
+    test.each([
+      "__proto__.polluted",
+      "safe.__proto__.polluted",
+      "constructor.prototype.polluted",
+      "safe.constructor.polluted",
+      "safe.prototype.polluted",
+    ])("rejects the unsafe object path %s", (unsafePath: string) => {
+      const input: JSONObject = JSON.parse(
+        JSON.stringify({
+          [unsafePath]: "yes",
+          "safe.value": "preserved",
+        }),
+      ) as JSONObject;
+
+      const result: JSONObject = JSONFunctions.nestJson(input);
+
+      expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+        undefined,
+      );
+      expect(result).toEqual({ safe: { value: "preserved" } });
+    });
+
+    test("ignores inherited enumerable properties", () => {
+      const input: JSONObject = Object.create({
+        "inherited.value": "not-owned",
+      }) as JSONObject;
+      input["owned.value"] = "kept";
+
+      expect(JSONFunctions.nestJson(input)).toEqual({
+        owned: { value: "kept" },
+      });
+    });
+
+    test("does not traverse an already polluted Object prototype", () => {
+      (Object.prototype as Record<string, unknown>)["inheritedPollution"] = {
+        secret: "must-not-be-copied",
+      };
+
+      try {
+        expect(JSONFunctions.nestJson({ "safe.value": "kept" })).toEqual({
+          safe: { value: "kept" },
+        });
+      } finally {
+        delete (Object.prototype as Record<string, unknown>)[
+          "inheritedPollution"
+        ];
+      }
+    });
+
+    test("replaces a scalar path collision with a safe dictionary", () => {
+      const result: JSONObject = JSONFunctions.nestJson({
+        a: "scalar",
+        "a.b": "nested",
+      });
+
+      expect(result).toEqual({ a: { b: "nested" } });
+      expect(Object.getPrototypeOf(result["a"] as JSONObject)).toBeNull();
+    });
+
+    test("copies a preexisting object bridge before traversing a later path", () => {
+      const callerBridge: JSONObject = Object.create({
+        inherited: "must-not-survive",
+      }) as JSONObject;
+      callerBridge["owned"] = "preserved";
+
+      const input: JSONObject = {};
+      input["bridge"] = callerBridge;
+      input["bridge.added"] = "generated-only";
+
+      const result: JSONObject = JSONFunctions.nestJson(input);
+      const resultBridge: JSONObject = result["bridge"] as JSONObject;
+
+      expect(resultBridge).toEqual({
+        owned: "preserved",
+        added: "generated-only",
+      });
+      expect(Object.getPrototypeOf(resultBridge)).toBeNull();
+      expect(
+        Object.prototype.hasOwnProperty.call(resultBridge, "inherited"),
+      ).toBe(false);
+      expect(callerBridge["added"]).toBeUndefined();
+      expect(resultBridge).not.toBe(callerBridge);
+    });
+
+    test("recursively copies terminal objects and arrays into safe containers", () => {
+      const terminalValue: JSONObject = JSON.parse(
+        '{"child":{"safe":"kept","__proto__":{"polluted":"yes"},"constructor":{"prototype":{"polluted":"yes"}},"prototype":{"polluted":"yes"}},"items":[{"safe":"array-kept","__proto__":{"polluted":"yes"}}]}',
+      ) as JSONObject;
+
+      const result: JSONObject = JSONFunctions.nestJson({
+        terminal: terminalValue,
+      });
+      const copiedTerminal: JSONObject = result["terminal"] as JSONObject;
+      const copiedChild: JSONObject = copiedTerminal["child"] as JSONObject;
+      const copiedItems: Array<JSONValue> = copiedTerminal[
+        "items"
+      ] as Array<JSONValue>;
+      const copiedArrayItem: JSONObject = copiedItems[0] as JSONObject;
+
+      expect(copiedTerminal).not.toBe(terminalValue);
+      expect(Object.getPrototypeOf(copiedTerminal)).toBeNull();
+      expect(Object.getPrototypeOf(copiedChild)).toBeNull();
+      expect(copiedItems).not.toBe(terminalValue["items"]);
+      expect(Object.getPrototypeOf(copiedArrayItem)).toBeNull();
+      expect(copiedChild).toEqual({ safe: "kept" });
+      expect(copiedArrayItem).toEqual({ safe: "array-kept" });
+      expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+        undefined,
+      );
+    });
+
+    test("does not invoke accessors while copying terminal data", () => {
+      let accessorInvoked: boolean = false;
+      const terminalValue: JSONObject = { safe: "kept" };
+      Object.defineProperty(terminalValue, "attackerGetter", {
+        enumerable: true,
+        get: (): string => {
+          accessorInvoked = true;
+          return "must-not-be-read";
+        },
+      });
+
+      const result: JSONObject = JSONFunctions.nestJson({
+        terminal: terminalValue,
+      });
+
+      expect(accessorInvoked).toBe(false);
+      expect(result).toEqual({ terminal: { safe: "kept" } });
+    });
+
+    test("preserves reserved-looking terminal primitives on safe dictionaries", () => {
+      const input: JSONObject = JSON.parse(
+        '{"__proto__":"literal-proto","http.constructor":"literal-constructor","http.prototype":"literal-prototype"}',
+      ) as JSONObject;
+
+      const result: JSONObject = JSONFunctions.nestJson(input);
+      const http: JSONObject = result["http"] as JSONObject;
+
+      expect(Object.getPrototypeOf(result)).toBeNull();
+      expect(Object.getPrototypeOf(http)).toBeNull();
+      expect(Object.prototype.hasOwnProperty.call(result, "__proto__")).toBe(
+        true,
+      );
+      expect(result["__proto__"]).toBe("literal-proto");
+      expect(http["constructor"]).toBe("literal-constructor");
+      expect(http["prototype"]).toBe("literal-prototype");
+      expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+    });
   });
 
   describe("flattenObject and unflattenObject Methods", () => {
@@ -151,6 +307,95 @@ describe("JSONFunctions Class", () => {
         d: 2,
       });
     });
+
+    test("flattenObject returns a null-prototype dictionary", () => {
+      const result: JSONObject = JSONFunctions.flattenObject({
+        a: { b: 1 },
+      });
+
+      expect(result).toEqual({ "a.b": 1 });
+      expect(Object.getPrototypeOf(result)).toBeNull();
+    });
+
+    test("flattenObject ignores inherited and dangerous keys", () => {
+      const nested: JSONObject = JSON.parse(
+        '{"safe":{"value":"kept"},"__proto__":{"polluted":"yes"},"constructor":{"prototype":{"polluted":"yes"}}}',
+      ) as JSONObject;
+      const input: JSONObject = Object.create({
+        inherited: "not-owned",
+      }) as JSONObject;
+      input["nested"] = nested;
+
+      const result: JSONObject = JSONFunctions.flattenObject(input);
+
+      expect(result).toEqual({ "nested.safe.value": "kept" });
+      expect(Object.keys(result)).not.toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("__proto__"),
+          expect.stringContaining("constructor"),
+          expect.stringContaining("inherited"),
+        ]),
+      );
+      expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+        undefined,
+      );
+    });
+
+    test.each([
+      "__proto__.polluted",
+      "safe.__proto__.polluted",
+      "constructor.prototype.polluted",
+      "safe.constructor.polluted",
+      "safe.prototype.polluted",
+    ])(
+      "unflattenObject rejects the unsafe object path %s",
+      (unsafePath: string) => {
+        const result: JSONObject = JSONFunctions.unflattenObject(
+          JSON.parse(
+            JSON.stringify({
+              [unsafePath]: "yes",
+              "safe.value": "preserved",
+            }),
+          ) as JSONObject,
+        );
+
+        expect(result).toEqual({ safe: { value: "preserved" } });
+        expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+          undefined,
+        );
+      },
+    );
+
+    test("flattens reserved-looking primitive names without retaining object bridges", () => {
+      const input: JSONObject = JSON.parse(
+        '{"safe":{"constructor":"literal","prototype":"also-literal","__proto__":{"polluted":"yes"}}}',
+      ) as JSONObject;
+
+      const result: JSONObject = JSONFunctions.flattenObject(input);
+
+      expect(result).toEqual({
+        "safe.constructor": "literal",
+        "safe.prototype": "also-literal",
+      });
+      expect(Object.getPrototypeOf(result)).toBeNull();
+      expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+        undefined,
+      );
+    });
+
+    test("returns detached flattened values and omits inherited nested data", () => {
+      const callerValue: JSONObject = Object.create({
+        inherited: "must-not-flatten",
+      }) as JSONObject;
+      callerValue["owned"] = "kept";
+      const input: JSONObject = { nested: callerValue };
+
+      const result: JSONObject = JSONFunctions.flattenObject(input);
+
+      callerValue["owned"] = "changed-after-copy";
+      expect(result).toEqual({ "nested.owned": "kept" });
+      expect(result["nested.inherited"]).toBeUndefined();
+    });
   });
 
   describe("flattenArray and unflattenArray Methods", () => {
@@ -168,6 +413,21 @@ describe("JSONFunctions Class", () => {
         { a: { b: 1 } },
         { c: { d: 2 } },
       ]);
+    });
+
+    test("array helpers reject dangerous paths without dropping safe values", () => {
+      const input: JSONArray = [
+        JSON.parse('{"safe.value":1,"__proto__.polluted":"yes"}') as JSONObject,
+      ];
+
+      const unflattened: JSONArray = JSONFunctions.unflattenArray(input);
+      const flattened: JSONArray = JSONFunctions.flattenArray(unflattened);
+
+      expect(unflattened).toEqual([{ safe: { value: 1 } }]);
+      expect(flattened).toEqual([{ "safe.value": 1 }]);
+      expect((Object.prototype as Record<string, unknown>)["polluted"]).toBe(
+        undefined,
+      );
     });
   });
 
