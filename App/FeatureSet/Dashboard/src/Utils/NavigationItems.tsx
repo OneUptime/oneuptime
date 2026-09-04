@@ -130,20 +130,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
-      title: t("navbar.items.securityEventsTitle", "Security Events"),
-      description: t(
-        "navbar.items.securityEventsDescription",
-        "SIEM signals correlated with your observability data.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SECURITY_EVENTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
-      icon: IconProp.ShieldExclamation,
-      iconColor: "rose",
-      category: observabilityCategory,
-    },
-    {
       title: t("navbar.items.metricsTitle"),
       description: t("navbar.items.metricsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
@@ -191,6 +177,20 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.LLM],
       icon: IconProp.Sparkles,
       iconColor: "violet",
+      category: observabilityCategory,
+    },
+    {
+      title: t("navbar.items.securityEventsTitle", "Security Events"),
+      description: t(
+        "navbar.items.securityEventsDescription",
+        "SIEM signals correlated with your observability data.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SECURITY_EVENTS],
+      icon: IconProp.ShieldExclamation,
+      iconColor: "rose",
       category: observabilityCategory,
     },
     // AI
