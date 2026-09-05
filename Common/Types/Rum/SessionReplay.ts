@@ -546,6 +546,15 @@ export enum SessionReplayDisabledReason {
    * not match one, or a kill key is set.
    */
   NotEnabledForApplication = "not-enabled-for-application",
+
+  /*
+   * The project's daily byte budget or the application's monthly budget
+   * is already spent, so the recorder is told at config time not to
+   * record at all. Without this every new page load would record,
+   * compress and upload a chunk only to be refused. `disabledDetail`
+   * says which budget and `budgetResetsAt` when it clears.
+   */
+  BudgetExhausted = "budget-exhausted",
 }
 
 /*
@@ -643,6 +652,25 @@ export interface SessionReplayConfigResponse {
    * logs it, and neither breaks.
    */
   disabledReason?: SessionReplayDisabledReason;
+
+  /*
+   * Narrows disabledReason so the customer's console and the Dashboard's
+   * installation test can name the exact switch or budget: for
+   * NotEnabledForApplication one of project-not-allowed,
+   * application-not-enabled, application-unknown, project-killed; for
+   * BudgetExhausted one of project-daily-budget-exhausted,
+   * app-monthly-budget-exhausted. Free-form on purpose - the vocabulary
+   * belongs to the server's gate cache, and an older recorder just logs
+   * whatever string it receives.
+   */
+  disabledDetail?: string;
+
+  /*
+   * ISO timestamp of when a spent budget clears, set only alongside
+   * BudgetExhausted, so the recorder's diagnostics can say "resets at
+   * 00:00 UTC" instead of "disabled".
+   */
+  budgetResetsAt?: string;
 
   /*
    * Ask every recorder that reads this policy to print its decisions to

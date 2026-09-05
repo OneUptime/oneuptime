@@ -251,6 +251,7 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
       "budget-exhausted": "budget",
       "budget-counter-unavailable": undefined,
       "app-monthly-budget-exhausted": "budget",
+      "consent-required": "docs-consent",
     };
 
     for (const reason of SESSION_REPLAY_REFUSAL_REASONS) {
@@ -838,6 +839,7 @@ describe("SessionReplayRefusalReason", () => {
         "budget-exhausted",
         "budget-counter-unavailable",
         "app-monthly-budget-exhausted",
+        "consent-required",
       ].sort(),
     );
     expect(new Set(SESSION_REPLAY_REFUSAL_REASONS).size).toBe(

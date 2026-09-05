@@ -46,7 +46,14 @@ export type SessionReplayRefusalReason =
   /* The budget counter (Redis) was unreachable; failed closed. */
   | "budget-counter-unavailable"
   /* The application's own monthly budget is spent. */
-  | "app-monthly-budget-exhausted";
+  | "app-monthly-budget-exhausted"
+  /*
+   * Every frame in the request asserted consent Unknown while the
+   * application requires explicit consent. The recorder is told to keep
+   * recording (directive continue): the page simply has not called
+   * grantConsent() yet, and this is the count that tells the customer so.
+   */
+  | "consent-required";
 
 export const SESSION_REPLAY_REFUSAL_REASONS: ReadonlyArray<SessionReplayRefusalReason> =
   [
@@ -62,6 +69,7 @@ export const SESSION_REPLAY_REFUSAL_REASONS: ReadonlyArray<SessionReplayRefusalR
     "budget-exhausted",
     "budget-counter-unavailable",
     "app-monthly-budget-exhausted",
+    "consent-required",
   ];
 
 export function isSessionReplayRefusalReason(

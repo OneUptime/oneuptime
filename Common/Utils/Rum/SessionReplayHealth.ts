@@ -360,6 +360,12 @@ const REFUSAL_COPY: Record<SessionReplayRefusalReason, RefusalCopy> = {
     detail: "This application used its monthly byte budget for session replay.",
     action: { label: "Raise the budget", target: "budget" },
   },
+  "consent-required": {
+    label: "consent was not granted",
+    detail:
+      "Uploads arrived before your page called OneUptimeReplay.grantConsent(). The recorder keeps recording in memory; nothing is stored until consent is granted.",
+    action: { label: "How consent works", target: "docs-consent" },
+  },
 };
 
 function action(
