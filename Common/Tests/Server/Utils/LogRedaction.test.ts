@@ -58,6 +58,9 @@ describe("isSensitiveLogKey", () => {
       "userHandle",
       "rawId",
       "signature",
+      "parameters",
+      "parameterValues",
+      "bindParameters",
     ]) {
       expect(isSensitiveLogKey(key)).toBe(true);
     }
@@ -329,6 +332,28 @@ describe("redactLogString", () => {
     ).not.toContain("hunter2");
   });
 
+  it("redacts Telegram bot credentials embedded in request paths", () => {
+    const botToken: string = "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+    const url: string = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    const output: string = redactLogString(
+      `Request to ${url} failed with ECONNRESET`,
+    );
+
+    expect(output).not.toContain(botToken);
+    expect(output).toContain(`/bot${REDACTED}/sendMessage`);
+    expect(output).toContain("ECONNRESET");
+  });
+
+  it("redacts a Telegram bot URL nested inside an Error", () => {
+    const botToken: string = "9876543210:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi";
+    const error: Error = new Error(
+      `POST https://api.telegram.org/bot${botToken}/sendMessage failed`,
+    );
+
+    expect(serialize(error)).not.toContain(botToken);
+  });
+
   it("leaves ordinary log lines untouched", () => {
     for (const message of [
       "Slack token exchange completed. ok: true",
@@ -339,6 +364,7 @@ describe("redactLogString", () => {
       "User logged in: user@example.com",
       "Monitor probe finished in 42ms",
       "GET https://oneuptime.com/api/status-page/1234 -> 200",
+      "GET https://api.telegram.org/bot/status -> 200",
     ]) {
       expect(redactLogString(message)).toBe(message);
     }

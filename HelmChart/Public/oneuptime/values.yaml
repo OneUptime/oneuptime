@@ -1436,9 +1436,18 @@ testServer:
   extraVolumeMounts: []
 
 openTelemetryExporter:
+  # Server-side exporter settings. headers can contain credentials and are
+  # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
   headers:
+
+# Browser RUM uses a separate, deliberately public credential. Only use a
+# OneUptime Browser ingestion key with an origin allowlist; never put a Server
+# key or arbitrary collector Authorization header here.
+browserOpenTelemetryExporter:
+  endpoint:
+  browserIngestionKey:
 
 containerSecurityContext:
 podSecurityContext:

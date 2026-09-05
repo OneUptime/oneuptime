@@ -1,3 +1,4 @@
+import type { FindOperator } from "Common/Server/Types/Database/QueryHelper";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -21,8 +22,8 @@ import ObjectID from "Common/Types/ObjectID";
  *      incomingEmailMonitorHeartbeatCheckedAt column, and updateOneById is
  *      never called (the regression the change removes),
  *   2. the per-monitor control flow around the stamp is unchanged: both
- *      findAllBy batches (never-checked isNull first, then notNull) are
- *      concatenated; a monitor without monitorSteps is skipped with no
+ *      findBy phases (never-checked first, then checked before this sweep)
+ *      are processed; a monitor without monitorSteps is skipped with no
  *      write; only a monitor whose criteria check CheckOn.EmailReceivedAt
  *      (NOT the request monitor's CheckOn.IncomingRequest) is handed to
  *      MonitorResourceUtil.monitorResource; one failing monitor does not
@@ -69,11 +70,24 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * prove it is never called: if the job regressed back to the hooked pipeline,
  * the assertion would flag it instead of the mock throwing "not a function".
  */
+jest.mock("Common/Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    SemaphoreLockTimeoutError: class extends Error {},
+    default: {
+      lock: jest.fn().mockImplementation(async () => {
+        return { isAcquired: true };
+      }),
+      release: jest.fn().mockResolvedValue(undefined),
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/MonitorService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       getEnabledMonitorQuery: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateOneById: jest.fn(),
@@ -109,7 +123,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import "../../../../FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus";
 
 interface MonitorServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   getEnabledMonitorQuery: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
   updateOneById: jest.Mock;
@@ -186,7 +200,7 @@ function makeMonitor(data: {
   return monitor;
 }
 
-interface FindAllByArgs {
+interface FindByArgs {
   query: Record<string, unknown>;
   sort: Record<string, unknown>;
   select: Record<string, unknown>;
@@ -216,17 +230,6 @@ async function runWorkerTick(): Promise<void> {
   }
 
   await handler();
-
-  /*
-   * The per-monitor work is fire-and-forget (`checkOnlineStatus(m).catch(...)`),
-   * so the handler resolves before the stamps do. A couple of macrotask turns
-   * let every mocked-promise chain settle.
-   */
-  for (let turn: number = 0; turn < 3; turn++) {
-    await new Promise<void>((resolve: () => void) => {
-      setImmediate(resolve);
-    });
-  }
 }
 
 describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
@@ -241,7 +244,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       return new Date(NOW);
     });
 
-    monitorService.findAllBy.mockResolvedValue([]);
+    monitorService.findBy.mockResolvedValue([]);
     monitorService.getEnabledMonitorQuery.mockReturnValue(
       ENABLED_MONITOR_QUERY,
     );
@@ -253,7 +256,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     monitorResourceMock.mockResolvedValue(undefined);
   });
 
-  test("concatenates the never-checked and already-checked batches and stamps each through the hookless fast path only", async () => {
+  test("processes the never-checked and already-checked pages and stamps each through the hookless fast path only", async () => {
     const neverChecked: Monitor = makeMonitor({
       id: MONITOR_A_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
@@ -263,19 +266,19 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
     });
 
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([neverChecked])
       .mockResolvedValueOnce([alreadyChecked]);
 
     await runWorkerTick();
 
-    // Two batches: isNull (sorted by createdAt) then notNull (sorted by last check).
-    expect(monitorService.findAllBy).toHaveBeenCalledTimes(2);
+    // Never-checked first, then previously checked; both use an immutable ID cursor.
+    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
 
-    const firstBatch: FindAllByArgs = monitorService.findAllBy.mock
-      .calls[0]![0] as FindAllByArgs;
-    const secondBatch: FindAllByArgs = monitorService.findAllBy.mock
-      .calls[1]![0] as FindAllByArgs;
+    const firstBatch: FindByArgs = monitorService.findBy.mock
+      .calls[0]![0] as FindByArgs;
+    const secondBatch: FindByArgs = monitorService.findBy.mock
+      .calls[1]![0] as FindByArgs;
 
     for (const batch of [firstBatch, secondBatch]) {
       expect(batch.query["monitorType"]).toBe(MonitorType.IncomingEmail);
@@ -287,9 +290,9 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       ).toBeDefined();
     }
 
-    expect(firstBatch.sort).toEqual({ createdAt: SortOrder.Ascending });
+    expect(firstBatch.sort).toEqual({ _id: SortOrder.Ascending });
     expect(secondBatch.sort).toEqual({
-      incomingEmailMonitorHeartbeatCheckedAt: SortOrder.Ascending,
+      _id: SortOrder.Ascending,
     });
 
     // One fast-path stamp per monitor, batches concatenated in order.
@@ -317,8 +320,51 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     expect(monitorService.updateOneById).not.toHaveBeenCalled();
   });
 
+  test("the cron waits for bounded email evaluations before completing", async () => {
+    const rows: Array<Monitor> = Array.from(
+      { length: 25 },
+      (_: unknown, index: number) => {
+        return makeMonitor({
+          id: new ObjectID(`monitor-${String(index).padStart(3, "0")}`),
+          monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
+        });
+      },
+    );
+    monitorService.findBy.mockResolvedValueOnce(rows);
+    let resolveEvaluation!: () => void;
+    const evaluation: Promise<void> = new Promise((resolve: () => void) => {
+      resolveEvaluation = resolve;
+    });
+    monitorResourceMock.mockReturnValue(evaluation);
+    let finished: boolean = false;
+    const work: Promise<void> = runWorkerTick().then(() => {
+      finished = true;
+    });
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+    expect(monitorResourceMock).toHaveBeenCalledTimes(10);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
+    expect(finished).toBe(false);
+    resolveEvaluation();
+    await work;
+    expect(monitorResourceMock).toHaveBeenCalledTimes(25);
+    expect(finished).toBe(true);
+  });
+
+  test("the previously checked phase excludes this sweep's heartbeat stamps", async () => {
+    await runWorkerTick();
+    const args: FindByArgs = monitorService.findBy.mock
+      .calls[1]![0] as FindByArgs;
+    const filter: FindOperator<Date> = args.query[
+      "incomingEmailMonitorHeartbeatCheckedAt"
+    ] as FindOperator<Date>;
+    expect(filter.getSql!("checkedAt")).toMatch(/checkedAt < :/);
+    expect(Object.values(filter.objectLiteralParameters!)).toEqual([NOW]);
+  });
+
   test("a monitor without monitorSteps is skipped with no write at all", async () => {
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([makeMonitor({ id: MONITOR_A_ID })])
       .mockResolvedValueOnce([]);
 
@@ -340,7 +386,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       } as IncomingEmailMonitorRequest,
     });
 
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([monitor])
       .mockResolvedValueOnce([]);
 
@@ -375,7 +421,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
     });
 
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([monitor])
       .mockResolvedValueOnce([]);
 
@@ -388,7 +434,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("criteria checking only CheckOn.IncomingRequest (the request monitor's filter) are stamped but never evaluated", async () => {
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([
         makeMonitor({
           id: MONITOR_A_ID,
@@ -414,7 +460,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
    * above covers.
    */
   test("a monitor on the default body criteria is stamped but never evaluated", async () => {
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([
         makeMonitor({
           id: MONITOR_A_ID,
@@ -447,7 +493,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
     });
 
-    monitorService.findAllBy
+    monitorService.findBy
       .mockResolvedValueOnce([failing])
       .mockResolvedValueOnce([healthy]);
 

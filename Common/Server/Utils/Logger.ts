@@ -164,6 +164,17 @@ export default class logger {
       }
 
       if (body instanceof Exception || body instanceof Error) {
+        /*
+         * Driver and HTTP errors often carry security-sensitive enumerable
+         * fields (`parameters`, request config, headers) even when their
+         * message and stack are harmless. Preserve the native Error fast path
+         * only for errors with no extra fields; structured errors must pass
+         * through the recursive key-aware redactor before any sink sees them.
+         */
+        if (Object.keys(body).length > 0) {
+          return redactLogValue(body) as LogBody;
+        }
+
         const originalStack: string = body.stack || "";
         const message: string = redactLogString(body.message);
         const stack: string = redactLogString(originalStack);

@@ -2279,6 +2279,25 @@
             },
             "additionalProperties": false
         },
+        "browserOpenTelemetryExporter": {
+            "type": "object",
+            "description": "Deliberately public browser RUM exporter settings. browserIngestionKey must be a OneUptime Browser ingestion key with an origin allowlist, never a Server key.",
+            "properties": {
+                "endpoint": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "browserIngestionKey": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "containerSecurityContext": {
             "type": [
                 "object",

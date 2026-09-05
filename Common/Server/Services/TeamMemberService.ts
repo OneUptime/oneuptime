@@ -16,6 +16,8 @@ import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
+import TeamPermissionService from "./TeamPermissionService";
+import TeamService from "./TeamService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserService from "./UserService";
@@ -32,9 +34,11 @@ import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
+import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
@@ -102,6 +106,56 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+    const teamId: ObjectID | null =
+      createBy.data.teamId || createBy.data.team?.id || null;
+
+    if (!projectId) {
+      throw new BadDataException("Project Id is required to invite a member");
+    }
+
+    if (!teamId) {
+      throw new BadDataException("Team Id is required to invite a member");
+    }
+
+    createBy.data.projectId = projectId;
+    createBy.data.teamId = teamId;
+
+    if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
+      if (
+        !createBy.props.tenantId ||
+        createBy.props.tenantId.toString() !== projectId.toString()
+      ) {
+        throw new NotAuthorizedException(
+          "Team members can only be managed inside the current project.",
+        );
+      }
+
+      const team: Team | null = await TeamService.findOneBy({
+        query: {
+          _id: teamId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!team) {
+        throw new BadDataException("Invalid Team ID");
+      }
+
+      await TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: teamId,
+        projectId: projectId,
+        props: createBy.props,
+      });
+    }
+
     // Check if SCIM is enabled for the project
     if (
       !createBy.props.isRoot &&
@@ -364,6 +418,30 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<TeamMember>,
+  ): Promise<OnUpdate<TeamMember>> {
+    /*
+     * CurrentUser may set this column so an invitee can accept a pending
+     * invitation. The inverse transition is not a safe way to leave: merely
+     * flipping the flag bypasses the delete hook that removes notification
+     * settings, on-call assignments, calendar feeds, and cached permissions.
+     * Force ordinary users through the established delete/leave path instead.
+     */
+    if (
+      updateBy.data.hasAcceptedInvitation === false &&
+      !updateBy.props.isRoot &&
+      !updateBy.props.isMasterAdmin
+    ) {
+      throw new NotAuthorizedException(
+        "An accepted team membership must be removed through the leave flow.",
+      );
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()

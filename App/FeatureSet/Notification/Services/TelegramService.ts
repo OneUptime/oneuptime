@@ -14,7 +14,8 @@ import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import { redactLogString } from "Common/Server/Utils/LogRedaction";
 import Project from "Common/Models/DatabaseModels/Project";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
 import API from "Common/Utils/API";
@@ -118,12 +119,6 @@ export default class TelegramService {
         telegramLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
 
-      const config: TelegramConfig = await getTelegramConfig();
-
-      if (config.botUsername) {
-        telegramLog.fromBotUsername = config.botUsername;
-      }
-
       let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
 
@@ -138,6 +133,7 @@ export default class TelegramService {
           id: options.projectId,
           select: {
             smsOrCallCurrentBalanceInUSDCents: true,
+            enableTelegramNotifications: true,
             lowCallAndSMSBalanceNotificationSentToOwners: true,
             name: true,
             notEnabledSmsOrCallNotificationSentToOwners: true,
@@ -157,6 +153,46 @@ export default class TelegramService {
               isRoot: true,
             },
           });
+          return;
+        }
+
+        if (!project.enableTelegramNotifications) {
+          telegramLog.status = TelegramStatus.Error;
+          telegramLog.statusMessage =
+            "Telegram notifications are not enabled for this project. Please enable Telegram notifications in Project Settings.";
+
+          // The project owner disabled this channel; refusal is expected.
+          logger.error(telegramLog.statusMessage, EXTERNAL_FAULT);
+          await TelegramLogService.create({
+            data: telegramLog,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
+            await ProjectService.updateOneById({
+              id: project.id!,
+              data: {
+                notEnabledSmsOrCallNotificationSentToOwners: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            /*
+             * Deliberately omit the destination chat and message body. Alert
+             * payloads can contain incident secrets, and owner-notification
+             * email is a different delivery channel with different readers.
+             */
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              `Telegram notifications not enabled for ${project.name || ""}`,
+              "A Telegram notification was not sent because Telegram notifications are disabled for this project. Please enable Telegram notifications in Project Settings if this channel should be used.",
+            );
+          }
+
           return;
         }
 
@@ -213,6 +249,12 @@ export default class TelegramService {
             return;
           }
         }
+      }
+
+      const config: TelegramConfig = await getTelegramConfig();
+
+      if (config.botUsername) {
+        telegramLog.fromBotUsername = config.botUsername;
       }
 
       const payload: JSONObject = {
@@ -315,9 +357,13 @@ export default class TelegramService {
         error instanceof Error && error.message
           ? error.message
           : `${error as string}`;
-      telegramLog.statusMessage = errorMessage;
+      const safeErrorMessage: string = redactLogString(errorMessage);
+      telegramLog.statusMessage = safeErrorMessage;
 
-      sendError = error instanceof Error ? error : new Error(errorMessage);
+      sendError =
+        error instanceof Error && safeErrorMessage === error.message
+          ? error
+          : new Error(safeErrorMessage);
     }
 
     if (options.projectId) {

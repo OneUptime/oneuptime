@@ -10,6 +10,8 @@ import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
 
+export type { FindOperator };
+
 export default class QueryHelper {
   @CaptureSpan()
   public static modulo(

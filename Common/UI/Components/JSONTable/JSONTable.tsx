@@ -60,7 +60,7 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
      */
     type GroupEntry = { index: number; value: unknown };
     type GroupMap = { [prefix: string]: Array<GroupEntry> };
-    const groupMap: GroupMap = {};
+    const groupMap: GroupMap = Object.create(null) as GroupMap;
     const keys: Array<string> = Object.keys(working);
 
     // Track keys that should be removed after grouping
@@ -100,7 +100,7 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
     }
 
     // Apply grouping where it makes sense (only if at least 2 items or at least 1 and prefix not already defined)
-    for (const prefix in groupMap) {
+    for (const prefix of Object.keys(groupMap)) {
       const arr: Array<GroupEntry> = groupMap[prefix] || [];
       if (arr.length === 0) {
         continue;

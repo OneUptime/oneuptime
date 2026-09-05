@@ -1,10 +1,6 @@
 import { QueueJob, QueueName } from "./Queue";
 import TimeoutException from "../../Types/Exception/TimeoutException";
-import {
-  PromiseRejectErrorFunction,
-  PromiseVoidFunction,
-  VoidFunction,
-} from "../../Types/FunctionTypes";
+import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
@@ -252,18 +248,28 @@ export default class QueueWorker {
     timeoutInMS: number,
     jobCallback: PromiseVoidFunction,
   ): Promise<void> {
-    type TimeoutPromise = (ms: number) => Promise<void>;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const timeoutPromise: TimeoutPromise = (ms: number): Promise<void> => {
-      return new Promise(
-        (_resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
-          setTimeout(() => {
-            return reject(new TimeoutException("Job Timeout"));
-          }, ms);
+    try {
+      const timeoutPromise: Promise<void> = new Promise<void>(
+        (_resolve: () => void, reject: (reason: Error) => void) => {
+          timeout = setTimeout(() => {
+            reject(new TimeoutException("Job Timeout"));
+          }, timeoutInMS);
         },
       );
-    };
 
-    return await Promise.race([timeoutPromise(timeoutInMS), jobCallback()]);
+      await Promise.race([timeoutPromise, jobCallback()]);
+    } finally {
+      /*
+       * A settled job no longer needs its deadline. Leaving this timer alive
+       * retains its async context until the timeout and schedules needless
+       * callbacks for every completed job. This also covers synchronous throws
+       * from jobCallback. A timeout still does not cancel the underlying job.
+       */
+      if (timeout !== undefined) {
+        clearTimeout(timeout);
+      }
+    }
   }
 }

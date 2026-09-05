@@ -139,6 +139,15 @@ const SENSITIVE_EXACT_KEYS: Set<string> = new Set<string>([
   "userhandle",
   "challenge",
   "twofactorsecret",
+  /*
+   * Database drivers attach bind values to QueryFailedError as enumerable
+   * arrays. The values have no reliable self-identifying shape, so the whole
+   * field must be treated as secret rather than logged positionally.
+   */
+  "parameters",
+  "parametervalues",
+  "bindparameters",
+  "bindvalues",
 ]);
 
 export type NormalizeLogKeyFunction = (key: string) => string;
@@ -338,6 +347,16 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: REDACTED,
   },
   {
+    /*
+     * Telegram puts the bot credential in the request path rather than a
+     * header. Network clients commonly copy that URL into exception messages,
+     * so structural key redaction cannot see it.
+     */
+    name: "telegram-bot-token-path",
+    regex: /(\/bot)[0-9]{5,}:[A-Za-z0-9_-]{20,}/g,
+    replacement: `$1${REDACTED}`,
+  },
+  {
     name: "private-key-block",
     regex:
       /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
@@ -377,6 +396,7 @@ const SENSITIVE_TEXT_HINT_REGEX: RegExp = new RegExp(
     "github_pat_",
     "AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA",
     "AIza",
+    "/bot[0-9]{5,}:",
     "-----BEGIN",
     "://",
   ].join("|"),

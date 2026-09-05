@@ -10,6 +10,127 @@ import Typeof from "./Typeof";
 import JSON5 from "json5";
 
 export default class JSONFunctions {
+  private static readonly unsafeObjectPathSegments: ReadonlySet<string> =
+    new Set(["__proto__", "prototype", "constructor"]);
+
+  private static createSafeJSONObject(): JSONObject {
+    return Object.create(null) as JSONObject;
+  }
+
+  private static isObjectValue(
+    value: unknown,
+  ): value is Record<string, unknown> {
+    return value !== null && typeof value === Typeof.Object;
+  }
+
+  /**
+   * A reserved name is safe as a terminal primitive on a null-prototype
+   * dictionary. It is unsafe when it would be traversed, or when an object at
+   * that name could later become a bridge to one of its properties.
+   */
+  private static containsUnsafeObjectPathSegment(
+    pathSegments: Array<string>,
+    terminalValue: JSONValue,
+  ): boolean {
+    return pathSegments.some((segment: string, index: number): boolean => {
+      if (!JSONFunctions.unsafeObjectPathSegments.has(segment)) {
+        return false;
+      }
+
+      return (
+        index < pathSegments.length - 1 ||
+        JSONFunctions.isObjectValue(terminalValue)
+      );
+    });
+  }
+
+  /**
+   * Copy untrusted JSON values before placing them in a generated tree. This
+   * strips inherited state, never invokes accessors, and ensures later path
+   * construction can only descend through containers created here.
+   *
+   * Reserved primitive property names remain useful telemetry data and are
+   * safe on the null-prototype dictionaries we create. Object-valued reserved
+   * properties are omitted because they could act as traversal bridges if the
+   * result is later consumed by less defensive code.
+   */
+  private static copyToSafeJSONValue(
+    value: JSONValue,
+    safeContainers: WeakSet<Record<string, unknown>>,
+    copiedValues: WeakMap<Record<string, unknown>, JSONValue> = new WeakMap<
+      Record<string, unknown>,
+      JSONValue
+    >(),
+  ): JSONValue {
+    if (!JSONFunctions.isObjectValue(value)) {
+      return value;
+    }
+
+    const alreadyCopied: JSONValue | undefined = copiedValues.get(value);
+    if (alreadyCopied !== undefined) {
+      return alreadyCopied;
+    }
+
+    if (Array.isArray(value)) {
+      const copiedArray: Array<JSONValue> = new Array<JSONValue>(value.length);
+      safeContainers.add(copiedArray as unknown as Record<string, unknown>);
+      copiedValues.set(
+        value as unknown as Record<string, unknown>,
+        copiedArray,
+      );
+
+      for (let index: number = 0; index < value.length; index++) {
+        const itemDescriptor: PropertyDescriptor | undefined =
+          Object.getOwnPropertyDescriptor(value, index.toString());
+
+        if (!itemDescriptor || !("value" in itemDescriptor)) {
+          continue;
+        }
+
+        copiedArray[index] = JSONFunctions.copyToSafeJSONValue(
+          itemDescriptor.value as JSONValue,
+          safeContainers,
+          copiedValues,
+        );
+      }
+
+      return copiedArray;
+    }
+
+    const copiedObject: JSONObject = JSONFunctions.createSafeJSONObject();
+    safeContainers.add(copiedObject);
+    copiedValues.set(value, copiedObject);
+
+    for (const key of Object.keys(value)) {
+      const propertyDescriptor: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(value, key);
+
+      /*
+       * JSON data properties are all that can be copied without executing
+       * caller-controlled code.
+       */
+      if (!propertyDescriptor || !("value" in propertyDescriptor)) {
+        continue;
+      }
+
+      const propertyValue: JSONValue = propertyDescriptor.value as JSONValue;
+      if (
+        JSONFunctions.unsafeObjectPathSegments.has(key) &&
+        JSONFunctions.isObjectValue(propertyValue)
+      ) {
+        continue;
+      }
+
+      copiedObject[key] = JSONFunctions.copyToSafeJSONValue(
+        propertyValue,
+        safeContainers,
+        copiedValues,
+      );
+    }
+
+    return copiedObject;
+  }
+
   public static getSizeOfJSONinGB(obj: JSONObject): number {
     const sizeInBytes: number = Buffer.byteLength(JSON.stringify(obj));
     const sizeToGb: number = DiskSize.byteSizeToGB(sizeInBytes);
@@ -112,25 +233,51 @@ export default class JSONFunctions {
      * },
      */
 
-    const result: JSONObject = {};
+    const result: JSONObject = JSONFunctions.createSafeJSONObject();
+    const safeContainers: WeakSet<Record<string, unknown>> = new WeakSet<
+      Record<string, unknown>
+    >();
+    safeContainers.add(result);
 
-    for (const key in obj) {
-      const keys: Array<string> = key.split(".");
+    for (const key of Object.keys(obj)) {
+      const valueDescriptor: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(obj, key);
+
+      if (!valueDescriptor || !("value" in valueDescriptor)) {
+        continue;
+      }
+
+      const value: JSONValue = valueDescriptor.value as JSONValue;
+      const keys: Array<string> = key.split(".").filter(Boolean);
+
+      if (
+        keys.length === 0 ||
+        JSONFunctions.containsUnsafeObjectPathSegment(keys, value)
+      ) {
+        continue;
+      }
 
       let currentObj: JSONObject = result;
 
       for (let i: number = 0; i < keys.length; i++) {
-        const k: string | undefined = keys[i];
-
-        if (!k) {
-          continue;
-        }
+        const k: string = keys[i]!;
 
         if (i === keys.length - 1) {
-          currentObj[k] = obj[key];
+          currentObj[k] = JSONFunctions.copyToSafeJSONValue(
+            value,
+            safeContainers,
+          );
         } else {
-          if (!currentObj[k]) {
-            currentObj[k] = {};
+          const currentValue: JSONValue = currentObj[k];
+
+          if (
+            !currentValue ||
+            !JSONFunctions.isObjectValue(currentValue) ||
+            Array.isArray(currentValue) ||
+            !safeContainers.has(currentValue as Record<string, unknown>)
+          ) {
+            currentObj[k] = JSONFunctions.createSafeJSONObject();
+            safeContainers.add(currentObj[k] as JSONObject);
           }
 
           currentObj = currentObj[k] as JSONObject;
@@ -462,36 +609,22 @@ export default class JSONFunctions {
   }
 
   public static unflattenObject(val: JSONObject): JSONObject {
-    const returnObj: JSONObject = {};
-
-    for (const key in val) {
-      const keys: Array<string> = key.split(".");
-      let currentObj: JSONObject = returnObj;
-
-      for (let i: number = 0; i < keys.length; i++) {
-        const k: string | undefined = keys[i];
-
-        if (!k) {
-          continue;
-        }
-
-        if (i === keys.length - 1) {
-          currentObj[k] = val[key];
-        } else {
-          if (!currentObj[k]) {
-            currentObj[k] = {};
-          }
-
-          currentObj = currentObj[k] as JSONObject;
-        }
-      }
-    }
-
-    return returnObj;
+    return JSONFunctions.nestJson(val);
   }
 
   public static flattenObject(val: JSONObject): JSONObject {
-    const returnObj: JSONObject = {};
+    const returnObj: JSONObject = JSONFunctions.createSafeJSONObject();
+    const safeContainers: WeakSet<Record<string, unknown>> = new WeakSet<
+      Record<string, unknown>
+    >();
+    const copiedValue: JSONValue = JSONFunctions.copyToSafeJSONValue(
+      val,
+      safeContainers,
+    );
+
+    if (!JSONFunctions.isObjectValue(copiedValue)) {
+      return returnObj;
+    }
 
     type FlattenFunction = (obj: JSONObject, prefix: string) => void;
 
@@ -499,16 +632,29 @@ export default class JSONFunctions {
       obj: JSONObject,
       prefix: string,
     ): void => {
-      for (const key in obj) {
-        if (typeof obj[key] === Typeof.Object) {
-          flatten(obj[key] as JSONObject, `${prefix}${key}.`);
+      for (const key of Object.keys(obj)) {
+        const value: JSONValue = obj[key];
+        const flattenedKey: string = `${prefix}${key}`;
+        const pathSegments: Array<string> = flattenedKey
+          .split(".")
+          .filter(Boolean);
+
+        if (
+          pathSegments.length === 0 ||
+          JSONFunctions.containsUnsafeObjectPathSegment(pathSegments, value)
+        ) {
+          continue;
+        }
+
+        if (JSONFunctions.isObjectValue(value)) {
+          flatten(value as JSONObject, `${prefix}${key}.`);
         } else {
-          returnObj[`${prefix}${key}`] = obj[key];
+          returnObj[flattenedKey] = value;
         }
       }
     };
 
-    flatten(val, "");
+    flatten(copiedValue as JSONObject, "");
 
     return returnObj;
   }

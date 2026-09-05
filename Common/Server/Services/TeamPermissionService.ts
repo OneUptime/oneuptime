@@ -7,9 +7,17 @@ import DatabaseService from "./DatabaseService";
 import TeamMemberService from "./TeamMemberService";
 import TeamService from "./TeamService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
+import Permission, { UserPermission } from "../../Types/Permission";
+import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/TeamPermission";
@@ -17,6 +25,174 @@ import Model from "../../Models/DatabaseModels/TeamPermission";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  private assertProjectMatchesTenant(
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (!props.tenantId || props.tenantId.toString() !== projectId.toString()) {
+      throw new NotAuthorizedException(
+        "Team permissions can only be managed inside the current project.",
+      );
+    }
+  }
+
+  private getLabelIds(labels: Array<Label> | undefined): Array<ObjectID> {
+    return (labels || [])
+      .map((label: Label) => {
+        return label.id;
+      })
+      .filter((labelId: ObjectID | null): labelId is ObjectID => {
+        return Boolean(labelId);
+      });
+  }
+
+  private permissionCoversGrant(
+    callerPermission: UserPermission,
+    targetScope: PermissionScope | undefined,
+    targetLabelIds: Array<ObjectID>,
+  ): boolean {
+    const callerLabelIds: Array<ObjectID> = callerPermission.labelIds || [];
+    const callerHasAllScope: boolean =
+      callerPermission.scope === PermissionScope.All ||
+      (!callerPermission.scope && callerLabelIds.length === 0) ||
+      (callerPermission.scope === PermissionScope.Labels &&
+        callerLabelIds.length === 0);
+
+    if (callerHasAllScope) {
+      return true;
+    }
+
+    const targetHasLabelScope: boolean =
+      targetLabelIds.length > 0 &&
+      targetScope !== PermissionScope.All &&
+      targetScope !== PermissionScope.Owned;
+
+    if (
+      !targetHasLabelScope ||
+      callerPermission.scope === PermissionScope.Owned
+    ) {
+      return false;
+    }
+
+    const callerLabelIdStrings: Set<string> = new Set<string>(
+      callerLabelIds.map((labelId: ObjectID) => {
+        return labelId.toString();
+      }),
+    );
+
+    return targetLabelIds.every((labelId: ObjectID) => {
+      return callerLabelIdStrings.has(labelId.toString());
+    });
+  }
+
+  /**
+   * A permission editor may only delegate authority they already hold. This
+   * is deliberately stricter than the table-level "may edit team
+   * permissions" check: that capability grants access to the editor, not a
+   * path to mint ProjectOwner (or any unrelated role) for their own team.
+   */
+  public assertCanGrantPermission(data: {
+    permission: Permission;
+    labelIds?: Array<ObjectID> | undefined;
+    scope?: PermissionScope | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    const callerPermissions: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        data.props,
+        PermissionType.Allow,
+      );
+
+    /*
+     * ProjectOwner is the sole tenant-level delegation override. In
+     * particular, ProjectAdmin is not a synonym for every project
+     * permission: destructive and billing capabilities such as
+     * DeleteProject and ManageProjectBilling are intentionally withheld from
+     * it. Every non-owner therefore falls through to the exact permission and
+     * scope comparison below, including ProjectAdmin.
+     */
+    if (
+      callerPermissions.some((permission: UserPermission) => {
+        return permission.permission === Permission.ProjectOwner;
+      })
+    ) {
+      return;
+    }
+
+    const targetLabelIds: Array<ObjectID> = data.labelIds || [];
+    const canDelegate: boolean = callerPermissions
+      .filter((permission: UserPermission) => {
+        return permission.permission === data.permission;
+      })
+      .some((permission: UserPermission) => {
+        return this.permissionCoversGrant(
+          permission,
+          data.scope,
+          targetLabelIds,
+        );
+      });
+
+    if (!canDelegate) {
+      throw new NotAuthorizedException(
+        `You cannot grant ${data.permission} because your own access does not include that permission at an equal or broader scope.`,
+      );
+    }
+  }
+
+  /**
+   * Adding a user to a team delegates every allow and block row on that team.
+   * Apply the same grant ceiling used when rows are created so an inviter
+   * cannot join (or invite an accomplice to) a more privileged team.
+   */
+  @CaptureSpan()
+  public async assertCanGrantTeamPermissions(data: {
+    teamId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    this.assertProjectMatchesTenant(data.projectId, data.props);
+
+    const permissions: Array<Model> = await this.findBy({
+      query: {
+        teamId: data.teamId,
+        projectId: data.projectId,
+      },
+      select: {
+        permission: true,
+        labels: {
+          _id: true,
+        },
+        scope: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const permission of permissions) {
+      this.assertCanGrantPermission({
+        permission: permission.permission!,
+        labelIds: this.getLabelIds(permission.labels),
+        scope: permission.scope,
+        props: data.props,
+      });
+    }
   }
 
   @CaptureSpan()
@@ -35,9 +211,17 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Permission is required to create permission");
     }
 
-    // get team.
-    const team: Team | null = await TeamService.findOneById({
-      id: createBy.data.teamId!,
+    this.assertProjectMatchesTenant(createBy.data.projectId, createBy.props);
+
+    /*
+     * Resolve the team and project together. A globally valid team ID from a
+     * different tenant must never be enough to attach a permission row.
+     */
+    const team: Team | null = await TeamService.findOneBy({
+      query: {
+        _id: createBy.data.teamId,
+        projectId: createBy.data.projectId,
+      },
       select: {
         isPermissionsEditable: true,
       },
@@ -55,6 +239,13 @@ export class Service extends DatabaseService<Model> {
         "You cannot create new permissions for this team because this team is not editable",
       );
     }
+
+    this.assertCanGrantPermission({
+      permission: createBy.data.permission,
+      labelIds: this.getLabelIds(createBy.data.labels),
+      scope: createBy.data.scope,
+      props: createBy.props,
+    });
 
     // check if this permission is already assigned to this team and if yes then throw error.
 
@@ -128,6 +319,7 @@ export class Service extends DatabaseService<Model> {
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         teamId: createBy.data.teamId!,
+        projectId: createBy.data.projectId!,
       },
       select: {
         userId: true,
@@ -163,6 +355,11 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         teamId: true,
         projectId: true,
+        permission: true,
+        labels: {
+          _id: true,
+        },
+        scope: true,
         team: {
           isPermissionsEditable: true,
         },
@@ -175,11 +372,44 @@ export class Service extends DatabaseService<Model> {
     });
 
     for (const permission of teamPermissions) {
+      this.assertProjectMatchesTenant(permission.projectId!, updateBy.props);
+
       if (!permission.team?.isPermissionsEditable) {
         throw new BadDataException(
           "Permissions for this team is not updateable. You can create a new team and add permissions to that team instead.",
         );
       }
+
+      const rawUpdateData: {
+        permission?: unknown;
+        labels?: unknown;
+        scope?: unknown;
+      } = updateBy.data as unknown as {
+        permission?: unknown;
+        labels?: unknown;
+        scope?: unknown;
+      };
+      const requestedPermission: Permission =
+        typeof rawUpdateData.permission === "string"
+          ? (rawUpdateData.permission as Permission)
+          : permission.permission!;
+      const requestedLabels: Array<Label> =
+        rawUpdateData.labels === null
+          ? []
+          : Array.isArray(rawUpdateData.labels)
+            ? (rawUpdateData.labels as Array<Label>)
+            : permission.labels || [];
+      const requestedScope: PermissionScope | undefined =
+        typeof rawUpdateData.scope === "string"
+          ? (rawUpdateData.scope as PermissionScope)
+          : permission.scope;
+
+      this.assertCanGrantPermission({
+        permission: requestedPermission,
+        labelIds: this.getLabelIds(requestedLabels),
+        scope: requestedScope,
+        props: updateBy.props,
+      });
     }
 
     if (updateBy.data.labels && updateBy.data.labels.length > 0) {
@@ -253,6 +483,7 @@ export class Service extends DatabaseService<Model> {
       const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
         query: {
           teamId: permission.teamId!,
+          projectId: permission.projectId!,
         },
         select: {
           userId: true,
@@ -323,6 +554,7 @@ export class Service extends DatabaseService<Model> {
       const members: Array<TeamMember> = await TeamMemberService.findBy({
         query: {
           teamId: permission.teamId!,
+          projectId: permission.projectId!,
         },
         select: {
           userId: true,

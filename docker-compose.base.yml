@@ -40,8 +40,14 @@ x-common-variables: &common-variables
   #Ports. Usually they don't need to change.
   APP_PORT: ${APP_PORT}
   HOME_PORT: ${HOME_PORT}
+  # Backend exporter configuration. Headers may contain secrets and are never
+  # included in a frontend env.js response.
   OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
   OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+  # Browser RUM is a separate, deliberately public channel. This key must be
+  # a Browser ingestion key with an origin allowlist, never a Server key.
+  PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT:-}
+  PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY: ${PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY:-}
 
   SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
 

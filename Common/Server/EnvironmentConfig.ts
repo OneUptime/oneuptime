@@ -42,8 +42,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "ANALYTICS_HOST",
   "GIT_SHA",
   "APP_VERSION",
-  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
-  "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+  "PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+  "PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY",
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
@@ -54,6 +54,32 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "INBOUND_EMAIL_DOMAIN",
 ];
 
+/*
+ * These values are credentials (or may contain credentials) for backend
+ * exporters. Keep this denylist even though none of them is in the allowlist:
+ * it makes the security boundary explicit and ensures that a future broad
+ * prefix or an accidental allowlist addition cannot publish them in env.js.
+ *
+ * Browser telemetry has its own deliberately public endpoint and Browser
+ * ingestion key above. Browser keys are origin-bound, surface-limited and
+ * rate-limited by TelemetryIngest; a Server key is none of those things.
+ */
+const FRONTEND_ENV_DENY_LIST: ReadonlySet<string> = new Set<string>([
+  "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+  "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+]);
+
+/*
+ * PUBLIC_ is an intentional escape hatch for browser-readable settings, but it
+ * must not turn a renamed OTLP header variable into an escape hatch for an
+ * arbitrary bearer token. Cover the OpenTelemetry-standard OTEL spelling, the
+ * historical OneUptime OPENTELEMETRY spelling, generic headers and every
+ * signal-specific/future extension ending in _HEADERS. Endpoint and dedicated
+ * Browser-key names remain unaffected.
+ */
+const FRONTEND_OTLP_HEADERS_PATTERN: RegExp =
+  /^PUBLIC_(?:OTEL|OPENTELEMETRY)_EXPORTER_OTLP(?:_[A-Z0-9]+)*_HEADERS$/i;
+
 const FRONTEND_ENV_ALLOW_PREFIXES: Array<string> = [
   "SUBSCRIPTION_PLAN_",
   "PUBLIC_",
@@ -63,6 +89,13 @@ export const getFrontendEnvVars: () => JSONObject = (): JSONObject => {
   const frontendEnv: JSONObject = {};
 
   for (const key of Object.keys(process.env)) {
+    if (
+      FRONTEND_ENV_DENY_LIST.has(key) ||
+      FRONTEND_OTLP_HEADERS_PATTERN.test(key)
+    ) {
+      continue;
+    }
+
     const shouldInclude: boolean =
       FRONTEND_ENV_ALLOW_LIST.includes(key) ||
       FRONTEND_ENV_ALLOW_PREFIXES.some((prefix: string) => {

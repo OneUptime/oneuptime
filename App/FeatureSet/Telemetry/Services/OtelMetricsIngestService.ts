@@ -30,7 +30,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import Service from "Common/Models/DatabaseModels/Service";
+import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -629,7 +629,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const dbMetrics: Array<JSONObject> = [];
       const serviceDictionary: Dictionary<TelemetryServiceMetadata> = {};
 
-      const metricNameServiceNameMap: Dictionary<MetricType> = {};
+      const metricCatalog: MetricCatalog = new MetricCatalog();
+      const metricNameServiceNameMap: Dictionary<MetricType> =
+        metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
 
@@ -997,41 +999,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           ) {
             hostHeartbeatHostNames.add(heartbeatHostName);
             const heartbeatMetricName: string = "oneuptime.host.heartbeat";
-            if (!metricNameServiceNameMap[heartbeatMetricName]) {
-              const heartbeatMetricType: MetricType = new MetricType();
-              heartbeatMetricType.name = heartbeatMetricName;
-              heartbeatMetricType.description =
-                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.";
-              heartbeatMetricType.unit = "1";
-              heartbeatMetricType.services = [];
-              metricNameServiceNameMap[heartbeatMetricName] =
-                heartbeatMetricType;
-            }
-            /*
-             * Only associate a real Service row (OpenTelemetry type).
-             * The host heartbeat's primaryEntityId is a Host/DockerHost/
-             * KubernetesCluster id, which has no matching Service row,
-             * so pushing it would fail the MetricType.services FK. The
-             * heartbeat MetricType is still cataloged above without a
-             * service link.
-             */
-            if (
-              serviceMetadata.primaryEntityType === ServiceType.OpenTelemetry &&
-              metricNameServiceNameMap[heartbeatMetricName]!.services!.filter(
-                (svc: Service) => {
-                  return (
-                    svc.id?.toString() ===
-                    serviceMetadata.primaryEntityId!.toString()
-                  );
-                },
-              ).length === 0
-            ) {
-              const heartbeatService: Service = new Service();
-              heartbeatService.id = serviceMetadata.primaryEntityId!;
-              metricNameServiceNameMap[heartbeatMetricName]!.services!.push(
-                heartbeatService,
-              );
-            }
+            metricCatalog.addMetric({
+              name: heartbeatMetricName,
+              description:
+                "Synthetic heartbeat emitted by OneUptime each time the host's OTel collector ships a metric batch. Use `count > 0` over a window to detect host up/down.",
+              unit: "1",
+              serviceMetadata,
+            });
             /*
              * Stamp the heartbeat with the host's newest datapoint
              * timestamp in this payload, not the ingest wall clock.
@@ -1144,47 +1118,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   ] as string;
                   const metricUnit: string = metric["unit"] as string;
 
-                  if (metricName) {
-                    if (!metricNameServiceNameMap[metricName]) {
-                      metricNameServiceNameMap[metricName] = new MetricType();
-                      metricNameServiceNameMap[metricName]!.name = metricName;
-                      metricNameServiceNameMap[metricName]!.description =
-                        metricDescription;
-                      metricNameServiceNameMap[metricName]!.unit = metricUnit;
-                      metricNameServiceNameMap[metricName]!.services = [];
-                    }
-
-                    /*
-                     * MetricType.services is a ManyToMany to the
-                     * Service table (join keyed on primaryEntityId). Only
-                     * OpenTelemetry-type telemetry has a real Service
-                     * row; associating Host / DockerHost /
-                     * KubernetesCluster / Unknown telemetry here would
-                     * insert a join row whose primaryEntityId has no matching
-                     * Service and fail the FK. The metric name itself is
-                     * still cataloged above (just without a service
-                     * link), and the datapoints carry the primaryEntityId in
-                     * ClickHouse regardless.
-                     */
-                    if (
-                      serviceMetadata.primaryEntityType ===
-                        ServiceType.OpenTelemetry &&
-                      metricNameServiceNameMap[metricName]!.services!.filter(
-                        (service: Service) => {
-                          return (
-                            service.id?.toString() ===
-                            serviceMetadata.primaryEntityId!.toString()
-                          );
-                        },
-                      ).length === 0
-                    ) {
-                      const newService: Service = new Service();
-                      newService.id = serviceMetadata.primaryEntityId!;
-                      metricNameServiceNameMap[metricName]!.services!.push(
-                        newService,
-                      );
-                    }
-                  }
+                  metricCatalog.addMetric({
+                    name: metricName,
+                    description: metricDescription,
+                    unit: metricUnit,
+                    serviceMetadata,
+                  });
 
                   /*
                    * The per-metric invariant attribute base: every datapoint
@@ -1632,7 +1571,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        * losing it must never fail a batch whose telemetry already landed.
        */
       await TelemetryUtil.indexMetricNameServiceNameMap({
-        metricNameServiceNameMap: metricNameServiceNameMap,
+        metricNameServiceNameMap: metricCatalog.metricNameServiceNameMap,
         projectId: projectId,
       }).catch((err: Error) => {
         logger.error("Error indexing metric name service name map");

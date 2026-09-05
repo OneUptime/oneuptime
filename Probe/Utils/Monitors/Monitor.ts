@@ -216,9 +216,7 @@ export default class MonitorUtil {
     return results;
   }
 
-  public static async probeMonitor(
-    monitor: Monitor,
-  ): Promise<Array<ProbeMonitorResponse | null>> {
+  public static async probeMonitor(monitor: Monitor): Promise<void> {
     /*
      * Seed telemetry context so every span/log for this check carries the
      * monitor + project identity.
@@ -243,17 +241,13 @@ export default class MonitorUtil {
     );
   }
 
-  private static async probeMonitorInternal(
-    monitor: Monitor,
-  ): Promise<Array<ProbeMonitorResponse | null>> {
-    const results: Array<ProbeMonitorResponse | null> = [];
-
+  private static async probeMonitorInternal(monitor: Monitor): Promise<void> {
     if (
       !monitor.monitorSteps ||
       monitor.monitorSteps.data?.monitorStepsInstanceArray.length === 0
     ) {
       logger.debug("No monitor steps found");
-      return [];
+      return;
     }
 
     for (const monitorStep of monitor.monitorSteps.data
@@ -317,10 +311,14 @@ export default class MonitorUtil {
         });
       }
 
-      results.push(result);
+      /*
+       * The response has already been ingested. Log it now and release it
+       * before the next step, rather than keeping every body/screenshot in
+       * an array until the slowest monitor in the worker's batch finishes.
+       */
+      logger.debug("Probed monitor step:");
+      logger.debug(result);
     }
-
-    return results;
   }
 
   public static isHeadRequest(monitorStep: MonitorStep): boolean {
