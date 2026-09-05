@@ -926,6 +926,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               cloudResourceId,
               rumApplicationId,
               entityRefs: resourceEntityRefs,
+              /*
+               * Flag OneUptime agent infra metric batches (kubeletstats k8s.*,
+               * hostmetrics system.* / process.*) so selectPrimaryEntity routes
+               * them to their Host / KubernetesCluster entity instead of
+               * synthesising a phantom Service row (issue #3468).
+               */
+              isInfraMetricBatch: this.isInfraMetricBatch(scopeMetricsForScan),
             });
           const serviceName: string = serviceMetadata.serviceName;
 
