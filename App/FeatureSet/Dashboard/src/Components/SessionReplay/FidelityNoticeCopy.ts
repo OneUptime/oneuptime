@@ -1,4 +1,8 @@
-import { SessionReplayFidelityNotice } from "Common/Types/Rum/SessionReplay";
+import {
+  SessionReplayFidelityNotice,
+  SessionReplaySealedReason,
+} from "Common/Types/Rum/SessionReplay";
+import Text from "Common/Types/Text";
 
 /*
  * Human copy for the machine-readable fidelity notices.
@@ -41,10 +45,18 @@ export interface FidelityNoticeCopy {
  */
 export type FidelityNoticeSeverity = "playback" | "fidelity";
 
+/*
+ * The recorder reports the chunk cap as a fidelity notice spelled exactly
+ * like the header's sealedReason, so the two are kept from drifting apart
+ * by reading the value off the shared enum.
+ */
+export const TRUNCATED_NOTICE_CODE: string =
+  SessionReplaySealedReason.Truncated;
+
 const PLAYBACK_AFFECTING: Set<string> = new Set<string>([
   SessionReplayFidelityNotice.SnapshotTooLarge,
   SessionReplayFidelityNotice.BufferOverflow,
-  "truncated",
+  TRUNCATED_NOTICE_CODE,
 ]);
 
 export function getFidelityNoticeSeverity(
@@ -117,11 +129,21 @@ const COPY: Record<string, FidelityNoticeCopy> = {
       "One or more of the application's ignored error patterns was invalid or over the limit, so error triggering may be noisier than the settings intend.",
   },
   /*
+   * The footage is complete; only the rail is cut short. Deliberately a
+   * quiet note rather than a playback warning: nothing the viewer scrubs to
+   * is missing, and the rail itself marks where the cap hit.
+   */
+  [SessionReplayFidelityNotice.SignalCapReached]: {
+    title: "Some signals after a point were not recorded",
+    description:
+      "Some errors, console output or route changes after this point were not recorded - the per-session cap was reached. The footage itself is complete; only the rail is truncated past the cap marker.",
+  },
+  /*
    * Emitted by the recorder when a session hits the per-session chunk cap.
    * Deliberately not (yet) a SessionReplayFidelityNotice member — see the
    * recorder README — but the copy must exist regardless.
    */
-  truncated: {
+  [TRUNCATED_NOTICE_CODE]: {
     title: "Recording truncated",
     description:
       "This session reached the maximum recording length, so the recorder stopped. Everything up to that point plays normally.",
@@ -134,6 +156,86 @@ export function getFidelityNoticeCopy(code: string): FidelityNoticeCopy {
       title: code,
       description:
         "Part of this session could not be captured. This notice code is newer than this Dashboard's copy for it.",
+    }
+  );
+}
+
+/*
+ * Why a recording ENDED, from the header's sealedReason.
+ *
+ * Every reason the finalizer can write has copy here, because "the picture
+ * just stops" is the ended-early half of the complaint that nothing in the
+ * UI explains why a recording is the length it is. `severity` says whether
+ * the end is worth a warning: a normal final chunk is a fact, a budget
+ * stop is something the viewer can change.
+ */
+export type SealedReasonSeverity = "info" | "warn";
+
+export interface SealedReasonCopy {
+  title: string;
+  description: string;
+  severity: SealedReasonSeverity;
+}
+
+const SEALED_REASON_COPY: Record<string, SealedReasonCopy> = {
+  [SessionReplaySealedReason.FinalChunk]: {
+    title: "Recording ended normally",
+    description:
+      "The recorder sent its final chunk when the page was closed or the session ended, so the recording is complete.",
+    severity: "info",
+  },
+  [SessionReplaySealedReason.IdleTimeout]: {
+    title: "Recording ended after inactivity",
+    description:
+      "No chunk arrived for the idle window, so the session was sealed where the last chunk ended. Anything the user did after that was not recorded.",
+    severity: "info",
+  },
+  [SessionReplaySealedReason.DurationCap]: {
+    title: "Recording reached the maximum length",
+    description:
+      "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
+    severity: "info",
+  },
+  [SessionReplaySealedReason.Budget]: {
+    title: "Recording stopped: upload budget exhausted",
+    description:
+      "The application's replay budget ran out during this session, so later chunks were refused. Raise the budget in the application's session replay settings to record longer sessions.",
+    severity: "warn",
+  },
+  [SessionReplaySealedReason.Truncated]: {
+    title: "Recording reached the chunk cap",
+    description:
+      "This session hit the per-session chunk cap, so the recorder stopped. Everything up to that point plays normally.",
+    severity: "info",
+  },
+  [SessionReplaySealedReason.RecordingLost]: {
+    title: "Recording lost",
+    description:
+      "A recording existed but its chunks never landed, or expired before it could be finalized. Nothing from this session is playable.",
+    severity: "warn",
+  },
+};
+
+/*
+ * Null for a blank reason (the session is still open, or predates the
+ * column); an unknown reason from a newer finalizer is humanised rather
+ * than shown as its machine token.
+ */
+export function getSealedReasonCopy(
+  reason: string | null | undefined,
+): SealedReasonCopy | null {
+  const trimmed: string = (reason || "").trim();
+
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  return (
+    SEALED_REASON_COPY[trimmed] ?? {
+      title: `Recording ended: ${Text.fromDashesToPascalCase(trimmed)}`,
+      description:
+        "The recording was sealed for a reason newer than this Dashboard's copy for it. Everything that was received plays normally.",
+      severity: "info",
     }
   );
 }

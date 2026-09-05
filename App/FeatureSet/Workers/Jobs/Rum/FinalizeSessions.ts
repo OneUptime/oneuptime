@@ -16,11 +16,13 @@ import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+  SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
+import { isSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
 import ChunkMath from "Common/Utils/Rum/ChunkMath";
 import { EVERY_FIVE_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
 
@@ -67,16 +69,23 @@ const JOB_NAME: string = "Rum:FinalizeSessions";
  * feature set; if a shared helper lands in
  * Common/Server/Utils/SessionReplay, both sides should move to it.
  *
- *   replay:active:projects            SET  of projectId, SADD per chunk
+ *   replay:active:projects            SET  of projectId. The ingest path
+ *                                     SADDs on every accepted chunk, so a
+ *                                     newly active project is picked up on
+ *                                     the next run; the reconcile below is
+ *                                     the safety net for a missed SADD.
  *   replay:active:<projectId>         ZSET member "<sessionId>:<tabId>",
  *                                     score = server receive unix ms
- *
- * Only the per-project sorted set is written by the ingest path today.
- * The project SET is the index that lets this job avoid SCANning the
- * keyspace on every run; it is maintained here by a periodic reconcile,
- * and the ingest path SHOULD also SADD the project on every accepted
- * chunk so a newly active project is picked up immediately rather than at
- * the next reconcile.
+ *   replay:active:reconcile-cursor    STRING, the SCAN cursor the last
+ *                                     reconcile stopped at (see
+ *                                     reconcileActiveProjectIndex).
+ *   replay:seal:<projectId>:<sessionId>
+ *                                     STRING, a SessionReplaySealedReason
+ *                                     only the ingest GATE can know
+ *                                     ("budget"): the finalizer cannot see
+ *                                     a byte budget in chunk rows, so the
+ *                                     gate leaves the reason here when it
+ *                                     refuses a session for one.
  * ------------------------------------------------------------------
  */
 export const SESSION_REPLAY_ACTIVE_PROJECTS_KEY: string =
@@ -84,8 +93,17 @@ export const SESSION_REPLAY_ACTIVE_PROJECTS_KEY: string =
 
 export const SESSION_REPLAY_ACTIVE_KEY_PREFIX: string = "replay:active:";
 
+export const SESSION_REPLAY_SEAL_HINT_KEY_PREFIX: string = "replay:seal:";
+
 export function getActiveSessionsKey(projectId: string): string {
   return `${SESSION_REPLAY_ACTIVE_KEY_PREFIX}${projectId}`;
+}
+
+export function getSessionSealHintKey(
+  projectId: string,
+  sessionId: string,
+): string {
+  return `${SESSION_REPLAY_SEAL_HINT_KEY_PREFIX}${projectId}:${sessionId}`;
 }
 
 /*
@@ -108,6 +126,22 @@ const PROJECT_INDEX_RECONCILE_LOCK_KEY: string = "replay:active:reconcile-lock";
 const PROJECT_INDEX_RECONCILE_INTERVAL_SECONDS: number = 10 * 60;
 const PROJECT_INDEX_SCAN_COUNT: number = 500;
 const MAX_PROJECT_INDEX_SCAN_ITERATIONS: number = 200;
+
+/*
+ * Where the bounded SCAN left off. A reconcile that always restarted from
+ * cursor "0" walked the SAME first ~100k keys every time, so on a busy
+ * install a project whose activity key sat past that horizon was never
+ * indexed by the reconcile at all (audit finding workers-lifecycle-6). The
+ * cursor persists across runs and replicas; a reconcile that finishes the
+ * keyspace stores "0" and the next one starts over. Any failure to read it
+ * starts from "0", which is the old behaviour, never worse.
+ */
+export const PROJECT_INDEX_SCAN_CURSOR_KEY: string =
+  "replay:active:reconcile-cursor";
+const PROJECT_INDEX_SCAN_CURSOR_TTL_SECONDS: number = 24 * 60 * 60;
+
+/* A SCAN cursor is an unsigned integer rendered as text. */
+const SCAN_CURSOR_PATTERN: RegExp = new RegExp("^\\d+$");
 
 /*
  * A session is considered done when no chunk has arrived for this long.
@@ -206,6 +240,33 @@ export interface TabChunkAggregate {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+
+  /*
+   * Engagement counters, summed like the frustration counters. A chunk
+   * from a recorder that predates them stores 0, so a session recorded by
+   * a mix of builds under-counts rather than lies.
+   */
+  clickCount: number;
+  customEventCount: number;
+
+  /*
+   * Chunks carrying at least one error, and the session-relative start
+   * offset of the earliest such chunk. Both are needed: minIf returns 0
+   * when nothing matched, and "first error at 0ms" is a real answer for a
+   * page that errors on load, so the count is what says whether the offset
+   * means anything.
+   */
+  erroredChunkCount: number;
+  firstErrorOffsetMs: number;
+
+  /*
+   * Sum of the spans of chunks holding at least
+   * SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS events - the same threshold the
+   * player uses for its provisional idle bands, so the list's "idle 40%"
+   * and the timeline's hatched stretches agree.
+   */
+  activeMs: number;
+
   firstUrl: string;
   lastUrl: string;
   firstUrlAtUnixMs: number;
@@ -247,6 +308,19 @@ export interface SessionChunkAggregate {
   errorClickCount: number;
   refreshRageCount: number;
   pageCount: number;
+
+  clickCount: number;
+  customEventCount: number;
+
+  /*
+   * Session-relative offset of the earliest chunk that carries an error;
+   * 0 when no chunk does. The list's "first error at 1:42" and the
+   * player's "jump to first error" read this without opening a chunk.
+   */
+  firstErrorOffsetMs: number;
+
+  /* Milliseconds of chunks that held real activity. */
+  activeMs: number;
 
   /*
    * Derived from the chunk rows, not carried forward from the provisional
@@ -324,6 +398,15 @@ export interface ProvisionalSessionHeader {
   countryCode: string;
   identifiedUserKey: string;
   identifiedUserLabel: string;
+  /*
+   * From the NEWEST header version, which is the last meta-bearing chunk
+   * the ingest processed: a tag set after chunk 0 and traits from a late
+   * identify() both reach the finalized row this way. The ingest already
+   * gated traits on captureUserIdentity; the finalizer carries what it
+   * stored and never re-derives them.
+   */
+  identifiedUserTraits: Record<string, string>;
+  tags: Record<string, string>;
   traceIds: Array<string>;
   exceptionFingerprints: Array<string>;
   fidelityNotices: Array<string>;
@@ -391,6 +474,19 @@ function toTextArrayValue(value: unknown): Array<string> {
 }
 
 /*
+ * A Map(String, String) column comes back as a plain object over JSON.
+ * Anything else (a server that renders it as an array of pairs, or a row
+ * that predates the column) reads as empty rather than poisoning the row.
+ */
+function toStringMapValue(value: unknown): Record<string, string> {
+  if (isSessionReplayStringMap(value)) {
+    return { ...value };
+  }
+
+  return {};
+}
+
+/*
  * Members are "<sessionId>:<tabId>". sessionId is 32 hex characters and
  * tabId is opaque and may itself contain a colon, so the split is on the
  * FIRST separator only.
@@ -445,6 +541,27 @@ export function buildTabAggregateStatement(data: {
       sum(errorClickCount) AS errorClickCount,
       sum(refreshRageCount) AS refreshRageCount,
       sum(routeCount) AS routeCount,
+      sum(clickCount) AS clickCount,
+      sum(customEventCount) AS customEventCount,
+      /*
+       * The first errored chunk's start offset, guarded by a count because
+       * minIf over no rows is 0 and 0 is also a real offset.
+       */
+      countIf(errorCount > 0) AS erroredChunkCount,
+      minIf(chunkStartOffsetMs, errorCount > 0) AS firstErrorOffsetMs,
+      /*
+       * Coarse activity from the manifest columns alone: a chunk holding
+       * fewer than SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS events carried
+       * nothing the user did. greatest() guards a chunk whose offsets are
+       * inverted by a bad envelope from subtracting from the total.
+       */
+      sumIf(
+        greatest(chunkEndOffsetMs - chunkStartOffsetMs, 0),
+        eventCount >= ${{
+          type: TableColumnType.Number,
+          value: SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
+        }}
+      ) AS activeMs,
       /*
        * WHERE this tab started and ended, and every page in between.
        *
@@ -512,11 +629,14 @@ export function buildTabAggregateStatement(data: {
         errorClickCount,
         refreshRageCount,
         routeCount,
+        clickCount,
+        customEventCount,
         url,
         routes,
         sessionStartTime,
         chunkStartTime,
         chunkEndTime,
+        chunkStartOffsetMs,
         chunkEndOffsetMs,
         schemaVersion,
         recorderKind,
@@ -599,6 +719,8 @@ export function buildProvisionalHeaderStatement(data: {
       countryCode AS countryCode,
       identifiedUserKey AS identifiedUserKey,
       identifiedUserLabel AS identifiedUserLabel,
+      identifiedUserTraits AS identifiedUserTraits,
+      tags AS tags,
       traceIds AS traceIds,
       exceptionFingerprints AS exceptionFingerprints,
       fidelityNotices AS fidelityNotices,
@@ -741,6 +863,11 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     errorClickCount: toNumberValue(row["errorClickCount"]),
     refreshRageCount: toNumberValue(row["refreshRageCount"]),
     routeCount: toNumberValue(row["routeCount"]),
+    clickCount: toNumberValue(row["clickCount"]),
+    customEventCount: toNumberValue(row["customEventCount"]),
+    erroredChunkCount: toNumberValue(row["erroredChunkCount"]),
+    firstErrorOffsetMs: toNumberValue(row["firstErrorOffsetMs"]),
+    activeMs: toNumberValue(row["activeMs"]),
     firstUrl: toTextValue(row["firstUrl"]),
     lastUrl: toTextValue(row["lastUrl"]),
     firstUrlAtUnixMs: toNumberValue(row["firstUrlAtUnixMs"]),
@@ -801,6 +928,8 @@ export function parseProvisionalHeaderRow(
     countryCode: toTextValue(row["countryCode"]),
     identifiedUserKey: toTextValue(row["identifiedUserKey"]),
     identifiedUserLabel: toTextValue(row["identifiedUserLabel"]),
+    identifiedUserTraits: toStringMapValue(row["identifiedUserTraits"]),
+    tags: toStringMapValue(row["tags"]),
     traceIds: toTextArrayValue(row["traceIds"]),
     exceptionFingerprints: toTextArrayValue(row["exceptionFingerprints"]),
     fidelityNotices: toTextArrayValue(row["fidelityNotices"]),
@@ -844,6 +973,10 @@ export function combineTabAggregates(
     errorClickCount: 0,
     refreshRageCount: 0,
     pageCount: 0,
+    clickCount: 0,
+    customEventCount: 0,
+    firstErrorOffsetMs: 0,
+    activeMs: 0,
     firstUrl: "",
     lastUrl: "",
     routes: [],
@@ -860,6 +993,13 @@ export function combineTabAggregates(
   };
 
   const snapshotIndexes: Set<number> = new Set<number>();
+
+  /*
+   * The earliest errored chunk across tabs. Offsets are session-relative
+   * (every tab measures from the same recorder session start), so they
+   * compare directly; a tab with no errored chunk contributes nothing.
+   */
+  let hasErroredChunk: boolean = false;
 
   /*
    * Route union across tabs. A Set keyed on the URL is the whole
@@ -928,6 +1068,16 @@ export function combineTabAggregates(
     combined.refreshRageCount += tab.refreshRageCount;
     /* routeCount is the per-chunk name for what the header calls pageCount. */
     combined.pageCount += tab.routeCount;
+    combined.clickCount += tab.clickCount;
+    combined.customEventCount += tab.customEventCount;
+    combined.activeMs += tab.activeMs;
+
+    if (tab.erroredChunkCount > 0) {
+      combined.firstErrorOffsetMs = hasErroredChunk
+        ? Math.min(combined.firstErrorOffsetMs, tab.firstErrorOffsetMs)
+        : tab.firstErrorOffsetMs;
+      hasErroredChunk = true;
+    }
 
     for (const route of tab.routes) {
       if (route && routes.size < MAX_ROUTES_PER_SESSION) {
@@ -1046,12 +1196,20 @@ export function combineTabAggregates(
 /*
  * Why the session stopped accumulating chunks.
  *
- * Only the ingest path can know it refused chunks for budget or cap
- * reasons, so a provisional header already carrying one of those reasons
- * is authoritative and preserved. Everything else is derivable here, and
- * "idle-timeout" is the honest default: the recorder went away without
- * sending a terminal chunk (browser closed, tab crashed, network died),
- * which is a different statement to the UI than "the recording ended".
+ * Only the ingest path can know it refused chunks for BUDGET reasons, and
+ * it says so through the Redis seal hint (read in finalizeSession and
+ * passed here as existingSealedReason); a provisional header already
+ * carrying budget or truncated is honoured the same way. Everything else is
+ * derivable here, and "idle-timeout" is the honest default: the recorder
+ * went away without sending a terminal chunk (browser closed, tab crashed,
+ * network died), which is a different statement to the UI than "the
+ * recording ended".
+ *
+ * Truncation is judged PER TAB, against the same rule the ingest gate
+ * applies: chunkIndex is minted per tab, so the cap is on the highest index
+ * any one tab reached, never on the cross-tab sum - two tabs of 250 chunks
+ * each are a 500-chunk session that nothing cut (audit finding
+ * workers-lifecycle-7).
  */
 export function resolveSealedReason(data: {
   aggregate: SessionChunkAggregate;
@@ -1073,11 +1231,44 @@ export function resolveSealedReason(data: {
     return SessionReplaySealedReason.DurationCap;
   }
 
-  if (data.aggregate.chunkCount >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION) {
+  if (
+    data.aggregate.maxChunkIndex + 1 >=
+    MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+  ) {
     return SessionReplaySealedReason.Truncated;
   }
 
   return SessionReplaySealedReason.IdleTimeout;
+}
+
+/*
+ * The seal reason the ingest gate left for this session, if any. Best
+ * effort in every direction: no Redis, a client without the command, or a
+ * failed read all mean "no hint", which falls back to what the header and
+ * the chunk rows can say on their own.
+ */
+export async function readSealHint(data: {
+  projectId: string;
+  sessionId: string;
+}): Promise<string> {
+  const client: ClientType | null = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    return "";
+  }
+
+  try {
+    const hint: string | null = await client.get(
+      getSessionSealHintKey(data.projectId, data.sessionId),
+    );
+
+    return typeof hint === "string" ? hint : "";
+  } catch (error) {
+    logger.debug(
+      `${JOB_NAME}: could not read the seal hint for session ${data.sessionId}: ${getErrorMessage(error)}`,
+    );
+    return "";
+  }
 }
 
 /*
@@ -1124,6 +1315,12 @@ export function buildFinalizedSessionRow(data: {
    * "recording-lost", which no combination of zeroed aggregates produces.
    */
   sealedReasonOverride?: SessionReplaySealedReason;
+  /*
+   * What the ingest gate left in Redis about why uploads stopped ("budget").
+   * Takes precedence over the header's own sealedReason because the gate
+   * learned it AFTER the provisional header was written.
+   */
+  sealedReasonHint?: string;
 }): JSONObject {
   const aggregate: SessionChunkAggregate = data.aggregate;
   const header: ProvisionalSessionHeader | null = data.header;
@@ -1158,7 +1355,8 @@ export function buildFinalizedSessionRow(data: {
     resolveSealedReason({
       aggregate: aggregate,
       durationMs: durationMs,
-      existingSealedReason: header ? header.sealedReason : "",
+      existingSealedReason:
+        data.sealedReasonHint || (header ? header.sealedReason : ""),
     });
 
   const retentionDateText: string =
@@ -1213,6 +1411,11 @@ export function buildFinalizedSessionRow(data: {
     refreshRageCount: aggregate.refreshRageCount,
     pageCount: aggregate.pageCount,
 
+    clickCount: aggregate.clickCount,
+    customEventCount: aggregate.customEventCount,
+    firstErrorOffsetMs: aggregate.firstErrorOffsetMs,
+    activeMs: aggregate.activeMs,
+
     hasError: aggregate.errorCount > 0,
     triggerReason: header ? header.triggerReason : "",
     samplePercentageAtCapture: header ? header.samplePercentageAtCapture : 0,
@@ -1260,6 +1463,8 @@ export function buildFinalizedSessionRow(data: {
     countryCode: header ? header.countryCode : "",
     identifiedUserKey: header ? header.identifiedUserKey : "",
     identifiedUserLabel: header ? header.identifiedUserLabel : "",
+    identifiedUserTraits: header ? header.identifiedUserTraits : {},
+    tags: header ? header.tags : {},
 
     traceIds: mergeCappedArray(
       header ? header.traceIds : [],
@@ -1558,6 +1763,10 @@ export async function finalizeSession(data: {
       ? data.correlation.exceptionFingerprints
       : [],
     writtenAt: OneUptimeDate.getCurrentDate(),
+    sealedReasonHint: await readSealHint({
+      projectId: data.projectId.toString(),
+      sessionId: data.sessionId,
+    }),
   });
 
   /*
@@ -1595,7 +1804,7 @@ export async function reconcileActiveProjectIndex(
 ): Promise<Array<string>> {
   const discovered: Set<string> = new Set<string>();
 
-  let cursor: string = "0";
+  let cursor: string = await readPersistedScanCursor(client);
   let iterations: number = 0;
 
   do {
@@ -1617,7 +1826,8 @@ export async function reconcileActiveProjectIndex(
        */
       if (
         key === SESSION_REPLAY_ACTIVE_PROJECTS_KEY ||
-        key === PROJECT_INDEX_RECONCILE_LOCK_KEY
+        key === PROJECT_INDEX_RECONCILE_LOCK_KEY ||
+        key === PROJECT_INDEX_SCAN_CURSOR_KEY
       ) {
         continue;
       }
@@ -1632,6 +1842,13 @@ export async function reconcileActiveProjectIndex(
     }
   } while (cursor !== "0" && iterations < MAX_PROJECT_INDEX_SCAN_ITERATIONS);
 
+  /*
+   * Persisted whether the walk finished ("0": start over next time) or hit
+   * the iteration cap (resume from here), so every key is reached within a
+   * bounded number of reconciles regardless of keyspace size.
+   */
+  await persistScanCursor(client, cursor);
+
   if (discovered.size > 0) {
     await client.sadd(
       SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
@@ -1643,12 +1860,53 @@ export async function reconcileActiveProjectIndex(
 }
 
 /*
+ * Both cursor helpers are best-effort and never throw: a cursor that cannot
+ * be read starts the walk at "0", and one that cannot be written costs a
+ * repeated walk next time. Neither is worse than what the job did before.
+ */
+async function readPersistedScanCursor(client: ClientType): Promise<string> {
+  try {
+    const stored: string | null = await client.get(
+      PROJECT_INDEX_SCAN_CURSOR_KEY,
+    );
+
+    if (typeof stored === "string" && SCAN_CURSOR_PATTERN.test(stored)) {
+      return stored;
+    }
+  } catch (error) {
+    logger.debug(
+      `${JOB_NAME}: could not read the reconcile scan cursor; starting from 0: ${getErrorMessage(error)}`,
+    );
+  }
+
+  return "0";
+}
+
+async function persistScanCursor(
+  client: ClientType,
+  cursor: string,
+): Promise<void> {
+  try {
+    await client.set(
+      PROJECT_INDEX_SCAN_CURSOR_KEY,
+      cursor,
+      "EX",
+      PROJECT_INDEX_SCAN_CURSOR_TTL_SECONDS,
+    );
+  } catch (error) {
+    logger.debug(
+      `${JOB_NAME}: could not persist the reconcile scan cursor: ${getErrorMessage(error)}`,
+    );
+  }
+}
+
+/*
  * Projects with sessions that may need finalizing.
  *
- * The index is the fast path and is what the ingest path is expected to
- * maintain. The reconcile below is what makes a missed SADD a delay rather
- * than permanent data loss, and it also carries the whole job on its own
- * for as long as the ingest path does not maintain the index at all.
+ * The index is the fast path: the ingest path SADDs the project on every
+ * accepted chunk. The reconcile below is what makes a missed SADD (a Redis
+ * blip on the ingest side, an index key evicted) a delay rather than
+ * permanent data loss.
  */
 export async function discoverActiveProjectIds(
   client: ClientType,
@@ -1775,9 +2033,9 @@ export async function finalizeExpiredSessions(): Promise<void> {
       /*
        * Drop the project from the index once its sorted set has drained, so
        * a run does not pay a round trip per project that has EVER recorded.
-       * Safe to be wrong: the periodic reconcile above (and the ingest
-       * path's SADD, once it maintains the index) puts a project back the
-       * moment it has sessions again.
+       * Safe to be wrong: the ingest path's SADD puts a project back the
+       * moment it accepts a chunk for it, and the periodic reconcile above
+       * catches whatever that misses.
        */
       try {
         const remaining: number = await client.zcard(activeKey);
@@ -2078,6 +2336,15 @@ async function sealLostSession(data: {
     errorClickCount: header.errorClickCount,
     refreshRageCount: header.refreshRageCount,
     pageCount: header.pageCount,
+    /*
+     * Never seeded on the provisional header (the finalizer's GROUP BY owns
+     * them), so there is nothing to carry: zero is the truth for a session
+     * whose chunks are gone.
+     */
+    clickCount: 0,
+    customEventCount: 0,
+    firstErrorOffsetMs: 0,
+    activeMs: 0,
     /*
      * Empty on purpose: this session has NO chunk rows, so there is nothing
      * to derive from and buildFinalizedSessionRow falls back to the

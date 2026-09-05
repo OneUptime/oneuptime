@@ -496,6 +496,7 @@ describe("Config diagnostics", (): void => {
             maskingMode: maskingMode,
             consentMode: SessionReplayConsentMode.NotRequired,
             captureTrigger: SessionReplayCaptureTrigger.Always,
+            samplePercentage: 100,
           }),
         );
 
@@ -504,14 +505,96 @@ describe("Config diagnostics", (): void => {
     });
 
     /*
-     * An absent field is an older server, not a downgrade: the recorder
-     * chose the strict default because nothing was sent, which is not a
-     * discrepancy worth reporting.
+     * An absent field is an older server, not a downgrade, so it is not
+     * a warning - but it is not silence either. The recorder filled in
+     * the product default, and if the Dashboard was changed away from
+     * that default the server is too old to say so; the record is what
+     * tells a reader "the policy you see here came from the recorder,
+     * not from your settings".
      */
-    it("stays quiet when the field was never sent", (): void => {
+    it("notes each field it defaulted, at info level, and warns about none", (): void => {
       Config.validateConfig(bodyWith({}));
 
-      expect(codes()).toEqual(["config-accepted"]);
+      expect(recordsFor("config-value-unrecognised")).toHaveLength(0);
+      expect(codes()[0]).toBe("config-accepted");
+      expect(codes().slice(1)).toEqual([
+        "config-field-defaulted",
+        "config-field-defaulted",
+        "config-field-defaulted",
+        "config-field-defaulted",
+      ]);
+      expect(
+        recordsFor("config-field-defaulted").every(
+          (record: DebugRecord): boolean => {
+            return record.level === "info";
+          },
+        ),
+      ).toBe(true);
+      expect(detailsOf("config-field-defaulted")).toEqual([
+        {
+          field: "maskingMode",
+          using: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        },
+        { field: "consentMode", using: SessionReplayConsentMode.NotRequired },
+        {
+          field: "captureTrigger",
+          using: SessionReplayCaptureTrigger.Always,
+        },
+        { field: "samplePercentage", using: "100" },
+      ]);
+    });
+
+    it("notes only the fields that were actually absent", (): void => {
+      Config.validateConfig(
+        bodyWith({
+          maskingMode: SessionReplayMaskingMode.MaskAllText,
+          samplePercentage: 25,
+        }),
+      );
+
+      expect(
+        detailsOf("config-field-defaulted").map(
+          (detail: Record<string, unknown>): unknown => {
+            return detail["field"];
+          },
+        ),
+      ).toEqual(["consentMode", "captureTrigger"]);
+    });
+
+    /*
+     * The policy line must print what the recorder will actually DO, and
+     * for an older server that is the product default - not the strict
+     * fallback the line used to show, which was the "record into memory,
+     * upload nothing" combination nobody had configured.
+     */
+    it("prints the product defaults as the accepted policy for a minimal body", (): void => {
+      Config.validateConfig(bodyWith({}));
+
+      const detail: Record<string, unknown> = detailOf("config-accepted");
+
+      expect(detail["captureTrigger"]).toBe(SessionReplayCaptureTrigger.Always);
+      expect(detail["samplePercentage"]).toBe(100);
+      expect(detail["consentMode"]).toBe(SessionReplayConsentMode.NotRequired);
+      expect(detail["maskingMode"]).toBe(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      );
+    });
+
+    it("names an unreadable sample percentage and the 0 it fell back to", (): void => {
+      Config.validateConfig(bodyWith({ samplePercentage: "50" }));
+
+      expect(detailOf("config-value-unrecognised")).toEqual({
+        field: "samplePercentage",
+        sent: "50",
+        using: "0",
+      });
+
+      /* A non-string is reported by type, like the enum fields. */
+      Config.validateConfig(bodyWith({ samplePercentage: null }));
+
+      expect(detailsOf("config-value-unrecognised")[1]?.["sent"]).toBe(
+        "object",
+      );
     });
   });
 

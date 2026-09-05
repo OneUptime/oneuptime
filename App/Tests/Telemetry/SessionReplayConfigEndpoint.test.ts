@@ -128,12 +128,48 @@ jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
   };
 });
 
+/*
+ * resolvePolicy is derived from getPolicy so the cases below can keep
+ * seeding one mock; a null policy resolves as "application-not-enabled"
+ * unless a test overrides resolvePolicy itself.
+ */
 jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCache", () => {
+  const getPolicy: ReturnType<typeof jest.fn> = jest.fn();
+
   return {
     __esModule: true,
     default: {
-      getPolicy: jest.fn(),
+      getPolicy: getPolicy,
+      resolvePolicy: jest.fn(async (data: unknown): Promise<unknown> => {
+        const policy: unknown = await getPolicy(data);
+
+        return {
+          policy: policy,
+          refusal: policy ? null : "application-not-enabled",
+        };
+      }),
       isOriginAllowed: jest.fn().mockReturnValue(true),
+    },
+    SessionReplayPolicyRefusal: {
+      ProjectNotAllowed: "project-not-allowed",
+      ApplicationNotEnabled: "application-not-enabled",
+      ApplicationUnknown: "application-unknown",
+      ProjectKilled: "project-killed",
+      IdentifierMissing: "app-identifier-missing",
+    },
+  };
+});
+
+/*
+ * The byte counters the config endpoint now consults before saying
+ * "enabled" (audit finding ingest-10). Default: nothing used.
+ */
+jest.mock("Common/Server/Utils/SessionReplay/SessionReplayUsage", () => {
+  return {
+    __esModule: true,
+    default: {
+      getProjectBytesUsedToday: jest.fn(),
+      getApplicationBytesUsedThisMonth: jest.fn(),
     },
   };
 });
@@ -220,6 +256,7 @@ jest.mock("../../FeatureSet/Telemetry/Config", () => {
     SESSION_REPLAY_INGEST_ENABLED: true,
     SESSION_REPLAY_TRUSTED_GEO_HEADER: "",
     SESSION_REPLAY_DEBUG: false,
+    SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: 1024 * 1024 * 1024,
   };
 });
 
@@ -249,6 +286,7 @@ import Response from "Common/Server/Utils/Response";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import SessionReplayGateCache from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
+import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 // Importing the router module registers the routes on the mocked router.
 import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
 
@@ -256,6 +294,12 @@ type MockedFn = ReturnType<typeof jest.fn>;
 
 const getPolicyMock: MockedFn =
   SessionReplayGateCache.getPolicy as unknown as MockedFn;
+const resolvePolicyMock: MockedFn =
+  SessionReplayGateCache.resolvePolicy as unknown as MockedFn;
+const bytesUsedTodayMock: MockedFn =
+  SessionReplayUsage.getProjectBytesUsedToday as unknown as MockedFn;
+const bytesUsedThisMonthMock: MockedFn =
+  SessionReplayUsage.getApplicationBytesUsedThisMonth as unknown as MockedFn;
 const consumeTargetMock: MockedFn =
   SessionReplayTargeting.consumeTarget as unknown as MockedFn;
 const sendJsonMock: MockedFn =
@@ -353,6 +397,8 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     jest.clearAllMocks();
     consumeTargetMock.mockResolvedValue(false as never);
     updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
   });
 
   /*
@@ -621,5 +667,156 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
       appIdentifier: APP_IDENTIFIER,
       userRef: "user-%E0%A4%A",
     });
+  });
+});
+
+/*
+ * Audit finding ingest-9: "not-enabled-for-application" covered four
+ * different switches. The disabledReason keeps the recorder's closed
+ * vocabulary and an additive disabledDetail names the switch.
+ */
+describe("GET /session-replay/v1/config names the switch that is off", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("a switched-off project is reported as project-not-allowed", async () => {
+    resolvePolicyMock.mockResolvedValueOnce({
+      policy: null,
+      refusal: "project-not-allowed",
+    } as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("not-enabled-for-application");
+    expect(body["disabledDetail"]).toBe("project-not-allowed");
+  });
+
+  test("a switched-off application is reported as application-not-enabled", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledDetail"]).toBe("application-not-enabled");
+  });
+
+  test("a live config carries no disabledDetail", async () => {
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["disabledDetail"]).toBeUndefined();
+  });
+});
+
+/*
+ * Audit finding ingest-10. Once a byte budget is spent every chunk is
+ * refused, so a config that still said "enabled" made every page load run
+ * rrweb, buffer, gzip and POST just to be told no. The config now answers a
+ * complete disabled response with its own reason, the reset instant, and a
+ * short cache so the first page load after the reset records.
+ */
+describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  });
+
+  test("the project's daily budget spent means enabled:false with budget-exhausted", async () => {
+    bytesUsedTodayMock.mockResolvedValue((1024 * 1024 * 1024) as never);
+
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["directive"]).toBe("stop");
+    expect(body["disabledReason"]).toBe("budget-exhausted");
+    expect(body["disabledDetail"]).toBe("project-daily-budget-exhausted");
+
+    /* Resets at the next UTC midnight. */
+    const resetsAt: Date = new Date(String(body["budgetResetsAt"]));
+    expect(resetsAt.getTime()).toBeGreaterThan(Date.now());
+    expect(resetsAt.getUTCHours()).toBe(0);
+    expect(resetsAt.getUTCMinutes()).toBe(0);
+
+    /* Short cache, so the pause lifts within a minute of the reset. */
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=60");
+  });
+
+  test("the application's monthly budget spent is reported with its own detail", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 2 }) as never,
+    );
+    bytesUsedThisMonthMock.mockResolvedValue((2 * 1024 * 1024 * 1024) as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["disabledReason"]).toBe("budget-exhausted");
+    expect(body["disabledDetail"]).toBe("app-monthly-budget-exhausted");
+
+    const resetsAt: Date = new Date(String(body["budgetResetsAt"]));
+    expect(resetsAt.getUTCDate()).toBe(1);
+    expect(bytesUsedThisMonthMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      rumApplicationId: RUM_APPLICATION_ID,
+    });
+  });
+
+  test("an application with no monthly budget never consults the monthly counter", async () => {
+    await callConfigRoute(buildRequest(), buildResponse());
+
+    expect(bytesUsedThisMonthMock).not.toHaveBeenCalled();
+  });
+
+  test("an unreadable counter does NOT disable: the chunk gate fails closed on its own", async () => {
+    bytesUsedTodayMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+  });
+
+  test("usage under the budget is enabled, with the ordinary 5-minute cache", async () => {
+    bytesUsedTodayMock.mockResolvedValue((512 * 1024 * 1024) as never);
+
+    const res: FakeResponse = buildResponse();
+    const body: JSONObject = await callConfigRoute(buildRequest(), res);
+
+    expect(body["enabled"]).toBe(true);
+    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+  });
+
+  test("a budget pause still counts as the recorder being alive", async () => {
+    bytesUsedTodayMock.mockResolvedValue((1024 * 1024 * 1024) as never);
+
+    await callConfigRoute(buildRequest(), buildResponse());
+
+    expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
   });
 });

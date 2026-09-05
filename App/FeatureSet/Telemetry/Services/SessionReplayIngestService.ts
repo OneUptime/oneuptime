@@ -1,13 +1,18 @@
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
+import SessionReplayHealthCounters from "Common/Server/Utils/SessionReplay/SessionReplayHealthCounters";
 import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
+  SessionReplayPolicyRefusal,
+  SessionReplayPolicyResolution,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
+import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
@@ -22,12 +27,19 @@ import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
   SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayDirective,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
+import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
@@ -76,8 +88,39 @@ export class SessionReplayStorageFlushError extends Error {
   }
 }
 
-/* Redis sorted set of in-flight sessions, drained by the finalizer cron. */
+/*
+ * ---- Redis contract shared with App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts ----
+ *
+ * The literals are mirrored there rather than imported: the finalizer is a
+ * cron job module, and importing it from the API process would register the
+ * cron in the wrong process. Keep the two in step.
+ *
+ *   replay:active:projects              SET of projectId. SADD on every
+ *                                       accepted chunk (audit finding
+ *                                       ingest-15), so a newly active project
+ *                                       is finalized on the next 5-minute run
+ *                                       rather than after the finalizer's
+ *                                       bounded SCAN happens to reach it.
+ *   replay:active:<projectId>           ZSET member "<sessionId>:<tabId>",
+ *                                       score = server receive unix ms.
+ *   replay:seal:<projectId>:<sessionId> STRING, a SessionReplaySealedReason
+ *                                       the GATE knows and the finalizer
+ *                                       cannot derive from chunk rows: today
+ *                                       "budget". Written when a session's
+ *                                       upload is refused for budget reasons
+ *                                       so the finalized header can say "your
+ *                                       quota cut this recording" instead of
+ *                                       "the recorder went away".
+ *   replay:session-start:<projectId>:<sessionId>
+ *                                       STRING JSON {startUnixMs, retentionDate}
+ *                                       written by the first chunk processed
+ *                                       and reused by every later chunk of the
+ *                                       session (audit finding ingest-6).
+ */
 const ACTIVE_SESSION_KEY_PREFIX: string = "replay:active:";
+const ACTIVE_PROJECTS_KEY: string = "replay:active:projects";
+const SEAL_HINT_KEY_PREFIX: string = "replay:seal:";
+const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
 
 /*
  * Long enough that a session idle for the finalizer's whole 10-minute
@@ -85,6 +128,27 @@ const ACTIVE_SESSION_KEY_PREFIX: string = "replay:active:";
  * project's set cannot grow without bound if the finalizer stops.
  */
 const ACTIVE_SESSION_TTL_SECONDS: number = 6 * 60 * 60;
+
+/*
+ * The seal hint and the session-start memo outlive the longest session
+ * (4h) plus the finalizer's idle window and the chunk store's staging TTL,
+ * so a late chunk or a late finalization still finds them.
+ */
+const SESSION_SIDECAR_TTL_SECONDS: number = 6 * 60 * 60;
+
+/*
+ * Header attribute carrying the recorder's capability list. The manifest
+ * reads it back as recorderCapabilities; the name is shared with the read
+ * service by convention, not import.
+ */
+const RECORDER_CAPABILITIES_ATTRIBUTE: string = "recorder.capabilities";
+
+/* What one session's chunks agree on once the first of them is written. */
+interface SessionStartMemo {
+  startUnixMs: number;
+  /* ClickHouse Date text, exactly as written to retentionDate. */
+  retentionDate: string;
+}
 
 /*
  * Decompressed-payload ceiling for ONE frame. gzip of JSON routinely reaches
@@ -144,6 +208,15 @@ export enum SessionReplayGateOutcome {
    */
   Stop = "stop",
 
+  /*
+   * Not stored, and the recorder should NOT stop: the refusal is about this
+   * request, not about the recorder. Today that is a request asserting
+   * "consent Unknown" against a policy that requires explicit consent - the
+   * page may grant consent a moment later, and a stop would silence the
+   * session it is about to earn. Answered 204 with directive "continue".
+   */
+  Refused = "refused",
+
   /* Origin not on the allowlist. Terminal and a configuration error. */
   OriginRefused = "origin-refused",
 
@@ -164,6 +237,45 @@ export interface SessionReplayGateDecision {
   retryAfterSeconds?: number | undefined;
   reason: string;
   policy?: SessionReplayGatePolicy | undefined;
+  /*
+   * Which of the four "not enabled" causes applied (audit finding
+   * ingest-9). Only set with reason "not-enabled"; the wire reason keeps the
+   * gate's closed vocabulary, this names the switch for logs and metrics.
+   */
+  policyRefusal?: SessionReplayPolicyRefusal | undefined;
+}
+
+/* The gate's input, shared with the route. */
+export interface SessionReplayGateInput {
+  projectId: ObjectID;
+  appIdentifier: string;
+  origin: string | undefined;
+  sessionIds: Array<string>;
+  /*
+   * Why the recorder decided to upload. A frame that fired a real trigger
+   * bypasses the sample check - see the comment there.
+   */
+  triggerReasons?: Array<string> | undefined;
+  /*
+   * Each frame's asserted consent state. When the policy requires explicit
+   * consent and EVERY frame says Unknown, the request is refused here, with
+   * a reason, instead of being accepted and dropped in the worker where the
+   * recorder can never learn about it (audit finding ingest-5).
+   */
+  consentStates?: Array<string> | undefined;
+  /* Highest chunkIndex among the frames the route intends to stage. */
+  maxChunkIndex: number;
+  /* Frames the route intends to stage. */
+  chunkCount: number;
+  /*
+   * Frames the route has already set aside because their chunkIndex is at
+   * or past MAX_SESSION_REPLAY_CHUNKS_PER_SESSION (audit finding ingest-4).
+   * When the rest is accepted, the decision still carries a "stop" so the
+   * recorder stands down after what landed.
+   */
+  overCapChunkCount?: number | undefined;
+  /* Bytes of the frames the route intends to stage. */
+  payloadBytes: number;
 }
 
 export default class SessionReplayIngestService {
@@ -175,20 +287,50 @@ export default class SessionReplayIngestService {
    * string compare, then the two Redis counters.
    */
   @CaptureSpan()
-  public static async gateChunkRequest(data: {
-    projectId: ObjectID;
-    appIdentifier: string;
-    origin: string | undefined;
-    sessionIds: Array<string>;
+  public static async gateChunkRequest(
+    data: SessionReplayGateInput,
+  ): Promise<SessionReplayGateDecision> {
+    const decision: SessionReplayGateDecision =
+      await this.decideChunkRequest(data);
+
     /*
-     * Why the recorder decided to upload. A frame that fired a real trigger
-     * bypasses the sample check below - see the comment there.
+     * Every reason other than a clean accept is counted, exactly once per
+     * request, under the application it was refused for. This is the
+     * server-side memory the health surface reads: a recorder's console
+     * says "not-sampled" to one visitor, the counter says "1,204 refused:
+     * not-sampled" to the person trying to work out why the list is empty.
+     * A partial accept (frames under the cap stored, the rest refused) is
+     * counted too, because chunks WERE refused.
      */
-    triggerReasons?: Array<string> | undefined;
-    maxChunkIndex: number;
-    chunkCount: number;
-    payloadBytes: number;
-  }): Promise<SessionReplayGateDecision> {
+    if (decision.reason !== "accepted") {
+      await SessionReplayHealthCounters.recordRefusal({
+        projectId: data.projectId,
+        appIdentifier: data.appIdentifier,
+        reason: decision.reason,
+      });
+    }
+
+    /*
+     * A session cut off by a byte budget is sealed "budget" by the
+     * finalizer, which cannot see budgets: leave it a hint. Best-effort.
+     */
+    if (
+      decision.reason === "budget-exhausted" ||
+      decision.reason === "app-monthly-budget-exhausted"
+    ) {
+      await this.rememberSealHint({
+        projectId: data.projectId,
+        sessionIds: data.sessionIds,
+        sealedReason: SessionReplaySealedReason.Budget,
+      });
+    }
+
+    return decision;
+  }
+
+  private static async decideChunkRequest(
+    data: SessionReplayGateInput,
+  ): Promise<SessionReplayGateDecision> {
     if (!SESSION_REPLAY_INGEST_ENABLED) {
       return {
         outcome: SessionReplayGateOutcome.Stop,
@@ -215,10 +357,10 @@ export default class SessionReplayIngestService {
       };
     }
 
-    let policy: SessionReplayGatePolicy | null = null;
+    let resolution: SessionReplayPolicyResolution;
 
     try {
-      policy = await SessionReplayGateCache.getPolicy({
+      resolution = await SessionReplayGateCache.resolvePolicy({
         projectId: data.projectId,
         appIdentifier: data.appIdentifier,
       });
@@ -240,12 +382,16 @@ export default class SessionReplayIngestService {
       };
     }
 
+    const policy: SessionReplayGatePolicy | null = resolution.policy;
+
     if (!policy) {
       return {
         outcome: SessionReplayGateOutcome.Stop,
         directive: "stop",
         configEpoch: 0,
         reason: "not-enabled",
+        policyRefusal:
+          resolution.refusal ?? SessionReplayPolicyRefusal.ApplicationUnknown,
       };
     }
 
@@ -261,7 +407,10 @@ export default class SessionReplayIngestService {
 
     /*
      * Per-session chunk cap. A pathological tab would otherwise write an
-     * unbounded row sequence under one sort-key prefix.
+     * unbounded row sequence under one sort-key prefix. The route has
+     * already set over-cap frames aside; reaching here with an over-cap
+     * maxChunkIndex means EVERY frame was over it, so nothing lands and the
+     * recorder is told to stand down.
      */
     if (data.maxChunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION) {
       return {
@@ -269,6 +418,35 @@ export default class SessionReplayIngestService {
         directive: "stop",
         configEpoch: policy.configEpoch,
         reason: "session-chunk-cap",
+        policy,
+      };
+    }
+
+    /*
+     * Consent is asserted by the recorder and verified here. The shipped
+     * recorder never uploads while consent is Unknown under RequireExplicit,
+     * so a request that does is a stale policy (the page's cached config
+     * predates the switch to explicit consent) or a hand-crafted POST. Both
+     * used to be accepted and dropped in the worker, after a 202 that told
+     * the recorder its chunk had landed. Refused HERE, with a reason, and
+     * WITHOUT a stop: the page may call grantConsent() a moment from now,
+     * and the frames it sends after that are the ones this feature exists
+     * to keep. The worker keeps its own check for the mixed case.
+     */
+    const consentStates: Array<string> = data.consentStates || [];
+
+    if (
+      policy.consentMode === SessionReplayConsentMode.RequireExplicit &&
+      consentStates.length > 0 &&
+      consentStates.every((state: string): boolean => {
+        return state === "Unknown";
+      })
+    ) {
+      return {
+        outcome: SessionReplayGateOutcome.Refused,
+        directive: "continue",
+        configEpoch: policy.configEpoch,
+        reason: "consent-required",
         policy,
       };
     }
@@ -370,6 +548,14 @@ export default class SessionReplayIngestService {
       });
 
     if (budgetDecision.outcome === SessionReplayLimitOutcome.BudgetExhausted) {
+      /*
+       * The counter was charged before it said no (the crossing request is
+       * accepted by design, everything after it refused). Without a refund
+       * every refused request after exhaustion keeps growing the figure the
+       * Dashboard renders as "used today" (audit finding ingest-7).
+       */
+      await this.refundDailyByteBudget(data.projectId, data.payloadBytes);
+
       return {
         outcome: SessionReplayGateOutcome.Stop,
         directive: "stop",
@@ -413,6 +599,14 @@ export default class SessionReplayIngestService {
       if (
         monthlyDecision.outcome === SessionReplayLimitOutcome.BudgetExhausted
       ) {
+        /*
+         * The daily counter above already took these bytes for a request
+         * the monthly ceiling now refuses; give them back so one exhausted
+         * application does not eat its sibling applications' daily headroom
+         * (audit finding ingest-7). The monthly counter refunds itself.
+         */
+        await this.refundDailyByteBudget(data.projectId, data.payloadBytes);
+
         return {
           outcome: SessionReplayGateOutcome.Stop,
           directive: "stop",
@@ -425,6 +619,8 @@ export default class SessionReplayIngestService {
       if (
         monthlyDecision.outcome === SessionReplayLimitOutcome.CounterUnavailable
       ) {
+        await this.refundDailyByteBudget(data.projectId, data.payloadBytes);
+
         return {
           outcome: SessionReplayGateOutcome.StorageUnavailable,
           directive: "throttle",
@@ -436,6 +632,24 @@ export default class SessionReplayIngestService {
       }
     }
 
+    /*
+     * Accepted - but when the route set frames aside for being past the
+     * per-session cap, the recorder is still told to stand down: what was
+     * under the cap has landed, and nothing after it ever will. A 202 with
+     * a "stop" is the honest answer; the old all-or-nothing 204 threw away
+     * the frames in front of the first over-cap one (audit finding
+     * ingest-4).
+     */
+    if ((data.overCapChunkCount || 0) > 0) {
+      return {
+        outcome: SessionReplayGateOutcome.Accepted,
+        directive: "stop",
+        configEpoch: policy.configEpoch,
+        reason: "session-chunk-cap",
+        policy,
+      };
+    }
+
     return {
       outcome: SessionReplayGateOutcome.Accepted,
       directive: "continue",
@@ -443,6 +657,68 @@ export default class SessionReplayIngestService {
       reason: "accepted",
       policy,
     };
+  }
+
+  /*
+   * Give bytes back to the project's daily counter after a refusal. The
+   * rate limiter has no refund for the daily counter (it resets in 24h and
+   * was never meant to be read back), but the Dashboard does read it, and
+   * a counter that only ever grows overstates what was stored. Best-effort:
+   * a lost refund skews the display by one chunk.
+   */
+  private static async refundDailyByteBudget(
+    projectId: ObjectID,
+    bytes: number,
+  ): Promise<void> {
+    if (bytes <= 0) {
+      return;
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return;
+    }
+
+    try {
+      await client.decrby(
+        SessionReplayUsage.getDailyProjectByteKey(projectId),
+        bytes,
+      );
+    } catch (err) {
+      logger.warn(
+        `SessionReplayIngestService: could not refund ${bytes} refused bytes for project ${projectId.toString()}`,
+      );
+      logger.warn(err);
+    }
+  }
+
+  private static async rememberSealHint(data: {
+    projectId: ObjectID;
+    sessionIds: Array<string>;
+    sealedReason: SessionReplaySealedReason;
+  }): Promise<void> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return;
+    }
+
+    try {
+      for (const sessionId of data.sessionIds) {
+        await client.set(
+          `${SEAL_HINT_KEY_PREFIX}${data.projectId.toString()}:${sessionId}`,
+          data.sealedReason,
+          "EX",
+          SESSION_SIDECAR_TTL_SECONDS,
+        );
+      }
+    } catch (err) {
+      logger.warn(
+        `SessionReplayIngestService: could not record the ${data.sealedReason} seal hint for project ${data.projectId.toString()}`,
+      );
+      logger.warn(err);
+    }
   }
 
   /*
@@ -478,6 +754,18 @@ export default class SessionReplayIngestService {
 
     const projectId: ObjectID = new ObjectID(jobData.projectId);
 
+    /*
+     * Every drop below is counted twice: once as a metric for the operator
+     * and once under the application for the customer's health surface,
+     * because a chunk dropped after a 202 is invisible to the recorder and
+     * this is the only place that knows it happened (audit finding
+     * ingest-5).
+     */
+    const dropScope: { projectId: ObjectID; appIdentifier: string } = {
+      projectId: projectId,
+      appIdentifier: jobData.appIdentifier,
+    };
+
     const body: Buffer | null = await this.resolveStagedBody(jobData, bodyKey);
 
     if (!body) {
@@ -486,7 +774,7 @@ export default class SessionReplayIngestService {
        * queue was purged). There is nothing to retry against, so drop
        * loudly rather than failing forever.
        */
-      this.recordDrop("staged-body-missing");
+      this.recordDrop("staged-body-missing", dropScope);
       return;
     }
 
@@ -500,7 +788,7 @@ export default class SessionReplayIngestService {
        * The route already parsed this body successfully, so reaching here
        * means the staged bytes are not what was accepted. Not retryable.
        */
-      this.recordDrop(`worker-parse-${parsed.error}`);
+      this.recordDrop(`worker-parse-${parsed.error}`, dropScope);
       logger.warn(
         `SessionReplayIngestService: staged body failed to parse (${parsed.error}): ${parsed.message}`,
       );
@@ -534,7 +822,7 @@ export default class SessionReplayIngestService {
     }
 
     if (!policy) {
-      this.recordDrop("policy-disabled");
+      this.recordDrop("policy-disabled", dropScope);
       return;
     }
 
@@ -564,8 +852,27 @@ export default class SessionReplayIngestService {
      */
     const erasedSessionCache: Map<string, boolean> = new Map<string, boolean>();
 
+    /*
+     * One clamped start (and retention date) per session for this job,
+     * read from or written to the Redis memo. See resolveSessionStart.
+     */
+    const sessionStartCache: Map<string, SessionStartMemo> = new Map<
+      string,
+      SessionStartMemo
+    >();
+
     for (const frame of parsed.frames) {
       const envelope: SessionReplayChunkEnvelope = frame.envelope;
+
+      /*
+       * Defence in depth behind the gate's per-frame cap: a body staged by
+       * an older route, or replayed from the queue, must not write an
+       * unbounded row sequence under one sort-key prefix.
+       */
+      if (envelope.chunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION) {
+        this.recordDrop("session-chunk-cap", dropScope);
+        continue;
+      }
 
       /*
        * A FRAGMENT of a snapshot, from a recorder built before this file's
@@ -590,7 +897,7 @@ export default class SessionReplayIngestService {
        * config TTL of a deploy.
        */
       if (envelope.snapshotPart && envelope.snapshotPart.total > 1) {
-        this.recordDrop("snapshot-fragment-unsupported");
+        this.recordDrop("snapshot-fragment-unsupported", dropScope);
         logger.warn(
           `SessionReplayIngestService: refused snapshot fragment ${
             envelope.snapshotPart.index + 1
@@ -605,13 +912,16 @@ export default class SessionReplayIngestService {
 
       /*
        * Consent is asserted by the recorder and verified here, so a
-       * recorder that skips the handshake fails closed server-side too.
+       * recorder that skips the handshake fails closed server-side too. The
+       * gate refuses a request whose EVERY frame says Unknown (with a reason
+       * the recorder sees); this catches the mixed case and any body that
+       * reached the queue by another route.
        */
       if (
         policy.consentMode === SessionReplayConsentMode.RequireExplicit &&
         envelope.consentState === "Unknown"
       ) {
-        this.recordDrop("consent-unknown");
+        this.recordDrop("consent-unknown", dropScope);
         continue;
       }
 
@@ -653,7 +963,7 @@ export default class SessionReplayIngestService {
       }
 
       if (sessionIsErased) {
-        this.recordDrop("session-erased");
+        this.recordDrop("session-erased", dropScope);
         logger.info(
           `SessionReplayIngestService: dropped chunk ${envelope.chunkIndex} of session ${envelope.sessionId} - the session has been erased`,
         );
@@ -667,7 +977,7 @@ export default class SessionReplayIngestService {
          * footprint; the recorder learns nothing was written from the
          * missing chunk indexes the finalizer reports.
          */
-        this.recordDrop("job-decompression-budget-exhausted");
+        this.recordDrop("job-decompression-budget-exhausted", dropScope);
         continue;
       }
 
@@ -682,7 +992,7 @@ export default class SessionReplayIngestService {
          * that blew the budget lands here too, via the inflate's own
          * ERR_BUFFER_TOO_LARGE abort.
          */
-        this.recordDrop("payload-undecodable");
+        this.recordDrop("payload-undecodable", dropScope);
         logger.warn(
           `SessionReplayIngestService: could not decode chunk ${envelope.chunkIndex} of session ${envelope.sessionId}`,
         );
@@ -691,7 +1001,7 @@ export default class SessionReplayIngestService {
       }
 
       if (!decoded) {
-        this.recordDrop("payload-not-an-event-array");
+        this.recordDrop("payload-not-an-event-array", dropScope);
         continue;
       }
 
@@ -708,7 +1018,7 @@ export default class SessionReplayIngestService {
          * examined. Storing it would mean storing content the second net
          * never looked at, which defeats the point of having one.
          */
-        this.recordDrop("scrub-incomplete");
+        this.recordDrop("scrub-incomplete", dropScope);
         logger.warn(
           `SessionReplayIngestService: dropped chunk ${envelope.chunkIndex} of session ${envelope.sessionId} - scrub did not complete (nodes=${scrubResult.nodesVisited}, depthTruncated=${scrubResult.truncatedAtDepth})`,
         );
@@ -716,42 +1026,25 @@ export default class SessionReplayIngestService {
       }
 
       /*
-       * Server-authoritative clock. End-user device clocks are wrong
-       * constantly, and this value lands in the partition key and the TTL
-       * expression - a device set to 2035 would create a partition that
-       * never expires.
+       * Server-authoritative clock, derived ONCE per session. See
+       * resolveSessionStart for why later chunks reuse the first chunk's
+       * answer instead of clamping their own.
        */
-      const clampedSessionStartMs: number = SessionIdentity.clampSessionStart(
-        envelope.sessionStartUnixMs,
-        jobData.serverReceiveUnixMs,
-      );
+      const startMemo: SessionStartMemo = await this.resolveSessionStart({
+        projectId: projectId,
+        policy: policy,
+        envelope: envelope,
+        jobData: jobData,
+        cache: sessionStartCache,
+      });
 
       const clockSkewMs: number = SessionIdentity.getClockSkewMs(
         envelope.clientSendUnixMs,
         jobData.serverReceiveUnixMs,
       );
 
-      const sessionStartDate: Date = new Date(clampedSessionStartMs);
-
-      /*
-       * Retention is measured from the CLAMPED SESSION START, not from the
-       * ingest date every other pillar uses. A chunk buffered offline and
-       * flushed hours later would otherwise get full retention from arrival,
-       * so one session's chunks would expire on different days, TTL-drop
-       * mid-session, and leave an unplayable fragment. Session-start
-       * derivation also keeps the chunk retentionDate equal to the header's,
-       * which matters because reads silently get `AND retentionDate >= now()`
-       * appended - mismatched dates produce listable-but-unplayable or
-       * playable-but-invisible sessions.
-       */
-      const retentionDate: Date = OneUptimeDate.addRemoveDays(
-        sessionStartDate,
-        SessionIdentity.clampRetentionDays(
-          policy.retentionInDays,
-          SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-          policy.retentionInDays,
-        ),
-      );
+      const sessionStartDate: Date = new Date(startMemo.startUnixMs);
+      const retentionDate: Date = new Date(startMemo.retentionDate);
 
       chunkRows.push(
         this.buildChunkRow({
@@ -765,14 +1058,18 @@ export default class SessionReplayIngestService {
       );
 
       /*
-       * The provisional header is written on chunk 0 only, and carries ONLY
-       * chunk-invariant identity plus whatever chunk 0 knew. Every aggregate
-       * is left at zero for the finalizer to compute with one GROUP BY:
+       * The provisional header is written on chunk 0, and again on a later
+       * chunk that carries meta with something the header must learn - a
+       * tag set after chunk 0, traits from a late identify() call, or the
+       * terminal chunk's "recording ended". It carries ONLY chunk-invariant
+       * identity plus whatever that chunk knew. Every aggregate is left at
+       * zero for the finalizer to compute with one GROUP BY:
        * ReplacingMergeTree is pure last-write-wins, so a read-modify-write
        * increment here would be a lost-update bug at the worker's
-       * concurrency.
+       * concurrency. The finalizer reads the NEWEST header version, which
+       * is how "tags from the highest-version meta" reaches the list.
        */
-      if (envelope.chunkIndex === 0) {
+      if (this.shouldWriteProvisionalHeader(envelope)) {
         headerRows.push(
           this.buildProvisionalHeaderRow({
             projectId: projectId,
@@ -820,12 +1117,212 @@ export default class SessionReplayIngestService {
     await Promise.all(pendingAcks);
 
     /*
+     * Recording health, stamped only now that the rows are durable. The
+     * route used to stamp it right after the enqueue, so "last chunk
+     * received" read as "accepted" while every chunk was being dropped in
+     * here - the ingest-status panel said recordings were arriving and the
+     * list stayed empty (audit finding ingest-5). Throttled inside the
+     * service and fire-and-forget: bookkeeping must never fail the job.
+     */
+    RumApplicationService.markSessionReplayChunkReceived(
+      policy.rumApplicationId,
+    ).catch((err: unknown) => {
+      logger.warn("Could not record replay chunk receipt:");
+      logger.warn(err);
+    });
+
+    /*
      * Register the session with the finalizer only after its rows landed, so
      * the finalizer never sees a session with nothing to aggregate. Recorded
      * per frame's (session, tab) pair, keyed so a re-delivered chunk just
      * refreshes the score.
      */
     await this.recordActiveSessions(projectId, parsed.frames);
+  }
+
+  /*
+   * Chunk 0 always. A later chunk only when its meta carries something the
+   * header must learn: tags or traits (set after chunk 0) or the terminal
+   * flag. Every other chunk writes no header, so a re-delivered mid-session
+   * frame cannot churn header versions.
+   */
+  private static shouldWriteProvisionalHeader(
+    envelope: SessionReplayChunkEnvelope,
+  ): boolean {
+    if (envelope.chunkIndex === 0) {
+      return true;
+    }
+
+    if (!envelope.meta) {
+      return false;
+    }
+
+    const hasTags: boolean =
+      envelope.meta.tags !== undefined &&
+      Object.keys(envelope.meta.tags).length > 0;
+    const hasTraits: boolean =
+      envelope.meta.identifiedUserTraits !== undefined &&
+      Object.keys(envelope.meta.identifiedUserTraits).length > 0;
+
+    return hasTags || hasTraits || envelope.isFinal;
+  }
+
+  /*
+   * The session's clamped start and retention date, decided ONCE.
+   *
+   * Every chunk used to clamp its own copy of sessionStartUnixMs against
+   * its own serverReceive time, and derive retentionDate from the policy
+   * current at write time. A session near the 4h cap, a chunk that sat in
+   * the transport's retry queue, a deep queue backlog, or a retention
+   * change mid-session then produced chunks whose sessionStartTime and
+   * retentionDate disagreed with chunk 0's header - and because reads
+   * append `retentionDate >= now()`, the tail of such a session expired on
+   * a different day from its head (audit finding ingest-6).
+   *
+   * The first chunk of a session to be processed writes its answer to a
+   * Redis memo (SET NX, so the first writer wins even across workers); every
+   * later chunk reads it back. When the memo is unavailable the fallback
+   * clamp is offset-aware: the reference instant is the chunk's receive time
+   * minus its own start offset, which is when the session must have begun
+   * if the device clock is honest, so a late chunk of a 3h50m session is
+   * no longer dragged to "now - 4h".
+   */
+  private static async resolveSessionStart(data: {
+    projectId: ObjectID;
+    policy: SessionReplayGatePolicy;
+    envelope: SessionReplayChunkEnvelope;
+    jobData: SessionReplayIngestJobData;
+    cache: Map<string, SessionStartMemo>;
+  }): Promise<SessionStartMemo> {
+    const cached: SessionStartMemo | undefined = data.cache.get(
+      data.envelope.sessionId,
+    );
+
+    if (cached) {
+      return cached;
+    }
+
+    const key: string = `${SESSION_START_KEY_PREFIX}${data.projectId.toString()}:${data.envelope.sessionId}`;
+
+    const client: ClientType | null = Redis.getClient();
+    const isRedisUsable: boolean = Boolean(client) && Redis.isConnected();
+
+    if (client && isRedisUsable) {
+      try {
+        const remembered: SessionStartMemo | null = this.parseSessionStartMemo(
+          await client.get(key),
+        );
+
+        if (remembered) {
+          data.cache.set(data.envelope.sessionId, remembered);
+          return remembered;
+        }
+      } catch (err) {
+        logger.warn(
+          `SessionReplayIngestService: could not read the session start memo for ${data.envelope.sessionId}`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    const referenceUnixMs: number = Math.max(
+      0,
+      data.jobData.serverReceiveUnixMs - data.envelope.chunkStartOffsetMs,
+    );
+
+    const startUnixMs: number = SessionIdentity.clampSessionStart(
+      data.envelope.sessionStartUnixMs,
+      referenceUnixMs,
+    );
+
+    /*
+     * Retention is measured from the CLAMPED SESSION START, not from the
+     * ingest date every other pillar uses. A chunk buffered offline and
+     * flushed hours later would otherwise get full retention from arrival,
+     * so one session's chunks would expire on different days, TTL-drop
+     * mid-session, and leave an unplayable fragment.
+     */
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      new Date(startUnixMs),
+      SessionIdentity.clampRetentionDays(
+        data.policy.retentionInDays,
+        SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+        data.policy.retentionInDays,
+      ),
+    );
+
+    const computed: SessionStartMemo = {
+      startUnixMs: startUnixMs,
+      retentionDate: retentionDate.toISOString(),
+    };
+
+    if (client && isRedisUsable) {
+      try {
+        const stored: "OK" | null = await client.set(
+          key,
+          JSON.stringify(computed),
+          "EX",
+          SESSION_SIDECAR_TTL_SECONDS,
+          "NX",
+        );
+
+        /*
+         * Lost the race to another worker: adopt ITS answer, because the
+         * two must agree and the memo is the tie-break.
+         */
+        if (stored !== "OK") {
+          const winner: SessionStartMemo | null = this.parseSessionStartMemo(
+            await client.get(key),
+          );
+
+          if (winner) {
+            data.cache.set(data.envelope.sessionId, winner);
+            return winner;
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          `SessionReplayIngestService: could not write the session start memo for ${data.envelope.sessionId}`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    data.cache.set(data.envelope.sessionId, computed);
+    return computed;
+  }
+
+  private static parseSessionStartMemo(
+    raw: string | null,
+  ): SessionStartMemo | null {
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const startUnixMs: unknown = (parsed as JSONObject)["startUnixMs"];
+      const retentionDate: unknown = (parsed as JSONObject)["retentionDate"];
+
+      if (
+        typeof startUnixMs !== "number" ||
+        !Number.isFinite(startUnixMs) ||
+        startUnixMs <= 0 ||
+        typeof retentionDate !== "string" ||
+        !Number.isFinite(new Date(retentionDate).getTime())
+      ) {
+        return null;
+      }
+
+      return { startUnixMs: startUnixMs, retentionDate: retentionDate };
+    } catch {
+      return null;
+    }
   }
 
   private static async resolveStagedBody(
@@ -979,6 +1476,14 @@ export default class SessionReplayIngestService {
       errorClickCount: envelope.signals.errorClickCount,
       refreshRageCount: envelope.signals.refreshRageCount,
       routeCount: envelope.signals.routeCount,
+      /*
+       * Engagement counters. Absent from an older recorder's envelope, and
+       * the column has to hold something, so absence is stored as 0 - the
+       * manifest can still tell "not counted" from "counted zero" through
+       * the recorder capabilities on the header.
+       */
+      clickCount: envelope.signals.clickCount ?? 0,
+      customEventCount: envelope.signals.customEventCount ?? 0,
 
       /*
        * RE-SCRUBBED SERVER SIDE, for the same reason the header's URLs are
@@ -1119,6 +1624,48 @@ export default class SessionReplayIngestService {
       ? SessionReplayIdentity.buildUserLabel(userRef as string)
       : "";
 
+    /*
+     * Traits ride under the same switch as the label: they describe the
+     * person, and an application that has not turned identity capture on
+     * must store nothing about who was recorded, whatever the recorder (or
+     * a hand-crafted POST) put on the wire. Re-capped here with the shared
+     * sanitiser so the header can never hold more than the recorder sends.
+     */
+    const identifiedUserTraits: Record<string, string> = data.policy
+      .captureUserIdentity
+      ? sanitizeSessionReplayStringMap(envelope.meta?.identifiedUserTraits, {
+          maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
+          maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+          maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+        })
+      : {};
+
+    /* Tags describe the session, not the person: no identity switch. */
+    const tags: Record<string, string> = sanitizeSessionReplayStringMap(
+      envelope.meta?.tags,
+      {
+        maxKeys: SESSION_REPLAY_MAX_TAG_KEYS,
+        maxKeyLength: SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+        maxValueLength: SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+      },
+    );
+
+    /*
+     * What this recorder build could capture, on the header as an
+     * attribute rather than a column: it is informational, read by the
+     * manifest as recorderCapabilities so the player can say "this
+     * recording predates click labels" instead of drawing an empty tab.
+     * Comma-joined because the attributes column is Map(String, String).
+     */
+    const attributes: JSONObject = {};
+    const attributeKeys: Array<string> = [];
+
+    if (envelope.capabilities && envelope.capabilities.length > 0) {
+      attributes[RECORDER_CAPABILITIES_ATTRIBUTE] =
+        envelope.capabilities.join(",");
+      attributeKeys.push(RECORDER_CAPABILITIES_ATTRIBUTE);
+    }
+
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: OneUptimeDate.toClickhouseDateTime(
@@ -1218,6 +1765,16 @@ export default class SessionReplayIngestService {
        */
       identifiedUserKey: identifiedUserKey,
       identifiedUserLabel: identifiedUserLabel,
+      identifiedUserTraits: identifiedUserTraits,
+      tags: tags,
+      /*
+       * Engagement counters are aggregates like eventCount: zero here, the
+       * finalizer's GROUP BY owns them.
+       */
+      clickCount: 0,
+      customEventCount: 0,
+      firstErrorOffsetMs: "0",
+      activeMs: "0",
       traceIds: envelope.traceIds ?? [],
       exceptionFingerprints: [],
       fidelityNotices: envelope.fidelityNotices,
@@ -1229,8 +1786,8 @@ export default class SessionReplayIngestService {
       wireVersion: Math.min(envelope.v || SESSION_REPLAY_WIRE_VERSION, 255),
       isLegalHold: false,
       isPinnedCopy: false,
-      attributes: {},
-      attributeKeys: [],
+      attributes: attributes,
+      attributeKeys: attributeKeys,
       entityKeys: [],
       retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
     };
@@ -1262,12 +1819,29 @@ export default class SessionReplayIngestService {
       members.add(`${frame.envelope.sessionId}:${frame.envelope.tabId}`);
     }
 
-    try {
-      for (const member of members) {
-        await client.zadd(key, score, member);
-      }
+    if (members.size === 0) {
+      return;
+    }
 
+    /* One multi-member ZADD, not one round trip per (session, tab). */
+    const scoreMemberPairs: Array<string | number> = [];
+
+    for (const member of members) {
+      scoreMemberPairs.push(score, member);
+    }
+
+    try {
+      await client.zadd(key, ...scoreMemberPairs);
       await client.expire(key, ACTIVE_SESSION_TTL_SECONDS);
+
+      /*
+       * The finalizer's project index. Without this the first recordings of
+       * a newly enabled project sat provisional (0 chunks, 0 duration) until
+       * the finalizer's periodic keyspace SCAN happened to find the key -
+       * which on a large keyspace it can miss for good (audit findings
+       * ingest-15, workers-lifecycle-6).
+       */
+      await client.sadd(ACTIVE_PROJECTS_KEY, projectId.toString());
     } catch (err) {
       logger.warn(
         `SessionReplayIngestService: could not register active sessions for project ${projectId.toString()}`,
@@ -1282,12 +1856,25 @@ export default class SessionReplayIngestService {
    * fail-closed branches above are exactly the ones an operator needs to be
    * able to see.
    */
-  private static recordDrop(reason: string): void {
+  private static recordDrop(
+    reason: string,
+    scope?: { projectId: ObjectID; appIdentifier: string } | undefined,
+  ): void {
     AppMetrics.getIngestCounter().add(1, {
       "telemetry.signal": "session-replay",
       outcome: "dropped",
       "drop.reason": reason,
     });
+
+    if (scope) {
+      SessionReplayHealthCounters.recordDrop({
+        projectId: scope.projectId,
+        appIdentifier: scope.appIdentifier,
+        reason: reason,
+      }).catch((err: unknown) => {
+        logger.debug(err);
+      });
+    }
   }
 
   /* Exposed so the route and the tests share one threshold. */

@@ -3,12 +3,20 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+  SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * RunCron registers a repeatable BullMQ job at import time, so it is
@@ -22,6 +30,141 @@ jest.mock("../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * The subset of ioredis the finalizer touches, in memory, so the job loops
+ * (which own the ZREM-only-on-success, sweep and reconcile contracts) can be
+ * driven end to end rather than only their row builders.
+ */
+class MockRedis {
+  public strings: Map<string, string> = new Map<string, string>();
+  public sets: Map<string, Set<string>> = new Map<string, Set<string>>();
+  public zsets: Map<string, Map<string, number>> = new Map<
+    string,
+    Map<string, number>
+  >();
+  public connected: boolean = true;
+  public scanCalls: Array<string> = [];
+  /* Keys handed out per SCAN page, and the cursor the page reports next. */
+  public scanPages: Array<{ keys: Array<string>; next: string }> = [];
+
+  public reset(): void {
+    this.strings = new Map<string, string>();
+    this.sets = new Map<string, Set<string>>();
+    this.zsets = new Map<string, Map<string, number>>();
+    this.connected = true;
+    this.scanCalls = [];
+    this.scanPages = [];
+  }
+
+  public client(): unknown {
+    return {
+      get: (key: string): Promise<string | null> => {
+        return Promise.resolve(this.strings.get(key) ?? null);
+      },
+      set: (
+        key: string,
+        value: string,
+        _expiryToken?: string,
+        _seconds?: number,
+        nxToken?: string,
+      ): Promise<"OK" | null> => {
+        if (nxToken === "NX" && this.strings.has(key)) {
+          return Promise.resolve(null);
+        }
+        this.strings.set(key, value);
+        return Promise.resolve("OK");
+      },
+      sadd: (key: string, members: Array<string> | string): Promise<number> => {
+        const set: Set<string> = this.sets.get(key) || new Set<string>();
+        for (const member of Array.isArray(members) ? members : [members]) {
+          set.add(member);
+        }
+        this.sets.set(key, set);
+        return Promise.resolve(set.size);
+      },
+      smembers: (key: string): Promise<Array<string>> => {
+        return Promise.resolve(Array.from(this.sets.get(key) || []));
+      },
+      srem: (key: string, member: string): Promise<number> => {
+        return Promise.resolve(this.sets.get(key)?.delete(member) ? 1 : 0);
+      },
+      sismember: (key: string, member: string): Promise<number> => {
+        return Promise.resolve(this.sets.get(key)?.has(member) ? 1 : 0);
+      },
+      zadd: (key: string, score: number, member: string): Promise<number> => {
+        const zset: Map<string, number> =
+          this.zsets.get(key) || new Map<string, number>();
+        zset.set(member, score);
+        this.zsets.set(key, zset);
+        return Promise.resolve(1);
+      },
+      zrem: (key: string, members: Array<string> | string): Promise<number> => {
+        const zset: Map<string, number> | undefined = this.zsets.get(key);
+        let removed: number = 0;
+        for (const member of Array.isArray(members) ? members : [members]) {
+          if (zset?.delete(member)) {
+            removed++;
+          }
+        }
+        return Promise.resolve(removed);
+      },
+      zcard: (key: string): Promise<number> => {
+        return Promise.resolve(this.zsets.get(key)?.size || 0);
+      },
+      zrangebyscore: (
+        key: string,
+        _min: string,
+        max: number,
+      ): Promise<Array<string>> => {
+        const flat: Array<string> = [];
+        for (const [member, score] of this.zsets.get(key)?.entries() || []) {
+          if (score <= max) {
+            flat.push(member, String(score));
+          }
+        }
+        return Promise.resolve(flat);
+      },
+      scan: (cursor: string): Promise<[string, Array<string>]> => {
+        this.scanCalls.push(cursor);
+        const page: { keys: Array<string>; next: string } | undefined =
+          this.scanPages.shift();
+        if (page) {
+          return Promise.resolve([page.next, page.keys]);
+        }
+        return Promise.resolve(["0", Array.from(this.zsets.keys())]);
+      },
+    };
+  }
+}
+
+const mockRedis: MockRedis = new MockRedis();
+
+jest.mock("Common/Server/Infrastructure/Redis", () => {
+  return {
+    __esModule: true,
+    default: {
+      getClient: (): unknown => {
+        return mockRedis.connected ? mockRedis.client() : null;
+      },
+      isConnected: (): boolean => {
+        return mockRedis.connected;
+      },
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
 import {
   buildFinalizedSessionRow,
   buildNeverFinalizedStatement,
@@ -30,23 +173,35 @@ import {
   buildSessionTraceIdStatement,
   buildTabAggregateStatement,
   combineTabAggregates,
+  discoverActiveProjectIds,
   fetchSessionCorrelation,
+  finalizeExpiredSessions,
+  getActiveSessionsKey,
+  getSessionSealHintKey,
   MAX_EXCEPTION_FINGERPRINTS_PER_SESSION,
   MAX_SWEEP_SESSIONS_PER_RUN,
   MAX_TRACE_IDS_PER_SESSION,
   parseActiveSessionMember,
   parseTabAggregateRow,
+  PROJECT_INDEX_SCAN_CURSOR_KEY,
   ProvisionalSessionHeader,
+  reconcileActiveProjectIndex,
   resolveSealedReason,
+  SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
+  SESSION_REPLAY_IDLE_FINALIZE_MS,
   SessionChunkAggregate,
   SessionCorrelation,
   SWEEP_LOOKBACK_MS,
   SWEEP_MIN_SESSION_AGE_MS,
+  sweepNeverFinalizedSessions,
   TabChunkAggregate,
 } from "../../FeatureSet/Workers/Jobs/Rum/FinalizeSessions";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
+import RumSessionService from "Common/Server/Services/RumSessionService";
+import { ClientType } from "Common/Server/Infrastructure/Redis";
 import { Results } from "Common/Server/Services/AnalyticsDatabaseService";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import { getErasedSessionsKey } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
 const sessionId: string = "1f0c9a4b6d2e47f8a1b3c5d7e9f00112";
@@ -74,11 +229,14 @@ interface RawChunkRow {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+  clickCount: number;
+  customEventCount: number;
   url: string;
   routes: Array<string>;
   sessionStartUnixMs: number;
   chunkStartUnixMs: number;
   chunkEndUnixMs: number;
+  chunkStartOffsetMs: number;
   chunkEndOffsetMs: number;
   schemaVersion: number;
   recorderKind: string;
@@ -98,6 +256,8 @@ function makeChunkRow(data: {
   payloadBytes?: number;
   errorCount?: number;
   routeCount?: number;
+  clickCount?: number;
+  customEventCount?: number;
   url?: string;
   routes?: Array<string>;
 }): RawChunkRow {
@@ -118,6 +278,8 @@ function makeChunkRow(data: {
     errorClickCount: 0,
     refreshRageCount: 0,
     routeCount: data.routeCount ?? 0,
+    clickCount: data.clickCount ?? 0,
+    customEventCount: data.customEventCount ?? 0,
     /*
      * Empty by default so the pre-existing fixtures keep exercising the
      * "chunks written before the url/routes columns existed" path, where
@@ -128,6 +290,7 @@ function makeChunkRow(data: {
     sessionStartUnixMs: sessionStartUnixMs,
     chunkStartUnixMs: sessionStartUnixMs + chunkIndex * CHUNK_DURATION_MS,
     chunkEndUnixMs: sessionStartUnixMs + (chunkIndex + 1) * CHUNK_DURATION_MS,
+    chunkStartOffsetMs: chunkIndex * CHUNK_DURATION_MS,
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
     recorderKind: "dom",
@@ -311,6 +474,41 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
       routeCount: sum((row: RawChunkRow): number => {
         return row.routeCount;
       }),
+      clickCount: sum((row: RawChunkRow): number => {
+        return row.clickCount;
+      }),
+      customEventCount: sum((row: RawChunkRow): number => {
+        return row.customEventCount;
+      }),
+      /* countIf(errorCount > 0) and minIf(chunkStartOffsetMs, errorCount > 0). */
+      erroredChunkCount: tabRows.filter((row: RawChunkRow): boolean => {
+        return row.errorCount > 0;
+      }).length,
+      firstErrorOffsetMs: String(
+        tabRows
+          .filter((row: RawChunkRow): boolean => {
+            return row.errorCount > 0;
+          })
+          .reduce((lowest: number, row: RawChunkRow): number => {
+            return Math.min(lowest, row.chunkStartOffsetMs);
+          }, Number.MAX_SAFE_INTEGER) === Number.MAX_SAFE_INTEGER
+          ? 0
+          : tabRows
+              .filter((row: RawChunkRow): boolean => {
+                return row.errorCount > 0;
+              })
+              .reduce((lowest: number, row: RawChunkRow): number => {
+                return Math.min(lowest, row.chunkStartOffsetMs);
+              }, Number.MAX_SAFE_INTEGER),
+      ),
+      /* sumIf(chunkEndOffsetMs - chunkStartOffsetMs, eventCount >= 4). */
+      activeMs: String(
+        sum((row: RawChunkRow): number => {
+          return row.eventCount >= SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS
+            ? row.chunkEndOffsetMs - row.chunkStartOffsetMs
+            : 0;
+        }),
+      ),
       /*
        * argMinIf(url, chunkStartTime, url != '') and its argMax twin: the
        * earliest and latest NON-EMPTY url of the tab, which is what makes a
@@ -424,6 +622,8 @@ function makeProvisionalHeader(
     countryCode: "GB",
     identifiedUserKey: "a".repeat(32),
     identifiedUserLabel: "",
+    identifiedUserTraits: {},
+    tags: {},
     traceIds: ["trace-existing"],
     exceptionFingerprints: ["fingerprint-1"],
     fidelityNotices: ["cross-origin-iframe"],
@@ -587,17 +787,64 @@ describe("Rum:FinalizeSessions sealed reason", () => {
     ).toBe(SessionReplaySealedReason.DurationCap);
   });
 
-  test("the per-session chunk cap reports truncation", () => {
+  /*
+   * Audit finding workers-lifecycle-7: chunkIndex is minted PER TAB and the
+   * ingest gate caps it per tab, so truncation is judged on the highest
+   * index any one tab reached - never on the cross-tab sum.
+   */
+  test("a tab that reached the per-session chunk cap reports truncation", () => {
     expect(
       resolveSealedReason({
         aggregate: {
           ...baseAggregate,
           chunkCount: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+          maxChunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
         },
         durationMs: 60_000,
         existingSealedReason: "",
       }),
     ).toBe(SessionReplaySealedReason.Truncated);
+  });
+
+  test("two tabs of 250 chunks each are NOT truncated", () => {
+    const rows: Array<RawChunkRow> = [];
+
+    for (let index: number = 0; index < 250; index++) {
+      rows.push(makeChunkRow({ chunkIndex: index, tabId: "tab-a" }));
+      rows.push(makeChunkRow({ chunkIndex: index, tabId: "tab-b" }));
+    }
+
+    const aggregate: SessionChunkAggregate = aggregateOf(rows);
+
+    expect(aggregate.chunkCount).toBe(500);
+    expect(aggregate.maxChunkIndex).toBe(249);
+    expect(
+      resolveSealedReason({
+        aggregate: aggregate,
+        durationMs: 60_000,
+        existingSealedReason: "",
+      }),
+    ).toBe(SessionReplaySealedReason.IdleTimeout);
+  });
+
+  test("the gate's seal hint wins over what the chunks can say", () => {
+    const rows: Array<RawChunkRow> = [
+      makeChunkRow({ chunkIndex: 0 }),
+      makeChunkRow({ chunkIndex: 1 }),
+    ];
+
+    const row: JSONObject = buildFinalizedSessionRow({
+      projectId: projectId,
+      sessionId: sessionId,
+      aggregate: aggregateOf(rows),
+      header: makeProvisionalHeader(),
+      traceIds: [],
+      exceptionFingerprints: [],
+      writtenAt: new Date("2026-07-29T10:20:00.000Z"),
+      sealedReasonHint: SessionReplaySealedReason.Budget,
+    });
+
+    expect(row["sealedReason"]).toBe(SessionReplaySealedReason.Budget);
   });
 
   test("a budget seal set at ingest is preserved, not recomputed", () => {
@@ -1608,6 +1855,10 @@ describe("recording-lost seal", () => {
       errorClickCount: 0,
       refreshRageCount: 0,
       pageCount: 0,
+      clickCount: 0,
+      customEventCount: 0,
+      firstErrorOffsetMs: 0,
+      activeMs: 0,
       firstUrl: "",
       lastUrl: "",
       routes: [],
@@ -1645,5 +1896,478 @@ describe("recording-lost seal", () => {
      */
     expect(row["startTime"]).toBe(header.startTimeText);
     expect(row["rumApplicationId"]).toBe(header.rumApplicationId);
+  });
+});
+
+/*
+ * ------------------------------------------------------------------
+ * The job loops, driven end to end against the in-memory Redis and
+ * stubbed ClickHouse services (audit finding workers-lifecycle-13).
+ * ------------------------------------------------------------------
+ */
+interface StubbedService {
+  executeQuery: unknown;
+  insertJsonRows: unknown;
+  database: unknown;
+}
+
+const chunkServiceStub: StubbedService =
+  RumSessionChunkService as unknown as StubbedService;
+const sessionServiceStub: StubbedService =
+  RumSessionService as unknown as StubbedService;
+
+const realExecuteQuery: unknown = chunkServiceStub.executeQuery;
+const realInsertJsonRows: unknown = sessionServiceStub.insertJsonRows;
+const realDatabase: unknown = chunkServiceStub.database;
+
+function resultSetOf(rows: Array<JSONObject>): unknown {
+  return {
+    json: (): Promise<{ data: Array<JSONObject> }> => {
+      return Promise.resolve({ data: rows });
+    },
+  };
+}
+
+/*
+ * Routes each statement by its shape: the tab aggregate names the chunk
+ * table, the header read names the header table, the correlation reads
+ * name Span / ExceptionInstance. Returns the rows configured for each.
+ */
+function stubClickhouse(data: {
+  tabRows?: Array<JSONObject>;
+  headerRows?: Array<JSONObject>;
+  sweepRows?: Array<JSONObject>;
+  failAggregate?: Error;
+}): { inserted: Array<JSONObject>; statements: Array<Statement> } {
+  const inserted: Array<JSONObject> = [];
+  const statements: Array<Statement> = [];
+
+  chunkServiceStub.database = {
+    getDatasourceOptions: (): { database: string } => {
+      return { database: databaseName };
+    },
+  };
+
+  chunkServiceStub.executeQuery = (statement: Statement): Promise<unknown> => {
+    statements.push(statement);
+    const query: string = statement.query;
+
+    if (query.includes("HAVING argMax(toUInt8(isFinalized), version) = 0")) {
+      return Promise.resolve(resultSetOf(data.sweepRows || []));
+    }
+
+    if (query.includes("GROUP BY tabId")) {
+      if (data.failAggregate) {
+        return Promise.reject(data.failAggregate);
+      }
+      return Promise.resolve(resultSetOf(data.tabRows || []));
+    }
+
+    if (query.includes("toString(startTime) AS startTimeText")) {
+      return Promise.resolve(resultSetOf(data.headerRows || []));
+    }
+
+    return Promise.resolve(resultSetOf([]));
+  };
+
+  sessionServiceStub.insertJsonRows = (
+    rows: Array<JSONObject>,
+  ): Promise<void> => {
+    inserted.push(...rows);
+    return Promise.resolve();
+  };
+
+  return { inserted, statements };
+}
+
+function headerRowOf(
+  overrides?: Partial<ProvisionalSessionHeader>,
+): JSONObject {
+  return makeProvisionalHeader(overrides) as unknown as JSONObject;
+}
+
+describe("Rum:FinalizeSessions project index reconcile cursor", () => {
+  beforeEach(() => {
+    mockRedis.reset();
+  });
+
+  afterEach(() => {
+    chunkServiceStub.executeQuery = realExecuteQuery;
+    sessionServiceStub.insertJsonRows = realInsertJsonRows;
+    chunkServiceStub.database = realDatabase;
+  });
+
+  function client(): ClientType {
+    return mockRedis.client() as unknown as ClientType;
+  }
+
+  /*
+   * Audit finding workers-lifecycle-6: a reconcile that always restarted
+   * from "0" re-walked the same keys and never reached a project past the
+   * iteration cap. The cursor now persists between runs.
+   */
+  test("resumes from the persisted cursor and stores where it stopped", async () => {
+    mockRedis.strings.set(PROJECT_INDEX_SCAN_CURSOR_KEY, "4096");
+    mockRedis.scanPages.push({
+      keys: [getActiveSessionsKey("beyond-the-horizon")],
+      next: "8192",
+    });
+
+    /*
+     * A keyspace larger than the iteration cap: every further page still
+     * reports more to come, so the walk stops at the cap with "8192" in
+     * hand rather than finishing.
+     */
+    for (let page: number = 0; page < 250; page++) {
+      mockRedis.scanPages.push({ keys: [], next: "8192" });
+    }
+
+    const discovered: Array<string> =
+      await reconcileActiveProjectIndex(client());
+
+    expect(mockRedis.scanCalls[0]).toBe("4096");
+    expect(discovered).toEqual(["beyond-the-horizon"]);
+    /* Stopped by the page's own cursor, so the next run continues there. */
+    expect(mockRedis.strings.get(PROJECT_INDEX_SCAN_CURSOR_KEY)).toBe("8192");
+    expect(
+      mockRedis.sets
+        .get(SESSION_REPLAY_ACTIVE_PROJECTS_KEY)
+        ?.has("beyond-the-horizon"),
+    ).toBe(true);
+  });
+
+  test("a finished walk stores 0 so the next reconcile starts over", async () => {
+    mockRedis.strings.set(PROJECT_INDEX_SCAN_CURSOR_KEY, "77");
+    mockRedis.scanPages.push({ keys: [], next: "0" });
+
+    await reconcileActiveProjectIndex(client());
+
+    expect(mockRedis.strings.get(PROJECT_INDEX_SCAN_CURSOR_KEY)).toBe("0");
+  });
+
+  test("a garbled cursor starts from 0 and never throws", async () => {
+    mockRedis.strings.set(PROJECT_INDEX_SCAN_CURSOR_KEY, "not-a-cursor");
+    mockRedis.scanPages.push({ keys: [], next: "0" });
+
+    await expect(reconcileActiveProjectIndex(client())).resolves.toEqual([]);
+    expect(mockRedis.scanCalls[0]).toBe("0");
+  });
+
+  test("the cursor key itself is never mistaken for a project", async () => {
+    mockRedis.scanPages.push({
+      keys: [
+        PROJECT_INDEX_SCAN_CURSOR_KEY,
+        SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
+        getActiveSessionsKey(projectId.toString()),
+      ],
+      next: "0",
+    });
+
+    expect(await reconcileActiveProjectIndex(client())).toEqual([
+      projectId.toString(),
+    ]);
+  });
+
+  /*
+   * The ingest path SADDs the project on every accepted chunk, so a project
+   * the SCAN never reaches is still finalized. Modelled by an index entry
+   * with no SCAN page ever returning its key.
+   */
+  test("a project outside the SCAN horizon is still discovered through the ingest SADD", async () => {
+    await (
+      mockRedis.client() as { sadd: (k: string, m: string) => Promise<number> }
+    ).sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, "sadded-by-ingest");
+    mockRedis.scanPages.push({ keys: [], next: "0" });
+
+    const projects: Array<string> = await discoverActiveProjectIds(client());
+
+    expect(projects).toContain("sadded-by-ingest");
+  });
+});
+
+describe("Rum:FinalizeSessions expired-session loop", () => {
+  const nowUnixMs: number = Date.now();
+  const idleSince: number =
+    nowUnixMs - SESSION_REPLAY_IDLE_FINALIZE_MS - 60_000;
+
+  beforeEach(() => {
+    mockRedis.reset();
+    /* The reconcile lock is taken unconditionally; leave it free. */
+  });
+
+  afterEach(() => {
+    chunkServiceStub.executeQuery = realExecuteQuery;
+    sessionServiceStub.insertJsonRows = realInsertJsonRows;
+    chunkServiceStub.database = realDatabase;
+  });
+
+  async function seedActive(
+    sessionIdToSeed: string,
+    score: number,
+  ): Promise<void> {
+    const raw: {
+      zadd: (k: string, s: number, m: string) => Promise<number>;
+      sadd: (k: string, m: string) => Promise<number>;
+    } = mockRedis.client() as {
+      zadd: (k: string, s: number, m: string) => Promise<number>;
+      sadd: (k: string, m: string) => Promise<number>;
+    };
+
+    await raw.zadd(
+      getActiveSessionsKey(projectId.toString()),
+      score,
+      `${sessionIdToSeed}:tab-a`,
+    );
+    await raw.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+  }
+
+  test("writes the header and ZREMs the member only after a successful write", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({ chunkIndex: 0, errorCount: 1, clickCount: 3 }),
+        makeChunkRow({ chunkIndex: 1, clickCount: 4 }),
+      ]),
+      headerRows: [headerRowOf({ tags: { build: "abc" } })],
+    });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["isFinalized"]).toBe(true);
+    expect(inserted[0]!["clickCount"]).toBe(7);
+    expect(inserted[0]!["tags"]).toEqual({ build: "abc" });
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
+        0,
+    ).toBe(0);
+  });
+
+  test("a ClickHouse failure leaves the member queued for the next run", async () => {
+    stubClickhouse({ failAggregate: new Error("clickhouse timeout") });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(
+      mockRedis.zsets
+        .get(getActiveSessionsKey(projectId.toString()))
+        ?.has(`${sessionId}:tab-a`),
+    ).toBe(true);
+  });
+
+  test("a session that is still active is left alone", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    await seedActive(sessionId, nowUnixMs - 5_000);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("a session with no stored chunks is dropped from the queue without a header", async () => {
+    const { inserted } = stubClickhouse({ tabRows: [] });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(0);
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
+        0,
+    ).toBe(0);
+  });
+
+  test("a malformed member is dropped rather than finalizing a wrong session", async () => {
+    const { inserted } = stubClickhouse({ tabRows: [] });
+
+    const raw: {
+      zadd: (k: string, s: number, m: string) => Promise<number>;
+      sadd: (k: string, m: string) => Promise<number>;
+    } = mockRedis.client() as {
+      zadd: (k: string, s: number, m: string) => Promise<number>;
+      sadd: (k: string, m: string) => Promise<number>;
+    };
+
+    await raw.zadd(
+      getActiveSessionsKey(projectId.toString()),
+      idleSince,
+      "no-separator",
+    );
+    await raw.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId.toString());
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(0);
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
+        0,
+    ).toBe(0);
+  });
+
+  test("the gate's budget seal hint reaches the finalized row", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    mockRedis.strings.set(
+      getSessionSealHintKey(projectId.toString(), sessionId),
+      SessionReplaySealedReason.Budget,
+    );
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted[0]!["sealedReason"]).toBe(SessionReplaySealedReason.Budget);
+  });
+
+  test("an erased session is never re-headered, and its member is dropped", async () => {
+    const { inserted, statements } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf({ identifiedUserTraits: { plan: "pro" } })],
+    });
+
+    await (
+      mockRedis.client() as { sadd: (k: string, m: string) => Promise<number> }
+    ).sadd(getErasedSessionsKey(projectId.toString()), sessionId);
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(0);
+    /* Not even a read of the chunk rows. */
+    expect(
+      statements.some((statement: Statement): boolean => {
+        return statement.query.includes("GROUP BY tabId");
+      }),
+    ).toBe(false);
+    expect(
+      mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
+        0,
+    ).toBe(0);
+  });
+
+  test("Redis down means no run, not an error", async () => {
+    mockRedis.connected = false;
+    const { inserted } = stubClickhouse({});
+
+    await expect(finalizeExpiredSessions()).resolves.toBeUndefined();
+    expect(inserted).toHaveLength(0);
+  });
+});
+
+describe("Rum:SweepNeverFinalizedSessions loop", () => {
+  beforeEach(() => {
+    mockRedis.reset();
+  });
+
+  afterEach(() => {
+    chunkServiceStub.executeQuery = realExecuteQuery;
+    sessionServiceStub.insertJsonRows = realInsertJsonRows;
+    chunkServiceStub.database = realDatabase;
+  });
+
+  const sweepRow: JSONObject = {
+    projectId: projectId.toString(),
+    rumApplicationId: "6600000000000000000000b2",
+    sessionId: sessionId,
+    startTimeUnixMs: String(sessionStartUnixMs),
+  };
+
+  test("finalizes a provisional session whose chunks still exist", async () => {
+    const { inserted } = stubClickhouse({
+      sweepRows: [sweepRow],
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const summary: { finalized: number; sealedLost: number; failed: number } =
+      await sweepNeverFinalizedSessions();
+
+    expect(summary.finalized).toBe(1);
+    expect(summary.sealedLost).toBe(0);
+    expect(inserted[0]!["isFinalized"]).toBe(true);
+  });
+
+  test("seals a chunkless provisional session as recording-lost", async () => {
+    const { inserted } = stubClickhouse({
+      sweepRows: [sweepRow],
+      tabRows: [],
+      headerRows: [headerRowOf({ errorCount: 2 })],
+    });
+
+    const summary: { finalized: number; sealedLost: number; failed: number } =
+      await sweepNeverFinalizedSessions();
+
+    expect(summary.sealedLost).toBe(1);
+    expect(inserted[0]!["sealedReason"]).toBe(
+      SessionReplaySealedReason.RecordingLost,
+    );
+    /* Chunk 0's evidence survives the seal. */
+    expect(inserted[0]!["errorCount"]).toBe(2);
+  });
+
+  test("skips an erased session without sealing or looping", async () => {
+    const { inserted } = stubClickhouse({
+      sweepRows: [sweepRow],
+      tabRows: [],
+      headerRows: [headerRowOf()],
+    });
+
+    await (
+      mockRedis.client() as { sadd: (k: string, m: string) => Promise<number> }
+    ).sadd(getErasedSessionsKey(projectId.toString()), sessionId);
+
+    const summary: { finalized: number; sealedLost: number; failed: number } =
+      await sweepNeverFinalizedSessions();
+
+    expect(summary.finalized).toBe(0);
+    expect(summary.sealedLost).toBe(0);
+    expect(summary.failed).toBe(0);
+    expect(inserted).toHaveLength(0);
+  });
+
+  test("a failure on one session does not stop the sweep", async () => {
+    const other: JSONObject = { ...sweepRow, sessionId: "b".repeat(32) };
+    let calls: number = 0;
+
+    const { inserted } = stubClickhouse({
+      sweepRows: [sweepRow, other],
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf()],
+    });
+
+    const routed: (statement: Statement) => Promise<unknown> =
+      chunkServiceStub.executeQuery as (
+        statement: Statement,
+      ) => Promise<unknown>;
+
+    chunkServiceStub.executeQuery = (
+      statement: Statement,
+    ): Promise<unknown> => {
+      if (statement.query.includes("GROUP BY tabId")) {
+        calls++;
+        if (calls === 1) {
+          return Promise.reject(new Error("first one fails"));
+        }
+      }
+      return routed(statement);
+    };
+
+    const summary: { finalized: number; sealedLost: number; failed: number } =
+      await sweepNeverFinalizedSessions();
+
+    expect(summary.failed).toBe(1);
+    expect(summary.finalized).toBe(1);
+    expect(inserted).toHaveLength(1);
   });
 });

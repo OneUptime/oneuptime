@@ -306,3 +306,21 @@ export function parseReplaySignalId(id: string): ParsedReplaySignalId | null {
 
   return null;
 }
+
+/* ---- Telemetry placement (added by WP-P4a, additive). ---- */
+
+/*
+ * What a telemetry adapter (fromLogRow / fromSpanRow / fromExceptionRow)
+ * needs to put a server-stamped row on the session clock: the clock's
+ * zero and the current anchoring state. Service names are optional
+ * because Log/Span/ExceptionInstance rows carry only primaryEntityId; the
+ * rail resolves ids to names once per page and passes the map through so
+ * a row can read "payment-svc" instead of an ObjectID.
+ */
+export interface ReplayTelemetryClock {
+  /* header.startTimeUnixMs, server-clamped. */
+  startTimeUnixMs: number;
+  alignment: ReplayClockAlignmentState;
+  /* primaryEntityId (as a string) -> display name. Absent = show nothing. */
+  serviceNameById?: Record<string, string> | undefined;
+}

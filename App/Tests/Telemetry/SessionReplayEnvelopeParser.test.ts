@@ -1,11 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
 import SessionReplayEnvelopeParser, {
+  ParsedSessionReplayFrame,
   SessionReplayEnvelopeError,
   SessionReplayParseResult,
 } from "../../FeatureSet/Telemetry/Utils/SessionReplayEnvelopeParser";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   MAX_SESSION_REPLAY_CHUNK_BYTES,
+  SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_WIRE_VERSION,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
@@ -427,33 +432,61 @@ describe("SessionReplayEnvelopeParser.parse — rejection codes", () => {
     ).toBe(SessionReplayEnvelopeError.MalformedEnvelope);
   });
 
-  test("chunkIndex out of range → ChunkIndexOutOfRange", () => {
+  /*
+   * Audit finding ingest-3: a MISSING or garbled chunkIndex used to share the
+   * out-of-range code with the per-session cap, so the route answered it as
+   * "session-chunk-cap" and stopped the recorder after chunk 0 with a reason
+   * that sent the customer looking at the wrong thing. Malformed is now its
+   * own 400 code.
+   */
+  test("negative / fractional / missing / absurd chunkIndex → ChunkIndexMalformed", () => {
+    for (const chunkIndex of [-1, 2.5, undefined, "3", 5_000_000_000]) {
+      const envelope: JSONObject = baseEnvelope();
+
+      if (chunkIndex === undefined) {
+        delete envelope["chunkIndex"];
+      } else {
+        envelope["chunkIndex"] = chunkIndex as number | string;
+      }
+
+      expect(
+        parseError(frameBuffer({ envelope: envelope, payload: "x" })),
+      ).toBe(SessionReplayEnvelopeError.ChunkIndexMalformed);
+    }
+  });
+
+  /*
+   * Audit finding ingest-4: the per-session cap is a GATE decision taken per
+   * frame, not a parse failure. A body carrying frames on both sides of the
+   * cap parses whole, so the route can keep the frames under it.
+   */
+  test("a chunkIndex at or past the per-session cap still parses", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        concatFrames([
+          {
+            envelope: baseEnvelope({
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+            }),
+            payload: "a",
+          },
+          {
+            envelope: baseEnvelope({
+              chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+            }),
+            payload: "b",
+          },
+        ]),
+      );
+
     expect(
-      parseError(
-        frameBuffer({
-          envelope: baseEnvelope({ chunkIndex: -1 }),
-          payload: "x",
-        }),
-      ),
-    ).toBe(SessionReplayEnvelopeError.ChunkIndexOutOfRange);
-    expect(
-      parseError(
-        frameBuffer({
-          envelope: baseEnvelope({
-            chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
-          }),
-          payload: "x",
-        }),
-      ),
-    ).toBe(SessionReplayEnvelopeError.ChunkIndexOutOfRange);
-    expect(
-      parseError(
-        frameBuffer({
-          envelope: baseEnvelope({ chunkIndex: 2.5 }),
-          payload: "x",
-        }),
-      ),
-    ).toBe(SessionReplayEnvelopeError.ChunkIndexOutOfRange);
+      result.frames.map((frame: ParsedSessionReplayFrame): number => {
+        return frame.envelope.chunkIndex;
+      }),
+    ).toEqual([
+      MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+      MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+    ]);
   });
 
   test("more frames than a request may carry → TooManyFrames", () => {
@@ -465,5 +498,207 @@ describe("SessionReplayEnvelopeParser.parse — rejection codes", () => {
     expect(parseError(concatFrames(frames))).toBe(
       SessionReplayEnvelopeError.TooManyFrames,
     );
+  });
+});
+
+describe("SessionReplayEnvelopeParser.parse — raw frame views", () => {
+  test("each frame carries its own bytes so a subset can be re-staged verbatim", () => {
+    const first: Buffer = frameBuffer({
+      envelope: baseEnvelope({ chunkIndex: 0 }),
+      payload: "first-payload",
+    });
+    const second: Buffer = frameBuffer({
+      envelope: baseEnvelope({ chunkIndex: 1 }),
+      payload: "second",
+    });
+
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(Buffer.concat([first, second]));
+
+    expect(Buffer.from(result.frames[0]!.raw).equals(first)).toBe(true);
+    expect(Buffer.from(result.frames[1]!.raw).equals(second)).toBe(true);
+
+    /* Re-parsing one frame's raw bytes yields that frame alone. */
+    const reparsed: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(Buffer.from(result.frames[1]!.raw));
+
+    expect(reparsed.frames).toHaveLength(1);
+    expect(reparsed.frames[0]!.envelope.chunkIndex).toBe(1);
+    expect(reparsed.frames[0]!.payload.toString("utf-8")).toBe("second");
+  });
+});
+
+/*
+ * The additive wire fields: traits, tags, engagement counters and recorder
+ * capabilities. Every one is optional, every one is capped by truncation
+ * rather than rejection, and an envelope that predates them parses to
+ * exactly what it parsed to before.
+ */
+describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
+  test("an old envelope parses identically: no traits, tags, counters or capabilities", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            meta: { entryUrl: "https://x.example/", browserName: "Chrome" },
+            signals: { errorCount: 1 },
+          }),
+          payload: "x",
+        }),
+      );
+
+    const envelope: (typeof result.frames)[0]["envelope"] =
+      result.frames[0]!.envelope;
+
+    expect(envelope.meta).toBeDefined();
+    expect("identifiedUserTraits" in envelope.meta!).toBe(false);
+    expect("tags" in envelope.meta!).toBe(false);
+    expect("clickCount" in envelope.signals).toBe(false);
+    expect("customEventCount" in envelope.signals).toBe(false);
+    expect("capabilities" in envelope).toBe(false);
+  });
+
+  test("traits and tags are read through the shared sanitiser with their caps", () => {
+    const tooManyTraits: Record<string, unknown> = {};
+
+    for (let i: number = 0; i < SESSION_REPLAY_MAX_TRAIT_KEYS + 5; i++) {
+      tooManyTraits[`trait-${i}`] = `value-${i}`;
+    }
+
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            meta: {
+              entryUrl: "https://x.example/",
+              identifiedUserTraits: {
+                ...tooManyTraits,
+                plan: "pro",
+                seats: 12,
+                nested: { not: "a string" },
+              },
+              tags: {
+                ["k".repeat(SESSION_REPLAY_MAX_TAG_KEY_LENGTH + 10)]:
+                  "v".repeat(SESSION_REPLAY_MAX_TAG_VALUE_LENGTH + 50),
+                build: "abc123",
+              },
+            },
+          }),
+          payload: "x",
+        }),
+      );
+
+    const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+      result.frames[0]!.envelope.meta!;
+
+    /* Truncated to the cap, never rejected: the first N keys survive. */
+    expect(Object.keys(meta.identifiedUserTraits!)).toHaveLength(
+      SESSION_REPLAY_MAX_TRAIT_KEYS,
+    );
+    expect(meta.identifiedUserTraits!["trait-0"]).toBe("value-0");
+    expect(meta.identifiedUserTraits!["nested"]).toBeUndefined();
+
+    const tagKeys: Array<string> = Object.keys(meta.tags!);
+    expect(tagKeys).toHaveLength(2);
+    expect(tagKeys[0]!.length).toBe(SESSION_REPLAY_MAX_TAG_KEY_LENGTH);
+    expect(meta.tags![tagKeys[0]!]!.length).toBe(
+      SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+    );
+    expect(meta.tags!["build"]).toBe("abc123");
+  });
+
+  test("a non-object traits / tags value yields no map rather than a failure", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            meta: {
+              entryUrl: "https://x.example/",
+              identifiedUserTraits: ["not", "a", "map"],
+              tags: "nope",
+            },
+          }),
+          payload: "x",
+        }),
+      );
+
+    const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+      result.frames[0]!.envelope.meta!;
+
+    expect(meta.identifiedUserTraits).toBeUndefined();
+    expect(meta.tags).toBeUndefined();
+  });
+
+  test("clickCount / customEventCount are kept when sane and absent when garbled", () => {
+    const sane: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            signals: { clickCount: 41, customEventCount: 0 },
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(sane.frames[0]!.envelope.signals.clickCount).toBe(41);
+    expect(sane.frames[0]!.envelope.signals.customEventCount).toBe(0);
+
+    const garbled: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            signals: { clickCount: -3, customEventCount: "12" },
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect("clickCount" in garbled.frames[0]!.envelope.signals).toBe(false);
+    expect("customEventCount" in garbled.frames[0]!.envelope.signals).toBe(
+      false,
+    );
+  });
+
+  test("capabilities are filtered to the known list, deduplicated and canonically ordered", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            capabilities: [
+              "web-vitals",
+              "click-events",
+              "web-vitals",
+              "made-up-capability",
+              42,
+            ],
+          }),
+          payload: "x",
+        }),
+      );
+
+    expect(result.frames[0]!.envelope.capabilities).toEqual([
+      "click-events",
+      "web-vitals",
+    ]);
+
+    for (const capability of result.frames[0]!.envelope.capabilities!) {
+      expect(SESSION_REPLAY_RECORDER_CAPABILITIES).toContain(capability);
+    }
+  });
+
+  test("an empty or non-array capabilities field is simply absent", () => {
+    for (const capabilities of [[], "click-events", {}]) {
+      const result: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({
+              capabilities: capabilities as Array<string>,
+            }),
+            payload: "x",
+          }),
+        );
+
+      expect("capabilities" in result.frames[0]!.envelope).toBe(false);
+    }
   });
 });

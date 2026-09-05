@@ -13,6 +13,13 @@ import { LoaderConfig } from "./Config";
  * existed hands us a config with no `raw` at all, and that must mean
  * "these features are off", never a crash.
  *
+ * The one exception is captureWebVitals, which defaults ON. Vitals are
+ * informational (at most five events per page, never a trigger, never a
+ * byte of page content), the product wants them on every recording, and
+ * a server too old to send the field is exactly the server whose
+ * customers would otherwise never see one. Only a literal false turns it
+ * off; the budgets stay 0 = off, independent of it.
+ *
  * Bundled into the recorder artifact only. The loader must never import
  * this file — SourceHygiene.test.ts pins the stub's module list.
  */
@@ -25,6 +32,12 @@ export interface ExtendedReplayConfig {
   lcpBudgetMs: number;
   longTaskBudgetMs: number;
   slowRequestBudgetMs: number;
+
+  /*
+   * Emit LCP / FCP / CLS / INP / TTFB as informational web-vital events,
+   * regardless of the budgets above. On unless the server says false.
+   */
+  captureWebVitals: boolean;
 
   /* This boot matched a "record this user's next session" target. */
   isTargeted: boolean;
@@ -47,6 +60,7 @@ export function readExtendedConfig(
     lcpBudgetMs: readBudgetMs(source["lcpBudgetMs"]),
     longTaskBudgetMs: readBudgetMs(source["longTaskBudgetMs"]),
     slowRequestBudgetMs: readBudgetMs(source["slowRequestBudgetMs"]),
+    captureWebVitals: source["captureWebVitals"] !== false,
     isTargeted: source["isTargeted"] === true,
   };
 }
