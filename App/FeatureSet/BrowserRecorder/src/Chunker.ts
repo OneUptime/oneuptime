@@ -24,8 +24,21 @@ import { BufferedEvent } from "./RollingBuffer";
  */
 
 /* rrweb EventType values this module needs to recognise. */
+const EVENT_TYPE_DOM_CONTENT_LOADED: number = 0;
+const EVENT_TYPE_LOAD: number = 1;
 const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
 const EVENT_TYPE_META: number = 4;
+
+/*
+ * Events that carry nothing replayable. rrweb emits DomContentLoaded (0) and
+ * Load (1) when the recorder starts on a page that is still parsing, BEFORE
+ * the deferred first snapshot; the player ignores both. Treating them as
+ * content made the snapshot that followed them "mid-chunk" and cost chunk 0
+ * its hasFullSnapshot flag on every slow-loading page.
+ */
+function isLifecycleEvent(type: number): boolean {
+  return type === EVENT_TYPE_DOM_CONTENT_LOADED || type === EVENT_TYPE_LOAD;
+}
 
 /*
  * Per-chunk caps on recorded URLs, by COUNT and by BYTES.
@@ -142,7 +155,13 @@ export interface PendingChunk {
 export type ChunkSink = (chunk: PendingChunk) => void;
 
 interface OpenChunk {
-  events: Array<string>;
+  /*
+   * The buffered events themselves rather than their JSON alone: closeSplit
+   * needs each event's byte size and timestamp to cut the chunk into
+   * keepalive-sized pieces, and the objects already exist, so holding the
+   * references costs nothing extra.
+   */
+  events: Array<BufferedEvent>;
   bytes: number;
   eventCount: number;
   startTimestampMs: number;
@@ -214,6 +233,15 @@ export default class Chunker {
       errorClickCount: 0,
       refreshRageCount: 0,
       routeCount: 0,
+
+      /*
+       * Sent as explicit zeros rather than omitted: this recorder DOES
+       * measure both, so 0 is a measurement, and the server reads absence
+       * as 0 anyway - the only difference is that an envelope from this
+       * build says so.
+       */
+      clickCount: 0,
+      customEventCount: 0,
     };
   }
 
@@ -260,12 +288,13 @@ export default class Chunker {
 
     if (
       event.type !== EVENT_TYPE_META &&
-      event.type !== EVENT_TYPE_FULL_SNAPSHOT
+      event.type !== EVENT_TYPE_FULL_SNAPSHOT &&
+      !isLifecycleEvent(event.type)
     ) {
       this.open.sawContentEvent = true;
     }
 
-    this.open.events.push(event.json);
+    this.open.events.push(event);
     this.open.bytes += event.bytes;
     this.open.eventCount++;
     this.open.endTimestampMs = event.timestampMs;
@@ -317,7 +346,7 @@ export default class Chunker {
     this.closedChunkCount++;
 
     this.sink({
-      payload: `[${open.events.join(",")}]`,
+      payload: Chunker.joinPayload(open.events),
       rawBytes: open.bytes,
       eventCount: open.eventCount,
       chunkStartOffsetMs: this.getOffset(open.startTimestampMs),
@@ -331,6 +360,134 @@ export default class Chunker {
     });
 
     this.resetPerChunkCounters();
+  }
+
+  /*
+   * Close the open chunk as a SERIES of chunks, none larger than
+   * maxPayloadBytes, with contiguous indexes and the final flag on the last.
+   *
+   * Exists for the pagehide path. A terminal flush goes out with
+   * fetch(keepalive), which browsers cap at 64 KB in flight, while the
+   * normal flush threshold is 256 KB - so a single close() at pagehide
+   * handed the transport a body it had to drop whole, and the last thing
+   * the user did before leaving was exactly the footage that vanished. Cut
+   * into keepalive-sized pieces, each piece is a complete JSON array that
+   * decodes on its own; whatever the browser's quota still admits arrives,
+   * and what does not is COUNTED by the transport rather than lost silently.
+   *
+   * An event that is on its own larger than the cap gets a piece to itself:
+   * it cannot be split and still parse, and dropping it here would only
+   * move the silent loss one layer down. The per-chunk counters, trace ids
+   * and routes ride the LAST piece - the finalizer sums and unions them
+   * across chunks, so carrying them on one piece keeps every total right.
+   */
+  public closeSplit(isFinal: boolean, maxPayloadBytes: number): void {
+    const open: OpenChunk | null = this.open;
+
+    this.open = null;
+
+    if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents += open ? open.eventCount : 0;
+      this.emitTruncationChunk();
+      return;
+    }
+
+    if (!open || open.eventCount === 0) {
+      if (isFinal) {
+        this.emitEmptyFinalChunk();
+      }
+      return;
+    }
+
+    const pieces: Array<Array<BufferedEvent>> = [];
+    let current: Array<BufferedEvent> = [];
+    let currentBytes: number = 0;
+
+    for (const event of open.events) {
+      /* +2 for the surrounding brackets, +1 per separating comma. */
+      const projected: number = currentBytes + event.bytes + current.length + 2;
+
+      if (current.length > 0 && projected > maxPayloadBytes) {
+        pieces.push(current);
+        current = [];
+        currentBytes = 0;
+      }
+
+      current.push(event);
+      currentBytes += event.bytes;
+    }
+
+    if (current.length > 0) {
+      pieces.push(current);
+    }
+
+    for (let index: number = 0; index < pieces.length; index++) {
+      const piece: Array<BufferedEvent> = pieces[index] as Array<BufferedEvent>;
+      const isLast: boolean = index === pieces.length - 1;
+
+      if (this.hasReachedSessionChunkCap()) {
+        this.droppedEvents += piece.length;
+        this.emitTruncationChunk();
+        continue;
+      }
+
+      const first: BufferedEvent = piece[0] as BufferedEvent;
+      const last: BufferedEvent = piece[piece.length - 1] as BufferedEvent;
+
+      let bytes: number = 0;
+
+      for (const event of piece) {
+        bytes += event.bytes;
+      }
+
+      this.closedChunkCount++;
+
+      this.sink({
+        payload: Chunker.joinPayload(piece),
+        rawBytes: bytes,
+        eventCount: piece.length,
+        chunkStartOffsetMs: this.getOffset(first.timestampMs),
+        chunkEndOffsetMs: this.getOffset(last.timestampMs),
+
+        /*
+         * Only the first piece can open on the chunk's snapshot; a later
+         * piece starts wherever the byte cap happened to fall, which is
+         * never a seek anchor.
+         */
+        hasFullSnapshot: index === 0 ? open.hasFullSnapshot : false,
+        isFinal: isFinal && isLast,
+        signals: isLast ? this.signals : Chunker.emptySignals(),
+        fidelityNotices: Array.from(this.fidelityNotices),
+        traceIds: isLast ? Array.from(this.traceIds) : [],
+        routes: isLast ? Array.from(this.routes) : [],
+      });
+    }
+
+    this.resetPerChunkCounters();
+  }
+
+  private static joinPayload(events: Array<BufferedEvent>): string {
+    let payload: string = "[";
+
+    for (let index: number = 0; index < events.length; index++) {
+      if (index > 0) {
+        payload += ",";
+      }
+
+      payload += (events[index] as BufferedEvent).json;
+    }
+
+    return `${payload}]`;
+  }
+
+  /*
+   * Does the chunk currently open begin on a full snapshot? The recorder
+   * asks before flushing the pre-roll: a chunk 0 cut before rrweb's deferred
+   * first snapshot has arrived would not be a seek anchor, and the whole
+   * value of chunk 0 is that it always is one.
+   */
+  public hasOpenFullSnapshot(): boolean {
+    return this.open !== null && this.open.hasFullSnapshot;
   }
 
   private emitEmptyFinalChunk(): void {
@@ -519,7 +676,12 @@ export default class Chunker {
     key: keyof SessionReplaySignalCounts,
     by: number = 1,
   ): void {
-    this.signals[key] += by;
+    /*
+     * The engagement counters are optional on the wire type, so a missing
+     * one reads as undefined; every counter this class emits starts at 0
+     * (emptySignals), but the arithmetic must not depend on that.
+     */
+    this.signals[key] = (this.signals[key] || 0) + by;
   }
 
   public addFidelityNotice(notice: SessionReplayFidelityNotice | string): void {

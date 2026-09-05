@@ -652,6 +652,211 @@ describe("Chunker", (): void => {
  * before it goes on the wire, so both halves of a broken pair became U+FFFD
  * and the server's reassembled snapshot was silently corrupted.
  */
+describe("Chunker engagement counters and split close", (): void => {
+  const SESSION_START: number = 1_700_000_000_000;
+
+  let chunks: Array<PendingChunk> = [];
+
+  const makeChunker: () => Chunker = (): Chunker => {
+    chunks = [];
+
+    return new Chunker({
+      sessionStartUnixMs: SESSION_START,
+      sink: (chunk: PendingChunk): void => {
+        chunks.push(chunk);
+      },
+    });
+  };
+
+  const event: (overrides?: Partial<BufferedEvent>) => BufferedEvent = (
+    overrides?: Partial<BufferedEvent>,
+  ): BufferedEvent => {
+    return {
+      json: '{"type":3,"data":{"source":3}}',
+      bytes: 30,
+      timestampMs: SESSION_START + 1000,
+      isCheckout: false,
+      type: 3,
+      ...overrides,
+    };
+  };
+
+  it("emits the engagement counters as measured zeros in the base shape", (): void => {
+    expect(Chunker.emptySignals().clickCount).toBe(0);
+    expect(Chunker.emptySignals().customEventCount).toBe(0);
+  });
+
+  it("counts clicks and custom events per chunk and resets them", (): void => {
+    const chunker: Chunker = makeChunker();
+
+    chunker.countSignal("clickCount");
+    chunker.countSignal("clickCount");
+    chunker.countSignal("customEventCount");
+    chunker.add(event());
+    chunker.close(false);
+
+    expect(chunks[0]?.signals.clickCount).toBe(2);
+    expect(chunks[0]?.signals.customEventCount).toBe(1);
+
+    /* The older counters are untouched by the new ones. */
+    expect(chunks[0]?.signals.errorCount).toBe(0);
+
+    chunker.add(event());
+    chunker.close(false);
+
+    expect(chunks[1]?.signals.clickCount).toBe(0);
+    expect(chunks[1]?.signals.customEventCount).toBe(0);
+  });
+
+  /*
+   * recorder-core-5: rrweb emits DomContentLoaded (0) and Load (1) before
+   * its deferred first snapshot on a page still parsing. They carry nothing
+   * replayable and must not make the snapshot that follows "mid-chunk".
+   */
+  it("does not let rrweb's lifecycle events steal chunk 0's anchor", (): void => {
+    const chunker: Chunker = makeChunker();
+
+    chunker.add(event({ type: 0, json: '{"type":0,"data":{}}' }));
+    chunker.add(event({ type: 1, json: '{"type":1,"data":{}}' }));
+    chunker.add(event({ type: 4, json: '{"type":4,"data":{}}' }));
+    chunker.add(event({ type: 2, json: '{"type":2,"data":{}}' }));
+    chunker.add(event());
+    chunker.close(false);
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.hasFullSnapshot).toBe(true);
+    expect(chunker.hasOpenFullSnapshot()).toBe(false);
+  });
+
+  it("reports whether the open chunk begins on a snapshot", (): void => {
+    const chunker: Chunker = makeChunker();
+
+    expect(chunker.hasOpenFullSnapshot()).toBe(false);
+
+    chunker.add(event({ type: 4, json: '{"type":4,"data":{}}' }));
+    chunker.add(event({ type: 2, json: '{"type":2,"data":{}}' }));
+
+    expect(chunker.hasOpenFullSnapshot()).toBe(true);
+
+    chunker.close(false);
+    chunker.add(event());
+
+    expect(chunker.hasOpenFullSnapshot()).toBe(false);
+  });
+
+  describe("closeSplit", (): void => {
+    it("cuts the open chunk into pieces under the byte cap, final on the last", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.countSignal("clickCount", 4);
+      chunker.addTraceId("abc");
+      chunker.addRoute("https://shop.example.com/checkout");
+
+      for (let i: number = 0; i < 5; i++) {
+        chunker.add(event({ timestampMs: SESSION_START + 1000 + i * 100 }));
+      }
+
+      chunker.closeSplit(true, 70);
+
+      /* 30-byte events plus brackets and commas: two, two, one. */
+      expect(chunks).toHaveLength(3);
+      expect(
+        chunks.map((chunk: PendingChunk): number => {
+          return chunk.eventCount;
+        }),
+      ).toEqual([2, 2, 1]);
+
+      for (const chunk of chunks) {
+        expect(utf8ByteLength(chunk.payload)).toBeLessThanOrEqual(70);
+        expect((): unknown => {
+          return JSON.parse(chunk.payload);
+        }).not.toThrow();
+      }
+
+      expect(
+        chunks.map((chunk: PendingChunk): boolean => {
+          return chunk.isFinal;
+        }),
+      ).toEqual([false, false, true]);
+
+      /* Per-chunk counters, trace ids and routes ride the last piece once. */
+      expect(chunks[0]?.signals.clickCount).toBe(0);
+      expect(chunks[2]?.signals.clickCount).toBe(4);
+      expect(chunks[0]?.traceIds).toEqual([]);
+      expect(chunks[2]?.traceIds).toEqual(["abc"]);
+      expect(chunks[2]?.routes).toEqual(["https://shop.example.com/checkout"]);
+
+      /* Offsets follow the events each piece actually holds. */
+      expect(chunks[0]?.chunkStartOffsetMs).toBe(1000);
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(1100);
+      expect(chunks[2]?.chunkStartOffsetMs).toBe(1400);
+
+      expect(chunker.getClosedChunkCount()).toBe(3);
+    });
+
+    it("anchors only the first piece", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ type: 4, json: '{"type":4,"data":{}}', bytes: 20 }));
+      chunker.add(event({ type: 2, json: '{"type":2,"data":{}}', bytes: 20 }));
+      chunker.add(event());
+      chunker.add(event());
+
+      chunker.closeSplit(false, 50);
+
+      expect(chunks.length).toBeGreaterThan(1);
+      expect(chunks[0]?.hasFullSnapshot).toBe(true);
+      expect(chunks[1]?.hasFullSnapshot).toBe(false);
+    });
+
+    it("emits an event that is alone over the cap rather than dropping it", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ bytes: 30 }));
+      chunker.add(
+        event({ json: `{"type":3,"data":"${"x".repeat(200)}"}`, bytes: 220 }),
+      );
+      chunker.add(event({ bytes: 30 }));
+
+      chunker.closeSplit(true, 70);
+
+      expect(chunks).toHaveLength(3);
+      expect(chunks[1]?.eventCount).toBe(1);
+      expect(chunks[1]?.rawBytes).toBe(220);
+    });
+
+    it("emits an empty final chunk when nothing is open and the page is going", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.closeSplit(true, 70);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunks[0]?.payload).toBe("[]");
+    });
+
+    it("emits nothing for a non-final split with nothing open", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.closeSplit(false, 70);
+
+      expect(chunks).toHaveLength(0);
+    });
+
+    it("keeps everything in one piece when it fits", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event());
+      chunker.add(event());
+      chunker.closeSplit(true, 10_000);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.eventCount).toBe(2);
+      expect(chunks[0]?.isFinal).toBe(true);
+    });
+  });
+});
+
 describe("utf8ByteLength", (): void => {
   it("counts ASCII as one byte per character", (): void => {
     expect(utf8ByteLength("")).toBe(0);

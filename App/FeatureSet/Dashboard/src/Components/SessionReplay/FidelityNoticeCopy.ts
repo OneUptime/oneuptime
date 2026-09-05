@@ -139,6 +139,18 @@ const COPY: Record<string, FidelityNoticeCopy> = {
       "Some errors, console output or route changes after this point were not recorded - the per-session cap was reached. The footage itself is complete; only the rail is truncated past the cap marker.",
   },
   /*
+   * A playback-affecting notice, unlike the cap above: rrweb threw inside
+   * the recorder's emit path repeatedly, so the events around those
+   * moments may be missing or out of order. The recorder took a fresh
+   * checkout after the burst, which is why the rest of the recording
+   * still plays.
+   */
+  [SessionReplayFidelityNotice.RecorderError]: {
+    title: "The recorder hit internal errors on this page",
+    description:
+      "The recording library threw several errors while capturing this page. Playback may skip or freeze around those moments; the recorder took a fresh snapshot afterwards so the rest of the session plays normally.",
+  },
+  /*
    * Emitted by the recorder when a session hits the per-session chunk cap.
    * Deliberately not (yet) a SessionReplayFidelityNotice member — see the
    * recorder README — but the copy must exist regardless.

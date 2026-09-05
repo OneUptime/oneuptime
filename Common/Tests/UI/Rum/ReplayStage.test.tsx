@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react, so a component imported from there
  * would otherwise call hooks on a DIFFERENT React instance than the one
@@ -7,815 +7,523 @@ import { act, render } from "@testing-library/react";
  * null".
  *
  * That is resolved in Common's jest moduleNameMapper, which pins react and
- * react-dom to this project's single copy for every importer. It deliberately
- * is NOT a jest.mock of an absolute path into
- * App/FeatureSet/Dashboard/node_modules: that path only exists once the
- * Dashboard has been installed, so it worked locally and broke the Common Test
- * CI job, which installs Common alone.
+ * react-dom to this project's single copy for every importer.
  */
 import * as React from "react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
-import {
-  SessionReplayChunkManifestEntry,
-  SessionReplayGap,
-} from "../../../Types/Rum/SessionReplay";
-import ChunkLoader, {
-  SessionReplayRecordedEvent,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ChunkLoader";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import ReplayStage, {
-  ReplayerLike,
+  REPLAY_DOCUMENT_CSP,
+  REPLAY_STAGE_MAX_HEIGHT_VH,
+  REPLAY_STAGE_MIN_HEIGHT_REM,
+  REPLAY_STAGE_THEATER_MAX_HEIGHT_VH,
+  computeContainScale,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage";
+import {
+  ReplayEngine,
+  ReplayEngineDiagnostics,
+  ReplayEngineEvent,
+  ReplayEngineListener,
+  ReplayEngineReplayerEvent,
+  ReplayEngineReplayerListener,
+  ReplayEngineSnapshot,
+  ReplayerLike,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 
 /*
- * ReplayStage is the component whose failure mode is a lie rather than a
- * crash: feed rrweb a chunk whose predecessor never arrived and it resolves
- * those mutations against stale node ids, rendering a DOM the end user never
- * saw. These tests drive it with a real ChunkLoader over fixture bytes and a
- * fake Replayer, so the feeding state machine is pinned without rrweb, a
- * network or a browser.
- *
- * It lives in Common for the same reason ChunkLoader.test.ts does: the logic
- * is Dashboard code, but nothing about it needs the Dashboard build.
+ * ReplayStage is now a thin React binding over the engine: everything
+ * about WHAT plays is pinned in ReplayEngine.test.ts. What is left to pin
+ * here is what needs a DOM - mounting the engine's host, contain-fit
+ * scaling within the height bounds, the aspect reserved before the first
+ * frame, the CSP meta on every rebuilt document, the phone frame, the
+ * touch ring and the speed-aware cursor.
  */
 
-const CHUNK_MS: number = 15000;
-const TICK_MS: number = 200;
-
-/* Deliberately nothing like a session offset: these are raw client clocks. */
-const CLIENT_CLOCK_BASE_MS: number = 1700000000000;
-
-function makeEntry(
-  chunkIndex: number,
-  options?: { hasFullSnapshot?: boolean },
-): SessionReplayChunkManifestEntry {
+function makeSnapshot(
+  overrides?: Partial<ReplayEngineSnapshot>,
+): ReplayEngineSnapshot {
   return {
-    chunkIndex: chunkIndex,
-    tabId: "tab-1",
-    chunkStartOffsetMs: chunkIndex * CHUNK_MS,
-    chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_MS,
-    eventCount: 2,
-    hasFullSnapshot: options?.hasFullSnapshot ?? false,
-    payloadBytes: 4096,
-    errorCount: 0,
-    rageClickCount: 0,
-    deadClickCount: 0,
-    errorClickCount: 0,
-    refreshRageCount: 0,
-    routeCount: 0,
+    phase: "paused",
+    intent: "paused",
+    buffer: "ok",
+    currentTimeMs: 0,
+    durationMs: 60000,
+    speed: 1,
+    skipInactive: false,
+    fedRange: null,
+    loadedChunkIndexes: [],
+    activeTabId: "tab-1",
+    recordedSize: null,
+    bufferingSinceMs: null,
+    lastGap: null,
+    lastIdleSkip: null,
+    error: null,
+    pendingSeekMs: null,
+    generation: 0,
+    notice: null,
+    idleBands: [],
+    feedAheadMs: 30000,
+    earliestPlayableMs: 0,
+    ...overrides,
   };
 }
 
-function eventsFor(
-  chunkIndex: number,
-  count: number,
-): Array<SessionReplayRecordedEvent> {
-  const events: Array<SessionReplayRecordedEvent> = [];
+/* The engine as the stage sees it: a store, a host element and a hook. */
+class FakeEngine implements ReplayEngine {
+  public snapshotValue: ReplayEngineSnapshot;
+  public readonly host: HTMLElement;
+  public attachedTo: HTMLElement | null = null;
+  public detachCount: number = 0;
+  public readonly dispatched: Array<ReplayEngineEvent> = [];
+  private readonly listeners: Set<ReplayEngineListener> =
+    new Set<ReplayEngineListener>();
+  private readonly replayerListeners: Set<ReplayEngineReplayerListener> =
+    new Set<ReplayEngineReplayerListener>();
 
-  for (let i: number = 0; i < count; i++) {
-    events.push({
-      type: chunkIndex === 0 && i === 0 ? 2 : 3,
-      timestamp: CLIENT_CLOCK_BASE_MS + chunkIndex * CHUNK_MS + i,
-      data: { chunkIndex: chunkIndex, sequence: i },
-    });
+  public constructor(snapshot?: Partial<ReplayEngineSnapshot>) {
+    this.snapshotValue = makeSnapshot(snapshot);
+    this.host = document.createElement("div");
+    this.host.className = "oneuptime-replay-host";
   }
 
-  return events;
+  public dispatch(event: ReplayEngineEvent): void {
+    this.dispatched.push(event);
+  }
+
+  public subscribe(listener: ReplayEngineListener): () => void {
+    this.listeners.add(listener);
+
+    return (): void => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  public getSnapshot(): ReplayEngineSnapshot {
+    return this.snapshotValue;
+  }
+
+  public attach(container: HTMLElement): void {
+    this.attachedTo = container;
+    container.appendChild(this.host);
+  }
+
+  public detach(): void {
+    this.detachCount += 1;
+    this.host.parentElement?.removeChild(this.host);
+    this.attachedTo = null;
+  }
+
+  public dispose(): void {
+    this.detach();
+  }
+
+  public onReplayer(listener: ReplayEngineReplayerListener): () => void {
+    this.replayerListeners.add(listener);
+
+    return (): void => {
+      this.replayerListeners.delete(listener);
+    };
+  }
+
+  public getHostElement(): HTMLElement | null {
+    return this.host;
+  }
+
+  public getDiagnostics(): ReplayEngineDiagnostics {
+    return {
+      watchdogFireCount: 0,
+      replayersCreated: 0,
+      replayersDestroyed: 0,
+      generation: 0,
+      anchorChunkIndex: null,
+      lastFedChunkIndex: null,
+      isHoldingLastFrame: false,
+      isAttached: this.attachedTo !== null,
+    };
+  }
+
+  public update(patch: Partial<ReplayEngineSnapshot>): void {
+    this.snapshotValue = { ...this.snapshotValue, ...patch };
+
+    for (const listener of [...this.listeners]) {
+      listener(this.snapshotValue);
+    }
+  }
+
+  public emitReplayer(event: ReplayEngineReplayerEvent): void {
+    for (const listener of [...this.replayerListeners]) {
+      listener(event);
+    }
+  }
 }
 
-/* [u32 chunkIndex][u32 length][payload], little-endian, as the server writes. */
-function encodeFrames(
-  frames: Array<{
-    chunkIndex: number;
-    events: Array<SessionReplayRecordedEvent>;
-  }>,
-): ArrayBuffer {
-  const encoder: TextEncoder = new TextEncoder();
-  const encoded: Array<{ chunkIndex: number; bytes: Uint8Array }> = frames.map(
-    (frame: {
-      chunkIndex: number;
-      events: Array<SessionReplayRecordedEvent>;
-    }): { chunkIndex: number; bytes: Uint8Array } => {
-      return {
-        chunkIndex: frame.chunkIndex,
-        bytes: encoder.encode(JSON.stringify(frame.events)),
-      };
+/* A Replayer whose iframe is in the document, so it has a contentDocument. */
+function makeReplayer(): ReplayerLike & { iframe: HTMLIFrameElement } {
+  const iframe: HTMLIFrameElement = document.createElement("iframe");
+  document.body.appendChild(iframe);
+
+  return {
+    iframe: iframe,
+    wrapper: document.createElement("div"),
+    play: (): void => {
+      // Not exercised by the stage.
     },
-  );
-
-  const totalBytes: number = encoded.reduce(
-    (total: number, frame: { bytes: Uint8Array }): number => {
-      return total + 8 + frame.bytes.length;
+    pause: (): void => {
+      // Not exercised by the stage.
     },
-    0,
-  );
-
-  const buffer: ArrayBuffer = new ArrayBuffer(totalBytes);
-  const view: DataView = new DataView(buffer);
-  const bytes: Uint8Array = new Uint8Array(buffer);
-  let offset: number = 0;
-
-  for (const frame of encoded) {
-    view.setUint32(offset, frame.chunkIndex, true);
-    view.setUint32(offset + 4, frame.bytes.length, true);
-    bytes.set(frame.bytes, offset + 8);
-    offset += 8 + frame.bytes.length;
-  }
-
-  return buffer;
+    destroy: (): void => {
+      iframe.remove();
+    },
+    addEvent: (): void => {
+      // Not exercised by the stage.
+    },
+    getCurrentTime: (): number => {
+      return 0;
+    },
+    setConfig: (): void => {
+      // Not exercised by the stage.
+    },
+    on: (): unknown => {
+      return undefined;
+    },
+  };
 }
 
-/*
- * Stand-in for rrweb's Replayer. Records everything the stage does to it, so
- * a test can assert on what WAS fed as well as on what was not.
- */
-class FakeReplayer implements ReplayerLike {
-  public readonly iframe: HTMLIFrameElement;
-  public readonly wrapper: HTMLElement;
-  public readonly initialEvents: Array<SessionReplayRecordedEvent>;
-  /* The config the stage constructed this Replayer with. */
-  public readonly constructorConfig: Record<string, unknown>;
-  public readonly added: Array<SessionReplayRecordedEvent> = [];
-  public readonly playOffsets: Array<number | undefined> = [];
-  public readonly pauseOffsets: Array<number | undefined> = [];
-  public readonly configs: Array<Record<string, unknown>> = [];
-  public readonly handlers: Map<string, (payload: unknown) => void> = new Map<
-    string,
-    (payload: unknown) => void
-  >();
-  public isDestroyed: boolean = false;
-  public currentTimeMs: number = 0;
-
-  public constructor(
-    events: Array<SessionReplayRecordedEvent>,
-    config?: Record<string, unknown>,
-  ) {
-    this.initialEvents = events;
-    this.constructorConfig = config ?? {};
-    this.iframe = document.createElement("iframe");
-    this.wrapper = document.createElement("div");
-  }
-
-  public play(timeOffsetMs?: number): void {
-    this.playOffsets.push(timeOffsetMs);
-  }
-
-  public pause(timeOffsetMs?: number): void {
-    this.pauseOffsets.push(timeOffsetMs);
-  }
-
-  public destroy(): void {
-    this.isDestroyed = true;
-  }
-
-  public addEvent(event: SessionReplayRecordedEvent): void {
-    this.added.push(event);
-  }
-
-  public getCurrentTime(): number {
-    return this.currentTimeMs;
-  }
-
-  public setConfig(config: Record<string, unknown>): void {
-    this.configs.push(config);
-  }
-
-  public on(event: string, handler: (payload: unknown) => void): unknown {
-    this.handlers.set(event, handler);
-    return this;
-  }
-}
-
-interface Harness {
-  loader: ChunkLoader;
-  replayers: Array<FakeReplayer>;
-  gaps: Array<SessionReplayGap>;
-  errors: Array<string>;
-  playingChanges: Array<boolean>;
-  timeUpdates: Array<number>;
-  requests: Array<Array<number>>;
-}
-
-function makeHarness(options: {
-  entries: Array<SessionReplayChunkManifestEntry>;
-  eventsPerChunk?: number;
-  /* Chunk indexes the server "loses" - present in the manifest, absent from the response. */
-  omitChunkIndexes?: Array<number>;
-  deferFetch?: boolean;
-}): Harness & { resolveFetch: () => void } {
-  const replayers: Array<FakeReplayer> = [];
-  const gaps: Array<SessionReplayGap> = [];
-  const errors: Array<string> = [];
-  const playingChanges: Array<boolean> = [];
-  const timeUpdates: Array<number> = [];
-  const requests: Array<Array<number>> = [];
-  const pending: Array<() => void> = [];
-
-  const omitted: Set<number> = new Set<number>(options.omitChunkIndexes ?? []);
-
-  const loader: ChunkLoader = new ChunkLoader({
-    sessionId: "sess-1",
-    tabId: "tab-1",
-    entries: options.entries,
-    fetcher: (request: {
-      sessionId: string;
-      tabId: string;
-      chunkIndexes: Array<number>;
-    }): Promise<ArrayBuffer> => {
-      requests.push([...request.chunkIndexes]);
-
-      const buffer: ArrayBuffer = encodeFrames(
-        request.chunkIndexes
-          .filter((chunkIndex: number): boolean => {
-            return !omitted.has(chunkIndex);
-          })
-          .map(
-            (
-              chunkIndex: number,
-            ): {
-              chunkIndex: number;
-              events: Array<SessionReplayRecordedEvent>;
-            } => {
-              return {
-                chunkIndex: chunkIndex,
-                events: eventsFor(chunkIndex, options.eventsPerChunk ?? 2),
-              };
-            },
-          ),
-      );
-
-      if (!options.deferFetch) {
-        return Promise.resolve(buffer);
-      }
-
-      return new Promise<ArrayBuffer>((resolve: (b: ArrayBuffer) => void) => {
-        pending.push((): void => {
-          resolve(buffer);
-        });
-      });
+/* jsdom does no layout: give the stage box a size by hand. */
+function sizeElement(
+  element: HTMLElement,
+  width: number,
+  height: number,
+): void {
+  Object.defineProperty(element, "clientWidth", {
+    configurable: true,
+    get: (): number => {
+      return width;
     },
   });
-
-  return {
-    loader: loader,
-    replayers: replayers,
-    gaps: gaps,
-    errors: errors,
-    playingChanges: playingChanges,
-    timeUpdates: timeUpdates,
-    requests: requests,
-    resolveFetch: (): void => {
-      const waiting: Array<() => void> = [...pending];
-      pending.length = 0;
-
-      for (const resolve of waiting) {
-        resolve();
-      }
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    get: (): number => {
+      return height;
     },
-  };
-}
-
-function renderStage(
-  harness: Harness,
-  props?: { isPlaying?: boolean },
-): {
-  rerender: (isPlaying: boolean) => void;
-  seek: (offsetMs: number) => void;
-} {
-  let seekRequest: { offsetMs: number; token: number } | null = null;
-  let seekToken: number = 0;
-  let latestIsPlaying: boolean = props?.isPlaying ?? false;
-
-  const element: (isPlaying: boolean) => React.ReactElement = (
-    isPlaying: boolean,
-  ): React.ReactElement => {
-    return (
-      <ReplayStage
-        loader={harness.loader}
-        replayerFactory={(
-          events: Array<SessionReplayRecordedEvent>,
-          config: Record<string, unknown>,
-        ): ReplayerLike => {
-          const replayer: FakeReplayer = new FakeReplayer(events, config);
-          harness.replayers.push(replayer);
-          return replayer;
-        }}
-        isPlaying={isPlaying}
-        speed={1}
-        skipInactive={false}
-        seekRequest={seekRequest}
-        onTimeUpdate={(offsetMs: number): void => {
-          harness.timeUpdates.push(offsetMs);
-        }}
-        onPlayingChange={(isNowPlaying: boolean): void => {
-          harness.playingChanges.push(isNowPlaying);
-        }}
-        onGapCrossed={(gap: SessionReplayGap): void => {
-          harness.gaps.push(gap);
-        }}
-        onLoadedChunkIndexesChange={(): void => {
-          // Not asserted here; the loader's own tests cover it.
-        }}
-        onError={(message: string): void => {
-          harness.errors.push(message);
-        }}
-      />
-    );
-  };
-
-  const result: { rerender: (ui: React.ReactElement) => void } = render(
-    element(props?.isPlaying ?? false),
-  );
-
-  return {
-    rerender: (isPlaying: boolean): void => {
-      latestIsPlaying = isPlaying;
-      result.rerender(element(isPlaying));
-    },
-    seek: (offsetMs: number): void => {
-      seekToken++;
-      seekRequest = { offsetMs: offsetMs, token: seekToken };
-      result.rerender(element(latestIsPlaying));
-    },
-  };
-}
-
-/* Lets every queued microtask (the awaits inside the stage) run to completion. */
-async function flush(): Promise<void> {
-  await act(async (): Promise<void> => {
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
   });
 }
 
-async function tick(times: number): Promise<void> {
-  for (let i: number = 0; i < times; i++) {
-    await act(async (): Promise<void> => {
-      jest.advanceTimersByTime(TICK_MS);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+function stageElement(): HTMLElement {
+  const element: HTMLElement | null = document.querySelector(
+    '[data-testid="replay-stage"]',
+  );
+
+  if (!element) {
+    throw new Error("stage not rendered");
   }
+
+  return element;
 }
 
-beforeEach(() => {
-  jest.useFakeTimers();
-});
+function frameElement(): HTMLElement {
+  const element: HTMLElement | null = document.querySelector(
+    '[data-testid="replay-stage-frame"]',
+  );
+
+  if (!element) {
+    throw new Error("frame not rendered");
+  }
+
+  return element;
+}
 
 afterEach(() => {
+  cleanup();
   jest.useRealTimers();
+  document.body.innerHTML = "";
 });
 
-describe("ReplayStage chunk feeding", () => {
-  it("feeds the contiguous next chunk into the live Replayer", async () => {
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
-    });
+describe("ReplayStage mounting", () => {
+  it("attaches the engine's host into the stage on mount and detaches on unmount", () => {
+    const engine: FakeEngine = new FakeEngine();
 
-    renderStage(harness);
-    await flush();
+    const { unmount } = render(<ReplayStage engine={engine} />);
 
-    expect(harness.replayers.length).toBe(1);
+    expect(engine.attachedTo).not.toBeNull();
+    expect(stageElement().contains(engine.host)).toBe(true);
+    expect(stageElement()).toHaveAttribute("role", "region");
+    expect(stageElement()).toHaveAttribute("aria-label", "Session replay");
 
-    await tick(2);
+    unmount();
 
-    const fed: Array<unknown> = harness.replayers[0]!.added.map(
-      (event: SessionReplayRecordedEvent): unknown => {
-        return event.data;
-      },
-    );
-
-    expect(fed).toEqual([
-      { chunkIndex: 1, sequence: 0 },
-      { chunkIndex: 1, sequence: 1 },
-    ]);
-    expect(harness.gaps).toEqual([]);
-    expect(harness.errors).toEqual([]);
+    expect(engine.detachCount).toBe(1);
+    expect(engine.host.parentElement).toBeNull();
   });
 
-  it("never treats a chunk that failed to decode as fed", async () => {
-    /*
-     * The regression this whole file exists for. Chunk 1 is in the manifest
-     * but the response does not carry it. Advancing lastFedChunkIndex anyway
-     * would make the next tick feed chunk 2 into a Replayer that never
-     * received 1 - a silent jump rendered as though it were continuous
-     * footage, which is the one failure the design forbids outright.
-     */
-    const harness: Harness = makeHarness({
-      entries: [
-        makeEntry(0, { hasFullSnapshot: true }),
-        makeEntry(1),
-        makeEntry(2, { hasFullSnapshot: true }),
-        makeEntry(3),
-      ],
-      omitChunkIndexes: [1],
+  it("exposes the engine phase for the E2E hooks and marks busy phases", () => {
+    const engine: FakeEngine = new FakeEngine({ phase: "buffering" });
+
+    render(<ReplayStage engine={engine} />);
+
+    expect(stageElement()).toHaveAttribute("data-replay-phase", "buffering");
+    expect(stageElement()).toHaveAttribute("aria-busy", "true");
+
+    /* The phase word itself is announced, not only stamped as data. */
+    const phase: HTMLElement | null = document.querySelector(
+      '[data-testid="replay-phase"]',
+    );
+    expect(phase).not.toBeNull();
+    expect(phase).toHaveTextContent("buffering");
+    expect(phase).toHaveAttribute("aria-live", "polite");
+
+    act((): void => {
+      engine.update({ phase: "playing" });
     });
 
-    renderStage(harness);
-    await flush();
+    expect(stageElement()).toHaveAttribute("data-replay-phase", "playing");
+    expect(stageElement()).toHaveAttribute("aria-busy", "false");
+    expect(phase).toHaveTextContent("playing");
+  });
+});
 
-    expect(harness.replayers.length).toBe(1);
+describe("ReplayStage sizing", () => {
+  it("reserves the recorded aspect from the header viewport before the first frame", () => {
+    const engine: FakeEngine = new FakeEngine();
 
-    // Discover the failure.
-    await tick(2);
+    render(
+      <ReplayStage engine={engine} viewportWidth={1440} viewportHeight={900} />,
+    );
 
-    // Nothing from chunk 2 may have reached the first Replayer.
-    expect(harness.replayers[0]!.added).toEqual([]);
+    const stage: HTMLElement = stageElement();
 
-    // Play out the footage we do have, which is what releases the jump.
-    harness.replayers[0]!.currentTimeMs = CHUNK_MS;
-    await tick(2);
+    expect(stage.style.aspectRatio).toBe("1440 / 900");
+    expect(stage.style.minHeight).toBe(`${REPLAY_STAGE_MIN_HEIGHT_REM}rem`);
+    expect(stage.style.maxHeight).toBe(`${REPLAY_STAGE_MAX_HEIGHT_VH}vh`);
+  });
 
-    expect(harness.gaps).toEqual([
-      { fromIndex: 0, toIndex: 2, missingMs: CHUNK_MS },
-    ]);
-    expect(harness.replayers[0]!.added).toEqual([]);
-    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+  it("raises the height bound to the whole viewport in theater", () => {
+    const engine: FakeEngine = new FakeEngine();
 
-    // Playback resumed by re-anchoring on the next full snapshot, not by guessing.
-    expect(harness.replayers.length).toBe(2);
+    render(<ReplayStage engine={engine} isTheater={true} />);
+
+    expect(stageElement().style.maxHeight).toBe(
+      `${REPLAY_STAGE_THEATER_MAX_HEIGHT_VH}vh`,
+    );
+  });
+
+  it("contain-fits on the smaller of the two ratios and centres the picture", () => {
+    /*
+     * The old stage scaled on width alone, capped at 1 and anchored top
+     * left: a phone recording sat postage-stamped in the corner and a
+     * tall recording overflowed the box.
+     */
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1200, height: 900 },
+    });
+    const scales: Array<number> = [];
+
+    render(
+      <ReplayStage
+        engine={engine}
+        onScaleChange={(scale: number): void => {
+          scales.push(scale);
+        }}
+      />,
+    );
+
+    sizeElement(stageElement(), 600, 300);
+
+    act((): void => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    const expected: number = computeContainScale(600, 300, {
+      width: 1200,
+      height: 900,
+    });
+
+    expect(expected).toBeCloseTo(1 / 3, 6);
+    expect(engine.host.style.transform).toBe(`scale(${expected})`);
+    expect(engine.host.style.width).toBe("1200px");
+    expect(engine.host.style.height).toBe("900px");
+
+    const frame: HTMLElement = frameElement();
+
+    expect(frame.style.width).toBe("400px");
+    expect(frame.style.height).toBe("300px");
+    /* Letterboxed: (600 - 400) / 2. */
+    expect(frame.style.left).toBe("100px");
+    expect(frame.style.top).toBe("0px");
+    expect(scales[scales.length - 1]).toBeCloseTo(expected, 6);
+  });
+
+  it("scales a small recording UP rather than leaving it postage-stamped", () => {
     expect(
-      harness.replayers[1]!.initialEvents.map(
-        (event: SessionReplayRecordedEvent): unknown => {
-          return event.data;
-        },
+      computeContainScale(1500, 900, { width: 375, height: 812 }),
+    ).toBeCloseTo(900 / 812, 6);
+  });
+
+  it("keeps the picture at 1:1 while the box is unmeasured", () => {
+    expect(computeContainScale(0, 0, { width: 1200, height: 900 })).toBe(1);
+  });
+
+  it("shows the recording at 1:1 in a scroll box when fit is actual", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1200, height: 900 },
+    });
+
+    render(<ReplayStage engine={engine} fit="actual" />);
+
+    sizeElement(stageElement(), 600, 300);
+
+    act((): void => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(stageElement()).toHaveAttribute("data-replay-fit", "actual");
+    expect(stageElement().className).toContain("overflow-auto");
+    expect(engine.host.style.transform).toBe("");
+    expect(frameElement().style.width).toBe("1200px");
+  });
+});
+
+describe("ReplayStage replay document", () => {
+  it("injects the CSP and referrer metas and names the iframe on every rebuilt document", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+
+    render(<ReplayStage engine={engine} />);
+
+    act((): void => {
+      engine.emitReplayer({
+        type: "fullsnapshot-rebuilded",
+        replayer: replayer,
+      });
+    });
+
+    const head: HTMLHeadElement | undefined =
+      replayer.iframe.contentDocument?.head;
+
+    expect(head).toBeDefined();
+
+    const csp: HTMLMetaElement | null | undefined = head?.querySelector(
+      'meta[http-equiv="Content-Security-Policy"]',
+    );
+
+    expect(csp?.getAttribute("content")).toBe(REPLAY_DOCUMENT_CSP);
+    expect(REPLAY_DOCUMENT_CSP).toContain("script-src 'none'");
+    expect(
+      head?.querySelector('meta[name="referrer"]')?.getAttribute("content"),
+    ).toBe("no-referrer");
+    expect(replayer.iframe.title).toBe("Recorded page");
+
+    /* Idempotent: a second rebuild does not stack a second meta. */
+    act((): void => {
+      engine.emitReplayer({
+        type: "fullsnapshot-rebuilded",
+        replayer: replayer,
+      });
+    });
+
+    expect(
+      head?.querySelectorAll('meta[http-equiv="Content-Security-Policy"]')
+        .length,
+    ).toBe(1);
+  });
+
+  it("stops listening once unmounted", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const replayer: ReplayerLike & { iframe: HTMLIFrameElement } =
+      makeReplayer();
+
+    const { unmount } = render(<ReplayStage engine={engine} />);
+    unmount();
+
+    engine.emitReplayer({ type: "created", replayer: replayer });
+
+    expect(
+      replayer.iframe.contentDocument?.head.querySelector(
+        'meta[http-equiv="Content-Security-Policy"]',
       ),
-    ).toEqual([
-      { chunkIndex: 2, sequence: 0 },
-      { chunkIndex: 2, sequence: 1 },
-    ]);
-  });
-
-  it("errors rather than skipping when nothing can anchor after a failed chunk", async () => {
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
-      omitChunkIndexes: [1],
-    });
-
-    renderStage(harness);
-    await flush();
-    await tick(2);
-
-    expect(harness.replayers[0]!.added).toEqual([]);
-    expect(harness.errors.length).toBe(1);
-    expect(harness.errors[0]).toContain("no later snapshot");
-
-    /*
-     * And it stops trying. The tick runs five times a second and the fed
-     * range can never advance past this, so retrying would re-POST /chunks
-     * for footage that is not coming back.
-     */
-    const requestsAfterFailure: number = harness.requests.length;
-    await tick(5);
-
-    expect(harness.errors.length).toBe(1);
-    expect(harness.requests.length).toBe(requestsAfterFailure);
+    ).toBeNull();
   });
 });
 
-describe("ReplayStage Replayer construction", () => {
-  it("borrows the next contiguous chunk when the anchor has a single event", async () => {
-    /*
-     * rrweb 2.1.1 throws "Replayer need at least 2 events." out of its
-     * constructor whenever liveMode is false and fewer than two events are
-     * passed. A one-event anchor is exactly what splitting an oversized
-     * FullSnapshot produces for its final part - the part that carries
-     * hasFullSnapshot.
-     */
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
-      eventsPerChunk: 1,
+describe("ReplayStage device frame and touch", () => {
+  it("draws the phone frame for a mobile-width recording", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 375, height: 812 },
     });
 
-    renderStage(harness);
-    await flush();
+    render(<ReplayStage engine={engine} />);
 
-    expect(harness.errors).toEqual([]);
-    expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.initialEvents.length).toBeGreaterThanOrEqual(
-      2,
-    );
+    expect(stageElement()).toHaveAttribute("data-replay-frame", "phone");
+    expect(frameElement().className).toContain("ring-8");
   });
 
-  it("gives a domain message when a single event is all there is", async () => {
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true })],
-      eventsPerChunk: 1,
+  it("draws the plain frame for a desktop recording, and lets the prop override it", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1440, height: 900 },
     });
 
-    renderStage(harness);
-    await flush();
+    const { rerender } = render(<ReplayStage engine={engine} />);
 
-    expect(harness.replayers.length).toBe(0);
-    expect(harness.errors.length).toBe(1);
-    expect(harness.errors[0]).toContain("too short to play");
-    // Never rrweb's own string.
-    expect(harness.errors[0]).not.toContain("Replayer need at least");
+    expect(stageElement()).toHaveAttribute("data-replay-frame", "desktop");
+
+    rerender(<ReplayStage engine={engine} isMobile={true} />);
+
+    expect(stageElement()).toHaveAttribute("data-replay-frame", "phone");
+  });
+
+  it("draws a touch ring where rrweb cast a TouchStart, scaled, and removes it", () => {
+    jest.useFakeTimers();
+
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 400, height: 800 },
+    });
+
+    render(<ReplayStage engine={engine} />);
+
+    sizeElement(stageElement(), 200, 400);
+
+    act((): void => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    act((): void => {
+      engine.emitReplayer({ type: "touch", x: 100, y: 200 });
+    });
+
+    const ring: HTMLElement | null = document.querySelector(
+      '[data-testid="replay-touch-ring"]',
+    );
+
+    expect(ring).not.toBeNull();
+    expect(ring?.style.left).toBe("50px");
+    expect(ring?.style.top).toBe("100px");
+
+    act((): void => {
+      jest.advanceTimersByTime(800);
+    });
+
+    expect(
+      document.querySelector('[data-testid="replay-touch-ring"]'),
+    ).toBeNull();
   });
 });
 
-describe("ReplayStage playback clock", () => {
-  it("reports offsets from the manifest, not from end-user event timestamps", async () => {
-    /*
-     * Event timestamps are raw Date.now() values from the recorded machine.
-     * Deriving the segment base from them puts the playhead clockSkewMs away
-     * from the bands and markers, which come from the manifest.
-     */
-    const harness: Harness = makeHarness({
-      entries: [
-        makeEntry(0),
-        makeEntry(1),
-        makeEntry(2, { hasFullSnapshot: true }),
-      ],
-    });
+describe("ReplayStage cursor", () => {
+  it("shortens the cursor transition with the playback speed", () => {
+    const engine: FakeEngine = new FakeEngine({ speed: 4 });
 
-    renderStage(harness);
-    await flush();
+    render(<ReplayStage engine={engine} />);
 
-    harness.replayers[0]!.currentTimeMs = 5000;
-    await tick(1);
-
-    // Chunk 2 starts at 30000ms into the session.
-    expect(harness.timeUpdates[harness.timeUpdates.length - 1]).toBe(35000);
-  });
-});
-
-describe("ReplayStage transport state", () => {
-  it("honours a Play pressed while the first chunk is still loading", async () => {
-    const harness: Harness & { resolveFetch: () => void } = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
-      deferFetch: true,
-    });
-
-    const stage: { rerender: (isPlaying: boolean) => void } = renderStage(
-      harness,
-      { isPlaying: false },
-    );
-
-    await flush();
-    expect(harness.replayers.length).toBe(0);
-
-    // The viewer presses Play while the fetch is still in flight.
-    act((): void => {
-      stage.rerender(true);
-    });
-
-    harness.resolveFetch();
-    await flush();
-
-    expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.playOffsets).toEqual([0]);
-    expect(harness.replayers[0]!.pauseOffsets).toEqual([]);
-  });
-
-  it("applies a Play pressed after the Replayer already exists", async () => {
-    /*
-     * The plain case, and the one the reported "Play does nothing" was
-     * about. The stage holds its live Replayer in a REF, so the effect that
-     * applies play/pause cannot see one appear; it only re-runs when
-     * isPlaying changes. Anything that leaves the intent and the applied
-     * state out of step - a rebuild, an error, a Replayer swapped between
-     * the press and the apply - used to leave the button saying "playing"
-     * over a stage that was not.
-     */
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
-    });
-
-    const stage: { rerender: (isPlaying: boolean) => void } = renderStage(
-      harness,
-      { isPlaying: false },
-    );
-
-    await flush();
-
-    expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.playOffsets).toEqual([]);
+    expect(
+      stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
+    ).toBe("20ms");
 
     act((): void => {
-      stage.rerender(true);
+      engine.update({ speed: 0.5 });
     });
 
-    expect(harness.replayers[0]!.playOffsets).toEqual([0]);
-
-    act((): void => {
-      stage.rerender(false);
-    });
-
-    /*
-     * Pausing is applied to the SAME Replayer, not by rebuilding one. The
-     * leading 0 is the build's own pause(withinSegment); the undefined is
-     * this press, which pauses in place rather than seeking.
-     */
-    expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.pauseOffsets).toEqual([0, undefined]);
-  });
-
-  it("does not re-issue play on a rebuild that already applied the intent", async () => {
-    /*
-     * A rebuild - a seek across a snapshot anchor, or a gap jump - applies
-     * the current transport state itself. Re-asserting it afterwards would
-     * restart rrweb's timer at the same offset on every one of them, for
-     * nothing, so the re-assert has to be able to tell "the build already
-     * did this" from "the viewer changed their mind while it ran".
-     */
-    const harness: Harness = makeHarness({
-      entries: [
-        makeEntry(0, { hasFullSnapshot: true }),
-        makeEntry(1),
-        makeEntry(2, { hasFullSnapshot: true }),
-        makeEntry(3),
-      ],
-    });
-
-    const stage: {
-      rerender: (isPlaying: boolean) => void;
-      seek: (offsetMs: number) => void;
-    } = renderStage(harness, { isPlaying: true });
-
-    await flush();
-
-    expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.playOffsets).toEqual([0]);
-
-    /* Seek into chunk 2, which anchors a new segment. */
-    act((): void => {
-      stage.seek(2 * CHUNK_MS + 1000);
-    });
-
-    await flush();
-
-    expect(harness.replayers.length).toBe(2);
-    expect(harness.replayers[1]!.playOffsets).toEqual([1000]);
-  });
-
-  it("kicks a fetch immediately when Play resumes a stalled recording", async () => {
-    /*
-     * rrweb emits Finish whenever it drains what it has been given, which
-     * with chunk streaming is a stall rather than the end. If the viewer
-     * pauses there and presses Play again, waiting for the next 200ms tick
-     * to decide it is time to fetch means the first thing they see after
-     * pressing Play is a frozen stage.
-     */
-    const harness: Harness = makeHarness({
-      entries: [
-        makeEntry(0, { hasFullSnapshot: true }),
-        makeEntry(1),
-        makeEntry(2),
-      ],
-    });
-
-    const stage: { rerender: (isPlaying: boolean) => void } = renderStage(
-      harness,
-      { isPlaying: true },
-    );
-
-    await flush();
-
-    /* The stall: rrweb ran out of events while more chunks exist. */
-    act((): void => {
-      harness.replayers[0]!.handlers.get("finish")!(undefined);
-    });
-
-    expect(harness.playingChanges).toEqual([]);
-
-    act((): void => {
-      stage.rerender(false);
-    });
-
-    /*
-     * No clock has been advanced in this test, so nothing has been fed yet:
-     * anything that lands below is the press doing it, not a tick.
-     */
-    expect(harness.replayers[0]!.added).toEqual([]);
-
-    act((): void => {
-      stage.rerender(true);
-    });
-
-    await flush();
-
-    expect(harness.replayers[0]!.added.length).toBeGreaterThan(0);
-    /* And it resumed the cast rather than only topping the buffer up. */
-    expect(harness.replayers[0]!.playOffsets.length).toBeGreaterThan(1);
-  });
-});
-
-describe("ReplayStage Replayer configuration", () => {
-  it("draws the pointer trail, so recorded mouse movement is visible", async () => {
-    /*
-     * rrweb records mousemove either way; what it does NOT do is draw a
-     * system cursor. With the tail off, a viewer sees a dot at eight
-     * positions a second and cannot tell deliberate movement from a jump -
-     * which is what "mouse movement is not rendered during playback"
-     * describes.
-     */
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true })],
-    });
-
-    renderStage(harness);
-    await flush();
-
-    const config: Record<string, unknown> =
-      harness.replayers[0]!.constructorConfig;
-
-    expect(config["mouseTail"]).not.toBe(false);
-    expect(config["mouseTail"]).toEqual(
-      expect.objectContaining({ lineWidth: expect.any(Number) }),
-    );
-  });
-
-  it("bounds how fast skip-inactive may fast-forward", async () => {
-    /*
-     * rrweb's own default maxSpeed is 360x, which is far faster than this
-     * player can be fed: events arrive one 15-second chunk at a time over
-     * an authenticated fetch, so a 360x sprint drains the fed range in
-     * milliseconds and lands in the stalled state again and again. Capping
-     * it at the top of the manual speed control keeps skipping useful and
-     * never faster than the loader can keep up with.
-     */
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true })],
-    });
-
-    renderStage(harness);
-    await flush();
-
-    const maxSpeed: unknown =
-      harness.replayers[0]!.constructorConfig["maxSpeed"];
-
-    expect(typeof maxSpeed).toBe("number");
-    expect(maxSpeed as number).toBeLessThanOrEqual(8);
-    expect(maxSpeed as number).toBeGreaterThan(1);
-  });
-
-  it("never enables canvas replay, which would drop the iframe sandbox", async () => {
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true })],
-    });
-
-    renderStage(harness);
-    await flush();
-
-    expect(harness.replayers[0]!.constructorConfig["UNSAFE_replayCanvas"]).toBe(
-      false,
-    );
-  });
-});
-
-describe("ReplayStage finish handling", () => {
-  it("does not stop playback when rrweb drains its buffer mid-recording", async () => {
-    const harness: Harness = makeHarness({
-      entries: [
-        makeEntry(0, { hasFullSnapshot: true }),
-        makeEntry(1),
-        makeEntry(2),
-      ],
-    });
-
-    renderStage(harness, { isPlaying: true });
-    await flush();
-
-    const finish: ((payload: unknown) => void) | undefined =
-      harness.replayers[0]!.handlers.get("finish");
-
-    expect(finish).toBeDefined();
-
-    act((): void => {
-      finish!(undefined);
-    });
-
-    /*
-     * There is still footage to feed, so this Finish is a stall waiting on
-     * /chunks. Reporting it as "not playing" would stop the session for good:
-     * later addEvent calls append to a machine that has already ended.
-     */
-    expect(harness.playingChanges).toEqual([]);
-  });
-
-  it("stops playback when the recording genuinely ends", async () => {
-    const harness: Harness = makeHarness({
-      entries: [makeEntry(0, { hasFullSnapshot: true })],
-    });
-
-    renderStage(harness, { isPlaying: true });
-    await flush();
-
-    act((): void => {
-      harness.replayers[0]!.handlers.get("finish")!(undefined);
-    });
-
-    expect(harness.playingChanges).toEqual([false]);
+    expect(
+      stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
+    ).toBe("160ms");
   });
 });

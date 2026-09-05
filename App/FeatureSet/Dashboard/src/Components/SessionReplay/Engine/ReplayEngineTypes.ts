@@ -130,6 +130,19 @@ export interface ReplayEngineError {
 }
 
 /*
+ * A non-fatal notice: the engine did something other than what was asked
+ * and says so inline, instead of refusing. Today: a seek before the first
+ * snapshot lands on the earliest playable moment ("No snapshot before
+ * 0:42; the earliest playable moment is 1:00").
+ */
+export interface ReplayEngineNotice {
+  kind: "seek-clamped";
+  message: string;
+  requestedMs: number;
+  landedAtMs: number;
+}
+
+/*
  * Everything the UI renders from. Published at most every 33ms while
  * playing; immutable per publish so React can compare by reference.
  */
@@ -163,6 +176,25 @@ export interface ReplayEngineSnapshot {
   pendingSeekMs: number | null;
   /* Increments on every LOAD/TAB_SWITCH/DISPOSE; stale async work checks it. */
   generation: number;
+
+  /*
+   * ---- Additive fields. ----
+   * Optional in the type so fakes written against the original contract
+   * still compile; the real engine always populates every one of them.
+   */
+
+  /* The most recent non-fatal notice, cleared by the next seek. */
+  notice?: ReplayEngineNotice | null;
+  /*
+   * Idle and background-tab bands on the session clock, coarse from the
+   * manifest at t=0 and refined as chunks decode. New array identity only
+   * when a chunk refines them, so a timeline can memoise on it.
+   */
+  idleBands?: Array<ReplayIdleBand>;
+  /* Feed-ahead in force, max(30000, 20000 * speed). */
+  feedAheadMs?: number;
+  /* The first moment with a snapshot; seeks before it are clamped here. */
+  earliestPlayableMs?: number | null;
 }
 
 /*
@@ -215,6 +247,53 @@ export interface ReplayEngineApi {
 }
 
 /*
+ * Replayer-level happenings the stage binds to: it injects the CSP meta
+ * on "created" and "fullsnapshot-rebuilded", and draws a touch ring on
+ * "touch". Separate from the snapshot because they are moments, not
+ * state, and because they carry the ReplayerLike the stage must touch.
+ */
+export type ReplayEngineReplayerEvent =
+  | { type: "created"; replayer: ReplayerLike }
+  | { type: "fullsnapshot-rebuilded"; replayer: ReplayerLike }
+  | { type: "destroyed"; replayer: ReplayerLike }
+  /* rrweb cast a TouchStart at these recorded-viewport coordinates. */
+  | { type: "touch"; x: number; y: number };
+
+export type ReplayEngineReplayerListener = (
+  event: ReplayEngineReplayerEvent,
+) => void;
+
+/* Counters the tests and the "Copy diagnostic" action read. */
+export interface ReplayEngineDiagnostics {
+  /* Times the 1.5s no-advance backstop had to act. Zero in every fixture. */
+  watchdogFireCount: number;
+  replayersCreated: number;
+  replayersDestroyed: number;
+  generation: number;
+  anchorChunkIndex: number | null;
+  lastFedChunkIndex: number | null;
+  /* Whether an old Replayer is being held visible during a rebuild. */
+  isHoldingLastFrame: boolean;
+  /* Whether attach() has mounted the host into a stage container. */
+  isAttached: boolean;
+}
+
+/*
+ * The full engine surface: the event API plus what the stage and the
+ * diagnostics need. createReplayEngine returns one of these.
+ */
+export interface ReplayEngine extends ReplayEngineApi {
+  onReplayer: (listener: ReplayEngineReplayerListener) => () => void;
+  /*
+   * The element every Replayer wrapper is mounted into (old and new during
+   * a hold-last-frame rebuild). The stage scales THIS, so both frames move
+   * together. Null outside a DOM.
+   */
+  getHostElement: () => HTMLElement | null;
+  getDiagnostics: () => ReplayEngineDiagnostics;
+}
+
+/*
  * Structural subset of rrweb's Replayer that the engine uses. Declared
  * rather than imported so this module stays rrweb-free; the factory casts
  * on the way in. Identical to the interface ReplayStage.tsx carried, moved
@@ -252,6 +331,29 @@ export interface ReplayEngineDeps {
   /* setTimeout-shaped; the engine schedules its own ticks through it. */
   schedule: (callback: () => void, delayMs: number) => ReplayScheduleHandle;
   cancel: (handle: ReplayScheduleHandle) => void;
+
+  /*
+   * ---- Additive, optional. ----
+   * requestAnimationFrame-shaped; used for ticks while playing so the
+   * clock moves with the paint. Falls back to schedule(cb, 16) when absent.
+   */
+  frame?: ((callback: () => void) => ReplayScheduleHandle) | undefined;
+  cancelFrame?: ((handle: ReplayScheduleHandle) => void) | undefined;
+  /* document.hidden; drops the tick to 10Hz in a background tab. */
+  isDocumentHidden?: (() => boolean) | undefined;
+}
+
+/* What createReplayEngine takes beyond the deps. */
+export interface ReplayEngineOptions {
+  tabId: string;
+  /*
+   * The recorded viewport from the manifest header. Reserves the stage's
+   * aspect before the first frame, and stands in for a Meta event when an
+   * anchor chunk holds a lone oversized FullSnapshot.
+   */
+  headerViewport?: ReplayRecordedSize | null | undefined;
+  initialSpeed?: number | undefined;
+  initialSkipInactive?: boolean | undefined;
 }
 
 /*

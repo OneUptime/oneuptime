@@ -118,6 +118,18 @@ export interface SessionReplayNetworkPayload {
    */
   initiator?: "fetch" | "xhr";
   requestBytes?: number;
+  /*
+   * The page cancelled the request (AbortError / xhr.abort()). status is 0
+   * and isError is false: a cancelled request is not a failed one, and
+   * counting it as failed would paint every navigation-away red.
+   */
+  aborted?: boolean;
+  /*
+   * One entry per session at the per-session request cap, with an empty
+   * method/url, so the rail can show WHERE network capture stopped rather
+   * than silently ending the list.
+   */
+  isCapMarker?: boolean;
 }
 
 export type SessionReplayRouteKind =

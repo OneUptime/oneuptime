@@ -2,29 +2,58 @@ import { record } from "rrweb";
 import {
   SESSION_REPLAY_CHECKOUT_INTERVAL_MS,
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+  SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK,
+  SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH,
+  SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayChunkMeta,
   SessionReplayConfigResponse,
+  SessionReplayConsentState,
   SessionReplayDirective,
   SessionReplayFidelityNotice,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
+import {
+  SessionReplayClickPayload,
+  SessionReplayCustomDroppedPayload,
+  SessionReplayCustomEventTag,
+  SessionReplayCustomPayload,
+  SessionReplayIdentifyPayload,
+  SessionReplaySessionRotatedPayload,
+  SessionReplayTagsPayload,
+  SessionReplayVisibilityPayload,
+} from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import CommonMasking from "Common/Utils/Rum/Masking";
 import {
   SessionRotationDecision,
   SessionRotationReason,
 } from "Common/Utils/Rum/SessionIdentity";
+import {
+  SessionReplayStringMapLimits,
+  mergeSessionReplayStringMaps,
+  sanitizeSessionReplayStringMap,
+} from "Common/Utils/Rum/SessionReplayStringMap";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import Chunker, { PendingChunk, utf8ByteLength } from "./Chunker";
+import ClickRecorder from "./ClickRecorder";
 import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
   RecorderInitOptions,
   getChunkUrl,
+  getRecorderCapabilities,
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
@@ -63,6 +92,8 @@ import Transport from "./Transport";
  */
 
 /* rrweb EventType values referenced here. */
+const EVENT_TYPE_DOM_CONTENT_LOADED: number = 0;
+const EVENT_TYPE_LOAD: number = 1;
 const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
 const EVENT_TYPE_INCREMENTAL: number = 3;
 const EVENT_TYPE_META: number = 4;
@@ -71,7 +102,8 @@ const EVENT_TYPE_META: number = 4;
 const SOURCE_MUTATION: number = 0;
 const SOURCE_INPUT: number = 5;
 
-export const BFCACHE_CUSTOM_EVENT_TAG: string = "oneuptime.bfcache-restore";
+export const BFCACHE_CUSTOM_EVENT_TAG: string =
+  SessionReplayCustomEventTag.BfcacheRestore;
 
 /*
  * Emitted as the first thing in a rolled-over session, carrying the id it
@@ -86,7 +118,123 @@ export const BFCACHE_CUSTOM_EVENT_TAG: string = "oneuptime.bfcache-restore";
  * shared type can be changed.
  */
 export const SESSION_ROTATED_CUSTOM_EVENT_TAG: string =
-  "oneuptime.session-rotated";
+  SessionReplayCustomEventTag.SessionRotated;
+
+/*
+ * Another tab rotated the shared session and this tab adopted its id. Not a
+ * member of SessionRotationReason (that enum describes why a NEW id was
+ * minted); reported through the same custom event so the two sessions can
+ * still be lined up server-side.
+ */
+export const SESSION_ADOPTED_ROTATION_REASON: string = "adopted";
+
+/*
+ * Disclosed once rrweb's own error handler has fired this many times. One
+ * error is a hiccup the fresh checkout below papers over; several mean the
+ * mutation observer or the serializer is failing on this page and the
+ * replay will freeze or skip, which the viewer must be told rather than
+ * shown a recording that claims full fidelity.
+ */
+export const RECORDER_ERROR_NOTICE: string = "recorder-error";
+const RRWEB_ERROR_NOTICE_THRESHOLD: number = 3;
+
+/*
+ * After an rrweb error the node ids may no longer describe the DOM, so a
+ * fresh checkout is taken - but at most this often, because a page that
+ * throws on every mutation would otherwise snapshot on every mutation.
+ */
+const RRWEB_ERROR_CHECKOUT_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * Custom events raised before rrweb has taken its first snapshot are held
+ * here and replayed right after it. rrweb refuses addCustomEvent until
+ * init() has run, and on a page still parsing that is deferred to the load
+ * event - which is exactly when a startup crash, the first route and the
+ * first requests happen. Bounded so a page that never finishes loading
+ * cannot grow it without limit.
+ */
+const MAX_PENDING_CUSTOM_EVENTS: number = 200;
+
+/*
+ * What a keepalive request may carry for the PAYLOAD. The browser caps a
+ * keepalive body at 64 KB; the transport enforces 56 KB on the whole frame,
+ * and the envelope line is under 8 KB by the server's own rule, so a payload
+ * cut at this size always fits one frame. Also the open-chunk size past
+ * which a HIDDEN tab flushes early through the ordinary path, so that by the
+ * time pagehide arrives there is rarely more than this left to send.
+ */
+const KEEPALIVE_PAYLOAD_BUDGET_BYTES: number =
+  SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 8 * 1024;
+
+const TRAIT_LIMITS: SessionReplayStringMapLimits = {
+  maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
+  maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+  maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+};
+
+const TAG_LIMITS: SessionReplayStringMapLimits = {
+  maxKeys: SESSION_REPLAY_MAX_TAG_KEYS,
+  maxKeyLength: SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  maxValueLength: SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+};
+
+/* track() properties share the trait caps for key and value length. */
+const CUSTOM_EVENT_PROPERTY_LIMITS: SessionReplayStringMapLimits = {
+  maxKeys: SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS,
+  maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+  maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+};
+
+/*
+ * Where the recorder is in its life. "not-sampled" is a terminal state of
+ * its own because it is the one the most support tickets are about: the
+ * recorder loaded, decided not to record, and will decide the same on every
+ * reload of the same session.
+ */
+export type RecorderState =
+  | "not-started"
+  | "recording"
+  | "uploading"
+  | "not-sampled"
+  | "stopped";
+
+/* Why a recorder stopped. Stable strings: getDiagnostics() reports them. */
+export type RecorderStopReason =
+  | "api"
+  | "server-directive"
+  | "transport-failure"
+  | "chunk-cap";
+
+/*
+ * What start() decided, as a stable word. Distinct from RecorderState in
+ * that it never changes afterwards: it is the answer to "what happened when
+ * the page loaded", which a support ticket needs long after the state moved
+ * on.
+ */
+export type RecorderStartDecision =
+  | "not-started"
+  | "not-sampled"
+  | "recording-and-uploading"
+  | "recording-into-memory";
+
+/*
+ * Every gate between "recording" and "uploading", answered so that a
+ * customer reading getDiagnostics() sees WHY nothing is being sent rather
+ * than only that nothing is.
+ */
+export interface RecorderDecisions {
+  isSampled: boolean;
+  captureTrigger: string;
+  consentMode: string;
+  consentState: SessionReplayConsentState;
+  uploadsAllowed: boolean;
+  uploadBlockedBy: "consent" | "transport" | null;
+  lastDirective: SessionReplayDirective | null;
+  lastDirectiveReason: string | null;
+  startDecision: RecorderStartDecision;
+}
+
+export type SessionChangeListener = (sessionId: string, tabId: string) => void;
 
 /*
  * Re-scanning the document for sensitive fields is a full querySelectorAll,
@@ -145,9 +293,21 @@ export interface RecorderRuntimeOptions {
    */
   earlyErrors?: Array<EarlyErrorRecord>;
 
+  /*
+   * Told whenever this recorder starts on a session id other than the one
+   * it had: rotation, adoption of another tab's session, a re-grant after
+   * revoke. The public onSessionChange() is built on it.
+   */
+  onSessionChange?: SessionChangeListener;
+
   /* Overridable for tests; production always uses the real globals. */
   windowRef?: Window;
   documentRef?: Document;
+}
+
+interface PendingCustomEvent {
+  tag: string;
+  payload: unknown;
 }
 
 export default class Recorder {
@@ -181,12 +341,17 @@ export default class Recorder {
   private readonly consoleRecorder: ConsoleRecorder;
   private readonly routeRecorder: RouteRecorder;
   private readonly frustrationDetector: FrustrationDetector;
+  private readonly clickRecorder: ClickRecorder;
 
   private stopRrweb: (() => void) | null = null;
   private flushTimer: ReturnType<typeof setInterval> | null = null;
+  private unsubscribeSessionChanges: (() => void) | null = null;
 
   private started: boolean = false;
   private stopped: boolean = false;
+  private stopReason: RecorderStopReason | null = null;
+  private startDecision: RecorderStartDecision = "not-started";
+  private isSampled: boolean = false;
 
   /* Upload has begun. Set by the first trigger that survives every gate. */
   private uploading: boolean = false;
@@ -203,6 +368,38 @@ export default class Recorder {
   private lastSensitiveScanAtMs: number = 0;
   private droppedEvents: number = 0;
   private userRef: string | null = null;
+
+  /*
+   * identify() traits and setTags() tags, already sanitised and masked.
+   * Both ride the chunk meta; metaDirty asks the next flushed chunk to
+   * carry meta even though it is neither chunk 0 nor final, which is how an
+   * identify() after login reaches the header at all.
+   */
+  private traits: Record<string, string> | null = null;
+  private tags: Record<string, string> = {};
+  private metaDirty: boolean = false;
+
+  /* Per-chunk window for track() events, mirroring ClickRecorder's. */
+  private customEventsInChunk: number = 0;
+  private customEventsDroppedInChunk: number = 0;
+
+  /*
+   * rrweb's first FullSnapshot has been seen on this page. Until then
+   * addCustomEvent throws, so custom events wait in pendingCustomEvents.
+   */
+  private hasSeenFullSnapshot: boolean = false;
+  private pendingCustomEvents: Array<PendingCustomEvent> = [];
+
+  private rrwebErrorCount: number = 0;
+  private lastRrwebErrorCheckoutAtMs: number = 0;
+
+  /* document.visibilityState === "hidden", tracked for the early flush. */
+  private isHidden: boolean = false;
+
+  private lastDirective: SessionReplayDirective | null = null;
+  private lastDirectiveReason: string | null = null;
+
+  private readonly sessionChangeListener: SessionChangeListener | null;
 
   /*
    * Last time the END USER did something, and the last value written through
@@ -233,6 +430,7 @@ export default class Recorder {
     this.config = options.config;
     this.windowRef = options.windowRef || window;
     this.documentRef = options.documentRef || document;
+    this.sessionChangeListener = options.onSessionChange || null;
 
     if (this.initOptions.userRef !== undefined) {
       this.userRef = this.initOptions.userRef;
@@ -296,6 +494,9 @@ export default class Recorder {
         return this.scrubUrl(url);
       },
       ignorePatterns: compiledIgnorePatterns.patterns,
+      onCapReached: (): void => {
+        this.onSignalCapReached();
+      },
       onError: (
         atUnixMs: number,
         _error: RecordedError,
@@ -332,6 +533,9 @@ export default class Recorder {
       onActivity: (atUnixMs: number): void => {
         this.frustrationDetector.notifyActivity(atUnixMs);
       },
+      onCapReached: (): void => {
+        this.onSignalCapReached();
+      },
       onRequestComplete: (
         atUnixMs: number,
         request: RecordedRequest,
@@ -354,10 +558,13 @@ export default class Recorder {
         /*
          * The request that SUCCEEDED slowly is the performance trigger's
          * half; url is already scrubbed by the NetworkRecorder. Failed
-         * requests stay the error path's business (above) so one request
-         * never counts as two kinds of bad.
+         * requests stay the error path's business (above), a request the
+         * page itself cancelled was never slow in any sense the user felt,
+         * and a 4xx is the page's own mistake rather than a slow success -
+         * so none of them count, and one request never counts as two kinds
+         * of bad.
          */
-        if (!request.isError) {
+        if (!request.isError && !request.aborted && request.status < 400) {
           this.performanceRecorder.noteRequest(
             atUnixMs,
             request.durationMs,
@@ -378,6 +585,7 @@ export default class Recorder {
       lcpBudgetMs: this.extendedConfig.lcpBudgetMs,
       longTaskBudgetMs: this.extendedConfig.longTaskBudgetMs,
       slowRequestBudgetMs: this.extendedConfig.slowRequestBudgetMs,
+      captureWebVitals: this.extendedConfig.captureWebVitals,
     });
 
     this.consoleRecorder = new ConsoleRecorder({
@@ -386,6 +594,9 @@ export default class Recorder {
       },
       maskArgument: (value: string): string => {
         return this.masking.maskConsoleArgument(value);
+      },
+      onCapReached: (): void => {
+        this.onSignalCapReached();
       },
       onConsole: (_atUnixMs: number, _entry: RecordedConsoleEntry): void => {
         /*
@@ -402,6 +613,9 @@ export default class Recorder {
       },
       scrubUrl: (url: string): string => {
         return this.scrubUrl(url);
+      },
+      onCapReached: (): void => {
+        this.onSignalCapReached();
       },
       onRouteChange: (atUnixMs: number, route: RecordedRoute): void => {
         this.chunker.countSignal("routeCount");
@@ -428,17 +642,37 @@ export default class Recorder {
       },
     });
 
+    this.clickRecorder = new ClickRecorder({
+      emitCustomEvent: (tag: string, payload: unknown): void => {
+        this.emitCustomEvent(tag, payload);
+      },
+      masking: this.masking,
+      onClick: (atUnixMs: number, _click: SessionReplayClickPayload): void => {
+        this.chunker.countSignal("clickCount");
+        this.lastUserActivityUnixMs = atUnixMs;
+      },
+    });
+
     this.visibilityListener = (): void => {
-      if (this.documentRef.visibilityState === "hidden") {
-        this.flushTerminal(true);
-        return;
-      }
+      const hidden: boolean = this.documentRef.visibilityState === "hidden";
+
+      this.isHidden = hidden;
 
       /*
-       * Re-armed on return so a user who tab-switches several times gets one
-       * final chunk per hidden transition rather than one per session.
+       * Disclosed in-band so the player can draw "tab in background" bands
+       * and the inactivity map can tell a user who left from a page that
+       * stalled.
        */
-      this.hasSentFinalChunk = false;
+      const visibility: SessionReplayVisibilityPayload = {
+        state: hidden ? "hidden" : "visible",
+        atUnixMs: Date.now(),
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.Visibility, visibility);
+
+      if (hidden) {
+        this.onHidden();
+      }
     };
 
     this.pageHideListener = (event: PageTransitionEvent): void => {
@@ -485,11 +719,24 @@ export default class Recorder {
          * The session hit the per-session chunk cap and has just sent its
          * disclosure chunk. Keeping rrweb running past this point costs the
          * customer's page CPU and memory to produce events that will never be
-         * uploaded and nobody will ever watch.
+         * uploaded and nobody will ever watch. The disclosure chunk WAS the
+         * final chunk, so there is nothing left to seal.
          */
-        this.stop();
+        this.shutdown("chunk-cap", false);
       },
     });
+  }
+
+  /*
+   * A per-session cap on console lines, errors, requests or routes was hit.
+   * The module already put an in-band marker in the stream; the notice on
+   * the envelope is what tells the viewer, before decoding anything, that
+   * the rail is incomplete from here on.
+   */
+  private onSignalCapReached(): void {
+    this.chunker.addFidelityNotice(
+      SessionReplayFidelityNotice.SignalCapReached,
+    );
   }
 
   private readonly visibilityListener: () => void;
@@ -506,6 +753,8 @@ export default class Recorder {
       this.identity.sessionId,
       this.config.samplePercentage,
     );
+
+    this.isSampled = isSampled;
 
     /*
      * In Always mode the sample percentage is the ONLY thing that decides
@@ -534,11 +783,13 @@ export default class Recorder {
         },
       );
 
+      this.startDecision = "not-sampled";
       this.stopped = true;
       return;
     }
 
     this.started = true;
+    this.isHidden = this.documentRef.visibilityState === "hidden";
 
     /*
      * Captured once, here. Everything downstream that says "where did this
@@ -585,6 +836,20 @@ export default class Recorder {
     this.consoleRecorder.start();
     this.routeRecorder.start(this.windowRef);
     this.frustrationDetector.start(this.documentRef);
+    this.clickRecorder.start(this.documentRef);
+
+    /*
+     * Another tab rotating the shared session is learned about the moment
+     * it happens, not on the next 15 s tick: the storage event fires in
+     * every OTHER tab when the session key changes, which is exactly the tab
+     * that must stop posting under an id its sibling just sealed.
+     */
+    this.unsubscribeSessionChanges = SessionId.subscribeToSessionChanges(
+      (): void => {
+        this.maybeRotateSession(Date.now());
+      },
+      this.windowRef,
+    );
 
     this.documentRef.addEventListener(
       "visibilitychange",
@@ -667,6 +932,10 @@ export default class Recorder {
     }
 
     this.replayEarlyErrors();
+
+    this.startDecision = this.uploading
+      ? "recording-and-uploading"
+      : "recording-into-memory";
   }
 
   /*
@@ -785,9 +1054,11 @@ export default class Recorder {
       /*
        * An exception thrown inside rrweb must not surface on the customer's
        * page. Returning true tells rrweb we have handled it; the recording
-       * degrades instead of the host application breaking.
+       * degrades instead of the host application breaking - but no longer
+       * silently, see onRrwebError.
        */
-      errorHandler: (): boolean => {
+      errorHandler: (error: unknown): boolean => {
+        this.onRrwebError(error);
         return true;
       },
     });
@@ -808,12 +1079,87 @@ export default class Recorder {
   }
 
   /*
+   * rrweb's own errorHandler. Used to swallow every failure with no counter
+   * and no notice, so a mutation observer or serializer failure produced a
+   * replay that froze mid-session while the envelope claimed full fidelity,
+   * and support could not tell a frozen page from a broken recorder.
+   *
+   * Now: counted, named once in the diagnostics (the error's NAME only,
+   * never its message, which can quote page content), a fresh checkout
+   * scheduled so playback can recover past the point the node ids went
+   * stale, and a fidelity notice once it is clearly not a one-off.
+   */
+  private onRrwebError(error: unknown): void {
+    this.rrwebErrorCount++;
+
+    if (this.rrwebErrorCount === 1) {
+      debugWarn(
+        "rrweb-error",
+        "rrweb reported an internal error; the recording may skip or freeze around this point.",
+        { name: Recorder.errorName(error) },
+      );
+    }
+
+    if (this.rrwebErrorCount === RRWEB_ERROR_NOTICE_THRESHOLD) {
+      this.chunker.addFidelityNotice(RECORDER_ERROR_NOTICE);
+    }
+
+    const now: number = Date.now();
+
+    if (
+      now - this.lastRrwebErrorCheckoutAtMs >=
+      RRWEB_ERROR_CHECKOUT_INTERVAL_MS
+    ) {
+      this.lastRrwebErrorCheckoutAtMs = now;
+
+      /*
+       * Deferred: the handler runs inside rrweb's own observer callback,
+       * and asking it to snapshot from in there would re-enter the code
+       * that just failed.
+       */
+      setTimeout((): void => {
+        this.takeFullSnapshot();
+      }, 0);
+    }
+  }
+
+  private static errorName(error: unknown): string {
+    if (error && typeof error === "object") {
+      const name: unknown = (error as Record<string, unknown>)["name"];
+
+      if (typeof name === "string" && name) {
+        return name;
+      }
+    }
+
+    return "Error";
+  }
+
+  public getRrwebErrorCount(): number {
+    return this.rrwebErrorCount;
+  }
+
+  /*
    * The hot path. Order matters: sanitise before anything else sees the
    * event, so nothing downstream - not the buffer, not a test double, not a
    * future plugin - can observe unmasked content.
    */
   private onRrwebEvent(event: RrwebEvent, isCheckout: boolean): void {
     if (this.stopped) {
+      return;
+    }
+
+    /*
+     * DomContentLoaded / Load carry nothing the player uses, and on a page
+     * still parsing they arrive BEFORE the first snapshot - where the
+     * chunker would take them for content and deny chunk 0 its seek anchor.
+     * Not counted as dropped: nothing replayable was lost.
+     */
+    if (
+      event &&
+      (event.type === EVENT_TYPE_DOM_CONTENT_LOADED ||
+        event.type === EVENT_TYPE_LOAD)
+    ) {
       return;
     }
 
@@ -857,17 +1203,62 @@ export default class Recorder {
       type: sanitised.type,
     };
 
-    if (this.uploading) {
-      this.chunker.add(buffered);
-      return;
+    /*
+     * The first snapshot is the moment rrweb starts accepting custom
+     * events; everything queued before it goes in now, directly behind it,
+     * so a startup crash caught by the loader lands in the stream after all.
+     * Flushed AFTER this event is routed so the snapshot precedes them.
+     */
+    const isFirstSnapshot: boolean =
+      !this.hasSeenFullSnapshot && sanitised.type === EVENT_TYPE_FULL_SNAPSHOT;
+
+    if (isFirstSnapshot) {
+      this.hasSeenFullSnapshot = true;
     }
 
-    this.buffer.push(buffered);
+    if (this.uploading) {
+      this.chunker.add(buffered);
 
-    if (this.buffer.hasOverflowed()) {
-      this.chunker.addFidelityNotice(
-        SessionReplayFidelityNotice.BufferOverflow,
-      );
+      /*
+       * A hidden tab may be about to go away, and a terminal flush can
+       * only carry a keepalive-sized body. Flushing early through the
+       * ordinary path while the page is still alive keeps what is left for
+       * pagehide small enough to send in one keepalive request.
+       */
+      if (
+        this.isHidden &&
+        this.chunker.getOpenByteSize() >= KEEPALIVE_PAYLOAD_BUDGET_BYTES
+      ) {
+        this.chunker.close(false);
+      }
+    } else {
+      this.buffer.push(buffered);
+
+      if (this.buffer.hasOverflowed()) {
+        this.chunker.addFidelityNotice(
+          SessionReplayFidelityNotice.BufferOverflow,
+        );
+      }
+
+      /*
+       * The buffer lost incremental events to its byte cap and asks for a
+       * new checkout, so the damaged segment becomes evictable whole and
+       * the pre-roll is intact again from the next snapshot on.
+       */
+      if (this.buffer.needsFreshCheckout()) {
+        this.scheduleFreshCheckout();
+      }
+    }
+
+    if (isFirstSnapshot) {
+      /*
+       * Deferred a tick: rrweb emits the snapshot from inside init() and
+       * only THEN marks itself as recording, so a custom event pushed from
+       * here, synchronously, would still be refused.
+       */
+      setTimeout((): void => {
+        this.flushPendingCustomEvents();
+      }, 0);
     }
   }
 
@@ -893,8 +1284,11 @@ export default class Recorder {
       /*
        * A fresh snapshot means the DOM may be entirely new, so anything
        * sensitive in it has to be marked before the next mutation arrives.
+       * The snapshot's own attributes (alt, title, aria-label, hrefs...) go
+       * through the masking walk here: rrweb has no hook for them.
        */
       this.rescanSensitiveFields(true);
+      this.masking.sanitiseEventData(data);
       return event;
     }
 
@@ -906,6 +1300,7 @@ export default class Recorder {
 
     if (source === SOURCE_MUTATION) {
       this.sanitiseMutation(data);
+      this.masking.sanitiseEventData(data);
       this.rescanSensitiveFields(false);
       return event;
     }
@@ -1122,7 +1517,25 @@ export default class Recorder {
      * seconds right after.
      */
     this.chunker.addMany(this.buffer.drain());
-    this.chunker.close(false);
+
+    if (this.chunker.hasOpenFullSnapshot()) {
+      this.chunker.close(false);
+      return;
+    }
+
+    /*
+     * No snapshot at the front of the pre-roll. Either rrweb has not taken
+     * its first one yet (a page still parsing defers it to the load event),
+     * in which case there is nothing to flush and chunk 0 will open on that
+     * snapshot when it comes - or the buffer holds footage that lost its
+     * anchor. Closing that as chunk 0 would ship a recording nothing can
+     * seek into; a checkout first gives the session an anchor immediately
+     * behind whatever pre-roll survived.
+     */
+    if (this.chunker.getOpenEventCount() > 0) {
+      this.takeFullSnapshot();
+      this.chunker.close(false);
+    }
   }
 
   private onFlushTimer(): void {
@@ -1177,6 +1590,42 @@ export default class Recorder {
       return false;
     }
 
+    /*
+     * Another tab may already have moved the shared session on. Adopting
+     * its id comes BEFORE asking whether to rotate: the sibling's rotation
+     * wrote fresh activity, so shouldRotate would answer "no" and this tab
+     * would keep posting under an id the sibling just sealed - a "final"
+     * session that keeps growing, and the other tab's footage in a session
+     * of its own.
+     *
+     * The outgoing session is sealed BEFORE storage is consulted, because
+     * both syncWithStorage and resolveSession reset this tab's chunk
+     * counter as a side effect of moving it onto the new id - and a final
+     * chunk minted after that reset would take index 0 away from the new
+     * session's first chunk. A stored id that differs from ours means one
+     * of the two rotations below is certain, so sealing early never
+     * orphans a session.
+     */
+    const storedSessionId: string | null = SessionId.readStoredSessionId();
+
+    if (
+      storedSessionId !== null &&
+      storedSessionId !== this.identity.sessionId
+    ) {
+      this.sealCurrentSession();
+
+      const adopted: SessionIdentityState | null = SessionId.syncWithStorage(
+        this.identity.sessionId,
+        nowUnixMs,
+        this.identity.tabId,
+      );
+
+      if (adopted) {
+        this.switchSession(nowUnixMs, adopted, SESSION_ADOPTED_ROTATION_REASON);
+        return true;
+      }
+    }
+
     const decision: SessionRotationDecision = SessionId.shouldRotate(nowUnixMs);
 
     if (!decision.shouldRotate) {
@@ -1192,23 +1641,58 @@ export default class Recorder {
     nowUnixMs: number,
     reason: SessionRotationReason | undefined,
   ): void {
-    const previousSessionId: string = this.identity.sessionId;
+    /* Before resolveSession resets the chunk counter; see maybeRotateSession. */
+    this.sealCurrentSession();
 
     /*
-     * Seal the outgoing session first, while the old chunker still knows its
-     * own start offset. close(true) emits a final chunk even with nothing
-     * buffered, which is what tells the server this session ended rather than
-     * leaving it to expire as idle-timeout ten minutes later.
+     * Compare-and-set on the stored record: if another tab won the race to
+     * rotate between our decision and this write, its id is adopted rather
+     * than a third one minted for the same person.
      */
-    if (this.uploading) {
-      this.isTerminalFlush = true;
+    const next: SessionIdentityState = SessionId.resolveSession(
+      nowUnixMs,
+      this.identity.tabId,
+      this.identity.sessionId,
+    );
 
-      try {
-        this.chunker.close(true);
-      } finally {
-        this.isTerminalFlush = false;
-      }
+    this.switchSession(
+      nowUnixMs,
+      next,
+      String(next.rotationReason || reason || SessionRotationReason.New),
+    );
+  }
+
+  /*
+   * Seal the outgoing session, once, while its chunker still knows its own
+   * start offset. close(true) emits a final chunk even with nothing
+   * buffered, which is what tells the server this session ended rather than
+   * leaving it to expire as idle-timeout ten minutes later. Through the
+   * ORDINARY send, not the keepalive one: the page is alive, and the
+   * keepalive path can only carry 56 KB.
+   */
+  private sealCurrentSession(): void {
+    if (!this.uploading || this.hasSentFinalChunk) {
+      return;
     }
+
+    this.hasSentFinalChunk = true;
+    this.chunker.close(true);
+  }
+
+  /*
+   * Move this recorder onto a different session id: seal the outgoing
+   * session, reset everything that is per session, and open the new one on
+   * a snapshot of its own. Shared by the idle/duration rollover, adoption
+   * of a sibling tab's session, the bfcache restore and a consent re-grant.
+   */
+  private switchSession(
+    nowUnixMs: number,
+    next: SessionIdentityState,
+    rotationReason: string,
+  ): void {
+    const previousSessionId: string = this.identity.sessionId;
+
+    this.sealCurrentSession();
 
     /*
      * Nothing buffered under the old id may be attributed to the new one, and
@@ -1222,9 +1706,12 @@ export default class Recorder {
     this.triggerReason = null;
     this.hasSentFinalChunk = false;
     this.droppedEvents = 0;
+    this.customEventsInChunk = 0;
+    this.customEventsDroppedInChunk = 0;
 
-    this.identity = SessionId.resolveSession(nowUnixMs, this.identity.tabId);
+    this.identity = next;
     this.chunker = this.createChunker();
+    this.detectFidelityNotices();
 
     /*
      * The ROTATED session began here, not where the page originally loaded.
@@ -1243,14 +1730,18 @@ export default class Recorder {
     this.lastTouchedUnixMs = nowUnixMs;
 
     /*
-     * The rotated session must be able to earn its own Performance
-     * trigger: reset the emit cap and re-arm a longtask observer that
-     * disconnected when the OLD session's stream hit the cap. Without
-     * this, a jank-looping SPA that burned the cap in session 1 has
-     * performance triggers permanently dead for every later session on
-     * the same page load.
+     * Every per-session cap starts over. The rotated session must be able
+     * to earn its own triggers and fill its own rail: without this, a SPA
+     * that burned the console, error, route, request or longtask budget in
+     * session 1 had those signals permanently dead for every later session
+     * on the same page load.
      */
     this.performanceRecorder.resetForNewSession();
+    this.errorRecorder.resetForNewSession();
+    this.consoleRecorder.resetForNewSession();
+    this.routeRecorder.resetForNewSession();
+    this.networkRecorder.resetForNewSession();
+    this.clickRecorder.resetForNewSession();
 
     debugLog(
       "session-rotated",
@@ -1258,15 +1749,33 @@ export default class Recorder {
       {
         previousSessionId: previousSessionId,
         sessionId: this.identity.sessionId,
-        rotationReason: String(reason || SessionRotationReason.New),
+        rotationReason: rotationReason,
       },
     );
 
-    this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, {
+    this.isSampled = SessionSampling.isSampled(
+      this.identity.sessionId,
+      this.config.samplePercentage,
+    );
+
+    /*
+     * The snapshot FIRST, then the rotation marker, then the trigger. The
+     * new session's chunk 0 is whatever the buffer holds when the trigger
+     * drains it, and it is only a seek anchor if the snapshot leads. The
+     * old order (marker, trigger, snapshot) shipped a one-event chunk 0 with
+     * no DOM in it for every rotated session.
+     */
+    this.takeFullSnapshot();
+
+    const rotated: SessionReplaySessionRotatedPayload = {
       previousSessionId: previousSessionId,
-      rotationReason: reason || SessionRotationReason.New,
+      rotationReason: rotationReason as SessionRotationReason,
       rotatedAtUnixMs: nowUnixMs,
-    });
+    };
+
+    this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, rotated);
+
+    this.notifySessionChange();
 
     /*
      * Sampling is a pure function of the session id, so a new id is a new
@@ -1274,26 +1783,49 @@ export default class Recorder {
      * would make the recorder and the ingest gate disagree about the new
      * session, which is silent data loss.
      */
-    if (
-      SessionSampling.isSampled(
-        this.identity.sessionId,
-        this.config.samplePercentage,
-      )
-    ) {
+    if (this.isSampled) {
       this.trigger(SessionReplayTriggerReason.Sampled);
     }
 
-    /*
-     * rrweb's node ids still describe the old stream. A fresh checkout gives
-     * the new session a snapshot of its own to replay from.
-     */
-    this.takeFullSnapshot();
+    if (this.extendedConfig.isTargeted) {
+      this.trigger(SessionReplayTriggerReason.Manual);
+    }
+  }
+
+  private notifySessionChange(): void {
+    if (!this.sessionChangeListener) {
+      return;
+    }
+
+    try {
+      this.sessionChangeListener(this.identity.sessionId, this.identity.tabId);
+    } catch {
+      /* A host-page listener that throws must not break the recorder. */
+    }
   }
 
   /*
-   * Terminal flush. Synchronous by construction: the chunk is closed inside
-   * the event handler and posted with fetch(keepalive), because a promise
-   * chain started here may never resume on a page the browser is discarding.
+   * The page went to the background. Still alive, so the open chunk goes
+   * out through the ORDINARY path: gzip, retry queue, no size cap. It used
+   * to go out as a final keepalive chunk, which (a) dropped anything over
+   * 56 KB - nearly every chunk holding a snapshot - and (b) sealed a live
+   * session as "final" on every tab switch, so the server believed a
+   * session was over while its chunks kept arriving.
+   */
+  private onHidden(): void {
+    if (this.stopped || !this.uploading) {
+      return;
+    }
+
+    this.chunker.close(false);
+  }
+
+  /*
+   * Terminal flush, for pagehide only. Synchronous by construction: the
+   * chunk is closed inside the event handler and posted with
+   * fetch(keepalive), because a promise chain started here may never resume
+   * on a page the browser is discarding. Cut into keepalive-sized pieces so
+   * a large open chunk is sent in parts rather than dropped whole.
    */
   private flushTerminal(isFinal: boolean): void {
     if (this.stopped || !this.uploading) {
@@ -1311,7 +1843,7 @@ export default class Recorder {
     this.isTerminalFlush = true;
 
     try {
-      this.chunker.close(isFinal);
+      this.chunker.closeSplit(isFinal, KEEPALIVE_PAYLOAD_BUDGET_BYTES);
     } finally {
       this.isTerminalFlush = false;
     }
@@ -1330,22 +1862,26 @@ export default class Recorder {
       restoredAtUnixMs: Date.now(),
     });
 
-    const refreshed: SessionIdentityState = SessionId.resolveSession(
-      Date.now(),
-      this.identity.tabId,
-    );
+    const now: number = Date.now();
 
-    if (refreshed.sessionId !== this.identity.sessionId) {
-      /*
-       * A rolled-over session is a different recording. Nothing buffered
-       * under the previous id may be attributed to the new one.
-       */
-      this.buffer.clear();
-      this.stop();
+    this.isHidden = this.documentRef.visibilityState === "hidden";
+    this.hasSentFinalChunk = false;
+
+    /*
+     * A session that changed while the page was away is a different
+     * recording - and this used to STOP the recorder for the rest of the
+     * page's life, so a user coming Back after lunch got no recording at
+     * all. Now it rotates (or adopts a sibling tab's session) exactly as the
+     * flush timer would.
+     */
+    if (this.maybeRotateSession(now)) {
+      this.routeRecorder.handle("popstate", this.windowRef);
       return;
     }
 
-    this.hasSentFinalChunk = false;
+    /* Returning is activity; written through on the next tick. */
+    this.lastUserActivityUnixMs = now;
+
     this.routeRecorder.handle("popstate", this.windowRef);
     this.takeFullSnapshot();
   }
@@ -1383,12 +1919,33 @@ export default class Recorder {
       chunkIndex,
     );
 
+    /*
+     * The chunk boundary for the per-chunk caps. The chunker has already
+     * detached the closed chunk, so a dropped-marker emitted here lands at
+     * the very start of the next one - at the boundary it describes.
+     */
+    this.clickRecorder.startNewChunk();
+    this.startNewCustomEventWindow();
+
     if (this.isTerminalFlush) {
       this.transport.sendTerminal(envelope, chunk.payload);
       return;
     }
 
     void this.transport.send(envelope, chunk.payload);
+  }
+
+  private startNewCustomEventWindow(): void {
+    if (this.customEventsDroppedInChunk > 0) {
+      const marker: SessionReplayCustomDroppedPayload = {
+        count: this.customEventsDroppedInChunk,
+      };
+
+      this.emitCustomEvent(SessionReplayCustomEventTag.CustomDropped, marker);
+    }
+
+    this.customEventsInChunk = 0;
+    this.customEventsDroppedInChunk = 0;
   }
 
   private buildEnvelope(
@@ -1445,15 +2002,32 @@ export default class Recorder {
     }
 
     /*
-     * Device metadata rides on the first chunk and the last one only.
-     * Repeating it on every frame would be pure waste, and the finalizer
-     * reads whichever copy arrived.
+     * Device metadata rides on the first chunk and the last one - and on
+     * the next chunk after identify() / setTags() changed it (metaDirty),
+     * which is how a user identified after login reaches the session header
+     * at all. Repeating it on every frame would be pure waste.
      */
-    if (chunkIndex === 0 || chunk.isFinal) {
+    if (chunkIndex === 0 || chunk.isFinal || this.metaDirty) {
       envelope.meta = this.buildMeta();
+      this.metaDirty = false;
+    }
+
+    /*
+     * What this build can capture, on chunk 0 only. Purely informational:
+     * it lets the player say "this recording predates click labels" rather
+     * than show an empty tab for an artifact cached before they existed.
+     */
+    if (chunkIndex === 0) {
+      envelope.capabilities = this.getCapabilities();
     }
 
     return envelope;
+  }
+
+  public getCapabilities(): Array<string> {
+    return getRecorderCapabilities({
+      captureWebVitals: this.extendedConfig.captureWebVitals,
+    });
   }
 
   private buildMeta(): SessionReplayChunkMeta {
@@ -1487,25 +2061,91 @@ export default class Recorder {
      */
     if (this.config.captureUserIdentity && this.userRef) {
       meta.identifiedUserRef = this.userRef;
+
+      /*
+       * Traits describe the identified person, so they follow the same
+       * switch as the reference itself and never leave the page without it.
+       */
+      if (this.traits && Object.keys(this.traits).length > 0) {
+        meta.identifiedUserTraits = { ...this.traits };
+      }
+    }
+
+    if (Object.keys(this.tags).length > 0) {
+      meta.tags = { ...this.tags };
     }
 
     return meta;
   }
 
   private emitCustomEvent(tag: string, payload: unknown): void {
-    if (!this.stopRrweb) {
+    if (this.stopped) {
       return;
+    }
+
+    /*
+     * rrweb refuses custom events until its first snapshot, which on a page
+     * still parsing is deferred to the load event. Everything raised before
+     * then - a startup crash, the first route, the first requests - is held
+     * and replayed directly behind that snapshot instead of being lost.
+     */
+    if (!this.stopRrweb || !this.hasSeenFullSnapshot) {
+      this.queueCustomEvent(tag, payload);
+      return;
+    }
+
+    /*
+     * Anything still waiting goes first, so the stream keeps the order the
+     * events happened in. Self-draining: if the deferred flush after the
+     * first snapshot found rrweb not yet ready, the next event drains it.
+     */
+    if (this.pendingCustomEvents.length > 0 && !this.isFlushingPending) {
+      this.flushPendingCustomEvents();
     }
 
     try {
       record.addCustomEvent(tag, payload);
     } catch {
       /*
-       * addCustomEvent throws when recording has not started. Losing a
-       * custom event is acceptable; throwing into whatever host-page callback
-       * we are inside is not.
+       * Still possible if rrweb's own state disagrees with ours; queued
+       * rather than thrown into whatever host-page callback we are inside.
        */
+      this.queueCustomEvent(tag, payload);
     }
+  }
+
+  private isFlushingPending: boolean = false;
+
+  private queueCustomEvent(tag: string, payload: unknown): void {
+    if (this.pendingCustomEvents.length >= MAX_PENDING_CUSTOM_EVENTS) {
+      this.droppedEvents++;
+      return;
+    }
+
+    this.pendingCustomEvents.push({ tag: tag, payload: payload });
+  }
+
+  private flushPendingCustomEvents(): void {
+    if (this.isFlushingPending || !this.stopRrweb || this.stopped) {
+      return;
+    }
+
+    const pending: Array<PendingCustomEvent> = this.pendingCustomEvents;
+
+    this.pendingCustomEvents = [];
+    this.isFlushingPending = true;
+
+    try {
+      for (const event of pending) {
+        this.emitCustomEvent(event.tag, event.payload);
+      }
+    } finally {
+      this.isFlushingPending = false;
+    }
+  }
+
+  public getPendingCustomEventCount(): number {
+    return this.pendingCustomEvents.length;
   }
 
   private takeFullSnapshot(): void {
@@ -1518,6 +2158,30 @@ export default class Recorder {
     } catch {
       /* See emitCustomEvent. */
     }
+  }
+
+  private freshCheckoutScheduled: boolean = false;
+
+  /*
+   * A checkout requested from INSIDE rrweb's emit callback is deferred a
+   * tick: asking rrweb to snapshot while it is delivering an event re-enters
+   * its serializer. Coalesced so a burst of events after an overflow asks
+   * once.
+   */
+  private scheduleFreshCheckout(): void {
+    if (this.freshCheckoutScheduled) {
+      return;
+    }
+
+    this.freshCheckoutScheduled = true;
+
+    setTimeout((): void => {
+      this.freshCheckoutScheduled = false;
+
+      if (!this.stopped && this.buffer.needsFreshCheckout()) {
+        this.takeFullSnapshot();
+      }
+    }, 0);
   }
 
   /*
@@ -1643,11 +2307,15 @@ export default class Recorder {
     directive: SessionReplayDirective,
     reason: string | null,
   ): void {
+    this.lastDirective = directive;
+    this.lastDirectiveReason = reason;
+
     if (directive === "stop") {
       /*
        * The server has switched this project or application off. Stopping
        * here is what makes "I turned this off" take effect inside one chunk
-       * window instead of waiting out the config cache.
+       * window instead of waiting out the config cache. Nothing is sealed:
+       * the server that said stop would refuse the final chunk anyway.
        */
       debugWarn(
         "recorder-stopped-by-server",
@@ -1655,7 +2323,7 @@ export default class Recorder {
         { reason: reason || "not-reported" },
       );
 
-      this.stop();
+      this.shutdown("server-directive", false);
       return;
     }
 
@@ -1689,11 +2357,28 @@ export default class Recorder {
     );
 
     this.buffer.clear();
-    this.stop();
+    this.shutdown("transport-failure", false);
   }
 
   public grantConsent(): void {
+    const wasRevoked: boolean = this.consent.isRevoked();
+
     this.consent.grant();
+
+    /*
+     * A grant after a revoke is a NEW consent: the withdrawn session's id
+     * was cleared, so the recording continues under a fresh identity with
+     * nothing from before the revoke attached to it - a new session, a new
+     * chunk sequence, a snapshot of its own, and a new sampling draw.
+     */
+    if (wasRevoked && this.started && !this.stopped) {
+      this.switchSession(
+        Date.now(),
+        SessionId.resolveSession(Date.now(), this.identity.tabId),
+        SessionRotationReason.New,
+      );
+    }
+
     this.startUploadingIfAllowed();
   }
 
@@ -1709,18 +2394,193 @@ export default class Recorder {
      * MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST fully serialised chunks of page
      * content, and revoke does not go through Transport.disable(), so without
      * this the contract "revokeConsent() drops the buffer" held for the ring
-     * buffer and not for the part that had already been handed on.
+     * buffer and not for the part that had already been handed on. The open
+     * chunk is dropped with them.
+     *
+     * Recording itself continues into the ring buffer - consent gates
+     * UPLOAD - so a later grantConsent() can pick up from a fresh session
+     * instead of finding a recorder that stopped for good.
      */
     this.buffer.clear();
     this.transport.discardQueue();
     SessionId.clearAll();
-    this.stop();
+
+    this.chunker = this.createChunker();
+    this.detectFidelityNotices();
+    this.uploading = false;
+    this.triggerReason = null;
+    this.hasSentFinalChunk = false;
   }
 
-  public identify(userRef: string): void {
-    if (typeof userRef === "string" && userRef) {
-      this.userRef = userRef;
+  /*
+   * identify(userRef, traits). The reference is what it always was; the
+   * traits are stringified, capped and masked here, and both ride the
+   * chunk meta - on chunk 0 and the final chunk as before, and on the NEXT
+   * flushed chunk when this is called after chunk 0 already went, which
+   * is the normal SPA login flow and used to lose the identity entirely.
+   * The in-band marker never carries the reference or the traits.
+   */
+  public identify(
+    userRef: string,
+    traits?: Record<string, string | number | boolean>,
+  ): void {
+    if (typeof userRef !== "string" || !userRef) {
+      return;
     }
+
+    this.userRef = userRef;
+
+    if (traits !== undefined) {
+      this.traits = this.maskStringMap(
+        sanitizeSessionReplayStringMap(traits, TRAIT_LIMITS),
+      );
+    }
+
+    this.metaDirty = true;
+
+    const marker: SessionReplayIdentifyPayload = {
+      hasTraits: this.traits !== null && Object.keys(this.traits).length > 0,
+    };
+
+    this.emitCustomEvent(SessionReplayCustomEventTag.Identify, marker);
+  }
+
+  public hasTraits(): boolean {
+    return this.traits !== null && Object.keys(this.traits).length > 0;
+  }
+
+  /*
+   * track(name, properties): a business event from the host page, as an
+   * in-band marker the rail and timeline can show. Capped per chunk with
+   * one disclosure per chunk past the cap, counted on the envelope so the
+   * list can say "12 custom events" without decoding anything.
+   */
+  public track(
+    name: string,
+    properties?: Record<string, string | number | boolean>,
+  ): void {
+    if (this.stopped || typeof name !== "string" || !name.trim()) {
+      return;
+    }
+
+    if (
+      this.customEventsInChunk >= SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK
+    ) {
+      this.customEventsDroppedInChunk++;
+      return;
+    }
+
+    this.customEventsInChunk++;
+
+    const payload: SessionReplayCustomPayload = {
+      name: name.trim().slice(0, SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH),
+    };
+
+    if (properties !== undefined) {
+      const sanitised: Record<string, string> = this.maskStringMap(
+        sanitizeSessionReplayStringMap(
+          properties,
+          CUSTOM_EVENT_PROPERTY_LIMITS,
+        ),
+      );
+
+      if (Object.keys(sanitised).length > 0) {
+        payload.properties = sanitised;
+      }
+    }
+
+    this.chunker.countSignal("customEventCount");
+    this.emitCustomEvent(SessionReplayCustomEventTag.Custom, payload);
+  }
+
+  /*
+   * captureSession(reason): the explicit trigger, with the page's own word
+   * for why, recorded as a custom event so the rail can show it at the
+   * moment it was asked for.
+   */
+  public captureSession(reason?: string): void {
+    if (typeof reason === "string" && reason.trim()) {
+      this.track("captureSession", {
+        reason: reason
+          .trim()
+          .slice(0, SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH),
+      });
+    }
+
+    this.trigger(SessionReplayTriggerReason.Manual);
+  }
+
+  /* Replace the session's tag map. */
+  public setTags(tags: Record<string, string | number | boolean>): void {
+    this.applyTags(sanitizeSessionReplayStringMap(tags, TAG_LIMITS));
+  }
+
+  /* Add or overwrite one tag, keeping the rest. */
+  public addTag(key: string, value: string | number | boolean): void {
+    if (typeof key !== "string" || !key) {
+      return;
+    }
+
+    const patch: Record<string, string | number | boolean> = {};
+
+    patch[key] = value;
+
+    this.applyTags(mergeSessionReplayStringMaps(this.tags, patch, TAG_LIMITS));
+  }
+
+  private applyTags(next: Record<string, string> | null): void {
+    if (!next) {
+      return;
+    }
+
+    if (Recorder.areStringMapsEqual(this.tags, next)) {
+      return;
+    }
+
+    this.tags = next;
+    this.metaDirty = true;
+
+    const payload: SessionReplayTagsPayload = { tags: { ...next } };
+
+    this.emitCustomEvent(SessionReplayCustomEventTag.Tags, payload);
+  }
+
+  public getTags(): Record<string, string> {
+    return { ...this.tags };
+  }
+
+  private static areStringMapsEqual(
+    left: Record<string, string>,
+    right: Record<string, string>,
+  ): boolean {
+    const leftKeys: Array<string> = Object.keys(left);
+    const rightKeys: Array<string> = Object.keys(right);
+
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+
+    return leftKeys.every((key: string): boolean => {
+      return (
+        Object.prototype.hasOwnProperty.call(right, key) &&
+        left[key] === right[key]
+      );
+    });
+  }
+
+  /*
+   * Values the host page hands us are page content by another route, so
+   * under MaskAllText they get the text mask exactly as a console argument
+   * does. Keys are the page's own vocabulary ("plan", "tenant") and stay.
+   */
+  private maskStringMap(map: Record<string, string>): Record<string, string> {
+    const masked: Record<string, string> = {};
+
+    for (const key of Object.keys(map)) {
+      masked[key] = this.masking.maskConsoleArgument(map[key] as string);
+    }
+
+    return masked;
   }
 
   public getSessionId(): string {
@@ -1739,15 +2599,99 @@ export default class Recorder {
     return this.triggerReason;
   }
 
+  public isStopped(): boolean {
+    return this.stopped;
+  }
+
+  public getStopReason(): RecorderStopReason | null {
+    return this.stopReason;
+  }
+
+  public getState(): RecorderState {
+    if (this.startDecision === "not-sampled") {
+      return "not-sampled";
+    }
+
+    if (this.stopped) {
+      return "stopped";
+    }
+
+    if (!this.started) {
+      return "not-started";
+    }
+
+    return this.uploading ? "uploading" : "recording";
+  }
+
+  /*
+   * Every gate between recording and uploading, answered. This is what a
+   * support ticket needs: not "is it uploading" but "which gate is closed".
+   */
+  public getDecisions(): RecorderDecisions {
+    const consentAllows: boolean = this.consent.isUploadAllowed();
+    const transportAllows: boolean = !this.transport.isDisabled();
+
+    let uploadBlockedBy: "consent" | "transport" | null = null;
+
+    if (!consentAllows) {
+      uploadBlockedBy = "consent";
+    } else if (!transportAllows) {
+      uploadBlockedBy = "transport";
+    }
+
+    return {
+      isSampled: this.isSampled,
+      captureTrigger: this.config.captureTrigger,
+      consentMode: this.config.consentMode,
+      consentState: this.consent.getState(),
+      /* A stopped recorder uploads nothing whatever the gates say. */
+      uploadsAllowed: consentAllows && transportAllows && !this.stopped,
+      uploadBlockedBy: uploadBlockedBy,
+      lastDirective: this.lastDirective,
+      lastDirectiveReason: this.lastDirectiveReason,
+      startDecision: this.startDecision,
+    };
+  }
+
+  /*
+   * The documented stop, for the host page: seal the session so the server
+   * knows it ended here, then tear down. What was already handed to the
+   * transport still goes out - the page asked to stop recording, not to
+   * destroy what it recorded. Internal stops (a server directive, the
+   * breaker, the chunk cap) come through shutdown() and discard instead.
+   */
   public stop(): void {
+    this.shutdown("api", true);
+  }
+
+  private shutdown(reason: RecorderStopReason, seal: boolean): void {
     if (this.stopped) {
       return;
     }
 
+    /*
+     * Sealed BEFORE stopped is set, through the ordinary path: the page is
+     * alive. stop() used to throw the open chunk away and never seal, so a
+     * customer's logout call lost up to 15 s of footage and left the session
+     * to expire as idle-timeout ten minutes later.
+     */
+    if (seal && this.uploading && !this.hasSentFinalChunk) {
+      this.hasSentFinalChunk = true;
+
+      try {
+        this.clickRecorder.stop(this.documentRef);
+        this.chunker.close(true);
+      } catch {
+        /* Sealing is best effort; the teardown below must still run. */
+      }
+    }
+
     this.stopped = true;
+    this.stopReason = reason;
 
     debugLog("recorder-stopped", "Recording has stopped.", {
       sessionId: this.identity.sessionId,
+      reason: reason,
       uploaded: this.uploading,
       droppedEvents: this.droppedEvents,
       droppedChunks: this.transport.getDroppedChunkCount(),
@@ -1757,6 +2701,11 @@ export default class Recorder {
     if (this.flushTimer !== null) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
+    }
+
+    if (this.unsubscribeSessionChanges) {
+      this.unsubscribeSessionChanges();
+      this.unsubscribeSessionChanges = null;
     }
 
     if (this.stopRrweb) {
@@ -1775,6 +2724,7 @@ export default class Recorder {
     this.consoleRecorder.stop();
     this.routeRecorder.stop(this.windowRef);
     this.frustrationDetector.stop(this.documentRef);
+    this.clickRecorder.stop(this.documentRef);
 
     this.documentRef.removeEventListener(
       "visibilitychange",
@@ -1790,12 +2740,18 @@ export default class Recorder {
     );
     this.documentRef.removeEventListener("focusin", this.focusInListener, true);
 
+    this.pendingCustomEvents = [];
+
     /*
-     * Nothing will send these once the recorder is stopped, so holding either
-     * one is retained end-user content with no purpose. See revokeConsent.
+     * The ring buffer holds end-user content nothing will ever send: gone
+     * in every case. The transport's queue goes too, EXCEPT after a seal:
+     * those chunks are the recording the page just asked to finish.
      */
     this.buffer.clear();
-    this.transport.discardQueue();
+
+    if (!seal) {
+      this.transport.discardQueue();
+    }
   }
 
   private scrubUrl(url: string): string {

@@ -310,6 +310,13 @@ export enum SessionReplayFidelityNotice {
    * rail can show WHERE the truncation started.
    */
   SignalCapReached = "signal-cap-reached",
+  /*
+   * rrweb threw inside the recorder's own emit path (its errorHandler
+   * swallowed it so the host page kept working) three or more times on
+   * this page. The recorder took a fresh checkout after the burst, so the
+   * footage recovers, but playback may skip or freeze around those points.
+   */
+  RecorderError = "recorder-error",
 }
 
 /* Why a session stopped accumulating chunks. */

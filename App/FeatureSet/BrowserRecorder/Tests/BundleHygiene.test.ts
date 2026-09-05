@@ -99,7 +99,14 @@ describe("bundle hygiene", (): void => {
     const loaderGzip: number = manifest.files["loader.js"]?.gzipBytes || 0;
 
     expect(recorderGzip).toBeGreaterThan(0);
-    expect(recorderGzip).toBeLessThanOrEqual(78 * 1024);
+    /*
+     * 90 KB since the session-replay overhaul (web vitals, the retrying
+     * transport, cross-tab adoption, attribute masking, the public API and
+     * click/custom/visibility events); esbuild.config.js carries the
+     * measurement (87.5 KB) and the itemised reason. Asserted here as well
+     * as there on purpose - see the loader note below.
+     */
+    expect(recorderGzip).toBeLessThanOrEqual(90 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*

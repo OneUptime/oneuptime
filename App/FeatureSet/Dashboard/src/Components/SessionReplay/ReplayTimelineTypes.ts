@@ -100,6 +100,15 @@ export interface ReplayTimelineEvent {
   to?: string;
   routeKind?: SessionReplayRouteKind;
 
+  /*
+   * navigation only: the viewport rrweb's Meta event declares for the
+   * page load. The stage reserves its aspect from this before the first
+   * frame, and a lone full-snapshot anchor borrows it when its own Meta
+   * lives in the previous chunk.
+   */
+  viewportWidth?: number;
+  viewportHeight?: number;
+
   /* error */
   errorKind?: SessionReplayErrorKind;
   source?: string;
