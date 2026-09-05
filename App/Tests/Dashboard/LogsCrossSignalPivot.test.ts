@@ -61,11 +61,18 @@ const WINDOW_END: Date = new Date("2026-08-10T11:00:00.000Z");
 
 let CUSTOM_RANGE: RangeStartAndEndDateTime;
 
-// Exactly the composition DashboardLogsViewer's pivot buttons perform.
+/*
+ * Exactly the composition DashboardLogsViewer's pivot buttons perform: the
+ * shared serializer, then the session scope carried (traces) or reported
+ * dropped (metrics) because the serializer has no session field.
+ */
 function tracesPivot(scopeInput: LogsPivotScopeInput): CrossSignalParams {
   const { scope, dropped }: LogsPivotScopeResult =
     Pivot.buildLogsPivotScope(scopeInput);
-  const serialized: CrossSignalParams = toTracesExplorerQueryParams(scope);
+  const serialized: CrossSignalParams = Pivot.carrySessionScopeIntoTracesPivot(
+    toTracesExplorerQueryParams(scope),
+    scope.sessionIds,
+  );
 
   return {
     params: serialized.params,
@@ -76,7 +83,10 @@ function tracesPivot(scopeInput: LogsPivotScopeInput): CrossSignalParams {
 function metricsPivot(scopeInput: LogsPivotScopeInput): CrossSignalParams {
   const { scope, dropped }: LogsPivotScopeResult =
     Pivot.buildLogsPivotScope(scopeInput);
-  const serialized: CrossSignalParams = toMetricsExplorerQueryParams(scope);
+  const serialized: CrossSignalParams = Pivot.dropSessionScopeFromPivot(
+    toMetricsExplorerQueryParams(scope),
+    scope.sessionIds,
+  );
 
   return {
     params: serialized.params,
@@ -356,12 +366,20 @@ describe("buildLogsPivotScope", () => {
     expect(result.dropped).toEqual(["attributes.http.method"]);
   });
 
-  test("a session scope is reported dropped — no cross-signal field carries sessions", () => {
+  test("a session scope rides beside the scope, deduped, and is NOT reported dropped (correlation-6)", () => {
     const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
-      input({ sessionIds: ["sess-1"] }),
+      input({ sessionIds: ["sess-1", "sess-1", "", "sess-2"] }),
     );
 
-    expect(result.dropped).toEqual(["sessionIds"]);
+    expect(result.scope.sessionIds).toEqual(["sess-1", "sess-2"]);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("no session ids means no sessionIds field on the scope", () => {
+    expect(
+      Pivot.buildLogsPivotScope(input({ sessionIds: [] })).scope.sessionIds,
+    ).toBeUndefined();
+    expect(Pivot.buildLogsPivotScope(input()).scope.sessionIds).toBeUndefined();
   });
 
   test("an unknown facet key is reported dropped verbatim, never silently ignored", () => {
@@ -416,15 +434,109 @@ describe("traces pivot round-trip (buildLogsPivotScope -> toTracesExplorerQueryP
     expect(result.dropped).toEqual([]);
   });
 
-  test("merges local drops (sessions) with serializer drops (severity), deduped", () => {
+  test("merges local drops (multi-valued attribute) with serializer drops (severity), deduped", () => {
     const result: CrossSignalParams = tracesPivot(
       input({
-        sessionIds: ["sess-1"],
-        appliedFacetFilters: facets({ severityText: ["Error"] }),
+        appliedFacetFilters: facets({
+          severityText: ["Error"],
+          "attributes.http.method": ["GET", "POST"],
+        }),
       }),
     );
 
-    expect(result.dropped).toEqual(["sessionIds", "severityTexts"]);
+    expect(result.dropped).toEqual(["attributes.http.method", "severityTexts"]);
+  });
+
+  test("a session scope reaches the traces explorer as Span.sessionId filter tuples (correlation-6)", () => {
+    const result: CrossSignalParams = tracesPivot(
+      input({
+        serviceIds: ["svc-1"],
+        sessionIds: ["sess-1", "sess-2"],
+      }),
+    );
+
+    const filterTuples: Array<[string, string]> = JSON.parse(
+      result.params["filters"] as string,
+    );
+
+    /* Existing tuples are kept; the session tuples are appended. */
+    expect(filterTuples).toEqual([
+      ["primaryEntityId", "svc-1"],
+      [Pivot.TRACES_SESSION_FILTER_KEY, "sess-1"],
+      [Pivot.TRACES_SESSION_FILTER_KEY, "sess-2"],
+    ]);
+    expect(Pivot.TRACES_SESSION_FILTER_KEY).toBe("sessionId");
+    expect(result.dropped).toEqual([]);
+  });
+});
+
+describe("carrySessionScopeIntoTracesPivot", () => {
+  test("creates the filters param when the serializer emitted none", () => {
+    const result: CrossSignalParams = Pivot.carrySessionScopeIntoTracesPivot(
+      { params: { range: "Custom" }, dropped: ["severityTexts"] },
+      ["sess-1"],
+    );
+
+    expect(JSON.parse(result.params["filters"] as string)).toEqual([
+      ["sessionId", "sess-1"],
+    ]);
+    expect(result.params["range"]).toBe("Custom");
+    expect(result.dropped).toEqual(["severityTexts"]);
+  });
+
+  test("does not duplicate a session tuple already present, and replaces malformed filters", () => {
+    const already: CrossSignalParams = Pivot.carrySessionScopeIntoTracesPivot(
+      {
+        params: { filters: JSON.stringify([["sessionId", "sess-1"]]) },
+        dropped: [],
+      },
+      ["sess-1"],
+    );
+
+    expect(JSON.parse(already.params["filters"] as string)).toEqual([
+      ["sessionId", "sess-1"],
+    ]);
+
+    const malformed: CrossSignalParams = Pivot.carrySessionScopeIntoTracesPivot(
+      { params: { filters: "{not json" }, dropped: [] },
+      ["sess-1"],
+    );
+
+    expect(JSON.parse(malformed.params["filters"] as string)).toEqual([
+      ["sessionId", "sess-1"],
+    ]);
+  });
+
+  test("returns an equal copy, without touching the input, when there is no session scope", () => {
+    const serialized: CrossSignalParams = {
+      params: { filters: "[]" },
+      dropped: ["x"],
+    };
+    const result: CrossSignalParams = Pivot.carrySessionScopeIntoTracesPivot(
+      serialized,
+      undefined,
+    );
+
+    expect(result).toEqual(serialized);
+    expect(result).not.toBe(serialized);
+    expect(result.params).not.toBe(serialized.params);
+  });
+});
+
+describe("dropSessionScopeFromPivot", () => {
+  test("reports the session scope dropped for a target with no session dimension", () => {
+    expect(
+      Pivot.dropSessionScopeFromPivot({ params: {}, dropped: ["traceIds"] }, [
+        "sess-1",
+      ]).dropped,
+    ).toEqual(["traceIds", "sessionIds"]);
+  });
+
+  test("reports nothing when there is no session scope", () => {
+    expect(
+      Pivot.dropSessionScopeFromPivot({ params: {}, dropped: [] }, [""])
+        .dropped,
+    ).toEqual([]);
   });
 });
 

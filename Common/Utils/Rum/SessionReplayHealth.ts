@@ -228,6 +228,39 @@ export function parseRecordingHealthStatus(
     }
   }
 
+  /*
+   * Drops keep whatever reason string the worker used: they are shown
+   * verbatim ("12 chunks dropped after acceptance: scrub-incomplete") and
+   * never drive a diagnosis state, so an unknown reason is still worth
+   * showing rather than filtering.
+   */
+  const rawDrops: unknown = row["dropsLast24h"];
+  let drops: Array<{ reason: string; count: number }> | null = null;
+
+  if (Array.isArray(rawDrops)) {
+    drops = [];
+
+    for (const entry of rawDrops) {
+      if (entry === null || typeof entry !== "object") {
+        continue;
+      }
+
+      const entryRow: Record<string, unknown> = entry as Record<
+        string,
+        unknown
+      >;
+      const reason: unknown = entryRow["reason"];
+      const count: number | undefined = readDtoOptionalNumber(
+        entryRow,
+        "count",
+      );
+
+      if (typeof reason === "string" && reason && count !== undefined) {
+        drops.push({ reason: reason, count: count });
+      }
+    }
+  }
+
   const retentionInDays: number | undefined = readDtoOptionalNumber(
     row,
     "retentionInDays",
@@ -255,6 +288,7 @@ export function parseRecordingHealthStatus(
     sessionsLast24h: readNullableNumber("sessionsLast24h"),
     playableSessionsLast24h: readNullableNumber("playableSessionsLast24h"),
     refusalsLast24h: refusals,
+    dropsLast24h: drops,
     projectBytesUsedToday: readNullableNumber("projectBytesUsedToday"),
     dailyByteLimit: readDtoNumber(row, "dailyByteLimit"),
     applicationBytesUsedThisMonth: readNullableNumber(

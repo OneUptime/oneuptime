@@ -34,6 +34,8 @@ import AIInsightService, {
   Service as AIInsightServiceType,
 } from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
+import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
+import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
@@ -5186,6 +5188,16 @@ const BaseAPIFeatureSet: FeatureSet = {
         AIRunEvent,
         AIRunEventService,
       ).getRouter(),
+    );
+
+    /*
+     * The session replay health endpoint reports which recorder build this
+     * deployment publishes. The manifest reader lives in the BrowserRecorder
+     * feature set, which Common cannot import, so the read service takes it
+     * through a provider seam registered here, where both sides are known.
+     */
+    SessionReplayReadService.setPublishedRecorderVersionProvider(
+      getRecorderVersion,
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, TelemetryAPI);

@@ -187,6 +187,13 @@ export interface SessionReplayListResponseDto {
 
 export interface SessionReplayManifestRequestDto {
   sessionId: string;
+  /*
+   * Additive disambiguator. A session id is minted in the browser and can,
+   * rarely, be seen under two applications of one project (a copied tab,
+   * a re-used identifier); the server refuses to guess between them, so
+   * the player sends the application it is looking at.
+   */
+  rumApplicationId?: string;
   /* Audit fields, written to the view row. */
   accessReason?: string;
   linkedIncidentId?: string;
@@ -199,6 +206,17 @@ export interface SessionReplayManifestRequestDto {
    */
   isRefresh?: boolean;
   viewId?: string;
+}
+
+/* ---- /chunks ---- */
+
+export interface SessionReplayChunksRequestDto {
+  sessionId: string;
+  tabId: string;
+  /* At most MAX_SESSION_REPLAY_CHUNKS_PER_READ indexes, ascending. */
+  chunkIndexes: Array<number>;
+  /* Same disambiguator as the manifest request. */
+  rumApplicationId?: string;
 }
 
 /*
@@ -318,10 +336,21 @@ export interface SessionReplayHeartbeatResponseDto {
 
 export interface SessionReplayForExceptionRequestDto {
   fingerprint: string;
-  /* ISO-8601 bounds; the server scans every partition without them. */
+  /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;
   limit?: number;
+  /*
+   * Additive. Pin the lookup to the session the exception instance itself
+   * carried, so the card lands on THIS occurrence's recording rather than
+   * on whichever session of the group sorted first.
+   */
+  sessionId?: string;
+  /*
+   * Additive. The instance's own time in unix ms; the server derives the
+   * partition window from it, so the card never scans the whole project.
+   */
+  errorTimeUnixMs?: number;
 }
 
 export interface SessionReplayExceptionSessionDto {

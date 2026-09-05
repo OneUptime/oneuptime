@@ -5,19 +5,28 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   EXCEPTION_CONTEXT_ANCHOR_LOG_ID,
   EXCEPTION_CONTEXT_LOG_COUNT,
+  EXCEPTION_FINGERPRINT_SHORT_LENGTH,
+  EXCEPTION_GROUP_LABEL_MAX_LENGTH,
   EXCEPTION_LOG_WINDOW_MS,
+  ExceptionGroupLink,
+  ExceptionGroupSummary,
   ExceptionLogsScopePlan,
   OccurrenceContextLogRow,
   OccurrenceLogWindow,
   OccurrenceLogsLink,
+  REPLAY_CARD_MOMENT_TOLERANCE_MS,
   RumSessionAnchor,
+  buildExceptionGroupLink,
   buildOccurrenceLogsContextRequest,
   buildOccurrenceLogsExplorerLink,
   buildRumSessionAnchorMap,
   collectDistinctSessionIds,
+  getExceptionGroupLabel,
   getExceptionLogsScopePlan,
   getOccurrenceLogWindow,
   getReplayAnchorOffsetMs,
+  getReplayCardMoment,
+  indexExceptionGroupsByFingerprint,
   parseLogsContextResponse,
 } from "../../FeatureSet/Dashboard/src/Utils/ExceptionCorrelation";
 
@@ -519,5 +528,309 @@ describe("buildOccurrenceLogsExplorerLink", () => {
         now: NOW,
       }),
     ).toBeNull();
+  });
+});
+
+describe("getReplayCardMoment (correlation-1)", () => {
+  const SESSION_ID: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
+  const OTHER_SESSION_ID: string = "ffffffffffffffffffffffffffffffff";
+  const START: Date = new Date("2026-08-14T10:00:00.000Z");
+  const END: Date = new Date("2026-08-14T10:10:00.000Z");
+  const ERROR_UNIX_MS: number = START.getTime() + 5 * 60 * 1000;
+
+  test("claims the moment only when the occurrence names the linked session and lies inside it", () => {
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: ERROR_UNIX_MS,
+        instanceSessionId: SESSION_ID,
+        session: { sessionId: SESSION_ID, startTime: START, endTime: END },
+      }),
+    ).toEqual({ errorTimeUnixMs: ERROR_UNIX_MS });
+  });
+
+  test("never pairs one instance's time with a different session's recording", () => {
+    /*
+     * The audit's failure: latestInstance is the newest occurrence, the
+     * /for-exception list is the newest session that ever hit the
+     * fingerprint, and they coincide only by luck.
+     */
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: ERROR_UNIX_MS,
+        instanceSessionId: OTHER_SESSION_ID,
+        session: { sessionId: SESSION_ID, startTime: START, endTime: END },
+      }),
+    ).toBeNull();
+
+    /* An occurrence with no session id cannot vouch for any recording. */
+    for (const blank of [undefined, null, "", "   "]) {
+      expect(
+        getReplayCardMoment({
+          errorTimeUnixMs: ERROR_UNIX_MS,
+          instanceSessionId: blank,
+          session: { sessionId: SESSION_ID, startTime: START, endTime: END },
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("rejects an occurrence outside the recording beyond the skew tolerance", () => {
+    const tooEarly: number =
+      START.getTime() - REPLAY_CARD_MOMENT_TOLERANCE_MS - 1;
+    const tooLate: number = END.getTime() + REPLAY_CARD_MOMENT_TOLERANCE_MS + 1;
+    const justEarly: number = START.getTime() - REPLAY_CARD_MOMENT_TOLERANCE_MS;
+    const justLate: number = END.getTime() + REPLAY_CARD_MOMENT_TOLERANCE_MS;
+
+    const session: { sessionId: string; startTime: Date; endTime: Date } = {
+      sessionId: SESSION_ID,
+      startTime: START,
+      endTime: END,
+    };
+
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: tooEarly,
+        instanceSessionId: SESSION_ID,
+        session,
+      }),
+    ).toBeNull();
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: tooLate,
+        instanceSessionId: SESSION_ID,
+        session,
+      }),
+    ).toBeNull();
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: justEarly,
+        instanceSessionId: SESSION_ID,
+        session,
+      }),
+    ).toEqual({ errorTimeUnixMs: justEarly });
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: justLate,
+        instanceSessionId: SESSION_ID,
+        session,
+      }),
+    ).toEqual({ errorTimeUnixMs: justLate });
+  });
+
+  test("derives the end from durationMs when endTime is blank, and accepts anything after the start of an open recording", () => {
+    const withDuration: {
+      sessionId: string;
+      startTime: string;
+      endTime: string;
+      durationMs: number;
+    } = {
+      sessionId: SESSION_ID,
+      startTime: START.toISOString(),
+      endTime: "",
+      durationMs: 60 * 1000,
+    };
+
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: START.getTime() + 30 * 1000,
+        instanceSessionId: SESSION_ID,
+        session: withDuration,
+      }),
+    ).toEqual({ errorTimeUnixMs: START.getTime() + 30 * 1000 });
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs:
+          START.getTime() + 60 * 1000 + REPLAY_CARD_MOMENT_TOLERANCE_MS + 1,
+        instanceSessionId: SESSION_ID,
+        session: withDuration,
+      }),
+    ).toBeNull();
+
+    const open: {
+      sessionId: string;
+      startTime: string;
+      endTime: string;
+      durationMs: number;
+    } = {
+      sessionId: SESSION_ID,
+      startTime: START.toISOString(),
+      endTime: "",
+      durationMs: 0,
+    };
+
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: START.getTime() + 3 * 60 * 60 * 1000,
+        instanceSessionId: SESSION_ID,
+        session: open,
+      }),
+    ).toEqual({ errorTimeUnixMs: START.getTime() + 3 * 60 * 60 * 1000 });
+  });
+
+  test("trusts a matching id when the recording's start is unknown, and returns null for a bad time", () => {
+    expect(
+      getReplayCardMoment({
+        errorTimeUnixMs: ERROR_UNIX_MS,
+        instanceSessionId: SESSION_ID,
+        session: { sessionId: SESSION_ID, startTime: "" },
+      }),
+    ).toEqual({ errorTimeUnixMs: ERROR_UNIX_MS });
+
+    for (const bad of [
+      undefined,
+      null,
+      0,
+      -1,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+    ]) {
+      expect(
+        getReplayCardMoment({
+          errorTimeUnixMs: bad,
+          instanceSessionId: SESSION_ID,
+          session: { sessionId: SESSION_ID, startTime: START },
+        }),
+      ).toBeNull();
+    }
+  });
+});
+
+describe("getExceptionGroupLabel (correlation-7)", () => {
+  test("reads as an error, not a hash, when the group was resolved", () => {
+    expect(
+      getExceptionGroupLabel({
+        exceptionType: "TypeError",
+        message: "x is not a function\n    at foo.js:1",
+      }),
+    ).toBe("TypeError: x is not a function");
+    expect(getExceptionGroupLabel({ exceptionType: "TypeError" })).toBe(
+      "TypeError",
+    );
+    expect(getExceptionGroupLabel({ message: "boom" })).toBe("boom");
+  });
+
+  test("truncates a long label with an ellipsis at the cap", () => {
+    const label: string = getExceptionGroupLabel({
+      exceptionType: "Error",
+      message: "m".repeat(500),
+    });
+
+    expect(label.length).toBe(EXCEPTION_GROUP_LABEL_MAX_LENGTH);
+    expect(label.endsWith("…")).toBe(true);
+  });
+
+  test("falls back to a shortened fingerprint, then to 'Unknown error'", () => {
+    const fingerprint: string = "0123456789abcdef0123456789abcdef";
+
+    expect(getExceptionGroupLabel(null, fingerprint)).toBe(
+      `Error ${fingerprint.slice(0, EXCEPTION_FINGERPRINT_SHORT_LENGTH)}…`,
+    );
+    expect(getExceptionGroupLabel({ fingerprint: "abc" })).toBe("Error abc");
+    expect(getExceptionGroupLabel(null, "")).toBe("Unknown error");
+  });
+});
+
+describe("buildExceptionGroupLink (correlation-7)", () => {
+  const listRoute: Route = new Route("/dashboard/p1/exceptions/unresolved");
+  const viewRouteForId: (id: string) => Route = (id: string): Route => {
+    return new Route(`/dashboard/p1/exceptions/${id}`);
+  };
+  const GROUP_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
+
+  test("links straight to the exception when the group id and a view route are known", () => {
+    const link: ExceptionGroupLink | null = buildExceptionGroupLink({
+      fingerprint: "fp-1",
+      group: { id: GROUP_ID, exceptionType: "TypeError", message: "boom" },
+      exceptionsListRoute: listRoute,
+      exceptionViewRouteForId: viewRouteForId,
+    });
+
+    expect(link).not.toBeNull();
+    expect(link!.isDirect).toBe(true);
+    expect(link!.route.toString()).toBe(`/dashboard/p1/exceptions/${GROUP_ID}`);
+    expect(link!.label).toBe("TypeError: boom");
+  });
+
+  test("falls back to the fingerprint-filtered list, with the same grammar as the trace panel", () => {
+    const link: ExceptionGroupLink | null = buildExceptionGroupLink({
+      fingerprint: "fp-1",
+      exceptionsListRoute: listRoute,
+    });
+
+    expect(link).not.toBeNull();
+    expect(link!.isDirect).toBe(false);
+
+    const params: URLSearchParams = new URL(
+      `https://example.com${link!.route.toString()}`,
+    ).searchParams;
+
+    expect(params.get("search")).toBe("@fingerprint:fp-1");
+    expect(params.get("status")).toBe("all");
+    expect(params.get("range")).toBe(TimeRange.PAST_THREE_MONTHS);
+    expect(link!.label).toBe("Error fp-1");
+  });
+
+  test("falls back to the list when the view route builder is missing or throws", () => {
+    const noBuilder: ExceptionGroupLink | null = buildExceptionGroupLink({
+      fingerprint: "fp-1",
+      group: { id: GROUP_ID },
+      exceptionsListRoute: listRoute,
+    });
+
+    expect(noBuilder!.isDirect).toBe(false);
+
+    const throwing: ExceptionGroupLink | null = buildExceptionGroupLink({
+      fingerprint: "fp-1",
+      group: { id: GROUP_ID },
+      exceptionsListRoute: listRoute,
+      exceptionViewRouteForId: (): Route => {
+        throw new Error("bad id");
+      },
+    });
+
+    expect(throwing!.isDirect).toBe(false);
+  });
+
+  test("returns null with neither a fingerprint nor a group id", () => {
+    expect(
+      buildExceptionGroupLink({
+        fingerprint: "  ",
+        group: { exceptionType: "TypeError" },
+        exceptionsListRoute: listRoute,
+        exceptionViewRouteForId: viewRouteForId,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("indexExceptionGroupsByFingerprint", () => {
+  test("indexes rows by fingerprint, first row wins, ids read from id or _id", () => {
+    const index: Map<string, ExceptionGroupSummary> =
+      indexExceptionGroupsByFingerprint([
+        { _id: "id-1", fingerprint: "fp-1", exceptionType: "A", message: "m" },
+        { id: "id-2", fingerprint: "fp-1", exceptionType: "B" },
+        { id: "id-3", fingerprint: "fp-2" },
+        { id: "id-4", fingerprint: "" },
+        null,
+      ]);
+
+    expect(index.size).toBe(2);
+    expect(index.get("fp-1")).toEqual({
+      id: "id-1",
+      fingerprint: "fp-1",
+      exceptionType: "A",
+      message: "m",
+    });
+    expect(index.get("fp-2")).toEqual({
+      id: "id-3",
+      fingerprint: "fp-2",
+      exceptionType: null,
+      message: null,
+    });
+  });
+
+  test("tolerates absent input", () => {
+    expect(indexExceptionGroupsByFingerprint(null).size).toBe(0);
+    expect(indexExceptionGroupsByFingerprint(undefined).size).toBe(0);
   });
 });

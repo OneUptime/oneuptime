@@ -649,6 +649,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             limit: 1,
             skip: 0,
             select: {
+              /* The occurrence id becomes the replay link's ?signal=exc:<id>. */
+              _id: true,
               parsedFrames: true,
               release: true,
               environment: true,
@@ -1433,6 +1435,18 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {telemetryException.fingerprint && (
         <ReplayCard
           fingerprint={telemetryException.fingerprint}
+          /*
+           * The occurrence's own session and id let the card pin the search
+           * to THAT recording and link into the moment of the error; with
+           * only a fingerprint it can still find the newest recording but
+           * must not promise a moment (see getReplayCardMoment).
+           */
+          {...(latestInstance?.sessionId
+            ? { sessionId: latestInstance.sessionId.toString() }
+            : {})}
+          {...(latestInstance?.id
+            ? { exceptionInstanceId: latestInstance.id.toString() }
+            : {})}
           {...(latestInstance?.time
             ? { errorTimeUnixMs: new Date(latestInstance.time).getTime() }
             : telemetryException.lastSeenAt

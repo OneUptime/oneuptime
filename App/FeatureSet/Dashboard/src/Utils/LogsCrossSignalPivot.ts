@@ -52,9 +52,35 @@ export interface LogsCrossSignalScope {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   severityTexts?: Array<string> | undefined;
+  /*
+   * RUM session ids. Not a TelemetryCrossSignalScope field - the shared
+   * serializers do not know sessions - so it rides beside the scope and is
+   * carried into the traces explorer by carrySessionScopeIntoTracesPivot
+   * (Span has a sessionId column) and reported dropped for metrics, which
+   * has no session dimension.
+   */
+  sessionIds?: Array<string> | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
 }
+
+/*
+ * Structural mirror of CrossSignalQueryParams (Common/Utils/Telemetry/
+ * CrossSignalScope), for the same reason LogsCrossSignalScope mirrors the
+ * scope type: this module stays serializer-free.
+ */
+export interface LogsPivotQueryParams {
+  params: Dictionary<string>;
+  dropped: Array<string>;
+}
+
+/*
+ * The Span column a session filter compiles to. The traces explorer applies
+ * any `filters` tuple whose key is not a resource/attribute facet as an
+ * equality on that column (TracesViewer facetGroups -> query[key]), which
+ * is exactly what Span.sessionId needs.
+ */
+export const TRACES_SESSION_FILTER_KEY: string = "sessionId";
 
 export interface LogsPivotScopeInput {
   /** Base scope from the host page (service ObjectID strings). */
@@ -212,10 +238,7 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
     attributes[attributeKey] = Array.from(values)[0]!;
   }
 
-  if (input.sessionIds && input.sessionIds.length > 0) {
-    // No TelemetryCrossSignalScope field carries a session dimension.
-    dropped.push("sessionIds");
-  }
+  const sessionIds: Array<string> = mergeUnique(input.sessionIds, undefined);
 
   const resolvedWindow: InBetween<Date> =
     RangeStartAndEndDateTimeUtil.getStartAndEndDate(input.timeRange);
@@ -249,7 +272,106 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
     scope.attributes = attributes;
   }
 
+  if (sessionIds.length > 0) {
+    scope.sessionIds = sessionIds;
+  }
+
   return { scope, dropped };
+};
+
+type CarrySessionScopeIntoTracesPivotFunction = (
+  serialized: LogsPivotQueryParams,
+  sessionIds: Array<string> | undefined,
+) => LogsPivotQueryParams;
+
+/**
+ * Append the session scope to serialized traces-explorer params as
+ * `["sessionId", <id>]` filter tuples, one per id (the explorer groups
+ * same-key chips into one Includes). Without this the pivot from a
+ * session's logs to traces silently widened to every trace in the project
+ * for the window (correlation-6). Existing tuples in `filters` are kept; a
+ * malformed `filters` value is replaced rather than left to drop the
+ * session. Returns a new object; the input is not mutated.
+ */
+export const carrySessionScopeIntoTracesPivot: CarrySessionScopeIntoTracesPivotFunction =
+  (
+    serialized: LogsPivotQueryParams,
+    sessionIds: Array<string> | undefined,
+  ): LogsPivotQueryParams => {
+    const ids: Array<string> = mergeUnique(sessionIds, undefined);
+
+    if (ids.length === 0) {
+      return {
+        params: { ...serialized.params },
+        dropped: [...serialized.dropped],
+      };
+    }
+
+    let tuples: Array<[string, string]> = [];
+    const existing: string | undefined = serialized.params["filters"];
+
+    if (existing) {
+      try {
+        const parsed: unknown = JSON.parse(existing);
+
+        if (Array.isArray(parsed)) {
+          tuples = (parsed as Array<unknown>).filter(
+            (pair: unknown): pair is [string, string] => {
+              return (
+                Array.isArray(pair) &&
+                pair.length === 2 &&
+                typeof pair[0] === "string" &&
+                typeof pair[1] === "string"
+              );
+            },
+          );
+        }
+      } catch {
+        tuples = [];
+      }
+    }
+
+    for (const sessionId of ids) {
+      const alreadyPresent: boolean = tuples.some(
+        (pair: [string, string]): boolean => {
+          return pair[0] === TRACES_SESSION_FILTER_KEY && pair[1] === sessionId;
+        },
+      );
+
+      if (!alreadyPresent) {
+        tuples.push([TRACES_SESSION_FILTER_KEY, sessionId]);
+      }
+    }
+
+    return {
+      params: { ...serialized.params, filters: JSON.stringify(tuples) },
+      dropped: [...serialized.dropped],
+    };
+  };
+
+type DropSessionScopeFromPivotFunction = (
+  serialized: LogsPivotQueryParams,
+  sessionIds: Array<string> | undefined,
+) => LogsPivotQueryParams;
+
+/**
+ * For a target with no session dimension (the metrics explorer): report the
+ * session scope as dropped so the pivot button's tooltip says so, instead
+ * of the session quietly vanishing from the scope.
+ */
+export const dropSessionScopeFromPivot: DropSessionScopeFromPivotFunction = (
+  serialized: LogsPivotQueryParams,
+  sessionIds: Array<string> | undefined,
+): LogsPivotQueryParams => {
+  const ids: Array<string> = mergeUnique(sessionIds, undefined);
+
+  return {
+    params: { ...serialized.params },
+    dropped:
+      ids.length > 0
+        ? mergeDroppedScopeFields(serialized.dropped, ["sessionIds"])
+        : [...serialized.dropped],
+  };
 };
 
 type MergeDroppedScopeFieldsFunction = (

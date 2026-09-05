@@ -11,7 +11,9 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -64,6 +66,62 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
  */
 const SESSION_REPLAY_COUNT_PAGE_SIZE: number = 50;
 
+/*
+ * The range a tile counted, in the tile's own words - "past 1 hour", not
+ * "selected range" - so a viewer who clicks through to a list showing a
+ * different default window is never told two counts for one thing without
+ * being shown why (correlation-11).
+ */
+export function describeTimeRangeForTile(
+  timeRange: RangeStartAndEndDateTime,
+): string {
+  if (timeRange.range === TimeRange.CUSTOM) {
+    return "custom range";
+  }
+
+  return String(timeRange.range).toLowerCase();
+}
+
+/*
+ * The URL grammar every telemetry explorer reads (range=<TimeRange>, plus
+ * start/end for Custom), stamped onto a list route so the list can open on
+ * the window the tile counted. Values are encoded because Route appends
+ * them verbatim and rejects raw spaces and colons.
+ */
+export function buildRangedListRoute(
+  listRoute: Route,
+  timeRange: RangeStartAndEndDateTime,
+): Route {
+  const route: Route = new Route(listRoute.toString());
+  const params: Record<string, string> = {
+    range: encodeURIComponent(String(timeRange.range)),
+  };
+
+  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+    params["start"] = encodeURIComponent(
+      OneUptimeDate.toString(timeRange.startAndEndDate.startValue),
+    );
+    params["end"] = encodeURIComponent(
+      OneUptimeDate.toString(timeRange.startAndEndDate.endValue),
+    );
+  }
+
+  try {
+    return route.addQueryParams(params);
+  } catch {
+    return listRoute;
+  }
+}
+
+/* Identity for the effect below: a picker hands out a new object per change. */
+function getTimeRangeKey(timeRange: RangeStartAndEndDateTime): string {
+  return [
+    String(timeRange.range),
+    timeRange.startAndEndDate?.startValue?.toISOString() || "",
+    timeRange.startAndEndDate?.endValue?.toISOString() || "",
+  ].join("|");
+}
+
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -73,6 +131,12 @@ const RumApplicationOverview: FunctionComponent<
     null,
   );
   const [clientCount, setClientCount] = useState<number | null>(null);
+  /*
+   * A failed client lookup is unknown, not zero: "0 platforms seen" beside
+   * a sessions tile saying "could not load" for the same failure would be
+   * a wrong number rather than a missing one (correlation-14).
+   */
+  const [clientCountFailed, setClientCountFailed] = useState<boolean>(false);
   const [sessionReplayCount, setSessionReplayCount] = useState<number | null>(
     null,
   );
@@ -149,9 +213,12 @@ const RumApplicationOverview: FunctionComponent<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         query: { rumApplicationId: modelId } as any,
       })
-        .then(setClientCount)
+        .then((count: number) => {
+          setClientCount(count);
+          setClientCountFailed(false);
+        })
         .catch(() => {
-          return setClientCount(0);
+          setClientCountFailed(true);
         });
     } catch (err) {
       /*
@@ -172,98 +239,147 @@ const RumApplicationOverview: FunctionComponent<
     });
   }, []);
 
+  const appIdentifier: string = rumApplication?.appIdentifier
+    ? String(rumApplication.appIdentifier)
+    : "";
+  const timeRangeKey: string = getTimeRangeKey(timeRange);
+  const modelIdString: string = modelId.toString();
+
+  /*
+   * Staleness guard for the telemetry fetches: a slow wide-range fetch can
+   * resolve after a subsequently selected narrower range, and a refresh can
+   * overlap a range change - without the guard the older response would
+   * clobber the newer one.
+   */
+  const telemetryGenerationRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
+   * One loader for the tiles, the charts and the sessions count. Loading
+   * flags are set only when `showLoading` is true (first load, range
+   * change); a background refresh keeps every stale value on screen until
+   * its replacement arrives, instead of dropping the page to spinners and
+   * dashes every interval (correlation-12).
+   */
+  const loadTelemetry: (showLoading: boolean) => void = useCallback(
+    (showLoading: boolean): void => {
+      telemetryGenerationRef.current += 1;
+      const generation: number = telemetryGenerationRef.current;
+      const isCurrent: () => boolean = (): boolean => {
+        return generation === telemetryGenerationRef.current;
+      };
+
+      if (showLoading) {
+        setMetricsLoading(true);
+        setWebVitalsLoading(true);
+        setSessionReplayCount(null);
+        setSessionReplayCountFailed(false);
+      }
+
+      const range: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const start: Date = range.startValue;
+      const end: Date = range.endValue;
+      setChartWindow({ start, end });
+
+      const primaryEntityId: ObjectID = new ObjectID(modelIdString);
+
+      // RUM telemetry is tagged with primaryEntityId = this application's id.
+      fetchSpanMetrics({ primaryEntityId, start, end })
+        .then((m: SpanMetrics) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setMetrics(m);
+          setMetricsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setMetricsLoading(false);
+        });
+
+      fetchWebVitals({ primaryEntityId, start, end })
+        .then((v: Array<WebVital>) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setWebVitals(v);
+          setWebVitalsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setWebVitalsLoading(false);
+        });
+
+      /*
+       * Recorded-session count for the tile.
+       *
+       * The list endpoint runs no COUNT - it is a keyset-paginated projection -
+       * so this counts one page and says "N+" when there is another. Failure is
+       * tracked separately from an empty result: collapsing a 403 from a
+       * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
+       * would be indistinguishable from a project that genuinely has no
+       * recordings, which is a wrong number rather than an unknown one.
+       */
+      fetchSessionReplayList({
+        rumApplicationId: primaryEntityId,
+        signal: "all",
+        startTime: start,
+        endTime: end,
+        limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
+      })
+        .then((result: SessionReplayListResult) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionReplayCount(result.sessions.length);
+          setSessionReplayHasMore(result.nextCursor !== null);
+          setSessionReplayCountFailed(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSessionReplayCountFailed(true);
+        });
+    },
+    [modelIdString, timeRangeKey],
+  );
+
+  /*
+   * Keyed on the application's identifier and the range's VALUE, not on the
+   * RumApplication object: fetchModel(false) stores a fresh object on every
+   * refresh, and keying on it re-fired all four queries with spinners each
+   * interval.
+   */
   useEffect(() => {
-    if (!rumApplication?.appIdentifier) {
+    if (!appIdentifier) {
       return;
     }
-    setMetricsLoading(true);
-    setWebVitalsLoading(true);
-    const range: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    const start: Date = range.startValue;
-    const end: Date = range.endValue;
-    setChartWindow({ start, end });
 
-    /*
-     * Staleness guard: a slow wide-range fetch can resolve after a
-     * subsequently selected narrower range — without the guard the older
-     * response would clobber the newer one.
-     */
-    let ignore: boolean = false;
-
-    // RUM telemetry is tagged with primaryEntityId = this application's id.
-    fetchSpanMetrics({ primaryEntityId: modelId, start, end })
-      .then((m: SpanMetrics) => {
-        if (ignore) {
-          return;
-        }
-        setMetrics(m);
-        setMetricsLoading(false);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setMetricsLoading(false);
-      });
-
-    fetchWebVitals({ primaryEntityId: modelId, start, end })
-      .then((v: Array<WebVital>) => {
-        if (ignore) {
-          return;
-        }
-        setWebVitals(v);
-        setWebVitalsLoading(false);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setWebVitalsLoading(false);
-      });
-
-    /*
-     * Recorded-session count for the tile.
-     *
-     * The list endpoint runs no COUNT - it is a keyset-paginated projection -
-     * so this counts one page and says "N+" when there is another. Failure is
-     * tracked separately from an empty result: collapsing a 403 from a
-     * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
-     * would be indistinguishable from a project that genuinely has no
-     * recordings, which is a wrong number rather than an unknown one.
-     */
-    setSessionReplayCount(null);
-    setSessionReplayCountFailed(false);
-    fetchSessionReplayList({
-      rumApplicationId: modelId,
-      signal: "all",
-      startTime: start,
-      endTime: end,
-      limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
-    })
-      .then((result: SessionReplayListResult) => {
-        if (ignore) {
-          return;
-        }
-        setSessionReplayCount(result.sessions.length);
-        setSessionReplayHasMore(result.nextCursor !== null);
-      })
-      .catch(() => {
-        if (ignore) {
-          return;
-        }
-        setSessionReplayCountFailed(true);
-      });
+    loadTelemetry(true);
 
     return () => {
-      ignore = true;
+      telemetryGenerationRef.current += 1;
     };
-  }, [rumApplication, timeRange]);
+  }, [appIdentifier, timeRangeKey, loadTelemetry]);
+
+  const refresh: () => void = useCallback((): void => {
+    fetchModel(false).catch(() => {});
+
+    if (appIdentifier) {
+      loadTelemetry(false);
+    }
+  }, [appIdentifier, loadTelemetry]);
 
   const { autoRefreshInterval, setAutoRefreshInterval } = useAutoRefresh({
     storageKey: "rum-overview-auto-refresh-interval",
     onRefresh: (): void => {
-      fetchModel(false).catch(() => {});
+      refresh();
     },
   });
 
@@ -323,11 +439,14 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Clients",
-      value: clientCount === null ? "—" : formatCompact(clientCount),
+      value:
+        clientCountFailed || clientCount === null
+          ? "—"
+          : formatCompact(clientCount),
       icon: IconProp.Window,
       iconColor: "amber",
-      loading: clientCount === null,
-      sublabel: "platforms seen",
+      loading: clientCount === null && !clientCountFailed,
+      sublabel: clientCountFailed ? "could not load" : "platforms seen",
       to: populate(PageMap.RUM_APPLICATION_VIEW_CLIENTS),
     },
     {
@@ -342,8 +461,13 @@ const RumApplicationOverview: FunctionComponent<
       icon: IconProp.Film,
       iconColor: "sky",
       loading: sessionReplayCount === null && !sessionReplayCountFailed,
-      sublabel: sessionReplayCountFailed ? "could not load" : "selected range",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+      sublabel: sessionReplayCountFailed
+        ? "could not load"
+        : describeTimeRangeForTile(timeRange),
+      to: buildRangedListRoute(
+        populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+        timeRange,
+      ),
     },
   ];
 
@@ -466,7 +590,7 @@ const RumApplicationOverview: FunctionComponent<
             autoRefreshInterval={autoRefreshInterval}
             onAutoRefreshIntervalChange={setAutoRefreshInterval}
             onManualRefresh={(): void => {
-              fetchModel(false).catch(() => {});
+              refresh();
             }}
             isRefreshing={isRefreshing}
             lastRefreshedAt={lastRefreshedAt}

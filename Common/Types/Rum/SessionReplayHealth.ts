@@ -119,6 +119,13 @@ export interface SessionReplayIngestStatusResponseDto {
   playableSessionsLast24h?: number | null;
   /* null when the counter store is unreachable; [] when nothing was refused. */
   refusalsLast24h?: Array<{ reason: string; count: number }> | null;
+  /*
+   * Chunks the server ACCEPTED (202) and then dropped in the ingest worker,
+   * by reason. Kept apart from refusals because the recorder was told these
+   * landed; an open vocabulary (scrub-incomplete, over-cap, erased, ...)
+   * because the worker's drop reasons are operational, not a contract.
+   */
+  dropsLast24h?: Array<{ reason: string; count: number }> | null;
 }
 
 /* The policy half of the status, as the recorder would see it. */
@@ -154,6 +161,12 @@ export interface RecordingHealthStatus {
   sessionsLast24h: number | null;
   playableSessionsLast24h: number | null;
   refusalsLast24h: Array<SessionReplayRefusalCount> | null;
+  /*
+   * Open vocabulary; see SessionReplayIngestStatusResponseDto.dropsLast24h.
+   * Optional as well as nullable: it was added after the surfaces that
+   * build this object, and absent means the same as null (unknown).
+   */
+  dropsLast24h?: Array<{ reason: string; count: number }> | null;
   projectBytesUsedToday: number | null;
   dailyByteLimit: number;
   applicationBytesUsedThisMonth: number | null;

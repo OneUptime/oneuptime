@@ -1,17 +1,45 @@
 import AppLink from "../AppLink/AppLink";
 import React, { FunctionComponent, ReactElement } from "react";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import { ReplayRailTabId } from "./Rail/ReplaySignalTypes";
+import { buildReplayMomentRoute } from "./ReplayPlayerUrlState";
 
 export interface ComponentProps {
-  rumApplicationId?: ObjectID | undefined;
+  rumApplicationId?: ObjectID | string | undefined;
   sessionId?: string | undefined;
-  /* Deep-links into a moment. The player reads it off the ?t= query param. */
+  /*
+   * The absolute moment (the row's own timestamp) -> ?at=. Preferred: the
+   * caller knows the wall clock, the player knows the recording's start,
+   * and the conversion happens once, in the player, against the header.
+   */
+  atTime?: Date | undefined;
+  /* An offset into the recording -> ?t=. Used when only an offset is known. */
   atOffsetMs?: number | undefined;
+  /* The rail row to select on arrival (log:<id>, span:<id>, exc:<id>). */
+  signal?: string | undefined;
+  /* The rail tab to open on arrival. */
+  rail?: ReplayRailTabId | undefined;
   label?: string | undefined;
   className?: string | undefined;
+}
+
+/*
+ * The route this link points at, or null when it should not render. Kept
+ * separate from the component so a node test can pin the URL grammar
+ * without rendering. Every inbound link goes through
+ * buildReplayMomentRoute so the pre-roll (1s for a row, 10s for an
+ * exception signal) and the clamp at 0 are the same from every surface.
+ */
+export function buildReplayLinkRoute(props: ComponentProps): Route | null {
+  return buildReplayMomentRoute({
+    rumApplicationId: props.rumApplicationId,
+    sessionId: props.sessionId,
+    at: props.atTime,
+    t: props.atOffsetMs,
+    signal: props.signal,
+    rail: props.rail,
+  });
 }
 
 /*
@@ -23,29 +51,35 @@ export interface ComponentProps {
 const ReplayLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!props.sessionId || !props.rumApplicationId) {
+  const {
+    rumApplicationId,
+    sessionId,
+    atTime,
+    atOffsetMs,
+    signal,
+    rail,
+    label,
+    className,
+  } = props;
+
+  const route: Route | null = buildReplayLinkRoute({
+    rumApplicationId,
+    sessionId,
+    atTime,
+    atOffsetMs,
+    signal,
+    rail,
+  });
+
+  if (!route) {
     return <></>;
   }
 
-  let route: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
-    {
-      modelId: props.rumApplicationId,
-      subModelId: props.sessionId,
-    },
-  );
-
-  if (props.atOffsetMs !== undefined && props.atOffsetMs >= 0) {
-    route = route.addQueryParams({
-      t: String(Math.floor(props.atOffsetMs / 1000)),
-    });
-  }
-
   return (
-    <div className="flex space-x-2">
+    <div className="flex space-x-2" data-testid="replay-link">
       <div className="hover:underline">
-        <AppLink to={route} className={props.className}>
-          <p>{props.label || "Watch session replay"}</p>
+        <AppLink to={route} className={className}>
+          <p>{label || "Watch session replay"}</p>
         </AppLink>
       </div>
     </div>
