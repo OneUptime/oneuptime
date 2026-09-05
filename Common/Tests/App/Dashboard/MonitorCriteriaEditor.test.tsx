@@ -8,6 +8,7 @@ import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/F
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
+  CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
@@ -121,6 +122,29 @@ function renderEditor(
 afterEach(cleanup);
 
 describe("Monitor rule editor", () => {
+  test("incomplete saved conditions remain editable without crashing the summary", () => {
+    const incomplete: CriteriaFilter = {
+      filterType: FilterType.EqualTo,
+      value: "200",
+    } as CriteriaFilter;
+    renderEditor([makeRule("Incomplete rule", { filters: [incomplete] })]);
+    expect(screen.getByText("Choose a check and condition")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit rule: Incomplete rule" }),
+    );
+    expect(screen.getByLabelText("Rule name")).toBeTruthy();
+  });
+
+  test("expanded rules show their editor without repeating the condition and action summary", () => {
+    renderEditor([makeRule("First"), makeRule("Second")]);
+    expect(screen.getAllByTestId("monitor-rule-summary")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Edit rule: First" }));
+    expect(screen.getAllByTestId("monitor-rule-summary")).toHaveLength(1);
+    expect(screen.getAllByText("Set status to Degraded")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Close rule: First" }));
+    expect(screen.getAllByTestId("monitor-rule-summary")).toHaveLength(2);
+  });
+
   test("opens on readable summaries without mounted or tabbable editor fields", () => {
     const harness: ReturnType<typeof renderEditor> = renderEditor([
       makeRule("Site down"),
@@ -346,7 +370,11 @@ describe("Monitor rule editor", () => {
             filterType: FilterType.GreaterThan,
             value: 2000,
           },
-          { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
         ],
         changeMonitorStatus: false,
         createAlerts: true,

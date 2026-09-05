@@ -547,8 +547,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const [destinationFieldTitle, setDestinationFieldTitle] =
     useState<string>("URL");
-  const [destinationFieldDescription, setDestinationFieldDescription] =
-    useState<string>("");
 
   const requestTypeDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
@@ -620,24 +618,16 @@ return {
   useEffect(() => {
     if (props.monitorType === MonitorType.API) {
       setDestinationFieldTitle("API URL");
-      setDestinationFieldDescription("Enter the endpoint to check.");
     } else if (props.monitorType === MonitorType.Website) {
       setDestinationFieldTitle("Website URL");
-      setDestinationFieldDescription("Enter the page to check.");
     } else if (props.monitorType === MonitorType.Ping) {
       setDestinationFieldTitle("Ping Hostname or IP address");
-      setDestinationFieldDescription("Enter a hostname or IP address.");
     } else if (props.monitorType === MonitorType.IP) {
       setDestinationFieldTitle("IP Address");
-      setDestinationFieldDescription("Enter the IP address to check.");
     } else if (props.monitorType === MonitorType.Port) {
       setDestinationFieldTitle("Hostname or IP address");
-      setDestinationFieldDescription("Enter a hostname or IP address.");
     } else if (props.monitorType === MonitorType.SSLCertificate) {
       setDestinationFieldTitle("Certificate URL");
-      setDestinationFieldDescription(
-        "Enter the HTTPS address whose certificate you want to check.",
-      );
     }
   }, [props.monitorType]);
 
@@ -752,15 +742,16 @@ return {
     <div className="space-y-5" data-testid="monitor-step-editor">
       {/* Monitor Target Card */}
       {hasMonitorDestination && (
-        <Card
-          title="What to monitor"
-          description="Choose the resource this monitor will check."
-        >
-          <div className="space-y-4">
-            <div>
+        <section className="space-y-3" aria-label="What to monitor">
+          <h3 className="text-base font-semibold text-gray-900">
+            What to monitor
+          </h3>
+          <div
+            className={`grid grid-cols-1 gap-3 ${props.monitorType === MonitorType.API || props.monitorType === MonitorType.Port ? "sm:grid-cols-[minmax(0,1fr)_10rem]" : ""}`}
+          >
+            <div className="min-w-0">
               <FieldLabelElement
                 title={destinationFieldTitle}
-                description={destinationFieldDescription}
                 required={true}
               />
               <Input
@@ -882,54 +873,9 @@ return {
               />
             </div>
 
-            {(props.monitorType === MonitorType.API ||
-              props.monitorType === MonitorType.Website) && (
-              <TinyFormDocumentation title="URL placeholder help">
-                <>
-                  <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{timestamp}}"}
-                    </code>{" "}
-                    — replaced with current Unix timestamp
-                  </div>
-                  <div>
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"{{random}}"}
-                    </code>{" "}
-                    — replaced with a random unique string
-                  </div>
-                  <div>
-                    Example:{" "}
-                    <code className="bg-gray-100 px-1 rounded">
-                      {"https://example.com?cb={{timestamp}}"}
-                    </code>
-                  </div>
-                  <div>
-                    Useful for busting CDN or proxy caches on each check.{" "}
-                    <Link
-                      className="underline"
-                      openInNewTab={true}
-                      to={URL.fromString(
-                        DOCS_URL.toString() +
-                          (props.monitorType === MonitorType.API
-                            ? "/monitor/api-monitor"
-                            : "/monitor/website-monitor"),
-                      )}
-                    >
-                      Learn more.
-                    </Link>
-                  </div>
-                </>
-              </TinyFormDocumentation>
-            )}
-
             {props.monitorType === MonitorType.Port && (
               <div>
-                <FieldLabelElement
-                  title={"Port"}
-                  description={"Whats the port you want to monitor?"}
-                  required={true}
-                />
+                <FieldLabelElement title={"Port"} required={true} />
                 <Input
                   ariaLabel="Port"
                   type={InputType.NUMBER}
@@ -966,13 +912,10 @@ return {
 
             {props.monitorType === MonitorType.API && (
               <div>
-                <FieldLabelElement
-                  title={"Request method"}
-                  description={"GET is suitable for most endpoints."}
-                  required={true}
-                />
+                <FieldLabelElement title={"Request method"} required={true} />
                 <Dropdown
                   ariaLabel="Request method"
+                  isClearable={false}
                   initialValue={requestTypeDropdownOptions.find(
                     (i: DropdownOption) => {
                       return (
@@ -995,8 +938,50 @@ return {
                 />
               </div>
             )}
+            {(props.monitorType === MonitorType.API ||
+              props.monitorType === MonitorType.Website) && (
+              <div className="sm:col-span-full">
+                <TinyFormDocumentation title="URL placeholder help">
+                  <>
+                    <div>
+                      <code className="bg-gray-100 px-1 rounded">
+                        {"{{timestamp}}"}
+                      </code>{" "}
+                      — replaced with current Unix timestamp
+                    </div>
+                    <div>
+                      <code className="bg-gray-100 px-1 rounded">
+                        {"{{random}}"}
+                      </code>{" "}
+                      — replaced with a random unique string
+                    </div>
+                    <div>
+                      Example:{" "}
+                      <code className="bg-gray-100 px-1 rounded">
+                        {"https://example.com?cb={{timestamp}}"}
+                      </code>
+                    </div>
+                    <div>
+                      Useful for busting CDN or proxy caches on each check.{" "}
+                      <Link
+                        className="underline"
+                        openInNewTab={true}
+                        to={URL.fromString(
+                          DOCS_URL.toString() +
+                            (props.monitorType === MonitorType.API
+                              ? "/monitor/api-monitor"
+                              : "/monitor/website-monitor"),
+                        )}
+                      >
+                        Learn more.
+                      </Link>
+                    </div>
+                  </>
+                </TinyFormDocumentation>
+              </div>
+            )}
           </div>
-        </Card>
+        </section>
       )}
 
       {/* Advanced Options - Collapsible Section for API monitors */}
@@ -2022,10 +2007,11 @@ return {
       )}
 
       {/* Monitor Criteria Section */}
-      <Card
-        title="Alert rules"
-        description="Choose when this monitor changes status or notifies your team."
+      <section
+        className="space-y-3 border-t border-gray-200 pt-5"
+        aria-label="Alert rules"
       >
+        <h3 className="text-base font-semibold text-gray-900">Alert rules</h3>
         <MonitorCriteriaElement
           monitorType={props.monitorType}
           monitorStep={monitorStep}
@@ -2049,7 +2035,7 @@ return {
             props.onChange?.(MonitorStep.clone(monitorStep));
           }}
         />
-      </Card>
+      </section>
 
       {/* Test Monitor Card - only shown for probeable monitors */}
       {MonitorTypeHelper.isProbableMonitor(props.monitorType) && (

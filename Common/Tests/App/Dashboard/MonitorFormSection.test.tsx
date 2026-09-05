@@ -58,7 +58,7 @@ describe("Monitor editor disclosures", () => {
   });
 
   test("controlled sections report the next state without overriding the parent", () => {
-    const onToggle: jest.Mock = jest.fn();
+    const onToggle: ReturnType<typeof jest.fn> = jest.fn();
     const { rerender } = render(
       <MonitorFormSection
         title="Actions"

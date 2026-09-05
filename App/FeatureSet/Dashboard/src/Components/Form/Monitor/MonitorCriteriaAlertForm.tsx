@@ -65,18 +65,17 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
   const ownerCount: number =
     (criteriaAlert.ownerTeamIds?.length || 0) +
     (criteriaAlert.ownerUserIds?.length || 0);
-  const detailSummary: string =
-    [
-      criteriaAlert.description ? "Description" : "",
-      ownerCount ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"}` : "",
-      criteriaAlert.labelIds?.length
-        ? `${criteriaAlert.labelIds.length} label${criteriaAlert.labelIds.length === 1 ? "" : "s"}`
-        : "",
-      criteriaAlert.isPrivate ? "Private" : "",
-      criteriaAlert.remediationNotes ? "Remediation notes" : "",
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Optional";
+  const hasOptionalDetails: boolean = Boolean(
+    criteriaAlert.description ||
+      ownerCount ||
+      criteriaAlert.labelIds?.length ||
+      criteriaAlert.remediationNotes,
+  );
+  const detailSummary: string = criteriaAlert.isPrivate
+    ? "Private"
+    : hasOptionalDetails
+      ? "Customized"
+      : "Optional";
 
   const [isTemplateModalOpen, setIsTemplateModalOpen] =
     useState<boolean>(false);
@@ -87,7 +86,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       onClick={(): void => {
         setIsTemplateModalOpen(true);
       }}
-      className="underline text-blue-600 hover:text-blue-800"
+      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
     >
       View dynamic values
     </button>
@@ -109,12 +108,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       {/* Required Fields - Always Visible */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
-          <FieldLabelElement
-            title="Alert title"
-            htmlFor={titleInputId}
-            description={templateDocsLink}
-            required={true}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <FieldLabelElement
+              title="Alert title"
+              htmlFor={titleInputId}
+              required={true}
+            />
+            {templateDocsLink}
+          </div>
           <Input
             id={titleInputId}
             value={criteriaAlert.title}
@@ -137,6 +138,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement title="Severity" required={true} />
           <Dropdown
             ariaLabel="Alert severity"
+            isClearable={false}
             value={props.alertSeverityDropdownOptions.find(
               (i: DropdownOption) => {
                 return i.value === criteriaAlert.alertSeverityId?.toString();
@@ -155,10 +157,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
       </div>
 
       <div>
-        <FieldLabelElement
-          title="Notify on-call"
-          description="Select the on-call policies to notify."
-        />
+        <FieldLabelElement title="Notify on-call" />
         <Dropdown
           ariaLabel="Alert on-call policies"
           value={props.onCallPolicyDropdownOptions.filter(
@@ -201,7 +200,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         badge={detailSummary}
         defaultCollapsed={true}
       >
-        <div className="space-y-5 border-t border-gray-200 pt-4">
+        <div className="space-y-5">
           {/* Description */}
           <section className="space-y-3">
             <h4 className="text-sm font-semibold text-gray-900">Description</h4>

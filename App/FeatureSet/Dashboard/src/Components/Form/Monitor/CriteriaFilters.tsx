@@ -26,12 +26,12 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
   const matchAll: boolean = props.filterCondition !== FilterCondition.Any;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       {criteriaFilters.map((filter: CriteriaFilter, index: number) => {
         return (
           <div key={index}>
             {index > 0 && (
-              <div className="mb-3 flex items-center gap-3" aria-hidden="true">
+              <div className="my-1 flex items-center gap-3" aria-hidden="true">
                 <span className="h-px flex-1 bg-gray-200" />
                 <span
                   className={`text-xs font-semibold ${matchAll ? "text-indigo-600" : "text-amber-700"}`}
@@ -70,7 +70,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
       })}
       <Button
         title="Add condition"
-        buttonStyle={ButtonStyleType.SECONDARY_LINK}
+        buttonStyle={ButtonStyleType.LINK}
         buttonSize={ButtonSize.Small}
         icon={IconProp.Add}
         onClick={() => {

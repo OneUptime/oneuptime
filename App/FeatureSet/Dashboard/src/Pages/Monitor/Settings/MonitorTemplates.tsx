@@ -190,6 +190,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "criteria",
             styleType: FormFieldStyleType.Heading,
             title: "Monitor Details",
+            hideCustomComponentHeader: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             customValidation: (values: FormValues<MonitorTemplate>) => {

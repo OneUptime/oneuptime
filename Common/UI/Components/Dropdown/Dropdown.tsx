@@ -57,6 +57,7 @@ export interface ComponentProps {
   onFocus?: (() => void) | undefined;
   onBlur?: (() => void) | undefined;
   isMultiSelect?: boolean;
+  isClearable?: boolean | undefined;
   tabIndex?: number | undefined;
   error?: string | undefined;
   id?: string | undefined;
@@ -727,7 +728,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }}
         menuPortalTarget={menuPortalTarget}
         menuPosition="fixed"
-        isClearable={true}
+        isClearable={props.isClearable ?? true}
         isSearchable={true}
         placeholder={tx(props.placeholder) ?? props.placeholder}
         options={props.options as any}

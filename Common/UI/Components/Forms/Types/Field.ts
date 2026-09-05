@@ -153,6 +153,9 @@ export default interface Field<TEntity> {
 
   hideOptionalLabel?: boolean | undefined;
 
+  // Custom editors can provide their own headings and accessible field labels.
+  hideCustomComponentHeader?: boolean | undefined;
+
   /*
    * Spell check configuration (primarily for Markdown and text fields)
    * Default: false (spell check enabled). Set to true to disable spell check.

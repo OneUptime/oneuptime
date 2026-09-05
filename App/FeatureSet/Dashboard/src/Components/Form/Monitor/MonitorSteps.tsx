@@ -519,16 +519,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         },
       )}
 
-      <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5">
-        <FieldLabelElement
-          title="Default status"
-          description="Use this status when no enabled rule matches."
-          required={true}
-        />
+      <div className="mt-5 grid grid-cols-1 items-center gap-3 border-t border-gray-200 pt-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+        <div>
+          <FieldLabelElement
+            title="Default status"
+            description="Use this status when no enabled rule matches."
+            required={true}
+          />
+        </div>
 
         <Dropdown
           ariaLabel="Default status"
-          className="mt-3"
+          isClearable={false}
           value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
             return (
               i.value ===

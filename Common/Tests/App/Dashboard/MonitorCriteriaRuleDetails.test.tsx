@@ -103,7 +103,7 @@ function savedIncident(): CriteriaIncident {
 
 interface Harness {
   latest: () => MonitorCriteriaInstance;
-  onDelete: jest.Mock;
+  onDelete: ReturnType<typeof jest.fn>;
 }
 
 function renderRule(
@@ -112,7 +112,7 @@ function renderRule(
   monitorStep: MonitorStep = new MonitorStep(),
 ): Harness {
   let latest: MonitorCriteriaInstance = initial;
-  const onDelete: jest.Mock = jest.fn();
+  const onDelete: ReturnType<typeof jest.fn> = jest.fn();
   function Wrapper(): ReactElement {
     const [value, setValue] = useState<MonitorCriteriaInstance>(initial);
     return (
@@ -209,6 +209,33 @@ describe("Monitor rule details", () => {
     expect(
       screen.getByRole("switch", { name: "Declare an incident" }),
     ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("action help has a separate accessible description and its label is clickable", () => {
+    const harness: Harness = renderRule();
+    const toggle: HTMLElement = screen.getByRole("switch", {
+      name: "Create an alert",
+    });
+    expect(toggle).toHaveAccessibleDescription(
+      "Notify your team about a problem.",
+    );
+    fireEvent.click(screen.getByText("Create an alert"));
+    expect(harness.latest().data?.createAlerts).toBe(true);
+    expect(harness.latest().data?.alerts).toHaveLength(1);
+    fireEvent.click(screen.getByText("Notify your team about a problem."));
+    expect(harness.latest().data?.createAlerts).toBe(false);
+    expect(harness.latest().data?.alerts).toHaveLength(1);
+  });
+
+  test("the required status remains selected when Backspace is pressed", () => {
+    const harness: Harness = renderRule();
+    const status: HTMLElement = screen.getByRole("combobox", {
+      name: "Change monitor status to",
+    });
+    fireEvent.focus(status);
+    fireEvent.keyDown(status, { key: "Backspace", code: "Backspace" });
+    expect(harness.latest().data?.monitorStatusId).toEqual(STATUS_ID);
+    expect(screen.getByText("Offline")).toBeVisible();
   });
 
   test("an optional empty description remains valid after a save roundtrip", () => {
@@ -403,7 +430,27 @@ describe.each(["Alert", "Incident"] as const)(
       expect(
         screen.getByRole("button", { name: `${kind} details` }),
       ).toHaveAttribute("aria-expanded", "false");
-      expect(screen.getByText(/2 owners.*Private/)).toBeVisible();
+      expect(screen.getByText("Private")).toBeVisible();
+    });
+
+    test("severity cannot be cleared while optional on-call selection can", () => {
+      const harness: Harness = setup();
+      const severity: HTMLElement = screen.getByRole("combobox", {
+        name: `${kind} severity`,
+      });
+      fireEvent.focus(severity);
+      fireEvent.keyDown(severity, { key: "Backspace", code: "Backspace" });
+      expect(
+        kind === "Alert"
+          ? (action(harness) as CriteriaAlert).alertSeverityId
+          : (action(harness) as CriteriaIncident).incidentSeverityId,
+      ).toEqual(SEVERITY_ID);
+      const onCall: HTMLElement = screen.getByRole("combobox", {
+        name: `${kind} on-call policies`,
+      });
+      fireEvent.focus(onCall);
+      fireEvent.keyDown(onCall, { key: "Backspace", code: "Backspace" });
+      expect(action(harness)?.onCallPolicyIds).toEqual([]);
     });
 
     test("renaming does not discard hidden descriptions, ownership, labels or privacy", () => {

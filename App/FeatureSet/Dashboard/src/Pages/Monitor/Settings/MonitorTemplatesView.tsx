@@ -772,6 +772,7 @@ const MonitorTemplatesView: FunctionComponent<
                 monitorSteps: true,
               },
               title: "Monitor Details",
+              hideCustomComponentHeader: true,
               fieldType: FormFieldSchemaType.CustomComponent,
               required: true,
               customValidation: (values: FormValues<MonitorTemplate>) => {

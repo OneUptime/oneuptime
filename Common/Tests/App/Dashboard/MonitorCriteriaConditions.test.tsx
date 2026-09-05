@@ -64,6 +64,7 @@ async function choose(label: string, option: string): Promise<void> {
 const ONLINE: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.True,
+  value: undefined,
 };
 const RESPONSE_TIME: CriteriaFilter = {
   checkOn: CheckOn.ResponseTime,
@@ -138,6 +139,34 @@ describe("Monitor condition editor", () => {
       harness.latest()[0]!.evaluateOverTimeOptions!.timeValueInMinutes,
     ).toBe(10);
   });
+
+  test.each([
+    ["Check", CheckOn.ResponseTime],
+    ["Condition", FilterType.GreaterThan],
+  ])(
+    "reselecting the current %s preserves the threshold and saved evaluation settings",
+    async (label: string, option: string) => {
+      const filter: CriteriaFilter = {
+        ...RESPONSE_TIME,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          evaluateOverTimeType: EvaluateOverTimeType.Average,
+          timeValueInMinutes: 15,
+          onNoDataPolicy: NoDataPolicy.Trigger,
+        },
+      };
+      const harness: ReturnType<typeof renderConditions> = renderConditions([
+        filter,
+      ]);
+      await choose(label, option);
+      expect(harness.changes()).toBe(0);
+      expect(harness.latest()[0]).toEqual(filter);
+      expect(
+        (screen.getByRole("textbox", { name: "Value" }) as HTMLInputElement)
+          .value,
+      ).toBe("1000");
+    },
+  );
 
   test.each([
     MonitorType.Website,
@@ -318,6 +347,7 @@ describe("Monitor condition editor", () => {
         {
           checkOn: CheckOn.MetricValue,
           filterType: FilterType.AnomalouslyHigh,
+          value: undefined,
           metricMonitorOptions: {
             metricAlias: "A",
             metricAggregationType: EvaluateOverTimeType.Average,
@@ -476,6 +506,48 @@ describe("Monitor condition editor", () => {
       harness.latest()[0]!.metricMonitorOptions!.metricAggregationType,
     ).toBe(EvaluateOverTimeType.Average);
   });
+
+  test("reselecting a metric preserves its threshold unit and no-data policy", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.data!.metricMonitor = MonitorStepMetricMonitorUtil.getDefault();
+    step.data!.metricMonitor.metricViewConfig.queryConfigs = [
+      {
+        metricQueryData: { filterData: {} },
+        metricAliasData: {
+          metricVariable: "Latency",
+          title: undefined,
+          description: undefined,
+          legend: undefined,
+          legendUnit: "ms",
+        },
+      },
+    ];
+    const filter: CriteriaFilter = {
+      checkOn: CheckOn.MetricValue,
+      filterType: FilterType.GreaterThan,
+      value: 500,
+      metricMonitorOptions: {
+        metricAlias: "Latency",
+        metricAggregationType: EvaluateOverTimeType.Average,
+        thresholdUnit: "ms",
+        onNoDataPolicy: NoDataPolicy.Trigger,
+      },
+    };
+    const harness: ReturnType<typeof renderConditions> = renderConditions(
+      [filter],
+      MonitorType.Metrics,
+      FilterCondition.All,
+      step,
+    );
+    await choose("Metric", "Latency");
+    expect(harness.changes()).toBe(0);
+    expect(harness.latest()[0]).toEqual(filter);
+    expect(
+      (screen.getByRole("textbox", { name: "Threshold" }) as HTMLInputElement)
+        .value,
+    ).toBe("500");
+    expect(screen.getByText("Milliseconds (ms)")).toBeTruthy();
+  });
   test("enabling a partially configured saved window fills only missing defaults", () => {
     const harness: ReturnType<typeof renderConditions> = renderConditions([
       {
@@ -497,5 +569,62 @@ describe("Monitor condition editor", () => {
       timeValueInMinutes: 15,
       onNoDataPolicy: NoDataPolicy.Trigger,
     });
+  });
+  test("required check and comparator choices cannot be cleared into an invalid rule", () => {
+    const harness: ReturnType<typeof renderConditions> = renderConditions([
+      RESPONSE_TIME,
+    ]);
+    const condition: HTMLElement = screen.getByRole("group", {
+      name: "Condition 1",
+    });
+    expect(condition.querySelector(".ou-select__clear-indicator")).toBeNull();
+    for (const label of ["Check", "Condition"]) {
+      fireEvent.keyDown(screen.getByRole("combobox", { name: label }), {
+        key: "Backspace",
+        code: "Backspace",
+      });
+    }
+    expect(harness.changes()).toBe(0);
+    expect(harness.latest()[0]).toEqual(RESPONSE_TIME);
+    expect(
+      (screen.getByRole("textbox", { name: "Value" }) as HTMLInputElement)
+        .value,
+    ).toBe("1000");
+  });
+
+  test("the compact remove action is icon-only while retaining a clear accessible name", () => {
+    renderConditions([ONLINE, RESPONSE_TIME]);
+    const remove: HTMLElement = screen.getByRole("button", {
+      name: "Remove condition 2",
+    });
+    expect(remove.textContent).toBe("");
+    expect(remove.querySelector("svg")).not.toBeNull();
+    fireEvent.click(remove);
+    expect(screen.queryByRole("group", { name: "Condition 2" })).toBeNull();
+  });
+
+  test("optional interface scope can still be cleared without clearing its condition", () => {
+    const filter: CriteriaFilter = {
+      checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+      filterType: FilterType.GreaterThan,
+      value: 90,
+      snmpMonitorOptions: { interfaceName: "Gi0/1" },
+    };
+    const harness: ReturnType<typeof renderConditions> = renderConditions(
+      [filter],
+      MonitorType.NetworkDevice,
+    );
+    const clear: Element | null = screen
+      .getByRole("group", { name: "Condition 1" })
+      .querySelector(".ou-select__clear-indicator");
+    expect(clear).not.toBeNull();
+    fireEvent.mouseDown(clear!, { button: 0 });
+    expect(
+      harness.latest()[0]!.snmpMonitorOptions!.interfaceName,
+    ).toBeUndefined();
+    expect(harness.latest()[0]!.checkOn).toBe(
+      CheckOn.SnmpInterfaceUtilizationPercent,
+    );
+    expect(harness.latest()[0]!.value).toBe(90);
   });
 });

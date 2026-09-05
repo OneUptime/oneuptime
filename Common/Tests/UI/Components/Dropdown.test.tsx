@@ -294,4 +294,47 @@ describe("Dropdown", () => {
 
     expect(onBlur).toHaveBeenCalled();
   });
+  test("required dropdowns cannot be cleared with the indicator or Backspace", () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const { container } = render(
+      <Dropdown
+        ariaLabel="Required choice"
+        options={options}
+        value={options[0]}
+        isClearable={false}
+        onChange={onChange}
+      />,
+    );
+    expect(container.querySelector(".ou-select__clear-indicator")).toBeNull();
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Required choice" }),
+      { key: "Backspace", code: "Backspace" },
+    );
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Required choice" }),
+      { key: "ArrowDown", code: "ArrowDown" },
+    );
+    fireEvent.click(screen.getByRole("option", { name: "2" }));
+    expect(onChange).toHaveBeenCalledWith("2");
+  });
+
+  test("existing dropdowns stay clearable by default", () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const { container } = render(
+      <Dropdown
+        ariaLabel="Optional choice"
+        options={options}
+        value={options[0]}
+        onChange={onChange}
+      />,
+    );
+    const clear: Element | null = container.querySelector(
+      ".ou-select__clear-indicator",
+    );
+    expect(clear).not.toBeNull();
+    fireEvent.mouseDown(clear!, { button: 0 });
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
 });

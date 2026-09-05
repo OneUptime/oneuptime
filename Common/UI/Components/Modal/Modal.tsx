@@ -423,7 +423,7 @@ const Modal: FunctionComponent<ComponentProps> = (
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-6">
           <div
             ref={modalRef}
-            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-left shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
+            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-left shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
             data-testid="modal"
             aria-labelledby={titleId}
             aria-describedby={translatedDescription ? descriptionId : undefined}

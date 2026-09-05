@@ -87,22 +87,19 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const ownerCount: number =
     (criteriaIncident.ownerTeamIds?.length || 0) +
     (criteriaIncident.ownerUserIds?.length || 0);
-  const detailSummary: string =
-    [
-      criteriaIncident.description ? "Description" : "",
-      ownerCount ? `${ownerCount} owner${ownerCount === 1 ? "" : "s"}` : "",
-      criteriaIncident.labelIds?.length
-        ? `${criteriaIncident.labelIds.length} label${criteriaIncident.labelIds.length === 1 ? "" : "s"}`
-        : "",
-      criteriaIncident.isPrivate ? "Private" : "",
-      criteriaIncident.remediationNotes ? "Remediation notes" : "",
-      criteriaIncident.incidentMemberRoles?.length ? "Incident roles" : "",
-      criteriaIncident.showIncidentOnStatusPage === false
-        ? "Hidden on status pages"
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Optional";
+  const hasOptionalDetails: boolean = Boolean(
+    criteriaIncident.description ||
+      ownerCount ||
+      criteriaIncident.labelIds?.length ||
+      criteriaIncident.remediationNotes ||
+      criteriaIncident.incidentMemberRoles?.length ||
+      criteriaIncident.showIncidentOnStatusPage === false,
+  );
+  const detailSummary: string = criteriaIncident.isPrivate
+    ? "Private"
+    : hasOptionalDetails
+      ? "Customized"
+      : "Optional";
 
   // Helper to get user for a single-user role
   const getUserForRole: (roleId: string) => ObjectID | undefined = (
@@ -191,7 +188,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       onClick={(): void => {
         setIsTemplateModalOpen(true);
       }}
-      className="underline text-blue-600 hover:text-blue-800"
+      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
     >
       View dynamic values
     </button>
@@ -213,14 +210,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       {/* Required Fields - Always Visible */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="sm:col-span-2">
-          <FieldLabelElement
-            title="Incident title"
-            htmlFor={titleInputId}
-            description={
-              <span>Title for the incident. {templateDocsLink}</span>
-            }
-            required={true}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <FieldLabelElement
+              title="Incident title"
+              htmlFor={titleInputId}
+              required={true}
+            />
+            {templateDocsLink}
+          </div>
           <Input
             id={titleInputId}
             value={criteriaIncident.title}
@@ -243,6 +240,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement title="Severity" required={true} />
           <Dropdown
             ariaLabel="Incident severity"
+            isClearable={false}
             value={props.incidentSeverityDropdownOptions.find(
               (i: DropdownOption) => {
                 return (
@@ -263,10 +261,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
       </div>
 
       <div>
-        <FieldLabelElement
-          title="Notify on-call"
-          description="Select the on-call policies to notify."
-        />
+        <FieldLabelElement title="Notify on-call" />
         <Dropdown
           ariaLabel="Incident on-call policies"
           value={props.onCallPolicyDropdownOptions.filter(
@@ -309,7 +304,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         badge={detailSummary}
         defaultCollapsed={true}
       >
-        <div className="space-y-5 border-t border-gray-200 pt-4">
+        <div className="space-y-5">
           {/* Description */}
           <section className="space-y-3">
             <h4 className="text-sm font-semibold text-gray-900">Description</h4>

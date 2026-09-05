@@ -11,6 +11,7 @@ export interface ComponentProps {
   isCollapsed?: boolean | undefined;
   onToggle?: ((isCollapsed: boolean) => void) | undefined;
   variant?: "default" | "card" | "bordered" | undefined;
+  compact?: boolean | undefined;
   className?: string | undefined;
   headerClassName?: string | undefined;
   rightElement?: ReactElement | undefined;
@@ -28,10 +29,11 @@ export default function MonitorFormSection(
   );
   const isCollapsed: boolean = props.isCollapsed ?? collapsed;
   const contentId: string = useId();
+  const isCard: boolean = props.variant === "card";
 
   return (
     <div
-      className={`rounded-xl border border-gray-200 bg-white ${props.variant === "card" ? "shadow-sm" : ""} ${props.className || ""}`}
+      className={`min-w-0 ${isCard ? "rounded-lg border border-gray-200 bg-gray-50/50" : props.variant === "bordered" ? "border-t border-gray-200 pt-1" : ""} ${props.className || ""}`}
     >
       <div className={`flex items-center gap-3 ${props.headerClassName || ""}`}>
         <button
@@ -43,32 +45,42 @@ export default function MonitorFormSection(
             setCollapsed(!isCollapsed);
             props.onToggle?.(!isCollapsed);
           }}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 hover:bg-gray-50"
+          className={`flex ${props.compact ? "min-h-[28px] py-1" : "min-h-[40px] py-2"} min-w-0 flex-1 items-center gap-2 rounded-lg ${isCard ? "px-3" : ""} text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 hover:bg-gray-50`}
         >
           <Icon
             icon={isCollapsed ? IconProp.ChevronRight : IconProp.ChevronDown}
-            className="h-4 w-4 shrink-0 text-gray-400"
+            className={`${props.compact ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0 text-gray-500`}
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium text-gray-900">
+            <span
+              className={`block ${props.compact ? "text-xs" : "text-sm"} font-medium text-gray-900`}
+            >
               {props.title}
             </span>
             {props.description && (
-              <span className="mt-0.5 block text-xs text-gray-500">
+              <span
+                className={`mt-0.5 text-xs text-gray-500 ${isCollapsed ? "hidden sm:block" : "block"}`}
+              >
                 {props.description}
               </span>
             )}
           </span>
           {props.badge && (
-            <span className="max-w-[45%] shrink-0 rounded-lg bg-indigo-50 px-2 py-1 text-right text-xs font-medium text-indigo-700">
+            <span className="max-w-[40%] shrink-0 rounded-md bg-indigo-50 px-2 py-0.5 text-right text-xs font-medium text-indigo-700">
               {props.badge}
             </span>
           )}
         </button>
-        {props.rightElement && <div className="pr-4">{props.rightElement}</div>}
+        {props.rightElement && (
+          <div className={isCard ? "pr-3" : ""}>{props.rightElement}</div>
+        )}
       </div>
       <div id={contentId} hidden={isCollapsed}>
-        <div className="border-t border-gray-100 p-4 sm:p-5">
+        <div
+          className={
+            isCard ? "border-t border-gray-200 p-3 sm:p-4" : "pb-2 pt-2"
+          }
+        >
           {props.children}
         </div>
       </div>

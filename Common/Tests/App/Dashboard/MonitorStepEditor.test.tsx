@@ -142,7 +142,7 @@ describe("Monitor check editor", () => {
     step.setRetryCount(0);
     step.setRequestTimeoutInMs(12000);
     step.setDoNotFollowRedirects(true);
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     render(<Editor step={step} onChange={onChange} />);
     const target: HTMLElement = await screen.findByRole("textbox", {
       name: "Website URL",

@@ -82,6 +82,9 @@ const FormField: <T extends GenericObject>(
    * this via aria-labelledby so the control still has an accessible name.
    */
   const fieldLabelId: string = `${fieldId}-label`;
+  const hideCustomComponentHeader: boolean =
+    props.field.fieldType === FormFieldSchemaType.CustomComponent &&
+    props.field.hideCustomComponentHeader === true;
 
   type onChangeFunction = (value: JSONValue) => void;
 
@@ -360,20 +363,21 @@ const FormField: <T extends GenericObject>(
 
         {props.field.showHorizontalRuleAbove && <HorizontalRule />}
 
-        {props.field.fieldType !== FormFieldSchemaType.Checkbox && (
-          <FieldLabelElement
-            title={props.field.title || ""}
-            id={fieldLabelId}
-            htmlFor={fieldRendersLabelableInput ? fieldId : undefined}
-            description={getFieldDescription()}
-            sideLink={props.field.sideLink}
-            required={required}
-            hideOptionalLabel={props.field.hideOptionalLabel}
-            isHeading={props.field.styleType === FormFieldStyleType.Heading}
-          />
-        )}
+        {props.field.fieldType !== FormFieldSchemaType.Checkbox &&
+          !hideCustomComponentHeader && (
+            <FieldLabelElement
+              title={props.field.title || ""}
+              id={fieldLabelId}
+              htmlFor={fieldRendersLabelableInput ? fieldId : undefined}
+              description={getFieldDescription()}
+              sideLink={props.field.sideLink}
+              required={required}
+              hideOptionalLabel={props.field.hideOptionalLabel}
+              isHeading={props.field.styleType === FormFieldStyleType.Heading}
+            />
+          )}
 
-        <div className="mt-2">
+        <div className={hideCustomComponentHeader ? "" : "mt-2"}>
           {/* Time Picker */}
           {props.field.fieldType === FormFieldSchemaType.Time && (
             <TimePicker

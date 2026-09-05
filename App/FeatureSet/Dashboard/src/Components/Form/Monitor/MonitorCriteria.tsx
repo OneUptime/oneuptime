@@ -131,6 +131,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     const summary: string = filters
       .slice(0, 2)
       .map((filter: CriteriaFilter) => {
+        if (!filter?.checkOn || !filter?.filterType) {
+          return "Choose a check and condition";
+        }
         return CriteriaFilterUtil.translateFilterToText(filter)
           .replace(/^Check if /, "")
           .trim()
@@ -208,10 +211,10 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                               className={`rounded-xl border bg-white transition-colors ${isExpanded ? "border-indigo-300 shadow-sm" : "border-gray-200"}`}
                               data-testid="monitor-rule-card"
                             >
-                              <div className="flex items-start gap-2 p-3 sm:p-4">
+                              <div className="relative">
                                 <div
                                   {...draggableProvided.dragHandleProps}
-                                  className="mt-1 flex-shrink-0 cursor-grab rounded p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className="absolute left-2 top-2 z-10 flex h-8 w-8 cursor-grab items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                   aria-label={`Drag to reorder rule: ${ruleName}`}
                                 >
                                   <Icon
@@ -221,91 +224,107 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 </div>
                                 <button
                                   type="button"
-                                  className="min-w-0 flex-1 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                  className="block w-full rounded-lg p-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                                   aria-label={`${isExpanded ? "Close" : "Edit"} rule: ${ruleName}`}
                                   aria-expanded={isExpanded}
-                                  aria-controls={panelId}
+                                  aria-controls={
+                                    isExpanded ? panelId : undefined
+                                  }
                                   onClick={() => {
                                     setExpandedRuleId(
                                       isExpanded ? null : criteriaId,
                                     );
                                   }}
                                 >
-                                  <span className="flex flex-wrap items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-400">
+                                  <span
+                                    className={`flex min-h-8 min-w-0 items-center gap-2 pl-7 ${isExpanded ? "pr-24" : "pr-6"}`}
+                                  >
+                                    <span className="text-xs font-medium text-gray-500">
                                       {index + 1}.
                                     </span>
                                     <span
-                                      className={`text-sm font-semibold ${isDisabled ? "text-gray-500" : "text-gray-900"}`}
+                                      className={`min-w-0 flex-1 truncate text-sm font-semibold ${isDisabled ? "text-gray-500" : "text-gray-900"}`}
+                                      title={ruleName}
                                     >
                                       {ruleName}
                                     </span>
+                                    {(!isExpanded || isDisabled) && (
+                                      <span
+                                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${isDisabled ? "bg-gray-100 text-gray-600" : "bg-emerald-50 text-emerald-700"}`}
+                                      >
+                                        {isDisabled ? "Disabled" : "Enabled"}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {!isExpanded && (
                                     <span
-                                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${isDisabled ? "bg-gray-100 text-gray-500" : "bg-emerald-50 text-emerald-700"}`}
+                                      data-testid="monitor-rule-summary"
+                                      className="mt-1 block"
                                     >
-                                      {isDisabled ? "Disabled" : "Enabled"}
+                                      <span className="block break-words text-sm text-gray-700">
+                                        <span className="font-medium">
+                                          When{" "}
+                                        </span>
+                                        {getConditionSummary(instance)}
+                                      </span>
+                                      <span className="mt-1 flex min-h-8 items-center break-words pr-20 text-xs text-gray-600">
+                                        <span>
+                                          <span className="font-medium">
+                                            Then{" "}
+                                          </span>
+                                          {getActionSummary(instance)}
+                                        </span>
+                                      </span>
                                     </span>
-                                  </span>
-                                  <span className="mt-2 block break-words text-sm text-gray-600">
-                                    <span className="font-medium text-gray-800">
-                                      When{" "}
-                                    </span>
-                                    {getConditionSummary(instance)}
-                                  </span>
-                                  <span className="mt-1 block break-words text-xs text-gray-500">
-                                    <span className="font-medium text-gray-700">
-                                      Then{" "}
-                                    </span>
-                                    {getActionSummary(instance)}
-                                  </span>
-                                </button>
-                                <div className="flex flex-shrink-0 items-center gap-1">
-                                  <div className="flex flex-col sm:flex-row">
-                                    <button
-                                      type="button"
-                                      disabled={index === 0}
-                                      aria-label={`Move rule up: ${ruleName}`}
-                                      title="Move up"
-                                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
-                                      onClick={() => {
-                                        moveRule(index, index - 1);
-                                      }}
-                                    >
-                                      <Icon
-                                        icon={IconProp.ArrowUp}
-                                        className="h-4 w-4"
-                                      />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={index === rules.length - 1}
-                                      aria-label={`Move rule down: ${ruleName}`}
-                                      title="Move down"
-                                      className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
-                                      onClick={() => {
-                                        moveRule(index, index + 1);
-                                      }}
-                                    >
-                                      <Icon
-                                        icon={IconProp.ArrowDown}
-                                        className="h-4 w-4"
-                                      />
-                                    </button>
-                                  </div>
+                                  )}
                                   <Icon
                                     icon={
                                       isExpanded
                                         ? IconProp.ChevronUp
                                         : IconProp.ChevronDown
                                     }
-                                    className="ml-1 h-4 w-4 text-gray-400"
+                                    className="absolute right-3 top-5 h-4 w-4 text-gray-500"
                                   />
+                                </button>
+                                <div
+                                  className={`absolute flex items-center ${isExpanded ? "right-9 top-3" : "bottom-3 right-3"}`}
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    aria-label={`Move rule up: ${ruleName}`}
+                                    title="Move up"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
+                                    onClick={() => {
+                                      moveRule(index, index - 1);
+                                    }}
+                                  >
+                                    <Icon
+                                      icon={IconProp.ArrowUp}
+                                      className="h-4 w-4"
+                                    />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={index === rules.length - 1}
+                                    aria-label={`Move rule down: ${ruleName}`}
+                                    title="Move down"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30"
+                                    onClick={() => {
+                                      moveRule(index, index + 1);
+                                    }}
+                                  >
+                                    <Icon
+                                      icon={IconProp.ArrowDown}
+                                      className="h-4 w-4"
+                                    />
+                                  </button>
                                 </div>
                               </div>
                               {isExpanded && (
                                 <div
                                   id={panelId}
-                                  className="border-t border-gray-100 px-4 pb-4 sm:px-6"
+                                  className="border-t border-gray-200 p-3 sm:p-4"
                                 >
                                   <MonitorCriteriaInstanceElement
                                     {...props}
