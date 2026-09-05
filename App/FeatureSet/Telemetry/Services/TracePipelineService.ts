@@ -18,7 +18,7 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
-import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
 
 export interface LoadedTracePipeline {
@@ -39,22 +39,24 @@ interface CompiledCategoryConfig extends CategoryProcessorConfig {
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const MAX_CACHED_PROJECTS: number = 10_000;
 
-const pipelineCache: InMemoryTTLCache<Array<LoadedTracePipeline>> =
-  new InMemoryTTLCache<Array<LoadedTracePipeline>>(MAX_CACHED_PROJECTS);
+const pipelineCache: PipelineCache<Array<LoadedTracePipeline>> =
+  new PipelineCache<Array<LoadedTracePipeline>>(
+    MAX_CACHED_PROJECTS,
+    CACHE_TTL_MS,
+  );
 
 export class TracePipelineService {
   public static async loadPipelines(
     projectId: ObjectID,
   ): Promise<Array<LoadedTracePipeline>> {
-    const cacheKey: string = projectId.toString();
-    const cached: Array<LoadedTracePipeline> | undefined =
-      pipelineCache.get(cacheKey);
+    return pipelineCache.getOrLoad(projectId.toString(), () => {
+      return TracePipelineService.loadPipelinesFromDatabase(projectId);
+    });
+  }
 
-    // Empty arrays are truthy — zero-pipeline projects stay negatively cached.
-    if (cached) {
-      return cached;
-    }
-
+  private static async loadPipelinesFromDatabase(
+    projectId: ObjectID,
+  ): Promise<Array<LoadedTracePipeline>> {
     const pipelineService: DatabaseService<TracePipeline> =
       new DatabaseService<TracePipeline>(TracePipeline);
 
@@ -115,7 +117,6 @@ export class TracePipelineService {
       });
     }
 
-    pipelineCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 

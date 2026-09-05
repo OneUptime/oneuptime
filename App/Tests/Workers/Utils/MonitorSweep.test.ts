@@ -3,12 +3,13 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
 } from "Common/Server/Infrastructure/Semaphore";
 import MonitorService from "Common/Server/Services/MonitorService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import QueryHelper, {
+  type FindOperator,
+} from "Common/Server/Types/Database/QueryHelper";
 import FindBy from "Common/Server/Types/Database/FindBy";
 import logger from "Common/Server/Utils/Logger";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import { FindOperator } from "typeorm";
 import runMonitorSweep, {
   MONITOR_SWEEP_BATCH_SIZE,
   MONITOR_SWEEP_CONCURRENCY,

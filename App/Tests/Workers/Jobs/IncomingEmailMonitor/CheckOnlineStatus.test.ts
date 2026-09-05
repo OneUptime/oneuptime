@@ -1,4 +1,4 @@
-import { FindOperator } from "typeorm";
+import type { FindOperator } from "Common/Server/Types/Database/QueryHelper";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
