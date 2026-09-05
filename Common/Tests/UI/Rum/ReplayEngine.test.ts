@@ -499,6 +499,38 @@ async function flush(): Promise<void> {
   }
 }
 
+/*
+ * Waits for a condition the engine reaches through REAL timers (the chunk
+ * fetch timeout and its retry backoffs are setTimeout-driven).
+ *
+ * Sleeping for a fixed span instead - which this suite used to do - races
+ * the machine: eight jest workers on a loaded box can leave the event loop
+ * starved past any budget picked to look generous, so the assertion fails
+ * on CI and passes on a quiet laptop, which is the worst kind of test.
+ * Polling for the outcome keeps the timing real while making the wait
+ * depend on the engine's progress rather than on the wall clock.
+ */
+async function waitUntil(
+  predicate: () => boolean,
+  timeoutMs: number = 5000,
+): Promise<void> {
+  const deadline: number = Date.now() + timeoutMs;
+
+  while (!predicate()) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `waitUntil: condition still false after ${timeoutMs}ms of real time`,
+      );
+    }
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 5);
+    });
+  }
+
+  await flush();
+}
+
 async function loadAndFlush(
   harness: Harness,
   anchor: number,
@@ -1684,10 +1716,14 @@ describe("ReplayEngine failure handling", () => {
     harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
     harness.engine.dispatch({ type: "PLAY" });
 
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, 60);
+    /*
+     * Three attempts have to time out (5ms each) with their two retry
+     * backoffs before the engine halts; wait for the halt itself rather
+     * than for a span of wall clock.
+     */
+    await waitUntil((): boolean => {
+      return harness.snapshot().phase === "error";
     });
-    await flush();
 
     expect(harness.snapshot().phase).toBe("error");
     expect(harness.snapshot().error?.retryable).toBe(true);
