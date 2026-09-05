@@ -392,3 +392,19 @@ export const REPLAY_HOLD_LAST_FRAME_MAX_BYTES: number = 4 * 1024 * 1024;
 
 /* Last-resort watchdog: asserted never to fire in fixture scenarios. */
 export const REPLAY_WATCHDOG_MS: number = 1500;
+
+/*
+ * How much footage one Replayer may hold before playback re-anchors on
+ * the next full snapshot it reaches. rrweb never drops an event it has
+ * been given, so without a bound a long straight playthrough retains the
+ * whole recording. Eight minutes is ~32 chunks: long enough that an
+ * ordinary session never re-anchors at all.
+ */
+export const REPLAY_SEGMENT_MAX_FED_SPAN_MS: number = 8 * 60 * 1000;
+
+/*
+ * ...and only onto a snapshot this recently behind the playhead. Starting
+ * again from a snapshot ten minutes back would re-feed everything it was
+ * meant to release. The recorder writes one every 60s.
+ */
+export const REPLAY_REANCHOR_MAX_LOOKBACK_MS: number = 90 * 1000;

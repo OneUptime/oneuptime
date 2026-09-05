@@ -485,6 +485,27 @@ export function pathOf(url: string): string {
   }
 }
 
+/*
+ * The value the player's "Sessions" back link accepts: a SAME-ORIGIN
+ * relative path with its query string. readReplayListUrl (ReplayViewPrefs)
+ * refuses anything that is not a "/..." path - it is about to be handed to
+ * the router, so an absolute or protocol-relative value would be an open
+ * redirect - and stamping window.location.href there meant the back link
+ * silently fell back to the unfiltered list every time.
+ */
+export function toListBackLinkValue(href: string): string {
+  try {
+    const parsed: globalThis.URL = new globalThis.URL(
+      href,
+      window.location.href,
+    );
+
+    return `${parsed.pathname}${parsed.search}` || "/";
+  } catch {
+    return "";
+  }
+}
+
 function readStorage(key: string): string | null {
   try {
     return window.sessionStorage.getItem(key);
@@ -1062,21 +1083,17 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         );
 
         /*
-         * The server drops the user filter silently for viewers without
-         * the identity permission and answers 200 with the WHOLE list.
-         * The tell is the rows: when the filter was sent and no row
-         * carries the identity column, the filter did not apply.
+         * The server names the filters it dropped for this viewer (it
+         * drops identifiedUserRef when the role cannot read end-user
+         * identity, and answers 200 with the WHOLE list). Read from that
+         * list and not from the rows: an ignored filter that matches
+         * nothing comes back with zero rows, and a row-shape heuristic
+         * cannot see a drop it has no rows to look at - which is exactly
+         * the case where the viewer most needs to be told.
          */
-        const sentUserFilter: boolean =
-          advancedFilters.identifiedUserRef.trim().length > 0;
-        const identityHidden: boolean =
-          result.ignoredFilters.includes("identifiedUserRef") ||
-          (result.sessions.length > 0 &&
-            result.sessions.every((row: SessionReplaySummary): boolean => {
-              return row.isIdentityVisible === false;
-            }));
-
-        setIsIdentityFilterIgnored(sentUserFilter && identityHidden);
+        setIsIdentityFilterIgnored(
+          result.ignoredFilters.includes("identifiedUserRef"),
+        );
         setNowUnixMs(Date.now());
         setRows(result.sessions);
         setHasMore(result.nextCursor !== null);
@@ -1121,7 +1138,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     );
 
     window.history.replaceState(window.history.state, "", href);
-    writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, href);
+
+    /* Relative, because that is the only shape the reader honours. */
+    const backLink: string = toListBackLinkValue(href);
+
+    if (backLink) {
+      writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, backLink);
+    }
   }, [signal, advancedFilters, sortBy, timeRange, pageNumber]);
 
   const reload: VoidFunction = useCallback((): void => {
@@ -1140,7 +1163,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const openSession: (route: Route, openInNewTab: boolean) => void =
     useCallback((route: Route, openInNewTab: boolean): void => {
-      writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, window.location.href);
+      /*
+       * Re-stamped on the way out in case the address bar moved since the
+       * last state change - still relative, see toListBackLinkValue.
+       */
+      writeStorage(
+        SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+        `${window.location.pathname}${window.location.search}`,
+      );
       Navigation.navigate(route, openInNewTab ? { openInNewTab: true } : {});
     }, []);
 
@@ -1235,14 +1265,15 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             isIdentityFilterIgnored={isIdentityFilterIgnored}
           />
 
-          {isIdentityFilterIgnored && (
-            <Alert
-              type={AlertType.WARNING}
-              dataTestId="identity-filter-ignored"
-              strongTitle="User filter ignored"
-              title={`Your role cannot read end-user identity, so the server dropped the user filter "${advancedFilters.identifiedUserRef.trim()}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.`}
-            />
-          )}
+          {isIdentityFilterIgnored &&
+            advancedFilters.identifiedUserRef.trim().length > 0 && (
+              <Alert
+                type={AlertType.WARNING}
+                dataTestId="identity-filter-ignored"
+                strongTitle="User filter ignored"
+                title={`Your role cannot read end-user identity, so the server dropped the user filter "${advancedFilters.identifiedUserRef.trim()}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.`}
+              />
+            )}
 
           {chips.length > 0 && (
             <div className="mb-2 flex flex-wrap items-center gap-2">

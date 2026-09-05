@@ -4,6 +4,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import Permission from "Common/Types/Permission";
 import {
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+  SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK,
   SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH,
@@ -14,6 +15,10 @@ import {
   SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
 } from "Common/Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS,
+  SESSION_REPLAY_STALE_CHUNK_MS,
+} from "Common/Utils/Rum/SessionReplayHealth";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -661,6 +666,267 @@ describe("Session Replay docs page", (): void => {
    * live on the application's Replay Policy page, and the old
    * "RUM → Session Replay Settings" path no longer exists.
    */
+  /*
+   * docs-and-design-fidelity-1. The page used to tell a privacy officer
+   * that turning Capture user identity off still left a keyed hash behind,
+   * so a session could be erased BY USER. Both halves of the product say
+   * otherwise: the recorder never puts the reference on the wire, and the
+   * ingest writes an empty key when the switch is off - so an erasure
+   * request by user key matches nothing. A wrong answer here is an unmet
+   * legal obligation the customer does not know about.
+   */
+  it("does not promise an erasable user key for identity-off sessions", (): void => {
+    const recorder: string = fs.readFileSync(
+      path.join(RECORDER_SRC, "Recorder.ts"),
+      "utf8",
+    );
+
+    /* The reference is only ever put on the wire behind the switch. */
+    expect(recorder).toContain(
+      "if (this.config.captureUserIdentity && this.userRef) {",
+    );
+
+    const ingest: string = readRepo(
+      "App/FeatureSet/Telemetry/Services/SessionReplayIngestService.ts",
+    );
+
+    /* And the server re-checks the switch, storing "" for key and label. */
+    const keyBlock: string =
+      ingest.split("const hasUsableUserRef: boolean =")[1]?.split(";")[0] || "";
+
+    expect(keyBlock).toContain("data.policy.captureUserIdentity");
+    expect(ingest).toContain(
+      "const identifiedUserKey: string = hasUsableUserRef",
+    );
+
+    const identify: string = section(readPage(), "## Identify your users");
+
+    /* The claim that was false. */
+    expect(identify).not.toContain("one-way keyed hash of the reference");
+    expect(identify).not.toMatch(/still be targeted by an erasure request/);
+
+    /* What is true, and the way out it has to offer instead. */
+    expect(identify).toContain("nothing at all");
+
+    for (const requestType of [
+      "BySessionId",
+      "ByDateRange",
+      "ByRumApplication",
+    ]) {
+      expect(identify).toContain(`\`${requestType}\``);
+    }
+  });
+
+  /*
+   * docs-and-design-fidelity-2. A load-time reference rides on the config
+   * fetch of every page load - that is how targeted capture matches before
+   * any recorder exists - so "nothing leaves the browser unless the switch
+   * is on" was false for exactly the customer who set the attribute.
+   */
+  it("says the load-time user reference travels on the policy fetch regardless of the switch", (): void => {
+    const config: string = fs.readFileSync(
+      path.join(RECORDER_SRC, "Config.ts"),
+      "utf8",
+    );
+
+    /*
+     * The only gate on the header is "did the page supply a ref". The
+     * policy is not known yet at this point in the loader, so it cannot
+     * be gated on captureUserIdentity even in principle.
+     */
+    const guarded: string =
+      config
+        .split("if (options.userRef) {")[1]
+        ?.split("headers[SESSION_REPLAY_USER_REF_HEADER]")[0] || "";
+
+    expect(guarded).not.toBe("");
+    expect(guarded).not.toContain("captureUserIdentity");
+
+    const identify: string = section(readPage(), "## Identify your users");
+
+    expect(identify).not.toContain(
+      "Neither the reference nor the traits leaves the browser",
+    );
+    expect(identify).toContain("data-oneuptime-user-ref");
+    expect(identify).toContain("policy fetch");
+  });
+
+  /*
+   * docs-and-design-fidelity-4. setTags REPLACES the map; only addTag
+   * merges. Documented the other way round, a page that calls setTags
+   * twice silently loses the first call's tags and its tag: searches then
+   * miss those sessions.
+   */
+  it("describes setTags as replacing the tag map, the way the recorder implements it", (): void => {
+    const recorder: string = fs.readFileSync(
+      path.join(RECORDER_SRC, "Recorder.ts"),
+      "utf8",
+    );
+
+    const setTags: string =
+      recorder.split("public setTags(")[1]?.split("\n  }")[0] || "";
+    const addTag: string =
+      recorder.split("public addTag(")[1]?.split("\n  }")[0] || "";
+
+    expect(setTags).not.toBe("");
+    expect(setTags).not.toContain("mergeSessionReplayStringMaps");
+    expect(addTag).toContain("mergeSessionReplayStringMaps");
+
+    const apiSection: string = section(readPage(), "## JavaScript API");
+
+    expect(apiSection).not.toContain("`setTags` merges into the existing map");
+    expect(apiSection).toContain("`setTags` **replaces** the whole map");
+  });
+
+  /*
+   * docs-and-design-fidelity-5. The page-hide flush is ONE keepalive
+   * request whose whole body is capped by the shared constant; the two
+   * pages quoted different numbers, and a customer sizing a proxy body
+   * limit from the wrong one truncates the end of every recording.
+   */
+  it("quotes the keepalive budget the transport enforces, on both pages", (): void => {
+    const keepaliveKb: number = SESSION_REPLAY_KEEPALIVE_MAX_BYTES / 1024;
+
+    const install: string = section(
+      readPage(),
+      "### What a healthy install looks like",
+    );
+
+    expect(install).toContain(`${keepaliveKb} KB`);
+    expect(install).not.toMatch(/each under \d+ KB/);
+
+    /*
+     * The per-piece payload budget is the request cap less the 8 KB the
+     * envelope may weigh (Recorder.KEEPALIVE_PAYLOAD_BUDGET_BYTES), and
+     * the page explains the split with that number.
+     */
+    const recorder: string = fs.readFileSync(
+      path.join(RECORDER_SRC, "Recorder.ts"),
+      "utf8",
+    );
+
+    expect(recorder).toContain("SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 8 * 1024");
+    expect(install).toContain(`${keepaliveKb - 8} KB`);
+
+    expect(readContent("en/rum/session-replay-troubleshooting.md")).toContain(
+      `${keepaliveKb} KB`,
+    );
+  });
+
+  /*
+   * docs-and-design-fidelity-6. healthy-quiet is NOT "the recorder loads
+   * but there is no traffic": it is the branch where no chunk has arrived
+   * for the stale window AND no policy fetch landed inside the active
+   * window - which is also what a removed script tag looks like. The row
+   * may not hand out reassurance for that case without saying so.
+   */
+  it("describes healthy-quiet with both silences the diagnosis actually requires", (): void => {
+    /* The windows the copy quotes, from the constants the diagnosis uses. */
+    expect(SESSION_REPLAY_STALE_CHUNK_MS).toBe(6 * 60 * 60 * 1000);
+    expect(SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS).toBe(24 * 60 * 60 * 1000);
+
+    const health: string = readRepo("Common/Utils/Rum/SessionReplayHealth.ts");
+
+    /* A recorder that IS still loading is "stale", not "healthy-quiet". */
+    const staleBranch: string =
+      health
+        .split(
+          "if (chunkAgeMs > SESSION_REPLAY_STALE_CHUNK_MS && isRecorderStillLoading) {",
+        )[1]
+        ?.split("\n  }")[0] || "";
+
+    expect(staleBranch).toContain('state: "stale"');
+
+    const row: string | undefined = readPage()
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("| `healthy-quiet` |");
+      });
+
+    expect(row).toBeDefined();
+    expect(row).toContain("six hours");
+    expect(row).toContain("24 hours");
+    expect(row).not.toContain("Quiet, not broken");
+  });
+
+  /*
+   * docs-and-design-fidelity-9. Nothing server-side can read a CSP: it is
+   * a response header of the customer's own site. The panel has no row
+   * for it, and telling a customer it "lines up" is how CSP gets ruled
+   * out as the cause of the silence it is causing.
+   */
+  it("does not claim the installation test checks the CSP", (): void => {
+    const panel: string = fs.readFileSync(
+      path.join(DASHBOARD_REPLAY_DIR, "InstallationTestPanel.tsx"),
+      "utf8",
+    );
+
+    const rowKeys: Array<string> = Array.from(
+      panel.matchAll(/^\s{4}key: "([a-z-]+)",$/gm),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(rowKeys.length).toBeGreaterThan(4);
+    expect(rowKeys).not.toContain("csp");
+
+    /* The two rows the docs tell a customer to read instead. */
+    expect(rowKeys).toContain("loaded");
+    expect(rowKeys).toContain("chunk");
+
+    const csp: string = section(readPage(), "## Content Security Policy");
+
+    expect(csp).not.toContain("the CSP all line up from the server's side");
+    expect(csp).toContain("cannot check your CSP");
+    expect(csp).toContain("Recorder loaded on your site");
+  });
+
+  /*
+   * docs-and-design-fidelity-3. The health section promises the card shows
+   * what the newest recorder announced it can capture. That is only true
+   * while the read path actually carries the field to the card.
+   */
+  it("only promises recorder capabilities on the health card while the API carries them", (): void => {
+    expect(
+      readRepo("Common/Server/Utils/SessionReplay/SessionReplayReadService.ts"),
+    ).toContain("recorderCapabilities");
+    expect(readRepo("Common/Server/API/TelemetryAPI.ts")).toContain(
+      "recorderCapabilities:",
+    );
+
+    const card: string = fs.readFileSync(
+      path.join(DASHBOARD_REPLAY_DIR, "RecordingHealthCard.tsx"),
+      "utf8",
+    );
+
+    expect(card).toContain("recorderCapabilities");
+
+    expect(section(readPage(), "## Recording health")).toContain(
+      "capabilities of the newest recorder that reported",
+    );
+  });
+
+  /*
+   * docs-and-design-fidelity-7. "recorders up to 12.0.x" covers the
+   * recorder this build publishes, so a self-hoster reading it cannot tell
+   * whether they are affected. No page may name a version range that
+   * includes the shipped one.
+   */
+  it("names no defect version range that includes the recorder this build ships", (): void => {
+    const version: string = (
+      JSON.parse(readRepo("App/FeatureSet/BrowserRecorder/package.json")) as {
+        version: string;
+      }
+    ).version;
+
+    const [major, minor]: Array<string> = version.split(".");
+    const shippedRange: string = `${major}.${minor}.x`;
+
+    for (const relative of OWNED_PAGES) {
+      expect(readContent(relative)).not.toContain(shippedRange);
+    }
+  });
+
   it("points at the Replay Policy page rather than the removed settings path", (): void => {
     const sideMenu: string = readRepo(
       "App/FeatureSet/Dashboard/src/Pages/Rum/View/SideMenu.tsx",

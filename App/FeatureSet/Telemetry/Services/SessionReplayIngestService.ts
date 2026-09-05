@@ -12,7 +12,6 @@ import SessionReplayGateCache, {
   SessionReplayPolicyRefusal,
   SessionReplayPolicyResolution,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
-import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
@@ -123,6 +122,19 @@ const SEAL_HINT_KEY_PREFIX: string = "replay:seal:";
 const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
 
 /*
+ *   replay:session-carry:<projectId>:<sessionId>
+ *                                       STRING JSON, the session-wide facts a
+ *                                       later provisional header write must not
+ *                                       lose (signal counters, routes, entry
+ *                                       URL). Read and re-written only by the
+ *                                       chunks that write a header. Nothing
+ *                                       outside this file consumes it - the
+ *                                       finalizer derives the same facts from
+ *                                       the chunk rows, which are authoritative.
+ */
+const SESSION_CARRY_KEY_PREFIX: string = "replay:session-carry:";
+
+/*
  * Long enough that a session idle for the finalizer's whole 10-minute
  * window is still present when the cron next runs, short enough that a
  * project's set cannot grow without bound if the finalizer stops.
@@ -143,12 +155,66 @@ const SESSION_SIDECAR_TTL_SECONDS: number = 6 * 60 * 60;
  */
 const RECORDER_CAPABILITIES_ATTRIBUTE: string = "recorder.capabilities";
 
+/*
+ * The one refusal-counter bucket for requests refused BEFORE any
+ * application was proven to exist. Not a legal appIdentifier (identifiers
+ * come from RumApplication.appIdentifier, which is never this), so it can
+ * never collide with a real application's counters. See
+ * resolveRefusalCounterScope.
+ */
+const UNRESOLVED_APPLICATION_COUNTER_SCOPE: string = "(unresolved-application)";
+
 /* What one session's chunks agree on once the first of them is written. */
 interface SessionStartMemo {
   startUnixMs: number;
   /* ClickHouse Date text, exactly as written to retentionDate. */
   retentionDate: string;
 }
+
+/*
+ * The provisional header's session-wide facts, carried across chunks.
+ *
+ * Signals and routes are PER CHUNK on the wire; the header column is
+ * per SESSION. A header written from a later meta-bearing chunk used to
+ * copy that chunk's values verbatim, and because the list reads
+ * argMax(col, version) the newest row wins - so a session captured
+ * BECAUSE chunk 0 threw dropped out of the "With errors" tab the moment
+ * its (usually clean) final chunk landed, and its route pills shrank to
+ * the last page, for the whole 10-15 minute provisional window. That is
+ * exactly the incident window the seeded counters exist for.
+ *
+ * Every field merges with an IDEMPOTENT operation - max for counters and
+ * offsets, set-union for routes and trace ids, "first non-empty wins" for
+ * the entry URL and trigger reason - so a re-delivered chunk or a retried
+ * job re-merges to the same answer instead of double counting. The
+ * finalizer still replaces the whole row with its GROUP BY over the chunk
+ * rows, which are the authoritative per-chunk record; this only has to
+ * stop the provisional row going BACKWARDS.
+ */
+interface SessionHeaderCarry {
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  pageCount: number;
+  chunkEndOffsetMs: number;
+  routes: Array<string>;
+  traceIds: Array<string>;
+  entryUrl: string;
+  triggerReason: string;
+  isFinal: boolean;
+}
+
+/*
+ * Bounds on what the carry may hold, so the memo cannot grow without
+ * limit for a long session that visits thousands of pages. The finalizer's
+ * own caps (MAX_ROUTES_PER_SESSION 500, MAX_TRACE_IDS_PER_SESSION 200) are
+ * the ceiling for the FINAL row; the provisional row is a stopgap and is
+ * capped lower so the Redis value stays small.
+ */
+const PROVISIONAL_HEADER_MAX_ROUTES: number = 100;
+const PROVISIONAL_HEADER_MAX_TRACE_IDS: number = 100;
 
 /*
  * Decompressed-payload ceiling for ONE frame. gzip of JSON routinely reaches
@@ -301,12 +367,20 @@ export default class SessionReplayIngestService {
      * not-sampled" to the person trying to work out why the list is empty.
      * A partial accept (frames under the cap stored, the rest refused) is
      * counted too, because chunks WERE refused.
+     *
+     * NOT awaited. The gate has already decided, the response is what the
+     * recorder is waiting for, and a counter is bookkeeping - the module's
+     * own contract says a write must never delay a response. recordRefusal
+     * never throws, and the .catch is belt and braces for a rejection
+     * escaping a future edit rather than becoming an unhandled rejection.
      */
     if (decision.reason !== "accepted") {
-      await SessionReplayHealthCounters.recordRefusal({
+      SessionReplayHealthCounters.recordRefusal({
         projectId: data.projectId,
-        appIdentifier: data.appIdentifier,
+        appIdentifier: this.resolveRefusalCounterScope(data, decision),
         reason: decision.reason,
+      }).catch((err: unknown) => {
+        logger.debug(err);
       });
     }
 
@@ -326,6 +400,37 @@ export default class SessionReplayIngestService {
     }
 
     return decision;
+  }
+
+  /*
+   * Which counter bucket a refusal belongs in.
+   *
+   * appIdentifier is a request HEADER. Its only obligation is to equal the
+   * one inside the envelope, so any holder of a browser ingestion key can
+   * invent a fresh identifier per request and, unchecked, mint a fresh
+   * Redis hash per invention with a stream of tiny 204'd requests. The
+   * identifier is only trustworthy once the policy lookup has PROVEN a
+   * RumApplication carries it: either a policy came back, or the refusal
+   * itself is "this application exists and has replay switched off".
+   *
+   * Everything decided before that proof - the instance kill switch, a
+   * project that does not allow replay, a missing or unknown identifier -
+   * is counted in ONE bucket per project. Those refusals name no
+   * application, so the per-application health card would never have shown
+   * them anyway; what matters is that they cannot open new keys.
+   */
+  private static resolveRefusalCounterScope(
+    data: SessionReplayGateInput,
+    decision: SessionReplayGateDecision,
+  ): string {
+    const isApplicationProven: boolean =
+      Boolean(decision.policy) ||
+      decision.policyRefusal ===
+        SessionReplayPolicyRefusal.ApplicationNotEnabled;
+
+    return isApplicationProven
+      ? data.appIdentifier
+      : UNRESOLVED_APPLICATION_COUNTER_SCOPE;
   }
 
   private static async decideChunkRequest(
@@ -549,13 +654,14 @@ export default class SessionReplayIngestService {
 
     if (budgetDecision.outcome === SessionReplayLimitOutcome.BudgetExhausted) {
       /*
-       * The counter was charged before it said no (the crossing request is
-       * accepted by design, everything after it refused). Without a refund
-       * every refused request after exhaustion keeps growing the figure the
-       * Dashboard renders as "used today" (audit finding ingest-7).
+       * No refund here. The limiter has already decided what to give back:
+       * everything after the crossing request, nothing of the crossing
+       * request itself, so the counter rests at or over the limit and
+       * /config's budget pause and the health card's daily-budget-spent
+       * state can actually fire. Refunding again from here would push the
+       * counter back under the limit and make both unreachable while the
+       * gate refuses every chunk.
        */
-      await this.refundDailyByteBudget(data.projectId, data.payloadBytes);
-
       return {
         outcome: SessionReplayGateOutcome.Stop,
         directive: "stop",
@@ -660,37 +766,19 @@ export default class SessionReplayIngestService {
   }
 
   /*
-   * Give bytes back to the project's daily counter after a refusal. The
-   * rate limiter has no refund for the daily counter (it resets in 24h and
-   * was never meant to be read back), but the Dashboard does read it, and
-   * a counter that only ever grows overstates what was stored. Best-effort:
-   * a lost refund skews the display by one chunk.
+   * Give bytes back to the project's daily counter when a LATER gate
+   * refused a request the daily counter had already charged. The refund
+   * itself lives in the limiter, which owns the key and the "never refund
+   * the crossing request" rule (audit finding ingest-7).
    */
   private static async refundDailyByteBudget(
     projectId: ObjectID,
     bytes: number,
   ): Promise<void> {
-    if (bytes <= 0) {
-      return;
-    }
-
-    const client: ClientType | null = Redis.getClient();
-
-    if (!client || !Redis.isConnected()) {
-      return;
-    }
-
-    try {
-      await client.decrby(
-        SessionReplayUsage.getDailyProjectByteKey(projectId),
-        bytes,
-      );
-    } catch (err) {
-      logger.warn(
-        `SessionReplayIngestService: could not refund ${bytes} refused bytes for project ${projectId.toString()}`,
-      );
-      logger.warn(err);
-    }
+    await SessionReplayRateLimiter.refundByteBudget({
+      projectId: projectId,
+      bytes: bytes,
+    });
   }
 
   private static async rememberSealHint(data: {
@@ -859,6 +947,16 @@ export default class SessionReplayIngestService {
     const sessionStartCache: Map<string, SessionStartMemo> = new Map<
       string,
       SessionStartMemo
+    >();
+
+    /*
+     * The running provisional-header facts per session for this job. Also
+     * what makes two header-writing frames of one session in ONE request
+     * merge with each other and not just with Redis.
+     */
+    const headerCarryCache: Map<string, SessionHeaderCarry> = new Map<
+      string,
+      SessionHeaderCarry
     >();
 
     for (const frame of parsed.frames) {
@@ -1070,6 +1168,17 @@ export default class SessionReplayIngestService {
        * is how "tags from the highest-version meta" reaches the list.
        */
       if (this.shouldWriteProvisionalHeader(envelope)) {
+        /*
+         * Merged with everything earlier chunks of this session already
+         * told a header, so a later write can only ever add. See
+         * SessionHeaderCarry.
+         */
+        const carry: SessionHeaderCarry = await this.resolveHeaderCarry({
+          projectId: projectId,
+          envelope: envelope,
+          cache: headerCarryCache,
+        });
+
         headerRows.push(
           this.buildProvisionalHeaderRow({
             projectId: projectId,
@@ -1079,6 +1188,7 @@ export default class SessionReplayIngestService {
             sessionStartDate: sessionStartDate,
             clockSkewMs: clockSkewMs,
             retentionDate: retentionDate,
+            carry: carry,
           }),
         );
       }
@@ -1296,6 +1406,238 @@ export default class SessionReplayIngestService {
 
     data.cache.set(data.envelope.sessionId, computed);
     return computed;
+  }
+
+  /*
+   * The session-wide header facts, this chunk's contribution merged in.
+   *
+   * Read-modify-write against a Redis memo, which is safe here in a way an
+   * increment would not be: every merge is max or set-union, so two workers
+   * racing on the same session converge and a retried job re-merges to the
+   * same answer. The worst a lost race can do is delay one chunk's routes
+   * to the next header write.
+   *
+   * When Redis cannot answer, the merge degrades to this job's own
+   * knowledge - the chunk's own values on a cold start. That is the
+   * behaviour this whole helper replaced, so an outage is no worse than
+   * before it existed, and the finalizer corrects the row regardless.
+   */
+  private static async resolveHeaderCarry(data: {
+    projectId: ObjectID;
+    envelope: SessionReplayChunkEnvelope;
+    cache: Map<string, SessionHeaderCarry>;
+  }): Promise<SessionHeaderCarry> {
+    const envelope: SessionReplayChunkEnvelope = data.envelope;
+
+    const exitUrl: string = UrlScrubber.scrub(envelope.url, []);
+
+    const fromThisChunk: SessionHeaderCarry = {
+      errorCount: envelope.signals.errorCount,
+      rageClickCount: envelope.signals.rageClickCount,
+      deadClickCount: envelope.signals.deadClickCount,
+      errorClickCount: envelope.signals.errorClickCount,
+      refreshRageCount: envelope.signals.refreshRageCount,
+      pageCount: envelope.signals.routeCount,
+      chunkEndOffsetMs: envelope.chunkEndOffsetMs,
+      routes: SessionReplayIngestService.buildChunkRoutes(
+        envelope.routes,
+        exitUrl,
+      ),
+      traceIds: envelope.traceIds ?? [],
+      /*
+       * The entry URL belongs to chunk 0. A later chunk's meta repeats it
+       * in the shipped recorder, but a hand-crafted POST need not, and
+       * "first non-empty wins" is what keeps the landing page even then.
+       */
+      entryUrl: UrlScrubber.scrub(envelope.meta?.entryUrl || envelope.url, []),
+      triggerReason: envelope.triggerReason,
+      isFinal: envelope.isFinal,
+    };
+
+    const key: string = `${SESSION_CARRY_KEY_PREFIX}${data.projectId.toString()}:${envelope.sessionId}`;
+
+    const cached: SessionHeaderCarry | undefined = data.cache.get(
+      envelope.sessionId,
+    );
+
+    const client: ClientType | null = Redis.getClient();
+    const isRedisUsable: boolean = Boolean(client) && Redis.isConnected();
+
+    let previous: SessionHeaderCarry | null = cached ?? null;
+
+    if (!previous && client && isRedisUsable) {
+      try {
+        previous = this.parseHeaderCarry(await client.get(key));
+      } catch (err) {
+        logger.warn(
+          `SessionReplayIngestService: could not read the header carry for ${envelope.sessionId}`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    const merged: SessionHeaderCarry = this.mergeHeaderCarry(
+      previous,
+      fromThisChunk,
+    );
+
+    data.cache.set(envelope.sessionId, merged);
+
+    if (client && isRedisUsable) {
+      try {
+        await client.set(
+          key,
+          JSON.stringify(merged),
+          "EX",
+          SESSION_SIDECAR_TTL_SECONDS,
+        );
+      } catch (err) {
+        logger.warn(
+          `SessionReplayIngestService: could not write the header carry for ${envelope.sessionId}`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    return merged;
+  }
+
+  /* Idempotent merge: max for counters, union for sets, first non-empty for text. */
+  private static mergeHeaderCarry(
+    previous: SessionHeaderCarry | null,
+    next: SessionHeaderCarry,
+  ): SessionHeaderCarry {
+    if (!previous) {
+      return {
+        ...next,
+        routes: next.routes.slice(0, PROVISIONAL_HEADER_MAX_ROUTES),
+        traceIds: next.traceIds.slice(0, PROVISIONAL_HEADER_MAX_TRACE_IDS),
+      };
+    }
+
+    return {
+      /*
+       * MAX, not sum. Sums are what the finalizer computes from the chunk
+       * rows; summing here would double count the moment a chunk is
+       * re-delivered, and the only thing the provisional row has to get
+       * right is "did this session error at all".
+       */
+      errorCount: Math.max(previous.errorCount, next.errorCount),
+      rageClickCount: Math.max(previous.rageClickCount, next.rageClickCount),
+      deadClickCount: Math.max(previous.deadClickCount, next.deadClickCount),
+      errorClickCount: Math.max(previous.errorClickCount, next.errorClickCount),
+      refreshRageCount: Math.max(
+        previous.refreshRageCount,
+        next.refreshRageCount,
+      ),
+      pageCount: Math.max(previous.pageCount, next.pageCount),
+      chunkEndOffsetMs: Math.max(
+        previous.chunkEndOffsetMs,
+        next.chunkEndOffsetMs,
+      ),
+      routes: this.mergeCappedList(
+        previous.routes,
+        next.routes,
+        PROVISIONAL_HEADER_MAX_ROUTES,
+      ),
+      traceIds: this.mergeCappedList(
+        previous.traceIds,
+        next.traceIds,
+        PROVISIONAL_HEADER_MAX_TRACE_IDS,
+      ),
+      entryUrl: previous.entryUrl || next.entryUrl,
+      triggerReason: previous.triggerReason || next.triggerReason,
+      /*
+       * Sticky. A re-delivered mid-session chunk arriving after the final
+       * one must not un-seal the session.
+       */
+      isFinal: previous.isFinal || next.isFinal,
+    };
+  }
+
+  private static mergeCappedList(
+    previous: Array<string>,
+    next: Array<string>,
+    cap: number,
+  ): Array<string> {
+    const seen: Set<string> = new Set<string>();
+    const merged: Array<string> = [];
+
+    for (const value of [...previous, ...next]) {
+      if (!value || seen.has(value)) {
+        continue;
+      }
+
+      seen.add(value);
+      merged.push(value);
+
+      if (merged.length >= cap) {
+        break;
+      }
+    }
+
+    return merged;
+  }
+
+  private static parseHeaderCarry(
+    raw: string | null,
+  ): SessionHeaderCarry | null {
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const view: JSONObject = parsed as JSONObject;
+
+      return {
+        errorCount: this.readCarryCount(view["errorCount"]),
+        rageClickCount: this.readCarryCount(view["rageClickCount"]),
+        deadClickCount: this.readCarryCount(view["deadClickCount"]),
+        errorClickCount: this.readCarryCount(view["errorClickCount"]),
+        refreshRageCount: this.readCarryCount(view["refreshRageCount"]),
+        pageCount: this.readCarryCount(view["pageCount"]),
+        chunkEndOffsetMs: this.readCarryCount(view["chunkEndOffsetMs"]),
+        routes: this.readCarryStrings(view["routes"]),
+        traceIds: this.readCarryStrings(view["traceIds"]),
+        entryUrl: typeof view["entryUrl"] === "string" ? view["entryUrl"] : "",
+        triggerReason:
+          typeof view["triggerReason"] === "string"
+            ? view["triggerReason"]
+            : "",
+        isFinal: view["isFinal"] === true,
+      };
+    } catch {
+      /* A memo we cannot read is a memo we do not have. */
+      return null;
+    }
+  }
+
+  private static readCarryCount(value: JSONValue | undefined): number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? Math.trunc(value)
+      : 0;
+  }
+
+  private static readCarryStrings(value: JSONValue | undefined): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const strings: Array<string> = [];
+
+    for (const item of value as Array<unknown>) {
+      if (typeof item === "string" && item.length > 0) {
+        strings.push(item);
+      }
+    }
+
+    return strings;
   }
 
   private static parseSessionStartMemo(
@@ -1567,8 +1909,16 @@ export default class SessionReplayIngestService {
     sessionStartDate: Date;
     clockSkewMs: number;
     retentionDate: Date;
+    /*
+     * Every session-wide fact merged across the chunks that have written a
+     * header so far. Without it a later meta-bearing chunk publishes ITS
+     * counters and ITS single route as the whole session's - see
+     * SessionHeaderCarry.
+     */
+    carry: SessionHeaderCarry;
   }): JSONObject {
     const envelope: SessionReplayChunkEnvelope = data.envelope;
+    const carry: SessionHeaderCarry = data.carry;
 
     const clientReportedStart: Date = Number.isFinite(
       envelope.sessionStartUnixMs,
@@ -1593,10 +1943,13 @@ export default class SessionReplayIngestService {
      */
     const exitUrl: string = UrlScrubber.scrub(envelope.url, []);
 
-    const entryUrl: string = UrlScrubber.scrub(
-      envelope.meta?.entryUrl || envelope.url,
-      [],
-    );
+    /*
+     * From the carry, so a later meta-bearing chunk cannot re-brand the
+     * session's landing page as whatever page it happened to flush on.
+     */
+    const entryUrl: string =
+      carry.entryUrl ||
+      UrlScrubber.scrub(envelope.meta?.entryUrl || envelope.url, []);
 
     /*
      * End-user identity, when the application asked for it.
@@ -1685,16 +2038,23 @@ export default class SessionReplayIngestService {
       sessionId: envelope.sessionId,
       version: OneUptimeDate.getCurrentDate().getTime().toString(),
       isFinalized: false,
-      sealedReason: envelope.isFinal
-        ? SessionReplaySealedReason.FinalChunk
-        : "",
+      /*
+       * Sticky through the carry: a re-delivered mid-session chunk that
+       * writes a header after the terminal one must not un-seal the row.
+       */
+      sealedReason: carry.isFinal ? SessionReplaySealedReason.FinalChunk : "",
       /*
        * endTime provisionally equals the chunk's own end, so a session that
        * is never finalized still renders a sane (if short) timeline instead
        * of a zero-length one.
        */
+      /*
+       * The furthest chunk end this session has reached, from the carry: an
+       * out-of-order or re-delivered chunk must not shorten the timeline
+       * the player draws.
+       */
       endTime: OneUptimeDate.toClickhouseDateTime64(
-        new Date(data.sessionStartDate.getTime() + envelope.chunkEndOffsetMs),
+        new Date(data.sessionStartDate.getTime() + carry.chunkEndOffsetMs),
       ),
       clientReportedStartTime:
         OneUptimeDate.toClickhouseDateTime64(clientReportedStart),
@@ -1708,25 +2068,31 @@ export default class SessionReplayIngestService {
       viewportHeight: envelope.meta?.viewportHeight ?? 0,
       clockSkewMs: Math.trunc(data.clockSkewMs).toString(),
       /*
-       * Seeded from chunk 0's own signals rather than zeroed.
+       * Seeded from the session's signals so far, not zeroed and not this
+       * chunk's alone.
        *
        * These are provisional - the finalizer replaces the whole row with a
        * GROUP BY over every chunk, so there is no lost-update risk in
        * writing them here - but zeroing them made the list contradict
        * itself for the 10-15 minutes before finalization: the same row
-       * literal set hasError from envelope.signals.errorCount while
-       * errorCount stayed 0, so a session WAS returned by the "With errors"
-       * tab and its Signals cell read "Clean". "With frustration" had the
-       * inverse problem: a session captured BECAUSE of a rage click was
-       * excluded from the tab named after it, which is exactly when someone
-       * is looking - during the incident.
+       * literal set hasError from the envelope's signals while errorCount
+       * stayed 0, so a session WAS returned by the "With errors" tab and its
+       * Signals cell read "Clean". "With frustration" had the inverse
+       * problem: a session captured BECAUSE of a rage click was excluded
+       * from the tab named after it, which is exactly when someone is
+       * looking - during the incident.
+       *
+       * Taking them from THIS chunk was the mirror-image bug: the list reads
+       * argMax(col, version), so the final chunk's (usually clean) header
+       * version made an errored session vanish from the same tab. The carry
+       * is what keeps every header version monotonic.
        */
-      errorCount: envelope.signals.errorCount,
-      rageClickCount: envelope.signals.rageClickCount,
-      deadClickCount: envelope.signals.deadClickCount,
-      errorClickCount: envelope.signals.errorClickCount,
-      refreshRageCount: envelope.signals.refreshRageCount,
-      pageCount: envelope.signals.routeCount,
+      errorCount: carry.errorCount,
+      rageClickCount: carry.rageClickCount,
+      deadClickCount: carry.deadClickCount,
+      errorClickCount: carry.errorClickCount,
+      refreshRageCount: carry.refreshRageCount,
+      pageCount: carry.pageCount,
       browserName: envelope.meta?.browserName ?? "",
       browserVersion: envelope.meta?.browserVersion ?? "",
       osName: envelope.meta?.osName ?? "",
@@ -1736,38 +2102,38 @@ export default class SessionReplayIngestService {
       recorderKind: envelope.recorderKind,
       recorderVersion: envelope.recorderVersion,
       rrwebVersion: envelope.rrwebVersion,
-      hasError: envelope.signals.errorCount > 0,
-      triggerReason: envelope.triggerReason,
+      hasError: carry.errorCount > 0,
+      triggerReason: carry.triggerReason,
       samplePercentageAtCapture: SessionSampling.clampPercentage(
         data.jobData.samplePercentageAtCapture,
       ),
       entryUrl: entryUrl,
       exitUrl: exitUrl,
       /*
-       * Chunk 0's real route list, not just its flush URL.
+       * Every route the session has reached so far, not just this chunk's
+       * flush URL.
        *
        * The header is not rewritten until the finalizer runs, so a one-entry
        * list here made the "Page URL visited (exact)" filter miss a page the
        * user demonstrably reached for the whole 10-15 minute provisional
        * window - on the same row that reported pageCount 2, which is the
        * kind of self-contradiction the seeded signal counters above exist to
-       * remove. The finalizer still replaces this with the union across
-       * every chunk of every tab.
+       * remove. The union comes from the carry (a later header version that
+       * published only its own page shrank the pills back to one); the
+       * finalizer still replaces this with the union across every chunk of
+       * every tab.
        */
-      routes: SessionReplayIngestService.buildChunkRoutes(
-        envelope.routes,
-        exitUrl,
-      ),
+      routes: carry.routes,
       /*
        * Country only, derived from the forwarded address by the route.
        * The IP itself is never stored.
        */
       countryCode: data.policy.captureGeo ? data.jobData.countryCode : "",
       /*
-       * Derived above. This runs once per session - the header is written
-       * only under `chunkIndex === 0` - so it is one SHA-256 over at most
-       * SESSION_REPLAY_MAX_USER_REF_LENGTH bytes per recording, not per
-       * chunk.
+       * Derived above, on the few chunks that write a header (chunk 0 and
+       * any later chunk carrying meta), so it is a handful of SHA-256s over
+       * at most SESSION_REPLAY_MAX_USER_REF_LENGTH bytes per recording,
+       * never one per chunk.
        */
       identifiedUserKey: identifiedUserKey,
       identifiedUserLabel: identifiedUserLabel,
@@ -1781,7 +2147,7 @@ export default class SessionReplayIngestService {
       customEventCount: 0,
       firstErrorOffsetMs: "0",
       activeMs: "0",
-      traceIds: envelope.traceIds ?? [],
+      traceIds: carry.traceIds,
       exceptionFingerprints: [],
       fidelityNotices: envelope.fidelityNotices,
       fullSnapshotChunkIndexes: [],

@@ -82,6 +82,37 @@ describe("getSessionReplayPlayability", () => {
     expect(result.isWatchable).toBe(false);
   });
 
+  /*
+   * ux-09: RumSession derives retentionDate from the session start and
+   * "keeps the header's retentionDate equal to its chunks'", so a row and
+   * its footage expire on the same day. No state may tell the viewer that
+   * the metadata outlived the recording.
+   */
+  test("no state claims the row outlived its footage", () => {
+    const metadataOnly: SessionReplayPlayability = getSessionReplayPlayability(
+      input({ chunkCount: 0 }),
+      NOW,
+    );
+
+    expect(metadataOnly.tooltip).toContain("expires together with its footage");
+    expect(metadataOnly.tooltip).not.toContain("no longer stored");
+    expect(metadataOnly.tooltip).toMatch(/never uploaded|refused/);
+
+    const lost: SessionReplayPlayability = getSessionReplayPlayability(
+      input({ sealedReason: "recording-lost" }),
+      NOW,
+    );
+
+    expect(lost.tooltip).not.toContain("expired");
+
+    const playable: SessionReplayPlayability = getSessionReplayPlayability(
+      input(),
+      NOW,
+    );
+
+    expect(playable.tooltip).toContain("this row expires with it");
+  });
+
   test("recording-lost wins over everything and is not watchable", () => {
     const result: SessionReplayPlayability = getSessionReplayPlayability(
       input({ sealedReason: "recording-lost", isFinalized: false }),

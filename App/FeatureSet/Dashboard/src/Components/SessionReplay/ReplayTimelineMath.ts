@@ -406,8 +406,25 @@ export function assignMarkerLane(
   signal: ReplaySignal,
 ): { lane: ReplayTimelineLane; tone: ReplayTimelineMarkerTone } | null {
   switch (signal.kind) {
-    case "client-error":
+    case "client-error": {
+      /*
+       * A subresource that failed to load belongs in the network lane, in
+       * amber: the recorder keeps resource failures out of its trigger
+       * counts, and drawing a 404 image as a rose error tick sent viewers
+       * hunting a crash that never happened. The recorder's own "capture
+       * stopped" marker is not an error either and gets no tick at all -
+       * the rail carries it as a notice row.
+       */
+      if (readBoolean(signal.detail, "isCapMarker")) {
+        return null;
+      }
+
+      if (signal.detail["kind"] === "resource") {
+        return { lane: "network", tone: "amber" };
+      }
+
       return { lane: "errors", tone: "rose" };
+    }
     case "server-error":
       return { lane: "errors", tone: "rose-outline" };
     case "log":

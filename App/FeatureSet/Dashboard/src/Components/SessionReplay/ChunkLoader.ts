@@ -33,6 +33,7 @@ import {
   makeEmptyExtractionStats,
 } from "./ReplayTimelineTypes";
 import { makeRecordingSignalId } from "./Rail/ReplaySignalTypes";
+import { MAX_PREFETCH_PAGES_AHEAD } from "./ReplayPlaybackIntent";
 
 /*
  * Paging, decoding, eviction and gap-aware advancement for one tab of one
@@ -224,8 +225,21 @@ export interface ChunkLoaderOptions {
  * A 30-minute session is roughly 120 chunks. Holding them all parsed is
  * hundreds of megabytes of heap in a tab that also runs the whole Dashboard,
  * so the decoded set is capped on both count and size and evicted LRU.
+ *
+ * The COUNT budget cannot be smaller than what one feed cycle asks for, or
+ * the cache becomes a shredder: the engine prefetches
+ * MAX_PREFETCH_PAGES_AHEAD pages past the fed chunk after every feed, so
+ * with a cap of 24 (= priority pair + one page + two prefetched pages,
+ * exactly) the very next admit evicted footage that had been fetched but
+ * not yet fed, and ensureChunk fetched it again a few hundred milliseconds
+ * later. Measured over a 60-chunk session that was 95 page requests instead
+ * of 8, with individual chunks fetched up to 17 times.
+ *
+ * So: room for the priority pair plus the page being fed plus every page
+ * the fastest speed prefetches, and never fewer.
  */
-const DEFAULT_MAX_DECODED_CHUNKS: number = 24;
+export const DEFAULT_MAX_DECODED_CHUNKS: number =
+  2 + MAX_SESSION_REPLAY_CHUNKS_PER_READ * (1 + MAX_PREFETCH_PAGES_AHEAD);
 const DEFAULT_MAX_DECODED_BYTES: number = 24 * 1024 * 1024;
 
 /*
@@ -295,6 +309,20 @@ export default class ChunkLoader {
    */
   private generation: number;
 
+  /*
+   * The last chunk the player has handed to rrweb, as set by
+   * setFedThrough. Everything at or below it is already inside the
+   * Replayer, so dropping it from the cache costs nothing; everything
+   * above it is footage that was fetched precisely because playback is
+   * about to need it, and evicting THAT is what makes the loader fetch
+   * the same page over and over. null means "nobody told us", in which
+   * case eviction is plain LRU.
+   */
+  private fedThroughChunkIndex: number | null;
+
+  /* Notified with each chunk index as it is admitted to the cache. */
+  private readonly decodeListeners: Set<(chunkIndex: number) => void>;
+
   public constructor(options: ChunkLoaderOptions) {
     this.sessionId = options.sessionId;
     this.tabId = options.tabId;
@@ -322,6 +350,31 @@ export default class ChunkLoader {
     this.timeline = new Map<number, TimelineChunkRecord>();
     this.countsByKind = {};
     this.truncatedKinds = new Set<ReplayTimelineEventKind>();
+    this.fedThroughChunkIndex = null;
+    this.decodeListeners = new Set<(chunkIndex: number) => void>();
+  }
+
+  /*
+   * How far playback has fed. Chunks at or below this are evicted before
+   * anything above it, whatever the LRU order says. Pass null on a rebuild,
+   * where the old cursor describes a segment that no longer exists.
+   */
+  public setFedThrough(chunkIndex: number | null): void {
+    this.fedThroughChunkIndex =
+      chunkIndex !== null && Number.isFinite(chunkIndex) ? chunkIndex : null;
+  }
+
+  /*
+   * Called with every chunk index as it is decoded, fed or not. The engine
+   * uses it to admit activity evidence for prefetched footage, so the idle
+   * map is exact ahead of the playhead rather than only behind it.
+   */
+  public onChunkDecoded(listener: (chunkIndex: number) => void): () => void {
+    this.decodeListeners.add(listener);
+
+    return (): void => {
+      this.decodeListeners.delete(listener);
+    };
   }
 
   /* ---- Manifest ---- */
@@ -958,6 +1011,17 @@ export default class ChunkLoader {
         return;
       }
 
+      /*
+       * Never fetch more than the cache can hold on top of the footage
+       * that is waiting to be fed. Reading further ahead than that does
+       * not warm anything: the page lands, evicts the page before it, and
+       * the feed loop fetches that one back. Stopping here leaves the
+       * request for the moment playback actually needs it.
+       */
+      if (!this.canHold(planned)) {
+        return;
+      }
+
       try {
         await this.loadIndexes(planned);
       } catch {
@@ -967,6 +1031,40 @@ export default class ChunkLoader {
 
       cursor = last;
     }
+  }
+
+  /*
+   * Whether `planned` fits alongside the decoded chunks that are NOT yet
+   * fed (the fed ones are evictable, see chooseEviction). Bytes are
+   * estimated from the manifest's payloadBytes, which is the only size
+   * known before a chunk is decoded; the count budget does the real work
+   * and the measured decodedBytes corrects the estimate on the next call.
+   */
+  private canHold(planned: Array<number>): boolean {
+    const fedThrough: number | null = this.fedThroughChunkIndex;
+    let retainedCount: number = 0;
+    let retainedBytes: number = 0;
+
+    for (const [chunkIndex, chunk] of this.decoded) {
+      if (fedThrough !== null && chunkIndex <= fedThrough) {
+        continue;
+      }
+
+      retainedCount += 1;
+      retainedBytes += chunk.approximateBytes;
+    }
+
+    if (retainedCount + planned.length > this.maxDecodedChunks) {
+      return false;
+    }
+
+    let plannedBytes: number = 0;
+
+    for (const chunkIndex of planned) {
+      plannedBytes += this.entryByIndex.get(chunkIndex)?.payloadBytes ?? 0;
+    }
+
+    return retainedBytes + plannedBytes <= this.maxDecodedBytes;
   }
 
   /* Kept for older callers: one page after the one containing chunkIndex. */
@@ -1023,6 +1121,7 @@ export default class ChunkLoader {
     this.decoded.clear();
     this.inFlightByChunk.clear();
     this.decodedBytes = 0;
+    this.fedThroughChunkIndex = null;
     this.timeline.clear();
     this.countsByKind = {};
     this.truncatedKinds.clear();
@@ -1318,6 +1417,27 @@ export default class ChunkLoader {
       };
 
       ChunkLoader.fillRow(row, kind, payload);
+
+      /*
+       * Performance entries are DELIVERED late by design: a buffered LCP
+       * arrives at its observer callback, a long task after it ends, and
+       * CLS/INP only settle at page hide - minutes after the moment the
+       * number describes. The recorder stamps the true wall clock in
+       * occurredAtUnixMs, so the row belongs there and not where the event
+       * queue happened to flush. Still clamped to the chunk's window, so a
+       * skewed or stale stamp cannot move the row into a chunk that was
+       * never fetched.
+       */
+      if (kind === "performance") {
+        const occurredAtUnixMs: unknown = payload["occurredAtUnixMs"];
+
+        if (
+          typeof occurredAtUnixMs === "number" &&
+          Number.isFinite(occurredAtUnixMs)
+        ) {
+          row.offsetMs = toOffsetMs(occurredAtUnixMs);
+        }
+      }
 
       if (kind === "click") {
         hasLabelledClicks = true;
@@ -1780,24 +1900,58 @@ export default class ChunkLoader {
     this.decodedBytes += approximateBytes;
 
     /*
-     * Evict oldest-first until back under both budgets. The chunk just
-     * admitted is the most recently used, so it is the last candidate and
-     * survives even when it alone exceeds the byte budget - a single
-     * oversized snapshot must still be playable.
+     * Evict until back under both budgets. The chunk just admitted is the
+     * most recently used, so it is the last candidate and survives even
+     * when it alone exceeds the byte budget - a single oversized snapshot
+     * must still be playable.
      */
     while (
       this.decoded.size > 1 &&
       (this.decoded.size > this.maxDecodedChunks ||
         this.decodedBytes > this.maxDecodedBytes)
     ) {
-      const oldest: number | undefined = this.decoded.keys().next().value;
+      const victim: number | undefined = this.chooseEviction(chunkIndex);
 
-      if (oldest === undefined) {
+      if (victim === undefined) {
         break;
       }
 
-      this.evict(oldest);
+      this.evict(victim);
     }
+
+    for (const listener of [...this.decodeListeners]) {
+      listener(chunkIndex);
+    }
+  }
+
+  /*
+   * Who goes when the cache is full: the oldest chunk playback has already
+   * fed, and only if there is none, the oldest chunk overall.
+   *
+   * Insertion order IS the LRU order, so the first key Map iteration
+   * yields in each pass is the least recently used of that group. Without
+   * the fed-first rule a full cache evicts exactly the footage the feed
+   * loop is about to ask for, and the loader re-fetches the page it just
+   * downloaded - the "buffering every few seconds on a long session" bug.
+   */
+  private chooseEviction(justAdmittedChunkIndex: number): number | undefined {
+    const fedThrough: number | null = this.fedThroughChunkIndex;
+
+    if (fedThrough !== null) {
+      for (const chunkIndex of this.decoded.keys()) {
+        if (chunkIndex <= fedThrough && chunkIndex !== justAdmittedChunkIndex) {
+          return chunkIndex;
+        }
+      }
+    }
+
+    for (const chunkIndex of this.decoded.keys()) {
+      if (chunkIndex !== justAdmittedChunkIndex) {
+        return chunkIndex;
+      }
+    }
+
+    return undefined;
   }
 
   private evict(chunkIndex: number): void {

@@ -327,6 +327,28 @@ describe("Config diagnostics", (): void => {
 
       expect(detailOf("config-disabled")).toEqual({
         disabledReason: "no-active-subscription",
+        disabledDetail: "not-reported",
+        budgetResetsAt: "not-reported",
+      });
+    });
+
+    /*
+     * "Off because the monthly session budget is exhausted, back on the
+     * 1st" is a different ticket from "off because somebody turned it off",
+     * and the server narrows the reason for exactly that purpose.
+     */
+    it("reports which budget did it and when it resets, when the server says", (): void => {
+      Config.validateConfig({
+        enabled: false,
+        disabledReason: "budget-exhausted",
+        disabledDetail: "monthly-session-budget",
+        budgetResetsAt: "2026-10-01T00:00:00.000Z",
+      });
+
+      expect(detailOf("config-disabled")).toEqual({
+        disabledReason: "budget-exhausted",
+        disabledDetail: "monthly-session-budget",
+        budgetResetsAt: "2026-10-01T00:00:00.000Z",
       });
     });
 

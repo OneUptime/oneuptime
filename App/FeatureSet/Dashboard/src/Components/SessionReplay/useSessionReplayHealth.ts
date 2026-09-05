@@ -15,10 +15,7 @@ import {
   diagnoseRecordingHealth,
   parseRecordingHealthStatus,
 } from "Common/Utils/Rum/SessionReplayHealth";
-import {
-  readDtoOptionalNumber,
-  readDtoStringArray,
-} from "Common/Types/Rum/SessionReplayApi";
+import { readDtoStringArray } from "Common/Types/Rum/SessionReplayApi";
 
 /*
  * useSessionReplayHealth(rumApplicationId): the one source of "is recording
@@ -63,14 +60,23 @@ export interface SessionReplayHealthError {
 }
 
 /*
- * Additive fields the route sends that RecordingHealthStatus does not carry
- * yet. Read defensively off the raw body so an older server (or a newer
- * one) never breaks the parse; null means "the server did not say".
+ * The health facts the surfaces render beside the parsed status. null always
+ * means "the server did not say", never zero: a counter store that is down
+ * and a day with nothing to count are different answers, and only one of
+ * them is good news.
  */
 export interface SessionReplayHealthExtras {
-  /* Chunks dropped inside the worker AFTER a 202; null = counter unreachable. */
+  /*
+   * Chunks dropped inside the worker AFTER a 202; null = counter unreachable.
+   * Carried by RecordingHealthStatus now; kept on this object because every
+   * surface reads it from here.
+   */
   dropsLast24h: Array<{ reason: string; count: number }> | null;
-  /* attributes["recorder.capabilities"] of the newest session, when sent. */
+  /*
+   * attributes["recorder.capabilities"] of the newest session. Read off the
+   * raw body because RecordingHealthStatus does not carry it yet; absent
+   * (an older server, or one whose newest session announced none) is null.
+   */
   recorderCapabilities: Array<string> | null;
 }
 
@@ -186,39 +192,27 @@ export function describeHealthError(error: SessionReplayHealthError): {
   };
 }
 
-function readExtras(raw: JSONObject): SessionReplayHealthExtras {
-  const rawDrops: unknown = raw["dropsLast24h"];
-  let drops: Array<{ reason: string; count: number }> | null = null;
-
-  if (Array.isArray(rawDrops)) {
-    drops = [];
-
-    for (const entry of rawDrops) {
-      if (entry === null || typeof entry !== "object") {
-        continue;
-      }
-
-      const row: Record<string, unknown> = entry as Record<string, unknown>;
-      const reason: unknown = row["reason"];
-      const count: number | undefined = readDtoOptionalNumber(row, "count");
-
-      if (
-        typeof reason === "string" &&
-        reason.length > 0 &&
-        count !== undefined
-      ) {
-        drops.push({ reason: reason, count: count });
-      }
-    }
-  }
-
+/*
+ * `raw` is still read directly for recorderCapabilities: RecordingHealthStatus
+ * does not carry that field yet, and the alternative (a /manifest call for the
+ * newest session) writes an audit row for a read nobody asked for.
+ *
+ * dropsLast24h used to be parsed here too. It now lives on the status, so it
+ * is taken from there: two parsers over the same bytes eventually disagree
+ * about which entries are well-formed, and the surfaces would then show two
+ * different drop counts on the same page.
+ */
+function readExtras(
+  raw: JSONObject,
+  status: RecordingHealthStatus,
+): SessionReplayHealthExtras {
   const capabilities: Array<string> = readDtoStringArray(
     raw,
     "recorderCapabilities",
   );
 
   return {
-    dropsLast24h: drops,
+    dropsLast24h: status.dropsLast24h ?? null,
     recorderCapabilities: Array.isArray(raw["recorderCapabilities"])
       ? capabilities
       : null,
@@ -326,7 +320,7 @@ async function fetchNow(poller: Poller): Promise<void> {
         extras:
           status === null
             ? { dropsLast24h: null, recorderCapabilities: null }
-            : readExtras(raw),
+            : readExtras(raw, status),
         isLoading: false,
         isRefreshing: false,
         error:

@@ -39,10 +39,13 @@ import { SealedReasonCopy } from "./FidelityNoticeCopy";
  * instead of a hex fragment; player-shell-8 / product-gap-19), the Live
  * pill, and the actions: pin, copy link, wide, theater, details.
  *
- * Copy link never fails silently and never relabels the button
- * (player-shell-12): a successful copy is announced through a live
- * region, and where the clipboard is unavailable (plain-http self-hosted
- * installs) the URL is shown in a read-only field to copy by hand.
+ * Copying never fails silently and never relabels a button
+ * (player-shell-12, ux-19): every copyable value on this header - the
+ * moment link, the session id, and the rail's row link through
+ * handle.copyUrl - goes through one path that announces success in a live
+ * region and, where the clipboard is unavailable (plain-http self-hosted
+ * installs) or refuses, shows the value in a read-only field to copy by
+ * hand.
  */
 
 export interface ReplayHeaderFact {
@@ -104,9 +107,16 @@ export interface ReplayHeaderProps {
   pinControl?: ReactElement | null | undefined;
 }
 
-/* What the shell drives from the keyboard map ("c"). */
+/* What the shell drives from the keyboard map ("c") and the rail rows. */
 export interface ReplayHeaderHandle {
   copyLink: () => void;
+  /*
+   * Copy an arbitrary link through the same announced-and-fallback path
+   * (ux-10): the rail's per-row "Copy link to this moment" used to write
+   * to navigator.clipboard directly, so it said nothing on success and
+   * nothing at all on a plain-http install where the clipboard is absent.
+   */
+  copyUrl: (url: string) => void;
 }
 
 /* How long "Link copied" stays announced. */
@@ -153,10 +163,34 @@ export function formatReplayTabLabel(tab: ReplayHeaderTab): string {
   return parts.join(" · ");
 }
 
+/* What a copy was of, so the announcement and the fallback name it. */
+type CopyKind = "link" | "session-id";
+
+interface CopyKindCopy {
+  announcement: string;
+  fallbackPrompt: string;
+  fieldLabel: string;
+}
+
+const COPY_KIND_COPY: Record<CopyKind, CopyKindCopy> = {
+  link: {
+    announcement: "Link copied to the clipboard.",
+    fallbackPrompt:
+      "The clipboard is not available here; copy the link by hand:",
+    fieldLabel: "Link to this moment",
+  },
+  "session-id": {
+    announcement: "Session id copied to the clipboard.",
+    fallbackPrompt:
+      "The clipboard is not available here; copy the session id by hand:",
+    fieldLabel: "Session id",
+  },
+};
+
 type CopyLinkState =
   | { status: "idle" }
-  | { status: "copied"; url: string }
-  | { status: "fallback"; url: string };
+  | { status: "copied"; value: string; kind: CopyKind }
+  | { status: "fallback"; value: string; kind: CopyKind };
 
 const ACTION_BUTTON_CLASS: string =
   "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
@@ -236,6 +270,39 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   const { buildMomentUrl } = props;
 
+  /*
+   * One copy path for every copyable value on this header (and, through
+   * the handle, for the rail's row action): announce success in the live
+   * region, and show the value in a read-only field when the clipboard
+   * is missing or refuses. Nothing here is ever silent.
+   */
+  const copyValue: (value: string, kind: CopyKind) => void = useCallback(
+    (value: string, kind: CopyKind): void => {
+      if (!value) {
+        return;
+      }
+
+      void copyTextToClipboard(value).then((isCopied: boolean): void => {
+        if (!isCopied) {
+          setCopyState({ status: "fallback", value: value, kind: kind });
+          return;
+        }
+
+        setCopyState({ status: "copied", value: value, kind: kind });
+
+        if (copiedTimerRef.current !== null) {
+          clearTimeout(copiedTimerRef.current);
+        }
+
+        copiedTimerRef.current = setTimeout((): void => {
+          copiedTimerRef.current = null;
+          setCopyState({ status: "idle" });
+        }, REPLAY_HEADER_COPIED_MS);
+      });
+    },
+    [],
+  );
+
   const handleCopyLink: () => void = useCallback((): void => {
     const url: string | null = buildMomentUrl();
 
@@ -243,28 +310,19 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
       return;
     }
 
-    void copyTextToClipboard(url).then((isCopied: boolean): void => {
-      if (!isCopied) {
-        setCopyState({ status: "fallback", url: url });
-        return;
-      }
+    copyValue(url, "link");
+  }, [buildMomentUrl, copyValue]);
 
-      setCopyState({ status: "copied", url: url });
-
-      if (copiedTimerRef.current !== null) {
-        clearTimeout(copiedTimerRef.current);
-      }
-
-      copiedTimerRef.current = setTimeout((): void => {
-        copiedTimerRef.current = null;
-        setCopyState({ status: "idle" });
-      }, REPLAY_HEADER_COPIED_MS);
-    });
-  }, [buildMomentUrl]);
+  const handleCopyUrl: (url: string) => void = useCallback(
+    (url: string): void => {
+      copyValue(url, "link");
+    },
+    [copyValue],
+  );
 
   useImperativeHandle(ref, (): ReplayHeaderHandle => {
-    return { copyLink: handleCopyLink };
-  }, [handleCopyLink]);
+    return { copyLink: handleCopyLink, copyUrl: handleCopyUrl };
+  }, [handleCopyLink, handleCopyUrl]);
 
   const handleBackClick: (event: React.MouseEvent<HTMLAnchorElement>) => void =
     useCallback(
@@ -334,6 +392,18 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   const shortSessionId: string = props.sessionId.slice(0, 8);
 
+  /* One line of facts for narrow widths; the title carries the labels. */
+  const factsLine: string = props.facts
+    .map((fact: ReplayHeaderFact): string => {
+      return fact.value;
+    })
+    .join(" · ");
+  const factsTitle: string = props.facts
+    .map((fact: ReplayHeaderFact): string => {
+      return `${fact.label}: ${fact.value}`;
+    })
+    .join(" · ");
+
   return (
     <header
       data-testid="replay-header"
@@ -374,6 +444,22 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           >
             {traitCount} trait{traitCount === 1 ? "" : "s"}
           </button>
+        )}
+
+        {/*
+         * ux-16: the facts used to disappear outright below md, so on a
+         * tablet in portrait the viewer could not see which browser, OS
+         * or viewport they were watching without opening Details. They
+         * now collapse to one truncated line instead of vanishing.
+         */}
+        {props.facts.length > 0 && (
+          <span
+            className="min-w-0 max-w-[45%] truncate text-gray-700 md:hidden"
+            title={factsTitle}
+            data-testid="replay-header-facts-compact"
+          >
+            {factsLine}
+          </span>
         )}
 
         {props.facts.map((fact: ReplayHeaderFact): ReactElement => {
@@ -502,7 +588,8 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             icon={IconProp.Copy}
             dataTestId="replay-copy-session-id"
             onClick={(): void => {
-              void copyTextToClipboard(props.sessionId);
+              /* ux-19: the same announced path the Link button uses. */
+              copyValue(props.sessionId, "session-id");
             }}
           />
         </span>
@@ -564,7 +651,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             : "sr-only"
         }
       >
-        {copyState.status === "copied" ? "Link copied to the clipboard." : ""}
+        {copyState.status === "copied"
+          ? COPY_KIND_COPY[copyState.kind].announcement
+          : ""}
       </div>
 
       {copyState.status === "fallback" && (
@@ -572,15 +661,13 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
           className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-700"
           data-testid="replay-copy-link-fallback"
         >
-          <span>
-            The clipboard is not available here; copy the link by hand:
-          </span>
+          <span>{COPY_KIND_COPY[copyState.kind].fallbackPrompt}</span>
           <input
             ref={fallbackInputRef}
             type="text"
             readOnly={true}
-            value={copyState.url}
-            aria-label="Link to this moment"
+            value={copyState.value}
+            aria-label={COPY_KIND_COPY[copyState.kind].fieldLabel}
             className="min-w-[16rem] flex-1 rounded border border-gray-300 bg-white px-2 py-1 font-mono text-[11px] text-gray-800"
             onFocus={(event: React.FocusEvent<HTMLInputElement>): void => {
               event.currentTarget.select();

@@ -65,7 +65,7 @@ Open DevTools → Network and filter for `session-replay`. A working page makes:
 
 1. **One `GET .../session-replay/v1/config`** per page load — the policy fetch.
 2. **A `POST .../session-replay/v1/chunk` about every 15 seconds while the user is doing something**, or sooner when 256 KB of events have accumulated. An idle tab produces no events and therefore **no POST at all**: move the mouse or click before you judge an install from the Network tab.
-3. When the tab is hidden or closed, one or more small final POSTs (each under 48 KB, sent with `keepalive`) that seal the recording.
+3. When the tab is hidden or closed, **one** `POST` sent with `keepalive` that seals the recording. Its whole body stays under **56 KB** — the recorder's share of the browser's 64 KB per-origin keepalive quota — and it can carry several chunks as frames of that one request: the closing chunk, the pieces a large closing chunk was cut into (at most 48 KB of events each, so the frame header still fits), and any chunk that was still waiting to be retried. A chunk already larger than that budget when the tab is merely hidden goes out on the ordinary path instead, while the page is still alive to send it.
 
 Under the _On error or frustration_ trigger, step 2 does not happen until a trigger fires — see [Troubleshooting](#troubleshooting).
 
@@ -86,7 +86,8 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 ```
 
 - The reference is what the session list shows and what `user:` searches match. The traits are shown in the player header and on the session's details panel.
-- Neither the reference nor the traits leaves the browser unless **Capture user identity** is on for the application (the default). With it off, the server keeps only a one-way keyed hash of the reference, so a named customer's session can still be targeted by an erasure request but never read back.
+- What `identify()` gives the recorder is uploaded with the recording only while **Capture user identity** is on for the application (the default). With it off the recorder leaves the reference and the traits out of the chunk, and the server stores **nothing at all** about the person — no reference, no keyed hash of it, no traits. Those sessions are genuinely pseudonymous, and the price of that is that they cannot be erased _by user_: an erasure request has nothing to match, so use `BySessionId`, `ByDateRange` or `ByRumApplication` instead (see [Erasing sessions](#erasing-sessions)). If honouring a per-user deletion request matters more to you than storing no identifier, leave the switch on — the stored key is a one-way keyed hash, so it is matchable but not readable, and only the separate label carries the reference itself.
+- One reference does leave the browser regardless of that switch, by design: the one your page supplies **at load time** via `data-oneuptime-user-ref` or `userRef` on the init global travels as a request header on the policy fetch of every page load, because that is how [Record a specific user's next session](#recording-a-specific-users-next-session) matches a visitor before any recorder exists. The server compares it against the armed target and discards it; it is not written to the session unless identity capture is on and the recorder sends it again with the recording. A reference passed to `identify()` is never sent this way.
 - Traits are capped at 20 keys, 40 characters per key and 200 per value, stringified, and passed through the application's masking mode: under _Mask all text_ they are masked before upload.
 - Reading identity back in the dashboard requires the same permission as watching the recording (see [Who can watch a recording](#who-can-watch-a-recording)); other roles see "Identity hidden".
 
@@ -109,7 +110,7 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 | --- | --- |
 | `identify(userRef, traits?)` | Attach the end user. `traits` is an object of string, number or boolean values (≤ 20 keys, key ≤ 40 chars, value ≤ 200 chars), masked under _Mask all text_ and only uploaded when **Capture user identity** is on. Calling it again mid-session re-sends the identity on the next chunk. |
 | `track(name, properties?)` | Record a business event (`"checkout_failed"`) on the timeline. `name` ≤ 64 chars, ≤ 20 property keys with the same value caps as traits. Up to 50 per 15-second chunk; beyond that the chunk carries one "events dropped" marker with the count. |
-| `setTags(tags)` / `addTag(key, value)` | Per-session tags (`{ build: "1.4.2", experiment: "new-checkout" }`), ≤ 20 tags, key ≤ 32 chars, value ≤ 128. Searchable from the session list with `tag:key=value` and shown on the session's details. `setTags` merges into the existing map; `addTag` sets one key. |
+| `setTags(tags)` / `addTag(key, value)` | Per-session tags (`{ build: "1.4.2", experiment: "new-checkout" }`), ≤ 20 tags, key ≤ 32 chars, value ≤ 128. Searchable from the session list with `tag:key=value` and shown on the session's details. `setTags` **replaces** the whole map, so a second `setTags({ experiment })` drops a `build` tag set by the first one; `addTag` sets one key and keeps the rest. Build the map in one `setTags` call, or use `addTag` as you learn each value. |
 | `captureSession(reason?)` | Under _On error or frustration_, force this session to upload from its rolling buffer onwards; under _Always_ it is a no-op for uploading but the `reason` (≤ 80 chars) is still marked on the timeline. Use it from your own "report a problem" button. |
 | `onSessionChange(listener)` | `listener(sessionId, tabId)` is called immediately if a session exists and again whenever the id changes — after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first. Returns an unsubscribe function. This is what puts `session.id` on your OpenTelemetry resource; see [Correlating with your other telemetry](#correlating-with-your-other-telemetry). |
 | `grantConsent()` | Under consent mode _Require explicit_, allow uploads. Nothing is uploaded before this. |
@@ -149,7 +150,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | Capture trigger | **Always** | Every sampled session uploads from its first event. Set *On error or frustration* to upload only when something goes wrong. |
 | Sample percentage | **100%** | Share of sessions eligible for recording. This is the dial for cost. Note that 0% together with *Always* records nothing at all; the policy page warns when you configure that. |
 | Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
-| Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous. |
+| Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous — with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). |
 | Capture country | **on** | Country only, never an IP address. |
 | Record canvas | **off** | Canvas and WebGL are not recorded. |
 | Retention | **7 days** | Shorter than other telemetry, on purpose. 1, 14, 30 and 90 days are also available. |
@@ -253,7 +254,7 @@ If you self-host OneUptime, use your own host instead.
 
 One more CSP-adjacent detail: for playback to render your styles, your stylesheets must be readable by the recorder. A cross-origin stylesheet without `crossorigin="anonymous"` cannot be read, and the session will play back unstyled with a notice explaining why.
 
-Use the **Test your installation** panel on the application's _Replay Policy_ page to confirm the token, the origin allowlists and the CSP all line up from the server's side.
+Use the **Test your installation** panel on the application's _Replay Policy_ page to confirm the token, the policy switches and the origin allowlists from the server's side. **It cannot check your CSP** — a CSP is a header your own site sends to your own visitors, and nothing server-side ever sees it. A CSP block shows up there only indirectly: `script-src` blocks the recorder, so the panel's _Recorder loaded on your site_ row stays waiting; `connect-src` blocks the upload, so that row passes while the recording-received row below it stays waiting. Either way the browser console on the blocked page logs the refusal, and that is the only positive proof.
 
 ## Correlating with your other telemetry
 
@@ -406,7 +407,7 @@ The **recording health strip** on the sessions page and the **Recording health**
 | `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the sessions page walks through it. |
 | `loaded-never-uploaded` | The recorder fetched its policy recently but no chunk has ever arrived. The detail explains it from the policy: sampling is 0%, consent mode is _Require explicit_ and the page has not granted it, the trigger is _On error or frustration_ and nothing has fired — or, with a healthy policy, a CSP or ad blocker is refusing the ingest URL. | The action matches the cause. |
 | `stale` | Recorders keep fetching the policy but no chunk has arrived for more than six hours. | Same causes as above, on a page that used to work: check what changed. |
-| `healthy-quiet` | The policy is healthy and the recorder loads, but there was no traffic in the past 24 hours. Quiet, not broken. | Nothing. |
+| `healthy-quiet` | No chunk for more than six hours **and** no page has fetched the policy in the past 24 hours either, with nothing switched off, over budget or being refused. No recorder is running on this application right now — a low-traffic or staging app, or a snippet that is no longer on the page. The card quantifies both silences. | If your pages are being served, check that the script tag is still on them; otherwise nothing. |
 | `healthy` | Chunks are arriving: the strip shows the last chunk's age, sessions today and the sample percentage. | Nothing. |
 | `unknown` | The status endpoint could not be read. | Retry; check the permission error the card shows. |
 
@@ -467,6 +468,8 @@ To satisfy a deletion request, file an erasure request through the OneUptime API
 | `targetValue` | The session id, the end-user key as stored on the session (the one-way derivation of the reference — the raw reference is never accepted, by design), or the application id. Unused for a date range. |
 | `startDate` / `endDate` | The window for `ByDateRange`. |
 | `rumApplicationId` | The application the request applies to. |
+
+Two honest limits on `ByIdentifiedUserKey`. The key is not shown anywhere in the dashboard: it comes back as `identifiedUserKey` on each row of the session list API (`POST /telemetry/rum/session-replay/list`), so today an erasure by user starts with a `user:` search there and a copy of that field. And a session recorded while **Capture user identity** was off has no key at all — nothing about the person was stored — so it can only be reached by session id, date range or application.
 
 Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording **and** the correlated logs, spans and exceptions for those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found".
 

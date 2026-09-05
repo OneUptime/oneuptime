@@ -178,6 +178,76 @@ describe("Recorder public API", (): void => {
       index.stop();
     });
 
+    /*
+     * REGRESSION (recorder-1). The queue has to keep working AFTER the
+     * artifact loads. The recorder arrives in under a second; a consent
+     * banner is clicked seconds or minutes later, and the docs tell the
+     * customer to push the decision rather than wait for the global
+     * ("Push [command, ...arguments] entries onto window.OneUptimeReplayQueue
+     * instead, and they are applied as soon as it arrives"). Pushing onto an
+     * array nobody reads again is a RequireExplicit session that records
+     * forever and uploads nothing - the exact failure the queue exists to
+     * prevent.
+     */
+    it("applies a grantConsent pushed onto the queue long after bootstrap", async (): Promise<void> => {
+      const index: typeof import("../src/Index") = await importIndex();
+
+      index.bootstrap(INIT_OPTIONS, {
+        ...baseConfig(),
+        samplePercentage: 100,
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+      });
+
+      await tick();
+
+      /* Recording, but nothing may go out yet. */
+      expect(index.getDiagnostics().state).toBe("recording");
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      const queue: Array<unknown> = globalRecord[
+        "OneUptimeReplayQueue"
+      ] as Array<unknown>;
+
+      expect(Array.isArray(queue)).toBe(true);
+
+      /* Exactly what the docs tell a cookie banner to do. */
+      queue.push(["grantConsent"]);
+      queue.push(["identify", "user-7"]);
+
+      await tick();
+      await tick();
+
+      expect(index.getDiagnostics().isUploading).toBe(true);
+      expect(fetchMock).toHaveBeenCalled();
+      expect(posts()[0]?.envelope.consentState).toBe("Granted");
+      expect(index.getSessionId()).not.toBeNull();
+
+      index.stop();
+    });
+
+    /* push() still behaves like push: the entries are in the array. */
+    it("keeps array semantics on the live queue", async (): Promise<void> => {
+      globalRecord["OneUptimeReplayQueue"] = [["setTags", { build: "1" }]];
+
+      const index: typeof import("../src/Index") = await importIndex();
+
+      index.bootstrap(INIT_OPTIONS, baseConfig());
+
+      await tick();
+
+      const queue: Array<unknown> = globalRecord[
+        "OneUptimeReplayQueue"
+      ] as Array<unknown>;
+
+      const length: number = queue.push(["addTag", "arm", "b"]);
+
+      expect(length).toBe(1);
+      expect(queue.length).toBe(1);
+      expect(index.getDiagnostics().tags).toEqual({ build: "1", arm: "b" });
+
+      index.stop();
+    });
+
     it("runs queued track and captureSession(reason) after start, never before", async (): Promise<void> => {
       globalRecord["OneUptimeReplayQueue"] = [
         ["track", "checkout_started", { step: 1 }],

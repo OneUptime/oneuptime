@@ -280,13 +280,82 @@ export function getReplayViewPrefsSnapshot(): ReplayViewPrefs {
   return replayViewPrefsStore.getSnapshot();
 }
 
+/* The page origin, when there is a window to read it from. */
+function resolveCurrentOrigin(): string {
+  try {
+    return typeof window !== "undefined" && window.location
+      ? window.location.origin
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 /*
- * The list URL to return to, or null. Only a same-origin relative path is
- * honoured: sessionStorage is writable by any script on the origin, and a
- * "back" link must never become an open redirect.
+ * A stored value reduced to a same-origin path, or null.
+ *
+ * Two shapes are accepted because the list writes the second one: a
+ * relative "/path?query", and an absolute "https://this-host/path?query"
+ * (SessionReplayTable stamps window.location.href / buildFilteredUrl's
+ * absolute result, and a reader that only took relative paths silently
+ * dropped every stamp, so the back link never restored the filters -
+ * integration-002).
+ *
+ * Anything else is rejected. sessionStorage is writable by any script on
+ * the origin, so a "back" link must never become an open redirect: a
+ * cross-origin absolute URL, a protocol-relative "//host", a backslash
+ * (which some parsers fold into "/") and an unparseable value all return
+ * null and leave the caller on its own list route.
+ */
+export function toSameOriginReplayListPath(
+  value: string | null | undefined,
+  origin?: string | null,
+): string | null {
+  if (typeof value !== "string" || value.length === 0) {
+    return null;
+  }
+
+  if (value.includes("\\")) {
+    return null;
+  }
+
+  if (value.startsWith("/")) {
+    return value.startsWith("//") ? null : value;
+  }
+
+  const currentOrigin: string =
+    typeof origin === "string" && origin.length > 0
+      ? origin
+      : resolveCurrentOrigin();
+
+  if (currentOrigin.length === 0) {
+    return null;
+  }
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (parsed.origin !== currentOrigin) {
+    return null;
+  }
+
+  const path: string = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+
+  return path.startsWith("/") && !path.startsWith("//") ? path : null;
+}
+
+/*
+ * The list URL to return to, or null. Only a same-origin location is
+ * honoured, and it is always returned as a path (see above).
  */
 export function readReplayListUrl(
   storage?: ReplayPrefsStorageLike | null,
+  origin?: string | null,
 ): string | null {
   let source: ReplayPrefsStorageLike | null | undefined = storage;
 
@@ -303,18 +372,10 @@ export function readReplayListUrl(
   }
 
   try {
-    const value: string | null = source.getItem(REPLAY_LIST_URL_STORAGE_KEY);
-
-    if (
-      typeof value !== "string" ||
-      !value.startsWith("/") ||
-      value.startsWith("//") ||
-      value.includes("\\")
-    ) {
-      return null;
-    }
-
-    return value;
+    return toSameOriginReplayListPath(
+      source.getItem(REPLAY_LIST_URL_STORAGE_KEY),
+      origin,
+    );
   } catch {
     return null;
   }

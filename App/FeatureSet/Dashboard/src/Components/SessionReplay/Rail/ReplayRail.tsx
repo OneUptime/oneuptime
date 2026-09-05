@@ -79,7 +79,9 @@ import {
 } from "./ReplaySignalTypes";
 import {
   REPLAY_SIGNAL_SEEK_PRE_ROLL_MS,
+  ReplaySignalMatch,
   buildErrorCounterpartIndex,
+  findSignalMatch,
   fromExceptionRow,
   fromLogRow,
   getActiveSignalIndex,
@@ -197,6 +199,12 @@ export interface ReplayRailHandle {
   focusSearch: () => void;
   /* Reveal a signal by id (from ?signal=): switch tab if needed, select, seek. */
   revealSignal: (signalId: string) => boolean;
+  /*
+   * Same, but WITHOUT seeking: ?signal= together with an explicit ?t or
+   * ?at means "select this row, at the time the URL already names".
+   * Returns false when no row on any tab answers to that id.
+   */
+  selectSignal: (signalId: string) => boolean;
 }
 
 /* Scope windows move in whole seconds so the list does not churn at 30Hz. */
@@ -376,6 +384,20 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     useRef<HTMLDivElement>(null);
   const searchRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
+  /*
+   * The tab buttons by id. The tablist uses a roving tabindex (only the
+   * selected tab is in the Tab order), so Left/Right/Home/End are the only
+   * way a keyboard reaches the other eight tabs and they have to move DOM
+   * focus themselves - see handleTabsKeyDown.
+   */
+  const tabRefs: React.MutableRefObject<
+    Map<ReplayRailTabId, HTMLButtonElement>
+  > = useRef<Map<ReplayRailTabId, HTMLButtonElement>>(
+    new Map<ReplayRailTabId, HTMLButtonElement>(),
+  );
+  /* Set when a list command moved the selection from the keyboard. */
+  const pendingRowFocusRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
   /* The offset a row click is seeking to; follow stays still for it. */
   const rowSeekTargetRef: React.MutableRefObject<number | null> = useRef<
     number | null
@@ -653,17 +675,25 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
   /* ---- Actions. ---- */
 
-  const seekToSignal: (signal: ReplaySignal) => void = useCallback(
-    (signal: ReplaySignal): void => {
+  /* Every rail seek lands one second early, so the cause is on screen too. */
+  const seekToOffset: (offsetMs: number) => void = useCallback(
+    (offsetMs: number): void => {
       const target: number = Math.max(
         0,
-        signal.offsetMs - REPLAY_SIGNAL_SEEK_PRE_ROLL_MS,
+        offsetMs - REPLAY_SIGNAL_SEEK_PRE_ROLL_MS,
       );
 
       rowSeekTargetRef.current = target;
       props.onSeek(target);
     },
     [props.onSeek],
+  );
+
+  const seekToSignal: (signal: ReplaySignal) => void = useCallback(
+    (signal: ReplaySignal): void => {
+      seekToOffset(signal.offsetMs);
+    },
+    [seekToOffset],
   );
 
   const activateRow: (row: ReplayRailRowModel) => void = useCallback(
@@ -702,32 +732,60 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     }, [props.onCopyLink]);
 
   /*
-   * Reveal a signal wherever it lives: on this tab, select and seek; on
-   * another, switch there first (the row is selected by id, so it is
-   * highlighted as soon as that tab's rows render).
+   * Select a signal wherever it lives WITHOUT moving the playhead: on
+   * this tab, select it; on another, switch there first (the row is
+   * selected by id, so it is highlighted as soon as that tab's rows
+   * render). This is what ?signal= with an explicit ?t does - the URL's
+   * own time wins, and seeking to the row would throw it away.
    */
-  const revealSignal: (signalId: string) => boolean = useCallback(
+  const selectSignal: (signalId: string) => boolean = useCallback(
     (signalId: string): boolean => {
-      const signal: ReplaySignal | undefined = allSignals.find(
-        (candidate: ReplaySignal): boolean => {
-          return candidate.id === signalId;
-        },
+      const match: ReplaySignalMatch | null = findSignalMatch(
+        allSignals,
+        signalId,
       );
 
-      if (!signal) {
+      if (!match) {
         return false;
       }
 
-      if (!isSignalInTab(signal, activeTab)) {
-        setActiveTab(homeTabForSignal(signal));
+      if (!isSignalInTab(match.signal, activeTab)) {
+        setActiveTab(homeTabForSignal(match.signal));
       }
 
-      props.onSelectSignal(signal.id);
-      seekToSignal(signal);
+      props.onSelectSignal(match.signal.id);
 
       return true;
     },
-    [allSignals, activeTab, setActiveTab, props.onSelectSignal, seekToSignal],
+    [allSignals, activeTab, setActiveTab, props.onSelectSignal],
+  );
+
+  /*
+   * Reveal a signal: select it as above AND seek to the moment the id
+   * addresses - which for a span id inside a trace row is that span's
+   * start, not the trace's.
+   */
+  const revealSignal: (signalId: string) => boolean = useCallback(
+    (signalId: string): boolean => {
+      const match: ReplaySignalMatch | null = findSignalMatch(
+        allSignals,
+        signalId,
+      );
+
+      if (!match) {
+        return false;
+      }
+
+      if (!isSignalInTab(match.signal, activeTab)) {
+        setActiveTab(homeTabForSignal(match.signal));
+      }
+
+      props.onSelectSignal(match.signal.id);
+      seekToOffset(match.offsetMs);
+
+      return true;
+    },
+    [allSignals, activeTab, setActiveTab, props.onSelectSignal, seekToOffset],
   );
 
   const stepSignal: (delta: 1 | -1) => ReplaySignal | null = useCallback(
@@ -802,6 +860,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       clearSelection: clearSelection,
       focusSearch: focusSearch,
       revealSignal: revealSignal,
+      selectSignal: selectSignal,
     };
   }, [
     stepSignal,
@@ -810,6 +869,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     clearSelection,
     focusSearch,
     revealSignal,
+    selectSignal,
   ]);
 
   /* ---- Follow. ---- */
@@ -904,6 +964,114 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     });
   }, [rows.length, follow, activeIndex, scrollCenterIndex, selectedIndex]);
 
+  /*
+   * Roving tabindex: exactly ONE row is in the Tab order, so tabbing into
+   * the rail lands on the row that matters (the selected one, else the
+   * one under the playhead, else the first rendered row) instead of
+   * walking hundreds of rows. It must be inside the mounted window or the
+   * rail would have no tab stop at all.
+   */
+  const focusStopIndex: number = useMemo(() => {
+    const isMounted: (index: number) => boolean = (index: number): boolean => {
+      return index >= rowWindow.startIndex && index < rowWindow.endIndex;
+    };
+
+    if (isMounted(selectedIndex)) {
+      return selectedIndex;
+    }
+
+    if (isMounted(activeIndex)) {
+      return activeIndex;
+    }
+
+    return rowWindow.startIndex;
+  }, [selectedIndex, activeIndex, rowWindow]);
+
+  /*
+   * j/k/Arrow move the selection; focus follows it so the row a screen
+   * reader reads is the row the viewer is on. Only when focus is already
+   * inside the list: a selection driven by the URL or by the player's own
+   * shortcuts must never steal focus from wherever the viewer is.
+   */
+  useEffect(() => {
+    if (!pendingRowFocusRef.current) {
+      return;
+    }
+
+    pendingRowFocusRef.current = false;
+
+    const list: HTMLDivElement | null = listRef.current;
+
+    if (!list || !list.contains(document.activeElement)) {
+      return;
+    }
+
+    const body: HTMLElement | null = list.querySelector<HTMLElement>(
+      "[data-testid='rail-row'][data-selected='true'] [data-rail-row-body='true']",
+    );
+
+    body?.focus();
+  });
+
+  /* ---- Keyboard on the tab strip (WAI-ARIA tabs pattern). ---- */
+
+  /*
+   * Roving tabindex means Tab lands on the selected tab and skips the
+   * other eight; the arrows are what a keyboard user navigates with. The
+   * handler moves selection AND focus together (automatic activation,
+   * which is right here because switching a tab is cheap and reversible),
+   * and stops the event so the player's global map never reads it as a
+   * seek - ReplayKeyboardMap yields role="tab" arrows for the same reason.
+   */
+  const handleTabsKeyDown: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>): void => {
+      const tabIds: Array<ReplayRailTabId> = tabModels.map(
+        (tab: ReplayRailTabModel): ReplayRailTabId => {
+          return tab.id;
+        },
+      );
+
+      if (tabIds.length === 0) {
+        return;
+      }
+
+      const currentIndex: number = Math.max(0, tabIds.indexOf(activeTab));
+      let nextIndex: number | null = null;
+
+      switch (event.key) {
+        case "ArrowRight":
+          nextIndex = (currentIndex + 1) % tabIds.length;
+          break;
+        case "ArrowLeft":
+          nextIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
+          break;
+        case "Home":
+          nextIndex = 0;
+          break;
+        case "End":
+          nextIndex = tabIds.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      const nextTab: ReplayRailTabId | undefined = tabIds[nextIndex];
+
+      if (!nextTab) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      setActiveTab(nextTab);
+      /* The button exists across this re-render (keyed by tab id). */
+      tabRefs.current.get(nextTab)?.focus();
+    },
+    [tabModels, activeTab, setActiveTab],
+  );
+
   /* ---- Keyboard inside the list. ---- */
 
   const handleListKeyDown: (
@@ -917,16 +1085,34 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         return;
       }
 
+      /*
+       * Enter and Space belong to whatever control has focus - the row's
+       * own body button, Seek, Copy, the trace link. Consuming them here
+       * used to seek the SELECTED row when the viewer meant to activate
+       * the focused one.
+       */
+      const isOnControl: boolean =
+        typeof target.closest === "function" &&
+        Boolean(target.closest("button, a, [role='button']"));
+
+      if (isOnControl && (event.key === "Enter" || event.key === " ")) {
+        return;
+      }
+
       let handled: boolean = true;
 
       switch (event.key) {
         case "j":
         case "ArrowDown":
-          moveSelection(1);
+          if (moveSelection(1)) {
+            pendingRowFocusRef.current = true;
+          }
           break;
         case "k":
         case "ArrowUp":
-          moveSelection(-1);
+          if (moveSelection(-1)) {
+            pendingRowFocusRef.current = true;
+          }
           break;
         case "Enter":
           seekSelected();
@@ -1041,6 +1227,13 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         key={tab.id}
         type="button"
         role="tab"
+        ref={(element: HTMLButtonElement | null): void => {
+          if (element) {
+            tabRefs.current.set(tab.id, element);
+          } else {
+            tabRefs.current.delete(tab.id);
+          }
+        }}
         id={`${railId}-tab-${tab.id}`}
         data-testid={`rail-tab-${tab.id}`}
         aria-selected={isSelected}
@@ -1280,6 +1473,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           domId={`${railId}-option-${index}`}
           isActive={isActive}
           isSelected={isSelected}
+          isFocusStop={index === focusStopIndex}
           isFuture={row.signal.offsetMs > props.currentTimeMs && !isActive}
           uncertaintyLabel={
             row.signal.alignment === "unanchored" ? uncertaintyLabel : null
@@ -1422,7 +1616,9 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       <div
         role="tablist"
         aria-label="Signal tabs"
+        data-testid="rail-tablist"
         className="flex flex-wrap items-center gap-1 px-3 pt-2"
+        onKeyDown={handleTabsKeyDown}
       >
         {tabModels.map(renderTab)}
       </div>
@@ -1535,10 +1731,16 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {renderNotices()}
 
+      {/*
+       * A list, not a listbox: rows carry their own controls and an
+       * expandable detail, which ARIA's "children presentational" rule
+       * would have hidden under role="option". Selection lives on the
+       * row's body button (aria-expanded) and focus roves with j/k.
+       */}
       <div
         ref={listRef}
         id={`${railId}-list`}
-        role="listbox"
+        role="list"
         aria-label={`${
           (
             REPLAY_RAIL_TABS.find((tab: ReplayRailTabDefinition): boolean => {
@@ -1546,9 +1748,6 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             }) as ReplayRailTabDefinition
           ).label
         } signals`}
-        aria-activedescendant={
-          selectedIndex !== -1 ? `${railId}-option-${selectedIndex}` : undefined
-        }
         tabIndex={0}
         data-testid="rail-list"
         className="min-h-0 flex-1 overflow-y-auto px-1 pb-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"

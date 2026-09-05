@@ -112,7 +112,7 @@ export function getSessionReplayPlayability(
       text: "Recording lost",
       severity: "danger",
       tooltip:
-        "A session header was received but its footage never arrived or expired before it could be processed. The signals and counts here are still accurate; there is nothing to play.",
+        "A session header was received but its footage never arrived, so the never-finalized sweep sealed the session. The signals and counts here are still accurate; there is nothing to play.",
       detail: null,
       isWatchable: false,
     };
@@ -130,13 +130,22 @@ export function getSessionReplayPlayability(
     };
   }
 
+  /*
+   * A finalized session with no chunks never had footage stored - it is
+   * NOT a recording whose footage aged out. RumSession derives
+   * retentionDate from the clamped session start, "keeps the header's
+   * retentionDate equal to its chunks'", so a header and its footage TTL
+   * out on the same day and an expired session leaves no row behind. Copy
+   * that implies metadata outlives the recording is a promise the model
+   * does not keep (ux-09).
+   */
   if (row.chunkCount === 0) {
     return {
       kind: "metadata-only",
       text: "Metadata only",
       severity: "warning",
       tooltip:
-        "Only session metadata remains; the footage is no longer stored. The signals, device and page list are still here.",
+        "No footage was stored for this session: its chunks were never uploaded, or they were refused before they could be saved. A session row expires together with its footage, so this is not an expired recording - the signals, device and page list here are accurate.",
       detail: null,
       isWatchable: false,
     };
@@ -164,7 +173,7 @@ export function getSessionReplayPlayability(
     text: "Playable",
     severity: "success",
     tooltip: expiry
-      ? `Footage is stored and can be played back; it ${expiry} under this application's retention.`
+      ? `Footage is stored and can be played back; it ${expiry} under this application's retention, and this row expires with it.`
       : "Footage is stored and can be played back.",
     detail: expiry,
     isWatchable: true,

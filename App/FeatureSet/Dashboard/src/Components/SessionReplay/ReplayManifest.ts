@@ -458,11 +458,18 @@ export function getRetentionDays(
 }
 
 /*
- * Why there is no footage to play, for the stage's empty state. The
- * header outlives the chunks under the metadata-only retention tier, so
- * a manifest with counts but no chunk rows is a normal outcome, and the
- * reason is on the manifest: sealedReason says whether the recording
- * was lost, and expiresAtUnixMs says whether it aged out.
+ * Why there is no footage to play, for the stage's empty state.
+ *
+ * There is no metadata-only retention tier: RumSession derives the
+ * header's retentionDate from the same clamped session start as its
+ * chunks, so a session expires atomically (ux-09 - the old comment here,
+ * and the copy that followed it, promised a viewer that session metadata
+ * outlives the recording). A manifest with counts but no chunk rows is
+ * therefore a narrower thing: chunks that were never uploaded, a
+ * recording the finalizer marked lost, a pinned header whose ordinary
+ * copies have dropped, or the window between the chunk TTL and the
+ * header's. The reason is on the manifest: sealedReason says whether the
+ * recording was lost, and expiresAtUnixMs says whether it aged out.
  */
 export type ReplayFootageAbsence =
   | { kind: "recording-lost" }

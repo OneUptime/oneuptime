@@ -517,10 +517,14 @@ export function buildTabAggregateStatement(data: {
    * no FINAL support anywhere, so a retried chunk POST is visible as two
    * rows with the same sort key until a merge collapses them, and
    * sum(payloadBytes) over both would double-count the metering signal.
-   * `ORDER BY version DESC LIMIT 1 BY tabId, chunkIndex` keeps the newest
-   * write of each chunk identity. projectId and sessionId are pinned by
-   * the WHERE clause, so they are constant within the group and are
-   * omitted from the LIMIT BY key.
+   * `ORDER BY version DESC LIMIT 1 BY rumApplicationId, tabId, chunkIndex`
+   * keeps the newest write of each chunk identity. projectId and sessionId
+   * are pinned by the WHERE clause, so they are constant within the group
+   * and are omitted from the LIMIT BY key - but rumApplicationId is NOT:
+   * two applications on one origin share the browser-minted sessionId, and
+   * without it in the key one application's chunks silently evict the
+   * other's from the aggregate. The grouping carries it for the same
+   * reason, so the caller can finalize one header per application.
    *
    * The WHERE clause is the (projectId, sessionId) prefix of the chunk
    * table's sort key, which is why this is a key-range read and not a
@@ -529,6 +533,7 @@ export function buildTabAggregateStatement(data: {
   return SQL`
     SELECT
       tabId AS tabId,
+      rumApplicationId AS rumApplicationId,
       count() AS chunkCount,
       max(chunkIndex) AS maxChunkIndex,
       groupArray(chunkIndex) AS chunkIndexes,
@@ -610,7 +615,6 @@ export function buildTabAggregateStatement(data: {
       max(chunkEndOffsetMs) AS maxChunkEndOffsetMs,
       max(schemaVersion) AS schemaVersion,
       any(recorderKind) AS recorderKind,
-      any(rumApplicationId) AS rumApplicationId,
       any(primaryEntityId) AS primaryEntityId,
       any(primaryEntityType) AS primaryEntityType,
       toString(max(retentionDate)) AS retentionDate
@@ -653,9 +657,9 @@ export function buildTabAggregateStatement(data: {
         value: data.sessionId,
       }}
       ORDER BY version DESC
-      LIMIT 1 BY tabId, chunkIndex
+      LIMIT 1 BY rumApplicationId, tabId, chunkIndex
     )
-    GROUP BY tabId`;
+    GROUP BY rumApplicationId, tabId`;
 }
 
 export function buildProvisionalHeaderStatement(data: {
@@ -1070,6 +1074,12 @@ export function combineTabAggregates(
     combined.pageCount += tab.routeCount;
     combined.clickCount += tab.clickCount;
     combined.customEventCount += tab.customEventCount;
+    /*
+     * A SUM across tabs, which overlapping tabs can push past the session's
+     * own duration. Left as the raw sum here because this function has no
+     * duration to clamp against; buildFinalizedSessionRow computes one and
+     * clamps there. Nothing may publish this field unclamped.
+     */
     combined.activeMs += tab.activeMs;
 
     if (tab.erroredChunkCount > 0) {
@@ -1414,7 +1424,18 @@ export function buildFinalizedSessionRow(data: {
     clickCount: aggregate.clickCount,
     customEventCount: aggregate.customEventCount,
     firstErrorOffsetMs: aggregate.firstErrorOffsetMs,
-    activeMs: aggregate.activeMs,
+    /*
+     * activeMs is per-session WALL CLOCK, never a per-tab sum.
+     *
+     * The aggregate adds each tab's active time up, and two tabs recording
+     * the same ten minutes contribute twenty. Unclamped, every multi-tab
+     * session reported activeMs > durationMs, which the list renders as a
+     * negative idle share ("idle -100%") - and would mis-rank sessions the
+     * moment anything sorts on it. Clamping to the session's own duration
+     * is the honest ceiling: no session can have been active for longer
+     * than it existed.
+     */
+    activeMs: Math.min(Math.max(0, aggregate.activeMs), durationMs),
 
     hasError: aggregate.errorCount > 0,
     triggerReason: header ? header.triggerReason : "",
@@ -1711,63 +1732,120 @@ export async function finalizeSession(data: {
     return "no-chunks";
   }
 
-  const aggregate: SessionChunkAggregate = combineTabAggregates(
-    tabRows.map(parseTabAggregateRow),
-  );
+  /*
+   * One finalized header PER APPLICATION, not one per session.
+   *
+   * sessionId is minted in the browser from sessionStorage, which is
+   * shared by every RUM application served from one origin - so two
+   * applications on one origin legitimately record under one id. The read
+   * path was hardened for exactly that (getSessionHeader refuses an
+   * ambiguous id unless the caller names an application); the writer was
+   * not, and folded both applications into a single header under whichever
+   * id `any()` happened to pick. That header carried both applications'
+   * error, click and payload totals and both route sets, while the other
+   * application's session never finalized at all - it stayed provisional,
+   * and therefore "live", forever.
+   *
+   * The chunk rows already carry rumApplicationId, so the split needs
+   * nothing from the activity ZSET: the aggregate statement groups by
+   * (rumApplicationId, tabId) and dedupes redeliveries within an
+   * application, and the rows are partitioned here.
+   */
+  const tabsByApplication: Map<string, Array<TabChunkAggregate>> = new Map<
+    string,
+    Array<TabChunkAggregate>
+  >();
 
-  let header: ProvisionalSessionHeader | null = null;
+  for (const tabRow of tabRows) {
+    const tab: TabChunkAggregate = parseTabAggregateRow(tabRow);
+    const key: string = tab.rumApplicationId;
 
-  if (aggregate.rumApplicationId) {
-    const headerRows: Array<JSONObject> = await readRows(
-      buildProvisionalHeaderStatement({
-        databaseName: data.databaseName,
+    const existing: Array<TabChunkAggregate> | undefined =
+      tabsByApplication.get(key);
+
+    if (existing) {
+      existing.push(tab);
+      continue;
+    }
+
+    tabsByApplication.set(key, [tab]);
+  }
+
+  /*
+   * Read once for the whole session: the seal hint is keyed on
+   * (projectId, sessionId) and describes why UPLOADS stopped, which is a
+   * per-session fact even when two applications shared the id.
+   */
+  const sealedReasonHint: string = await readSealHint({
+    projectId: data.projectId.toString(),
+    sessionId: data.sessionId,
+  });
+
+  const writtenAt: Date = OneUptimeDate.getCurrentDate();
+  const rows: Array<JSONObject> = [];
+
+  for (const tabs of tabsByApplication.values()) {
+    const aggregate: SessionChunkAggregate = combineTabAggregates(tabs);
+
+    let header: ProvisionalSessionHeader | null = null;
+
+    if (aggregate.rumApplicationId) {
+      const headerRows: Array<JSONObject> = await readRows(
+        buildProvisionalHeaderStatement({
+          databaseName: data.databaseName,
+          projectId: data.projectId,
+          rumApplicationId: aggregate.rumApplicationId,
+          sessionId: data.sessionId,
+        }),
+      );
+
+      const headerRow: JSONObject | undefined = headerRows[0];
+
+      if (headerRow) {
+        header = parseProvisionalHeaderRow(headerRow);
+      }
+    }
+
+    if (!header) {
+      /*
+       * A session whose provisional header never landed would otherwise be
+       * invisible in the list despite having playable chunks, so the
+       * finalizer synthesises one. It is worth a warning: it means a
+       * chunk-0 header write was lost.
+       */
+      logger.warn(
+        `${JOB_NAME}: no provisional header for session ${data.sessionId}; writing a chunk-derived header`,
+      );
+    }
+
+    rows.push(
+      buildFinalizedSessionRow({
         projectId: data.projectId,
-        rumApplicationId: aggregate.rumApplicationId,
         sessionId: data.sessionId,
+        aggregate: aggregate,
+        header: header,
+        /*
+         * The batch's grouped queries over Span and ExceptionInstance (see
+         * fetchSessionCorrelation) are the reverse-correlation producer:
+         * the provisional header only ever carries what the FIRST chunk's
+         * envelope declared, so everything observed in chunks 1..N arrives
+         * here and is merged (deduped, capped) on top of the header's ids.
+         *
+         * Correlation is keyed on the sessionId alone, so on the rare
+         * shared-id session both applications are handed the same trace and
+         * exception ids. Over-attributing a correlation is a far smaller
+         * error than the merged header this split replaced, and the ids are
+         * the session's, not the application's.
+         */
+        traceIds: data.correlation ? data.correlation.traceIds : [],
+        exceptionFingerprints: data.correlation
+          ? data.correlation.exceptionFingerprints
+          : [],
+        writtenAt: writtenAt,
+        sealedReasonHint: sealedReasonHint,
       }),
     );
-
-    const headerRow: JSONObject | undefined = headerRows[0];
-
-    if (headerRow) {
-      header = parseProvisionalHeaderRow(headerRow);
-    }
   }
-
-  if (!header) {
-    /*
-     * A session whose provisional header never landed would otherwise be
-     * invisible in the list despite having playable chunks, so the
-     * finalizer synthesises one. It is worth a warning: it means a chunk-0
-     * header write was lost.
-     */
-    logger.warn(
-      `${JOB_NAME}: no provisional header for session ${data.sessionId}; writing a chunk-derived header`,
-    );
-  }
-
-  const row: JSONObject = buildFinalizedSessionRow({
-    projectId: data.projectId,
-    sessionId: data.sessionId,
-    aggregate: aggregate,
-    header: header,
-    /*
-     * The batch's grouped queries over Span and ExceptionInstance (see
-     * fetchSessionCorrelation) are the reverse-correlation producer: the
-     * provisional header only ever carries what the FIRST chunk's
-     * envelope declared, so everything observed in chunks 1..N arrives
-     * here and is merged (deduped, capped) on top of the header's ids.
-     */
-    traceIds: data.correlation ? data.correlation.traceIds : [],
-    exceptionFingerprints: data.correlation
-      ? data.correlation.exceptionFingerprints
-      : [],
-    writtenAt: OneUptimeDate.getCurrentDate(),
-    sealedReasonHint: await readSealHint({
-      projectId: data.projectId.toString(),
-      sessionId: data.sessionId,
-    }),
-  });
 
   /*
    * wait_for_async_insert is forced on for this one row.
@@ -1778,11 +1856,12 @@ export async function finalizeSession(data: {
    * session's activity entries immediately after this resolves, so a
    * buffer flush failure would silently lose the header while the session
    * is already off the queue, leaving it provisional (zeroed aggregates)
-   * and unmetered forever. Finalization is one small row per session, not
-   * a hot ingest path, so paying for the durability ack is cheap and it is
-   * what makes the ZREM-only-on-success contract below actually true.
+   * and unmetered forever. Finalization is one small row per session and
+   * application, not a hot ingest path, so paying for the durability ack
+   * is cheap and it is what makes the ZREM-only-on-success contract below
+   * actually true.
    */
-  await RumSessionService.insertJsonRows([row], {
+  await RumSessionService.insertJsonRows(rows, {
     clickhouseSettings: {
       wait_for_async_insert: 1,
     },

@@ -594,10 +594,142 @@ describe("buildInstallationCheckRows", () => {
       "Chunks dropped after acceptance in the last 24h: unknown",
     );
     expect(rowByKey(rows, "capabilities").title).toBe(
-      "Recorder capabilities: not reported yet",
+      "Recorder capabilities: not reported by the newest recording",
     );
     expect(rowByKey(rows, "capabilities").detail).toContain(
       "this deployment publishes 1.4.0",
+    );
+  });
+
+  /*
+   * docs-and-design-fidelity-3. The route did not send recorderCapabilities
+   * at all, so this row read "not reported yet" for every application - and
+   * the copy blamed a stale cached artifact even for an application that had
+   * never recorded anything, where there is no artifact to blame. Now that
+   * the field is on the wire, the two silences get their own sentences.
+   */
+  it("capabilities: names WHICH silence it is - nothing recorded yet vs an artifact too old to announce them", () => {
+    const neverRecorded: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus({ lastChunkReceivedAt: null }),
+        NO_EXTRAS,
+        NOW,
+        APP_ID,
+      ),
+      "capabilities",
+    );
+
+    expect(neverRecorded.title).toBe("Recorder capabilities: not reported yet");
+    expect(neverRecorded.detail).toContain("No chunk has arrived");
+    /* Nothing recorded means no cached artifact to wait on. */
+    expect(neverRecorded.detail).not.toContain("cache window");
+
+    const recordedButSilent: CheckRow = rowByKey(
+      buildInstallationCheckRows(makeStatus(), NO_EXTRAS, NOW, APP_ID),
+      "capabilities",
+    );
+
+    expect(recordedButSilent.title).toBe(
+      "Recorder capabilities: not reported by the newest recording",
+    );
+    expect(recordedButSilent.detail).toContain("cache window");
+
+    const announced: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus(),
+        {
+          dropsLast24h: null,
+          recorderCapabilities: ["click-events", "web-vitals"],
+        },
+        NOW,
+        APP_ID,
+      ),
+      "capabilities",
+    );
+
+    expect(announced.state).toBe("pass");
+    expect(announced.title).toBe(
+      "Recorder capabilities: click-events, web-vitals",
+    );
+
+    const none: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus(),
+        { dropsLast24h: null, recorderCapabilities: [] },
+        NOW,
+        APP_ID,
+      ),
+      "capabilities",
+    );
+
+    expect(none.title).toBe("Recorder capabilities: none announced");
+  });
+
+  /*
+   * server-1's UI half. budgetExceededAt is a stamp that is never cleared,
+   * so the row used to say "Live recorders were told to stand down" months
+   * after the window rolled over. diagnoseRecordingHealth owns the live
+   * rule; the row follows it.
+   */
+  it("budget: a live pause fails the check, a stale stamp says uploads are flowing again", () => {
+    const paused: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus({
+          budgetExceededAt: iso(30 * 60 * 1000),
+          monthlyBudgetInGB: 2,
+          applicationBytesUsedThisMonth: 3 * GB,
+        }),
+        NO_EXTRAS,
+        NOW,
+        APP_ID,
+      ),
+      "budget-exceeded",
+    );
+
+    expect(paused.state).toBe("fail");
+    expect(paused.title).toContain("Uploads are paused");
+    expect(paused.detail).toContain("nothing is being recorded");
+
+    const stale: CheckRow = rowByKey(
+      buildInstallationCheckRows(
+        makeStatus({
+          budgetExceededAt: iso(40 * 24 * 60 * 60 * 1000),
+          monthlyBudgetInGB: 2,
+          applicationBytesUsedThisMonth: 100 * 1024 * 1024,
+        }),
+        NO_EXTRAS,
+        NOW,
+        APP_ID,
+      ),
+      "budget-exceeded",
+    );
+
+    expect(stale.state).toBe("info");
+    expect(stale.title).toContain("uploads are flowing again");
+    expect(stale.detail).not.toContain("stand down");
+    expect(stale.action?.label).toBe("Review the budget");
+  });
+
+  it("budget: a live pause is the card's diagnosis too, with the one action that fixes it", () => {
+    renderCard(
+      makeSnapshot(
+        makeStatus({
+          budgetExceededAt: iso(30 * 60 * 1000),
+          monthlyBudgetInGB: 2,
+          applicationBytesUsedThisMonth: 3 * GB,
+        }),
+      ),
+    );
+
+    expect(screen.getByTestId("health-diagnosis")).toHaveAttribute(
+      "data-state",
+      "budget-paused",
+    );
+    expect(screen.getByTestId("health-diagnosis")).toHaveTextContent(
+      "Uploads paused",
+    );
+    expect(screen.getByTestId("health-action")).toHaveTextContent(
+      "Raise the budget",
     );
   });
 

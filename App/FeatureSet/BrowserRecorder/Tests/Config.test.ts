@@ -2,6 +2,7 @@ import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTr
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "Common/Types/Rum/SessionReplay";
+import Consent from "../src/Consent";
 import Config, {
   LoaderConfig,
   RecorderInitOptions,
@@ -49,13 +50,19 @@ describe("Config", (): void => {
 
       const options: RecorderInitOptions | null = Config.readInitOptions();
 
+      /*
+       * respectDoNotTrack is ABSENT, not true: a page that says nothing has
+       * said nothing, and Consent.isRecordingPermitted then lets the server
+       * policy decide. Coercing it to true here made the tri-state the
+       * loader, Consent and the docs all describe unreachable from a page.
+       */
       expect(options).toEqual({
         host: "https://oneuptime.com",
         token: "tok",
         appIdentifier: "app",
         userRef: "user-1",
-        respectDoNotTrack: true,
       });
+      expect(options?.respectDoNotTrack).toBeUndefined();
     });
 
     it("reads script tag data attributes", (): void => {
@@ -66,7 +73,21 @@ describe("Config", (): void => {
 
       expect(options?.host).toBe("https://x.example.com");
       expect(options?.appIdentifier).toBe("a");
-      expect(options?.respectDoNotTrack).toBe(true);
+
+      /* No attribute, no page opinion; the DNT signal is still honoured. */
+      expect(options?.respectDoNotTrack).toBeUndefined();
+      expect(
+        Consent.isRecordingPermitted(options?.respectDoNotTrack, true, {
+          doNotTrack: "1",
+        } as unknown as Navigator),
+      ).toBe(false);
+    });
+
+    it("carries an explicit honour-DNT attribute as a page decision", (): void => {
+      document.head.innerHTML =
+        '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-respect-do-not-track="true"></script>';
+
+      expect(Config.readInitOptions()?.respectDoNotTrack).toBe(true);
     });
 
     it("allows the page to opt out of honouring DNT explicitly", (): void => {

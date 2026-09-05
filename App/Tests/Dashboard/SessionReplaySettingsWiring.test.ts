@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
+import slugify from "Common/Server/Types/MarkdownSlugify";
 
 /*
  * Source-structural pins for the session replay settings surfaces.
@@ -51,6 +52,43 @@ const INSTALL_SNIPPET: string = readSource(
 const INSTALL_PANEL: string = readSource(
   "Components/SessionReplay/InstallationTestPanel.tsx",
 );
+const PRIVACY_SUMMARY: string = readSource(
+  "Components/SessionReplay/PrivacySummaryCard.tsx",
+);
+
+/* The docs page the guide's per-step links point into. */
+const SESSION_REPLAY_DOC: string = nodePath.join(
+  __dirname,
+  "../../FeatureSet/Docs/Content/en/telemetry/session-replay.md",
+);
+
+const HEADING_PATTERN: RegExp = new RegExp("^#{1,6}\\s+(.+?)\\s*$");
+const FENCE_PATTERN: RegExp = new RegExp("^\\s*```");
+
+/* Same rule the renderer uses, so an anchor that passes here resolves. */
+function headingSlugs(markdown: string): Set<string> {
+  const slugs: Set<string> = new Set<string>();
+  let inFence: boolean = false;
+
+  for (const line of markdown.split("\n")) {
+    if (FENCE_PATTERN.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) {
+      continue;
+    }
+
+    const match: RegExpMatchArray | null = line.match(HEADING_PATTERN);
+
+    if (match) {
+      slugs.add(slugify(match[1] as string));
+    }
+  }
+
+  return slugs;
+}
 
 /*
  * As RegExp constants rather than inline literals: eslint's wrap-regex
@@ -58,6 +96,10 @@ const INSTALL_PANEL: string = readSource(
  * parentheses, so neither form passes both.
  */
 const SERVER_IMPORT_PATTERN: RegExp = new RegExp("from [\"']Common/Server/");
+const DOCS_ANCHOR_PATTERN: RegExp = new RegExp(
+  'docsAnchor="([a-z0-9-]+)"',
+  "g",
+);
 const SERVER_SERVICE_IMPORT_PATTERN: RegExp = new RegExp(
   "from [\"']Common/Server/Services",
 );
@@ -166,9 +208,56 @@ describe("Application replay settings page composition", () => {
     expect(APP_SETTINGS_PAGE).toContain('case "disabled-project"');
     expect(APP_SETTINGS_PAGE).toContain('case "budget-paused"');
   });
+
+  /*
+   * ux-09. RumSession derives retentionDate from the clamped session start
+   * "keeps the header's retentionDate equal to its chunks'", so the session
+   * row expires WITH its footage. Both surfaces that describe retention to a
+   * customer promised the opposite, which is the one direction a retention
+   * promise must never be wrong in.
+   */
+  test("retention copy does not promise that session metadata outlives the footage (ux-09)", () => {
+    for (const source of [APP_SETTINGS_PAGE, PRIVACY_SUMMARY]) {
+      expect(source).not.toContain("kept longer");
+      expect(source).not.toContain("stays accurate after playback expires");
+      expect(source).toContain(
+        "logs, spans and exceptions follow the telemetry retention",
+      );
+    }
+
+    expect(APP_SETTINGS_PAGE).toContain(
+      "The session row - counts, signals, device - expires together with its footage",
+    );
+    expect(PRIVACY_SUMMARY).toContain("expires with it");
+  });
 });
 
 describe("Project replay settings page", () => {
+  /*
+   * server-1's UI half on the roster. sessionReplayBudgetExceededAt is the
+   * LAST exhaustion and is never cleared, so an unqualified pill claimed an
+   * application was over budget for the life of the row. The roster has no
+   * usage counter, only the stamp - and both windows that write it are
+   * UTC-bucketed (the project's daily cap, the application's month), so a
+   * stamp from an earlier month belongs to a window that has certainly
+   * rolled over. The page is read as source because App's install has no
+   * react to render it with; the assertion is on the branch that decides
+   * the pill.
+   */
+  test("the budget pill is qualified by its window, not by the bare stamp (server-1)", () => {
+    expect(PROJECT_SETTINGS_PAGE).toContain("isInCurrentUtcMonth(");
+    expect(PROJECT_SETTINGS_PAGE).toContain("stamp.getUTCFullYear()");
+    expect(PROJECT_SETTINGS_PAGE).toContain("stamp.getUTCMonth()");
+    expect(PROJECT_SETTINGS_PAGE).toContain(
+      'text="On, budget exhausted this month"',
+    );
+    /* The unqualified claim, and a bare-stamp branch, must both be gone. */
+    expect(PROJECT_SETTINGS_PAGE).not.toContain('text="On, budget exhausted"');
+    expect(PROJECT_SETTINGS_PAGE).not.toMatch(
+      /if \(item\.sessionReplayBudgetExceededAt\) \{/,
+    );
+  });
+
   test("keeps the master switch and the roster, drops the two panels, and points at the application page", () => {
     expect(PROJECT_SETTINGS_PAGE).toContain("<CardModelDetail<Project>");
     expect(PROJECT_SETTINGS_PAGE).toContain("<ModelTable<RumApplication>");
@@ -288,6 +377,42 @@ describe("Setup guide and snippet wiring", () => {
   test("the installation test no longer says a silent recorder is usually fine (settings-setup-2)", () => {
     expect(INSTALL_PANEL).not.toContain("usually working correctly");
     expect(INSTALL_PANEL).toContain("the install is broken");
+  });
+
+  /*
+   * WP-DOC's request: each step that has a fuller docs section links to that
+   * section, not to the top of a 500-line page. The anchors are computed
+   * from heading text, so they are pinned against the real headings here -
+   * a heading rename would otherwise break the links with no compile error
+   * on either side.
+   */
+  test("each setup step links to the docs section that continues it, and every anchor resolves", () => {
+    const anchors: Array<string> = Array.from(
+      SETUP_GUIDE.matchAll(DOCS_ANCHOR_PATTERN),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(anchors).toEqual([
+      "identify-your-users",
+      "content-security-policy",
+      "correlating-with-your-other-telemetry",
+    ]);
+
+    expect(SETUP_GUIDE).toContain(
+      'SETUP_GUIDE_DOCS_PATH: string = "/telemetry/session-replay"',
+    );
+
+    const slugs: Set<string> = headingSlugs(
+      fs.readFileSync(SESSION_REPLAY_DOC, "utf8"),
+    );
+
+    for (const anchor of anchors) {
+      expect({ anchor, resolves: slugs.has(anchor) }).toEqual({
+        anchor,
+        resolves: true,
+      });
+    }
   });
 
   test("the guide never opens a manifest (an audit row) to find the newest session", () => {

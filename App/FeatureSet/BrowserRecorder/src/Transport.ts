@@ -1,5 +1,6 @@
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
+  MAX_SESSION_REPLAY_CHUNK_BYTES,
   SESSION_REPLAY_CONTENT_TYPE,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_FLUSH_FAILURES,
@@ -80,6 +81,22 @@ export interface TransportOptions {
    * site.
    */
   onPermanentFailure: (reason: string) => void;
+
+  /*
+   * A chunk was too large to post even compressed, so only its size was
+   * declared. The recorder discloses it on the next chunk, because the
+   * viewer needs to know a snapshot is missing rather than be shown a gap.
+   */
+  onChunkTooLarge?: (compressedBytes: number) => void;
+}
+
+/*
+ * One piece of a terminal flush: the pagehide split hands the transport all
+ * of its pieces at once so they can share a single keepalive request.
+ */
+export interface TerminalChunk {
+  envelope: SessionReplayChunkEnvelope;
+  payload: string;
 }
 
 interface QueuedChunk {
@@ -508,94 +525,143 @@ export default class Transport {
   }
 
   /*
-   * Terminal flush. Synchronous by construction, identity-encoded, one
+   * Terminal flush. Synchronous by construction, identity-encoded, ONE
    * request, hard-capped at the keepalive quota.
    *
    * The keepalive quota is 64 KB COMBINED per origin across all in-flight
    * keepalive requests, so "two 48 KB posts" fails against the very limit
-   * that motivates it. One request under the cap, and anything above it is
-   * an acknowledged loss recorded as a dropped chunk.
+   * that motivates it - and it fails by REJECTING the later requests, which
+   * is precisely the sealing frame. That is why this takes the whole split
+   * as an array rather than one piece at a time: the pieces go out as
+   * frames of a single request, and what does not fit is counted rather
+   * than thrown at a quota that will refuse it.
    *
-   * The retry queue rides along: the page is going away and nothing else
-   * will ever post those chunks, so as many as fit under the cap go out as
-   * extra frames of the same request, oldest first, and the rest are
-   * counted as dropped rather than silently discarded with the document.
+   * Priority when it does not all fit: the LAST piece first (it carries
+   * isFinal, the per-chunk signals, the trace ids and the routes - it is
+   * what seals the session), then the pieces before it newest-first (the
+   * footage closest to the moment the user left is the footage the session
+   * was captured for), then the retry queue oldest-first. The page is going
+   * away and nothing else will ever post those, so anything left over is an
+   * acknowledged loss recorded as a dropped chunk.
    */
-  public sendTerminal(
-    envelope: SessionReplayChunkEnvelope,
-    payload: string,
-  ): boolean {
-    if (this.disabled) {
-      this.droppedChunks++;
+  public sendTerminal(chunks: Array<TerminalChunk>): boolean {
+    if (chunks.length === 0) {
       return false;
     }
 
-    const terminalFrame: PayloadBytes = Transport.buildIdentityFrame(
-      envelope,
-      payload,
-    );
+    if (this.disabled) {
+      this.droppedChunks += chunks.length;
+      return false;
+    }
 
     const queued: Array<QueuedChunk> = this.retryQueue;
     this.retryQueue = [];
     this.cancelDrain();
 
-    if (terminalFrame.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES) {
+    /*
+     * Sealing frame first, then the rest of the split newest-first, then
+     * the retry queue oldest-first. Built in priority order; the body is
+     * assembled in chunkIndex order afterwards.
+     */
+    const candidates: Array<TerminalChunk> = [
+      chunks[chunks.length - 1] as TerminalChunk,
+    ];
+
+    for (let index: number = chunks.length - 2; index >= 0; index--) {
+      candidates.push(chunks[index] as TerminalChunk);
+    }
+
+    for (const chunk of queued) {
+      candidates.push({ envelope: chunk.envelope, payload: chunk.payload });
+    }
+
+    const selected: Array<{ frame: PayloadBytes; chunkIndex: number }> = [];
+    let totalBytes: number = 0;
+    let dropped: number = 0;
+
+    /* Size of the sealing frame, for the diagnostics when it is the one lost. */
+    let sealingBytes: number = 0;
+
+    for (let index: number = 0; index < candidates.length; index++) {
+      const candidate: TerminalChunk = candidates[index] as TerminalChunk;
+      const frame: PayloadBytes = Transport.buildIdentityFrame(
+        candidate.envelope,
+        candidate.payload,
+      );
+
+      if (index === 0) {
+        sealingBytes = frame.length;
+      }
+
+      if (
+        totalBytes + frame.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES ||
+        selected.length >= MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST
+      ) {
+        dropped++;
+        continue;
+      }
+
+      selected.push({
+        frame: frame,
+        chunkIndex: candidate.envelope.chunkIndex,
+      });
+      totalBytes += frame.length;
+    }
+
+    this.droppedChunks += dropped;
+
+    if (selected.length === 0) {
       debugWarn(
         "final-chunk-too-large",
         "The final chunk was over the keepalive quota and was dropped.",
         {
-          bytes: terminalFrame.length,
+          bytes: sealingBytes,
           maxBytes: SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+          droppedChunks: dropped,
         },
       );
 
-      this.droppedChunks += 1 + queued.length;
       return false;
     }
 
-    const frames: Array<PayloadBytes> = [];
-    let totalBytes: number = terminalFrame.length;
-    let carried: number = 0;
-
-    for (const chunk of queued) {
-      const frame: PayloadBytes = Transport.buildIdentityFrame(
-        chunk.envelope,
-        chunk.payload,
+    if (dropped > 0) {
+      debugWarn(
+        "final-flush-partial",
+        "The keepalive quota could not carry every chunk; the rest were dropped.",
+        {
+          sent: selected.length,
+          dropped: dropped,
+          bytes: totalBytes,
+          maxBytes: SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+        },
       );
-
-      if (
-        totalBytes + frame.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES ||
-        frames.length + 1 >= MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST
-      ) {
-        this.droppedChunks++;
-        continue;
-      }
-
-      frames.push(frame);
-      totalBytes += frame.length;
-      carried++;
-    }
-
-    frames.push(terminalFrame);
-
-    if (carried > 0) {
+    } else if (selected.length > 1) {
       debugLog(
         "final-chunk-carried-queue",
-        "Queued chunks were sent along with the final chunk.",
+        "Several chunks were sent as frames of the final request.",
         {
-          carried: carried,
-          droppedFromQueue: queued.length - carried,
+          frames: selected.length,
           bytes: totalBytes,
         },
       );
     }
 
+    /* The server reads frames in body order; ascending index keeps it sane. */
+    selected.sort(
+      (
+        left: { frame: PayloadBytes; chunkIndex: number },
+        right: { frame: PayloadBytes; chunkIndex: number },
+      ): number => {
+        return left.chunkIndex - right.chunkIndex;
+      },
+    );
+
     const body: PayloadBytes = new Uint8Array(totalBytes);
     let offset: number = 0;
 
-    for (const frame of frames) {
-      body.set(frame, offset);
-      offset += frame.length;
+    for (const entry of selected) {
+      body.set(entry.frame, offset);
+      offset += entry.frame.length;
     }
 
     try {
@@ -618,7 +684,7 @@ export default class Transport {
 
       return true;
     } catch {
-      this.droppedChunks += 1 + carried;
+      this.droppedChunks += selected.length;
       return false;
     }
   }
@@ -651,7 +717,38 @@ export default class Transport {
       flushFailures: this.consecutiveFailures,
     };
 
-    const body: PayloadBytes = Transport.buildBody(envelope, compressed.bytes);
+    /*
+     * Over the per-request cap even after gzip - an indivisible full
+     * snapshot of a very large DOM. The SIZE is declared and the bytes are
+     * not sent: the parser checks payloadBytes before it reads any payload
+     * and answers 422 (the session survives, with a disclosure) rather than
+     * the 413 the real bytes would earn from nginx or the middleware's byte
+     * counter, and the customer's page does not spend megabytes of the
+     * visitor's uplink on a request that cannot be accepted.
+     */
+    const tooLarge: boolean =
+      compressed.bytes.length > MAX_SESSION_REPLAY_CHUNK_BYTES;
+
+    if (tooLarge) {
+      debugWarn(
+        "chunk-too-large",
+        "A chunk was over the request size limit even compressed; only its size was sent.",
+        {
+          chunkIndex: envelope.chunkIndex,
+          bytes: compressed.bytes.length,
+          maxBytes: MAX_SESSION_REPLAY_CHUNK_BYTES,
+        },
+      );
+
+      if (this.options.onChunkTooLarge) {
+        this.options.onChunkTooLarge(compressed.bytes.length);
+      }
+    }
+
+    const body: PayloadBytes = Transport.buildBody(
+      envelope,
+      tooLarge ? new Uint8Array(0) : compressed.bytes,
+    );
 
     let response: Response | null = null;
 
@@ -915,6 +1012,31 @@ export default class Transport {
         ? Math.min(said.retryAfterSeconds, MAX_RETRY_AFTER_SECONDS)
         : Transport.parseRetryAfter(response);
 
+    if (said.directive === "stop") {
+      /*
+       * A stop on a 429/503 is still a stop. Notifying and THEN re-queueing
+       * the chunk put one more request of page content on the wire after
+       * Recorder.shutdown had already discarded the queue - the one request
+       * the operator's kill switch explicitly asked not to receive. The
+       * chunk is dropped and counted, exactly as handleRefusal does with a
+       * stop on a 400.
+       */
+      debugWarn(
+        "server-directive",
+        "The server changed what this recorder should do.",
+        {
+          directive: "stop",
+          reason: said.reason || "not-reported",
+          status: status,
+        },
+      );
+
+      this.options.onDirective("stop", said.reason);
+      this.droppedChunks++;
+
+      return "halt";
+    }
+
     debugWarn(
       "chunk-throttled",
       "Rate limited. Uploads pause and resume on their own.",
@@ -925,7 +1047,7 @@ export default class Transport {
       },
     );
 
-    if (said.directive === "throttle" || said.directive === "stop") {
+    if (said.directive === "throttle") {
       this.options.onDirective(said.directive, said.reason);
     }
 

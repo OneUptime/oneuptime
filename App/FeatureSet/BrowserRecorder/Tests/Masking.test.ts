@@ -191,6 +191,54 @@ describe("Masking", (): void => {
       expect(Masking.maskAttributeValue("input", "value", "x")).toBeNull();
     });
 
+    /*
+     * REGRESSION (privacy-2). rrweb-snapshot skips maskInputValue for submit
+     * and button inputs (their value is the button's LABEL, not typed
+     * input), so `<input type="submit" value="Continue as alice@...">`
+     * reached neither maskInput nor this table and survived MaskAllText.
+     */
+    it("masks a submit or button input's value, but leaves a typed one to maskInput", (): void => {
+      for (const type of ["submit", "button", "reset"]) {
+        expect(
+          Masking.maskAttributeValue("input", "value", "Continue as alice", {
+            type: type,
+          }),
+        ).not.toContain("alice");
+      }
+
+      expect(
+        Masking.maskAttributeValue("input", "value", "typed", {
+          type: "text",
+        }),
+      ).toBeNull();
+      expect(Masking.maskAttributeValue("input", "value", "typed", {})).toBe(
+        null,
+      );
+    });
+
+    /*
+     * A meta tag has no text node, so maskTextFn never sees it - and
+     * slimDOMOptions keeps description/keywords and every custom meta, which
+     * is where a server-rendered app puts the signed-in person.
+     */
+    it("masks a meta tag's content", (): void => {
+      expect(
+        Masking.maskAttributeValue(
+          "meta",
+          "content",
+          "Invoices for Alice Hartwell",
+        ),
+      ).not.toContain("Hartwell");
+      expect(
+        Masking.maskAttributeValue("", "content", "alice@example.com"),
+      ).not.toContain("alice");
+
+      /* Not every element's content attribute; a div's is not page text. */
+      expect(
+        Masking.maskAttributeValue("div", "content", "structural"),
+      ).toBeNull();
+    });
+
     it("keeps short data-* tokens that drive CSS and masks free text", (): void => {
       expect(
         Masking.maskAttributeValue("div", "data-state", "open"),

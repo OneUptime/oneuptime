@@ -54,6 +54,12 @@ import {
   SessionReplayListResult,
 } from "../../../Components/SessionReplay/SessionReplayTable";
 import isReplayOnlyInstrumented from "../../../Components/SessionReplay/RumInstrumentation";
+import useSessionReplayHealth, {
+  SessionReplayHealthError,
+  UseSessionReplayHealthResult,
+  describeHealthError,
+} from "../../../Components/SessionReplay/useSessionReplayHealth";
+import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -111,6 +117,36 @@ export function buildRangedListRoute(
   } catch {
     return listRoute;
   }
+}
+
+/*
+ * The "Recording health" detail row's value, or undefined to leave the row
+ * out entirely.
+ *
+ * A viewer without the Read Session Replay permission (or on a plan that
+ * does not include replay) is shown nothing rather than a permission error
+ * in a list of SDK facts - they cannot act on it here, and the settings
+ * page is where that conversation belongs. Every other failure IS named,
+ * because a silent row would read as "healthy".
+ */
+export function describeRecordingHealthRow(health: {
+  isLoading: boolean;
+  error: SessionReplayHealthError | null;
+  diagnosis: RecordingHealthDiagnosis;
+}): string | undefined {
+  if (health.isLoading) {
+    return "Checking…";
+  }
+
+  if (health.error) {
+    if (health.error.kind === "permission" || health.error.kind === "plan") {
+      return undefined;
+    }
+
+    return describeHealthError(health.error).title;
+  }
+
+  return health.diagnosis.title;
 }
 
 /* Identity for the effect below: a picker hands out a new object per change. */
@@ -383,6 +419,16 @@ const RumApplicationOverview: FunctionComponent<
     },
   });
 
+  /*
+   * One line of recording health in the details list. The overview is where
+   * someone lands when "the replays look wrong", and until now this page
+   * said nothing at all about whether the recorder is even reporting - the
+   * diagnosis lived only on the list strip and the settings card. The hook
+   * is a shared store keyed by application, so this subscription costs no
+   * extra request when the strip or the card is already polling.
+   */
+  const health: UseSessionReplayHealthResult = useSessionReplayHealth(modelId);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -537,11 +583,17 @@ const RumApplicationOverview: FunctionComponent<
     },
   ];
 
+  const recordingHealthValue: string | undefined =
+    describeRecordingHealthRow(health);
+
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "App Identifier (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
     { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
     { label: "SDK Version", value: a.agentVersion },
+    ...(recordingHealthValue
+      ? [{ label: "Recording health", value: recordingHealthValue }]
+      : []),
   ];
 
   /*

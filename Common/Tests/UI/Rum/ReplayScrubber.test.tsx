@@ -806,7 +806,6 @@ describe("ReplayScrubber buffering pill", () => {
     const pill: HTMLElement = screen.getByTestId("replay-buffering-pill");
 
     expect(pill).toHaveTextContent("Loading footage");
-    expect(screen.queryByTestId("replay-buffering-retry")).toBeNull();
 
     act((): void => {
       jest.advanceTimersByTime(8000);
@@ -816,9 +815,16 @@ describe("ReplayScrubber buffering pill", () => {
       "Still loading",
     );
 
-    fireEvent.click(screen.getByTestId("replay-buffering-retry"));
-
-    expect(retries).toBe(1);
+    /*
+     * ux-18: the stage overlay announces the phase and owns the Retry.
+     * The controls pill is the same words in a second place, so it is
+     * visual only - not a live region, and without a duplicate Retry
+     * button that a screen reader would read as a second offer.
+     */
+    expect(pill).not.toHaveAttribute("role", "status");
+    expect(pill).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByTestId("replay-buffering-retry")).toBeNull();
+    expect(retries).toBe(0);
   });
 
   it("names the seek target while seeking", () => {

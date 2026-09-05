@@ -126,6 +126,44 @@ describe("parseSessionReplaySearch bare text", () => {
     ).toEqual([]);
   });
 
+  /*
+   * ux-03 / integration-001: the endpoint compares urlPrefix from the
+   * START of each stored address (and of its path), so a value that
+   * anchors nowhere returns nothing at all - the box must never send one
+   * silently.
+   */
+  test("a URL filter is anchored before it is sent, and says what it applied", () => {
+    const bareWord: SessionReplaySearchParseResult =
+      parseSessionReplaySearch("url:checkout");
+
+    expect(bareWord.advanced.urlPrefix).toBe("/checkout");
+    expect(bareWord.warnings).toHaveLength(1);
+    expect(bareWord.warnings[0]).toContain('"checkout" was applied as');
+    expect(bareWord.warnings[0]).toContain('"/checkout"');
+
+    const host: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      "page:shop.example.com/cart",
+    );
+
+    expect(host.advanced.urlPrefix).toBe("https://shop.example.com/cart");
+    expect(host.warnings[0]).toContain("https://shop.example.com/cart");
+  });
+
+  test("an already anchored URL is left alone and warns about nothing", () => {
+    const path: SessionReplaySearchParseResult =
+      parseSessionReplaySearch("url:/checkout");
+
+    expect(path.advanced.urlPrefix).toBe("/checkout");
+    expect(path.warnings).toEqual([]);
+
+    const absolute: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      "url:https://app.acme.com/cart",
+    );
+
+    expect(absolute.advanced.urlPrefix).toBe("https://app.acme.com/cart");
+    expect(absolute.warnings).toEqual([]);
+  });
+
   test("an @ is a user reference", () => {
     const result: SessionReplaySearchParseResult =
       parseSessionReplaySearch("jane@acme.com");

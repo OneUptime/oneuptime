@@ -75,20 +75,57 @@ panel to confirm — server telemetry cannot see a recorder that never loaded.
 
 ### Public API
 
-Available on `window.OneUptimeReplay` once the artifact has loaded, and via a
-`window.OneUptimeReplayQueue` array of `[command, argument]` pairs for calls
-made before it arrives.
+Available on `window.OneUptimeReplay` once the artifact has loaded, and via
+`window.OneUptimeReplayQueue`, an array of `[command, ...arguments]` entries.
 
-| call                | effect                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| `grantConsent()`    | permits upload; required when the app's consent mode is `RequireExplicit`. After a `revokeConsent()` it starts a fresh session - consent platforms fire reject-then-accept inside one page life routinely |
-| `revokeConsent()`   | stops uploading, drops the buffer and the retry queue, and clears the stored session identity. Nothing recorded under the withdrawn consent survives; a later grant covers only what happens after it |
-| `captureSession()`  | uploads this session even though nothing went wrong                                        |
-| `identify(userRef)` | attaches an opaque user reference (hashed server-side unless identity capture is enabled)  |
-| `stop()`            | stops recording                                                                            |
-| `getSessionId()`    | the current session id, or null                                                            |
-| `setDebug(bool)`    | turn the console diagnostics on or off for this page                                       |
-| `getDiagnostics()`  | the recorder's state plus its last 250 decisions, kept whether or not diagnostics were on  |
+| call                        | effect                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `grantConsent()`            | permits upload; required when the app's consent mode is `RequireExplicit`. After a `revokeConsent()` it starts a fresh session - consent platforms fire reject-then-accept inside one page life routinely |
+| `revokeConsent()`           | stops uploading, drops the buffer and the retry queue, and clears the stored session identity. Nothing recorded under the withdrawn consent survives; a later grant covers only what happens after it |
+| `captureSession(reason?)`   | uploads this session even though nothing went wrong; the reason lands on the timeline      |
+| `identify(userRef, traits?)`| attaches an opaque user reference (hashed server-side unless identity capture is enabled) and optional traits (plan, role, tenant), capped, stringified and masked before they leave the page |
+| `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
+| `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
+| `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
+| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. This is what puts `session.id` on the page's own OpenTelemetry resource |
+| `stop()`                    | stops recording                                                                            |
+| `getSessionId()`            | the current session id, or null                                                            |
+| `setDebug(bool)`            | turn the console diagnostics on or off for this page                                       |
+| `getDiagnostics()`          | the recorder's state plus its last 250 decisions, kept whether or not diagnostics were on  |
+
+**The queue is live, before AND after the artifact loads.** It exists because
+the artifact is ~90 KB of script and a consent banner is not going to wait for
+it, but the reverse case is the common one: the recorder is usually there
+within a second and the banner is clicked minutes later. So a `push` onto
+`window.OneUptimeReplayQueue` is applied immediately once the recorder exists,
+and queued entries are applied at bootstrap - the page never has to know which
+side of the load it is on:
+
+```js
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "grantConsent",
+]);
+```
+
+Commands: `["grantConsent"]`, `["revokeConsent"]`, `["stop"]`,
+`["identify", ref, traits]`, `["setTags", tags]`, `["addTag", key, value]`,
+`["track", name, properties]`, `["captureSession", reason]`,
+`["onSessionChange", callback]`. Anything queued before the artifact arrives is
+applied in order; `identify`, `setTags`, `addTag` and the consent decisions run
+BEFORE the recorder starts, so chunk 0 - the one chunk guaranteed to carry the
+session meta - already knows who the user is, while `track` and
+`captureSession` run after start, where there is a stream for them to land in.
+An unrecognised name is dropped with a `command-queue-unknown-command`
+diagnostic rather than in silence, and a call that finds no recorder at all
+logs `api-no-recorder`.
+
+**Tags are the one host-supplied string that is never masked.** Values passed
+to `setTags()` / `addTag()` are stored verbatim in every masking mode,
+including `MaskAllText`, because their whole purpose is to be searchable
+(`tag:build=1.2.3`) - and they are visible to everyone who can list sessions,
+which is a wider audience than the identity ACL protecting `identify()`
+traits. Do not put page text, an email address or anything else you would not
+want in a session list into a tag; use `identify()` traits for that.
 
 ### Diagnostics
 
@@ -186,7 +223,9 @@ attribute and the SRI pin is inert.
 | masking mode            | `MaskSensitiveInputsOnly` by default: only declared-sensitive fields are masked, and page text and ordinary input values are recorded verbatim. `MaskInputsOnly` additionally masks every input value; `MaskAllText` also replaces every text node - and every text-like attribute, see below - with a fixed-width placeholder. |
 | input values            | ordinary values are recorded under the default mode and masked under the other two. Passwords, sensitive-`autocomplete` fields and **`type="hidden"` inputs** are masked in **every** mode: nobody sees a hidden field on the page, and what it holds (CSRF tokens, user ids, pre-filled emails) is exactly what a viewer must not read out of a recording. |
 | who decides             | `maskAllInputs: false` with an explicit `maskInputOptions` table whose `input` key matches every `<input>` by **tag name**. That routes every input, hidden ones included, through our own `maskInputFn`. (`true` would make rrweb discard the table and use its own type-keyed one, which has no `hidden` entry - see `Masking.getRrwebMaskingOptions`.) rrweb's own policy reads the *current* input type, which a show-password toggle mutates. |
-| attributes              | under `MaskAllText`: `alt`, `title`, `aria-label`, `aria-description`, `placeholder`, `label`, option values, free-text `data-*` values, `srcdoc`, and `href` on links (`mailto:` / `tel:` redacted, navigational URLs scrubbed) are masked in attribute mutations and in full snapshots. `src` / `srcset` / `poster` and short enum-like `data-*` tokens (`data-state="open"`) are kept because playback needs them. |
+| attributes              | under `MaskAllText`: `alt`, `title`, `aria-label`, `aria-description`, `placeholder`, `label`, option values, **a `<meta>` tag's `content`**, **the `value` of `type="submit"` / `"button"` / `"reset"` inputs**, free-text `data-*` values, `srcdoc`, and `href` on links (`mailto:` / `tel:` redacted, navigational URLs scrubbed) are masked in attribute mutations and in full snapshots. The last two are there because rrweb reaches neither: a meta tag has no text node for `maskTextFn`, and rrweb-snapshot skips `maskInputValue` for submit and button inputs (their value is a label, not typed input) - so `<meta name="description" content="Invoices for Alice Hartwell">` and `<input type="submit" value="Continue as alice@example.com">` used to survive verbatim. `src` / `srcset` / `poster` and short enum-like `data-*` tokens (`data-state="open"`) are kept because playback needs them. |
+| click labels            | a click emits `oneuptime.click` with a structural selector and a short label - `aria-label`, else the element's text. The label honours **block and mask in every mode**: a click anywhere inside `blockSelectors` / `.oneuptime-block` has no label at all and is reported against the blocked element itself (never its inner structure), and an element that CONTAINS a masked, blocked or value-bearing descendant is labelled from its own direct text nodes only - `textContent` concatenates every descendant, so a card wrapping a `.oneuptime-mask` span used to ship the span's words. Under `MaskAllText` there is no label at all, and a form control's typed value is never one. |
+| tags                    | `setTags()` / `addTag()` values are stored **verbatim in every masking mode**, including `MaskAllText`: they exist to be searched (`tag:build=1.2.3`), and masking them would defeat that. They are readable by everyone who can list sessions - a wider audience than the identity ACL over `identify()` traits - so page text does not belong in one. |
 | mask width              | fixed, never derived from the value's length. rrweb's default `'*'.repeat(value.length)` is a length oracle for passwords, OTPs and card numbers.                                                                           |
 | sticky password masking | once a node has ever been `type=password` or carried a sensitive `autocomplete` token it stays masked for the life of the page, **and the `type` mutation from a show-password toggle is suppressed from the event stream** |
 | file inputs             | value always blanked; the DOM value is `C:\fakepath\<real filename>` and filenames are routinely personal                                                                                                                   |
@@ -215,14 +254,25 @@ attribute and the SRI pin is inert.
   stylesheets, web fonts and `<video>`/`<audio>` are not captured. Each is
   reported to the player as a machine-readable `fidelityNotices` code, so a
   viewer sees "this was not recorded" rather than an unexplained blank.
-- **Every terminal flush is one keepalive request under a 56 KB cap** - not
-  only a hard unload, but every time the tab is hidden and every `pagehide`.
-  The final chunk goes first; chunks still waiting for a retry ride along as
-  extra frames when they fit; anything that does not fit is counted as a
-  dropped chunk (`droppedChunks` on the envelope, `final-chunk-too-large` in
-  the diagnostics) rather than silently discarded. A tab that is hidden mid
-  way through a heavy 15 s interval can therefore lose the tail of that
-  interval.
+- **A terminal flush is ONE keepalive request under a 56 KB cap**, however
+  many chunks it carries. The browser counts the keepalive quota per ORIGIN
+  across every in-flight request, so "one request per piece" is one request
+  that fits and several the browser rejects.
+  - `pagehide` always takes this path, and so does `visibilitychange` to
+    hidden whenever the open chunk still fits the budget: Chrome dispatches
+    both in the same synchronous unload sequence for a same-tab navigation,
+    and anything handed to the ordinary (gzip, async) path there never gets
+    its `fetch` issued at all. An open chunk larger than the budget still
+    goes out through the ordinary path, which is the only one that can carry
+    it — a tab hidden midway through a heavy interval can lose that tail.
+  - Hiding does NOT seal the session. Only `pagehide` (with
+    `persisted !== true`) sends `isFinal`.
+  - The sealing chunk goes first, then the rest of the split newest-first,
+    then chunks still waiting for a retry. What one request cannot carry is
+    cut at the chunker, before a chunk index is minted for it, and reported
+    as `droppedEvents` on the envelope with a `final-flush-truncated`
+    diagnostic — an index minted for a request that is never issued is a hole
+    the player reports as a missing chunk forever.
 - **`traceparent` injection is opt-in per origin, and skips `Request`
   objects.** By default `NetworkRecorder` only READS a traceparent the host
   page already set. When the application's **trace propagation origins**
@@ -301,7 +351,10 @@ on someone else's site. What does **not** count: a 429, or a 503 carrying the
 server's `throttle` directive / `retryAfterSeconds` / `Retry-After` (its storage
 is briefly unavailable and it is asking for patience - uploads pause for that
 long and resume by themselves); a 413 or 422 (that one chunk was the problem,
-not the transport). What stops the recorder outright, without retries: 401 /
+not the transport - and a chunk still over the 2 MB request cap after gzip is
+posted as its SIZE with an empty body, which the parser answers 422 so the
+session survives with a `snapshot-too-large` notice, instead of spending
+megabytes of the visitor's uplink on a request nginx will refuse with a 413). What stops the recorder outright, without retries: 401 /
 403 / 404, a 400 whose body names something about the recorder itself
 (`unsupported-wire-version`, `app-identifier-mismatch`, `missing-app-identifier`,
 `malformed-body`...), three unexplained 400s in a row, and any body carrying
@@ -378,10 +431,17 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 245 KB raw / 75.7 KB gzip**, **loader.js 12.1 KB raw /
-4.6 KB gzip**. Both raw AND gzip budgets are enforced by the build, which fails
-rather than shipping a regression — gzip being the number a customer's browser
-actually pays.
+Measured: **recorder.js 294.2 KB raw / 88.9 KB gzip**, **loader.js 13.2 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (90 KB gzip
+for the recorder, 5 KB for the stub), which fails rather than shipping a
+regression — gzip being the number a customer's browser actually pays.
+
+It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
+that arrived with it is web vitals, the retry/backoff transport, cross-tab
+session adoption, attribute masking, the public API (`identify`, `track`,
+tags, `onSessionChange`), click and custom events, the split terminal flush
+and the diagnostics decisions — all of it this package's own modules, which
+went 91.6 KB → 106.8 KB raw against an rrweb that is a fixed 181.7 KB.
 
 The stub was 6.5 KB raw / 2.5 KB gzip before the diagnostics module and the ~20
 decision points that report through it. That increase is real and was taken

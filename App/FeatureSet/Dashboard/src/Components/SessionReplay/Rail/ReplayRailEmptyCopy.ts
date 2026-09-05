@@ -59,6 +59,16 @@ const TAB_NOUNS: Record<ReplayRailTabId, string> = {
   traces: "backend traces",
 };
 
+/*
+ * The capability a recorder announces when it labels clicks with a
+ * selector and text. It MUST be a member of the closed vocabulary
+ * SESSION_REPLAY_RECORDER_CAPABILITIES (a test pins that): this copy used
+ * to compare against "click", which no recorder has ever sent, so every
+ * current recording with an empty Interactions tab was told it "predates
+ * click labels" while genuinely old ones got the right copy.
+ */
+export const REPLAY_CLICK_EVENTS_CAPABILITY: string = "click-events";
+
 function isTelemetryTab(tabId: ReplayRailTabId): boolean {
   return tabId === "logs" || tabId === "traces" || tabId === "errors";
 }
@@ -193,25 +203,31 @@ export function getRailEmptyCopy(
     };
   }
 
+  const noun: string = TAB_NOUNS[args.tabId];
+
+  /*
+   * Nothing has decoded yet, so nothing is known about what the recording
+   * holds. This precedes the capability explanation: telling a viewer the
+   * recorder is too old, in the second before the first chunk arrives, is
+   * a guess dressed as a diagnosis.
+   */
+  if (!args.hasLoadedFootage) {
+    return {
+      title: `No ${noun} yet`,
+      detail: "Rows appear as the first chunk of footage decodes.",
+    };
+  }
+
   if (
     args.tabId === "interactions" &&
     args.recorderCapabilities &&
-    !hasCapability(args.recorderCapabilities, "click")
+    !hasCapability(args.recorderCapabilities, REPLAY_CLICK_EVENTS_CAPABILITY)
   ) {
     return {
       title: "This recording predates click labels",
       detail:
         "The recorder that captured it did not label clicks with a selector or text; only coordinate-only clicks can be lifted from the footage. Upgrade the recorder to get labelled interactions.",
       capabilities: args.recorderCapabilities,
-    };
-  }
-
-  const noun: string = TAB_NOUNS[args.tabId];
-
-  if (!args.hasLoadedFootage) {
-    return {
-      title: `No ${noun} yet`,
-      detail: "Rows appear as the first chunk of footage decodes.",
     };
   }
 

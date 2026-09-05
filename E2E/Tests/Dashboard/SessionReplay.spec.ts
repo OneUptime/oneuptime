@@ -64,8 +64,12 @@ import {
  *     spec of the day asserted only that the chrome was there.
  *   - A replay-only install read "Disconnected" on the roster (#3527)
  *     because liveness was refreshed from the OTel path alone.
+ *   - The recorder gzips every payload it sends and no test had ever fed a
+ *     real gzip frame to the real ingest: chunk 1 of the journey below is
+ *     compressed, and the error it carries is read back from the rail.
  *
- * To run locally against a full stack:
+ * To run locally against a full stack (and this spec MUST be run against
+ * one before it is trusted - it drives services no unit test can stand up):
  *
  *   cd E2E && HOST=localhost npx playwright test \
  *     Tests/Dashboard/SessionReplay.spec.ts --project=chromium
@@ -217,6 +221,22 @@ test.describe("Session Replay", () => {
       ],
     });
 
+    /*
+     * GZIPPED, and the only chunk that is (tests-3).
+     *
+     * Every shipped recorder compresses: Transport.ts reaches for
+     * CompressionStream and falls back to identity only where that API is
+     * missing. Nothing in the repository had ever fed a real gzip frame to
+     * the real ingest - Transport.test.ts proves the recorder compresses,
+     * SessionReplayIngestService's unit tests gunzip a buffer the test
+     * itself made - so a payloadBytes counting the wrong side of the
+     * compression, or a server default reading a compressed body as
+     * identity, passed both suites and stored garbage.
+     *
+     * This chunk carries the client error that hop 9 reads back out of the
+     * rail by message, so a broken gunzip fails a named assertion about a
+     * visible thing rather than quietly costing the session its footage.
+     */
     await postSessionReplayChunk({
       page,
       ingestionKey,
@@ -229,6 +249,7 @@ test.describe("Session Replay", () => {
       routes: [cart],
       errorCount: 1,
       traceIds: [checkoutTraceId],
+      compressPayload: true,
       events: [
         consoleEvent({
           atOffsetMs: 2000,
@@ -330,6 +351,10 @@ test.describe("Session Replay", () => {
      * roster while its recorders were posting to this very server. The
      * stamp is fire-and-forget and throttled, hence the poll.
      */
+    const rosterRow: Locator = page
+      .getByRole("row")
+      .filter({ hasText: appIdentifier });
+
     await pollUntil({
       page,
       what: `application ${appIdentifier} reading Connected`,
@@ -337,13 +362,27 @@ test.describe("Session Replay", () => {
       run: async (): Promise<boolean> => {
         await openRumApplications({ page, projectId });
 
-        const row: Locator = page
-          .getByRole("row")
-          .filter({ hasText: appIdentifier });
-
-        return row.getByText("Connected", { exact: true }).first().isVisible();
+        return rosterRow
+          .getByText("Connected", { exact: true })
+          .first()
+          .isVisible();
       },
     });
+
+    /*
+     * Said again as an assertion, so a failure names the regression rather
+     * than reading "Timed out waiting for ...". Both halves matter: the
+     * pill must SAY Connected, and it must not still be the Disconnected
+     * one that #3527 reported while recorders were posting to this server.
+     */
+    await expect(
+      rosterRow.getByText("Connected", { exact: true }).first(),
+      "#3527: session replay chunks alone must keep the application Connected - liveness used to be refreshed from the OTel path only",
+    ).toBeVisible();
+    await expect(
+      rosterRow.getByText("Disconnected", { exact: true }),
+      "#3527: a replay-only install must never read Disconnected while it is uploading",
+    ).toHaveCount(0);
 
     /* Hop 3: the session reaches the list. */
     const listRow: Locator = page.locator(
@@ -456,31 +495,100 @@ test.describe("Session Replay", () => {
     const phase: Locator = page.getByTestId("replay-phase");
     const clock: Locator = page.getByTestId("replay-time");
 
-    await expect(phase).toHaveText("playing", { timeout: 60000 });
+    await expect(
+      phase,
+      "#3601: opening a recording must start it playing, not just draw the chrome",
+    ).toHaveText("playing", { timeout: 60000 });
 
     /* Duration comes from the chunk bounds: six slots, 1:30. */
-    await expect(clock).toHaveText(/\/ 1:30$/);
+    await expect(clock).toHaveText(/\/ 1:30$/, { timeout: 30000 });
 
-    const clockBefore: string = (await clock.textContent()) ?? "";
+    /*
+     * The clock must MOVE FORWARD, by a real amount.
+     *
+     * "the text changed" was too weak to prove #3601 was fixed: a seek
+     * back to 0, a re-render at the same second with tenths attached, or a
+     * clock that ticks while nothing is decoded all change the text. Read
+     * the offset as a number and require it to be at least two seconds
+     * later than where playback started.
+     */
+    const startedAtMs: number = await readReplayClockMs(clock);
 
-    await expect(clock, "The clock must advance while playing").not.toHaveText(
-      clockBefore,
-      { timeout: 15000 },
-    );
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return readReplayClockMs(clock);
+        },
+        {
+          message:
+            "#3601: the playhead must advance while playing, not sit where it started",
+          timeout: 30000,
+        },
+      )
+      .toBeGreaterThanOrEqual(startedAtMs + 2000);
+
+    /*
+     * And the PICTURE must be the recording, not a blank frame with
+     * working chrome around it. The fixture's page prints its own offset
+     * ("e2e session replay · 0:07") and rewrites it every 2.5s, so the
+     * text appearing proves the snapshot rebuilt and the text CHANGING
+     * proves rrweb is still applying the incremental events that follow -
+     * which is exactly what "Play did nothing" was: a stage that painted
+     * the first frame and then stopped.
+     */
+    const stageText: Locator = page
+      .frameLocator('[data-testid="replay-stage"] iframe')
+      .locator("#app");
 
     await expect(
-      page
-        .frameLocator('[data-testid="replay-stage"] iframe')
-        .getByText(SESSION_REPLAY_FIXTURE_TEXT)
-        .first(),
+      stageText,
       "The stage iframe must show the recorded page",
-    ).toBeVisible({ timeout: 30000 });
+    ).toContainText(SESSION_REPLAY_FIXTURE_TEXT, { timeout: 30000 });
 
-    /* Pause and resume are engine events; the phase word reflects each. */
-    await page.getByTestId("replay-play-pause").click();
+    /*
+     * Rebuilt AND on screen: a node in a document the stage never sized or
+     * scaled is not footage the viewer can watch.
+     */
+    await expect(stageText).toBeVisible();
+
+    const firstFrameText: string = (await stageText.textContent()) ?? "";
+
+    await expect
+      .poll(
+        async (): Promise<string> => {
+          return (await stageText.textContent()) ?? "";
+        },
+        {
+          message:
+            "#3601: the reconstructed page must keep changing - a stage that paints one frame and stops is the bug",
+          timeout: 30000,
+        },
+      )
+      .not.toBe(firstFrameText);
+
+    /*
+     * Pause and resume are engine events; the phase word and the transport
+     * button's own data-phase both reflect each, so a button that renders
+     * the pause icon while the engine keeps playing is caught too.
+     */
+    const playPause: Locator = page.getByTestId("replay-play-pause");
+
+    await playPause.click();
     await expect(phase).toHaveText("paused", { timeout: 10000 });
-    await page.getByTestId("replay-play-pause").click();
+    await expect(playPause).toHaveAttribute("data-phase", "paused");
+
+    const pausedAtMs: number = await readReplayClockMs(clock);
+
+    /* Paused means paused: the playhead must not creep on. */
+    await page.waitForTimeout(2000);
+    expect(
+      await readReplayClockMs(clock),
+      "Pause must stop the playhead",
+    ).toBeLessThanOrEqual(pausedAtMs + 500);
+
+    await playPause.click();
     await expect(phase).toHaveText("playing", { timeout: 10000 });
+    await expect(playPause).toHaveAttribute("data-phase", "playing");
 
     /*
      * Hop 7: the session says where it began.
@@ -498,15 +606,21 @@ test.describe("Session Replay", () => {
      */
     await page.getByTestId("replay-open-details").click();
 
-    await expect(
-      page.getByTestId("details-tab-session").getByText(home, { exact: true }),
-    ).toBeVisible({ timeout: 30000 });
+    const detailsPanel: Locator = page.getByTestId("details-tab-session");
 
-    /* The panel overlays the rail; close it before driving the rail. */
-    await page.getByTestId("side-over").getByTestId("close-button").click();
-    await page
-      .getByTestId("side-over")
-      .waitFor({ state: "hidden", timeout: 10000 });
+    await expect(detailsPanel.getByText(home, { exact: true })).toBeVisible({
+      timeout: 30000,
+    });
+
+    /*
+     * The panel overlays the rail, so it has to go before the rail can be
+     * driven. Escape is how it closes: the panel is a fixed div rendered by
+     * TelemetryDetailPanel (not a SideOver), its close control carries no
+     * test id, and both the panel's own document listener and the player's
+     * Escape shortcut resolve to the same "close the details panel".
+     */
+    await page.keyboard.press("Escape");
+    await expect(detailsPanel).toHaveCount(0, { timeout: 10000 });
 
     /*
      * Hop 8: the rail follows the playhead.
@@ -563,7 +677,12 @@ test.describe("Session Replay", () => {
 
     await errorRow.locator("[title^='Seek to']").first().click();
 
-    await expect(errorRow).toHaveAttribute("aria-selected", "true");
+    /*
+     * data-selected, not aria-selected: the row is a role=listitem in a
+     * list (aria-selected is not valid there), and the rail marks the open
+     * row with data-selected plus aria-expanded on its body button.
+     */
+    await expect(errorRow).toHaveAttribute("data-selected", "true");
     await expect(
       clock,
       "A rail row click must seek to 1s before it",
@@ -674,7 +793,8 @@ test.describe("Session Replay", () => {
       page.locator(
         `[data-testid="rail-row"][data-signal-id="${errorSignalId}"]`,
       ),
-    ).toHaveAttribute("aria-selected", "true", { timeout: 30000 });
+      "?signal= must select the named row, on the tab that shows it",
+    ).toHaveAttribute("data-selected", "true", { timeout: 30000 });
 
     /*
      * Hop 14: one audit row per view, even while the player polls.
@@ -892,6 +1012,24 @@ test.describe("Session Replay", () => {
       })
       .toEqual([longSession.sessionId]);
 
+    /*
+     * The same filter as a bare PATH, which is the form the search box's
+     * own placeholder teaches ("/checkout") and the only form a viewer
+     * reading the route pills would think to type. The stored values are
+     * absolute URLs, so this only works because the endpoint also matches
+     * path(route) / path(entryUrl); before that fix a path-only prefix
+     * matched nothing at all and the list looked empty for a page the
+     * session demonstrably visited.
+     */
+    await searchSessionReplayList({ page, query: "url:/cart" });
+    await expect
+      .poll(listedIds, {
+        message:
+          "url:/<path> must match on the route's path, not only on the full address",
+        timeout: 30000,
+      })
+      .toEqual([longSession.sessionId]);
+
     await searchSessionReplayList({ page, query: `tag:build=${buildTag}` });
     await expect
       .poll(listedIds, {
@@ -1005,12 +1143,26 @@ test.describe("Session Replay", () => {
       },
     });
 
-    await expect(page.getByTestId("health-strip-level")).toHaveText(
-      "loaded-never-uploaded",
-    );
-    await expect(page.getByTestId("list-empty-detail")).toContainText(
-      "sample percentage is 0%",
-    );
+    /*
+     * #3527's other half. "Nothing has been recorded here yet" is what this
+     * page used to say for an application whose recorder is demonstrably
+     * loading, which sends the customer back to re-paste a snippet that was
+     * never the problem. The strip has to separate "never loaded" from
+     * "loaded, and here is what is stopping the upload", and the detail has
+     * to name the cause and quantify it.
+     */
+    await expect(
+      page.getByTestId("health-strip-level"),
+      "#3527: a recorder that fetched its policy must not be reported as never installed",
+    ).toHaveText("loaded-never-uploaded");
+    await expect(
+      page.getByTestId("list-empty-detail"),
+      "The empty state must name the cause: sampling is 0%",
+    ).toContainText("sample percentage is 0%");
+    await expect(
+      page.getByTestId("list-empty-variant"),
+      "A loaded-but-silent application must not be filed as never-installed",
+    ).not.toHaveText("never-installed");
   });
 
   /*
@@ -1138,6 +1290,38 @@ test.describe("Session Replay", () => {
     expect(validation.valid).toBe(true);
   });
 });
+
+type ReadReplayClockMsFunction = (clock: Locator) => Promise<number>;
+
+/*
+ * The playhead as a number of milliseconds.
+ *
+ * replay-time renders formatReplayClock: "m:ss / m:ss" while playing,
+ * "m:ss.t / m:ss" while paused, "h:mm:ss" past an hour. Only the part
+ * before the slash is the playhead. Returns -1 when the clock has not
+ * rendered a readable value yet, so a poll keeps waiting instead of
+ * comparing against a silently-zero offset.
+ */
+const readReplayClockMs: ReadReplayClockMsFunction = async (
+  clock: Locator,
+): Promise<number> => {
+  const text: string = ((await clock.textContent()) ?? "").trim();
+  const current: string = (text.split("/")[0] ?? "").trim();
+  const match: RegExpMatchArray | null = current.match(
+    /^(?:(\d+):)?(\d+):(\d+)(?:\.(\d))?$/,
+  );
+
+  if (!match) {
+    return -1;
+  }
+
+  const hours: number = match[1] ? Number(match[1]) : 0;
+  const minutes: number = Number(match[2]);
+  const seconds: number = Number(match[3]);
+  const tenths: number = match[4] ? Number(match[4]) : 0;
+
+  return ((hours * 60 + minutes) * 60 + seconds) * 1000 + tenths * 100;
+};
 
 type PollUntilFunction = (data: {
   page: Page;

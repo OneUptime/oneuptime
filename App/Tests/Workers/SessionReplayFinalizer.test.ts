@@ -260,6 +260,11 @@ function makeChunkRow(data: {
   customEventCount?: number;
   url?: string;
   routes?: Array<string>;
+  /*
+   * Two RUM applications on one origin share sessionStorage, so they share
+   * the browser-minted sessionId; the chunk rows are what tells them apart.
+   */
+  rumApplicationId?: string;
 }): RawChunkRow {
   const chunkIndex: number = data.chunkIndex;
 
@@ -294,8 +299,8 @@ function makeChunkRow(data: {
     chunkEndOffsetMs: (chunkIndex + 1) * CHUNK_DURATION_MS,
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
     recorderKind: "dom",
-    rumApplicationId: "6600000000000000000000b2",
-    primaryEntityId: "6600000000000000000000b2",
+    rumApplicationId: data.rumApplicationId ?? "6600000000000000000000b2",
+    primaryEntityId: data.rumApplicationId ?? "6600000000000000000000b2",
     primaryEntityType: "RealUserMonitor",
     retentionDate: "2026-08-05",
   };
@@ -386,8 +391,13 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
     RawChunkRow
   >();
 
+  /*
+   * LIMIT 1 BY rumApplicationId, tabId, chunkIndex - the application is in
+   * the dedupe key because two applications share the sessionId, and
+   * without it one application's chunks silently evict the other's.
+   */
   for (const row of rows) {
-    const identity: string = `${row.tabId}:${row.chunkIndex}`;
+    const identity: string = `${row.rumApplicationId}:${row.tabId}:${row.chunkIndex}`;
     const existing: RawChunkRow | undefined = latestByIdentity.get(identity);
 
     if (!existing || row.version > existing.version) {
@@ -395,24 +405,27 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
     }
   }
 
+  /* GROUP BY rumApplicationId, tabId. */
   const byTab: Map<string, Array<RawChunkRow>> = new Map<
     string,
     Array<RawChunkRow>
   >();
 
   for (const row of latestByIdentity.values()) {
-    const existing: Array<RawChunkRow> | undefined = byTab.get(row.tabId);
+    const groupKey: string = `${row.rumApplicationId}:${row.tabId}`;
+    const existing: Array<RawChunkRow> | undefined = byTab.get(groupKey);
 
     if (existing) {
       existing.push(row);
     } else {
-      byTab.set(row.tabId, [row]);
+      byTab.set(groupKey, [row]);
     }
   }
 
   const groupRows: Array<JSONObject> = [];
 
-  for (const [tabId, tabRows] of byTab.entries()) {
+  for (const tabRows of byTab.values()) {
+    const tabId: string = tabRows[0]!.tabId;
     const sum: (pick: (row: RawChunkRow) => number) => number = (
       pick: (row: RawChunkRow) => number,
     ): number => {
@@ -568,8 +581,8 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
         return row.schemaVersion;
       }),
       recorderKind: "dom",
-      rumApplicationId: "6600000000000000000000b2",
-      primaryEntityId: "6600000000000000000000b2",
+      rumApplicationId: tabRows[0]!.rumApplicationId,
+      primaryEntityId: tabRows[0]!.primaryEntityId,
       primaryEntityType: "RealUserMonitor",
       retentionDate: "2026-08-05",
     });
@@ -1389,8 +1402,14 @@ describe("Rum:FinalizeSessions queries", () => {
      * fall back on.
      */
     expect(query).toContain("ORDER BY version DESC");
-    expect(query).toContain("LIMIT 1 BY tabId, chunkIndex");
-    expect(query).toContain("GROUP BY tabId");
+    /*
+     * rumApplicationId leads both keys: two applications on one origin
+     * share the browser-minted sessionId, so without it one application's
+     * chunks evict the other's from the dedupe and both are folded into a
+     * single header.
+     */
+    expect(query).toContain("LIMIT 1 BY rumApplicationId, tabId, chunkIndex");
+    expect(query).toContain("GROUP BY rumApplicationId, tabId");
     expect(query).toContain("sum(payloadBytes)");
     expect(query).toContain("sum(eventCount)");
     expect(query).toContain("max(chunkIndex)");
@@ -1956,7 +1975,7 @@ function stubClickhouse(data: {
       return Promise.resolve(resultSetOf(data.sweepRows || []));
     }
 
-    if (query.includes("GROUP BY tabId")) {
+    if (query.includes("GROUP BY rumApplicationId, tabId")) {
       if (data.failAggregate) {
         return Promise.reject(data.failAggregate);
       }
@@ -1964,7 +1983,21 @@ function stubClickhouse(data: {
     }
 
     if (query.includes("toString(startTime) AS startTimeText")) {
-      return Promise.resolve(resultSetOf(data.headerRows || []));
+      /*
+       * The provisional header read is application-pinned, so the stub
+       * answers only the seeded rows for the application it was asked
+       * about - which is what lets a shared-sessionId fixture give each
+       * application its own header.
+       */
+      const boundValues: Array<unknown> = Object.values(statement.query_params);
+
+      const headerRows: Array<JSONObject> = (data.headerRows || []).filter(
+        (row: JSONObject): boolean => {
+          return boundValues.includes(row["rumApplicationId"]);
+        },
+      );
+
+      return Promise.resolve(resultSetOf(headerRows));
     }
 
     return Promise.resolve(resultSetOf([]));
@@ -2142,6 +2175,72 @@ describe("Rum:FinalizeSessions expired-session loop", () => {
       mockRedis.zsets.get(getActiveSessionsKey(projectId.toString()))?.size ||
         0,
     ).toBe(0);
+  });
+
+  /*
+   * sessionId is minted in the browser from sessionStorage, which every RUM
+   * application served from one origin shares - so one id legitimately
+   * names two applications' recordings. The finalizer used to aggregate on
+   * (projectId, sessionId) alone and write ONE header under whichever
+   * application `any()` picked, carrying both applications' totals and
+   * routes; the other application's session never finalized and stayed
+   * provisional - which the list renders as "live" - forever.
+   */
+  test("two applications sharing a session id each get their own finalized header", async () => {
+    const appA: string = "6600000000000000000000b2";
+    const appB: string = "6600000000000000000000c3";
+
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([
+        makeChunkRow({
+          chunkIndex: 0,
+          rumApplicationId: appA,
+          errorCount: 2,
+          clickCount: 5,
+          url: "https://shop.example.com/cart",
+        }),
+        /* Same tabId and chunkIndex under the OTHER application. */
+        makeChunkRow({
+          chunkIndex: 0,
+          rumApplicationId: appB,
+          errorCount: 0,
+          clickCount: 1,
+          url: "https://help.example.com/faq",
+        }),
+      ]),
+      headerRows: [
+        headerRowOf({ rumApplicationId: appA, primaryEntityId: appA }),
+        headerRowOf({ rumApplicationId: appB, primaryEntityId: appB }),
+      ],
+    });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(2);
+
+    const byApplication: Map<string, JSONObject> = new Map<
+      string,
+      JSONObject
+    >();
+
+    for (const row of inserted) {
+      byApplication.set(row["rumApplicationId"] as string, row);
+    }
+
+    /* Neither header carries the other application's numbers. */
+    expect(byApplication.get(appA)!["errorCount"]).toBe(2);
+    expect(byApplication.get(appA)!["clickCount"]).toBe(5);
+    expect(byApplication.get(appA)!["hasError"]).toBe(true);
+
+    expect(byApplication.get(appB)!["errorCount"]).toBe(0);
+    expect(byApplication.get(appB)!["clickCount"]).toBe(1);
+    expect(byApplication.get(appB)!["hasError"]).toBe(false);
+
+    /* And both are finalized, so neither stays "live" in its own list. */
+    expect(byApplication.get(appA)!["isFinalized"]).toBe(true);
+    expect(byApplication.get(appB)!["isFinalized"]).toBe(true);
   });
 
   test("a ClickHouse failure leaves the member queued for the next run", async () => {
@@ -2354,7 +2453,7 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     chunkServiceStub.executeQuery = (
       statement: Statement,
     ): Promise<unknown> => {
-      if (statement.query.includes("GROUP BY tabId")) {
+      if (statement.query.includes("GROUP BY rumApplicationId, tabId")) {
         calls++;
         if (calls === 1) {
           return Promise.reject(new Error("first one fails"));

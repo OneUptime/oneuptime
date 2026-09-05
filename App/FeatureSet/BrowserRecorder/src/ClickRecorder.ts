@@ -31,6 +31,16 @@ import Masking from "./Masking";
  *      replaced by the text mask whenever the target sits inside a masked
  *      or sensitive region, and a form control's typed value is never used
  *      as a label in any mode.
+ *   3. BLOCKED regions have no label at all, and DESCENDANTS decide as much
+ *      as ancestors. textContent concatenates every descendant, so a click
+ *      on a card whose child is `.oneuptime-mask` used to ship the masked
+ *      child's words, and a click anywhere inside `.oneuptime-block` /
+ *      blockSelectors - a region rrweb never serialises - used to ship the
+ *      first 40 characters of a region the customer excluded outright. A
+ *      target with a masked, blocked or value-bearing descendant is
+ *      labelled from its OWN direct text nodes only, and a click inside a
+ *      blocked region is reported against the blocked element itself, so
+ *      neither the label nor the selector describes anything inside it.
  *
  * Capped PER CHUNK rather than per session, so a long session keeps
  * labelling clicks after its first hundred; past the cap, clicks are
@@ -61,6 +71,17 @@ const TOUCH_CLICK_GRACE_MS: number = 350;
  */
 const VALUE_BEARING_SELECTOR: string = "input, textarea, select, option";
 
+/* rrweb's block class, and the class the mask selectors are joined with. */
+const BLOCK_CLASS: string = "oneuptime-block";
+const MASK_CLASS: string = "oneuptime-mask";
+
+/*
+ * Descendants whose text must never reach a label through textContent: a
+ * masked or blocked subtree, and the controls whose text IS user input
+ * (a <select>'s options are text content, unlike an <input>'s value).
+ */
+const SENSITIVE_DESCENDANT_SELECTOR: string = `.${MASK_CLASS}, .${BLOCK_CLASS}, input, textarea, select`;
+
 export interface ClickRecorderOptions {
   emitCustomEvent: (tag: string, payload: unknown) => void;
 
@@ -69,6 +90,13 @@ export interface ClickRecorderOptions {
 
   /* The active policy's masking, shared with the rest of the recorder. */
   masking: Masking;
+
+  /*
+   * The application's blockSelectors, as handed to rrweb. rrweb never
+   * serialises anything inside them, so nothing inside them may reach the
+   * wire as a click label or as selector structure either.
+   */
+  blockSelectors: Array<string>;
 }
 
 interface PendingTouch {
@@ -248,14 +276,27 @@ export default class ClickRecorder {
 
     this.recordedInChunk++;
 
+    /*
+     * A click inside a blocked region is reported against the blocked
+     * element itself. The region's inner structure (its ids and class names,
+     * which on a payment or medical pane are descriptive on their own) is
+     * exactly what rrweb refuses to serialise, so the selector must not
+     * carry it either.
+     */
+    const blockedRoot: Element | null = target
+      ? this.findBlockedRoot(target)
+      : null;
+    const subject: Element | null = blockedRoot || target;
+
     const click: SessionReplayClickPayload = {
-      selector: target ? ClickRecorder.buildSelector(target) : "",
+      selector: subject ? ClickRecorder.buildSelector(subject) : "",
       x: Math.round(x),
       y: Math.round(y),
       atUnixMs: atUnixMs,
     };
 
-    const text: string | null = target ? this.readLabel(target) : null;
+    const text: string | null =
+      target && !blockedRoot ? this.readLabel(target) : null;
 
     if (text !== null) {
       click.text = text;
@@ -285,7 +326,16 @@ export default class ClickRecorder {
     if (ariaLabel && ariaLabel.trim()) {
       raw = ariaLabel;
     } else if (!ClickRecorder.isValueBearing(target)) {
-      raw = target.textContent || "";
+      /*
+       * textContent is every descendant's text concatenated, so it is only
+       * safe when no descendant is one whose text is protected. When one
+       * is, the element's OWN direct text nodes are used: they are the
+       * words a person would say about the click, and they are not the
+       * masked child's.
+       */
+      raw = this.hasProtectedDescendant(target)
+        ? ClickRecorder.readOwnText(target)
+        : target.textContent || "";
     }
 
     const collapsed: string = raw.replace(/\s+/g, " ").trim();
@@ -309,6 +359,106 @@ export default class ClickRecorder {
     }
 
     return truncated;
+  }
+
+  /*
+   * The OUTERMOST blocked ancestor of this element (or the element itself),
+   * or null when nothing on the path is blocked. Outermost rather than
+   * nearest so a nested block cannot narrow what is reported.
+   */
+  private findBlockedRoot(target: Element): Element | null {
+    let node: Element | null = target;
+    let outermost: Element | null = null;
+
+    while (node) {
+      if (this.isBlocked(node)) {
+        outermost = node;
+      }
+
+      node = node.parentElement;
+    }
+
+    return outermost;
+  }
+
+  private isBlocked(node: Element): boolean {
+    if (node.classList && node.classList.contains(BLOCK_CLASS)) {
+      return true;
+    }
+
+    for (const selector of this.options.blockSelectors) {
+      if (!selector) {
+        continue;
+      }
+
+      try {
+        if (node.matches(selector)) {
+          return true;
+        }
+      } catch {
+        /*
+         * A customer-authored selector can be invalid and matches() throws
+         * on one. Skipping it is right: one broken entry must not disable
+         * the rest of the list - and must never throw into the host page
+         * from a passive listener.
+         */
+        continue;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * Does this element contain anything whose text is protected - a masked
+   * or blocked subtree, one of the policy's mask selectors, or a control
+   * whose text is user input?
+   */
+  private hasProtectedDescendant(target: Element): boolean {
+    const selectors: Array<string> = [
+      SENSITIVE_DESCENDANT_SELECTOR,
+      ...this.options.masking.getMaskSelectors(),
+      ...this.options.blockSelectors,
+    ];
+
+    for (const selector of selectors) {
+      if (!selector) {
+        continue;
+      }
+
+      try {
+        if (target.querySelector(selector)) {
+          return true;
+        }
+      } catch {
+        /* Invalid customer selector; see isBlocked. */
+        continue;
+      }
+    }
+
+    return false;
+  }
+
+  /* The element's own direct text nodes, with no descendant's text in them. */
+  private static readOwnText(target: Element): string {
+    const nodes: NodeListOf<ChildNode> | null = target.childNodes;
+
+    if (!nodes) {
+      return "";
+    }
+
+    let text: string = "";
+
+    for (let index: number = 0; index < nodes.length; index++) {
+      const node: ChildNode | undefined = nodes.item(index) || undefined;
+
+      /* Node.TEXT_NODE, spelled out so this needs no DOM globals. */
+      if (node && node.nodeType === 3) {
+        text += node.textContent || "";
+      }
+    }
+
+    return text;
   }
 
   private isInsideMaskedRegion(target: Element): boolean {

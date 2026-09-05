@@ -2,6 +2,8 @@ import {
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
@@ -98,6 +100,46 @@ function allEnvelopes(
     .map((call: Array<unknown>): SessionReplayChunkEnvelope => {
       return readPost(call).envelope;
     });
+}
+
+/*
+ * Every FRAME of one request. The terminal path packs the whole pagehide
+ * split (and whatever of the retry queue fits) into a single keepalive body,
+ * so a per-call reader can only see the first of them.
+ */
+function framesOf(call: Array<unknown>): Array<CapturedPost> {
+  const init: Record<string, unknown> = call[1] as Record<string, unknown>;
+  const body: Uint8Array = init["body"] as Uint8Array;
+
+  const frames: Array<CapturedPost> = [];
+  let offset: number = 0;
+
+  while (offset < body.length) {
+    const rest: Uint8Array = body.subarray(offset);
+    const newline: number = rest.indexOf(10);
+
+    if (newline < 0) {
+      break;
+    }
+
+    const envelope: SessionReplayChunkEnvelope = JSON.parse(
+      new TextDecoder().decode(rest.subarray(0, newline)),
+    ) as SessionReplayChunkEnvelope;
+
+    const start: number = newline + 1;
+    const end: number = start + envelope.payloadBytes;
+
+    frames.push({
+      url: call[0] as string,
+      init: init,
+      envelope: envelope,
+      payload: new TextDecoder().decode(rest.subarray(start, end)),
+    });
+
+    offset += end;
+  }
+
+  return frames;
 }
 
 function readPost(call: Array<unknown>): CapturedPost {
@@ -622,6 +664,65 @@ describe("Recorder", (): void => {
       expect(fetchMock).not.toHaveBeenCalled();
       expect(window.localStorage.length).toBe(0);
     });
+
+    /*
+     * REGRESSION (recorder-5). revokeConsent() leaves the recorder running
+     * (so a later grant can continue on a fresh session) and clears the
+     * stored session. Fifteen seconds later the flush timer asked whether to
+     * rotate, read an empty store, was told "no session at all - New", and
+     * MINTED one: a fresh identifier written back into the visitor's
+     * localStorage, a session-change callback handing the host page's
+     * OpenTelemetry resource an id that will never have a recording, and an
+     * upload-blocked-consent warning on a tab the user opted out of. The
+     * contract SessionId.clearAll documents - "a user who withdraws consent
+     * must not be re-linked" - lasted one flush tick.
+     */
+    it("mints nothing on the flush tick after consent is withdrawn", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const changes: Array<string> = [];
+
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: {
+          ...baseConfig(),
+          samplePercentage: 100,
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+        },
+        onSessionChange: (sessionId: string): void => {
+          changes.push(sessionId);
+        },
+      });
+
+      instance.start();
+      recorder = instance;
+
+      instance.trigger(SessionReplayTriggerReason.Manual);
+      instance.revokeConsent();
+
+      expect(window.localStorage.length).toBe(0);
+
+      changes.length = 0;
+
+      /* Two full flush windows, which is where the mint used to happen. */
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 2);
+
+      for (let i: number = 0; i < 60; i++) {
+        await Promise.resolve();
+      }
+
+      expect(window.localStorage.length).toBe(0);
+      expect(changes).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      /* And a later grant is still the one thing that mints a session. */
+      instance.grantConsent();
+
+      expect(window.localStorage.length).toBeGreaterThan(0);
+      expect(changes.length).toBe(1);
+
+      jest.useRealTimers();
+    });
   });
 
   describe("envelope", (): void => {
@@ -837,6 +938,11 @@ describe("Recorder", (): void => {
      * switches tabs has not ended their session, and sealing it made the
      * server believe a session was over while its chunks kept arriving.
      */
+    /*
+     * Hiding the tab flushes what is open WITHOUT sealing the session: the
+     * tab may come back, and a "final" chunk on every tab switch made the
+     * server believe a session was over while its chunks kept arriving.
+     */
     it("flushes the open chunk without sealing when the page is hidden", async (): Promise<void> => {
       startRecorder({ samplePercentage: 100 });
 
@@ -849,17 +955,100 @@ describe("Recorder", (): void => {
 
       await flushUploads();
 
-      const posts: Array<CapturedPost> = fetchMock.mock.calls.map(
-        (call: Array<unknown>): CapturedPost => {
-          return readPost(call);
+      const frames: Array<CapturedPost> = fetchMock.mock.calls.flatMap(
+        (call: Array<unknown>): Array<CapturedPost> => {
+          return framesOf(call);
         },
       );
 
-      expect(posts.length).toBeGreaterThan(0);
+      expect(frames.length).toBeGreaterThan(0);
 
-      for (const post of posts) {
-        expect(post.init["keepalive"]).not.toBe(true);
-        expect(post.envelope.isFinal).toBe(false);
+      for (const frame of frames) {
+        expect(frame.envelope.isFinal).toBe(false);
+      }
+    });
+
+    /*
+     * REGRESSION (recorder-2). Chrome dispatches visibilitychange(hidden) and
+     * pagehide in the SAME synchronous unload sequence for a same-tab
+     * navigation, and a promise chain started in that sequence never resumes.
+     * Handing the open chunk to the ordinary gzip path on hidden therefore
+     * lost it outright - the fetch was never issued, while its chunk index
+     * had been minted - and pagehide then sealed an EMPTY final chunk, so
+     * every session that ended at a link click lost its last 15 seconds and
+     * the player reported a missing chunk.
+     *
+     * No microtasks are drained anywhere in this test on purpose: it asserts
+     * what leaves the page synchronously.
+     */
+    it("sends the pre-hide content by keepalive when a navigation hides and unloads in one turn", async (): Promise<void> => {
+      /* Readable mode: under MaskAllText the marker below would be a mask. */
+      startRecorder({
+        samplePercentage: 100,
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      });
+
+      const marker: HTMLDivElement = document.createElement("div");
+
+      marker.textContent = "the-last-thing-the-user-did";
+      document.body.appendChild(marker);
+
+      /*
+       * The LAST drain in this test: rrweb batches mutations on a microtask,
+       * so the event has to reach the open chunk before the tab goes away.
+       * Everything after this point runs in one synchronous turn, exactly as
+       * a same-tab navigation does.
+       */
+      await flushUploads();
+
+      fetchMock.mockClear();
+
+      sealByHidingThePage();
+
+      const hide: Event = new Event("pagehide");
+
+      Object.defineProperty(hide, "persisted", { value: false });
+      window.dispatchEvent(hide);
+
+      const frames: Array<CapturedPost> = fetchMock.mock.calls.flatMap(
+        (call: Array<unknown>): Array<CapturedPost> => {
+          return framesOf(call);
+        },
+      );
+
+      expect(frames.length).toBeGreaterThan(0);
+
+      for (const call of fetchMock.mock.calls) {
+        expect((call[1] as Record<string, unknown>)["keepalive"]).toBe(true);
+      }
+
+      /* The content itself, not merely a request. */
+      expect(
+        frames
+          .map((frame: CapturedPost): string => {
+            return frame.payload;
+          })
+          .join(""),
+      ).toContain("the-last-thing-the-user-did");
+
+      /* And the session is still sealed exactly once. */
+      expect(
+        frames.filter((frame: CapturedPost): boolean => {
+          return frame.envelope.isFinal;
+        }).length,
+      ).toBe(1);
+
+      /* Contiguous indexes: nothing was minted for a request never issued. */
+      const indexes: Array<number> = frames
+        .map((frame: CapturedPost): number => {
+          return frame.envelope.chunkIndex;
+        })
+        .sort((left: number, right: number): number => {
+          return left - right;
+        });
+
+      for (let i: number = 1; i < indexes.length; i++) {
+        expect(indexes[i]).toBe((indexes[i - 1] as number) + 1);
       }
     });
 
@@ -897,12 +1086,19 @@ describe("Recorder", (): void => {
     });
 
     /*
-     * The keepalive path is for pagehide only, and a chunk bigger than the
-     * keepalive quota is sent in PIECES rather than dropped whole: each piece
-     * a complete JSON array under the cap, contiguous indexes, isFinal on the
-     * last one only.
+     * REGRESSION (recorder-4). A chunk bigger than the keepalive quota goes
+     * out as ONE request: the quota is 64 KB COMBINED per origin, so the
+     * "one keepalive fetch per piece" this used to do meant the first piece
+     * consumed the quota and the browser rejected the rest - and the LAST
+     * piece is the one carrying isFinal, the per-chunk signals, the trace
+     * ids and the routes, so the session was never sealed and expired as an
+     * idle-timeout ten minutes later.
+     *
+     * What cannot fit is dropped at the CHUNKER, before an index is minted
+     * for it, and counted in droppedEvents: an index minted for a request
+     * that is never issued is a hole the player reports forever.
      */
-    it("splits a large open chunk into keepalive-sized final frames on pagehide", async (): Promise<void> => {
+    it("packs a large open chunk into one keepalive request on pagehide", async (): Promise<void> => {
       /* Readable mode: under MaskAllText the text below would shrink to a mask. */
       startRecorder({
         samplePercentage: 100,
@@ -929,40 +1125,56 @@ describe("Recorder", (): void => {
       Object.defineProperty(event, "persisted", { value: false });
       window.dispatchEvent(event);
 
-      const posts: Array<CapturedPost> = fetchMock.mock.calls.map(
-        (call: Array<unknown>): CapturedPost => {
-          return readPost(call);
-        },
+      /* ONE request, whatever the split produced. */
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const call: Array<unknown> = fetchMock.mock.calls[0] as Array<unknown>;
+      const init: Record<string, unknown> = call[1] as Record<string, unknown>;
+
+      expect(init["keepalive"]).toBe(true);
+
+      /* The whole BODY is under the quota, not merely each frame. */
+      expect((init["body"] as Uint8Array).length).toBeLessThanOrEqual(
+        56 * 1024,
       );
 
-      expect(posts.length).toBeGreaterThan(1);
+      const frames: Array<CapturedPost> = framesOf(call);
 
-      const indexes: Array<number> = posts.map((post: CapturedPost): number => {
-        return post.envelope.chunkIndex;
-      });
+      expect(frames.length).toBeGreaterThan(0);
+
+      const indexes: Array<number> = frames.map(
+        (frame: CapturedPost): number => {
+          return frame.envelope.chunkIndex;
+        },
+      );
 
       for (let i: number = 1; i < indexes.length; i++) {
         expect(indexes[i]).toBe((indexes[i - 1] as number) + 1);
       }
 
-      for (const post of posts) {
-        expect(post.init["keepalive"]).toBe(true);
-        expect((post.init["body"] as Uint8Array).length).toBeLessThanOrEqual(
-          56 * 1024,
-        );
+      /* Every frame is a complete JSON array that decodes on its own. */
+      for (const frame of frames) {
         expect((): unknown => {
-          return JSON.parse(post.payload);
+          return JSON.parse(frame.payload);
         }).not.toThrow();
       }
 
-      const finals: Array<CapturedPost> = posts.filter(
-        (post: CapturedPost): boolean => {
-          return post.envelope.isFinal;
+      const finals: Array<CapturedPost> = frames.filter(
+        (frame: CapturedPost): boolean => {
+          return frame.envelope.isFinal;
         },
       );
 
+      /* The sealing frame survived, and it is the last one. */
       expect(finals.length).toBe(1);
-      expect(finals[0]).toBe(posts[posts.length - 1]);
+      expect(finals[0]).toBe(frames[frames.length - 1]);
+
+      /*
+       * ~100 KB was open and one request may carry ~48 KB of payload, so the
+       * oldest events could not go. They are DISCLOSED rather than dropped
+       * into a chunk index nothing will ever deliver.
+       */
+      expect(finals[0]!.envelope.droppedEvents as number).toBeGreaterThan(0);
     });
 
     /*
@@ -1712,6 +1924,66 @@ describe("Recorder", (): void => {
         fetchMock.mock.calls[fetchMock.mock.calls.length - 1] as Array<unknown>,
       );
     };
+
+    /*
+     * REGRESSION (recorder-3). The ingest parser refuses a frame whose
+     * envelope JSON is over 8 KB before it parses anything, and the refusal
+     * costs the WHOLE frame - so a page using the documented maxima (20 tags
+     * of 32+128 and 20 traits of 40+200 is 9.5 KB of meta on its own) lost
+     * chunk 0: the one carrying the opening snapshot, the meta and the
+     * capabilities, and therefore the session's header row.
+     */
+    it("keeps the chunk-0 envelope inside the server's 8 KB ceiling at the documented maxima", async (): Promise<void> => {
+      const traits: Record<string, string> = {};
+      const tags: Record<string, string> = {};
+
+      for (let i: number = 0; i < SESSION_REPLAY_MAX_TRAIT_KEYS; i++) {
+        traits[`trait-key-${i}`.padEnd(40, "x")] = "v".repeat(200);
+      }
+
+      for (let i: number = 0; i < SESSION_REPLAY_MAX_TAG_KEYS; i++) {
+        tags[`tag-key-${i}`.padEnd(32, "x")] = "v".repeat(128);
+      }
+
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: {
+          ...baseConfig(),
+          maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+          samplePercentage: 100,
+          captureUserIdentity: true,
+        },
+      });
+
+      recorder = instance;
+
+      instance.identify("u".repeat(64), traits);
+      instance.setTags(tags);
+      instance.start();
+
+      await flushUploads();
+
+      const call: Array<unknown> = fetchMock.mock.calls[0] as Array<unknown>;
+      const body: Uint8Array = (call[1] as Record<string, unknown>)[
+        "body"
+      ] as Uint8Array;
+
+      /* The envelope LINE, in bytes, is what the parser measures. */
+      const newline: number = body.indexOf(10);
+
+      expect(newline).toBeGreaterThan(0);
+      expect(newline).toBeLessThan(8 * 1024);
+
+      const envelope: SessionReplayChunkEnvelope = JSON.parse(
+        new TextDecoder().decode(body.subarray(0, newline)),
+      ) as SessionReplayChunkEnvelope;
+
+      /* Still a complete, useful chunk 0: nothing load-bearing was shed. */
+      expect(envelope.chunkIndex).toBe(0);
+      expect(envelope.sessionId).toBe(instance.getSessionId());
+      expect(envelope.meta?.identifiedUserRef).toBeDefined();
+      expect(envelope.hasFullSnapshot).toBe(true);
+    });
 
     it("carries traits and tags on chunk 0, and forces meta after identify()", async (): Promise<void> => {
       const instance: Recorder = new Recorder({

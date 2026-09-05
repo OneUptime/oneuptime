@@ -196,6 +196,23 @@ export default class NetworkRecorder {
   private started: boolean = false;
 
   private originalFetch: FetchFunction | null = null;
+
+  /*
+   * The wrappers this instance installed. stop() restores the originals only
+   * while ours are still the ones in place: the artifact loads
+   * asynchronously, so a page whose OpenTelemetry FetchInstrumentation or
+   * error SDK patched fetch AFTER us would have had its patch silently
+   * removed - and stop() is reached on its own at the 480-chunk cap, on a
+   * breaker trip and on a server stop directive, not only when the page asks.
+   * When the chain has moved on, our wrapper stays and passes through
+   * without recording (see the `started` checks in record and
+   * shouldInjectFor).
+   */
+  private installedFetch: unknown = null;
+  private installedXhrOpen: unknown = null;
+  private installedXhrSend: unknown = null;
+  private installedXhrSetRequestHeader: unknown = null;
+
   private originalXhrOpen:
     | ((method: string, url: string | URL) => void)
     | null = null;
@@ -238,10 +255,15 @@ export default class NetworkRecorder {
 
     this.started = false;
 
-    if (this.originalFetch) {
+    if (
+      this.originalFetch &&
+      (windowRef.fetch as unknown) === this.installedFetch
+    ) {
       windowRef.fetch = this.originalFetch as typeof windowRef.fetch;
-      this.originalFetch = null;
     }
+
+    this.originalFetch = null;
+    this.installedFetch = null;
 
     const xhrPrototype: Record<string, unknown> | null =
       NetworkRecorder.getXhrPrototype(windowRef);
@@ -250,20 +272,33 @@ export default class NetworkRecorder {
       return;
     }
 
-    if (this.originalXhrOpen) {
+    if (
+      this.originalXhrOpen &&
+      xhrPrototype["open"] === this.installedXhrOpen
+    ) {
       xhrPrototype["open"] = this.originalXhrOpen;
-      this.originalXhrOpen = null;
     }
 
-    if (this.originalXhrSend) {
+    if (
+      this.originalXhrSend &&
+      xhrPrototype["send"] === this.installedXhrSend
+    ) {
       xhrPrototype["send"] = this.originalXhrSend;
-      this.originalXhrSend = null;
     }
 
-    if (this.originalXhrSetRequestHeader) {
+    if (
+      this.originalXhrSetRequestHeader &&
+      xhrPrototype["setRequestHeader"] === this.installedXhrSetRequestHeader
+    ) {
       xhrPrototype["setRequestHeader"] = this.originalXhrSetRequestHeader;
-      this.originalXhrSetRequestHeader = null;
     }
+
+    this.originalXhrOpen = null;
+    this.originalXhrSend = null;
+    this.originalXhrSetRequestHeader = null;
+    this.installedXhrOpen = null;
+    this.installedXhrSend = null;
+    this.installedXhrSetRequestHeader = null;
   }
 
   private patchFetch(windowRef: Window): void {
@@ -389,6 +424,8 @@ export default class NetworkRecorder {
         },
       );
     }) as typeof windowRef.fetch;
+
+    this.installedFetch = windowRef.fetch as unknown;
   }
 
   private patchXhr(windowRef: Window): void {
@@ -504,6 +541,8 @@ export default class NetworkRecorder {
       ]);
     };
 
+    this.installedXhrOpen = prototype["open"];
+
     if (typeof originalSetHeader === "function") {
       prototype["setRequestHeader"] = function patchedSetRequestHeader(
         this: XMLHttpRequest,
@@ -534,6 +573,8 @@ export default class NetworkRecorder {
           value,
         ]);
       };
+
+      this.installedXhrSetRequestHeader = prototype["setRequestHeader"];
     }
 
     prototype["send"] = function patchedSend(
@@ -598,9 +639,20 @@ export default class NetworkRecorder {
 
       (originalSend as (...args: Array<unknown>) => void).apply(this, args);
     };
+
+    this.installedXhrSend = prototype["send"];
   }
 
   private record(outcome: RequestOutcome): void {
+    /*
+     * A wrapper that outlived stop() - because the page patched fetch after
+     * us and we refused to break its chain - passes the request through and
+     * records nothing.
+     */
+    if (!this.started) {
+      return;
+    }
+
     const atUnixMs: number = Date.now();
 
     this.options.onActivity(atUnixMs);
@@ -759,7 +811,12 @@ export default class NetworkRecorder {
    * when we cannot say where a header would go, we do not add one.
    */
   private shouldInjectFor(url: string, windowRef: Window): boolean {
-    if (this.injectOrigins.length === 0) {
+    /*
+     * A wrapper that outlived stop() must not annotate the page's requests
+     * either: the recorder is no longer here to report the trace id, so the
+     * header would only add a preflight for nothing.
+     */
+    if (!this.started || this.injectOrigins.length === 0) {
       return false;
     }
 

@@ -176,16 +176,32 @@ describe("SessionReplayReadService statements", () => {
       expect(havingSection(none)).toContain("AND aggTraceCount = 0");
     });
 
-    test("urlPrefix is a startsWith over argMax(routes) and the entry URL, with the prefix bound", async () => {
+    /*
+     * The routes and entry URL stored on a header are scrubbed ABSOLUTE
+     * urls (https://host/path), but the filter a person types is a PATH -
+     * the search box routes anything beginning with "/" to this filter, and
+     * the docs promise `url:/checkout` outright. Matching the whole string
+     * only meant that documented search returned an empty list in every
+     * project, silently. Both arms are needed: the whole-URL one for a
+     * caller that pastes an absolute URL, the path() one for the path.
+     */
+    test("urlPrefix matches the PATH of a route and of the entry URL, as well as the whole URL", async () => {
       const query: string = await listQuery({ urlPrefix: "/checkout" });
       const having: string = havingSection(query);
 
       expect(having).toMatch(
-        /AND \(arrayExists\(r -> startsWith\(r, \{p\d+:String\}\), aggRoutes\) OR startsWith\(aggEntryUrl, \{p\d+:String\}\)\)/,
+        /AND \(arrayExists\(r -> startsWith\(r, \{p\d+:String\}\) OR startsWith\(path\(r\), \{p\d+:String\}\), aggRoutes\) OR startsWith\(aggEntryUrl, \{p\d+:String\}\) OR startsWith\(path\(aggEntryUrl\), \{p\d+:String\}\)\)/,
       );
       expect(query).toContain("argMax(routes, version) AS aggRoutes");
+      /* Bound four times, never interpolated. */
       expect(query).not.toContain("'/checkout'");
-      expect(boundValues(statementOf(headerQuerySpy))).toContain("/checkout");
+      expect(
+        boundValues(statementOf(headerQuerySpy)).filter(
+          (value: unknown): boolean => {
+            return value === "/checkout";
+          },
+        ),
+      ).toHaveLength(4);
     });
 
     test("tags require every pair through mapContains over the argMax'd map", async () => {
@@ -470,6 +486,46 @@ describe("SessionReplayReadService statements", () => {
       expect(item.endTimeUnixMs).toBe(1700000090000);
       expect(item.identifiedUserTraits).toBeUndefined();
       expect(item.identifiedUserLabel).toBeUndefined();
+    });
+
+    /*
+     * The list's "3 errors" badge has nowhere to link without a
+     * fingerprint: the Exceptions page can only be opened unfiltered.
+     * Projected from the same argMax'd array the group count is measured
+     * over, so the two can never disagree about which session errored.
+     */
+    test("the first exception fingerprint is projected so the errors badge can link", async () => {
+      const query: string = await listQuery({});
+
+      expect(query).toContain(
+        "arrayElement(argMax(exceptionFingerprints, version), 1) AS aggTopExceptionFingerprint",
+      );
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "s-1",
+            aggTopExceptionFingerprint: "fp-abc",
+          },
+        ]) as never,
+      );
+
+      const withFingerprint: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(listRequest());
+
+      expect(withFingerprint.sessions[0]!.topExceptionFingerprint).toBe(
+        "fp-abc",
+      );
+
+      /* A clean session reports "", never undefined. */
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "s-2" }]) as never,
+      );
+
+      const clean: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(listRequest());
+
+      expect(clean.sessions[0]!.topExceptionFingerprint).toBe("");
     });
 
     test("names and maps the identity columns only when asked", async () => {
@@ -1013,7 +1069,20 @@ describe("SessionReplayReadService statements", () => {
       expect(boundValues(headers)).toContainEqual(["live-1", "live-2"]);
     });
 
-    test("a pinned session id skips discovery and pins the header read", async () => {
+    /*
+     * A pinned sessionId NARROWS the instance lookup; it does not replace
+     * it. Returning the pin unchecked reduced the statement to
+     * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,
+     * whose second arm is trivially true - so the fingerprint constrained
+     * nothing and the "Watch what the user saw" card would present any
+     * accessible session as having observed the exception, on nothing but a
+     * stale occurrence row.
+     */
+    test("a pinned session id still has to be confirmed by the instance table", async () => {
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "s-9" }]) as never,
+      );
+
       await SessionReplayReadService.getSessionsForException({
         projectId: projectId,
         exceptionFingerprint: "fp-1",
@@ -1022,11 +1091,37 @@ describe("SessionReplayReadService statements", () => {
         limit: 5,
       });
 
-      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("fingerprint = ");
+      expect(instances.query).toContain("AND sessionId = ");
+      expect(boundValues(instances)).toContain("fp-1");
+      expect(boundValues(instances)).toContain("s-9");
 
       const headers: Statement = statementOf(headerQuerySpy);
       expect(whereSection(headers.query)).toContain("AND sessionId = ");
       expect(boundValues(headers)).toContain("s-9");
+    });
+
+    test("a pinned session the instance table has never seen falls back to the fingerprint alone", async () => {
+      /* The session exists, but it never threw this exception. */
+      exceptionQuerySpy.mockResolvedValue(fakeResultSet([]) as never);
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "fp-1",
+        accessibleRumApplicationIds: null,
+        sessionId: "s-9",
+        limit: 5,
+      });
+
+      const headers: Statement = statementOf(headerQuerySpy);
+
+      /*
+       * No `OR sessionId IN (...)` escape hatch: the header's own
+       * fingerprint list is the only thing that can admit the row.
+       */
+      expect(headers.query).not.toContain("OR sessionId IN (");
+      expect(headers.query).toContain("hasAny(exceptionFingerprints");
     });
 
     test("a failed instance lookup degrades to the finalized headers", async () => {
@@ -1162,7 +1257,75 @@ describe("SessionReplayReadService statements", () => {
         sessionsLast24h: null,
         playableSessionsLast24h: null,
         lastSessionStartedAt: null,
+        recorderCapabilities: null,
       });
+    });
+
+    /*
+     * The health card and the installation test both promise "the
+     * capabilities of the newest recorder that reported" - the one place an
+     * operator can spot a stale cached artifact ("click labels: no")
+     * without opening a recording, which writes an audit row. The route
+     * never sent them, so the row said "not reported yet" for every
+     * application forever. They ride on the last-session query rather than
+     * costing a query of their own.
+     */
+    test("the newest session's recorder capabilities ride on the last-start read", async () => {
+      headerQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ sessionCount: 4, unplayableCount: 0 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              lastStartUnixMs: 1700000000000,
+              aggAttributes: {
+                "recorder.capabilities":
+                  "click-events,web-vitals,not-a-capability",
+              },
+            },
+          ]) as never,
+        );
+
+      const summary: SessionReplayApplicationActivitySummary =
+        await SessionReplayReadService.getApplicationActivitySummary({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          nowUnixMs: 1700000000000,
+        });
+
+      const latest: Statement = statementOf(headerQuerySpy, 1);
+      expect(latest.query).toContain("attributes AS aggAttributes");
+
+      /* Filtered to the vocabulary this build knows. */
+      expect(summary.recorderCapabilities).toEqual([
+        "click-events",
+        "web-vitals",
+      ]);
+    });
+
+    test("a session that declared no capabilities answers null, never an empty list", async () => {
+      headerQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ sessionCount: 1, unplayableCount: 0 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([{ lastStartUnixMs: 1700000000000 }]) as never,
+        );
+
+      const summary: SessionReplayApplicationActivitySummary =
+        await SessionReplayReadService.getApplicationActivitySummary({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          nowUnixMs: 1700000000000,
+        });
+
+      /*
+       * "An old recorder declared nothing" and "we could not tell" are both
+       * rendered as "not reported yet"; claiming the recorder can do
+       * NOTHING would be a stronger statement than the row supports.
+       */
+      expect(summary.recorderCapabilities).toBeNull();
     });
 
     test("an application with no session in retention has no last start", async () => {

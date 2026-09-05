@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react; Common's jest moduleNameMapper
  * pins react, react-dom and react-router-dom to this project's single copy
@@ -8,6 +8,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "@jest/globals";
+import { ExceptionGroupSummary } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionCorrelation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import SessionReplayMaskingMode from "../../../Types/Rum/SessionReplayMaskingMode";
 import {
@@ -257,12 +258,17 @@ describe("ReplayCorrelationPanel Session tab", () => {
     expect(screen.getByTestId("details-rail-logs")).not.toHaveTextContent("0");
   });
 
-  it("keeps the header's coarse trace ids and fingerprints as links", () => {
+  it("keeps the header's coarse trace ids and fingerprints as links", async () => {
     renderPanel({
       details: makeDetails({
         traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
         exceptionFingerprints: ["fp-1"],
       }),
+      resolveExceptionGroups: async (): Promise<
+        Map<string, ExceptionGroupSummary>
+      > => {
+        return new Map<string, ExceptionGroupSummary>();
+      },
     });
 
     expect(
@@ -270,11 +276,85 @@ describe("ReplayCorrelationPanel Session tab", () => {
         name: "4bf92f3577b34da6a3ce929d0e0e4736",
       }),
     ).toBeInTheDocument();
+
+    /*
+     * correlation-7: a group nobody could resolve still links, under the
+     * short-hash label the shared helper defines - the link is never lost.
+     */
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    const fingerprints: HTMLElement = screen.getByTestId(
+      "details-fingerprints",
+    );
+
     expect(
-      within(screen.getByTestId("details-fingerprints")).getByRole("link", {
-        name: "fp-1",
+      within(fingerprints).getByRole("link", { name: "Error fp-1" }),
+    ).toBeInTheDocument();
+  });
+
+  /*
+   * correlation-7: the panel used to render the bare fingerprint hash and
+   * link it to a filtered list. It resolves the groups in one lookup now,
+   * so the viewer reads the error and lands on it directly.
+   */
+  it("renders resolved exception groups by their error, linked to the exception", async () => {
+    const seen: Array<Array<string>> = [];
+
+    renderPanel({
+      details: makeDetails({
+        exceptionFingerprints: ["fp-1", "fp-2"],
+      }),
+      resolveExceptionGroups: async (
+        fingerprints: Array<string>,
+      ): Promise<Map<string, ExceptionGroupSummary>> => {
+        seen.push(fingerprints);
+
+        return new Map<string, ExceptionGroupSummary>([
+          [
+            "fp-1",
+            {
+              id: "0193c0de-1111-4aaa-8bbb-000000000001",
+              fingerprint: "fp-1",
+              exceptionType: "TypeError",
+              message: "x is not a function",
+            },
+          ],
+        ]);
+      },
+    });
+
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    const fingerprints: HTMLElement = screen.getByTestId(
+      "details-fingerprints",
+    );
+
+    /* One request for the whole set, not one per fingerprint. */
+    expect(seen).toEqual([["fp-1", "fp-2"]]);
+    expect(
+      within(fingerprints).getByRole("link", {
+        name: "TypeError: x is not a function",
       }),
     ).toBeInTheDocument();
+    /* The unresolved one degrades rather than disappearing. */
+    expect(
+      within(fingerprints).getByRole("link", { name: "Error fp-2" }),
+    ).toBeInTheDocument();
+    expect(fingerprints).not.toHaveTextContent(/^fp-1$/);
+  });
+
+  /*
+   * player-shell-18: nothing produces missingAssets, so the prop is
+   * optional and its section is absent rather than showing "(0)".
+   */
+  it("omits the missing-assets section when nobody measured it", () => {
+    renderPanel({ activeTabId: "fidelity", missingAssets: undefined });
+
+    expect(screen.queryByText(/Missing assets/)).not.toBeInTheDocument();
   });
 });
 
@@ -314,6 +394,51 @@ describe("ReplayCorrelationPanel Privacy tab", () => {
     expect(
       screen.getByTestId("replay-details-readable-warning"),
     ).toHaveTextContent("did not declare as sensitive");
+  });
+
+  /*
+   * ux-20: the panel printed the masking enum de-camel-cased ("Mask
+   * Sensitive Inputs Only"), which names a constant rather than telling
+   * the viewer what was recorded - and disagreed with the recording-health
+   * card and the settings page, which already spell the same three modes.
+   */
+  it("describes the masking mode in the product's words, not the enum's", () => {
+    const first: ReturnType<typeof render> = renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      }),
+    });
+
+    expect(screen.getByTestId("replay-details-masking-mode")).toHaveTextContent(
+      "Sensitive inputs masked, page text recorded",
+    );
+    expect(
+      screen.getByTestId("replay-details-masking-mode"),
+    ).not.toHaveTextContent("Mask Sensitive Inputs Only");
+    first.unmount();
+
+    const second: ReturnType<typeof render> = renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({
+        maskingMode: SessionReplayMaskingMode.MaskAllText,
+      }),
+    });
+
+    expect(screen.getByTestId("replay-details-masking-mode")).toHaveTextContent(
+      "All text masked (wireframe)",
+    );
+    second.unmount();
+
+    /* An unknown value says so rather than being dressed up as a label. */
+    renderPanel({
+      activeTabId: "provenance",
+      details: makeDetails({ maskingMode: "SomethingNewer" }),
+    });
+
+    expect(screen.getByTestId("replay-details-masking-mode")).toHaveTextContent(
+      "unrecognised value (SomethingNewer)",
+    );
   });
 
   it("shows a sub-second clock skew in milliseconds, never '0s (server-clamped)'", () => {

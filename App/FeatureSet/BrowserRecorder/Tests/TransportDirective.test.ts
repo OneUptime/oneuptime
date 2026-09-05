@@ -663,7 +663,9 @@ describe("Transport directives and diagnostics", (): void => {
       const transport: Transport = makeTransport();
       const huge: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`;
 
-      expect(transport.sendTerminal(envelope, huge)).toBe(false);
+      expect(
+        transport.sendTerminal([{ envelope: envelope, payload: huge }]),
+      ).toBe(false);
 
       const detail: Record<string, unknown> = detailOf("final-chunk-too-large");
 
@@ -733,6 +735,52 @@ describe("Transport directives and diagnostics", (): void => {
         { directive: "throttle", reason: "staging-failed" },
       ]);
       expect(transport.getFlushFailureCount()).toBe(0);
+    });
+
+    /*
+     * REGRESSION (recorder-6). A 429 or 503 whose body carries directive
+     * "stop" is still a stop. The throttle path notified the recorder
+     * (which shuts down and discards its queue) and THEN re-queued the chunk
+     * and scheduled a drain, so one more request of page content went out
+     * after the operator's kill switch had explicitly asked for none.
+     */
+    it("does not re-queue or retry a chunk when a throttle response says stop", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const transport: Transport = makeTransport();
+
+      setFetch(
+        respond(
+          503,
+          '{"directive":"stop","reason":"budget-exhausted","retryAfterSeconds":30}',
+          { "retry-after": "30" },
+        ),
+      );
+
+      await transport.send(envelope, "[{}]");
+
+      expect(directives).toEqual([
+        { directive: "stop", reason: "budget-exhausted" },
+      ]);
+      expect(detailOf("server-directive")["directive"]).toBe("stop");
+
+      /* Nothing waiting, and nothing scheduled to send it. */
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getRetryDueAtUnixMs()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(1);
+
+      /* And a throttle it is not: no pause was reported to the customer. */
+      expect(codes()).not.toContain("chunk-throttled");
+
+      const posted: jest.Mock = globalRecord()["fetch"] as jest.Mock;
+      const before: number = posted.mock.calls.length;
+
+      jest.advanceTimersByTime(120_000);
+      await Promise.resolve();
+
+      expect(posted.mock.calls.length).toBe(before);
+
+      jest.useRealTimers();
     });
 
     /*
@@ -812,10 +860,12 @@ describe("Transport directives and diagnostics", (): void => {
       setFetch(respond(401));
       await second.send(envelope, "[{}]");
 
-      second.sendTerminal(
-        envelope,
-        `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`,
-      );
+      second.sendTerminal([
+        {
+          envelope: envelope,
+          payload: `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`,
+        },
+      ]);
 
       /* The gamut really did produce records before they were searched. */
       expect(codes()).toEqual(

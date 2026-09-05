@@ -39,6 +39,13 @@ import Recorder, {
  * Entries are arrays: [command, ...arguments], e.g. ["identify", ref,
  * traits], ["track", name, properties], ["setTags", tags], ["addTag", key,
  * value], ["captureSession", reason], ["onSessionChange", callback].
+ *
+ * The queue stays LIVE after the drain: bootstrap() replaces its push() with
+ * one that applies each entry immediately (installLiveCommandQueue). A
+ * consent banner resolves seconds or minutes after a script that loads in
+ * under a second, and the docs tell customers to push the decision rather
+ * than wait for the global - so a queue nobody reads again after load is a
+ * RequireExplicit session that records forever and uploads nothing.
  */
 const COMMAND_QUEUE_GLOBAL: string = "OneUptimeReplayQueue";
 
@@ -382,28 +389,58 @@ export function revokeConsent(): void {
   }
 }
 
+/*
+ * The four state-setting calls report a missing recorder the same way
+ * captureSession and grantConsent do. They used to no-op in silence, so a
+ * customer whose identify() ran before the artifact loaded (or after stop())
+ * saw "Identity hidden" in the dashboard, nothing in getDiagnostics().records
+ * and no line anywhere naming the cause - while the troubleshooting docs
+ * promise exactly this code for it.
+ */
+function warnNoRecorder(call: string): void {
+  debugWarn("api-no-recorder", `${call} called with no recorder running.`, {
+    call: call,
+  });
+}
+
 export function identify(userRef: string, traits?: SessionReplayTraits): void {
-  if (activeRecorder) {
-    activeRecorder.identify(userRef, traits);
+  if (!activeRecorder) {
+    warnNoRecorder("identify()");
+
+    return;
   }
+
+  activeRecorder.identify(userRef, traits);
 }
 
 export function track(name: string, properties?: SessionReplayTraits): void {
-  if (activeRecorder) {
-    activeRecorder.track(name, properties);
+  if (!activeRecorder) {
+    warnNoRecorder("track()");
+
+    return;
   }
+
+  activeRecorder.track(name, properties);
 }
 
 export function setTags(tags: SessionReplayTraits): void {
-  if (activeRecorder) {
-    activeRecorder.setTags(tags);
+  if (!activeRecorder) {
+    warnNoRecorder("setTags()");
+
+    return;
   }
+
+  activeRecorder.setTags(tags);
 }
 
 export function addTag(key: string, value: string | number | boolean): void {
-  if (activeRecorder) {
-    activeRecorder.addTag(key, value);
+  if (!activeRecorder) {
+    warnNoRecorder("addTag()");
+
+    return;
   }
+
+  activeRecorder.addTag(key, value);
 }
 
 export function onSessionChange(listener: SessionChangeListener): () => void {
@@ -522,12 +559,31 @@ function drainCommandQueue(only?: ReadonlyArray<string>): void {
      * warning on both put the same line in the console twice for one page
      * load, which reads like two different faults.
      */
-    if (queue !== undefined && !only) {
-      debugWarn(
-        "command-queue-not-an-array",
-        `window.${COMMAND_QUEUE_GLOBAL} is not an array; queued commands ignored.`,
-        { type: typeof queue },
-      );
+    if (queue !== undefined) {
+      if (!only) {
+        debugWarn(
+          "command-queue-not-an-array",
+          `window.${COMMAND_QUEUE_GLOBAL} is not an array; queued commands ignored.`,
+          { type: typeof queue },
+        );
+      }
+
+      return;
+    }
+
+    /*
+     * No queue on the page at all - the common case, because most pages
+     * queue nothing before the artifact arrives. One is created anyway, and
+     * created LIVE, because the documented banner snippet is
+     * `(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push(...)`:
+     * with no array waiting for it, that creates a fresh plain one and the
+     * grant it carries would never be applied by anybody.
+     */
+    if (!only) {
+      const created: Array<unknown> = [];
+
+      globalRecord[COMMAND_QUEUE_GLOBAL] = created;
+      installLiveCommandQueue(created);
     }
 
     return;
@@ -540,51 +596,140 @@ function drainCommandQueue(only?: ReadonlyArray<string>): void {
       continue;
     }
 
-    const command: unknown = entry[0];
-    const first: unknown = entry[1];
-    const second: unknown = entry[2];
+    if (only) {
+      const command: unknown = entry[0];
 
-    if (only && (typeof command !== "string" || !only.includes(command))) {
-      remainder.push(entry);
-      continue;
+      if (typeof command !== "string" || !only.includes(command)) {
+        remainder.push(entry);
+        continue;
+      }
     }
 
-    if (command === "captureSession") {
-      captureSession(typeof first === "string" ? first : undefined);
-    } else if (command === "grantConsent") {
-      grantConsent();
-    } else if (command === "revokeConsent") {
-      revokeConsent();
-    } else if (command === "identify" && typeof first === "string") {
-      identify(first, isTraits(second) ? second : undefined);
-    } else if (command === "track" && typeof first === "string") {
-      track(first, isTraits(second) ? second : undefined);
-    } else if (command === "setTags" && isTraits(first)) {
-      setTags(first);
-    } else if (
-      command === "addTag" &&
-      typeof first === "string" &&
-      isTagValue(second)
-    ) {
-      addTag(first, second);
-    } else if (command === "onSessionChange" && typeof first === "function") {
-      onSessionChange(first as SessionChangeListener);
-    } else if (command === "stop") {
-      stop();
-    } else {
-      /*
-       * Unknown names are ignored rather than thrown on - the page may have
-       * been written against a newer recorder than the config pinned - but
-       * ignoring them SILENTLY is how a misspelt "grantconsent" becomes a
-       * session that records forever and uploads nothing.
-       */
-      debugWarn(
-        "command-queue-unknown-command",
-        "A queued command was not recognised and was dropped.",
-        { command: typeof command === "string" ? command : typeof command },
-      );
-    }
+    applyCommand(entry);
   }
 
   globalRecord[COMMAND_QUEUE_GLOBAL] = remainder;
+
+  /*
+   * The FULL drain is the last one bootstrap() does, so from here the queue
+   * has to keep working by itself - see installLiveCommandQueue.
+   */
+  if (!only) {
+    installLiveCommandQueue(remainder);
+  }
+}
+
+/* Apply one [command, ...arguments] entry. */
+function applyCommand(entry: Array<unknown>): void {
+  const command: unknown = entry[0];
+  const first: unknown = entry[1];
+  const second: unknown = entry[2];
+
+  if (command === "captureSession") {
+    captureSession(typeof first === "string" ? first : undefined);
+  } else if (command === "grantConsent") {
+    grantConsent();
+  } else if (command === "revokeConsent") {
+    revokeConsent();
+  } else if (command === "identify" && typeof first === "string") {
+    identify(first, isTraits(second) ? second : undefined);
+  } else if (command === "track" && typeof first === "string") {
+    track(first, isTraits(second) ? second : undefined);
+  } else if (command === "setTags" && isTraits(first)) {
+    setTags(first);
+  } else if (
+    command === "addTag" &&
+    typeof first === "string" &&
+    isTagValue(second)
+  ) {
+    addTag(first, second);
+  } else if (command === "onSessionChange" && typeof first === "function") {
+    onSessionChange(first as SessionChangeListener);
+  } else if (command === "stop") {
+    stop();
+  } else {
+    /*
+     * Unknown names are ignored rather than thrown on - the page may have
+     * been written against a newer recorder than the config pinned - but
+     * ignoring them SILENTLY is how a misspelt "grantconsent" becomes a
+     * session that records forever and uploads nothing.
+     */
+    debugWarn(
+      "command-queue-unknown-command",
+      "A queued command was not recognised and was dropped.",
+      { command: typeof command === "string" ? command : typeof command },
+    );
+  }
+}
+
+/*
+ * Turn the drained queue into a LIVE one: push() applies the entry there and
+ * then, exactly as the analytics snippet pattern (and our own docs) promise -
+ * "they are applied as soon as it arrives". The array is kept, and pushed
+ * entries are still appended to it, so anything the page queued before the
+ * artifact loaded reads back the way it always did.
+ *
+ * Guarded against a double install (bootstrap drains once at the end, but a
+ * page may load two copies of the snippet) with a marker on the function
+ * itself rather than on the array, so a page that replaces the whole global
+ * with a fresh array simply gets the plain-array behaviour back.
+ */
+const LIVE_QUEUE_MARKER: string = "__oneuptimeLive";
+
+function installLiveCommandQueue(queue: Array<unknown>): void {
+  const push: unknown = queue.push;
+
+  if (
+    typeof push === "function" &&
+    (push as unknown as Record<string, unknown>)[LIVE_QUEUE_MARKER] === true
+  ) {
+    return;
+  }
+
+  const livePush: (...entries: Array<unknown>) => number = (
+    ...entries: Array<unknown>
+  ): number => {
+    for (const entry of entries) {
+      Array.prototype.push.call(queue, entry);
+
+      if (!Array.isArray(entry)) {
+        continue;
+      }
+
+      try {
+        applyCommand(entry);
+      } catch (error: unknown) {
+        /*
+         * A command that throws must not throw out of the page's own
+         * push() - but it must not vanish either: a grantConsent() that
+         * failed is the difference between a session that uploads and one
+         * that never does.
+         */
+        debugWarn(
+          "command-queue-command-failed",
+          "A queued command threw while being applied.",
+          {
+            command: typeof entry[0] === "string" ? entry[0] : typeof entry[0],
+            error: error instanceof Error ? error.name : typeof error,
+          },
+        );
+      }
+    }
+
+    return queue.length;
+  };
+
+  (livePush as unknown as Record<string, unknown>)[LIVE_QUEUE_MARKER] = true;
+
+  /*
+   * defineProperty rather than assignment: Array.prototype.push is not
+   * enumerable, and an enumerable own "push" on the queue would show up in
+   * anything the page does with Object.keys or a deep comparison of it.
+   */
+  Object.defineProperty(queue, "push", {
+    value: livePush,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
 }

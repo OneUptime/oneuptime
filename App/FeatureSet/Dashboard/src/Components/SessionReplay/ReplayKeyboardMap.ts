@@ -33,9 +33,16 @@ export type ReplayKeyboardScope = "player" | "rail";
  *   button    button / a / [role=button] / [role=menuitem]: Space + Enter
  *             activate it, the rest are ours
  *   slider    the timeline track: it owns the WAI-ARIA slider keys itself
+ *   tab       a rail tab: the tablist owns the WAI-ARIA tabs keys
+ *             (Left/Right/Home/End move between tabs), so those never seek
  *   other     body, the stage, a list container: everything is ours
  */
-export type ReplayKeyTargetKind = "editable" | "button" | "slider" | "other";
+export type ReplayKeyTargetKind =
+  | "editable"
+  | "button"
+  | "slider"
+  | "tab"
+  | "other";
 
 export type ReplayKeyboardAction =
   | { type: "play-pause" }
@@ -97,6 +104,20 @@ const SLIDER_OWNED_KEYS: ReadonlySet<string> = new Set<string>([
   "PageDown",
 ]);
 
+/*
+ * The keys a focused tab hands to its own tablist, per the WAI-ARIA tabs
+ * pattern. Without this, ArrowLeft/ArrowRight on the rail's selected tab
+ * were swallowed by the global map as +-5s seeks and a keyboard user
+ * could never reach the other eight tabs (roving tabindex hides them from
+ * Tab by design, so the arrows are the ONLY way in).
+ */
+const TAB_OWNED_KEYS: ReadonlySet<string> = new Set<string>([
+  "ArrowLeft",
+  "ArrowRight",
+  "Home",
+  "End",
+]);
+
 /* Keys that ACTIVATE a focused control and so must not also reach us. */
 const ACTIVATION_KEYS: ReadonlySet<string> = new Set<string>([" ", "Enter"]);
 
@@ -153,6 +174,10 @@ export function getReplayKeyTargetKind(
     return "slider";
   }
 
+  if (role === "tab") {
+    return "tab";
+  }
+
   if (
     tag === "button" ||
     tag === "a" ||
@@ -160,7 +185,6 @@ export function getReplayKeyTargetKind(
     role === "menuitem" ||
     role === "menuitemradio" ||
     role === "radio" ||
-    role === "tab" ||
     role === "checkbox" ||
     role === "switch"
   ) {
@@ -171,6 +195,11 @@ export function getReplayKeyTargetKind(
    * A span inside a button still activates the button on Space, so look
    * up the tree for one - but only for the activation question. A row
    * that is a <div role="listitem"> with a nested link is "other".
+   */
+  /*
+   * A tab is always the focused element itself (its label span is not
+   * focusable), so the ancestor walk below deliberately does not look for
+   * one: a control INSIDE something tab-like is still just a control.
    */
   if (typeof element.closest === "function") {
     const owner: unknown = (element.closest as (selector: string) => unknown)(
@@ -228,11 +257,18 @@ export function resolveReplayKeyboardAction(
     return null;
   }
 
-  if (targetKind === "button" && ACTIVATION_KEYS.has(key)) {
+  if (
+    (targetKind === "button" || targetKind === "tab") &&
+    ACTIVATION_KEYS.has(key)
+  ) {
     return null;
   }
 
   if (targetKind === "slider" && SLIDER_OWNED_KEYS.has(key)) {
+    return null;
+  }
+
+  if (targetKind === "tab" && TAB_OWNED_KEYS.has(key)) {
     return null;
   }
 

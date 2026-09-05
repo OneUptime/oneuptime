@@ -1334,6 +1334,132 @@ describe("Session replay playback API", () => {
     });
 
     /*
+     * Dropping the filter silently is the dangerous half of that gate. The
+     * request "show me jane@example.com's sessions" then answers 200 with
+     * every session in the application and the caller has no way to tell -
+     * least of all when the application has no sessions at all, where even
+     * inspecting the rows cannot reveal it. A support engineer opens the
+     * wrong recording, and each opening writes an audit row against a real
+     * end user. The Dashboard already reads this field and shows a notice.
+     */
+    test("a dropped identity filter is NAMED in the response, not silently ignored", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.TelemetryAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
+        "identifiedUserRef",
+      ]);
+    });
+
+    test("a list that honoured every filter says so with an empty ignoredFilters", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { identifiedUserRef: "jane@example.com" },
+        },
+      });
+
+      /*
+       * Always present, so a client never has to tell "nothing was ignored"
+       * apart from "an older server that never said".
+       */
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+    });
+
+    /*
+     * Every array filter becomes an `IN (...)` inside a HAVING that
+     * ClickHouse evaluates per group over the whole window, so an uncapped
+     * array is the caller's length times the sessions in range - a cheap
+     * denial of service for anyone holding the list permission.
+     */
+    test("filter arrays and free-text filters are capped before they reach the query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const manyBrowsers: Array<string> = [];
+
+      for (let index: number = 0; index < 5000; index++) {
+        manyBrowsers.push(`browser-${index}`);
+      }
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: {
+            browserNames: manyBrowsers,
+            route: "r".repeat(10_000),
+          },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      const bound: Array<unknown> = Object.values(statement.query_params);
+
+      const browserArray: Array<string> | undefined = bound.find(
+        (value: unknown): boolean => {
+          return Array.isArray(value) && (value as Array<string>).length > 1;
+        },
+      ) as Array<string> | undefined;
+
+      expect(browserArray).toBeDefined();
+      expect(browserArray!.length).toBeLessThanOrEqual(50);
+
+      const routeValue: string | undefined = bound.find(
+        (value: unknown): boolean => {
+          return typeof value === "string" && value.startsWith("rrr");
+        },
+      ) as string | undefined;
+
+      expect(routeValue).toBeDefined();
+      expect(routeValue!.length).toBeLessThanOrEqual(256);
+    });
+
+    /*
      * A filter the server cannot honour must be refused, not dropped. The
      * silent-drop shape returns the WHOLE project's sessions with a 200 and
      * gives the caller no way to tell that the person they asked about was
@@ -1912,6 +2038,50 @@ describe("Session replay playback API", () => {
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
+    /*
+     * parseSessionReplayListCursor only checks Number.isFinite, so 1e300
+     * passes it - and for the startTime ordering it becomes
+     * `new Date(1e300)`, an Invalid Date that renders as NaN text and is
+     * rejected by the ClickHouse driver. A crafted or corrupted cursor
+     * answered 500 instead of the 400 the handler promises.
+     */
+    test("a cursor sortValue that cannot be bound is a 400, never a driver error", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownerPrincipal();
+
+      const absurd: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          cursor: { startTimeUnixMs: 1e300, sessionId: "a" },
+        },
+      });
+
+      expect(absurd.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      /* A count cannot be negative, so no page begins there either. */
+      const negative: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          sortBy: "errorCount",
+          cursor: { sortBy: "errorCount", sortValue: -1, sessionId: "a" },
+        },
+      });
+
+      expect(negative.deniedWith).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
     test.each([2.5, 0, -1, "20"])(
       "limit %p is a bad request rather than a ClickHouse error",
       async (limit: unknown) => {
@@ -2228,6 +2398,59 @@ describe("Session replay playback API", () => {
         .calls[1]![0] as Statement;
       expect(expiryStatement.query).not.toContain("retentionDate >= now()");
       expect(recordViewSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The expiry answer discloses that a recording existed, when it
+     * started, and what retention the owning application runs - and it is
+     * produced on the path where there is no header left to authorize
+     * against, so it used to be answered BEFORE any access check. A
+     * label-scoped reviewer could therefore probe session ids and learn all
+     * three for applications outside their scope: exactly the existence
+     * probing assertSessionReplayApplicationAccess refuses "the same way"
+     * for a session that does exist.
+     */
+    test("the expiry answer is withheld from a caller outside the owning application's scope", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        /* Scoped to application B's label; the expired recording is A's. */
+        labelIds: [labelBId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      headerQuerySpy
+        .mockResolvedValueOnce(fakeResultSet([]) as never)
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              applicationId: applicationAId.toString(),
+              expiresAtUnixMs: Date.UTC(2026, 7, 8),
+              startTimeUnixMs: Date.UTC(2026, 7, 1),
+            },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-old" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+
+      const message: string = (result.thrownToNext as Exception).message;
+
+      /* The generic answer: no date, no retention, no admission it existed. */
+      expect(message).toMatch(/^not-found:/);
+      expect(message).not.toContain("2026-08-08");
+      expect(message).not.toContain("retention");
     });
 
     test("projects the clock, expiry, tags and engagement counters on the header, and the per-tab first offset", async () => {
@@ -3506,6 +3729,9 @@ describe("Session replay playback API", () => {
       });
 
       mockProps(principal.databaseProps);
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "s-9" }]) as never,
+      );
 
       await callRoute({
         uri: FOR_EXCEPTION_ROUTE,
@@ -3513,7 +3739,19 @@ describe("Session replay playback API", () => {
         body: { fingerprint: "fp-1", sessionId: "s-9" },
       });
 
-      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+      /*
+       * The pin NARROWS the instance lookup rather than replacing it.
+       * Returning the pinned id unchecked reduced the header statement to
+       * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,
+       * whose second arm is trivially true - so the card would claim any
+       * accessible session had observed this exception.
+       */
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("fingerprint = ");
+      expect(instanceStatement.query).toContain("AND sessionId = ");
+      expect(Object.values(instanceStatement.query_params)).toContain("s-9");
+
       const statement: Statement = headerQuerySpy.mock
         .calls[0]![0] as Statement;
       expect(statement.query).toContain("AND sessionId = ");
@@ -3755,6 +3993,57 @@ describe("Session replay playback API", () => {
       expect(body["sessionsLast24h"]).toBeNull();
       expect(body["playableSessionsLast24h"]).toBeNull();
       expect(body["retentionInDays"]).toBeNull();
+      expect(body["recorderCapabilities"]).toBeNull();
+    });
+
+    /*
+     * The health card and the installation test both point an operator at
+     * "the capabilities of the newest recorder that reported" - the one
+     * way to spot a stale cached artifact ("click labels: no") without
+     * opening a recording, which writes an audit row. The route never sent
+     * the field, so both surfaces said "not reported yet" for every
+     * application forever, which reads as a bug rather than as
+     * information.
+     */
+    test("reports the newest session's recorder capabilities, filtered to the known vocabulary", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockConfiguredApplication();
+      mockProject(true);
+
+      headerQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ sessionCount: 2, unplayableCount: 0 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            {
+              lastStartUnixMs: Date.UTC(2026, 7, 5, 9, 0),
+              aggAttributes: {
+                "recorder.capabilities": "click-events,tags,made-up",
+              },
+            },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect((result.jsonBody as JSONObject)["recorderCapabilities"]).toEqual([
+        "click-events",
+        "tags",
+      ]);
     });
   });
 });

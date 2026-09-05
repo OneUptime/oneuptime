@@ -1,4 +1,5 @@
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
+import { RecordingHealthDiagnosis } from "Common/Types/Rum/SessionReplayHealth";
 import fs from "fs";
 import path from "path";
 
@@ -138,5 +139,107 @@ describe("correlation-14: a failed client lookup is unknown, not zero", () => {
     expect(tile).toContain(
       "loading: clientCount === null && !clientCountFailed",
     );
+  });
+});
+
+/*
+ * WP-X's own deferred cross-package request, now that WP-D2's
+ * useSessionReplayHealth is committed: the overview is where someone lands
+ * when "the replays look wrong", and it used to say nothing at all about
+ * whether the recorder is reporting. One line in the details list now
+ * carries the same diagnosis the list strip and the settings card show.
+ *
+ * The value function is pure, so it is exercised for real rather than read
+ * off the source. Overview.tsx pulls in Common/UI/Config, which reads
+ * `window` on load, so it is imported after a browser stub exists.
+ */
+type OverviewModule =
+  typeof import("../../FeatureSet/Dashboard/src/Pages/Rum/View/Overview");
+
+let overview: OverviewModule;
+
+beforeAll(async () => {
+  (globalThis as Record<string, unknown>)["window"] = {
+    location: { pathname: "/", search: "", hash: "" },
+    history: {
+      state: null,
+      replaceState: (): void => {
+        // never asserted on
+      },
+    },
+  };
+
+  overview = await import(
+    "../../FeatureSet/Dashboard/src/Pages/Rum/View/Overview"
+  );
+});
+
+describe("the overview carries one line of recording health", () => {
+  const DIAGNOSIS: RecordingHealthDiagnosis = {
+    state: "healthy",
+    severity: "ok",
+    title: "Recording healthy - last chunk 12s ago",
+    detail: "143 sessions today; sampling 100%.",
+  };
+
+  test("a loaded diagnosis is rendered as its own title, verbatim", () => {
+    expect(
+      overview.describeRecordingHealthRow({
+        isLoading: false,
+        error: null,
+        diagnosis: DIAGNOSIS,
+      }),
+    ).toBe("Recording healthy - last chunk 12s ago");
+  });
+
+  test("the first load says it is checking, never 'unknown' and never a healthy-looking blank", () => {
+    expect(
+      overview.describeRecordingHealthRow({
+        isLoading: true,
+        error: null,
+        diagnosis: DIAGNOSIS,
+      }),
+    ).toBe("Checking…");
+  });
+
+  test("a failure that is not the viewer's fault is named, so silence is never read as healthy", () => {
+    const value: string | undefined = overview.describeRecordingHealthRow({
+      isLoading: false,
+      error: { kind: "other", message: "Server is not available" },
+      diagnosis: DIAGNOSIS,
+    });
+
+    expect(value).toBe("Recording health could not be loaded");
+    /* The raw server string is never the headline. */
+    expect(value).not.toContain("Server is not available");
+  });
+
+  test("a viewer who may not read health, or whose plan excludes it, gets no row at all", () => {
+    expect(
+      overview.describeRecordingHealthRow({
+        isLoading: false,
+        error: { kind: "permission", message: "Not authorized" },
+        diagnosis: DIAGNOSIS,
+      }),
+    ).toBeUndefined();
+
+    expect(
+      overview.describeRecordingHealthRow({
+        isLoading: false,
+        error: { kind: "plan", message: "Please upgrade your plan" },
+        diagnosis: DIAGNOSIS,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("the row is omitted from detailRows rather than rendered empty", () => {
+    const rows: string = block(
+      "const detailRows: Array<ResourceOverviewDetailRow>",
+      "];",
+    );
+
+    expect(rows).toContain("recordingHealthValue");
+    expect(rows).toContain('label: "Recording health"');
+    expect(SOURCE).toContain("useSessionReplayHealth(modelId)");
   });
 });

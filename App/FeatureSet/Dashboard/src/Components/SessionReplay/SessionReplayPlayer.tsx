@@ -62,10 +62,12 @@ import {
   makeIdleBackendSignalsState,
 } from "./Rail/ReplayBackendSignals";
 import {
+  REPLAY_RAIL_TAB_IDS,
   ReplayClockAlignmentState,
   ReplayRailTabId,
   ReplaySignal,
 } from "./Rail/ReplaySignalTypes";
+import { isSignalInTab } from "./Rail/ReplayRailFilters";
 import { fromTimelineEvents, mergeSignals } from "./Rail/ReplaySignals";
 import ReplayPinControl from "./ReplayPinControl";
 import ReplayCorrelationPanel, {
@@ -86,6 +88,8 @@ import {
   ReplayInitialMoment,
   ReplayPlayerUrlState,
   buildReplayMomentRoute,
+  describeReplayAccessReason,
+  describeReplayMomentNotice,
   makeEmptyReplayPlayerUrlState,
   resolveReplayInitialMoment,
 } from "./ReplayPlayerUrlState";
@@ -222,12 +226,30 @@ function noopUnsubscribe(): () => void {
 const NO_SIGNALS: Array<ReplaySignal> = [];
 const NO_CHUNKS: Array<SessionReplayManifestChunk> = [];
 
+/*
+ * The rail tab a row lives on. "all" shows everything, so a signal that
+ * is already visible on the open tab never forces a switch; otherwise the
+ * first kind-specific tab that claims it wins - the same rule ReplayRail
+ * applies internally when it reveals a row.
+ */
+function homeRailTabForSignal(signal: ReplaySignal): ReplayRailTabId {
+  for (const tabId of REPLAY_RAIL_TAB_IDS) {
+    if (tabId !== "all" && isSignalInTab(signal, tabId)) {
+      return tabId;
+    }
+  }
+
+  return "all";
+}
+
 /* ---- Transport. ---- */
 
 async function fetchManifest(args: {
   rumApplicationId: string;
   sessionId: string;
   refresh?: { viewId: string } | undefined;
+  /* Why this playback was opened; written to the audit row. */
+  accessReason?: string | null | undefined;
 }): Promise<SessionReplayManifest> {
   /*
    * The manifest request is also the audit event - the server writes a
@@ -244,6 +266,14 @@ async function fetchManifest(args: {
   if (args.refresh) {
     body["isRefresh"] = true;
     body["viewId"] = args.refresh.viewId;
+  } else if (args.accessReason) {
+    /*
+     * ux-12 / integration-004: the audit page exists to answer "why did
+     * this person watch this customer's session", and it read "None
+     * given" on every row because nothing ever sent a reason. A refresh
+     * writes no row, so the reason travels only with the first request.
+     */
+    body["accessReason"] = args.accessReason;
   }
 
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
@@ -489,6 +519,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     const manifestPromise: Promise<SessionReplayManifest> = fetchManifest({
       rumApplicationId: rumApplicationIdString,
       sessionId: sessionId,
+      accessReason: describeReplayAccessReason(urlState),
     });
 
     void (async (): Promise<void> => {
@@ -649,15 +680,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      */
     created.dispatch({ type: "PLAY" });
 
-    if (moment.source === "at") {
+    if (moment.source === "at" || moment.wasClamped) {
       setShellNotice(
-        moment.wasClamped
-          ? "The linked moment is outside this recording; opened at the nearest edge"
-          : "Opened at the moment of the linked log line",
-      );
-    } else if (moment.wasClamped) {
-      setShellNotice(
-        "The linked moment is outside this recording; opened at the nearest edge",
+        describeReplayMomentNotice({
+          wasClamped: moment.wasClamped,
+          signal: urlState.signalId,
+        }),
       );
     }
 
@@ -1229,25 +1257,41 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       return;
     }
 
-    const exists: boolean = allSignals.some((signal: ReplaySignal): boolean => {
-      return signal.id === urlState.signalId;
-    });
+    const target: ReplaySignal | undefined = allSignals.find(
+      (signal: ReplaySignal): boolean => {
+        return signal.id === urlState.signalId;
+      },
+    );
 
-    if (!exists) {
+    if (!target) {
       return;
     }
 
     hasRevealedSignalRef.current = true;
 
     /*
-     * With an explicit moment (t / at) the row is only selected; the
-     * pre-roll seek is what a bare ?signal= asks for.
+     * With an explicit moment (t / at) the row is only selected: the
+     * pre-roll seek is what a bare ?signal= asks for, and the URL's own
+     * moment is the more specific statement of intent.
+     *
+     * ux-11: the shared link still has to put the row where it can be
+     * seen. The rail tab is a per-viewer preference, so a teammate whose
+     * last tab was Network opened a link to a console error and saw the
+     * Network tab with nothing selected. A signal named in the URL wins
+     * over that preference: if the open tab does not show this kind of
+     * row, the player switches to the tab that does before selecting.
      */
     if (urlState.offsetMs !== null || urlState.atUnixMs !== null) {
+      setRailTab((current: ReplayRailTabId): ReplayRailTabId => {
+        return isSignalInTab(target, current)
+          ? current
+          : homeRailTabForSignal(target);
+      });
       setSelectedSignalId(urlState.signalId);
       return;
     }
 
+    /* revealSignal switches tab, selects AND seeks - what a bare ?signal= means. */
     railRef.current.revealSignal(urlState.signalId);
   }, [allSignals, urlState]);
 
@@ -1424,7 +1468,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       sessionId: sessionId,
       t: latest ? latest.currentTimeMs : 0,
       signal: selectedSignalId,
-      rail: railTab === "all" ? null : railTab,
+      /*
+       * ux-11: written even when it is "all". Omitting the default meant a
+       * link copied from the All tab opened on whatever tab the RECIPIENT
+       * happened to have open last, which is where a shared &signal= row
+       * went missing.
+       */
+      rail: railTab,
       tab:
         manifestRef.current && manifestRef.current.tabs.length > 1
           ? activeTabIdRef.current
@@ -1451,19 +1501,26 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         sessionId: sessionId,
         t: signal.offsetMs,
         signal: signal.id,
-        rail: railTab === "all" ? null : railTab,
+        /* The tab the recipient must land on to see this row (ux-11). */
+        rail: isSignalInTab(signal, railTab)
+          ? railTab
+          : homeRailTabForSignal(signal),
       });
 
       if (!route) {
         return;
       }
 
-      /* The header owns the copy UI; the row's own hover action is best-effort. */
-      void navigator.clipboard
-        ?.writeText(`${window.location.origin}${route.toString()}`)
-        .catch((): void => {
-          /* Denied: the header's Link button offers the visible fallback. */
-        });
+      /*
+       * ux-10: through the header's copy path, so the row action announces
+       * "Link copied" and offers the read-only field when the clipboard is
+       * missing (plain http) or refuses (unfocused document) - instead of
+       * writing straight to navigator.clipboard and swallowing both
+       * outcomes.
+       */
+      headerRef.current?.copyUrl(
+        `${window.location.origin}${route.toString()}`,
+      );
     },
     [rumApplicationIdString, sessionId, railTab],
   );
@@ -1856,7 +1913,13 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       onShowOnStage={handleShowOnStage}
       onCopyLink={copySignalLink}
       onTelemetrySignalsChange={handleTelemetrySignalsChange}
-      className="h-full"
+      /*
+       * flex-1 + min-h-0 inside a column whose height is bounded above
+       * (see the rail column) is what lets the rail's own list overflow
+       * and scroll. `h-full` resolved to the rail's full CONTENT height,
+       * which is why nothing in the rail ever scrolled (ux-02).
+       */
+      className="min-h-0 flex-1"
     />
   );
 
@@ -2073,12 +2136,23 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
            * The rail beside the picture on xl and up (22-44rem, dragged at
            * its left edge), under the scrubber below that. Collapsed, it
            * is a 2.5rem strip with one button to bring it back.
+           *
+           * ux-02: the column's height is BOUNDED, and that is what makes
+           * the rail a rail. Without a bound, `xl:items-stretch` sized the
+           * flex line to the rail's whole content, so the list never
+           * overflowed: follow, the 40% now-divider anchoring, "Jump to
+           * now" and the >500-row windowing were all inert, and an
+           * 800-signal session produced a page tens of thousands of pixels
+           * tall beside a 70vh stage. Stacked below xl the design's
+           * 22rem sheet applies; beside the stage the column tracks the
+           * viewport. Every wrapper down to ReplayRail's own list carries
+           * min-h-0 so the overflow lands on the list, not on the page.
            */}
           <div
             ref={railContainerRef}
             data-testid="replay-rail-column"
             data-collapsed={prefs.railCollapsed ? "true" : "false"}
-            className={`relative flex w-full shrink-0 ${
+            className={`relative flex max-h-[22rem] w-full shrink-0 xl:max-h-[calc(100vh-11rem)] ${
               prefs.railCollapsed
                 ? "xl:w-10"
                 : isTheater
@@ -2113,7 +2187,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             )}
             {/* Stays mounted while collapsed (hidden on xl only) so the rail keeps its state. */}
             <div
-              className={`flex min-w-0 flex-1 flex-col ${
+              className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${
                 prefs.railCollapsed ? "xl:hidden" : ""
               }`}
             >
@@ -2156,7 +2230,6 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         sessionId={manifest.sessionId || sessionId}
         details={manifest.details}
         fidelityNotices={manifest.fidelityNotices}
-        missingAssets={[]}
         gaps={manifest.gaps}
         onOpenRailTab={openRailTab}
         railCounts={railCounts}

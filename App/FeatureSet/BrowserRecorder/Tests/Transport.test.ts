@@ -1,5 +1,6 @@
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
+  MAX_SESSION_REPLAY_CHUNK_BYTES,
   SESSION_REPLAY_CONTENT_TYPE,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SessionReplayChunkEnvelope,
@@ -12,6 +13,24 @@ import Transport, {
   CompressionResult,
   RETRY_BACKOFF_MS,
 } from "../src/Transport";
+
+/*
+ * Node's own gzip and CompressionStream, reached through require rather than
+ * an import: this package deliberately excludes @types/node (it overrides the
+ * DOM's fetch and stream definitions, which is what the shipped code is
+ * written against), so the two modules are typed here to exactly what this
+ * file uses of them.
+ */
+declare const require: (id: string) => Record<string, unknown>;
+
+interface NodeZlib {
+  gunzipSync: (input: Uint8Array) => { toString: () => string };
+}
+
+const nodeZlib: NodeZlib = require("zlib") as unknown as NodeZlib;
+const nodeCompressionStream: unknown = (
+  require("stream/web") as Record<string, unknown>
+)["CompressionStream"];
 
 describe("Transport", (): void => {
   const envelope: SessionReplayChunkEnvelope = {
@@ -151,18 +170,127 @@ describe("Transport", (): void => {
   });
 
   describe("compress", (): void => {
-    it("gzips when CompressionStream exists", async (): Promise<void> => {
-      if (typeof globalRecord["CompressionStream"] !== "function") {
+    /*
+     * The gzip branch, for real.
+     *
+     * This used to `return` early whenever CompressionStream was missing -
+     * which in jsdom is ALWAYS - on the stated understanding that the E2E
+     * fixtures covered it. They do not: every fixture frame is built with
+     * payloadEncoding "identity", so the one encoding every real customer
+     * chunk uses was asserted nowhere, and a framing or byte-count mistake
+     * on it would have dropped every production chunk as
+     * "payload-undecodable" with all the suites green.
+     *
+     * Node has both halves (CompressionStream since 18, zlib forever), so
+     * the platform pieces jsdom lacks are installed for the duration and the
+     * bytes are gunzipped back with node:zlib - the same gunzipAsync the
+     * ingest worker runs.
+     */
+    it("gzips to bytes the ingest side can gunzip back, and says so on the envelope", async (): Promise<void> => {
+      const originalCompression: unknown = globalRecord["CompressionStream"];
+      const originalResponse: unknown = globalRecord["Response"];
+
+      globalRecord["CompressionStream"] = nodeCompressionStream;
+
+      /*
+       * jsdom has no Response either. Only the one thing Transport.compress
+       * asks of it is needed: drain a ReadableStream into an ArrayBuffer.
+       */
+      globalRecord["Response"] = class StreamResponse {
+        private readonly stream: ReadableStream<Uint8Array>;
+
+        public constructor(stream: ReadableStream<Uint8Array>) {
+          this.stream = stream;
+        }
+
+        public async arrayBuffer(): Promise<ArrayBuffer> {
+          const reader: ReadableStreamDefaultReader<Uint8Array> =
+            this.stream.getReader();
+          const parts: Array<Uint8Array> = [];
+          let total: number = 0;
+
+          for (;;) {
+            const next: ReadableStreamReadResult<Uint8Array> =
+              await reader.read();
+
+            if (next.done) {
+              break;
+            }
+
+            parts.push(next.value);
+            total += next.value.length;
+          }
+
+          const joined: Uint8Array = new Uint8Array(total);
+          let offset: number = 0;
+
+          for (const part of parts) {
+            joined.set(part, offset);
+            offset += part.length;
+          }
+
+          return joined.buffer as ArrayBuffer;
+        }
+      };
+
+      try {
+        const payload: string = JSON.stringify([
+          { type: 3, data: { source: 2, text: "a".repeat(2000) } },
+        ]);
+
+        const result: CompressionResult = await Transport.compress(payload);
+
+        expect(result.encoding).toBe("gzip");
+
+        /* Really compressed, and really gzip (magic 0x1f 0x8b). */
+        expect(result.bytes.length).toBeLessThan(payload.length);
+        expect(result.bytes[0]).toBe(0x1f);
+        expect(result.bytes[1]).toBe(0x8b);
+
+        expect(nodeZlib.gunzipSync(result.bytes).toString()).toBe(payload);
+
         /*
-         * jsdom has no CompressionStream, which is exactly the fallback path
-         * asserted below. The gzip branch is exercised by the E2E fixtures.
+         * And through the FRAME: payloadBytes is what the parser uses to
+         * find the next frame, so it has to be the compressed length, not
+         * the text length.
          */
-        return;
+        const body: Uint8Array = Transport.buildBody(
+          {
+            ...envelope,
+            payloadEncoding: "gzip",
+            payloadBytes: result.bytes.length,
+          },
+          result.bytes,
+        );
+
+        const newline: number = body.indexOf(0x0a);
+        const parsed: SessionReplayChunkEnvelope = JSON.parse(
+          new TextDecoder().decode(body.slice(0, newline)),
+        ) as SessionReplayChunkEnvelope;
+
+        expect(parsed.payloadEncoding).toBe("gzip");
+        expect(body.length - newline - 1).toBe(parsed.payloadBytes);
+
+        expect(
+          nodeZlib
+            .gunzipSync(
+              body.slice(newline + 1, newline + 1 + parsed.payloadBytes),
+            )
+            .toString(),
+        ).toBe(payload);
+      } finally {
+        if (originalCompression === undefined) {
+          delete globalRecord["CompressionStream"];
+        } else {
+          globalRecord["CompressionStream"] = originalCompression;
+        }
+
+        if (originalResponse === undefined) {
+          delete globalRecord["Response"];
+        } else {
+          globalRecord["Response"] = originalResponse;
+        }
       }
-
-      const result: CompressionResult = await Transport.compress("hello");
-
-      expect(result.encoding).toBe("gzip");
     });
 
     /*
@@ -1024,6 +1152,69 @@ describe("Transport", (): void => {
     });
   });
 
+  /*
+   * WP-S1 (ingest-8). A chunk that is still over the per-request cap after
+   * gzip is an indivisible full snapshot of a very large DOM. Posting the
+   * real bytes earns a 413 from nginx or the middleware's byte counter and
+   * no disclosure anywhere; declaring the SIZE with an empty body reaches
+   * the parser's payloadBytes check, which answers 422 - "the session
+   * survives this, with a fidelity notice" - and costs the visitor's uplink
+   * nothing.
+   */
+  describe("an oversized chunk", (): void => {
+    it("declares the size, sends no payload, and tells the recorder to disclose it", async (): Promise<void> => {
+      delete globalRecord["CompressionStream"];
+
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(422));
+
+      globalRecord["fetch"] = fetchMock;
+
+      const tooLarge: Array<number> = [];
+      const transport: Transport = new Transport({
+        url: "https://oneuptime.com/telemetry/session-replay/v1/chunk",
+        headers: { "x-oneuptime-token": "secret" },
+        onDirective: (): void => {
+          /* Not under test. */
+        },
+        onPermanentFailure: (): void => {
+          /* Not under test. */
+        },
+        onChunkTooLarge: (bytes: number): void => {
+          tooLarge.push(bytes);
+        },
+      });
+
+      transports.push(transport);
+
+      const payload: string = `[${"x".repeat(MAX_SESSION_REPLAY_CHUNK_BYTES)}]`;
+
+      await transport.send({ ...envelope, hasFullSnapshot: true }, payload);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const init: Record<string, unknown> = fetchMock.mock
+        .calls[0]?.[1] as Record<string, unknown>;
+      const body: Uint8Array = init["body"] as Uint8Array;
+      const newline: number = body.indexOf(0x0a);
+      const parsed: SessionReplayChunkEnvelope = JSON.parse(
+        new TextDecoder().decode(body.slice(0, newline)),
+      ) as SessionReplayChunkEnvelope;
+
+      /* The declared size is the real one; the body carries none of it. */
+      expect(parsed.payloadBytes).toBeGreaterThan(
+        MAX_SESSION_REPLAY_CHUNK_BYTES,
+      );
+      expect(body.length - newline - 1).toBe(0);
+
+      expect(tooLarge).toEqual([parsed.payloadBytes]);
+
+      /* A refused chunk, not a refused transport: the recorder carries on. */
+      expect(transport.isDisabled()).toBe(false);
+      expect(transport.getDroppedChunkCount()).toBe(1);
+      expect(transport.getQueueDepth()).toBe(0);
+    });
+  });
+
   describe("sendTerminal", (): void => {
     /*
      * fetch(keepalive), not sendBeacon: sendBeacon cannot set headers, and the
@@ -1034,7 +1225,9 @@ describe("Transport", (): void => {
 
       globalRecord["fetch"] = fetchMock;
 
-      expect(makeTransport().sendTerminal(envelope, "[{}]")).toBe(true);
+      expect(
+        makeTransport().sendTerminal([{ envelope: envelope, payload: "[{}]" }]),
+      ).toBe(true);
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
       const init: Record<string, unknown> = fetchMock.mock
@@ -1056,7 +1249,7 @@ describe("Transport", (): void => {
 
       globalRecord["fetch"] = fetchMock;
 
-      makeTransport().sendTerminal(envelope, "[{}]");
+      makeTransport().sendTerminal([{ envelope: envelope, payload: "[{}]" }]);
 
       const init: Record<string, unknown> = fetchMock.mock
         .calls[0]?.[1] as Record<string, unknown>;
@@ -1085,7 +1278,9 @@ describe("Transport", (): void => {
       const transport: Transport = makeTransport();
       const huge: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`;
 
-      expect(transport.sendTerminal(envelope, huge)).toBe(false);
+      expect(
+        transport.sendTerminal([{ envelope: envelope, payload: huge }]),
+      ).toBe(false);
       expect(fetchMock).not.toHaveBeenCalled();
       expect(transport.getDroppedChunkCount()).toBe(1);
     });
@@ -1115,7 +1310,9 @@ describe("Transport", (): void => {
       globalRecord["fetch"] = fetchMock;
 
       expect(
-        transport.sendTerminal({ ...envelopeAt(6), isFinal: true }, "[{}]"),
+        transport.sendTerminal([
+          { envelope: { ...envelopeAt(6), isFinal: true }, payload: "[{}]" },
+        ]),
       ).toBe(true);
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -1163,7 +1360,9 @@ describe("Transport", (): void => {
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
       globalRecord["fetch"] = fetchMock;
 
-      expect(transport.sendTerminal(envelopeAt(3), "[{}]")).toBe(true);
+      expect(
+        transport.sendTerminal([{ envelope: envelopeAt(3), payload: "[{}]" }]),
+      ).toBe(true);
 
       const init: Record<string, unknown> = fetchMock.mock
         .calls[0]?.[1] as Record<string, unknown>;
@@ -1201,7 +1400,7 @@ describe("Transport", (): void => {
       const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
       globalRecord["fetch"] = fetchMock;
 
-      transport.sendTerminal(envelopeAt(99), "[]");
+      transport.sendTerminal([{ envelope: envelopeAt(99), payload: "[]" }]);
 
       const init: Record<string, unknown> = fetchMock.mock
         .calls[0]?.[1] as Record<string, unknown>;

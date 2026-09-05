@@ -119,35 +119,41 @@ export const RecordingHealthStripView: FunctionComponent<
       data-testid="health-strip"
       data-state={level}
     >
-      <div className="flex items-center gap-3 px-4 py-2">
+      <div className="flex items-start gap-3 px-4 py-2">
         <span
-          className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`}
+          className={`mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`}
           aria-hidden="true"
         />
-        <div className="min-w-0 flex-1 text-sm">
+        {/*
+         * ux-15: the reason used to be `hidden md:inline` and the action
+         * `hidden sm:inline`, so a phone showed "Session replay is switched
+         * off for acme-web" with neither the sentence saying where nor the
+         * link that fixes it - everything the strip exists for was behind an
+         * unlabelled chevron. Title, reason and action are now one wrapping
+         * line: they sit side by side when there is room and stack when
+         * there is not, at every width, in ONE DOM node each (a
+         * width-switched duplicate would put two "health-action" links in
+         * the tree for anything reading the page).
+         */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
           <span className={`font-medium ${style.text}`}>{title}</span>
           <span className="sr-only" data-testid="health-strip-level">
             {level}
           </span>
-          {!props.isExpanded && detail && !isHealthy && (
-            <span className="ml-2 hidden text-gray-700 md:inline">
-              {detail}
-            </span>
+          {!props.isExpanded && detail && (
+            <span className="min-w-0 text-gray-700">{detail}</span>
           )}
-          {!props.isExpanded && isHealthy && (
-            <span className="ml-2 hidden text-gray-700 md:inline">
-              {health.diagnosis.detail}
-            </span>
-          )}
-        </div>
 
-        {!props.isExpanded && health.diagnosis.action && !health.isLoading && (
-          <RecordingHealthActionButton
-            action={health.diagnosis.action}
-            rumApplicationId={props.rumApplicationId}
-            className="hidden shrink-0 text-xs font-medium text-indigo-700 hover:text-indigo-900 sm:inline"
-          />
-        )}
+          {!props.isExpanded &&
+            health.diagnosis.action &&
+            !health.isLoading && (
+              <RecordingHealthActionButton
+                action={health.diagnosis.action}
+                rumApplicationId={props.rumApplicationId}
+                className="whitespace-nowrap text-xs font-medium text-indigo-700 hover:text-indigo-900"
+              />
+            )}
+        </div>
 
         {canExpand && (
           <button

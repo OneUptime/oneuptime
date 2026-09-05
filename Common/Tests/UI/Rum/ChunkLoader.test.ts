@@ -1,7 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
-import { SessionReplayChunkManifestEntry } from "../../../Types/Rum/SessionReplay";
+import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_READ,
+  SessionReplayChunkManifestEntry,
+} from "../../../Types/Rum/SessionReplay";
+import { MAX_PREFETCH_PAGES_AHEAD } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 import ChunkLoader, {
   ChunkLoadError,
+  DEFAULT_MAX_DECODED_CHUNKS,
   RRWEB_EVENT_TYPE_META,
   RRWEB_MOUSE_INTERACTION_CLICK,
   RRWEB_MOUSE_INTERACTION_TOUCH_START,
@@ -909,6 +914,15 @@ function incremental(
   return { type: 3, timestamp: timestamp, data: data };
 }
 
+/* Lets the loader's own un-awaited follow-up work (loadFirst's page) finish. */
+async function settle(): Promise<void> {
+  for (let i: number = 0; i < 4; i++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+}
+
 function sequentialEntries(
   count: number,
 ): Array<SessionReplayChunkManifestEntry> {
@@ -979,6 +993,124 @@ describe("ChunkLoader first paint and prefetch", () => {
       [8, 9, 10, 11, 12, 13, 14, 15],
       [16, 17, 18, 19, 20, 21, 22, 23],
     ]);
+  });
+
+  it("holds enough decoded chunks for the pages the player prefetches", () => {
+    /*
+     * The two numbers are not independent. A cache smaller than the
+     * priority pair plus the page being fed plus every page prefetched
+     * past it evicts footage that has been downloaded but not yet fed,
+     * and the feed loop fetches it straight back.
+     */
+    expect(DEFAULT_MAX_DECODED_CHUNKS).toBeGreaterThanOrEqual(
+      2 + MAX_SESSION_REPLAY_CHUNKS_PER_READ * (1 + MAX_PREFETCH_PAGES_AHEAD),
+    );
+  });
+
+  it("never re-fetches a chunk during a straight playthrough longer than the cache", async () => {
+    /*
+     * The 12x request amplification. With a 24-chunk cache, the priority
+     * pair plus one 8-chunk page plus the two pages prefetched after every
+     * feed filled it exactly, so the next admit evicted the chunks about
+     * to be fed and ensureChunk fetched them again - 95 page requests for a
+     * 60-chunk session, one chunk fetched 17 times, and periodic stalls
+     * because the junk prefetches shared the connection with the fetch on
+     * the critical path.
+     *
+     * 60 entries, deliberately more than the cache holds, fed in order the
+     * way the engine feeds them.
+     */
+    const fetcher: RecordingFetcher = makeFetcher();
+    const loader: ChunkLoader = makeLoader(sequentialEntries(60), fetcher);
+
+    await loader.loadFirst(0);
+    await settle();
+
+    for (let fed: number = 0; fed < 60; fed++) {
+      loader.setFedThrough(fed - 1);
+
+      const events: Array<SessionReplayRecordedEvent> | null =
+        await loader.ensureChunk(fed);
+
+      expect(events).not.toBeNull();
+
+      loader.setFedThrough(fed);
+      /* 4 pages: what the loader must survive at 4x and above. */
+      await loader.prefetchAhead(fed, MAX_PREFETCH_PAGES_AHEAD);
+    }
+
+    const timesRequested: Map<number, number> = new Map<number, number>();
+
+    for (const request of fetcher.requests) {
+      for (const chunkIndex of request) {
+        timesRequested.set(
+          chunkIndex,
+          (timesRequested.get(chunkIndex) ?? 0) + 1,
+        );
+      }
+    }
+
+    const refetched: Array<number> = [...timesRequested.entries()]
+      .filter((pair: [number, number]): boolean => {
+        return pair[1] > 1;
+      })
+      .map((pair: [number, number]): number => {
+        return pair[0];
+      });
+
+    expect(refetched).toEqual([]);
+    /* 60 chunks in 8-chunk pages, plus the priority pair's own request. */
+    expect(fetcher.requests.length).toBeLessThanOrEqual(10);
+  });
+
+  it("evicts footage that has been fed before footage that has not", async () => {
+    /*
+     * Reading a chunk makes it the most recently USED, so once playback
+     * has fed chunks 0..3 the least recently used entries are exactly the
+     * prefetched ones it is about to need. Plain LRU therefore threw away
+     * 4..7 to make room for 8..15 and fetched 4..7 straight back.
+     */
+    const fetcher: RecordingFetcher = makeFetcher();
+    const loader: ChunkLoader = makeLoader(sequentialEntries(20), fetcher, {
+      maxDecodedChunks: 12,
+    });
+
+    await loader.loadPage(0);
+
+    for (let fed: number = 0; fed <= 3; fed++) {
+      loader.getDecodedChunk(fed);
+    }
+
+    loader.setFedThrough(3);
+    await loader.loadPage(8);
+
+    const decoded: Array<number> = loader.getDecodedChunkIndexes();
+
+    expect(decoded).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    /* The four the player has already watched are the four that went. */
+    expect(decoded).not.toContain(0);
+  });
+
+  it("stops prefetching rather than fetching a page the cache cannot hold", async () => {
+    const fetcher: RecordingFetcher = makeFetcher();
+    const loader: ChunkLoader = makeLoader(sequentialEntries(40), fetcher, {
+      maxDecodedChunks: 16,
+    });
+
+    await loader.loadPage(0);
+    loader.setFedThrough(3);
+    await loader.prefetchAhead(3, 4);
+
+    /*
+     * One more page fits alongside the four chunks still waiting to be
+     * fed; a second would evict the first before anything played it, so
+     * it is left for the moment playback actually asks.
+     */
+    expect(fetcher.requests).toEqual([
+      [0, 1, 2, 3, 4, 5, 6, 7],
+      [8, 9, 10, 11, 12, 13, 14, 15],
+    ]);
+    expect(loader.getDecodedChunkIndexes().length).toBeLessThanOrEqual(16);
   });
 
   it("waits for an in-flight request covering the same chunks instead of re-fetching them", async () => {
@@ -1472,6 +1604,55 @@ describe("ChunkLoader signal extraction", () => {
       }),
     );
     expect(byKind.get("route")?.routeKind).toBe("pushState");
+  });
+
+  it("places a performance row when the entry happened, not when the recorder emitted it", () => {
+    /*
+     * Performance entries are delivered late by design: a buffered LCP
+     * arrives at its observer callback, a long task after it ends, and
+     * CLS/INP only settle at page hide. Placing the row at the rrweb
+     * event's timestamp put the marker wherever the event queue flushed,
+     * which for a web vital is the end of the recording rather than the
+     * moment the number describes.
+     */
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(0),
+      [
+        { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+        custom(
+          "oneuptime.performance",
+          {
+            kind: "web-vital",
+            metric: "LCP",
+            value: 2400,
+            rating: "poor",
+            occurredAtUnixMs: CUSTOM_BASE_TS + 2400,
+          },
+          /* Reported 12 seconds later, at page hide. */
+          CUSTOM_BASE_TS + 12000,
+        ),
+        custom(
+          "oneuptime.performance",
+          { kind: "long-task", durationMs: 180, budgetMs: 50 },
+          CUSTOM_BASE_TS + 9000,
+        ),
+      ],
+    );
+
+    const vital: ReplayTimelineEvent | undefined = rows.find(
+      (row: ReplayTimelineEvent): boolean => {
+        return row.metric === "LCP";
+      },
+    );
+    const longTask: ReplayTimelineEvent | undefined = rows.find(
+      (row: ReplayTimelineEvent): boolean => {
+        return row.performanceKind === "long-task";
+      },
+    );
+
+    expect(vital?.offsetMs).toBe(2400);
+    /* No occurredAtUnixMs: the event's own timestamp still stands. */
+    expect(longTask?.offsetMs).toBe(9000);
   });
 
   it("turns rrweb Meta events into navigation rows carrying the viewport", () => {

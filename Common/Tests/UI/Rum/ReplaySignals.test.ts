@@ -17,6 +17,7 @@ import {
   makeRecordingSignalId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import {
+  REPLAY_NETWORK_CAPTURE_CAP,
   REPLAY_SIGNAL_SEEK_PRE_ROLL_MS,
   REPLAY_SIGNAL_TITLE_MAX_LENGTH,
   REPLAY_TRACE_WATERFALL_MAX_SPANS,
@@ -27,13 +28,17 @@ import {
   ReplayNetworkSignalDetail,
   ReplayPerformanceSignalDetail,
   ReplayServerErrorSignalDetail,
+  ReplaySignalMatch,
   ReplaySpanSignalDetail,
   ReplayTraceWaterfallSpan,
   buildErrorCounterpartIndex,
   findErrorAfterInteraction,
   findErrorLogsForTrace,
+  findSignalMatch,
+  formatPerformanceMeasure,
   formatSignalBytes,
   formatSignalDuration,
+  formatVitalRating,
   fromExceptionRow,
   fromLogRow,
   fromSpanRow,
@@ -43,6 +48,7 @@ import {
   groupSpansIntoTraces,
   indexTraceSignalsByTraceId,
   isSignalActiveAt,
+  isSteppableClientError,
   mergeSignals,
   pairClientAndServerErrors,
   splitSignalUrl,
@@ -1298,5 +1304,276 @@ describe("formatters", () => {
       origin: "",
       path: "/relative/path",
     });
+  });
+});
+
+/*
+ * The recorder's own vocabulary for "this is not a failure": a cancelled
+ * request, a capture-cap marker, a subresource that failed to load and a
+ * repeat of an error already recorded. Every one of these used to render
+ * as a red failed request or an ordinary uncaught error (ux-05, ux-06).
+ */
+describe("ReplaySignals recorder notices that are not failures", () => {
+  function eventWithExtras(
+    kind: ReplayTimelineEventKind,
+    overrides: Partial<ReplayTimelineEvent>,
+    extras: Record<string, unknown>,
+  ): ReplayTimelineEvent {
+    return {
+      ...makeEvent(kind, overrides),
+      ...extras,
+    } as ReplayTimelineEvent;
+  }
+
+  it("renders an aborted request as cancelled, never as an error", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "network",
+        {
+          method: "get",
+          url: "https://api.example.com/search?q=ab",
+          status: 0,
+          durationMs: 40,
+          isError: false,
+        },
+        { aborted: true },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayNetworkSignalDetail =
+      signal.detail as ReplayNetworkSignalDetail;
+
+    expect(signal.title).toBe("GET cancelled /search?q=ab");
+    expect(signal.severity).toBe("info");
+    expect(detail.aborted).toBe(true);
+    expect(detail.isError).toBe(false);
+    /* An abort is status 0, but nothing failed before a response. */
+    expect(detail.failedBeforeResponse).toBe(false);
+  });
+
+  it("renders the network cap marker as a notice, not an empty failed request", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "network",
+        { method: "", url: "", status: 0 },
+        { isCapMarker: true },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayNetworkSignalDetail =
+      signal.detail as ReplayNetworkSignalDetail;
+
+    expect(signal.title).toBe(
+      `Network capture stopped after ${REPLAY_NETWORK_CAPTURE_CAP} requests`,
+    );
+    expect(signal.title).not.toContain("failed");
+    expect(signal.severity).toBe("info");
+    expect(detail.isCapMarker).toBe(true);
+    expect(detail.isError).toBe(false);
+  });
+
+  it("names a failed resource load and keeps it out of the error stepping", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "error",
+        {
+          message: "Resource failed to load: <img>",
+          source: "https://cdn.example.com/logo.png",
+        },
+        { errorKind: "resource", tagName: "img" },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayClientErrorSignalDetail =
+      signal.detail as ReplayClientErrorSignalDetail;
+
+    expect(signal.title).toBe("Resource failed to load: <img> /logo.png");
+    expect(signal.severity).toBe("warn");
+    expect(detail.kind).toBe("resource");
+    expect(detail.tagName).toBe("img");
+    expect(isSteppableClientError(signal)).toBe(false);
+  });
+
+  it("quantifies a repeat marker and does not step through it as a new error", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "error",
+        { message: "TypeError: boom", errorKind: "error" },
+        { isRepeat: true, occurrences: 2400 },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayClientErrorSignalDetail =
+      signal.detail as ReplayClientErrorSignalDetail;
+
+    expect(signal.subtitle).toContain("seen 2400 times");
+    expect(detail.isRepeat).toBe(true);
+    expect(detail.occurrences).toBe(2400);
+    expect(isSteppableClientError(signal)).toBe(false);
+  });
+
+  it("renders the error cap marker as a recorder notice", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "error",
+        {
+          message:
+            "Error capture stopped after 100 distinct errors in this session; later errors were not recorded.",
+          errorKind: "error",
+        },
+        { isCapMarker: true },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayClientErrorSignalDetail =
+      signal.detail as ReplayClientErrorSignalDetail;
+
+    expect(signal.severity).toBe("warn");
+    expect(signal.subtitle).toBe("recorder cap");
+    expect(detail.isCapMarker).toBe(true);
+    expect(isSteppableClientError(signal)).toBe(false);
+  });
+
+  it("keeps a real uncaught error steppable and unchanged", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("error", {
+        message: "TypeError: boom",
+        errorKind: "error",
+        source: "https://app.example.com/app.js",
+        lineNumber: 12,
+        columnNumber: 5,
+      }),
+      { startTimeUnixMs: null },
+    );
+
+    expect(signal.severity).toBe("error");
+    expect(signal.subtitle).toBe("uncaught error · /app.js:12:5");
+    expect(isSteppableClientError(signal)).toBe(true);
+  });
+
+  it("never pairs a resource failure with a server exception", () => {
+    const resource: ReplaySignal = fromTimelineEvent(
+      eventWithExtras(
+        "error",
+        { message: "boom", offsetMs: 1000 },
+        { errorKind: "resource" },
+      ),
+      { startTimeUnixMs: null },
+    );
+    const server: ReplaySignal = {
+      id: "exc:1",
+      kind: "server-error",
+      source: "telemetry",
+      offsetMs: 1200,
+      severity: "error",
+      title: "boom",
+      links: {},
+      detail: { message: "boom", exceptionType: null },
+      alignment: "unanchored",
+    };
+
+    expect(pairClientAndServerErrors([resource, server])).toEqual([]);
+  });
+});
+
+/* ux-17: kebab-case library values never reach a row or a detail. */
+describe("ReplaySignals performance wording", () => {
+  it("spells out a web vital's rating", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "LCP",
+        value: 4800,
+        rating: "needs-improvement",
+      }),
+      { startTimeUnixMs: null },
+    );
+
+    expect(signal.title).toBe("LCP 4.8s needs improvement");
+    expect(signal.title).not.toContain("needs-improvement");
+    expect(formatVitalRating("needs-improvement")).toBe("needs improvement");
+    expect(formatVitalRating(null)).toBe("");
+  });
+
+  it("names the measure of a budget row in words", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "long-task",
+        durationMs: 320,
+        budgetMs: 200,
+      }),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayPerformanceSignalDetail =
+      signal.detail as ReplayPerformanceSignalDetail;
+
+    expect(signal.title).toBe("Long task 320ms (budget 200ms)");
+    expect(formatPerformanceMeasure(detail)).toBe("Long task");
+  });
+});
+
+/*
+ * integration-003: a span cross-link carries the id of the span that was
+ * clicked, while the Traces tab has one row per trace keyed by its ROOT
+ * span, so matching by row id alone selected nothing.
+ */
+describe("ReplaySignals findSignalMatch", () => {
+  const TRACE: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+
+  function traceRow(): ReplaySignal {
+    const rows: Array<ReplaySignal> = groupSpansIntoTraces(
+      [
+        makeSpan({
+          spanId: "root-a",
+          traceId: TRACE,
+          atMs: 4000,
+          durationMs: 900,
+        }),
+        makeSpan({
+          spanId: "child-b",
+          traceId: TRACE,
+          atMs: 4300,
+          durationMs: 200,
+          parentSpanId: "root-a",
+        }),
+      ],
+      makeClock(ANCHORED),
+    );
+
+    return rows[0] as ReplaySignal;
+  }
+
+  it("matches a row by its own id", () => {
+    const row: ReplaySignal = traceRow();
+
+    expect(findSignalMatch([row], row.id)).toEqual({
+      signal: row,
+      offsetMs: row.offsetMs,
+    });
+  });
+
+  it("resolves a child span id to the trace row that contains it", () => {
+    const row: ReplaySignal = traceRow();
+    const child: ReplayTraceWaterfallSpan | undefined = (
+      row.detail as ReplaySpanSignalDetail
+    ).spans.find((span: ReplayTraceWaterfallSpan): boolean => {
+      return span.spanId === "child-b";
+    });
+
+    const match: ReplaySignalMatch | null = findSignalMatch(
+      [row],
+      "span:child-b",
+    );
+
+    expect(match?.signal.id).toBe(row.id);
+    /* The moment is the CHILD's start, not the trace's. */
+    expect(match?.offsetMs).toBe(child?.sessionOffsetMs);
+    expect(match?.offsetMs).not.toBe(row.offsetMs);
+  });
+
+  it("returns null for an id no row answers to", () => {
+    expect(findSignalMatch([traceRow()], "span:not-here")).toBeNull();
+    expect(findSignalMatch([traceRow()], "log:missing")).toBeNull();
+    expect(findSignalMatch([traceRow()], "")).toBeNull();
   });
 });

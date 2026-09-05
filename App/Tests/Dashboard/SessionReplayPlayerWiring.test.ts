@@ -246,14 +246,23 @@ describe("live sessions", () => {
     );
   });
 
-  test("only the initial load makes a bare (audit-writing) manifest request", () => {
-    const bareCalls: number = (
-      SOURCE.match(
-        /fetchManifest\(\{\s*rumApplicationId: rumApplicationIdString,\s*sessionId: sessionId,\s*\}\)/g,
-      ) ?? []
-    ).length;
+  test("only the initial load makes an audit-writing manifest request", () => {
+    /*
+     * Exactly one call omits `refresh`. That call carries the access
+     * reason (ux-12); every other one names the existing view so the
+     * server reuses its audit row.
+     */
+    const calls: Array<string> =
+      SOURCE.match(/fetchManifest\(\{[\s\S]*?\n {4}\}\)/g) ?? [];
+    const auditWriting: Array<string> = calls.filter(
+      (call: string): boolean => {
+        return !call.includes("refresh:");
+      },
+    );
 
-    expect(bareCalls).toBe(1);
+    expect(calls.length).toBeGreaterThan(1);
+    expect(auditWriting).toHaveLength(1);
+    expect(auditWriting[0]).toContain("accessReason:");
   });
 
   test("polling is gated on the session not being finalized", () => {
@@ -330,6 +339,45 @@ describe("the events rail", () => {
     expect(SOURCE).toMatch(/\{railElement\}/);
   });
 
+  /*
+   * ux-02: outside theater nothing bounded the rail's height, so its list
+   * never overflowed - follow, the now-divider anchoring, "Jump to now"
+   * and the >500-row windowing were all inert and a long session made the
+   * page tens of thousands of pixels tall. The bound is a layout fact, so
+   * it is pinned as one: jsdom computes no layout, and an E2E run at a
+   * real viewport is the only other way to see it.
+   */
+  test("the rail column has a bounded height so the rail's list can scroll", () => {
+    const column: string = slice(
+      SOURCE,
+      'data-testid="replay-rail-column"',
+      "replay-rail-resize-handle",
+    );
+
+    /* Stacked below xl (the design's sheet) and beside the stage above it. */
+    expect(column).toContain("max-h-[22rem]");
+    expect(column).toMatch(/xl:max-h-\[calc\(100vh-[^\]]+\)\]/);
+  });
+
+  test("nothing between the rail column and the rail re-introduces content height", () => {
+    /*
+     * The chain has to be able to shrink the whole way down, and the rail
+     * itself must take the remaining height rather than its own content
+     * height (`h-full` resolved to the latter, which was the bug).
+     */
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRail\n      ref={railRef}",
+      "/>",
+    );
+
+    expect(railProps).toContain('className="min-h-0 flex-1"');
+    expect(railProps).not.toContain('className="h-full"');
+    expect(SOURCE).toContain(
+      "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+    );
+  });
+
   test("the keyboard map's rail keys reach the rail's handle", () => {
     for (const method of [
       "stepSignal(1)",
@@ -382,6 +430,25 @@ describe("the header", () => {
     expect(SOURCE).toContain("readReplayListUrl()");
     expect(SOURCE).toContain("Navigation.isSafeInternalRoute(backHref)");
   });
+
+  /*
+   * ux-10: the rail row's "Copy link to this moment" wrote straight to
+   * navigator.clipboard, so it confirmed nothing on success and swallowed
+   * the failure on a plain-http install. It goes through the header's
+   * announced-and-fallback path now, like the Link button beside it.
+   */
+  test("the rail row's copy link goes through the header's announced copy path", () => {
+    const copier: string = slice(
+      SOURCE,
+      "const copySignalLink",
+      "const selectSignal",
+    );
+
+    expect(copier).toContain("headerRef.current?.copyUrl(");
+    expect(copier).not.toContain("navigator.clipboard");
+    /* Nothing anywhere in the shell may write to the clipboard directly. */
+    expect(SOURCE).not.toContain("navigator.clipboard");
+  });
 });
 
 describe("URL state", () => {
@@ -407,5 +474,69 @@ describe("URL state", () => {
   test("the initial moment is resolved by the shared resolver (at wins over t)", () => {
     expect(SOURCE).toContain("resolveReplayInitialMoment({");
     expect(SOURCE).toContain("targetMs: moment.offsetMs");
+  });
+
+  /*
+   * ux-08: the arrival notice used to hard-code "the linked log line" for
+   * every ?at=, including links built from a span or an exception.
+   */
+  test("the arrival notice is derived from the signal the link carried", () => {
+    expect(SOURCE).toContain("describeReplayMomentNotice({");
+    expect(SOURCE).toContain("signal: urlState.signalId");
+    expect(SOURCE).not.toContain("Opened at the moment of the linked log line");
+  });
+
+  /*
+   * ux-11: a copied link must land the recipient on a tab that shows the
+   * row, instead of on whichever rail tab they last used.
+   */
+  test("copied links always name a rail tab, including the default", () => {
+    const momentUrl: string = slice(
+      SOURCE,
+      "const buildMomentUrl",
+      "const copyLink",
+    );
+    const signalUrl: string = slice(
+      SOURCE,
+      "const copySignalLink",
+      "const selectSignal",
+    );
+
+    expect(momentUrl).toContain("rail: railTab,");
+    expect(momentUrl).not.toContain('railTab === "all" ? null : railTab');
+    expect(signalUrl).toContain("homeRailTabForSignal(signal)");
+  });
+
+  test("a ?signal= with an explicit moment selects on the row's own tab without seeking", () => {
+    const reveal: string = slice(
+      SOURCE,
+      "hasRevealedSignalRef.current ||",
+      "const seekTo:",
+    );
+
+    expect(reveal).toContain("homeRailTabForSignal(target)");
+    expect(reveal).toContain("isSignalInTab(target, current)");
+    /* The seeking path stays the bare-?signal= one. */
+    expect(reveal).toContain("railRef.current.revealSignal(urlState.signalId)");
+  });
+
+  /*
+   * ux-12 / integration-004: the audit page's Reason column read "None
+   * given" for every view because the player never sent one.
+   */
+  test("the first manifest request carries an access reason derived from the URL", () => {
+    expect(SOURCE).toContain("accessReason: describeReplayAccessReason(");
+
+    const transport: string = slice(
+      SOURCE,
+      "async function fetchManifest",
+      "const response: HTTPResponse<JSONObject>",
+    );
+
+    expect(transport).toContain('body["accessReason"] = args.accessReason;');
+    /* A refresh reuses the existing audit row, so it must not resend one. */
+    expect(transport).toMatch(
+      /if \(args\.refresh\) \{[\s\S]*?\} else if \(args\.accessReason\)/,
+    );
   });
 });

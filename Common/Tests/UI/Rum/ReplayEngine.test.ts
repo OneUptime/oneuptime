@@ -251,6 +251,13 @@ interface HarnessOptions {
   fetchTimeoutMs?: number;
   retryDelaysMs?: Array<number>;
   headerViewport?: { width: number; height: number } | null;
+  /*
+   * document.hidden. While it answers true the fake Replayers' clocks are
+   * frozen too, because rrweb only advances its timer inside a
+   * requestAnimationFrame callback and browsers suspend those in a
+   * background tab.
+   */
+  isDocumentHidden?: () => boolean;
 }
 
 interface Harness {
@@ -262,6 +269,12 @@ interface Harness {
   snapshots: Array<ReplayEngineSnapshot>;
   scheduled: Array<{ callback: () => void; delayMs: number }>;
   resolveFetch: () => void;
+  /*
+   * Release only the deferred request that carries this chunk. Ordering
+   * two in-flight fetches against each other is the only way to reproduce
+   * one feeding loop being retired while another is mid-await.
+   */
+  releaseFetch: (chunkIndex: number) => void;
   healFetch: () => void;
   now: () => number;
   /* Advance the wall clock AND every playing fake Replayer, then TICK. */
@@ -278,7 +291,8 @@ function makeHarness(options: HarnessOptions): Harness {
   const signals: Array<AbortSignal> = [];
   const snapshots: Array<ReplayEngineSnapshot> = [];
   const scheduled: Array<{ callback: () => void; delayMs: number }> = [];
-  const pending: Array<() => void> = [];
+  const pending: Array<{ chunkIndexes: Array<number>; resolve: () => void }> =
+    [];
   const omitted: Set<number> = new Set<number>(options.omitChunkIndexes ?? []);
   const failing: Set<number> = new Set<number>(options.failChunkIndexes ?? []);
   const hanging: Set<number> = new Set<number>(options.hangChunkIndexes ?? []);
@@ -345,9 +359,14 @@ function makeHarness(options: HarnessOptions): Harness {
         return Promise.resolve(buffer);
       }
 
+      const requested: Array<number> = [...request.chunkIndexes];
+
       return new Promise<ArrayBuffer>((resolve: (b: ArrayBuffer) => void) => {
-        pending.push((): void => {
-          resolve(buffer);
+        pending.push({
+          chunkIndexes: requested,
+          resolve: (): void => {
+            resolve(buffer);
+          },
         });
       });
     },
@@ -378,6 +397,7 @@ function makeHarness(options: HarnessOptions): Harness {
       cancel: (): void => {
         // Recorded callbacks are never run; tests drive TICK themselves.
       },
+      isDocumentHidden: options.isDocumentHidden,
     },
     {
       tabId: "tab-1",
@@ -398,11 +418,32 @@ function makeHarness(options: HarnessOptions): Harness {
     snapshots: snapshots,
     scheduled: scheduled,
     resolveFetch: (): void => {
-      const waiting: Array<() => void> = [...pending];
+      const waiting: Array<{
+        chunkIndexes: Array<number>;
+        resolve: () => void;
+      }> = [...pending];
       pending.length = 0;
 
-      for (const resolve of waiting) {
-        resolve();
+      for (const request of waiting) {
+        request.resolve();
+      }
+    },
+    releaseFetch: (chunkIndex: number): void => {
+      const matching: Array<{
+        chunkIndexes: Array<number>;
+        resolve: () => void;
+      }> = pending.filter(
+        (request: {
+          chunkIndexes: Array<number>;
+          resolve: () => void;
+        }): boolean => {
+          return request.chunkIndexes.includes(chunkIndex);
+        },
+      );
+
+      for (const request of matching) {
+        pending.splice(pending.indexOf(request), 1);
+        request.resolve();
       }
     },
     healFetch: (): void => {
@@ -415,9 +456,11 @@ function makeHarness(options: HarnessOptions): Harness {
     tick: async (ms: number): Promise<void> => {
       clock += ms;
       const speed: number = engine.getSnapshot().speed;
+      /* rrweb's clock rides requestAnimationFrame, which a hidden tab suspends. */
+      const isHidden: boolean = options.isDocumentHidden?.() ?? false;
 
       for (const replayer of replayers) {
-        replayer.advance(ms, speed);
+        replayer.advance(isHidden ? 0 : ms, speed);
       }
 
       engine.dispatch({ type: "TICK", nowMs: clock });
@@ -481,12 +524,21 @@ afterEach(() => {
    * this file needed it, the state machine has a hole the scenario should
    * have pinned directly.
    */
-  for (const harness of harnesses) {
-    expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+  const finished: Array<Harness> = [...harnesses];
+  /*
+   * Cleared before the assertion, not after: a harness left in the list by
+   * a throwing expectation would be re-asserted (and re-disposed) in the
+   * NEXT test's afterEach, reporting one failure as two.
+   */
+  harnesses.length = 0;
+
+  for (const harness of finished) {
     harness.engine.dispose();
   }
 
-  harnesses.length = 0;
+  for (const harness of finished) {
+    expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+  }
 });
 
 describe("ReplayEngine chunk feeding", () => {
@@ -1455,10 +1507,22 @@ describe("ReplayEngine idle skipping", () => {
 
     expect(skip.lastIdleSkip?.kind).toBe("idle");
     expect(skip.lastIdleSkip?.startMs).toBeLessThanOrEqual(2 * CHUNK_MS + 1000);
-    /* Landed one second before the band ends, on the live Replayer. */
+    /*
+     * Landed one second before the band ends, on the live Replayer.
+     *
+     * The band ends where activity actually RESUMES - chunk 6's mousemove
+     * at +500ms, from that chunk's decoded events - not at the chunk
+     * boundary the manifest guesses. The loader had already decoded it in
+     * the first page, so the map is exact here even though playback has
+     * not fed that far.
+     */
     expect(harness.replayers.length).toBe(1);
-    expect(harness.replayers[0]!.playOffsets).toContain(6 * CHUNK_MS - 1000);
-    expect(skip.currentTimeMs).toBe(6 * CHUNK_MS - 1000);
+    expect(skip.lastIdleSkip?.endMs).toBe(6 * CHUNK_MS + 500);
+    expect(skip.lastIdleSkip?.fidelity).toBe("exact");
+    expect(harness.replayers[0]!.playOffsets).toContain(
+      6 * CHUNK_MS + 500 - 1000,
+    );
+    expect(skip.currentTimeMs).toBe(6 * CHUNK_MS + 500 - 1000);
     expect(skip.fedRange?.toMs).toBeGreaterThanOrEqual(6 * CHUNK_MS);
 
     for (const config of harness.replayers[0]!.configs) {
@@ -1841,5 +1905,420 @@ describe("ReplayEngine gaps", () => {
     expect(harness.loader.getDecodedChunkIndexes()).toEqual([]);
     /* rrweb still holds 0 and 1; the band must say so. */
     expect(harness.snapshot().loadedChunkIndexes).toEqual([0, 1]);
+  });
+});
+
+describe("ReplayEngine transport economy", () => {
+  it("plays a session longer than the decoded cache without fetching anything twice", async () => {
+    /*
+     * The engine half of the 12x amplification: prefetching two pages past
+     * every fed chunk asked for more footage than the cache could hold, so
+     * each admit evicted a chunk that had been downloaded and not yet fed
+     * and the feed loop fetched it back. Over a 60-chunk session that was
+     * 95 page requests instead of nine, and the refetch on the critical
+     * path is exactly the periodic stall this overhaul set out to remove.
+     */
+    const entries: Array<SessionReplayChunkManifestEntry> = Array.from(
+      { length: 60 },
+      (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+        return makeEntry(index, { hasFullSnapshot: index === 0 });
+      },
+    );
+
+    const harness: Harness = makeHarness({ entries: entries });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    /* 15 minutes of playback, five seconds of wall clock at a time. */
+    for (let step: number = 0; step < 185; step++) {
+      await harness.tick(5000);
+    }
+
+    expect(harness.snapshot().error).toBeNull();
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThan(50 * CHUNK_MS);
+
+    const timesRequested: Map<number, number> = new Map<number, number>();
+
+    for (const request of harness.requests) {
+      for (const chunkIndex of request) {
+        timesRequested.set(
+          chunkIndex,
+          (timesRequested.get(chunkIndex) ?? 0) + 1,
+        );
+      }
+    }
+
+    const refetched: Array<number> = [...timesRequested.entries()]
+      .filter((pair: [number, number]): boolean => {
+        return pair[1] > 1;
+      })
+      .map((pair: [number, number]): number => {
+        return pair[0];
+      });
+
+    expect(refetched).toEqual([]);
+    /* Nine page-aligned reads cover 60 chunks; anything more is churn. */
+    expect(harness.requests.length).toBeLessThanOrEqual(10);
+  });
+
+  it("feeds every chunk into rrweb exactly once when a seek retires a feeding loop mid-fetch", async () => {
+    /*
+     * A retired loop still runs its finally when the fetch it was awaiting
+     * lands. Clearing isExtending there cleared it for the loop that had
+     * REPLACED it, so the next tick started a second loop on the same
+     * segment and both fed every chunk from then on: duplicate mutations,
+     * inputs and clicks cast into rrweb, and its event array growing at
+     * twice the rate. Nothing reported it, because lastFedChunkIndex
+     * advanced normally.
+     */
+    const entries: Array<SessionReplayChunkManifestEntry> = Array.from(
+      { length: 40 },
+      (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+        return makeEntry(index, {
+          hasFullSnapshot: index === 0 || index === 32,
+        });
+      },
+    );
+
+    const harness: Harness = makeHarness({
+      entries: entries,
+      deferFetch: true,
+    });
+
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    await flush();
+
+    /* The priority pair lands; the rest of its page goes on the wire. */
+    harness.releaseFetch(0);
+    await flush();
+
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    /* Loop A is now awaiting [2..7]. */
+    expect(harness.loader.isChunkInFlight(2)).toBe(true);
+
+    harness.engine.dispatch({
+      type: "SEEK",
+      offsetMs: 32 * CHUNK_MS + 1000,
+      token: 1,
+    });
+    await flush();
+
+    /* The rebuild's own priority pair, which loop B will feed from. */
+    harness.releaseFetch(32);
+    await flush();
+
+    expect(harness.replayers.length).toBe(2);
+
+    /* Loop B starts and blocks on the next page. */
+    await harness.tick(16);
+    expect(harness.loader.isChunkInFlight(34)).toBe(true);
+
+    /*
+     * Only NOW does the retired loop's await resolve. It is waiting on the
+     * page it asked for and on the page the first prefetch put on the wire.
+     */
+    harness.releaseFetch(2);
+    harness.releaseFetch(8);
+    await flush();
+
+    /* The tick that used to start a second loop on the live segment. */
+    await harness.tick(16);
+    harness.releaseFetch(34);
+    await flush();
+    await harness.tick(16);
+    await flush();
+
+    const live: FakeReplayer = harness.live();
+    const seen: Map<string, number> = new Map<string, number>();
+
+    for (const event of live.added) {
+      const key: string = JSON.stringify(event.data);
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+    }
+
+    const duplicated: Array<string> = [...seen.entries()]
+      .filter((pair: [string, number]): boolean => {
+        return pair[1] > 1;
+      })
+      .map((pair: [string, number]): string => {
+        return pair[0];
+      });
+
+    expect(duplicated).toEqual([]);
+    expect(live.added.length).toBeGreaterThan(0);
+  });
+});
+
+describe("ReplayEngine seeking past a hole", () => {
+  it("recovers from a seek made while a gap jump is queued instead of buffering for ever", async () => {
+    /*
+     * Chunk 3 is in the manifest but comes back empty, so a gap jump is
+     * queued. A seek past it looked reachable - isContiguousRange answers
+     * from the manifest, which still lists chunk 3 - so the engine went to
+     * "building" and asked the feeding loop to reach it, and the feeding
+     * loop refuses to run while a gap is pending. The result was an
+     * endless buffering pill with error null, a Retry that does nothing
+     * (RETRY only acts on "halted") and a Play that moves nothing.
+     */
+    const entries: Array<SessionReplayChunkManifestEntry> = Array.from(
+      { length: 20 },
+      (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+        return makeEntry(index, {
+          hasFullSnapshot: index === 0 || index === 5,
+        });
+      },
+    );
+
+    const harness: Harness = makeHarness({
+      entries: entries,
+      omitChunkIndexes: [3],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    /* Feed forward until chunk 3 comes back empty. */
+    for (let step: number = 0; step < 4; step++) {
+      await harness.tick(5000);
+    }
+
+    expect(harness.snapshot().buffer).toBe("gap-pending");
+
+    harness.engine.dispatch({
+      type: "SEEK",
+      offsetMs: 4 * CHUNK_MS + 500,
+      token: 1,
+    });
+    await flush();
+
+    const afterSeek: ReplayEngineSnapshot = harness.snapshot();
+
+    expect(afterSeek.buffer).not.toBe("building");
+    expect(afterSeek.pendingSeekMs).toBeNull();
+    expect(afterSeek.error).toBeNull();
+    expect(afterSeek.phase).not.toBe("buffering");
+
+    /*
+     * And it keeps its promise: the footage before the hole plays out and
+     * the jump lands on the next snapshot, rather than sitting still.
+     */
+    for (let step: number = 0; step < 4; step++) {
+      await harness.tick(5000);
+      await flush();
+    }
+
+    expect(harness.snapshot().lastGap?.toIndex).toBe(5);
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThanOrEqual(
+      5 * CHUNK_MS,
+    );
+    expect(harness.snapshot().phase).toBe("playing");
+  });
+});
+
+describe("ReplayEngine in a hidden tab", () => {
+  it("does not run the watchdog while the document is hidden", async () => {
+    /*
+     * rrweb's clock only advances inside a requestAnimationFrame callback
+     * and browsers suspend those in a background tab, so getCurrentTime()
+     * CANNOT move while the tab is hidden. Reading that as a stall fired
+     * the watchdog every 1.5s for as long as the viewer was away, each
+     * time re-applying every event since the last snapshot synchronously,
+     * and left watchdogFireCount - which the diagnostic reports as a
+     * number that should be zero - in the hundreds.
+     */
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+        makeEntry(3),
+        makeEntry(4),
+      ],
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+    const playsBeforeHiding: number = live.playOffsets.length;
+
+    hidden = true;
+
+    /* Six seconds away: four watchdog windows with a frozen clock. */
+    for (let step: number = 0; step < 30; step++) {
+      await harness.tick(200);
+    }
+
+    expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+    expect(live.playOffsets.length).toBe(playsBeforeHiding);
+    expect(harness.snapshot().phase).toBe("playing");
+
+    /* Coming back does not fire it either: the window starts again. */
+    hidden = false;
+    await harness.tick(200);
+
+    expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+  });
+});
+
+describe("ReplayEngine idle skipping over decoded footage", () => {
+  it("stops at a click in a chunk the manifest calls idle", async () => {
+    /*
+     * A chunk carrying one click, one mutation and one mousemove batch is
+     * below the "active" event count, so the manifest guess folded it into
+     * the surrounding silence and the skip jumped a whole minute past the
+     * click - the exact moment the viewer turned the toggle on to reach.
+     * The loader had already decoded that chunk in its first page; the
+     * engine only admitted evidence for chunks playback had FED, so it
+     * never looked.
+     */
+    const entries: Array<SessionReplayChunkManifestEntry> = Array.from(
+      { length: 12 },
+      (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+        return makeEntry(index, {
+          hasFullSnapshot: index === 0,
+          /* Chunk 6 is the one with the click, and still looks idle. */
+          eventCount: index >= 2 && index <= 9 ? (index === 6 ? 3 : 1) : 10,
+        });
+      },
+    );
+
+    const harness: Harness = makeHarness({
+      entries: entries,
+      eventsForChunk: (
+        chunkIndex: number,
+      ): Array<SessionReplayRecordedEvent> => {
+        const events: Array<SessionReplayRecordedEvent> = eventsFor(
+          chunkIndex,
+          1,
+        );
+
+        if (chunkIndex === 6) {
+          events.push({
+            type: RRWEB_EVENT_TYPE_INCREMENTAL,
+            timestamp: CLIENT_CLOCK_BASE_MS + 6 * CHUNK_MS + 500,
+            data: { source: 2, type: 2, x: 40, y: 60 },
+          });
+        }
+
+        return events;
+      },
+    });
+
+    harness.engine.dispatch({ type: "SET_SKIP_INACTIVE", enabled: true });
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    harness.live().currentTimeMs = 2 * CHUNK_MS + 1000;
+    await harness.tick(16);
+    await flush();
+
+    const skip: ReplayEngineSnapshot = harness.snapshot();
+
+    /* Landed one second before the click, never past it. */
+    expect(skip.currentTimeMs).toBe(6 * CHUNK_MS + 500 - 1000);
+    expect(skip.currentTimeMs).toBeLessThan(6 * CHUNK_MS + 500);
+    expect(skip.lastIdleSkip?.endMs).toBe(6 * CHUNK_MS + 500);
+    expect(skip.error).toBeNull();
+  });
+});
+
+describe("ReplayEngine long playthroughs", () => {
+  /* 60-second chunks, each its own snapshot: the recorder's checkout cadence. */
+  const WIDE_CHUNK_MS: number = 60 * 1000;
+
+  function wideEntry(chunkIndex: number): SessionReplayChunkManifestEntry {
+    return {
+      ...makeEntry(chunkIndex, { hasFullSnapshot: true }),
+      chunkStartOffsetMs: chunkIndex * WIDE_CHUNK_MS,
+      chunkEndOffsetMs: (chunkIndex + 1) * WIDE_CHUNK_MS,
+    };
+  }
+
+  it("re-anchors on a snapshot once one Replayer holds too much footage", async () => {
+    /*
+     * rrweb never drops an event it has been given, so a viewer who lets a
+     * long session play straight through held every parsed event of it and
+     * every stall resume re-applied all of them synchronously. Past the
+     * bound, the next snapshot the PLAYHEAD reaches is a free place to
+     * start again: nothing is skipped, and the old Replayer goes with its
+     * events.
+     */
+    const harness: Harness = makeHarness({
+      entries: Array.from(
+        { length: 14 },
+        (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+          return wideEntry(index);
+        },
+      ),
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    let beforeMs: number = 0;
+
+    for (
+      let step: number = 0;
+      step < 80 && harness.engine.getDiagnostics().replayersCreated < 2;
+      step++
+    ) {
+      beforeMs = harness.snapshot().currentTimeMs;
+      await harness.tick(10000);
+    }
+
+    expect(harness.engine.getDiagnostics().replayersCreated).toBe(2);
+
+    const after: ReplayEngineSnapshot = harness.snapshot();
+
+    /* Nothing was skipped, and nothing was reported as missing. */
+    expect(after.currentTimeMs).toBeGreaterThanOrEqual(beforeMs);
+    expect(after.lastGap).toBeNull();
+    expect(after.error).toBeNull();
+    expect(after.notice ?? null).toBeNull();
+
+    /* The new segment starts at a snapshot at or before the playhead. */
+    expect(after.fedRange?.fromMs).toBeGreaterThan(0);
+    expect(after.fedRange?.fromMs).toBeLessThanOrEqual(after.currentTimeMs);
+    expect(after.currentTimeMs - (after.fedRange?.fromMs ?? 0)).toBeLessThan(
+      2 * WIDE_CHUNK_MS,
+    );
+
+    /* And the old one, with everything it was holding, is gone. */
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+
+    await harness.tick(10000);
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("playing");
+  });
+
+  it("leaves a short session on one Replayer", async () => {
+    const harness: Harness = makeHarness({
+      entries: Array.from(
+        { length: 4 },
+        (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+          return wideEntry(index);
+        },
+      ),
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    for (let step: number = 0; step < 20; step++) {
+      await harness.tick(10000);
+    }
+
+    expect(harness.engine.getDiagnostics().replayersCreated).toBe(1);
   });
 });

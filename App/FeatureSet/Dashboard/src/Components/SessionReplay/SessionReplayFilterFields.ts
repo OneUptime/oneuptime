@@ -82,7 +82,7 @@ export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
     placeholder: "/checkout or https://app.example.com/checkout",
     kind: SessionReplayFilterKind.Text,
     type: FieldType.Text,
-    hint: "Any page the session visited, or its entry page.",
+    hint: "Any page the session visited, or its entry page. A path like /checkout matches that page on every origin; paste a full URL to pin one origin.",
   },
   {
     field: "tags",

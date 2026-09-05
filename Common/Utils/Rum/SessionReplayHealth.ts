@@ -46,8 +46,11 @@ export const SESSION_REPLAY_STALE_CHUNK_MS: number = 6 * 60 * 60 * 1000;
 
 /*
  * "The recorder is loading on the site" means a policy fetch inside this
- * window. Past it the site may have removed the script, in which case a
- * missing chunk is quiet traffic rather than a stuck recorder.
+ * window. Past it no recorder is running right now, which is why a silent
+ * application splits in two: a recorder that keeps fetching but delivers
+ * nothing is STUCK (state "stale"), while one that is not fetching either
+ * is simply not on any page being served - and the health copy says so
+ * rather than calling the second one healthy.
  */
 export const SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
@@ -261,6 +264,21 @@ export function parseRecordingHealthStatus(
     }
   }
 
+  /*
+   * Absent or not an array means the server never reported capabilities
+   * (unknown); an empty array means a recorder uploaded and announced
+   * none. Entries are kept verbatim rather than filtered against a known
+   * list: the vocabulary belongs to the recorder, and a capability this
+   * build has not heard of is exactly what somebody debugging a mixed
+   * rollout needs to see.
+   */
+  const rawCapabilities: unknown = row["recorderCapabilities"];
+  const recorderCapabilities: Array<string> | null = Array.isArray(
+    rawCapabilities,
+  )
+    ? readDtoStringArray(row, "recorderCapabilities")
+    : null;
+
   const retentionInDays: number | undefined = readDtoOptionalNumber(
     row,
     "retentionInDays",
@@ -289,6 +307,7 @@ export function parseRecordingHealthStatus(
     playableSessionsLast24h: readNullableNumber("playableSessionsLast24h"),
     refusalsLast24h: refusals,
     dropsLast24h: drops,
+    recorderCapabilities: recorderCapabilities,
     projectBytesUsedToday: readNullableNumber("projectBytesUsedToday"),
     dailyByteLimit: readDtoNumber(row, "dailyByteLimit"),
     applicationBytesUsedThisMonth: readNullableNumber(
@@ -513,6 +532,13 @@ function describeSessions(status: RecordingHealthStatus): string {
  *   disabled-project > disabled-app > budget-paused > refusing >
  *   never-loaded > loaded-never-uploaded > stale > healthy-quiet > healthy
  *
+ * The last two split the same silence by whether a recorder is still
+ * running: past SESSION_REPLAY_STALE_CHUNK_MS without a chunk, a policy
+ * fetch inside SESSION_REPLAY_RECORDER_ACTIVE_WINDOW_MS means "stale"
+ * (loading but not uploading - something is blocking the request), and no
+ * policy fetch in that window means "healthy-quiet" (no recorder is on a
+ * page right now: quiet traffic, or a snippet that was removed).
+ *
  * and "unknown" when there is no status to read. The order is the order
  * in which a fix has to happen: a switched-off project makes every later
  * signal moot, a spent budget explains any refusal, a refusal explains a
@@ -659,17 +685,41 @@ export function diagnoseRecordingHealth(
     };
   }
 
+  /*
+   * What is left of the >6h case: no chunk AND no policy fetch inside the
+   * active window either (or no policy-fetch stamp at all on an older
+   * server). Nothing is switched off, over budget or being refused, so
+   * this is not an error - but "no recorder has loaded for a day" is also
+   * exactly what a removed script tag looks like, and the previous copy
+   * ("quiet traffic rather than a broken install") handed out that
+   * reassurance for the one silent case it cannot actually vouch for. The
+   * copy now names what it knows, quantifies both silences, and offers
+   * the install check as the single next step.
+   */
   if (chunkAgeMs > SESSION_REPLAY_STALE_CHUNK_MS) {
-    const loadedCopy: string =
-      lastConfigFetchUnixMs === null
-        ? "when the recorder last loaded is unknown"
-        : `the recorder last loaded ${formatRelativeAge(lastConfigFetchUnixMs, nowUnixMs)}`;
+    const quietTitle: string = `No session recorded in the past ${formatDurationForCopy(chunkAgeMs)}`;
+    const chunkAgeCopy: string = formatRelativeAge(lastChunkUnixMs, nowUnixMs);
+
+    /*
+     * No action in this branch: an older server sends no lastConfigFetchAt
+     * at all, so nothing here says the install is wrong, and pointing at
+     * the setup guide would be a guess dressed as advice.
+     */
+    if (lastConfigFetchUnixMs === null) {
+      return {
+        state: "healthy-quiet",
+        severity: "info",
+        title: quietTitle,
+        detail: `The last chunk arrived ${chunkAgeCopy} and this server does not report policy fetches, so whether a recorder is still loading on your pages cannot be told from here. The policy is healthy (sampling ${policy.samplePercentage}%).`,
+      };
+    }
 
     return {
       state: "healthy-quiet",
       severity: "info",
-      title: `No session recorded in the past ${formatDurationForCopy(chunkAgeMs)}`,
-      detail: `The last chunk arrived ${formatRelativeAge(lastChunkUnixMs, nowUnixMs)} and ${loadedCopy}; the policy is healthy (sampling ${policy.samplePercentage}%). This looks like quiet traffic rather than a broken install.`,
+      title: quietTitle,
+      detail: `The last chunk arrived ${chunkAgeCopy} and no page has fetched the policy for ${formatDurationForCopy(nowUnixMs - lastConfigFetchUnixMs)} either, so no recorder is running on this application right now - quiet traffic on a low-traffic or staging app, or a snippet that is no longer on the page. The policy is healthy (sampling ${policy.samplePercentage}%).`,
+      action: action("Check the install", "setup-guide"),
     };
   }
 

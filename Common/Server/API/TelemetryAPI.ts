@@ -4179,23 +4179,128 @@ interface AuthorizedSession {
  * without parsing prose, and each is a 404: the id was well-formed, there
  * is simply nothing at it.
  */
+const GENERIC_MISSING_SESSION_MESSAGE: string =
+  "not-found: No session replay exists with this id in this project.";
+
+/*
+ * May this caller be told anything specific about a recording belonging to
+ * the named application?
+ *
+ * Deliberately NOT assertSessionReplayApplicationAccess: this runs on the
+ * path where the header row is already gone, so the application row may
+ * legitimately be gone with it, and an unrestricted caller (a project
+ * owner, or anyone holding an unscoped payload grant) must not lose the
+ * "expired on <date>" answer because of a deleted application. Only a
+ * label-scoped caller needs the row, and for them a row that cannot be
+ * loaded is refused.
+ */
+type IsApplicationInSessionReplayScopeByIdFunction = (data: {
+  projectId: ObjectID;
+  rumApplicationId: string;
+  databaseProps: DatabaseCommonInteractionProps;
+}) => Promise<boolean>;
+
+const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeByIdFunction =
+  async (data: {
+    projectId: ObjectID;
+    rumApplicationId: string;
+    databaseProps: DatabaseCommonInteractionProps;
+  }): Promise<boolean> => {
+    let scope: SessionReplayScope;
+
+    try {
+      scope = getSessionReplayLabelScope(
+        data.databaseProps,
+        SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+      );
+    } catch {
+      /* A scope this path cannot enforce is refused, never widened. */
+      return false;
+    }
+
+    if (scope.isUnrestricted) {
+      return true;
+    }
+
+    if (!ObjectID.isValidUUID(data.rumApplicationId)) {
+      return false;
+    }
+
+    const application: RumApplication | null =
+      await loadRumApplicationForAccess({
+        projectId: data.projectId,
+        rumApplicationId: new ObjectID(data.rumApplicationId),
+        allowCached: true,
+      });
+
+    if (!application) {
+      return false;
+    }
+
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: application,
+    });
+  };
+
 type ExplainMissingSessionFunction = (data: {
   projectId: ObjectID;
   sessionId: string;
   rumApplicationId: ObjectID | undefined;
+  databaseProps: DatabaseCommonInteractionProps;
 }) => Promise<NotFoundException>;
 
 const explainMissingSession: ExplainMissingSessionFunction = async (data: {
   projectId: ObjectID;
   sessionId: string;
   rumApplicationId: ObjectID | undefined;
+  databaseProps: DatabaseCommonInteractionProps;
 }): Promise<NotFoundException> => {
   /*
-   * Erased first: an erased session may still have a header row until
-   * the ClickHouse mutation lands, and "expired" would be the wrong
-   * story for a recording that was deliberately destroyed. The tombstone
-   * throws when Redis cannot answer; that is a "cannot tell", which falls
-   * through to the header-based answers.
+   * The expired header is resolved FIRST, and not because it is the more
+   * likely answer: it is the only lookup that names an application, and
+   * nothing specific may be disclosed until that application has been
+   * authorized.
+   *
+   * The expiry answer carries the recording's existence, when it started
+   * and what retention the owning application runs. Answered before the
+   * access check - which is where it used to sit, since this runs on the
+   * path where getSessionHeader found nothing to authorize AGAINST - it let
+   * a label-scoped reviewer probe session ids and learn all three for
+   * applications outside their scope. That is precisely the existence
+   * probing assertSessionReplayApplicationAccess refuses "the same way" for
+   * a session that DOES exist.
+   *
+   * This read is deliberately retention-free (an expired row is the whole
+   * point), so it is the one place a scope check has to be written out by
+   * hand rather than inherited from resolveAuthorizedSession.
+   */
+  const expired: SessionReplayExpiredSessionInfo | null =
+    await SessionReplayReadService.getExpiredSessionInfo({
+      projectId: data.projectId,
+      sessionId: data.sessionId,
+      rumApplicationId: data.rumApplicationId,
+    });
+
+  if (expired && expired.rumApplicationId) {
+    if (
+      !(await isApplicationInSessionReplayScopeById({
+        projectId: data.projectId,
+        rumApplicationId: expired.rumApplicationId,
+        databaseProps: data.databaseProps,
+      }))
+    ) {
+      return new NotFoundException(GENERIC_MISSING_SESSION_MESSAGE);
+    }
+  }
+
+  /*
+   * Erasure is checked only once the caller is entitled to a specific
+   * answer. An erased session may still have a header row until the
+   * ClickHouse mutation lands, and "expired" would be the wrong story for
+   * a recording that was deliberately destroyed - so it is reported ahead
+   * of expiry. The tombstone throws when Redis cannot answer; that is a
+   * "cannot tell", which falls through to the header-based answers.
    */
   let isErased: boolean = false;
 
@@ -4214,13 +4319,6 @@ const explainMissingSession: ExplainMissingSessionFunction = async (data: {
     );
   }
 
-  const expired: SessionReplayExpiredSessionInfo | null =
-    await SessionReplayReadService.getExpiredSessionInfo({
-      projectId: data.projectId,
-      sessionId: data.sessionId,
-      rumApplicationId: data.rumApplicationId,
-    });
-
   if (expired) {
     const retentionDays: number = Math.max(
       1,
@@ -4235,9 +4333,7 @@ const explainMissingSession: ExplainMissingSessionFunction = async (data: {
     );
   }
 
-  return new NotFoundException(
-    "not-found: No session replay exists with this id in this project.",
-  );
+  return new NotFoundException(GENERIC_MISSING_SESSION_MESSAGE);
 };
 
 /*
@@ -4308,6 +4404,7 @@ const resolveAuthorizedSession: ResolveAuthorizedSessionFunction =
         projectId: data.projectId,
         sessionId: data.sessionId,
         rumApplicationId: data.rumApplicationId,
+        databaseProps: data.databaseProps,
       });
     }
 
@@ -4449,6 +4546,14 @@ const readObjectIdFromBody: ReadObjectIdFromBodyFunction = (
 
 type ReadSessionIdFromBodyFunction = (body: JSONObject) => string;
 
+/*
+ * A session id is 32 hex characters minted in the browser. The cap is
+ * generous rather than exact - older recorders and hand-written API
+ * callers exist - but it is a cap: an unbounded caller-supplied string
+ * reaches ClickHouse as a bound parameter on a hot path.
+ */
+const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
+
 const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
   body: JSONObject,
 ): string => {
@@ -4458,8 +4563,33 @@ const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
     throw new BadDataException("sessionId is required");
   }
 
+  if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+    throw new BadDataException(
+      `sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+    );
+  }
+
   return sessionId;
 };
+
+/*
+ * Caps on the list's filter inputs.
+ *
+ * Every array filter becomes an `IN (...)` inside a HAVING, which
+ * ClickHouse evaluates per GROUP over the whole window - so the cost of a
+ * request is the caller's array length times the number of sessions in
+ * range. Uncapped, one request carrying tens of thousands of browser names
+ * is a cheap denial of service against the list for any holder of the list
+ * permission. The limits are far above any real UI: the filter panel
+ * offers a couple of dozen browsers, and no session has more than a
+ * handful of routes.
+ *
+ * Values are TRUNCATED and the array is SLICED rather than refused: an
+ * over-long value simply cannot match anything a bounded column holds, so
+ * a 400 would add nothing but a confusing error.
+ */
+const MAX_SESSION_REPLAY_FILTER_ARRAY_LENGTH: number = 50;
+const MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH: number = 256;
 
 type ReadStringArrayFromBodyFunction = (
   body: JSONObject,
@@ -4476,13 +4606,44 @@ const readStringArrayFromBody: ReadStringArrayFromBodyFunction = (
     return undefined;
   }
 
-  const strings: Array<string> = value.filter(
-    (item: unknown): item is string => {
-      return typeof item === "string" && item.length > 0;
-    },
-  );
+  const strings: Array<string> = [];
+
+  for (const item of value) {
+    if (typeof item !== "string" || item.length === 0) {
+      continue;
+    }
+
+    strings.push(item.substring(0, MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH));
+
+    if (strings.length >= MAX_SESSION_REPLAY_FILTER_ARRAY_LENGTH) {
+      break;
+    }
+  }
 
   return strings.length > 0 ? strings : undefined;
+};
+
+/*
+ * A single bounded string filter off the body. Same reasoning as the array
+ * cap above: the value is compared per group, and nothing a column holds
+ * is longer than this.
+ */
+type ReadBoundedStringFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => string | undefined;
+
+const readBoundedStringFromBody: ReadBoundedStringFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): string | undefined => {
+  const value: unknown = body[key];
+
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+
+  return value.substring(0, MAX_SESSION_REPLAY_FILTER_VALUE_LENGTH);
 };
 
 /*
@@ -4526,6 +4687,32 @@ const readTagFilterFromBody: ReadTagFilterFromBodyFunction = (
   }
 
   return count > 0 ? tags : undefined;
+};
+
+/*
+ * Can this cursor's sortValue actually be bound into a query?
+ *
+ * parseSessionReplayListCursor only checks Number.isFinite, which admits
+ * 1e300. For the startTime ordering that value becomes `new Date(1e300)` -
+ * an Invalid Date, which renders as NaN text and is rejected by the
+ * ClickHouse driver, so a crafted or corrupted cursor answered 500 instead
+ * of the 400 the handler promises. For the aggregate orderings the value is
+ * a count or a duration, and a negative one belongs to no page.
+ */
+type IsBindableCursorSortValueFunction = (
+  cursor: SessionReplayListCursor,
+  sortBy: SessionReplaySortBy,
+) => boolean;
+
+const isBindableCursorSortValue: IsBindableCursorSortValueFunction = (
+  cursor: SessionReplayListCursor,
+  sortBy: SessionReplaySortBy,
+): boolean => {
+  if (sortBy === "startTime") {
+    return Number.isFinite(new Date(cursor.sortValue).getTime());
+  }
+
+  return cursor.sortValue >= 0;
 };
 
 // --- Session Replay List Endpoint ---
@@ -4670,6 +4857,32 @@ router.post(
         );
       }
 
+      /*
+       * A filter the server understood but did not apply, named in the
+       * response.
+       *
+       * The identity filter is gated on the narrower identity permission.
+       * Dropping it silently is the dangerous half of that gate: the
+       * request "show me jane@example.com's sessions" then answers 200 with
+       * EVERY session in the application, and the caller has no way to tell
+       * - least of all when the application has no sessions at all, where
+       * even inspecting the rows cannot reveal it. A support engineer opens
+       * the wrong recording, and each opening writes an audit row against a
+       * real end user.
+       *
+       * Answered as data rather than as a 403 because the rest of the list
+       * IS something the caller may read: the page renders the sessions and
+       * says the filter was ignored, instead of failing outright.
+       */
+      const ignoredFilters: Array<string> = [];
+
+      if (
+        !includeIdentifiedUserLabel &&
+        SessionReplayIdentity.isUsableUserRef(rawFilters["identifiedUserRef"])
+      ) {
+        ignoredFilters.push("identifiedUserRef");
+      }
+
       const filters: SessionReplayListFilters = {
         ...(typeof rawFilters["hasError"] === "boolean" && {
           hasError: rawFilters["hasError"],
@@ -4725,14 +4938,17 @@ router.post(
          * not guessable and is already returned to every list-capable
          * caller, so it needs no identity gate of its own.
          */
-        ...(typeof rawFilters["identifiedUserKey"] === "string" &&
+        ...(readBoundedStringFromBody(rawFilters, "identifiedUserKey") &&
           !SessionReplayIdentity.isUsableUserRef(
             rawFilters["identifiedUserRef"],
           ) && {
-            identifiedUserKey: rawFilters["identifiedUserKey"],
+            identifiedUserKey: readBoundedStringFromBody(
+              rawFilters,
+              "identifiedUserKey",
+            ),
           }),
-        ...(typeof rawFilters["route"] === "string" && {
-          route: rawFilters["route"],
+        ...(readBoundedStringFromBody(rawFilters, "route") && {
+          route: readBoundedStringFromBody(rawFilters, "route"),
         }),
         ...(typeof rawFilters["minDurationMs"] === "number" &&
           Number.isFinite(rawFilters["minDurationMs"]) && {
@@ -4822,7 +5038,7 @@ router.post(
       if (
         body["cursor"] !== undefined &&
         body["cursor"] !== null &&
-        cursor === null
+        (cursor === null || !isBindableCursorSortValue(cursor, sortBy))
       ) {
         return Response.sendErrorResponse(
           req,
@@ -4867,6 +5083,12 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         sessions: result.sessions as unknown as JSONObject,
         nextCursor: nextCursor,
+        /*
+         * Always present, empty when everything asked for was applied, so a
+         * client can read it without having to distinguish "no ignored
+         * filters" from "an older server that never said".
+         */
+        ignoredFilters: ignoredFilters as unknown as JSONArray,
       });
     } catch (err: unknown) {
       next(err);
@@ -5849,6 +6071,21 @@ router.post(
           : null,
         sessionsLast24h: activity.sessionsLast24h,
         playableSessionsLast24h: activity.playableSessionsLast24h,
+        /*
+         * What the newest session's recorder said it could capture.
+         *
+         * This is the row the docs point operators at for spotting a stale
+         * cached recorder artifact ("click labels: no"); without it the
+         * health card and the installation test both said "not reported
+         * yet" for every application forever, which reads as a bug rather
+         * than as information. null (not []) when there is no session, when
+         * the newest one predates the attribute, or when the query failed -
+         * all three are "we cannot say", never "this recorder can do
+         * nothing". It rides on the last-session query the summary already
+         * runs, so the row costs no extra ClickHouse round trip.
+         */
+        recorderCapabilities:
+          activity.recorderCapabilities as unknown as JSONArray | null,
         refusalsLast24h: refusalsLast24h as unknown as JSONArray | null,
         /*
          * Kept apart from refusals: a refusal was answered to the

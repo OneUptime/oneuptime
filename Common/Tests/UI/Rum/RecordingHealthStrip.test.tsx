@@ -302,6 +302,62 @@ describe("RecordingHealthStripView per diagnosis state", () => {
     );
   });
 
+  /*
+   * ux-15. The reason was `hidden md:inline` and the action `hidden
+   * sm:inline`, so a phone showed the title alone: "Session replay is
+   * switched off for acme-web", with the sentence saying where and the link
+   * that fixes it both behind an unlabelled chevron. Tailwind's responsive
+   * classes are compile-time strings, so the regression is asserted on the
+   * class list of the rendered nodes - jsdom has no viewport to resize.
+   */
+  it("ux-15: at every width the reason and the action are rendered, not hidden behind a breakpoint", () => {
+    const { container } = renderView(
+      makeSnapshot(
+        makeStatus({
+          policy: {
+            isProjectEnabled: true,
+            isApplicationEnabled: false,
+            captureTrigger: "Always",
+            samplePercentage: 100,
+            consentMode: "NotRequired",
+            maskingMode: "MaskAllText",
+            retentionInDays: 7,
+          },
+        }),
+      ),
+    );
+
+    const strip: HTMLElement = screen.getByTestId("health-strip");
+
+    /* The reason sentence is in the DOM and on no breakpoint-gated node. */
+    expect(strip).toHaveTextContent(
+      "Recorders on this application's pages fetch a disabled policy",
+    );
+
+    const action: HTMLElement = screen.getByTestId("health-action");
+
+    expect(action).toHaveTextContent("Turn it on");
+
+    /* Exactly one action link: no width-switched duplicate in the tree. */
+    expect(screen.getAllByTestId("health-action")).toHaveLength(1);
+
+    /*
+     * Nothing between the strip root and the reason/action may be display:
+     * none until a breakpoint - that is precisely what `hidden md:inline`
+     * compiles to.
+     */
+    const hiddenAncestors: Array<Element> = Array.from(
+      container.querySelectorAll(".hidden"),
+    ).filter((element: Element): boolean => {
+      return (
+        element.contains(action) ||
+        (element.textContent ?? "").includes("fetch a disabled policy")
+      );
+    });
+
+    expect(hiddenAncestors).toEqual([]);
+  });
+
   it("loading: says it is checking, has no chevron and no dismiss", () => {
     renderView(makeSnapshot(null, { isLoading: true, fetchedAtUnixMs: null }), {
       onDismiss: (): void => {
@@ -364,8 +420,17 @@ describe("RecordingHealthStripView expansion", () => {
     expect(screen.getByTestId("health-bytes")).toHaveTextContent(
       "unknown (the usage counter was unreachable)",
     );
+    /*
+     * docs-and-design-fidelity-3: capabilities are not a counter, so the
+     * unread-counter word would be a lie here. This status HAS recorded (it
+     * has a last chunk), so the honest sentence is about the recorder that
+     * took it, not about a store being down.
+     */
     expect(screen.getByTestId("health-fact-capabilities")).toHaveTextContent(
-      "unknown",
+      "not reported",
+    );
+    expect(screen.getByTestId("health-fact-capabilities")).toHaveTextContent(
+      "older than the one that reports them",
     );
     expect(screen.getByTestId("health-strip-toggle")).toHaveAttribute(
       "aria-expanded",

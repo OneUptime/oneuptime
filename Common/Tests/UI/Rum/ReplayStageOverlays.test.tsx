@@ -632,6 +632,69 @@ describe("ReplayStageOverlays", () => {
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
     });
 
+    /*
+     * ux-07: a live session that catches up has not ended. The stage used
+     * to show "Replay ended - Watch again" beside a Live pill and a
+     * "Caught up" chip, and Watch again rewound a recording the viewer was
+     * following. The honest state is the wait, with its cadence.
+     */
+    it("a live session that catches up says it is waiting, and offers no rewind", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
+        isLive: true,
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const caughtUp: HTMLElement = screen.getByTestId(
+        "replay-overlay-live-caught-up",
+      );
+
+      expect(caughtUp).toHaveTextContent("Caught up with the live recording");
+      expect(caughtUp).toHaveTextContent("waiting for the next chunk");
+      expect(caughtUp).toHaveTextContent("every 30 seconds");
+      expect(
+        screen.queryByTestId("replay-overlay-ended"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-watch-again"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("says it exactly once - the chip strip no longer repeats it", () => {
+      render(
+        <ReplayStageOverlays
+          {...makeProps({
+            snapshot: makeSnapshot({
+              buffer: "ended",
+              currentTimeMs: DURATION_MS,
+            }),
+            isLive: true,
+          })}
+        />,
+      );
+
+      expect(
+        screen.getAllByText(/Caught up with the live recording/),
+      ).toHaveLength(1);
+    });
+
+    it("a finalized recording that ends still offers Watch again", () => {
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({ buffer: "ended", currentTimeMs: DURATION_MS }),
+        isLive: false,
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      expect(screen.getByTestId("replay-overlay-ended")).toHaveTextContent(
+        "Replay ended",
+      );
+      expect(
+        screen.queryByTestId("replay-overlay-live-caught-up"),
+      ).not.toBeInTheDocument();
+    });
+
     it("shows a play affordance while paused and nothing while playing", () => {
       const props: ReplayStageOverlaysProps = makeProps({
         snapshot: makeSnapshot({ buffer: "ok", intent: "paused" }),
@@ -785,7 +848,15 @@ describe("ReplayStageOverlays", () => {
       expect(absent).toHaveAttribute("data-kind", "expired");
       expect(absent).toHaveTextContent("Footage expired");
       expect(absent).toHaveTextContent("after 7 days per your retention");
-      expect(absent).toHaveTextContent("The session's signals are still here");
+      /*
+       * ux-09: the copy must not promise that session metadata outlives
+       * the footage - RumSession gives the header the same retentionDate
+       * as its chunks. What genuinely survives is the telemetry.
+       */
+      expect(absent).toHaveTextContent(
+        "follow the telemetry retention, not the recording's",
+      );
+      expect(absent).not.toHaveTextContent("kept longer");
       /* The stage is not mounted, so this file owns the one phase word. */
       expect(screen.queryByTestId("fake-stage")).not.toBeInTheDocument();
       expect(screen.getByTestId("replay-phase")).toHaveTextContent("expired");

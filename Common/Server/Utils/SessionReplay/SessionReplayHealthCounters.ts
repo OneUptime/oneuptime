@@ -234,13 +234,19 @@ export default class SessionReplayHealthCounters {
     }
 
     try {
-      await client.hincrby(data.key, reason, 1);
       /*
-       * Refreshed on every write rather than only on the first: HINCRBY
-       * cannot say whether it created the key, and a second round trip to
-       * find out costs the same as the EXPIRE itself.
+       * One round trip, not two. The EXPIRE is refreshed on every write
+       * rather than only on the first (HINCRBY cannot say whether it
+       * created the key), so pipelining is what keeps the cost of that
+       * choice at a single RTT - which matters because the gate counts a
+       * refusal for every refused request, including the cheap 204s a
+       * misconfigured site sends every 15 seconds.
        */
-      await client.expire(data.key, SESSION_REPLAY_HEALTH_COUNTER_TTL_SECONDS);
+      await client
+        .pipeline()
+        .hincrby(data.key, reason, 1)
+        .expire(data.key, SESSION_REPLAY_HEALTH_COUNTER_TTL_SECONDS)
+        .exec();
     } catch (err) {
       logger.debug(
         `SessionReplayHealthCounters: could not record a ${data.describe} at ${data.key}`,

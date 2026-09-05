@@ -433,7 +433,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               dropdownOptions: RETENTION_OPTIONS,
               required: false,
               description:
-                "How long recordings are kept. Defaults to 7 days, not the 15 the other telemetry pillars use: replay is the highest-sensitivity pillar and a short retention is itself a privacy control. Session metadata is kept longer than the recording, so counts stay accurate after playback expires.",
+                "How long recordings are kept. Defaults to 7 days, not the 15 the other telemetry pillars use: replay is the highest-sensitivity pillar and a short retention is itself a privacy control. The session row - counts, signals, device - expires together with its footage; only the session's logs, spans and exceptions follow the telemetry retention.",
             },
             {
               field: { sessionReplayMonthlyBudgetInGB: true },

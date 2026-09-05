@@ -572,6 +572,48 @@ describe("Chunker", (): void => {
       expect(chunks[0]?.traceIds).toEqual(["a".repeat(32)]);
       expect(chunks[1]?.traceIds).toEqual([]);
     });
+
+    /*
+     * REGRESSION (recorder-3). traceIds had no cap, and the recorder adds one
+     * per completed request whether or not the session is uploading - so on a
+     * page with OpenTelemetry fetch instrumentation under the default
+     * OnErrorOrFrustration policy the set grew for the whole record-into-
+     * memory period. 235 ids alone are 9.1 KB of envelope JSON and the server
+     * refuses anything over 8 KB before it parses it, which cost the session
+     * chunk 0 - the one carrying the opening snapshot - and with it the
+     * header row that makes the session listable at all.
+     */
+    it("caps trace ids per chunk so the envelope cannot outgrow the server's limit", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let i: number = 0; i < 400; i++) {
+        chunker.addTraceId(i.toString(16).padStart(32, "0"));
+      }
+
+      chunker.add(event());
+      chunker.close(false);
+
+      const traceIds: Array<string> = chunks[0]?.traceIds || [];
+
+      /* The ingest parser's own MAX_TRACE_IDS, so a real chunk is never cut. */
+      expect(traceIds.length).toBe(64);
+
+      /* And in bytes, which is what the 8 KB ceiling is counted in. */
+      expect(JSON.stringify(traceIds).length).toBeLessThan(4 * 1024);
+
+      /* First seen wins: the ids kept are the chunk's earliest requests. */
+      expect(traceIds[0]).toBe("0".repeat(32));
+    });
+
+    it("ignores an empty trace id rather than emitting one", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.addTraceId("");
+      chunker.add(event());
+      chunker.close(false);
+
+      expect(chunks[0]?.traceIds).toEqual([]);
+    });
   });
 
   /*
@@ -745,6 +787,46 @@ describe("Chunker engagement counters and split close", (): void => {
   });
 
   describe("closeSplit", (): void => {
+    /*
+     * REGRESSION (recorder-4). The keepalive quota is 64 KB COMBINED per
+     * origin, so a split whose pieces add up to more than one request's worth
+     * is not "several requests that fit" - it is one that fits and several
+     * the browser rejects, and their chunk indexes are minted either way.
+     * Past the total budget the OLDEST pieces are dropped here, before any
+     * index exists for them, and counted in droppedEvents.
+     */
+    it("drops the oldest pieces rather than mint indexes past the total budget", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let i: number = 0; i < 6; i++) {
+        chunker.add(event({ timestampMs: SESSION_START + 1000 + i * 100 }));
+      }
+
+      /* Pieces of ~2 events each, but only ~2 events' worth may be sent. */
+      chunker.closeSplit(true, 70, 70);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunks[0]?.eventCount).toBe(2);
+
+      /* The four that could not go are disclosed, not silently gone. */
+      expect(chunker.getDroppedEventCount()).toBe(4);
+
+      /* The surviving piece is the NEWEST one: what the user last did. */
+      expect(chunks[0]?.chunkEndOffsetMs).toBe(1500);
+    });
+
+    it("keeps the sealing piece even when it alone is over the total budget", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 1000 }));
+      chunker.closeSplit(true, 70, 1);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(true);
+      expect(chunker.getDroppedEventCount()).toBe(0);
+    });
+
     it("cuts the open chunk into pieces under the byte cap, final on the last", (): void => {
       const chunker: Chunker = makeChunker();
 

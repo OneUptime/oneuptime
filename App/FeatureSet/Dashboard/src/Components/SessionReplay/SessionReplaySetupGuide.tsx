@@ -206,11 +206,21 @@ export function buildLiveChecks(
   return [loaded, chunk, playable];
 }
 
+/*
+ * The docs page this guide summarises. Each step that has a fuller section
+ * links to that section's anchor rather than to the top of the page (WP-DOC
+ * request): a customer who needs more than the step's paragraph should land
+ * on the paragraph that continues it, not scroll a 500-line page.
+ */
+export const SETUP_GUIDE_DOCS_PATH: string = "/telemetry/session-replay";
+
 function Step(props: {
   index: number;
   title: string;
   children: ReactElement | Array<ReactElement>;
   isLast?: boolean | undefined;
+  /* Heading slug on SETUP_GUIDE_DOCS_PATH that continues this step. */
+  docsAnchor?: string | undefined;
 }): ReactElement {
   return (
     <div className="flex gap-3" data-testid={`setup-step-${props.index}`}>
@@ -221,7 +231,25 @@ function Step(props: {
         {!props.isLast && <div className="mt-1 w-px flex-1 bg-gray-200" />}
       </div>
       <div className="min-w-0 flex-1 pb-6">
-        <div className="text-sm font-medium text-gray-900">{props.title}</div>
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <span className="text-sm font-medium text-gray-900">
+            {props.title}
+          </span>
+          {props.docsAnchor && (
+            <Link
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+              openInNewTab={true}
+              id={`setup-step-${props.index}-docs`}
+              to={URL.fromString(
+                `${DOCS_URL.toString()}${SETUP_GUIDE_DOCS_PATH}#${props.docsAnchor}`,
+              )}
+            >
+              <span data-testid={`setup-step-${props.index}-docs`}>
+                Read the docs on this
+              </span>
+            </Link>
+          )}
+        </div>
         <div className="mt-1.5 text-sm text-gray-600">{props.children}</div>
       </div>
     </div>
@@ -416,7 +444,11 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           </>
         </Step>
 
-        <Step index={2} title="Add one script tag to your site">
+        <Step
+          index={2}
+          title="Add one script tag to your site"
+          docsAnchor="identify-your-users"
+        >
           <>
             Put this on every page you want recorded. The tab picks the
             framework; the tag is the same.
@@ -430,7 +462,11 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           </>
         </Step>
 
-        <Step index={3} title="Allow the recorder through your CSP">
+        <Step
+          index={3}
+          title="Allow the recorder through your CSP"
+          docsAnchor="content-security-policy"
+        >
           <>
             If your site sets a Content-Security-Policy, <code>script-src</code>{" "}
             decides whether the recorder loads and <code>connect-src</code>{" "}
@@ -451,7 +487,11 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
           </>
         </Step>
 
-        <Step index={4} title="Correlate recordings with your logs and traces">
+        <Step
+          index={4}
+          title="Correlate recordings with your logs and traces"
+          docsAnchor="correlating-with-your-other-telemetry"
+        >
           <>
             A recording lines up with the logs, spans and exceptions from the
             same browser through <code>session.id</code> on your OpenTelemetry
@@ -587,7 +627,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
               className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
               openInNewTab={true}
               to={URL.fromString(
-                `${DOCS_URL.toString()}/telemetry/session-replay`,
+                `${DOCS_URL.toString()}${SETUP_GUIDE_DOCS_PATH}`,
               )}
             >
               <>

@@ -4,6 +4,7 @@ import {
   END_OF_RECORDING_TOLERANCE_MS,
   FEED_AHEAD_FLOOR_MS,
   IDLE_SKIP_PREROLL_MS,
+  MAX_PREFETCH_PAGES_AHEAD,
   computeFeedAheadMs,
   computePrefetchPagesAhead,
   getIdleSkipTargetMs,
@@ -125,6 +126,19 @@ describe("computePrefetchPagesAhead", () => {
     expect(computePrefetchPagesAhead(2)).toBe(2);
     expect(computePrefetchPagesAhead(4)).toBe(4);
     expect(computePrefetchPagesAhead(8)).toBe(4);
+  });
+
+  it("never asks for more pages than MAX_PREFETCH_PAGES_AHEAD", () => {
+    /*
+     * ChunkLoader sizes its decoded cache from this constant. If a speed
+     * could ask for more, the cache would evict footage that had been
+     * fetched and not yet fed, and the feed loop would fetch it back.
+     */
+    for (const speed of [0.25, 0.5, 1, 2, 4, 8, 16, Number.NaN]) {
+      expect(computePrefetchPagesAhead(speed)).toBeLessThanOrEqual(
+        MAX_PREFETCH_PAGES_AHEAD,
+      );
+    }
   });
 });
 

@@ -518,25 +518,25 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/*
+         * Visual only, deliberately NOT a live region and with no Retry of
+         * its own: the stage says the same thing at the same moment
+         * (ReplayStageOverlays' role=status pill plus the sr-only phase
+         * word), so two regions meant a screen reader announced "Buffering"
+         * or "Seeking to 1:12" twice per event and the viewer saw two Retry
+         * buttons after eight seconds. The stage overlay is the announced
+         * surface and owns the retry action; this pill just keeps the state
+         * visible next to the transport controls.
+         */}
         {bufferingStage !== "hidden" && isWaiting && (
           <div
             data-testid="replay-buffering-pill"
             data-stage={bufferingStage}
-            role="status"
+            aria-hidden="true"
             className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
           >
             <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
             {bufferingStage === "retry" ? "Still loading" : waitingCopy}
-            {bufferingStage === "retry" && onRetry && (
-              <button
-                type="button"
-                data-testid="replay-buffering-retry"
-                className="rounded px-1 font-semibold underline decoration-indigo-300 underline-offset-2 hover:text-indigo-900"
-                onClick={onRetry}
-              >
-                Retry
-              </button>
-            )}
           </div>
         )}
 

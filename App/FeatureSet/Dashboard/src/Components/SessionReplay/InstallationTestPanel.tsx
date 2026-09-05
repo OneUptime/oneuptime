@@ -31,6 +31,7 @@ import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTr
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import { RecordingHealthStatus } from "Common/Types/Rum/SessionReplayHealth";
 import {
+  diagnoseRecordingHealth,
   formatBytesForCopy,
   formatCountForCopy,
   formatRelativeAge,
@@ -419,22 +420,35 @@ export function buildInstallationCheckRows(
             ". These were accepted with a 202 and then not stored by the worker; the recorder was never told.",
   });
 
+  /*
+   * docs-and-design-fidelity-3: "not reported yet" was printed for an
+   * application that has never recorded anything AND for one whose newest
+   * recording came from an artifact too old to announce its features. They
+   * need different sentences: the first is not about the recorder version
+   * at all, and telling that customer to wait for a cache window is a lie.
+   */
+  const hasEverRecorded: boolean = status.lastChunkReceivedAt !== null;
+
   rows.push({
     key: "capabilities",
     state: extras.recorderCapabilities === null ? "info" : "pass",
     title:
       extras.recorderCapabilities === null
-        ? "Recorder capabilities: not reported yet"
+        ? hasEverRecorded
+          ? "Recorder capabilities: not reported by the newest recording"
+          : "Recorder capabilities: not reported yet"
         : extras.recorderCapabilities.length === 0
           ? "Recorder capabilities: none announced"
           : `Recorder capabilities: ${extras.recorderCapabilities.join(", ")}`,
     detail:
       extras.recorderCapabilities === null
-        ? `Announced on the first chunk of a session recorded by a recorder that knows its features${
-            status.publishedRecorderVersion
-              ? ` (this deployment publishes ${status.publishedRecorderVersion})`
-              : ""
-          }. A browser holding an older cached artifact refreshes within its cache window; until then its sessions lack click labels and web vitals.`
+        ? hasEverRecorded
+          ? `The newest session's first chunk announced none, so it was recorded by an artifact older than the one that reports them${
+              status.publishedRecorderVersion
+                ? ` (this deployment publishes ${status.publishedRecorderVersion})`
+                : ""
+            }. A browser holding a cached artifact refreshes within its cache window; until then its sessions lack click labels and web vitals.`
+          : "Capabilities are announced on a session's first chunk. No chunk has arrived for this application yet, so there is nothing to read them from - the checks above say why."
         : "Read from the newest session's first chunk. A browser holding an older cached artifact refreshes within its cache window.",
   });
 
@@ -442,19 +456,34 @@ export function buildInstallationCheckRows(
     const exceededAt: number | null = parseHealthTimestamp(
       status.budgetExceededAt,
     );
+    const whenCopy: string =
+      exceededAt === null
+        ? OneUptimeDate.fromNow(
+            OneUptimeDate.fromString(status.budgetExceededAt),
+          )
+        : formatRelativeAge(exceededAt, nowUnixMs);
+
+    /*
+     * server-1: budgetExceededAt is a STAMP, not a live flag - it is left
+     * behind by the last exhaustion and is never cleared, so an application
+     * that spent its budget in March showed "Live recorders were told to
+     * stand down" for the rest of the year. diagnoseRecordingHealth already
+     * owns the "is it paused right now?" rule (the stamp counts only while
+     * this window's usage is unknown or over budget); read it rather than
+     * re-deriving a second, quietly different answer here.
+     */
+    const isPausedNow: boolean =
+      diagnoseRecordingHealth(status, nowUnixMs).state === "budget-paused";
 
     rows.push({
       key: "budget-exceeded",
-      state: "warn",
-      title: `A byte budget was exhausted ${
-        exceededAt === null
-          ? OneUptimeDate.fromNow(
-              OneUptimeDate.fromString(status.budgetExceededAt),
-            )
-          : formatRelativeAge(exceededAt, nowUnixMs)
-      }`,
-      detail:
-        "Live recorders were told to stand down when the budget ran out. Recordings resume when the window rolls over or the budget is raised.",
+      state: isPausedNow ? "fail" : "info",
+      title: isPausedNow
+        ? `Uploads are paused: a byte budget was exhausted ${whenCopy}`
+        : `A byte budget was exhausted ${whenCopy}; uploads are flowing again`,
+      detail: isPausedNow
+        ? "Live recorders are being told to stand down, so nothing is being recorded for this application right now. Recordings resume when the window rolls over or the budget is raised."
+        : "That budget window has rolled over and usage is back under the ceiling; this is the last exhaustion, not a live one. Raise the budget if you expect the same traffic again.",
       action: { label: "Review the budget", to: appSettingsRoute },
     });
   }

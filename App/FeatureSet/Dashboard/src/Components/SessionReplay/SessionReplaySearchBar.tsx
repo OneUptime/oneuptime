@@ -260,7 +260,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
       >
         {hints.length > 0
           ? hints.join(" ")
-          : "Bare text searches URLs, session and trace ids. Tokens: user:, url:, tag:key=value, browser:, os:, device:, country:, trigger:, min:, id:."}
+          : "Bare text searches URLs, session and trace ids. Tokens: user:, url: (a path like /checkout, or a full URL), tag:key=value, browser:, os:, device:, country:, trigger:, min:, id:."}
       </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">

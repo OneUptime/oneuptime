@@ -1,4 +1,13 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import TelemetryDetailPanel, {
   TelemetryDetailPanelTab,
 } from "Common/UI/Components/TelemetryViewer/components/TelemetryDetailPanel";
@@ -11,14 +20,17 @@ import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
 import SessionReplayMaskingMode, {
   doesMaskingModeRecordReadableContent,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
-import Text from "Common/Types/Text";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
-  ReplayFingerprintLink,
-  buildReplayFingerprintLinks,
+  ExceptionGroupSummary,
+  indexExceptionGroupsByFingerprint,
+} from "../../Utils/ExceptionCorrelation";
+import {
+  ReplayExceptionGroupLink,
+  buildReplayExceptionGroupLinks,
   formatReplayClockSkew,
   formatReplayMilliseconds,
   getReplayConsentStateLabel,
@@ -32,6 +44,7 @@ import {
   getFidelityNoticeSeverity,
   getSealedReasonCopy,
 } from "./FidelityNoticeCopy";
+import { MASKING_MODE_LABELS, labelEnum } from "./RecordingHealthCard";
 import { ReplayRailTabId } from "./Rail/ReplaySignalTypes";
 
 /*
@@ -108,11 +121,51 @@ export interface ReplayCorrelationPanelProps {
   sessionId: string;
   details: ReplaySessionDetails;
   fidelityNotices: Array<string>;
-  missingAssets: Array<string>;
+  /*
+   * Assets the recorder could not capture. Optional because nothing on the
+   * server produces them yet (player-shell-18): the shell was passing []
+   * only to satisfy a required prop, which read as "we checked and there
+   * are none" rather than "nobody measured".
+   */
+  missingAssets?: Array<string> | undefined;
   gaps: Array<SessionReplayGap>;
   /* Opens the rail on a tab (and closes nothing - the host decides). */
   onOpenRailTab?: ((tabId: ReplayRailTabId) => void) | undefined;
   railCounts?: ReplayRailCounts | undefined;
+  /*
+   * How bare exception fingerprints become readable groups. Injected so
+   * the lookup can be replaced (and so this component stays renderable
+   * without a server); the default asks the exceptions API once.
+   */
+  resolveExceptionGroups?:
+    | ((
+        fingerprints: Array<string>,
+      ) => Promise<Map<string, ExceptionGroupSummary>>)
+    | undefined;
+}
+
+/* The default lookup: one request for the whole (<= 50) fingerprint set. */
+export async function fetchExceptionGroupsByFingerprint(
+  fingerprints: Array<string>,
+): Promise<Map<string, ExceptionGroupSummary>> {
+  const result: ListResult<TelemetryException> =
+    await ModelAPI.getList<TelemetryException>({
+      modelType: TelemetryException,
+      query: {
+        fingerprint: new Includes(fingerprints),
+      },
+      limit: fingerprints.length,
+      skip: 0,
+      select: {
+        _id: true,
+        fingerprint: true,
+        exceptionType: true,
+        message: true,
+      },
+      sort: {},
+    });
+
+  return indexExceptionGroupsByFingerprint(result.data);
 }
 
 interface DetailRowProps {
@@ -243,14 +296,76 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
 ): ReactElement | null => {
   const d: ReplaySessionDetails = props.details;
 
-  const fingerprintLinks: Array<ReplayFingerprintLink> = useMemo(() => {
-    return buildReplayFingerprintLinks(
-      d.exceptionFingerprints,
-      RouteUtil.populateRouteParams(
+  /*
+   * correlation-7: the header carries bare fingerprints, and a hash tells
+   * a viewer nothing about what broke. The groups are resolved in ONE
+   * request when the panel opens, so each entry can be titled with the
+   * error and linked straight to it. Until (or unless) that lands the
+   * entries still render, with the short-hash label and the
+   * fingerprint-filtered list route - a lookup failure loses the label,
+   * never the link.
+   */
+  const [exceptionGroups, setExceptionGroups] = useState<Map<
+    string,
+    ExceptionGroupSummary
+  > | null>(null);
+
+  const fingerprintKey: string = d.exceptionFingerprints.join(",");
+  const { resolveExceptionGroups } = props;
+
+  useEffect(() => {
+    if (!props.isOpen || d.exceptionFingerprints.length === 0) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+    const resolve: (
+      fingerprints: Array<string>,
+    ) => Promise<Map<string, ExceptionGroupSummary>> =
+      resolveExceptionGroups || fetchExceptionGroupsByFingerprint;
+
+    void (async (): Promise<void> => {
+      try {
+        const groups: Map<string, ExceptionGroupSummary> = await resolve(
+          d.exceptionFingerprints,
+        );
+
+        if (!isCancelled) {
+          setExceptionGroups(groups);
+        }
+      } catch {
+        /*
+         * Read permission on exceptions is a separate grant from replay,
+         * so a denial here is expected rather than exceptional. The links
+         * stay, unlabelled.
+         */
+        if (!isCancelled) {
+          setExceptionGroups(new Map<string, ExceptionGroupSummary>());
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+    /* Re-run only when the set of fingerprints actually changes. */
+  }, [props.isOpen, fingerprintKey, resolveExceptionGroups]);
+
+  const fingerprintLinks: Array<ReplayExceptionGroupLink> = useMemo(() => {
+    return buildReplayExceptionGroupLinks({
+      fingerprints: d.exceptionFingerprints,
+      groups: exceptionGroups,
+      exceptionsListRoute: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
       ),
-    );
-  }, [d.exceptionFingerprints]);
+      exceptionViewRouteForId: (id: string): Route => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.EXCEPTIONS_VIEW] as Route,
+          { modelId: id },
+        );
+      },
+    });
+  }, [d.exceptionFingerprints, exceptionGroups]);
 
   const railCounts: ReplayRailCounts = props.railCounts || {};
 
@@ -357,14 +472,15 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
           </div>
           <div className="space-y-1" data-testid="details-fingerprints">
             {fingerprintLinks.map(
-              (link: ReplayFingerprintLink): ReactElement => {
+              (link: ReplayExceptionGroupLink): ReactElement => {
                 if (!link.route) {
                   return (
                     <div
                       key={link.fingerprint}
-                      className="truncate font-mono text-xs text-gray-600"
+                      className="truncate text-xs text-gray-600"
+                      title={link.fingerprint}
                     >
-                      {link.fingerprint}
+                      {link.label}
                     </div>
                   );
                 }
@@ -373,12 +489,18 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                   <div
                     key={link.fingerprint}
                     className="truncate hover:underline"
+                    /* The hash stays reachable, as the title. */
+                    title={
+                      link.isDirect
+                        ? link.fingerprint
+                        : `${link.fingerprint} - opens the exceptions list filtered to this group`
+                    }
                   >
                     <AppLink
                       to={link.route}
-                      className="font-mono text-xs text-indigo-600"
+                      className="text-xs text-indigo-600"
                     >
-                      {link.fingerprint}
+                      {link.label}
                     </AppLink>
                   </div>
                 );
@@ -432,9 +554,16 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
        * MaskAllText means real page text - potentially real personal data -
        * was recorded.
        */}
+      {/*
+       * ux-20: the product label, not a de-camel-cased enum. The settings
+       * page and the recording-health card already describe the modes in
+       * these words; "Mask Sensitive Inputs Only" told a viewer the name
+       * of a constant instead of what was recorded.
+       */}
       <DetailRow
         label="Masking mode"
-        value={Text.fromPascalCaseToReadable(d.maskingMode)}
+        value={labelEnum(MASKING_MODE_LABELS, d.maskingMode)}
+        testId="replay-details-masking-mode"
       />
       <DetailRow
         label="Consent"
@@ -588,13 +717,13 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         })}
       </div>
 
-      {props.missingAssets.length > 0 && (
+      {(props.missingAssets?.length ?? 0) > 0 && (
         <React.Fragment>
           <div className="mb-2 mt-4 text-xs font-medium text-gray-700">
-            Missing assets ({props.missingAssets.length})
+            Missing assets ({props.missingAssets?.length ?? 0})
           </div>
           <div className="space-y-1">
-            {props.missingAssets.map((asset: string): ReactElement => {
+            {(props.missingAssets ?? []).map((asset: string): ReactElement => {
               return (
                 <div
                   key={asset}

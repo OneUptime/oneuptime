@@ -38,6 +38,33 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
  * landed on A's test. They are gone from here on purpose.
  */
 
+/*
+ * Both budget counters the ingest gate stamps this column from are bucketed
+ * on UTC windows - the project's daily byte cap on the UTC day, the
+ * application's monthly budget on the UTC month (SessionReplayUsage's key
+ * builders). A stamp from an earlier month therefore belongs to a window
+ * that has certainly rolled over, whichever cap wrote it.
+ */
+export function isInCurrentUtcMonth(
+  value: Date | string,
+  nowUnixMs?: number,
+): boolean {
+  const stamp: Date =
+    value instanceof Date ? value : OneUptimeDate.fromString(value);
+  const stampUnixMs: number = stamp.getTime();
+
+  if (!Number.isFinite(stampUnixMs)) {
+    return false;
+  }
+
+  const now: Date = new Date(nowUnixMs ?? Date.now());
+
+  return (
+    stamp.getUTCFullYear() === now.getUTCFullYear() &&
+    stamp.getUTCMonth() === now.getUTCMonth()
+  );
+}
+
 const RumSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -140,8 +167,24 @@ const RumSessionReplaySettings: FunctionComponent<
                 return <Pill color={Red} text="Off" />;
               }
 
-              if (item.sessionReplayBudgetExceededAt) {
-                return <Pill color={Yellow} text="On, budget exhausted" />;
+              /*
+               * server-1: the stamp is the LAST exhaustion and is never
+               * cleared, so this pill claimed an application was over
+               * budget for as long as the row lived. Both budget windows
+               * that write it (the project's UTC day, the application's
+               * UTC month) have certainly rolled over once the stamp is
+               * from an earlier month, and this roster has no usage
+               * counter to say more than that - so it qualifies the claim
+               * by window and the application's own page, which does read
+               * the live counters, gives the exact answer.
+               */
+              if (
+                item.sessionReplayBudgetExceededAt &&
+                isInCurrentUtcMonth(item.sessionReplayBudgetExceededAt)
+              ) {
+                return (
+                  <Pill color={Yellow} text="On, budget exhausted this month" />
+                );
               }
 
               return <Pill color={Green} text="On" />;

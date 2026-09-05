@@ -193,6 +193,16 @@ export interface SessionReplayPerformanceBudgetPayload {
   budgetMs: number;
   /* Scrubbed URL for slow-request; absent otherwise. */
   url?: string;
+  /*
+   * Wall-clock time the entry HAPPENED (performance.timeOrigin +
+   * entry.startTime), not the time the recorder got round to emitting it.
+   * An LCP is reported at its own observer callback and a long task after
+   * it ends, so without this the marker lands wherever the event queue
+   * flushed rather than on the moment the viewer is looking for. Optional:
+   * a recorder older than the field omits it and the player falls back to
+   * the rrweb event's own timestamp.
+   */
+  occurredAtUnixMs?: number;
 }
 
 export type SessionReplayWebVitalMetric =
@@ -215,6 +225,13 @@ export interface SessionReplayWebVitalPayload {
   value: number;
   rating: SessionReplayWebVitalRating;
   url?: string;
+  /*
+   * As on SessionReplayPerformanceBudgetPayload: when the measured entry
+   * happened, in wall-clock ms. Vitals are reported late by design (CLS
+   * and INP only settle at page hide), so the emit time can be minutes
+   * after the moment the number describes. Optional for older recorders.
+   */
+  occurredAtUnixMs?: number;
 }
 
 export type SessionReplayPerformancePayload =

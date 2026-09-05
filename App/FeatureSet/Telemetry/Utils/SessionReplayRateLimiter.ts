@@ -135,13 +135,63 @@ export default class SessionReplayRateLimiter {
   }
 
   /*
+   * Refund bytes to the project's daily counter.
+   *
+   * The counter is charged BEFORE the request is judged, so a request that
+   * some LATER gate refuses (the application's monthly ceiling, an
+   * unreachable monthly counter) has already spent daily headroom it never
+   * used. Best-effort: a lost refund overstates today's usage by one chunk,
+   * which is better than failing the refusal path over bookkeeping.
+   *
+   * Note what this must NOT be used for: the bytes of the request that
+   * exhausts the daily budget itself. See consumeByteBudget.
+   */
+  public static async refundByteBudget(data: {
+    projectId: ObjectID;
+    bytes: number;
+  }): Promise<void> {
+    if (data.bytes <= 0) {
+      return;
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      return;
+    }
+
+    try {
+      await client.decrby(
+        SessionReplayUsage.getDailyProjectByteKey(data.projectId),
+        data.bytes,
+      );
+    } catch (err) {
+      logger.warn(
+        `SessionReplayRateLimiter: could not refund ${data.bytes} refused bytes for project ${data.projectId.toString()}`,
+      );
+      logger.warn(err);
+    }
+  }
+
+  /*
    * Consume `bytes` from the project's daily budget.
    *
-   * Note the budget is checked AFTER the increment, so the request that
-   * crosses the line is still accepted. That is deliberate: rejecting a
-   * chunk mid-session leaves an unplayable fragment, and the overshoot is
-   * bounded by one request (at most MAX_SESSION_REPLAY_CHUNK_BYTES).
-   * Everything after it is refused.
+   * The budget is checked AFTER the increment, so the request that crosses
+   * the line is the first one refused and the counter is left sitting AT
+   * OR OVER the limit. That resting place is load-bearing, not an
+   * accounting accident: exhaustion has no flag of its own, so every
+   * surface that has to SAY "this budget is spent" - the /config endpoint's
+   * budget pause, the health card's daily-budget-spent state - decides it
+   * by comparing this counter with the same limit. Refunding the crossing
+   * request would drop the counter back under the limit and make all of
+   * those states unreachable, so the gate would refuse every chunk for the
+   * rest of the day while /config kept answering enabled:true and every
+   * page load kept buffering and posting into a 204.
+   *
+   * Every refusal AFTER the crossing one is refunded, so a recorder that
+   * keeps posting cannot inflate the figure the Dashboard renders as "used
+   * today" (audit finding ingest-7): the counter stays pinned at the
+   * crossing value instead of growing with traffic that was never stored.
    */
   public static async consumeByteBudget(data: {
     projectId: ObjectID;
@@ -165,6 +215,15 @@ export default class SessionReplayRateLimiter {
       }
 
       if (total > SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY) {
+        await this.refundBytesAlreadyOverBudget({
+          client: client,
+          key: key,
+          bytes: data.bytes,
+          totalAfterIncrement: total,
+          limitBytes: SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
+          describe: `project ${data.projectId.toString()}`,
+        });
+
         return { outcome: SessionReplayLimitOutcome.BudgetExhausted };
       }
 
@@ -175,6 +234,49 @@ export default class SessionReplayRateLimiter {
       );
       logger.warn(err);
       return { outcome: SessionReplayLimitOutcome.CounterUnavailable };
+    }
+  }
+
+  /*
+   * Give back the bytes of a refused request, but ONLY when the counter was
+   * already at or over the limit before this request touched it.
+   *
+   * The distinction is the whole of audit finding ingest-7's second half.
+   * Both halves matter and they pull in opposite directions:
+   *
+   *  - a counter that keeps growing on every post-exhaustion attempt
+   *    overstates stored bytes without bound, and a mid-month budget raise
+   *    would find its new headroom already eaten by chunks nobody kept;
+   *  - a counter that is refunded ALL the way back under the limit erases
+   *    the only evidence that the budget is spent, which is what /config
+   *    and the health card read.
+   *
+   * Keeping the crossing request's bytes charged satisfies both: the
+   * counter rests just over the limit (by at most one chunk) and stays
+   * there.
+   */
+  private static async refundBytesAlreadyOverBudget(data: {
+    client: ClientType;
+    key: string;
+    bytes: number;
+    totalAfterIncrement: number;
+    limitBytes: number;
+    describe: string;
+  }): Promise<void> {
+    const totalBeforeIncrement: number = data.totalAfterIncrement - data.bytes;
+
+    if (totalBeforeIncrement < data.limitBytes) {
+      /* This request is the one that crossed the line. Leave it charged. */
+      return;
+    }
+
+    try {
+      await data.client.decrby(data.key, data.bytes);
+    } catch (err) {
+      logger.warn(
+        `SessionReplayRateLimiter: could not refund refused bytes for ${data.describe}`,
+      );
+      logger.warn(err);
     }
   }
 
@@ -215,24 +317,23 @@ export default class SessionReplayRateLimiter {
 
       if (total > data.budgetBytes) {
         /*
-         * Refund the refused bytes. Unlike the daily counter (which resets
-         * in 24h), this counter is read back as "usage" by the Dashboard's
-         * ingest-status endpoint and accumulates for up to 31 days — every
-         * post-exhaustion upload attempt would otherwise inflate the
-         * displayed figure past both the budget and the bytes actually
-         * stored, and a mid-month budget raise would find its new headroom
-         * already eaten by chunks that were never accepted. Best-effort:
-         * losing one decrement to a Redis blip skews the display by one
-         * chunk, which is better than failing the refusal path.
+         * Refund every refused request EXCEPT the one that crossed the
+         * line, for the reasons in refundBytesAlreadyOverBudget: this
+         * counter is read back as "usage" by the ingest-status endpoint and
+         * accumulates for up to 31 days, so post-exhaustion attempts must
+         * not inflate it - and it is ALSO the only evidence the health card
+         * has that the monthly budget is spent (isMonthlyBudgetPaused
+         * ignores budgetExceededAt as soon as usage sits under the budget),
+         * so it must not be refunded back under the ceiling either.
          */
-        try {
-          await client.decrby(key, data.bytes);
-        } catch (decrementErr) {
-          logger.warn(
-            `SessionReplayRateLimiter: could not refund refused bytes for application ${data.rumApplicationId.toString()}`,
-          );
-          logger.warn(decrementErr);
-        }
+        await this.refundBytesAlreadyOverBudget({
+          client: client,
+          key: key,
+          bytes: data.bytes,
+          totalAfterIncrement: total,
+          limitBytes: data.budgetBytes,
+          describe: `application ${data.rumApplicationId.toString()}`,
+        });
 
         return { outcome: SessionReplayLimitOutcome.BudgetExhausted };
       }

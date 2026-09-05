@@ -424,6 +424,117 @@ export function resolveReplayInitialMoment(args: {
   return { offsetMs: 0, source: "none", wasClamped: false };
 }
 
+/*
+ * What a ?signal= id points at, in words. Used both by the notice the
+ * player shows on arrival and by the audit reason it sends with the
+ * manifest request, so the two can never disagree about where a viewer
+ * came from.
+ */
+export function describeReplaySignalSource(
+  signal: string | null | undefined,
+): string {
+  const parsed: ParsedReplaySignalId | null = signal
+    ? parseReplaySignalId(signal.trim())
+    : null;
+
+  if (!parsed) {
+    return "moment";
+  }
+
+  switch (parsed.source) {
+    case "log":
+      return "log line";
+    case "span":
+      return "span";
+    case "exc":
+      return "exception";
+    case "rec":
+    default:
+      return "recorded moment";
+  }
+}
+
+/*
+ * The transient notice for a link that carried a moment.
+ *
+ * ux-08: every ?at= link used to announce "the linked log line" whatever
+ * it came from, which made a viewer arriving from a span or an exception
+ * doubt they had landed in the right place - and the exception case is
+ * doubly confusing, because the builder deliberately rewinds ten seconds
+ * so the run-up is on screen. The noun now comes from the signal id, and
+ * the exception case says why the picture is a few seconds early.
+ */
+export function describeReplayMomentNotice(args: {
+  wasClamped: boolean;
+  signal?: string | null | undefined;
+}): string {
+  if (args.wasClamped) {
+    return "The linked moment is outside this recording; opened at the nearest edge";
+  }
+
+  const parsed: ParsedReplaySignalId | null = args.signal
+    ? parseReplaySignalId(args.signal.trim())
+    : null;
+
+  if (!parsed) {
+    return "Opened at the linked moment";
+  }
+
+  if (parsed.source === "exc") {
+    return "Opened at the linked exception; exception links start 10s earlier so the run-up is on screen";
+  }
+
+  return `Opened at the moment of the linked ${describeReplaySignalSource(
+    args.signal,
+  )}`;
+}
+
+/* Audit reasons are stored verbatim; a URL is untrusted input. */
+export const REPLAY_ACCESS_REASON_MAX_LENGTH: number = 200;
+
+/*
+ * Why this playback was opened, for the audit row the /manifest request
+ * writes (ux-12 / integration-004). Derived from the inbound URL rather
+ * than asked of the viewer: a cross-link already states its provenance,
+ * and a reason nobody types is a reason nobody records.
+ *
+ * null for a plain open from the list - the audit page renders that as
+ * "None given (opened from the list)" rather than inventing a reason.
+ */
+export function describeReplayAccessReason(
+  state: ReplayPlayerUrlState,
+): string | null {
+  const parsed: ParsedReplaySignalId | null = state.signalId
+    ? parseReplaySignalId(state.signalId)
+    : null;
+
+  let reason: string | null = null;
+
+  if (parsed) {
+    switch (parsed.source) {
+      case "log":
+        reason = `Opened from log ${parsed.id}`;
+        break;
+      case "span":
+        reason = `Opened from span ${parsed.id}`;
+        break;
+      case "exc":
+        reason = `Opened from exception occurrence ${parsed.id}`;
+        break;
+      case "rec":
+      default:
+        reason = "Opened from a link to a recorded moment";
+        break;
+    }
+  } else if (state.atUnixMs !== null || state.offsetMs !== null) {
+    reason = "Opened from a link to a moment in this session";
+  }
+
+  return reason === null
+    ? null
+    : reason.slice(0, REPLAY_ACCESS_REASON_MAX_LENGTH);
+}
+
 /* The default run-up for a link into a moment, by what the link points at. */
 export function getReplayMomentPreRollMs(
   signal: string | null | undefined,

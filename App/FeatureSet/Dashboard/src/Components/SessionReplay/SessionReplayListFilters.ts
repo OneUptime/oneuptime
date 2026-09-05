@@ -197,6 +197,63 @@ export function stringifyTagFilter(tags: Record<string, string>): string {
     .join(", ");
 }
 
+const ABSOLUTE_URL_PATTERN: RegExp = /^https?:\/\//i;
+
+/* Where the authority ends: the first path, query or fragment character. */
+const AUTHORITY_END_PATTERN: RegExp = /[/?#]/;
+const PORT_SUFFIX_PATTERN: RegExp = /:\d{2,5}$/;
+
+/*
+ * Is this meant to be an address rather than a path? Only when the value
+ * carries an authority AND something after it - "shop.example.com/cart",
+ * "localhost:3000/cart" - or the unmistakable "www." prefix. A dotted word
+ * on its own ("checkout.html") stays a path: it is far more often a page
+ * than a host somebody typed without a scheme, and guessing wrong there
+ * would send a filter to an origin that does not exist.
+ */
+function looksLikeHost(value: string): boolean {
+  const authority: string = value.split(AUTHORITY_END_PATTERN)[0] as string;
+
+  if (!authority.includes(".") && !PORT_SUFFIX_PATTERN.test(authority)) {
+    return false;
+  }
+
+  if (authority.toLowerCase().startsWith("www.")) {
+    return true;
+  }
+
+  return value.length > authority.length;
+}
+
+/*
+ * Anchors a URL filter so the endpoint's prefix comparison can ever hit.
+ *
+ * The endpoint matches `urlPrefix` against each stored route and the entry
+ * URL - both absolute ("https://shop.example.com/cart") - AND, since the
+ * path fix, against their path ("/cart"). So a value that starts with "/"
+ * or with a scheme is a filter the server can answer; anything else
+ * ("checkout") anchors nowhere and would silently match nothing, which is
+ * the one failure mode this list must never have. A host-looking value
+ * gets the scheme it is missing, everything else is read as a path.
+ */
+export function normalizeUrlPrefix(value: string): string {
+  const trimmed: string = value.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (trimmed.startsWith("/") || ABSOLUTE_URL_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (looksLikeHost(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return `/${trimmed}`;
+}
+
 /*
  * Filter state <-> URL query string keys. Persisted so back-navigation
  * from a replay restores the triage the viewer had built, and so a
@@ -334,8 +391,16 @@ export function buildSessionReplayListFilters(
       filters["triggerReasons"] = [advanced.triggerReason.trim()];
     }
 
-    if (advanced.urlPrefix.trim()) {
-      filters["urlPrefix"] = advanced.urlPrefix.trim();
+    /*
+     * Normalized here as well as in the search box, because the modal
+     * writes this field straight from a text input: an un-anchored prefix
+     * reaching the endpoint comes back as "no sessions match" with no way
+     * for the viewer to tell why.
+     */
+    const urlPrefix: string = normalizeUrlPrefix(advanced.urlPrefix);
+
+    if (urlPrefix) {
+      filters["urlPrefix"] = urlPrefix;
     }
 
     const tags: Record<string, string> = parseTagFilter(advanced.tags);
@@ -372,6 +437,31 @@ function parseIsoDate(value: string | null): Date | null {
   return Number.isFinite(parsed) ? new Date(parsed) : null;
 }
 
+/*
+ * The absolute window is written as startTime/endTime by this module, but
+ * the RUM overview's tiles link with start/end (buildRangedListRoute in
+ * Pages/Rum/View/Overview.tsx). Both spellings are read so the window a
+ * tile counted is the window the list opens on; only the canonical pair is
+ * ever written.
+ */
+const START_TIME_URL_KEYS: Array<string> = [LIST_URL_KEYS.startTime, "start"];
+const END_TIME_URL_KEYS: Array<string> = [LIST_URL_KEYS.endTime, "end"];
+
+function readFirstParam(
+  params: URLSearchParams,
+  keys: Array<string>,
+): string | null {
+  for (const key of keys) {
+    const value: string | null = params.get(key);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function isTimeRangeValue(value: string | null): value is TimeRange {
   return (
     value !== null &&
@@ -391,9 +481,11 @@ export function readTimeRangeFromSearch(
 ): RangeStartAndEndDateTime {
   const params: URLSearchParams = new URLSearchParams(search);
   const startTime: Date | null = parseIsoDate(
-    params.get(LIST_URL_KEYS.startTime),
+    readFirstParam(params, START_TIME_URL_KEYS),
   );
-  const endTime: Date | null = parseIsoDate(params.get(LIST_URL_KEYS.endTime));
+  const endTime: Date | null = parseIsoDate(
+    readFirstParam(params, END_TIME_URL_KEYS),
+  );
 
   if (startTime && endTime && startTime.getTime() < endTime.getTime()) {
     return {
@@ -531,8 +623,15 @@ export function buildFilteredUrl(
   }
 
   url.searchParams.delete(LIST_URL_KEYS.range);
-  url.searchParams.delete(LIST_URL_KEYS.startTime);
-  url.searchParams.delete(LIST_URL_KEYS.endTime);
+
+  /*
+   * Both spellings go, including the overview tile's start/end: leaving an
+   * alias behind would let a stale window win the next time this URL is
+   * read back (readTimeRangeFromSearch accepts either).
+   */
+  for (const key of [...START_TIME_URL_KEYS, ...END_TIME_URL_KEYS]) {
+    url.searchParams.delete(key);
+  }
 
   if (extras?.timeRange) {
     if (

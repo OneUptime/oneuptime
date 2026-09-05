@@ -512,3 +512,134 @@ describe("buildReplayMomentRoute", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * ux-08: an inbound link's notice used to say "the linked log line"
+ * whatever it pointed at, so a viewer arriving from a span or an exception
+ * was told they had landed somewhere else. The noun comes from the signal
+ * id now, and the exception case explains its ten-second run-up.
+ */
+describe("describeReplayMomentNotice", () => {
+  test("names what the link pointed at", () => {
+    expect(
+      urlState.describeReplayMomentNotice({
+        wasClamped: false,
+        signal: "log:0193c0de-1111-4aaa-8bbb-000000000009",
+      }),
+    ).toBe("Opened at the moment of the linked log line");
+
+    expect(
+      urlState.describeReplayMomentNotice({
+        wasClamped: false,
+        signal: "span:9f8e7d6c5b4a3928",
+      }),
+    ).toBe("Opened at the moment of the linked span");
+
+    expect(
+      urlState.describeReplayMomentNotice({
+        wasClamped: false,
+        signal: "rec:3:12",
+      }),
+    ).toBe("Opened at the moment of the linked recorded moment");
+  });
+
+  test("an exception link explains why the picture is early", () => {
+    const notice: string = urlState.describeReplayMomentNotice({
+      wasClamped: false,
+      signal: "exc:0193c0de-1111-4aaa-8bbb-00000000000a",
+    });
+
+    expect(notice).toContain("exception");
+    expect(notice).toContain("10s");
+    expect(notice).not.toContain("log line");
+  });
+
+  test("a link with no signal is a linked moment, not a log line", () => {
+    expect(urlState.describeReplayMomentNotice({ wasClamped: false })).toBe(
+      "Opened at the linked moment",
+    );
+    expect(
+      urlState.describeReplayMomentNotice({
+        wasClamped: false,
+        signal: "not-a-signal-id",
+      }),
+    ).toBe("Opened at the linked moment");
+  });
+
+  test("a clamped moment says so whatever it pointed at", () => {
+    for (const signal of ["exc:abc", "log:abc", null]) {
+      expect(
+        urlState.describeReplayMomentNotice({
+          wasClamped: true,
+          signal: signal,
+        }),
+      ).toBe(
+        "The linked moment is outside this recording; opened at the nearest edge",
+      );
+    }
+  });
+});
+
+/*
+ * ux-12 / integration-004: the audit page's Reason column read "None
+ * given" on every row because the player never sent one. The reason is
+ * derived from the inbound URL - a cross-link already states where the
+ * viewer came from - and stays empty for a plain open from the list.
+ */
+describe("describeReplayAccessReason", () => {
+  function stateFrom(
+    search: string,
+  ): ReturnType<UrlStateModule["parseReplayPlayerUrlState"]> {
+    return urlState.parseReplayPlayerUrlState(search);
+  }
+
+  test("names the exception occurrence a link arrived from", () => {
+    expect(
+      urlState.describeReplayAccessReason(
+        stateFrom(
+          "?at=1757000041000&signal=exc%3A0193c0de-1111-4aaa-8bbb-00000000000a&rail=errors",
+        ),
+      ),
+    ).toBe(
+      "Opened from exception occurrence 0193c0de-1111-4aaa-8bbb-00000000000a",
+    );
+  });
+
+  test("names a log and a span link", () => {
+    expect(
+      urlState.describeReplayAccessReason(
+        stateFrom("?at=1757000041000&signal=log%3Alog-77"),
+      ),
+    ).toBe("Opened from log log-77");
+    expect(
+      urlState.describeReplayAccessReason(
+        stateFrom("?at=1757000041000&signal=span%3A9f8e7d6c5b4a3928"),
+      ),
+    ).toBe("Opened from span 9f8e7d6c5b4a3928");
+  });
+
+  test("a bare moment link is still a reason", () => {
+    expect(urlState.describeReplayAccessReason(stateFrom("?t=41"))).toBe(
+      "Opened from a link to a moment in this session",
+    );
+  });
+
+  test("a plain open from the list has no reason to invent", () => {
+    expect(urlState.describeReplayAccessReason(stateFrom(""))).toBeNull();
+    expect(
+      urlState.describeReplayAccessReason(stateFrom("?rail=errors&q=payment")),
+    ).toBeNull();
+  });
+
+  test("never exceeds the audit column's practical cap", () => {
+    const reason: string | null = urlState.describeReplayAccessReason({
+      ...urlState.makeEmptyReplayPlayerUrlState(),
+      signalId: `log:${"9".repeat(500)}`,
+    });
+
+    expect(reason).not.toBeNull();
+    expect((reason as string).length).toBeLessThanOrEqual(
+      urlState.REPLAY_ACCESS_REASON_MAX_LENGTH,
+    );
+  });
+});

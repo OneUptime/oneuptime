@@ -185,6 +185,12 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     action:
       "Supported queue commands: grantConsent, revokeConsent, stop, captureSession, identify, track, setTags, addTag.",
   },
+  "command-queue-command-failed": {
+    explanation:
+      "A command queued before the recorder loaded threw while it was applied, so that one command did nothing; the record's detail names it and the error. The rest of the queue still ran.",
+    action:
+      "Check the arguments your page pushes onto OneUptimeReplayQueue. A grantConsent() that failed here is the difference between a session that uploads and one that never does.",
+  },
   "api-grant-consent": { explanation: "grantConsent() was called." },
   "api-revoke-consent": { explanation: "revokeConsent() was called." },
   "api-stop": { explanation: "stop() was called by the page." },
@@ -255,6 +261,18 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     explanation:
       "The DOM recorder reported an internal error; the recording may skip or freeze around this point.",
   },
+  "final-flush-truncated": {
+    explanation:
+      "When the page closed, more footage was open than one keepalive request may carry, so the OLDEST events of that last stretch were dropped rather than minting a chunk the browser would refuse. The detail says how many events went.",
+    action:
+      "Nothing to change: the alternative is losing the whole final chunk. The recording's very end is intact; the moments before it may skip.",
+  },
+  "envelope-trimmed": {
+    explanation:
+      "One chunk's envelope was over the server's size limit, so optional fields were dropped to fit it - the record's detail lists which ones. The footage in that chunk was kept and uploaded.",
+    action:
+      "Nothing to do unless a field you rely on is listed: tags and identity traits are shed first, then fidelity notices.",
+  },
 
   /* ---- Transport.ts ---- */
   "chunk-accepted": { explanation: "A chunk was accepted by the server." },
@@ -278,6 +296,12 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     explanation:
       "Uploading stopped for good: the server rejected this recorder outright.",
     isOutcome: true,
+  },
+  "chunk-too-large": {
+    explanation:
+      "One chunk was over the per-request size limit even after compression - almost always a full snapshot of a very large DOM. Its SIZE was declared and its bytes were not uploaded, so the session survives with a gap there instead of spending the visitor's uplink on a request the server cannot accept.",
+    action:
+      "The player marks the gap. If it repeats, the pages involved have an unusually large DOM; blocking a heavy region with a block selector shrinks the snapshot.",
   },
   "chunk-post-failed": {
     explanation:
@@ -309,6 +333,12 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
   "final-chunk-too-large": {
     explanation:
       "The final chunk was over the browser's keepalive quota and was dropped; the last seconds before the page closed are missing.",
+  },
+  "final-flush-partial": {
+    explanation:
+      "On page exit the browser's keepalive quota could not carry every queued chunk. The detail says how many were sent and how many were dropped; that session has a gap at the end.",
+    action:
+      "Expected when a tab closes with a backlog (an offline spell, or a very busy page). Worth looking at only if it repeats on ordinary sessions.",
   },
   "server-directive": {
     explanation:

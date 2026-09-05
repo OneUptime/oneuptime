@@ -42,6 +42,33 @@ describe("EarlyErrors", (): void => {
     expect(records[0]!.atUnixMs).toBeGreaterThan(0);
   });
 
+  /*
+   * A capture-phase "error" listener also hears RESOURCE load failures - an
+   * <img>, <script> or <link> that 404s. They arrive with an Element target,
+   * no message, no filename and no Error, so buffering them as JavaScript
+   * errors filled the pre-load buffer with empty entries on any page with a
+   * broken image, and spent its 20-record budget on them.
+   */
+  it("ignores a resource load failure, which is not a JavaScript error", (): void => {
+    const buffer: EarlyErrorBuffer = installEarlyErrorBuffer(window);
+
+    const image: HTMLImageElement = document.createElement("img");
+
+    document.body.appendChild(image);
+
+    const resourceFailure: Event = new Event("error");
+
+    Object.defineProperty(resourceFailure, "target", { value: image });
+    window.dispatchEvent(resourceFailure);
+
+    fireError("a real one", "https://app.example.com/main.js");
+
+    const records: Array<EarlyErrorRecord> = buffer.drain();
+
+    expect(records).toHaveLength(1);
+    expect(records[0]!.message).toBe("a real one");
+  });
+
   it("captures unhandled rejections with a described reason, never a dump", (): void => {
     const buffer: EarlyErrorBuffer = installEarlyErrorBuffer(window);
 

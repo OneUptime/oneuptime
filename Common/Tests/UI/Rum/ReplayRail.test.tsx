@@ -39,7 +39,11 @@ import {
   ReplaySignalKind,
   ReplaySignalSeverity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
-import { getRailEmptyCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
+import {
+  REPLAY_CLICK_EVENTS_CAPABILITY,
+  getRailEmptyCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
+import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "../../../Types/Rum/SessionReplay";
 import {
   buildRailTabModels,
   computeRailWindow,
@@ -370,6 +374,60 @@ describe("ReplayRail tabs and counts", () => {
     );
   });
 
+  /*
+   * ux-01: the strip is a roving-tabindex tablist, so Tab reaches only the
+   * selected tab. Without an arrow handler the other eight tabs could not
+   * be reached from the keyboard at all - and the player's global map read
+   * the arrows as +-5s seeks.
+   */
+  it("moves between tabs with the arrow keys, carrying focus", () => {
+    const result: RenderResult = renderRail();
+    const tablist: HTMLElement = screen.getByTestId("rail-tablist");
+
+    fireEvent.keyDown(tablist, { key: "ArrowRight" });
+
+    expect(result.tabs).toEqual(["console"]);
+    expect(screen.getByTestId("rail-tab-console")).toHaveFocus();
+
+    result.rerender({ activeTab: "console" });
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+
+    expect(result.tabs).toEqual(["console", "all"]);
+    expect(screen.getByTestId("rail-tab-all")).toHaveFocus();
+  });
+
+  it("wraps at the ends and jumps with Home and End", () => {
+    const result: RenderResult = renderRail();
+    const tablist: HTMLElement = screen.getByTestId("rail-tablist");
+
+    /* "all" is first: ArrowLeft wraps to the last tab. */
+    fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+
+    expect(result.tabs).toEqual(["traces"]);
+
+    result.rerender({ activeTab: "traces" });
+    fireEvent.keyDown(tablist, { key: "Home" });
+
+    expect(result.tabs).toEqual(["traces", "all"]);
+
+    fireEvent.keyDown(tablist, { key: "End" });
+
+    expect(result.tabs).toEqual(["traces", "all", "traces"]);
+  });
+
+  it("keeps the arrow keys away from the player's seek shortcuts", () => {
+    const result: RenderResult = renderRail();
+
+    /* fireEvent returns false when the handler called preventDefault. */
+    const wasNotPrevented: boolean = fireEvent.keyDown(
+      screen.getByTestId("rail-tablist"),
+      { key: "ArrowRight" },
+    );
+
+    expect(wasNotPrevented).toBe(false);
+    expect(result.seeks).toEqual([]);
+  });
+
   it("renders the coverage note while chunks are still loading and hides it once all are in", () => {
     const result: RenderResult = renderRail({
       loadedChunkCount: 2,
@@ -421,9 +479,21 @@ describe("ReplayRail playhead sync", () => {
     ) as HTMLElement;
 
     expect(activeRow).toHaveAttribute("data-signal-id", "rec:0:2");
-    expect(activeRow).toHaveAttribute("aria-current", "true");
-    expect(activeRow).toHaveAttribute("role", "option");
-    expect(screen.getByTestId("rail-list")).toHaveAttribute("role", "listbox");
+    expect(activeRow).toHaveAttribute("data-active", "true");
+    expect(activeRow).toHaveAttribute("role", "listitem");
+    expect(screen.getByTestId("rail-list")).toHaveAttribute("role", "list");
+
+    /*
+     * ux-13: the row's clickable surface is a real focusable button that
+     * carries aria-current, not a bare div inside a role=option whose
+     * children ARIA would have hidden.
+     */
+    const body: HTMLElement = within(activeRow).getByRole("button", {
+      name: /TypeError|console|request|navigation|click/i,
+    });
+
+    expect(body.tagName).toBe("BUTTON");
+    expect(body).toHaveAttribute("aria-current", "true");
   });
 
   it("puts the divider before the first row when nothing has happened yet", () => {
@@ -459,10 +529,10 @@ describe("ReplayRail row click (scrubber-devtools-5)", () => {
       .closest("[data-testid='rail-row']") as HTMLElement;
 
     expect(activeRow).toHaveAttribute("data-signal-id", "rec:0:4");
-    expect(activeRow).toHaveAttribute("aria-selected", "true");
+    expect(activeRow).toHaveAttribute("data-selected", "true");
     expect(activeRow).toHaveAttribute("data-future", "false");
     /* The row before it is NOT the active one, which is what the old rule did. */
-    expect(rows()[2]).not.toHaveAttribute("aria-current");
+    expect(rows()[2]).toHaveAttribute("data-active", "false");
   });
 
   it("expands the detail under the selected row and closes it from the detail", () => {
@@ -643,6 +713,75 @@ describe("ReplayRail keyboard and stepping", () => {
     expect(result.selections).toEqual(["rec:0:3", null]);
   });
 
+  /*
+   * ux-13: the row's primary surface is a real button, so a keyboard user
+   * can reach and activate it - the old role=option row body was a bare
+   * div with an onClick and no tab stop at all. Exactly one row is in the
+   * Tab order, and j/k carry focus with the selection.
+   */
+  it("gives the rows a focusable body button with one tab stop, and moves focus with j/k", () => {
+    const result: RenderResult = renderRail({
+      currentTimeMs: 3000,
+      selectedSignalId: "rec:0:2",
+    });
+
+    const bodies: Array<HTMLElement> = rows().map((row: HTMLElement) => {
+      return row.querySelector("[data-rail-row-body='true']") as HTMLElement;
+    });
+
+    expect(
+      bodies.every((body: HTMLElement): boolean => {
+        return body.tagName === "BUTTON";
+      }),
+    ).toBe(true);
+    expect(
+      bodies.filter((body: HTMLElement): boolean => {
+        return body.getAttribute("tabindex") === "0";
+      }),
+    ).toHaveLength(1);
+    /* The selected row is the tab stop, and says its detail is open. */
+    expect(bodies[1]).toHaveAttribute("tabindex", "0");
+    expect(bodies[1]).toHaveAttribute("aria-expanded", "true");
+    expect(bodies[0]).toHaveAttribute("aria-expanded", "false");
+
+    (bodies[1] as HTMLElement).focus();
+    fireEvent.keyDown(screen.getByTestId("rail-list"), { key: "j" });
+
+    expect(result.selections).toEqual(["rec:0:3"]);
+
+    result.rerender({ currentTimeMs: 3000, selectedSignalId: "rec:0:3" });
+
+    expect(
+      (rows()[2] as HTMLElement).querySelector("[data-rail-row-body='true']"),
+    ).toHaveFocus();
+  });
+
+  it("leaves Enter to the row control that has focus", () => {
+    const result: RenderResult = renderRail({
+      currentTimeMs: 3000,
+      selectedSignalId: "rec:0:1",
+    });
+
+    /* The hover Seek button of a DIFFERENT row than the selected one. */
+    const seekButton: HTMLElement = within(
+      rows()[3] as HTMLElement,
+    ).getByLabelText(/^Seek to /);
+
+    seekButton.focus();
+
+    const wasNotPrevented: boolean = fireEvent.keyDown(seekButton, {
+      key: "Enter",
+    });
+
+    /* The list must not swallow it and seek the SELECTED row instead. */
+    expect(wasNotPrevented).toBe(true);
+    expect(result.seeks).toEqual([]);
+
+    fireEvent.click(seekButton);
+
+    expect(result.seeks).toEqual([8000]);
+  });
+
   it("the handle reveals a signal on another tab by switching to it", () => {
     const result: RenderResult = renderRail({
       currentTimeMs: 0,
@@ -664,6 +803,93 @@ describe("ReplayRail keyboard and stepping", () => {
     });
 
     expect(revealed).toBe(false);
+  });
+
+  /*
+   * integration-003: a "view the session here" link from a span carries
+   * the id of the span that was CLICKED, but the Traces tab keys its rows
+   * by the ROOT span, so ?signal=span:<child> selected nothing at all.
+   */
+  it("reveals a trace row from any span id it contains, at that span's moment", () => {
+    const trace: ReplaySignal = makeSignal("span", 4000, {
+      id: "span:root-a",
+      title: "GET /api/orders",
+      links: { traceId: TRACE_ID, spanId: "root-a" },
+      detail: {
+        traceId: TRACE_ID,
+        rootSpanId: "root-a",
+        rootName: "GET /api/orders",
+        serviceId: null,
+        serviceName: "orders-svc",
+        durationMs: 900,
+        spanCount: 2,
+        errorSpanCount: 0,
+        hasError: false,
+        startUnixMs: START_UNIX_MS + 4000,
+        baselineOffsetMs: 4000,
+        isWaterfallTruncated: false,
+        spans: [
+          {
+            spanId: "root-a",
+            parentSpanId: null,
+            name: "GET /api/orders",
+            serviceName: "orders-svc",
+            depth: 0,
+            startOffsetMs: 0,
+            durationMs: 900,
+            hasError: false,
+            sessionOffsetMs: 4000,
+          },
+          {
+            spanId: "child-b",
+            parentSpanId: "root-a",
+            name: "SELECT orders",
+            serviceName: "orders-svc",
+            depth: 1,
+            startOffsetMs: 300,
+            durationMs: 200,
+            hasError: false,
+            sessionOffsetMs: 4300,
+          },
+        ],
+      },
+    });
+
+    const result: RenderResult = renderRail({
+      signals: [trace],
+      currentTimeMs: 0,
+      activeTab: "console",
+    });
+
+    let revealed: boolean | undefined = undefined;
+
+    act((): void => {
+      revealed = result.handle.current?.revealSignal("span:child-b");
+    });
+
+    expect(revealed).toBe(true);
+    expect(result.tabs).toEqual(["traces"]);
+    expect(result.selections).toEqual(["span:root-a"]);
+    /* The child's own moment, one second early like every rail seek. */
+    expect(result.seeks).toEqual([3300]);
+  });
+
+  it("selectSignal selects without moving the playhead", () => {
+    const result: RenderResult = renderRail({
+      currentTimeMs: 0,
+      activeTab: "console",
+    });
+
+    let selected: boolean | undefined = undefined;
+
+    act((): void => {
+      selected = result.handle.current?.selectSignal("rec:0:1");
+    });
+
+    expect(selected).toBe(true);
+    expect(result.tabs).toEqual(["network"]);
+    expect(result.selections).toEqual(["rec:0:1"]);
+    expect(result.seeks).toEqual([]);
   });
 
   it("/ handler focuses the search box through the handle", () => {
@@ -875,17 +1101,58 @@ describe("ReplayRail empty copy", () => {
     ).not.toBeNull();
   });
 
+  /*
+   * ux-04: the capability names are a closed vocabulary and the recorder
+   * announces "click-events". The copy compared against "click", so every
+   * CURRENT recorder was told its recording predates click labels.
+   */
   it("tells old recordings apart on the Interactions tab, listing capabilities", () => {
     renderRail({
       signals: [],
       activeTab: "interactions",
-      recorderCapabilities: ["console", "network"],
+      recorderCapabilities: ["web-vitals", "visibility"],
     });
 
     expect(screen.getByTestId("rail-empty")).toHaveTextContent(
       "This recording predates click labels",
     );
-    expect(screen.getByTestId("rail-empty")).toHaveTextContent("network");
+    expect(screen.getByTestId("rail-empty")).toHaveTextContent("web-vitals");
+  });
+
+  it("does not accuse a current recorder of predating click labels", () => {
+    expect(SESSION_REPLAY_RECORDER_CAPABILITIES).toContain(
+      REPLAY_CLICK_EVENTS_CAPABILITY,
+    );
+
+    renderRail({
+      signals: [],
+      activeTab: "interactions",
+      recorderCapabilities: [...SESSION_REPLAY_RECORDER_CAPABILITIES],
+    });
+
+    expect(screen.getByTestId("rail-empty")).toHaveTextContent(
+      "No clicks in the loaded footage",
+    );
+    expect(screen.getByTestId("rail-empty")).not.toHaveTextContent(
+      "predates click labels",
+    );
+  });
+
+  it("says nothing about the recorder before the first chunk has decoded", () => {
+    renderRail({
+      signals: [],
+      activeTab: "interactions",
+      recorderCapabilities: ["web-vitals"],
+      loadedChunkCount: 0,
+      totalChunkCount: 4,
+    });
+
+    expect(screen.getByTestId("rail-empty")).toHaveTextContent(
+      "No interactions yet",
+    );
+    expect(screen.getByTestId("rail-empty")).not.toHaveTextContent(
+      "predates click labels",
+    );
   });
 
   it("renders skeleton rows, never empty copy, while the manifest loads", () => {

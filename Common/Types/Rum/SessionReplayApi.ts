@@ -5,8 +5,9 @@ import {
 
 /*
  * Wire contract between the Dashboard and the session-replay read routes
- * in Common/Server/API/TelemetryAPI.ts (/list, /manifest, /heartbeat,
- * /for-exception, /ingest-status). Everything here is the JSON as it
+ * in Common/Server/API/TelemetryAPI.ts (/list, /manifest, /chunks,
+ * /heartbeat, /views, /for-exception, /ingest-status). Everything here is
+ * the JSON as it
  * crosses HTTP, which is why:
  *
  *   - Dates are ISO-8601 STRINGS. The server builds Date objects
@@ -181,6 +182,17 @@ export interface SessionReplayListItemDto {
 export interface SessionReplayListResponseDto {
   sessions: Array<SessionReplayListItemDto>;
   nextCursor: SessionReplayListCursorDto | null;
+  /*
+   * Additive. Filter keys the server accepted the request WITH but did not
+   * apply - today identifiedUserRef/identifiedUserKey, which are dropped
+   * when the caller does not hold the narrower identity permission. The
+   * list turns this into "your user filter was ignored": a silently
+   * dropped filter shows a wider set of rows as if it were the filtered
+   * one, which is the worst possible answer in an evidence tool. Absent
+   * (rather than []) on a server that predates the field, which the
+   * Dashboard reads as "nothing known to have been dropped".
+   */
+  ignoredFilters?: Array<string>;
 }
 
 /* ---- /manifest ---- */
@@ -218,6 +230,41 @@ export interface SessionReplayChunksRequestDto {
   /* Same disambiguator as the manifest request. */
   rumApplicationId?: string;
 }
+
+/*
+ * Response header on /chunks, comma-separated ascending indexes: chunks
+ * that EXIST and were asked for, but did not fit this body under
+ * MAX_SESSION_REPLAY_READ_BYTES. Absent when nothing was left out.
+ *
+ * A loader that reads their absence as missing footage would draw a hole
+ * in a recording that is whole; the honest response is to ask for them
+ * again in a smaller page. Named here so the server that sets it and the
+ * loader that reads it quote one string.
+ */
+export const SESSION_REPLAY_OMITTED_CHUNKS_HEADER: string =
+  "X-OneUptime-Replay-Omitted-Chunks";
+
+/* ---- Read failures ---- */
+
+/*
+ * The read routes answer 404 with a message whose PREFIX carries the
+ * reason, because the three reasons need three different screens and an
+ * HTTP status cannot tell them apart: a recording that aged out under
+ * retention (and whose signals may still exist in logs and traces), one
+ * erased by a data-subject request (which will never come back), and an
+ * id that was never recorded in this project. classifyManifestFailure in
+ * the Dashboard branches on exactly these; they live here so neither side
+ * invents a fourth spelling.
+ */
+export const SESSION_REPLAY_READ_ERROR_PREFIX_EXPIRED: string = "expired:";
+export const SESSION_REPLAY_READ_ERROR_PREFIX_ERASED: string = "erased:";
+export const SESSION_REPLAY_READ_ERROR_PREFIX_NOT_FOUND: string = "not-found:";
+
+export const SESSION_REPLAY_READ_ERROR_PREFIXES: ReadonlyArray<string> = [
+  SESSION_REPLAY_READ_ERROR_PREFIX_EXPIRED,
+  SESSION_REPLAY_READ_ERROR_PREFIX_ERASED,
+  SESSION_REPLAY_READ_ERROR_PREFIX_NOT_FOUND,
+];
 
 /*
  * The session header exactly as SessionReplayReadService.getSessionHeader
@@ -330,6 +377,62 @@ export interface SessionReplayHeartbeatRequestDto {
 export interface SessionReplayHeartbeatResponseDto {
   /* Floored to the 15s cadence server-side. */
   secondsWatched: number;
+}
+
+/* ---- /views ---- */
+
+/*
+ * "Who watched this recording". Every manifest read has written an audit
+ * row since the feature shipped; this route is what finally shows them,
+ * so a viewer can see that a colleague already watched (and why) instead
+ * of watching a customer's session a second time. Behind the payload
+ * permission, not the list permission: the viewer list is a fact about a
+ * recording of a real person and belongs to the people who may watch it.
+ */
+export interface SessionReplayViewsRequestDto {
+  sessionId: string;
+  /*
+   * Same disambiguator as the manifest request - a session id is only
+   * unique within one application, and the server refuses to guess.
+   */
+  rumApplicationId?: string;
+  /* Server-capped; asking for more returns the cap, not an error. */
+  limit?: number;
+}
+
+/*
+ * The viewer, as the route projects them off the joined user row. The
+ * whole object is null for a view whose user was deleted since: the audit
+ * row outlives the account, and dropping the view would understate who
+ * has seen the recording. name/email are "" rather than null when the
+ * user row carries no value, so the header can render one branch.
+ */
+export interface SessionReplayViewerDto {
+  id: string | null;
+  name: string;
+  email: string;
+  profilePictureId: string | null;
+}
+
+export interface SessionReplayViewDto {
+  /* The audit row's id; null only when the row could not be serialised. */
+  id: string | null;
+  /* ISO-8601, null when the row carries no timestamp. */
+  viewedAt: string | null;
+  /*
+   * Floored to the 15s heartbeat cadence. 0 is a REAL measurement here -
+   * a view that opened the player and never got a heartbeat in - so the
+   * header says "opened, not watched" rather than hiding the row.
+   */
+  secondsWatched: number;
+  /* Free text the reader gave ("incident-1234"); "" when they gave none. */
+  accessReason: string;
+  viewedByUserId: string | null;
+  viewedByUser: SessionReplayViewerDto | null;
+}
+
+export interface SessionReplayViewsResponseDto {
+  views: Array<SessionReplayViewDto>;
 }
 
 /* ---- /for-exception ---- */

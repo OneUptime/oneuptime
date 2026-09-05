@@ -30,9 +30,11 @@ describe("ClickRecorder", (): void => {
   const makeRecorder: (
     mode?: SessionReplayMaskingMode,
     maskSelectors?: Array<string>,
+    blockSelectors?: Array<string>,
   ) => ClickRecorder = (
     mode?: SessionReplayMaskingMode,
     maskSelectors?: Array<string>,
+    blockSelectors?: Array<string>,
   ): ClickRecorder => {
     emitted = [];
     clicks = [];
@@ -50,6 +52,7 @@ describe("ClickRecorder", (): void => {
           : mode,
         maskSelectors || [],
       ),
+      blockSelectors: blockSelectors || [],
     });
 
     instance.start(document);
@@ -270,6 +273,114 @@ describe("ClickRecorder", (): void => {
 
       expect(payload?.text).toMatch(/^•+$/);
       expect(JSON.stringify(emitted)).not.toContain("correct-horse");
+    });
+
+    /*
+     * REGRESSION (privacy-1). rrweb never serialises anything inside
+     * blockSelectors or .oneuptime-block - a support-chat widget, a medical
+     * record pane, a payment form the customer excluded outright - and the
+     * click label was the one thing that carried its text out anyway, into
+     * the chunk payload and then verbatim into the rail as Click "…".
+     */
+    it("emits no label at all for a click inside a blocked region", (): void => {
+      document.body.innerHTML =
+        "<section class='medical'><button id='rx'>Repeat prescription: sertraline 50mg</button></section>";
+
+      makeRecorder(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        [],
+        [".medical"],
+      );
+
+      click(document.getElementById("rx") as Element);
+
+      const [payload] = clickPayloads();
+
+      expect(payload).toBeDefined();
+      expect(payload?.text).toBeUndefined();
+      expect(JSON.stringify(emitted)).not.toContain("sertraline");
+
+      /*
+       * And not the blocked region's inner structure either: the selector is
+       * the blocked element, whose own class the customer chose.
+       */
+      expect(payload?.selector).not.toContain("rx");
+      expect(payload?.selector).toContain("medical");
+    });
+
+    it("emits no label inside a region carrying rrweb's block class", (): void => {
+      document.body.innerHTML =
+        "<div class='oneuptime-block'><div><span id='chat'>Account 4417 for Alice</span></div></div>";
+
+      makeRecorder();
+
+      click(document.getElementById("chat") as Element);
+
+      expect(clickPayloads()[0]?.text).toBeUndefined();
+      expect(JSON.stringify(emitted)).not.toContain("4417");
+    });
+
+    /*
+     * textContent is every DESCENDANT's text concatenated, so a click on the
+     * card AROUND a masked span used to ship the masked span's words. Only
+     * the element's own direct text nodes are used when anything protected
+     * is inside it.
+     */
+    it("uses only its own text when a descendant carries the mask class", (): void => {
+      document.body.innerHTML =
+        "<div id='card'>Card ending <span class='oneuptime-mask'>4111 1111 1111 1111</span></div>";
+
+      makeRecorder();
+
+      const text: string | undefined = ((): string | undefined => {
+        click(document.getElementById("card") as Element);
+        return clickPayloads()[0]?.text;
+      })();
+
+      expect(text).toBe("Card ending");
+      expect(JSON.stringify(emitted)).not.toContain("4111");
+    });
+
+    it("uses only its own text when a descendant matches a mask selector", (): void => {
+      document.body.innerHTML =
+        "<div id='row'>Balance <span class='private'>84,220.19 GBP</span></div>";
+
+      makeRecorder(SessionReplayMaskingMode.MaskSensitiveInputsOnly, [
+        ".private",
+      ]);
+
+      click(document.getElementById("row") as Element);
+
+      expect(clickPayloads()[0]?.text).toBe("Balance");
+      expect(JSON.stringify(emitted)).not.toContain("84,220");
+    });
+
+    it("uses only its own text when a descendant is a blocked region", (): void => {
+      document.body.innerHTML =
+        "<div id='panel'>Support <div class='oneuptime-block'>ticket for alice.hartwell@example.com</div></div>";
+
+      makeRecorder();
+
+      click(document.getElementById("panel") as Element);
+
+      expect(clickPayloads()[0]?.text).toBe("Support");
+      expect(JSON.stringify(emitted)).not.toContain("alice.hartwell");
+    });
+
+    /*
+     * A <select>'s options ARE its text content, so a wrapper around one
+     * used to ship every option a person could have chosen.
+     */
+    it("uses only its own text when a descendant is a form control", (): void => {
+      document.body.innerHTML =
+        "<label id='pick'>Pay from <select><option>Barclays 4417 (Alice)</option></select></label>";
+
+      makeRecorder();
+
+      click(document.getElementById("pick") as Element);
+
+      expect(clickPayloads()[0]?.text).toBe("Pay from");
+      expect(JSON.stringify(emitted)).not.toContain("4417");
     });
 
     it("caps the label at the shared limit", (): void => {

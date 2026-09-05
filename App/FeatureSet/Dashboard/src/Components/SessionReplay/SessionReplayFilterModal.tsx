@@ -9,6 +9,7 @@ import Dropdown, {
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   EMPTY_ADVANCED_FILTERS,
+  normalizeUrlPrefix,
   SessionReplayAdvancedFilters,
 } from "./SessionReplayListFilters";
 import {
@@ -54,6 +55,19 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
   const [draft, setDraft] = useState<SessionReplayAdvancedFilters>(
     props.filters,
   );
+
+  /*
+   * Applied, not typed: the endpoint compares urlPrefix from the START of
+   * every stored address, so "checkout" would match nothing at all. It is
+   * anchored here rather than only on the wire so the chip above the list
+   * and the search box show what was actually sent.
+   */
+  const applyDraft: () => void = (): void => {
+    props.onApply({
+      ...draft,
+      urlPrefix: normalizeUrlPrefix(draft.urlPrefix),
+    });
+  };
 
   type SetFieldFunction = (
     field: keyof SessionReplayAdvancedFilters,
@@ -126,7 +140,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
           setField(field.field, inputValue);
         }}
         onEnterPress={(): void => {
-          props.onApply(draft);
+          applyDraft();
         }}
       />
     );
@@ -152,7 +166,7 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
       submitButtonText="Apply Filters"
       onClose={props.onClose}
       onSubmit={(): void => {
-        props.onApply(draft);
+        applyDraft();
       }}
       leftFooterElement={
         <Button

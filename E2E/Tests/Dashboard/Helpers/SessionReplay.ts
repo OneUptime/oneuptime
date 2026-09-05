@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import zlib from "zlib";
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Locator, Page, expect } from "@playwright/test";
 import URL from "Common/Types/API/URL";
@@ -157,6 +158,24 @@ export interface SessionReplayChunkOptions {
   /* Override the 15s slot (a chunk that was flushed early or late). */
   chunkStartOffsetMs?: number;
   chunkEndOffsetMs?: number;
+
+  /*
+   * Send the payload gzipped, declaring payloadEncoding "gzip" and the
+   * COMPRESSED length in payloadBytes - exactly what Transport.ts puts on
+   * the wire whenever the browser has CompressionStream, which every
+   * browser the recorder supports does.
+   *
+   * tests-3: nothing else in the repository feeds a real gzip frame to the
+   * real ingest. Transport.test.ts asserts the recorder compresses and
+   * SessionReplayIngestService gunzips whatever it is handed, but the two
+   * halves had never met: a payloadBytes that counted the RAW bytes, or a
+   * server default that read "identity" for a compressed body, would pass
+   * both unit suites and store nothing but garbage in production. Chunk 1
+   * of the journey is posted this way, and the client error the rail
+   * assertion later reads back is inside it - so a broken gunzip fails a
+   * named assertion rather than going unnoticed.
+   */
+  compressPayload?: boolean;
 }
 
 /* What went on the wire, for assertions on the fixture itself. */
@@ -165,6 +184,8 @@ export interface PostedSessionReplayChunk {
   events: Array<Record<string, unknown>>;
   chunkStartOffsetMs: number;
   chunkEndOffsetMs: number;
+  /* "gzip" when the payload was compressed, "identity" otherwise. */
+  payloadEncoding: string;
 }
 
 /*
@@ -347,21 +368,31 @@ export const rageClickEvent: RageClickEventFunction = (data: {
 
 type BuildSessionReplayFrameFunction = (
   envelope: Record<string, unknown>,
-  payload: string,
+  payload: string | Uint8Array,
 ) => Buffer;
 
 /*
  * One frame: `<envelope JSON>\n<payload>`. Exactly Transport.buildBody's
  * layout; kept as a separate function so a contract test can compare the
  * two byte for byte.
+ *
+ * The payload is bytes, not text, because a gzipped payload is not valid
+ * UTF-8 - encoding it as a string would silently replace every byte the
+ * decoder does not recognise and the server would receive a body whose
+ * length no longer matches the envelope's payloadBytes.
  */
 export const buildSessionReplayFrame: BuildSessionReplayFrameFunction = (
   envelope: Record<string, unknown>,
-  payload: string,
+  payload: string | Uint8Array,
 ): Buffer => {
+  const payloadBytes: Uint8Array =
+    typeof payload === "string"
+      ? new Uint8Array(Buffer.from(payload, "utf8"))
+      : payload;
+
   return Buffer.concat([
     new Uint8Array(Buffer.from(`${JSON.stringify(envelope)}\n`, "utf8")),
-    new Uint8Array(Buffer.from(payload, "utf8")),
+    payloadBytes,
   ]);
 };
 
@@ -579,7 +610,19 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
   );
 
   const payload: string = JSON.stringify(events);
-  const payloadBytes: number = Buffer.byteLength(payload, "utf8");
+
+  /*
+   * The bytes that actually go after the newline, and the length the
+   * envelope declares. The parser slices exactly payloadBytes from the
+   * body, so this number is load-bearing rather than advisory: it is the
+   * COMPRESSED length when the frame is gzipped, which is what
+   * Transport.ts declares (`payloadBytes: compressed.bytes.length`).
+   */
+  const payloadBody: Buffer = data.compressPayload
+    ? zlib.gzipSync(Buffer.from(payload, "utf8"))
+    : Buffer.from(payload, "utf8");
+  const payloadEncoding: string = data.compressPayload ? "gzip" : "identity";
+  const payloadBytes: number = payloadBody.length;
 
   const envelope: Record<string, unknown> = {
     v: WIRE_VERSION,
@@ -602,7 +645,7 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
     maskingMode: "MaskSensitiveInputsOnly",
     consentState: "NotRequired",
     triggerReason: "sampled",
-    payloadEncoding: "identity",
+    payloadEncoding: payloadEncoding,
     payloadBytes: payloadBytes,
     url: data.url,
     routes: data.routes ?? [data.url],
@@ -677,7 +720,10 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
     envelope["meta"] = meta;
   }
 
-  const body: Buffer = buildSessionReplayFrame(envelope, payload);
+  const body: Buffer = buildSessionReplayFrame(
+    envelope,
+    new Uint8Array(payloadBody),
+  );
 
   const response: APIResponse = await data.page.request.post(chunkUrl, {
     headers: {
@@ -696,7 +742,7 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
    */
   expect(
     response.status(),
-    `chunk ${data.chunkIndex} refused: ${await response.text()}`,
+    `chunk ${data.chunkIndex} (${payloadEncoding}) refused: ${await response.text()}`,
   ).toBe(202);
 
   return {
@@ -704,6 +750,7 @@ export const postSessionReplayChunk: PostSessionReplayChunkFunction = async (
     events: events,
     chunkStartOffsetMs: chunkStartOffsetMs,
     chunkEndOffsetMs: chunkEndOffsetMs,
+    payloadEncoding: payloadEncoding,
   };
 };
 

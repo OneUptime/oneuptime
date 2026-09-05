@@ -14,7 +14,9 @@ import {
   REPLAY_PANEL_DEFAULT_WIDTH_CLASS,
   REPLAY_PANEL_WIDE_WIDTH_CLASS,
   REPLAY_SESSION_WINDOW_PADDING_MS,
+  ReplayExceptionGroupLink,
   ReplayFingerprintLink,
+  buildReplayExceptionGroupLinks,
   buildReplayFingerprintLinks,
   buildReplayLogsAtMomentQueryParams,
   buildReplayLogsAtMomentRoute,
@@ -587,9 +589,21 @@ describe("replay correlation panel wiring", () => {
   });
 
   test("fingerprints link out through the shared exceptions group route", () => {
-    expect(panelSource).toContain("buildReplayFingerprintLinks(");
+    expect(panelSource).toContain("buildReplayExceptionGroupLinks({");
     expect(panelSource).toContain("PageMap.EXCEPTIONS_UNRESOLVED");
+    expect(panelSource).toContain("PageMap.EXCEPTIONS_VIEW");
     expect(panelSource).toContain("to={link.route}");
+    /* correlation-7: the label is the error, never the raw hash. */
+    expect(panelSource).toContain("{link.label}");
+  });
+
+  test("the exception groups are resolved in one batched lookup", () => {
+    expect(panelSource).toContain("new Includes(fingerprints)");
+    expect(panelSource).toContain("indexExceptionGroupsByFingerprint(");
+    /* Injectable, so the panel renders without a server. */
+    expect(panelSource).toContain(
+      "resolveExceptionGroups || fetchExceptionGroupsByFingerprint",
+    );
   });
 
   test("the sub-second formatters and enum labels are what the panel renders", () => {
@@ -607,5 +621,83 @@ describe("replay correlation panel wiring", () => {
     expect(panelSource).toContain(
       "widthClassName={getReplayPanelWidthClassName(activeTabId)}",
     );
+  });
+});
+
+/*
+ * correlation-7: the details panel used to render a bare fingerprint hash
+ * linked to a filtered list. With the group rows resolved it reads as the
+ * error and goes straight to it; without them it still links.
+ */
+describe("buildReplayExceptionGroupLinks", () => {
+  function listRoute(): Route {
+    return new Route("/dashboard/project-1/exceptions/unresolved");
+  }
+
+  function viewRoute(id: string): Route {
+    return new Route(`/dashboard/project-1/exceptions/${id}`);
+  }
+
+  test("titles a resolved group with its error and links directly to it", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["abc123"],
+        groups: new Map([
+          [
+            "abc123",
+            {
+              id: "exc-1",
+              fingerprint: "abc123",
+              exceptionType: "TypeError",
+              message: "x is not a function",
+            },
+          ],
+        ]),
+        exceptionsListRoute: listRoute(),
+        exceptionViewRouteForId: viewRoute,
+      });
+
+    expect(links).toHaveLength(1);
+    expect(links[0]!.label).toBe("TypeError: x is not a function");
+    expect(links[0]!.isDirect).toBe(true);
+    expect(links[0]!.route?.toString()).toBe(
+      "/dashboard/project-1/exceptions/exc-1",
+    );
+  });
+
+  test("an unresolved fingerprint keeps the filtered-list link and a short label", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["0123456789abcdef"],
+        exceptionsListRoute: listRoute(),
+        exceptionViewRouteForId: viewRoute,
+      });
+
+    expect(links[0]!.isDirect).toBe(false);
+    expect(links[0]!.label).toBe("Error 0123456789ab…");
+    expect(links[0]!.route?.toString()).toContain("%40fingerprint%3A");
+  });
+
+  test("trims, dedupes in first-appearance order and drops blanks", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["b", " ", "a", "b", "  a  ", ""],
+        exceptionsListRoute: listRoute(),
+      });
+
+    expect(
+      links.map((link: ReplayExceptionGroupLink): string => {
+        return link.fingerprint;
+      }),
+    ).toEqual(["b", "a"]);
+  });
+
+  test("no fingerprints is no links, not a throw", () => {
+    expect(
+      buildReplayExceptionGroupLinks({
+        fingerprints: null,
+        exceptionsListRoute: listRoute(),
+      }),
+    ).toEqual([]);
   });
 });

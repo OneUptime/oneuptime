@@ -61,6 +61,7 @@ import SessionReplayTable, {
   SessionReplaySummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayTable";
 import { clearSessionReplayHealthStore } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
+import { readReplayListUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayViewPrefs";
 import { SESSION_REPLAY_SEARCH_DEBOUNCE_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplaySearchBar";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
@@ -172,10 +173,15 @@ function wireRow(overrides?: JSONObject): JSONObject {
 function listResponse(
   sessions: Array<JSONObject>,
   nextCursor: JSONObject | null = null,
+  ignoredFilters?: Array<string>,
 ): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(
     200,
-    { sessions: sessions, nextCursor: nextCursor },
+    {
+      sessions: sessions,
+      nextCursor: nextCursor,
+      ...(ignoredFilters ? { ignoredFilters: ignoredFilters } : {}),
+    },
     {},
   );
 }
@@ -565,6 +571,43 @@ describe("SessionReplayTable navigation", () => {
     ).toContain("/");
   });
 
+  /*
+   * integration-002: the stamp is read back by the player's "Sessions"
+   * link through readReplayListUrl, which hands the value straight to the
+   * router and therefore refuses anything that is not a same-origin path.
+   * An absolute stamp was silently dropped and the back link landed on the
+   * unfiltered first page, so the round trip is pinned across both modules.
+   */
+  it("the stamped list URL survives the player's reader, filters and all", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByText("Errors"));
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("signal=errors");
+    });
+
+    const stamped: string | null = window.sessionStorage.getItem(
+      SESSION_REPLAY_LIST_URL_STORAGE_KEY,
+    );
+
+    expect(stamped).not.toBeNull();
+    expect(stamped?.startsWith("/")).toBe(true);
+    expect(stamped).toContain("signal=errors");
+    expect(readReplayListUrl(window.sessionStorage)).toBe(stamped);
+
+    /* And the same after the row navigation re-stamps on the way out. */
+    fireEvent.click((await waitForRows(1))[0] as HTMLElement);
+
+    expect(readReplayListUrl(window.sessionStorage)).toContain("signal=errors");
+  });
+
   it("Cmd-click on the row opens a new tab", async () => {
     mockApi(() => {
       return listResponse([wireRow()]);
@@ -738,14 +781,57 @@ describe("SessionReplayTable search, sort and paging", () => {
   });
 });
 
+describe("SessionReplayTable filter modal", () => {
+  /*
+   * ux-03: the modal writes urlPrefix straight from a text input and the
+   * endpoint matches it from the start of each stored address, so an
+   * un-anchored value is a filter that can only ever return nothing. It is
+   * anchored on apply, and the chip shows what was actually sent.
+   */
+  it("anchors an un-anchored URL prefix on apply, and chips what was sent", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("session-open-filters"));
+    fireEvent.change(screen.getByTestId("session-filter-urlPrefix"), {
+      target: { value: "checkout" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      urlPrefix: "/checkout",
+    });
+
+    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
+
+    expect(chip).toHaveTextContent("/checkout");
+  });
+});
+
 describe("SessionReplayTable honesty", () => {
-  it("an ignored user filter is called out, never chipped", async () => {
+  /*
+   * server-3: the drop is the SERVER's fact, reported in ignoredFilters.
+   * The old row-shape heuristic could not see it when the ignored filter
+   * matched nothing - which is exactly the case the viewer needs told.
+   */
+  it("an ignored user filter is called out from the server's ignoredFilters, never chipped", async () => {
     const hidden: JSONObject = wireRow();
 
     delete hidden["identifiedUserLabel"];
 
-    mockApi(() => {
-      return listResponse([hidden]);
+    mockApi((_data: JSONObject, index: number) => {
+      return index === 0
+        ? listResponse([hidden])
+        : listResponse([hidden], null, ["identifiedUserRef"]);
     });
 
     renderTable();
@@ -772,6 +858,65 @@ describe("SessionReplayTable honesty", () => {
     });
     /* And the reference never reached the address bar. */
     expect(window.location.search).not.toContain("jane");
+  });
+
+  it("the notice still fires when the ignored filter matched nothing", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      return index === 0
+        ? listResponse([wireRow()])
+        : listResponse([], null, ["identifiedUserRef"]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.change(screen.getByTestId("session-search-input"), {
+      target: { value: "user:ghost@acme.com" },
+    });
+    fireEvent.keyDown(screen.getByTestId("session-search-input"), {
+      key: "Enter",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("identity-filter-ignored")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("identity-filter-ignored")).toHaveTextContent(
+      "ghost@acme.com",
+    );
+  });
+
+  it("rows without the identity column alone never claim the filter was dropped", async () => {
+    const hidden: JSONObject = wireRow();
+
+    delete hidden["identifiedUserLabel"];
+
+    /* No ignoredFilters: the server applied the filter and answered. */
+    mockApi(() => {
+      return listResponse([hidden]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.change(screen.getByTestId("session-search-input"), {
+      target: { value: "user:jane@acme.com" },
+    });
+    fireEvent.keyDown(screen.getByTestId("session-search-input"), {
+      key: "Enter",
+    });
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-row").length).toBe(1);
+    });
+
+    expect(screen.queryByTestId("identity-filter-ignored")).toBeNull();
   });
 
   it("the 30-day search cap reads as its fix, not as 'no sessions'", async () => {

@@ -17,6 +17,7 @@ import {
   alignmentLabelFor,
 } from "./ReplayClockAlignment";
 import {
+  ParsedReplaySignalId,
   ReplaySignal,
   ReplaySignalKind,
   ReplaySignalSeverity,
@@ -24,6 +25,7 @@ import {
   makeExceptionSignalId,
   makeLogSignalId,
   makeSpanSignalId,
+  parseReplaySignalId,
 } from "./ReplaySignalTypes";
 
 /*
@@ -88,8 +90,20 @@ export type ReplayNetworkSignalDetail = {
   initiator: "fetch" | "xhr" | null;
   traceId: string | null;
   isError: boolean;
-  /* status 0: aborted, offline, CORS-blocked - the browser never got a reply. */
+  /*
+   * status 0 and the page did NOT cancel it: offline, DNS, CORS-blocked -
+   * the browser never got a reply. An abort is status 0 too, which is why
+   * `aborted` is read first; see the recorder's own note that "an aborted
+   * request is NOT an error".
+   */
   failedBeforeResponse: boolean;
+  /* The page cancelled it (AbortController, xhr.abort(), navigating away). */
+  aborted: boolean;
+  /*
+   * The one entry the recorder emits at its per-session request cap, with
+   * no method or url: capture stopped here, later requests are missing.
+   */
+  isCapMarker: boolean;
   isSlow: boolean;
   atUnixMs: number | null;
 };
@@ -110,7 +124,12 @@ export type ReplayNavigationSignalDetail = {
 };
 
 export type ReplayClientErrorSignalDetail = {
-  kind: SessionReplayErrorKind | "unknown";
+  /*
+   * "resource" is a subresource that failed to load (<img>, <script>).
+   * The recorder deliberately keeps those out of its trigger counts, so
+   * the rail keeps them out of the error lane and Next-error too.
+   */
+  kind: SessionReplayErrorKind | "resource" | "unknown";
   message: string;
   source: string | null;
   lineNumber: number | null;
@@ -118,6 +137,13 @@ export type ReplayClientErrorSignalDetail = {
   stack: string | null;
   /* "app.js:12:5" when the recorder captured a location. */
   location: string | null;
+  /* Resource failures only: the element that failed, lower-case. */
+  tagName: string | null;
+  /* A repeat marker for an error already recorded, with its running count. */
+  isRepeat: boolean;
+  occurrences: number | null;
+  /* The single entry marking where error capture stopped for this session. */
+  isCapMarker: boolean;
   atUnixMs: number | null;
 };
 
@@ -351,10 +377,48 @@ function baseSignal(
 
 /* ---- Recording adapters. ---- */
 
+/*
+ * Fields the recorder puts on its network and error payloads that the
+ * shared ReplayTimelineEvent interface does not declare yet:
+ *
+ *   network: aborted, isCapMarker      (NetworkRecorder)
+ *   error:   errorKind "resource", tagName, isRepeat, occurrences,
+ *            isCapMarker               (ErrorRecorder)
+ *
+ * They are read defensively rather than typed, so the adapters are
+ * correct the moment ChunkLoader.extractTimelineEvents copies them onto
+ * the row (requested; the loader is another package's file). Until then
+ * every reader below simply sees "absent", which is the old behaviour for
+ * recordings that never sent them at all.
+ */
+function readEventFlag(event: ReplayTimelineEvent, name: string): boolean {
+  return (event as unknown as Record<string, unknown>)[name] === true;
+}
+
+function readEventNumber(
+  event: ReplayTimelineEvent,
+  name: string,
+): number | null {
+  return numberOrNull((event as unknown as Record<string, unknown>)[name]);
+}
+
+function readEventString(
+  event: ReplayTimelineEvent,
+  name: string,
+): string | null {
+  return stringOrNull((event as unknown as Record<string, unknown>)[name]);
+}
+
+/* An aborted request is not a failed one; it never grades as an error. */
 export function networkSeverity(
   status: number | undefined,
   isError: boolean | undefined,
+  aborted?: boolean | undefined,
 ): ReplaySignalSeverity {
+  if (aborted === true) {
+    return "info";
+  }
+
   if (status === 0 || status === undefined || status === null) {
     return "error";
   }
@@ -398,6 +462,14 @@ function consoleSignal(
   return signal;
 }
 
+/*
+ * The recorder stops recording requests after this many in one session
+ * (BrowserRecorder's MAX_REQUESTS_RECORDED - a separate bundle, so the
+ * number is quoted here rather than imported, and the cap marker row is
+ * the only place it is shown).
+ */
+export const REPLAY_NETWORK_CAPTURE_CAP: number = 500;
+
 function networkSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
@@ -406,14 +478,59 @@ function networkSignal(
   const url: string = event.url || "";
   const status: number = isFiniteNumber(event.status) ? event.status : 0;
   const { origin, path } = splitSignalUrl(url);
-  const failedBeforeResponse: boolean = status === 0;
+  const aborted: boolean = readEventFlag(event, "aborted");
+  const isCapMarker: boolean = readEventFlag(event, "isCapMarker");
+  /* An abort IS status 0, so it is subtracted here rather than added. */
+  const failedBeforeResponse: boolean =
+    status === 0 && !aborted && !isCapMarker;
   const durationMs: number | null = numberOrNull(event.durationMs);
   const responseBytes: number | null = numberOrNull(event.responseBytes);
-  const statusWord: string = failedBeforeResponse ? "failed" : String(status);
+  const statusWord: string = aborted
+    ? "cancelled"
+    : failedBeforeResponse
+      ? "failed"
+      : String(status);
+
+  /*
+   * The cap marker carries no method and no url. Rendered as a request it
+   * read "GET failed " with an empty path - a phantom failure at the exact
+   * moment the viewer most needs to know that capture STOPPED.
+   */
+  if (isCapMarker) {
+    const capSignal: ReplaySignal = baseSignal(
+      event,
+      "network",
+      "info",
+      `Network capture stopped after ${REPLAY_NETWORK_CAPTURE_CAP} requests`,
+    );
+
+    capSignal.subtitle = "later requests were not recorded";
+    capSignal.detail = {
+      method: "",
+      url: "",
+      origin: "",
+      path: "",
+      status: 0,
+      durationMs: null,
+      responseBytes: null,
+      requestBytes: null,
+      initiator: null,
+      traceId: null,
+      isError: false,
+      failedBeforeResponse: false,
+      aborted: false,
+      isCapMarker: true,
+      isSlow: false,
+      atUnixMs: wallClockFor(event, ctx),
+    } as ReplayNetworkSignalDetail;
+
+    return capSignal;
+  }
+
   const signal: ReplaySignal = baseSignal(
     event,
     "network",
-    networkSeverity(status, event.isError),
+    networkSeverity(status, event.isError, aborted),
     toTitle(`${method} ${statusWord} ${path || url}`),
   );
 
@@ -446,8 +563,17 @@ function networkSignal(
     requestBytes: numberOrNull(event.requestBytes),
     initiator: event.initiator || null,
     traceId: event.traceId || null,
-    isError: event.isError === true || failedBeforeResponse || status >= 400,
+    /*
+     * A cancelled request is never a failure: the timeline's network lane
+     * colours from isError, and painting every type-ahead abort rose is
+     * how a healthy SPA looked broken.
+     */
+    isError:
+      !aborted &&
+      (event.isError === true || failedBeforeResponse || status >= 400),
     failedBeforeResponse: failedBeforeResponse,
+    aborted: aborted,
+    isCapMarker: false,
     isSlow: durationMs !== null && durationMs > REPLAY_SLOW_REQUEST_MS,
     atUnixMs: wallClockFor(event, ctx),
   };
@@ -498,9 +624,13 @@ function navigationSignal(
   return signal;
 }
 
-const ERROR_KIND_LABELS: Record<SessionReplayErrorKind | "unknown", string> = {
+const ERROR_KIND_LABELS: Record<
+  SessionReplayErrorKind | "resource" | "unknown",
+  string
+> = {
   error: "uncaught error",
   unhandledrejection: "unhandled rejection",
+  resource: "resource failed to load",
   unknown: "error",
 };
 
@@ -523,23 +653,92 @@ function errorLocation(event: ReplayTimelineEvent): string | null {
   return file;
 }
 
+/*
+ * Which error rows are real client errors - what the Errors lane, the
+ * error marker ticks and E / Shift+E step through. A subresource that
+ * failed to load, a repeat marker's "this threw again" notice and the
+ * "capture stopped" marker are all real rows, but none of them is a new
+ * uncaught error, and the recorder itself excludes resource failures from
+ * its trigger counts.
+ */
+export function isSteppableClientError(signal: ReplaySignal): boolean {
+  if (signal.kind !== "client-error") {
+    return false;
+  }
+
+  const detail: ReplayClientErrorSignalDetail =
+    signal.detail as ReplayClientErrorSignalDetail;
+
+  return (
+    detail.kind !== "resource" &&
+    detail.isCapMarker !== true &&
+    detail.isRepeat !== true
+  );
+}
+
 function clientErrorSignal(
   event: ReplayTimelineEvent,
   ctx: ReplayRecordingSignalContext,
 ): ReplaySignal {
-  const kind: SessionReplayErrorKind | "unknown" = event.errorKind || "unknown";
+  const rawKind: string | null = readEventString(event, "errorKind");
+  const kind: SessionReplayErrorKind | "resource" | "unknown" =
+    rawKind === "resource" ? "resource" : event.errorKind || "unknown";
   const message: string = event.message || "";
   const location: string | null = errorLocation(event);
+  const tagName: string | null = readEventString(event, "tagName");
+  const isRepeat: boolean = readEventFlag(event, "isRepeat");
+  const isCapMarker: boolean = readEventFlag(event, "isCapMarker");
+  const occurrences: number | null = readEventNumber(event, "occurrences");
+  const isResource: boolean = kind === "resource";
+
+  /*
+   * A resource failure is a warning, not an uncaught error; the cap
+   * marker is a notice about the recorder. Only a real error is graded
+   * "error", which is what puts a row in the Errors lane.
+   */
+  const severity: ReplaySignalSeverity =
+    isResource || isCapMarker ? "warn" : "error";
+
+  let title: string = toTitle(message) || ERROR_KIND_LABELS[kind];
+
+  if (isResource) {
+    /*
+     * The recorder's message already reads "Resource failed to load:
+     * <img>"; the element's URL is what tells the viewer WHICH one.
+     */
+    const resourcePath: string | null = event.source
+      ? splitSignalUrl(event.source).path || event.source
+      : null;
+
+    title = toTitle(resourcePath ? `${message} ${resourcePath}` : message);
+  }
+
   const signal: ReplaySignal = baseSignal(
     event,
     "client-error",
-    "error",
-    toTitle(message) || ERROR_KIND_LABELS[kind],
+    severity,
+    title,
   );
 
-  signal.subtitle = location
-    ? `${ERROR_KIND_LABELS[kind]} · ${location}`
-    : ERROR_KIND_LABELS[kind];
+  const subtitleParts: Array<string> = [];
+
+  if (isCapMarker) {
+    subtitleParts.push("recorder cap");
+  } else {
+    subtitleParts.push(ERROR_KIND_LABELS[kind]);
+
+    if (location && !isResource) {
+      subtitleParts.push(location);
+    }
+
+    if (isRepeat) {
+      subtitleParts.push(
+        occurrences !== null ? `seen ${occurrences} times` : "seen again",
+      );
+    }
+  }
+
+  signal.subtitle = subtitleParts.join(" · ");
 
   const detail: ReplayClientErrorSignalDetail = {
     kind: kind,
@@ -549,6 +748,10 @@ function clientErrorSignal(
     columnNumber: numberOrNull(event.columnNumber),
     stack: stringOrNull(event.stack),
     location: location,
+    tagName: tagName,
+    isRepeat: isRepeat,
+    occurrences: occurrences,
+    isCapMarker: isCapMarker,
     atUnixMs: wallClockFor(event, ctx),
   };
 
@@ -648,11 +851,54 @@ function clickSignal(
   return signal;
 }
 
-const BUDGET_KIND_LABELS: Record<SessionReplayPerformanceBudgetKind, string> = {
+/*
+ * Kebab-case library values never reach the screen: "long-task" is a wire
+ * value, "Long task" is what a person reads. Exported so the row title
+ * and the inline detail quote the same words.
+ */
+export const REPLAY_BUDGET_KIND_LABELS: Record<
+  SessionReplayPerformanceBudgetKind,
+  string
+> = {
   lcp: "LCP",
   "long-task": "Long task",
   "slow-request": "Slow request",
 };
+
+export const REPLAY_VITAL_RATING_LABELS: Record<
+  SessionReplayWebVitalRating,
+  string
+> = {
+  good: "good",
+  "needs-improvement": "needs improvement",
+  poor: "poor",
+};
+
+/* The web-vital rating in words; "" when the vital carried no rating. */
+export function formatVitalRating(
+  rating: SessionReplayWebVitalRating | null | undefined,
+): string {
+  return rating ? REPLAY_VITAL_RATING_LABELS[rating] || rating : "";
+}
+
+/* What a performance row measures, in words. */
+export function formatPerformanceMeasure(
+  detail: ReplayPerformanceSignalDetail,
+): string {
+  if (detail.metric) {
+    return detail.metric.toUpperCase();
+  }
+
+  if (detail.kind === "web-vital") {
+    return "Web vital";
+  }
+
+  if (detail.kind === "unknown") {
+    return "Performance";
+  }
+
+  return REPLAY_BUDGET_KIND_LABELS[detail.kind] || "Performance";
+}
 
 function formatVitalValue(
   metric: SessionReplayWebVitalMetric | null,
@@ -688,7 +934,7 @@ function performanceSignal(
     title = [
       metric || "Web vital",
       value !== null ? formatVitalValue(metric, value) : "",
-      rating || "",
+      formatVitalRating(rating),
     ]
       .filter((part: string): boolean => {
         return part.length > 0;
@@ -707,7 +953,7 @@ function performanceSignal(
     const label: string =
       performanceKind === "unknown"
         ? "Performance"
-        : BUDGET_KIND_LABELS[performanceKind];
+        : REPLAY_BUDGET_KIND_LABELS[performanceKind];
     const durationMs: number | null = numberOrNull(event.durationMs);
     const budgetMs: number | null = numberOrNull(event.budgetMs);
 
@@ -1501,6 +1747,77 @@ export function isSignalActiveAt(
 
 /* ---- Cross-references between rows. ---- */
 
+/*
+ * A row addressed by a signal id, and the moment that id points at.
+ * offsetMs differs from the row's own offset only when the id addressed
+ * something INSIDE the row - a child span of a trace row.
+ */
+export interface ReplaySignalMatch {
+  signal: ReplaySignal;
+  offsetMs: number;
+}
+
+/*
+ * Resolve a ?signal= id (or a cross-link's id) against the rows the rail
+ * has, by id first and then by containment.
+ *
+ * Containment matters for spans: a "view the session at this span"
+ * cross-link carries the id of the span that was CLICKED, while the
+ * Traces tab has one row per trace keyed by its ROOT span. Matching only
+ * by row id meant ?signal=span:<child> selected nothing at all, so the
+ * link looked broken (integration-003). The row that owns the span is the
+ * honest answer, and the moment is that span's own start.
+ */
+export function findSignalMatch(
+  signals: Array<ReplaySignal>,
+  signalId: string,
+): ReplaySignalMatch | null {
+  if (typeof signalId !== "string" || signalId.length === 0) {
+    return null;
+  }
+
+  const exact: ReplaySignal | undefined = signals.find(
+    (candidate: ReplaySignal): boolean => {
+      return candidate.id === signalId;
+    },
+  );
+
+  if (exact) {
+    return { signal: exact, offsetMs: exact.offsetMs };
+  }
+
+  const parsed: ParsedReplaySignalId | null = parseReplaySignalId(signalId);
+
+  if (!parsed || parsed.source !== "span") {
+    return null;
+  }
+
+  for (const signal of signals) {
+    if (signal.kind !== "span") {
+      continue;
+    }
+
+    const detail: ReplaySpanSignalDetail =
+      signal.detail as ReplaySpanSignalDetail;
+    const member: ReplayTraceWaterfallSpan | undefined = (
+      detail.spans || []
+    ).find((span: ReplayTraceWaterfallSpan): boolean => {
+      return span.spanId === parsed.id;
+    });
+
+    if (member) {
+      return {
+        signal: signal,
+        offsetMs: Number.isFinite(member.sessionOffsetMs)
+          ? member.sessionOffsetMs
+          : signal.offsetMs,
+      };
+    }
+  }
+
+  return null;
+}
+
 /* traceId -> the trace row, for "Backend for this request". */
 export function indexTraceSignalsByTraceId(
   signals: Array<ReplaySignal>,
@@ -1560,10 +1877,14 @@ export function pairClientAndServerErrors(
   signals: Array<ReplaySignal>,
   windowMs: number = REPLAY_ERROR_PAIRING_WINDOW_MS,
 ): Array<ReplayErrorPair> {
+  /*
+   * Only real client errors pair. A 404 image, a repeat marker or the
+   * "capture stopped" notice has nothing a server exception can be the
+   * other half of, and pairing one would put a bogus "also reported
+   * server-side" jump on it.
+   */
   const clientErrors: Array<ReplaySignal> = signals.filter(
-    (signal: ReplaySignal): boolean => {
-      return signal.kind === "client-error";
-    },
+    isSteppableClientError,
   );
   const serverErrors: Array<ReplaySignal> = signals.filter(
     (signal: ReplaySignal): boolean => {
@@ -1665,7 +1986,8 @@ export function findErrorAfterInteraction(
   let best: ReplaySignal | null = null;
 
   for (const signal of signals) {
-    if (signal.kind !== "client-error") {
+    /* "error 400ms after this click" means a real error, not a 404 image. */
+    if (!isSteppableClientError(signal)) {
       continue;
     }
 

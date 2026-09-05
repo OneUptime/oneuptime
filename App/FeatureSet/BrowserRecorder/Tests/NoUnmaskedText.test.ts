@@ -64,6 +64,16 @@ const SNAPSHOT_ATTRIBUTE_SECRETS: Record<string, string> = {
   mailto: "mailto:alice.hartwell@example.com",
   dataNote: "Delivered to 14 Marlborough Terrace",
   optionValue: "barclays-4417-alice",
+
+  /*
+   * The two rrweb never masks and nothing else covered: a submit input's
+   * value is skipped by rrweb-snapshot's maskInputValue (it is a button
+   * label, not typed input), and a meta tag has no text node for maskTextFn
+   * to see - while server-rendered apps put the signed-in person straight
+   * into one.
+   */
+  submitValue: "Continue as alice.hartwell@example.com",
+  metaContent: "Invoices for Alice Hartwell, balance 84,220.19",
 };
 
 const INIT_OPTIONS: RecorderInitOptions = {
@@ -366,6 +376,8 @@ describe("no unmasked page text reaches the wire", (): void => {
       <input id="d" type="text" placeholder="${SNAPSHOT_ATTRIBUTE_SECRETS["placeholder"]}" />
       <div id="e" data-state="open" data-note="${SNAPSHOT_ATTRIBUTE_SECRETS["dataNote"]}">x</div>
       <select id="f"><option value="${SNAPSHOT_ATTRIBUTE_SECRETS["optionValue"]}">x</option></select>
+      <input id="g" type="submit" value="${SNAPSHOT_ATTRIBUTE_SECRETS["submitValue"]}" />
+      <meta name="description" content="${SNAPSHOT_ATTRIBUTE_SECRETS["metaContent"]}" />
     `;
 
     const masking: Masking = new Masking(
@@ -426,6 +438,69 @@ describe("no unmasked page text reaches the wire", (): void => {
     expect(after).toContain("/portrait.png?sig=structural");
     expect(after).toContain('"data-state":"open"');
     expect(after).toContain('"id":"e"');
+  });
+
+  /*
+   * REGRESSION (privacy-1), through the REAL recorder in the DEFAULT masking
+   * mode - the one where page text is recorded by policy and a blocked
+   * region is the customer's statement that this part is not.
+   *
+   * rrweb never serialises inside blockSelectors, but the click label was
+   * built from target.textContent with no reference to the block controls at
+   * all, so one click inside a support-chat widget or a medical pane put the
+   * first 40 characters of it on the wire - where the rail renders it
+   * verbatim to every viewer who can read the payload.
+   */
+  it("never posts the text of a blocked region as a click label", async (): Promise<void> => {
+    const blockedSecret: string = "Repeat prescription sertraline 50mg";
+    const cardSecret: string = "4111 1111 1111 1111";
+
+    document.body.innerHTML = `
+      <section class="medical"><button id="rx">${blockedSecret}</button></section>
+      <div id="card">Card ending <span class="oneuptime-mask">${cardSecret}</span></div>
+    `;
+
+    const instance: Recorder = new Recorder({
+      initOptions: INIT_OPTIONS,
+      config: {
+        ...maskAllTextConfig(),
+
+        /* Text is recorded in this mode; only the block/mask rules protect it. */
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        blockSelectors: [".medical"],
+      },
+    });
+
+    instance.start();
+    recorder = instance;
+
+    (document.getElementById("rx") as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+    );
+    (document.getElementById("card") as HTMLElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 6, clientY: 6 }),
+    );
+
+    instance.trigger(SessionReplayTriggerReason.Manual);
+
+    await flushUploads();
+
+    const hide: Event = new Event("pagehide");
+    Object.defineProperty(hide, "persisted", { value: false });
+    window.dispatchEvent(hide);
+
+    await flushUploads();
+
+    const posted: string = allPostedBytes();
+
+    /* Positive control: the clicks really were recorded. */
+    expect(posted).toContain("oneuptime.click");
+    expect(posted).toContain("Card ending");
+
+    expect(posted).not.toContain(blockedSecret);
+    expect(posted).not.toContain("sertraline");
+    expect(posted).not.toContain(cardSecret);
+    expect(posted).not.toContain("4111");
   });
 
   /*

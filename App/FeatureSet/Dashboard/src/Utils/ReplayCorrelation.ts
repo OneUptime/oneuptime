@@ -10,6 +10,11 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import { buildExceptionsGroupRoute } from "./TraceCorrelatedSignals";
+import {
+  ExceptionGroupSummary,
+  buildExceptionGroupLink,
+  getExceptionGroupLabel,
+} from "./ExceptionCorrelation";
 
 /*
  * Pure helpers behind the session replay rail's backend tabs (Logs / Traces /
@@ -339,6 +344,77 @@ export const buildReplayFingerprintLinks: BuildReplayFingerprintLinksFunction =
 
     return links;
   };
+
+/*
+ * The same list, resolved: one entry per correlated exception group with a
+ * READABLE label (correlation-7). A session header carries bare
+ * fingerprints, and rendering a hash told the viewer nothing about what
+ * broke; when the group rows have been looked up the entry links straight
+ * to the exception and is titled "TypeError: x is not a function", and
+ * when they have not it degrades to the fingerprint-filtered list and the
+ * short-hash label rather than disappearing.
+ */
+export interface ReplayExceptionGroupLink {
+  fingerprint: string;
+  route: Route | null;
+  label: string;
+  /* True when the link opens the exception itself, not a filtered list. */
+  isDirect: boolean;
+}
+
+export interface BuildReplayExceptionGroupLinksArgs {
+  fingerprints: Array<string> | null | undefined;
+  /* Resolved group rows by fingerprint; absent until the lookup lands. */
+  groups?: Map<string, ExceptionGroupSummary> | null | undefined;
+  exceptionsListRoute: Route;
+  exceptionViewRouteForId?: ((id: string) => Route) | undefined;
+}
+
+export function buildReplayExceptionGroupLinks(
+  args: BuildReplayExceptionGroupLinksArgs,
+): Array<ReplayExceptionGroupLink> {
+  const links: Array<ReplayExceptionGroupLink> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const raw of args.fingerprints || []) {
+    const fingerprint: string = (raw || "").trim();
+
+    if (fingerprint.length === 0 || seen.has(fingerprint)) {
+      continue;
+    }
+
+    seen.add(fingerprint);
+
+    const group: ExceptionGroupSummary | undefined = args.groups
+      ? args.groups.get(fingerprint)
+      : undefined;
+    const built: ReturnType<typeof buildExceptionGroupLink> =
+      buildExceptionGroupLink({
+        fingerprint: fingerprint,
+        group: group,
+        exceptionsListRoute: args.exceptionsListRoute,
+        exceptionViewRouteForId: args.exceptionViewRouteForId,
+      });
+
+    links.push(
+      built
+        ? {
+            fingerprint: fingerprint,
+            route: built.route,
+            label: built.label,
+            isDirect: built.isDirect,
+          }
+        : {
+            fingerprint: fingerprint,
+            route: null,
+            label: getExceptionGroupLabel(group, fingerprint),
+            isDirect: false,
+          },
+    );
+  }
+
+  return links;
+}
 
 /*
  * A millisecond quantity for the details panel: "420 ms" below a second,

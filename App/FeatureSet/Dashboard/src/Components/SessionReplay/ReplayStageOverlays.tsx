@@ -230,7 +230,7 @@ function describeAbsence(
         title: "Footage expired",
         description: `The recording expired ${retention}${
           expiredOn ? ` on ${expiredOn}` : ""
-        }. The session's signals are still here: logs, traces and errors load in the rail, and the session facts are in Details.`,
+        }. Its logs, traces and exceptions follow the telemetry retention, not the recording's, so they still load in the rail; the session facts are in Details.`,
         phaseWord: "expired",
       };
     }
@@ -630,6 +630,25 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           : "idle"}
       </div>
     );
+  } else if (phase === "ended" && props.isLive) {
+    /*
+     * ux-07: a LIVE session that reaches the edge of what has been
+     * uploaded has not ended - the next chunk is still being recorded.
+     * Offering "Watch again" there told the viewer the opposite of what
+     * the Live pill beside it said, and rewound a recording they were
+     * following. The honest state is the wait, with its cadence.
+     */
+    centreOverlay = (
+      <div
+        data-testid="replay-overlay-live-caught-up"
+        role="status"
+        className={PILL_CLASS}
+      >
+        <span className="h-2 w-2 animate-pulse rounded-full bg-red-400" />
+        Caught up with the live recording - waiting for the next chunk (checked
+        every 30 seconds)
+      </div>
+    );
   } else if (phase === "ended") {
     centreOverlay = (
       <div
@@ -848,12 +867,6 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             >
               <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
               {props.shellNotice}
-            </span>
-          )}
-
-          {props.isLive && phase === "ended" && (
-            <span role="status" className={PILL_CLASS}>
-              Caught up with the live recording
             </span>
           )}
         </div>

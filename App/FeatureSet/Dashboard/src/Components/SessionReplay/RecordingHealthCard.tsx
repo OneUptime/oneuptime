@@ -341,19 +341,35 @@ function buildFacts(
         : "The build the /config route hands out to new page loads.",
   });
 
+  /*
+   * docs-and-design-fidelity-3: this row is what the docs send an operator
+   * to when a visitor is stuck on a stale cached artifact, so its null copy
+   * has to name WHICH silence it is looking at. "unknown" for both causes
+   * read as a bug on every application that had simply never recorded.
+   */
+  const hasEverRecorded: boolean = status.lastChunkReceivedAt !== null;
+
   facts.push({
     key: "capabilities",
     label: "Recorder capabilities (newest session)",
     value:
       recorderCapabilities === null
-        ? "unknown"
+        ? hasEverRecorded
+          ? "not reported"
+          : "not reported yet"
         : recorderCapabilities.length === 0
-          ? "none reported"
+          ? "none announced"
           : recorderCapabilities.join(", "),
     hint:
       recorderCapabilities === null
-        ? "Reported by the first chunk of a session recorded by a recorder that announces its features; older recorders never send this."
-        : "A cached older recorder refreshes within its cache window.",
+        ? hasEverRecorded
+          ? `Capabilities are announced on a session's first chunk, and nothing announced them here: the newest recording was taken by an artifact older than the one that reports them${
+              status.publishedRecorderVersion === null
+                ? ""
+                : ` (this deployment publishes ${status.publishedRecorderVersion})`
+            }. A browser holding a cached artifact refreshes within its cache window.`
+          : "Announced on a session's first chunk. No chunk has arrived for this application yet, so there is no recorder to read them from."
+        : "Read from the newest session's first chunk. A browser holding an older cached artifact refreshes within its cache window; until then its sessions lack the features missing here.",
   });
 
   return facts;

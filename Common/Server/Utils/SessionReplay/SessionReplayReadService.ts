@@ -242,6 +242,11 @@ export interface SessionReplayListItem {
   routes: Array<string>;
   traceCount: number;
   exceptionGroupCount: number;
+  /*
+   * The first exception fingerprint of the session, "" when there is none.
+   * The list's errors badge links at the exception group with it.
+   */
+  topExceptionFingerprint: string;
   clickCount: number;
   activeMs: number;
   firstErrorOffsetMs: number;
@@ -421,6 +426,18 @@ export interface SessionReplayApplicationActivitySummary {
   playableSessionsLast24h: number | null;
   /* null when the application has no session in retention. */
   lastSessionStartedAt: Date | null;
+  /*
+   * What the NEWEST session's recorder said it could capture, filtered to
+   * the known vocabulary. null when there is no session in retention, when
+   * that session predates the attribute, or when the query failed - all
+   * three render as "not reported yet", which is the honest answer.
+   *
+   * This is how an operator spots a stale cached recorder artifact
+   * ("click labels: no") without opening a recording, which would write an
+   * audit row. It rides on the last-session query that is already run for
+   * lastSessionStartedAt, so it costs no extra round trip.
+   */
+  recorderCapabilities: Array<string> | null;
 }
 
 /*
@@ -552,6 +569,16 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
   {
     alias: "aggExceptionGroupCount",
     expression: `toFloat64(length(${argMaxColumn("exceptionFingerprints")}))`,
+  },
+  /*
+   * The first fingerprint, so the list's "3 errors" badge can link at the
+   * exception group instead of at an unfiltered Exceptions page. Empty
+   * string when the session recorded no exception group; arrayElement on
+   * an empty array returns the type's default, which for String is ''.
+   */
+  {
+    alias: "aggTopExceptionFingerprint",
+    expression: `arrayElement(${argMaxColumn("exceptionFingerprints")}, 1)`,
   },
   { alias: "aggClickCount", expression: argMaxNumeric("clickCount") },
   { alias: "aggActiveMs", expression: argMaxNumeric("activeMs") },
@@ -1003,6 +1030,10 @@ export default class SessionReplayReadService {
           routes: readStringArray(row, "aggRoutes").slice(0, MAX_LIST_ROUTES),
           traceCount: readNumber(row, "aggTraceCount"),
           exceptionGroupCount: readNumber(row, "aggExceptionGroupCount"),
+          topExceptionFingerprint: readString(
+            row,
+            "aggTopExceptionFingerprint",
+          ),
           clickCount: readNumber(row, "aggClickCount"),
           activeMs: readNumber(row, "aggActiveMs"),
           firstErrorOffsetMs: readNumber(row, "aggFirstErrorOffsetMs"),
@@ -1972,6 +2003,10 @@ export default class SessionReplayReadService {
    * Best-effort: the side index only ADDS live sessions to the answer, so
    * a failure here degrades to the finalized-only lookup with a warning
    * rather than failing the exception page's replay card.
+   *
+   * A caller-pinned sessionId narrows the lookup rather than bypassing it,
+   * so the pin can never assert that a session threw something the
+   * instance table has no record of it throwing.
    */
   private static async getSessionIdsForExceptionInstances(data: {
     projectId: ObjectID;
@@ -1980,11 +2015,6 @@ export default class SessionReplayReadService {
     endTime: Date;
     sessionId?: string | undefined;
   }): Promise<Array<string>> {
-    if (data.sessionId) {
-      /* The caller already knows the session; nothing to discover. */
-      return [data.sessionId];
-    }
-
     const statement: Statement = SQL`
       SELECT DISTINCT sessionId
       FROM ${AnalyticsTableName.ExceptionInstance}
@@ -2007,12 +2037,38 @@ export default class SessionReplayReadService {
             data.endTime.getTime() + SESSION_REPLAY_MAX_SESSION_MS,
           ),
         }}
+    `;
+
+    /*
+     * A pinned sessionId narrows this lookup; it does NOT replace it.
+     *
+     * Returning the pinned id unchecked made the caller's statement read
+     * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,
+     * whose second arm is trivially true - so the fingerprint constrained
+     * nothing and the "Watch what the user saw" card would present any
+     * accessible session as having observed this exception, on nothing but
+     * a stale occurrence row. Asking the instance table whether THAT
+     * session threw THIS fingerprint keeps the pin's real purpose (a live
+     * session whose header has no fingerprints yet) while keeping the
+     * claim true. A failure here answers [] and the header's mandatory
+     * hasAny() predicate decides alone - fail closed.
+     */
+    if (data.sessionId) {
+      statement.append(
+        SQL` AND sessionId = ${{
+          type: TableColumnType.Text,
+          value: data.sessionId,
+        }}`,
+      );
+    }
+
+    statement.append(SQL`
       ORDER BY sessionId ASC
       LIMIT ${{
         type: TableColumnType.Number,
         value: MAX_EXCEPTION_INSTANCE_SESSION_IDS,
       }}
-    `;
+    `);
 
     statement.append(READ_QUERY_SETTINGS);
 
@@ -2139,7 +2195,14 @@ export default class SessionReplayReadService {
 
     const lastStartStatement: Statement = SQL`
       SELECT
-        toFloat64(toUnixTimestamp64Milli(startTime)) AS lastStartUnixMs
+        toFloat64(toUnixTimestamp64Milli(startTime)) AS lastStartUnixMs,
+        /*
+         * The newest session's recorder capabilities, read off the same row
+         * that answers "when did recording last start". Named directly (not
+         * through the argMax alias set) because this statement has no GROUP
+         * BY: it is one row, read in sort-key order, LIMIT 1.
+         */
+        attributes AS aggAttributes
       FROM ${AnalyticsTableName.RumSession}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -2184,11 +2247,25 @@ export default class SessionReplayReadService {
         ? readNumber(lastStartRow, "lastStartUnixMs")
         : 0;
 
+      /*
+       * An empty list means "the newest session declared none" (an old
+       * recorder artifact), which is not the same as "we could not tell" -
+       * but the health copy renders both as "not reported yet", and
+       * claiming a recorder has NO capabilities would be a stronger
+       * statement than the row supports. So an empty list answers null and
+       * only a non-empty one is reported.
+       */
+      const recorderCapabilities: Array<string> = lastStartRow
+        ? readRecorderCapabilities(lastStartRow)
+        : [];
+
       return {
         sessionsLast24h: sessionCount,
         playableSessionsLast24h: Math.max(0, sessionCount - unplayableCount),
         lastSessionStartedAt:
           lastStartUnixMs > 0 ? new Date(lastStartUnixMs) : null,
+        recorderCapabilities:
+          recorderCapabilities.length > 0 ? recorderCapabilities : null,
       };
     } catch (err: unknown) {
       logger.warn(
@@ -2200,6 +2277,7 @@ export default class SessionReplayReadService {
         sessionsLast24h: null,
         playableSessionsLast24h: null,
         lastSessionStartedAt: null,
+        recorderCapabilities: null,
       };
     }
   }
@@ -2436,17 +2514,32 @@ export default class SessionReplayReadService {
        * "sessions that touched /checkout/*": a prefix over every route the
        * session visited and over the entry URL, which for a pre-migration
        * session is the only URL the header holds.
+       *
+       * The stored values are scrubbed ABSOLUTE urls (https://host/path),
+       * but the filter a human types is a PATH - the search box routes any
+       * value beginning with "/" here, and the docs promise `url:/checkout`
+       * outright. Matching only the full string meant that documented
+       * search never matched anything, in any project, with no error to
+       * say so. So the path of each route and of the entry URL is matched
+       * as well as the whole URL: an absolute prefix still matches on the
+       * first arm, a path prefix on the second. ClickHouse's path() returns
+       * the path component without host or query, which is exactly the
+       * shape the recorder's route list is scrubbed down to.
        */
+      const prefixParameter: { type: TableColumnType; value: string } = {
+        type: TableColumnType.Text,
+        value: filters.urlPrefix,
+      };
+
       statement.append(" AND (arrayExists(r -> startsWith(r, ");
-      statement.append(
-        SQL`${{
-          type: TableColumnType.Text,
-          value: filters.urlPrefix,
-        }}), aggRoutes) OR startsWith(aggEntryUrl, ${{
-          type: TableColumnType.Text,
-          value: filters.urlPrefix,
-        }}))`,
-      );
+      statement.append(SQL`${prefixParameter}`);
+      statement.append(") OR startsWith(path(r), ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append("), aggRoutes) OR startsWith(aggEntryUrl, ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append(") OR startsWith(path(aggEntryUrl), ");
+      statement.append(SQL`${prefixParameter}`);
+      statement.append("))");
     }
 
     if (filters.search) {

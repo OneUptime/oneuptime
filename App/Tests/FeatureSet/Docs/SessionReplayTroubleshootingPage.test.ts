@@ -1,4 +1,6 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { SESSION_REPLAY_REFUSAL_REASONS } from "Common/Types/Rum/SessionReplayHealth";
+import { SessionReplayDisabledReason } from "Common/Types/Rum/SessionReplay";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -216,6 +218,88 @@ describe("Session Replay troubleshooting docs page", (): void => {
    * Policy page (settings-setup-17); the project-level path the page used
    * to name no longer has one.
    */
+  /*
+   * WP-S1: the ingest's answer vocabulary is what a customer reads off the
+   * Network tab and off the health card's refusal counts. Every reason the
+   * server can send back needs a name on this page, or the count in the
+   * dashboard ("212 origin-not-allowed") has nowhere to be looked up.
+   */
+  it("names every refusal reason the ingest can answer with", (): void => {
+    const page: string = readPage();
+
+    expect(SESSION_REPLAY_REFUSAL_REASONS.length).toBeGreaterThan(10);
+
+    const unnamed: Array<string> = SESSION_REPLAY_REFUSAL_REASONS.filter(
+      (reason: string): boolean => {
+        return !page.includes(`\`${reason}\``);
+      },
+    ).sort();
+
+    expect(unnamed).toEqual([]);
+  });
+
+  /*
+   * Same for the config endpoint's disabledReason: it is the single field
+   * that answers "why is replay off here", and the page is where the
+   * console line points.
+   */
+  it("explains every disabledReason the config endpoint can send", (): void => {
+    const page: string = readPage();
+
+    const reasons: Array<string> = Object.values(SessionReplayDisabledReason);
+
+    expect(reasons.length).toBeGreaterThanOrEqual(6);
+
+    const undocumented: Array<string> = reasons
+      .filter((reason: string): boolean => {
+        return !new RegExp(`^\\| \`${reason}\`\\s*\\|`, "m").test(page);
+      })
+      .sort();
+
+    expect(undocumented).toEqual([]);
+
+    /* The two narrowing fields that came with budget-exhausted. */
+    expect(page).toContain("`disabledDetail`");
+    expect(page).toContain("`budgetResetsAt`");
+  });
+
+  /*
+   * Every parse error the envelope parser can answer 400 (or, for the one
+   * per-chunk case, 422) with is a stable code the recorder prints and a
+   * customer quotes. Read as text rather than imported: the parser lives
+   * in the Telemetry feature set and pulls the ingest stack with it.
+   */
+  it("names every envelope parse error the ingest answers with", (): void => {
+    const parser: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../FeatureSet/Telemetry/Utils/SessionReplayEnvelopeParser.ts",
+      ),
+      "utf8",
+    );
+
+    const errors: Array<string> = Array.from(
+      parser
+        .split("export enum SessionReplayEnvelopeError {")[1]
+        ?.split("}")[0]
+        ?.matchAll(/[=] "([a-z-]+)"/g) || [],
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(errors.length).toBeGreaterThanOrEqual(9);
+
+    const page: string = readPage();
+
+    const unnamed: Array<string> = errors
+      .filter((error: string): boolean => {
+        return !page.includes(`\`${error}\``);
+      })
+      .sort();
+
+    expect(unnamed).toEqual([]);
+  });
+
   it("locates the installation test on the Replay Policy page", (): void => {
     const page: string = readPage();
 

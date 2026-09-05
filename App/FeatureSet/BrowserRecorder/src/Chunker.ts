@@ -51,14 +51,32 @@ function isLifecycleEvent(type: number): boolean {
  * site with deep paths would silently lose its footage rather than lose a
  * few route entries.
  *
- * 2 KB leaves the rest of the envelope (ids, versions, signals, trace ids,
- * fidelity notices) comfortable room inside the 8 KB ceiling. A chunk covers
+ * 2 KB of routes plus 2 KB of trace ids leaves the rest of the envelope
+ * (ids, versions, signals, fidelity notices, and the meta that carries up to
+ * 3.3 KB of tags and 4.9 KB of traits) room inside the 8 KB ceiling only
+ * because the recorder ALSO measures the finished envelope and sheds
+ * optional fields that do not fit - see Recorder.fitEnvelope. A chunk covers
  * ~15s, so a page doing more DISTINCT navigations than these caps allow is
  * rewriting its URL programmatically rather than being navigated by a
  * person; routeCount still counts every change past them.
  */
 const MAX_ROUTES_PER_CHUNK: number = 32;
 const MAX_ROUTE_BYTES_PER_CHUNK: number = 2 * 1024;
+
+/*
+ * Per-chunk caps on trace ids, by COUNT and by BYTES, for the same reason.
+ *
+ * The count matches the ingest parser's own MAX_TRACE_IDS, so a legitimate
+ * chunk is never truncated on the way in. Uncapped, this Set grew for the
+ * whole record-into-memory period - a page with OpenTelemetry fetch
+ * instrumentation polling every few seconds reaches ~210 distinct ids long
+ * before an error fires under the default OnErrorOrFrustration policy, and
+ * 235 ids alone are 9.1 KB of envelope: chunk 0, the one carrying the
+ * opening snapshot and the capabilities, was refused with a 400 and the
+ * session was never listed at all.
+ */
+const MAX_TRACE_IDS_PER_CHUNK: number = 64;
+const MAX_TRACE_ID_BYTES_PER_CHUNK: number = 2 * 1024;
 
 /*
  * Disclosed on the last chunk of a session that hit the per-session chunk
@@ -198,6 +216,9 @@ export default class Chunker {
   private signals: SessionReplaySignalCounts = Chunker.emptySignals();
   private readonly fidelityNotices: Set<string> = new Set<string>();
   private traceIds: Set<string> = new Set<string>();
+
+  /* Running UTF-8 size of `traceIds`, for the envelope byte budget. */
+  private traceIdBytes: number = 0;
 
   /*
    * A Set for de-duplication, but iteration order is insertion order, so the
@@ -380,8 +401,23 @@ export default class Chunker {
    * move the silent loss one layer down. The per-chunk counters, trace ids
    * and routes ride the LAST piece - the finalizer sums and unions them
    * across chunks, so carrying them on one piece keeps every total right.
+   *
+   * maxTotalBytes bounds what the WHOLE split may weigh, because the
+   * keepalive quota the pieces are cut for is counted per origin across
+   * every in-flight request: three 48 KB pieces are not three requests that
+   * fit, they are one request that fits and two the browser rejects. Past
+   * it the OLDEST pieces are dropped - the footage closest to the moment the
+   * user left is the footage the session was captured for - and their events
+   * are counted in droppedEvents, which rides the envelope. Cutting them
+   * here rather than in the transport is what keeps the chunk sequence
+   * contiguous: an index minted for a request that is never issued is a
+   * hole the player reports as a missing chunk forever.
    */
-  public closeSplit(isFinal: boolean, maxPayloadBytes: number): void {
+  public closeSplit(
+    isFinal: boolean,
+    maxPayloadBytes: number,
+    maxTotalBytes?: number,
+  ): void {
     const open: OpenChunk | null = this.open;
 
     this.open = null;
@@ -421,6 +457,49 @@ export default class Chunker {
       pieces.push(current);
     }
 
+    /* Pieces dropped off the FRONT for the total budget; see below. */
+    let droppedPieces: number = 0;
+
+    if (maxTotalBytes !== undefined) {
+      let budget: number = maxTotalBytes;
+      let keepFrom: number = pieces.length;
+
+      for (let index: number = pieces.length - 1; index >= 0; index--) {
+        const piece: Array<BufferedEvent> = pieces[
+          index
+        ] as Array<BufferedEvent>;
+
+        let bytes: number = piece.length + 1;
+
+        for (const event of piece) {
+          bytes += event.bytes;
+        }
+
+        if (bytes > budget) {
+          break;
+        }
+
+        budget -= bytes;
+        keepFrom = index;
+      }
+
+      /*
+       * The newest piece is kept even when it alone is over budget: it is
+       * the one carrying isFinal and the per-chunk counters, and the
+       * transport still refuses anything genuinely too large to post.
+       */
+      if (keepFrom >= pieces.length) {
+        keepFrom = pieces.length - 1;
+      }
+
+      for (let index: number = 0; index < keepFrom; index++) {
+        this.droppedEvents += (pieces[index] as Array<BufferedEvent>).length;
+      }
+
+      droppedPieces = keepFrom;
+      pieces.splice(0, keepFrom);
+    }
+
     for (let index: number = 0; index < pieces.length; index++) {
       const piece: Array<BufferedEvent> = pieces[index] as Array<BufferedEvent>;
       const isLast: boolean = index === pieces.length - 1;
@@ -450,11 +529,13 @@ export default class Chunker {
         chunkEndOffsetMs: this.getOffset(last.timestampMs),
 
         /*
-         * Only the first piece can open on the chunk's snapshot; a later
-         * piece starts wherever the byte cap happened to fall, which is
-         * never a seek anchor.
+         * Only the chunk's OWN first piece can open on its snapshot; any
+         * later piece starts wherever the byte cap happened to fall, which
+         * is never a seek anchor - and neither is the first SURVIVING piece
+         * when the ones in front of it were dropped for the total budget.
          */
-        hasFullSnapshot: index === 0 ? open.hasFullSnapshot : false,
+        hasFullSnapshot:
+          index === 0 && droppedPieces === 0 ? open.hasFullSnapshot : false,
         isFinal: isFinal && isLast,
         signals: isLast ? this.signals : Chunker.emptySignals(),
         fidelityNotices: Array.from(this.fidelityNotices),
@@ -642,6 +723,7 @@ export default class Chunker {
      */
     this.signals = Chunker.emptySignals();
     this.traceIds = new Set<string>();
+    this.traceIdBytes = 0;
 
     /*
      * Reset with the rest: the finalizer UNIONS routes across chunks, so
@@ -688,7 +770,29 @@ export default class Chunker {
     this.fidelityNotices.add(notice);
   }
 
+  /*
+   * A correlation id for one request in this chunk. Capped by count and by
+   * bytes: these ride the envelope JSON, which the server refuses outright
+   * over 8 KB - a refusal that costs the WHOLE frame, not the trace ids.
+   * Past the cap the request is still recorded in-band; only the envelope's
+   * quick-join list stops growing.
+   */
   public addTraceId(traceId: string): void {
+    if (!traceId || this.traceIds.size >= MAX_TRACE_IDS_PER_CHUNK) {
+      return;
+    }
+
+    if (this.traceIds.has(traceId)) {
+      return;
+    }
+
+    const bytes: number = utf8ByteLength(traceId);
+
+    if (this.traceIdBytes + bytes > MAX_TRACE_ID_BYTES_PER_CHUNK) {
+      return;
+    }
+
+    this.traceIdBytes += bytes;
     this.traceIds.add(traceId);
   }
 

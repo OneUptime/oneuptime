@@ -71,7 +71,7 @@ import PerformanceRecorder, { PerformanceIssue } from "./PerformanceRecorder";
 import RollingBuffer, { BufferedEvent } from "./RollingBuffer";
 import RouteRecorder, { RecordedRoute } from "./RouteRecorder";
 import SessionId, { SessionIdentityState } from "./SessionId";
-import Transport from "./Transport";
+import Transport, { TerminalChunk } from "./Transport";
 
 /*
  * The recorder: everything above is wired together here.
@@ -165,6 +165,24 @@ const MAX_PENDING_CUSTOM_EVENTS: number = 200;
  */
 const KEEPALIVE_PAYLOAD_BUDGET_BYTES: number =
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 8 * 1024;
+
+/*
+ * What the envelope JSON may weigh.
+ *
+ * The ingest parser refuses a frame whose envelope JSON exceeds 8 KB before
+ * it parses anything (SessionReplayEnvelopeParser.MAX_ENVELOPE_JSON_BYTES),
+ * and the refusal costs the WHOLE frame: chunk 0 - the one carrying the
+ * opening snapshot, the meta and the capabilities - answers 400, the
+ * transport counts it as a per-chunk refusal, and the session has no header
+ * row at all. The documented maxima can reach it on their own: 20 tags at
+ * 32+128 plus 20 traits at 40+200 is 9.5 KB of meta before a single trace id.
+ *
+ * 7 KB rather than 8: the transport rewrites payloadEncoding, payloadBytes
+ * and flushFailures on the way out, so what is measured here is not
+ * byte-identical to what is posted. Anything over sheds optional fields
+ * rather than losing the frame (fitEnvelope).
+ */
+const MAX_ENVELOPE_JSON_BYTES: number = 7 * 1024;
 
 const TRAIT_LIMITS: SessionReplayStringMapLimits = {
   maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
@@ -364,6 +382,15 @@ export default class Recorder {
    */
   private isTerminalFlush: boolean = false;
 
+  /*
+   * The pieces a terminal flush produced, collected while isTerminalFlush is
+   * set and posted as ONE keepalive request. Posting each piece as it closed
+   * issued one keepalive fetch per piece against a quota the browser counts
+   * per ORIGIN (64 KB combined), so the later requests - which is where the
+   * sealing piece is - were the ones the browser rejected.
+   */
+  private terminalChunks: Array<TerminalChunk> = [];
+
   private hasSentFinalChunk: boolean = false;
   private lastSensitiveScanAtMs: number = 0;
   private droppedEvents: number = 0;
@@ -469,6 +496,16 @@ export default class Recorder {
       },
       onPermanentFailure: (reason: string): void => {
         this.onPermanentFailure(reason);
+      },
+      onChunkTooLarge: (): void => {
+        /*
+         * The chunk could not be posted at all, so the viewer is told on the
+         * next one: a snapshot the player is warned about is strictly better
+         * than a hole nothing reports.
+         */
+        this.chunker.addFidelityNotice(
+          SessionReplayFidelityNotice.SnapshotTooLarge,
+        );
       },
     });
 
@@ -647,6 +684,13 @@ export default class Recorder {
         this.emitCustomEvent(tag, payload);
       },
       masking: this.masking,
+
+      /*
+       * The same list rrweb gets as blockSelector. Without it the click
+       * label was the one thing that could carry text out of a region the
+       * customer excluded from recording entirely.
+       */
+      blockSelectors: this.config.blockSelectors,
       onClick: (atUnixMs: number, _click: SessionReplayClickPayload): void => {
         this.chunker.countSignal("clickCount");
         this.lastUserActivityUnixMs = atUnixMs;
@@ -1573,6 +1617,16 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Nothing is written to the visitor's storage while consent is
+     * withdrawn. revokeConsent() cleared the record on purpose; touching it
+     * back into existence 15 seconds later would re-create the identifier
+     * the withdrawal removed.
+     */
+    if (this.consent.isRevoked()) {
+      return;
+    }
+
     SessionId.touch(this.lastUserActivityUnixMs);
     this.lastTouchedUnixMs = this.lastUserActivityUnixMs;
   }
@@ -1587,6 +1641,20 @@ export default class Recorder {
    */
   private maybeRotateSession(nowUnixMs: number): boolean {
     if (this.stopped || !this.started) {
+      return false;
+    }
+
+    /*
+     * A withdrawn consent has no session to roll over. SessionId.clearAll()
+     * emptied the store, so shouldRotate() reads "no session at all" and
+     * answers New - and rotating would MINT one: a fresh id written to the
+     * visitor's localStorage, a session-change callback telling the host
+     * page's OpenTelemetry resource to tag its traces with an id that will
+     * never have a recording, and an upload-blocked-consent warning on a tab
+     * the user deliberately opted out of. grantConsent() is the one place a
+     * post-revoke session is minted.
+     */
+    if (this.consent.isRevoked()) {
       return false;
     }
 
@@ -1805,15 +1873,33 @@ export default class Recorder {
   }
 
   /*
-   * The page went to the background. Still alive, so the open chunk goes
-   * out through the ORDINARY path: gzip, retry queue, no size cap. It used
-   * to go out as a final keepalive chunk, which (a) dropped anything over
-   * 56 KB - nearly every chunk holding a snapshot - and (b) sealed a live
-   * session as "final" on every tab switch, so the server believed a
-   * session was over while its chunks kept arriving.
+   * The page went to the background - which on Chrome is also the FIRST
+   * half of every same-tab navigation: visibilitychange(hidden) and
+   * pagehide are dispatched in the same synchronous unload sequence.
+   *
+   * That is why the open chunk goes out on the keepalive path here, not
+   * final (the tab may well come back, and sealing a live session on every
+   * tab switch made the server believe a session was over while its chunks
+   * kept arriving). Handing it to the ordinary gzip path instead lost it
+   * outright on a navigation: Transport.send awaits CompressionStream
+   * before it issues any fetch, so the request was never made - while its
+   * chunk index had already been minted, leaving the player a missing chunk
+   * and a recording that ends up to 15 s early, on precisely the sessions
+   * that end at a link click, a form submit or a reload.
+   *
+   * Above the keepalive budget the ordinary path is still the only one that
+   * can carry the chunk at all, so an oversized chunk keeps it and takes
+   * its chances with a tab that stays alive. Every event added while hidden
+   * flushes early at the same budget (see onRrwebEvent), so this is the
+   * chunk that grew large while the tab was VISIBLE.
    */
   private onHidden(): void {
     if (this.stopped || !this.uploading) {
+      return;
+    }
+
+    if (this.chunker.getOpenByteSize() <= KEEPALIVE_PAYLOAD_BUDGET_BYTES) {
+      this.flushTerminal(false);
       return;
     }
 
@@ -1821,11 +1907,15 @@ export default class Recorder {
   }
 
   /*
-   * Terminal flush, for pagehide only. Synchronous by construction: the
-   * chunk is closed inside the event handler and posted with
-   * fetch(keepalive), because a promise chain started here may never resume
-   * on a page the browser is discarding. Cut into keepalive-sized pieces so
-   * a large open chunk is sent in parts rather than dropped whole.
+   * Terminal flush: pagehide, and a hidden tab whose open chunk still fits
+   * the keepalive budget. Synchronous by construction - the chunk is closed
+   * inside the event handler and posted with fetch(keepalive), because a
+   * promise chain started here may never resume on a page the browser is
+   * discarding. Cut into keepalive-sized pieces so a large open chunk is
+   * sent in parts rather than dropped whole, and the pieces are handed to
+   * the transport TOGETHER: they share one request, because the keepalive
+   * quota is combined per origin and one fetch per piece is how the sealing
+   * piece gets refused.
    */
   private flushTerminal(isFinal: boolean): void {
     if (this.stopped || !this.uploading) {
@@ -1841,11 +1931,48 @@ export default class Recorder {
     }
 
     this.isTerminalFlush = true;
+    this.terminalChunks = [];
+
+    const droppedBefore: number = this.chunker.getDroppedEventCount();
 
     try {
-      this.chunker.closeSplit(isFinal, KEEPALIVE_PAYLOAD_BUDGET_BYTES);
+      /*
+       * Per PIECE and in TOTAL: the browser counts the keepalive quota
+       * across every in-flight request to an origin, so what the page can
+       * still send is one request's worth however it is cut up. Anything
+       * older than that is dropped here, counted, and reported on the
+       * envelope as droppedEvents - not minted a chunk index and handed to a
+       * request the browser will refuse.
+       */
+      this.chunker.closeSplit(
+        isFinal,
+        KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+        KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+      );
     } finally {
       this.isTerminalFlush = false;
+    }
+
+    const droppedEvents: number =
+      this.chunker.getDroppedEventCount() - droppedBefore;
+
+    if (droppedEvents > 0) {
+      debugWarn(
+        "final-flush-truncated",
+        "More was open than one keepalive request may carry; the oldest events were dropped.",
+        {
+          droppedEvents: droppedEvents,
+          budgetBytes: KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+        },
+      );
+    }
+
+    const chunks: Array<TerminalChunk> = this.terminalChunks;
+
+    this.terminalChunks = [];
+
+    if (chunks.length > 0) {
+      this.transport.sendTerminal(chunks);
     }
   }
 
@@ -1928,7 +2055,7 @@ export default class Recorder {
     this.startNewCustomEventWindow();
 
     if (this.isTerminalFlush) {
-      this.transport.sendTerminal(envelope, chunk.payload);
+      this.terminalChunks.push({ envelope: envelope, payload: chunk.payload });
       return;
     }
 
@@ -2021,7 +2148,88 @@ export default class Recorder {
       envelope.capabilities = this.getCapabilities();
     }
 
+    this.fitEnvelope(envelope);
+
     return envelope;
+  }
+
+  /*
+   * Keep the envelope JSON under the server's ceiling by shedding optional
+   * fields, least valuable first: the trace ids (the requests they point at
+   * are in the payload in-band anyway), then the routes (routeCount still
+   * reports how many there were, and the scalar url still says where the
+   * chunk was flushed from), then the identified user's traits, then the
+   * tags. Everything shed is named in the diagnostics: a customer whose
+   * tags stopped appearing must be able to find out why.
+   *
+   * Nothing load-bearing is ever shed - ids, indexes, offsets, versions,
+   * the masking mode and the consent state all stay - so a trimmed envelope
+   * is a complete one with less on it.
+   */
+  private fitEnvelope(envelope: SessionReplayChunkEnvelope): void {
+    if (Recorder.envelopeBytes(envelope) <= MAX_ENVELOPE_JSON_BYTES) {
+      return;
+    }
+
+    const shed: Array<string> = [];
+
+    if (envelope.traceIds) {
+      delete envelope.traceIds;
+      shed.push("traceIds");
+    }
+
+    if (
+      Recorder.envelopeBytes(envelope) > MAX_ENVELOPE_JSON_BYTES &&
+      envelope.routes
+    ) {
+      delete envelope.routes;
+      shed.push("routes");
+    }
+
+    if (
+      Recorder.envelopeBytes(envelope) > MAX_ENVELOPE_JSON_BYTES &&
+      envelope.meta &&
+      envelope.meta.identifiedUserTraits
+    ) {
+      delete envelope.meta.identifiedUserTraits;
+      shed.push("traits");
+    }
+
+    if (
+      Recorder.envelopeBytes(envelope) > MAX_ENVELOPE_JSON_BYTES &&
+      envelope.meta &&
+      envelope.meta.tags
+    ) {
+      delete envelope.meta.tags;
+      shed.push("tags");
+    }
+
+    if (
+      Recorder.envelopeBytes(envelope) > MAX_ENVELOPE_JSON_BYTES &&
+      envelope.fidelityNotices.length > 0
+    ) {
+      /*
+       * Emptied rather than removed: the field is required on the wire, and
+       * an empty list is the honest "nothing disclosed on this frame".
+       */
+      envelope.fidelityNotices = [];
+      shed.push("fidelityNotices");
+    }
+
+    debugWarn(
+      "envelope-trimmed",
+      "The chunk envelope was over the server's size limit; optional fields were dropped.",
+      {
+        chunkIndex: envelope.chunkIndex,
+        shed: shed.join(","),
+        bytes: Recorder.envelopeBytes(envelope),
+        maxBytes: MAX_ENVELOPE_JSON_BYTES,
+      },
+    );
+  }
+
+  private static envelopeBytes(envelope: SessionReplayChunkEnvelope): number {
+    return utf8ByteLength(JSON.stringify(envelope));
   }
 
   public getCapabilities(): Array<string> {

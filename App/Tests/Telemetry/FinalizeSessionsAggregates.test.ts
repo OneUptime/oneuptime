@@ -208,13 +208,73 @@ describe("FinalizeSessions engagement aggregates", () => {
   });
 
   test("activeMs is summed across tabs and lands on the row", () => {
+    /*
+     * A ten-minute session with two tabs that between them were active for
+     * ninety seconds - the sum is under the session's own duration, so
+     * nothing is clamped and the row carries it whole.
+     */
     const aggregate: SessionChunkAggregate = combineTabAggregates([
-      tab({ tabId: "tab-a", activeMs: 45_000 }),
-      tab({ tabId: "tab-b", activeMs: 15_000 }),
+      tab({
+        tabId: "tab-a",
+        activeMs: 45_000,
+        lastChunkEndUnixMs: startUnixMs + 600_000,
+      }),
+      tab({
+        tabId: "tab-b",
+        activeMs: 15_000,
+        lastChunkEndUnixMs: startUnixMs + 600_000,
+      }),
     ]);
 
     expect(aggregate.activeMs).toBe(60_000);
     expect(rowFor(aggregate, header())["activeMs"]).toBe(60_000);
+  });
+
+  /*
+   * activeMs is per-session WALL CLOCK. The SQL sums it per tab and
+   * combineTabAggregates adds the tabs up, so two tabs recording the SAME
+   * ten minutes contribute twenty - and the row published activeMs greater
+   * than durationMs, which the list renders as a negative idle share
+   * ("idle -100%") and which would mis-rank sessions the moment anything
+   * sorted on it.
+   */
+  test("concurrent tabs cannot push the row's activeMs past the session duration", () => {
+    const aggregate: SessionChunkAggregate = combineTabAggregates([
+      tab({
+        tabId: "tab-a",
+        activeMs: 600_000,
+        lastChunkEndUnixMs: startUnixMs + 600_000,
+      }),
+      tab({
+        tabId: "tab-b",
+        activeMs: 600_000,
+        lastChunkEndUnixMs: startUnixMs + 600_000,
+      }),
+    ]);
+
+    /* The raw sum is still what the aggregate holds... */
+    expect(aggregate.activeMs).toBe(1_200_000);
+
+    const row: JSONObject = rowFor(aggregate, header());
+
+    /* ...and the published row is clamped to the session's own duration. */
+    expect(row["durationMs"]).toBe(600_000);
+    expect(row["activeMs"]).toBe(600_000);
+    expect(row["activeMs"] as number).toBeLessThanOrEqual(
+      row["durationMs"] as number,
+    );
+  });
+
+  test("a nonsensical negative activeMs never reaches the row", () => {
+    const aggregate: SessionChunkAggregate = combineTabAggregates([
+      tab({
+        tabId: "tab-a",
+        activeMs: -5_000,
+        lastChunkEndUnixMs: startUnixMs + 600_000,
+      }),
+    ]);
+
+    expect(rowFor(aggregate, header())["activeMs"]).toBe(0);
   });
 
   test("64-bit aggregates arriving as strings are coerced, including the new ones", () => {
@@ -355,5 +415,27 @@ describe("FinalizeSessions aggregate statement", () => {
     expect(query).toContain("customEventCount,");
 
     expect(query).not.toMatch(/\bpayload\b/);
+  });
+
+  /*
+   * sessionId is minted from sessionStorage, which two RUM applications
+   * served from one origin share - so one id can legitimately name two
+   * applications' recordings. Without rumApplicationId in the dedupe key
+   * one application's chunks evict the other's; without it in the grouping
+   * the writer folds both into a single header under whichever id `any()`
+   * picked, and the other application's session never finalizes at all.
+   */
+  test("the aggregate is scoped per application, not just per tab", () => {
+    const query: string = buildTabAggregateStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionId: sessionId,
+    }).query;
+
+    expect(query).toContain("LIMIT 1 BY rumApplicationId, tabId, chunkIndex");
+    expect(query).toContain("GROUP BY rumApplicationId, tabId");
+    /* The grouped column, not any(): it is constant within the group. */
+    expect(query).toContain("rumApplicationId AS rumApplicationId");
+    expect(query).not.toContain("any(rumApplicationId)");
   });
 });

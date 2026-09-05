@@ -126,6 +126,17 @@ export interface SessionReplayIngestStatusResponseDto {
    * because the worker's drop reasons are operational, not a contract.
    */
   dropsLast24h?: Array<{ reason: string; count: number }> | null;
+  /*
+   * What the recorder that most recently uploaded announced it can
+   * capture (SESSION_REPLAY_RECORDER_CAPABILITIES on the chunk envelope,
+   * the same vocabulary the manifest header carries). The setup guide and
+   * the health card show it so "no clicks in the rail" can be answered
+   * with "this recorder does not send click events" rather than left as a
+   * mystery. null = not reported (an older server, or no chunk yet);
+   * [] = a recorder uploaded and announced nothing, which is a different
+   * fact and reads as "unknown capabilities" on purpose.
+   */
+  recorderCapabilities?: Array<string> | null;
 }
 
 /* The policy half of the status, as the recorder would see it. */
@@ -167,6 +178,14 @@ export interface RecordingHealthStatus {
    * build this object, and absent means the same as null (unknown).
    */
   dropsLast24h?: Array<{ reason: string; count: number }> | null;
+  /*
+   * See SessionReplayIngestStatusResponseDto.recorderCapabilities. Carried
+   * through parseRecordingHealthStatus so the surfaces that already hold a
+   * RecordingHealthStatus do not have to keep a second parse of the same
+   * body alive. Optional as well as nullable for the same reason
+   * dropsLast24h is: it postdates the objects that build this shape.
+   */
+  recorderCapabilities?: Array<string> | null;
   projectBytesUsedToday: number | null;
   dailyByteLimit: number;
   applicationBytesUsedThisMonth: number | null;

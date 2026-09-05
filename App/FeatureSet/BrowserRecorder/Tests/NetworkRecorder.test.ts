@@ -202,6 +202,67 @@ describe("NetworkRecorder", (): void => {
     });
   });
 
+  /*
+   * REGRESSION (recorder-9). stop() is reached on its own - at the 480-chunk
+   * cap, on a breaker trip, on a server stop directive - not only when the
+   * page asks. The artifact loads asynchronously, so a page whose
+   * OpenTelemetry FetchInstrumentation or error SDK patched fetch AFTER us
+   * had its patch silently REMOVED mid-session by a blind restore, and the
+   * customer's own tracing stopped with no error anywhere.
+   */
+  describe("stop", (): void => {
+    it("restores the original fetch when ours is still the one installed", async (): Promise<void> => {
+      const original: jest.Mock = jest.fn().mockResolvedValue(okResponse(200));
+
+      (window as unknown as Record<string, unknown>)["fetch"] = original;
+
+      recorder.start(window);
+
+      expect(window.fetch).not.toBe(original);
+
+      recorder.stop(window);
+
+      expect(window.fetch).toBe(original);
+    });
+
+    it("leaves a wrapper the page installed after us in place, and records nothing through it", async (): Promise<void> => {
+      const original: jest.Mock = jest.fn().mockResolvedValue(okResponse(200));
+
+      (window as unknown as Record<string, unknown>)["fetch"] = original;
+
+      recorder.start(window);
+
+      /* The page's own instrumentation, arriving after the artifact did. */
+      const ours: typeof window.fetch = window.fetch;
+      const pageCalls: Array<string> = [];
+
+      (window as unknown as Record<string, unknown>)["fetch"] = ((
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        pageCalls.push(String(input));
+        return ours(input, init);
+      }) as typeof window.fetch;
+
+      const pageWrapper: typeof window.fetch = window.fetch;
+
+      recorder.stop(window);
+
+      /* Their chain is intact - not silently replaced by the original. */
+      expect(window.fetch).toBe(pageWrapper);
+
+      await window.fetch("https://api.example.com/after-stop");
+
+      expect(pageCalls).toEqual(["https://api.example.com/after-stop"]);
+      expect(original).toHaveBeenCalled();
+
+      /* And a stopped recorder records nothing through the wrapper. */
+      expect(requests).toHaveLength(0);
+      expect(customEvents).toHaveLength(0);
+      expect(activity).toHaveLength(0);
+    });
+  });
+
   describe("parseTraceParent", (): void => {
     it("accepts a well-formed header", (): void => {
       expect(

@@ -89,8 +89,20 @@ export function computeFeedAheadMs(speed: number): number {
  * speeds (~4 minutes of footage), four from 4x up, where the viewer
  * burns through a page every 30 seconds of wall clock.
  */
+export const DEFAULT_PREFETCH_PAGES_AHEAD: number = 2;
+
+/*
+ * The most any speed asks for. ChunkLoader sizes its decoded cache from
+ * this: a cache smaller than one page plus the pages prefetched past it
+ * evicts unfed footage and fetches it again, so the two numbers are not
+ * allowed to drift apart.
+ */
+export const MAX_PREFETCH_PAGES_AHEAD: number = 4;
+
 export function computePrefetchPagesAhead(speed: number): number {
-  return isFinite(speed) && speed >= 4 ? 4 : 2;
+  return isFinite(speed) && speed >= 4
+    ? MAX_PREFETCH_PAGES_AHEAD
+    : DEFAULT_PREFETCH_PAGES_AHEAD;
 }
 
 /*

@@ -3,6 +3,9 @@ import {
   SESSION_REPLAY_CUSTOM_EVENT_TAGS,
   SESSION_REPLAY_RRWEB_CUSTOM_EVENT_TYPE,
   SessionReplayCustomEventTag,
+  SessionReplayNetworkPayload,
+  SessionReplayPerformanceBudgetPayload,
+  SessionReplayWebVitalPayload,
   isSessionReplayBfcacheRestorePayload,
   isSessionReplayClickDroppedPayload,
   isSessionReplayClickPayload,
@@ -28,7 +31,11 @@ import { NETWORK_CUSTOM_EVENT_TAG } from "../../../../App/FeatureSet/BrowserReco
 import { ROUTE_CUSTOM_EVENT_TAG } from "../../../../App/FeatureSet/BrowserRecorder/src/RouteRecorder";
 import { ERROR_CUSTOM_EVENT_TAG } from "../../../../App/FeatureSet/BrowserRecorder/src/ErrorRecorder";
 import { FRUSTRATION_CUSTOM_EVENT_TAG } from "../../../../App/FeatureSet/BrowserRecorder/src/FrustrationDetector";
-import { PERFORMANCE_CUSTOM_EVENT_TAG } from "../../../../App/FeatureSet/BrowserRecorder/src/PerformanceRecorder";
+import {
+  PERFORMANCE_CUSTOM_EVENT_TAG,
+  PerformanceIssue,
+  WebVitalEvent,
+} from "../../../../App/FeatureSet/BrowserRecorder/src/PerformanceRecorder";
 
 /*
  * The tag vocabulary is quoted by stored payloads and by the recorder's
@@ -141,6 +148,35 @@ describe("payload guards accept what the recorder builds", () => {
       false,
     );
     expect(isSessionReplayNetworkPayload({ method: "GET" })).toBe(false);
+
+    /*
+     * A cancelled request is not a failed one (status 0, isError false),
+     * and the cap marker is one empty entry saying where capture stopped.
+     * Both are declared so the rail can render them as themselves instead
+     * of painting every navigation-away red.
+     */
+    const cancelled: SessionReplayNetworkPayload = {
+      method: "GET",
+      url: "https://acme.com/api/search",
+      status: 0,
+      durationMs: 12,
+      responseBytes: 0,
+      isError: false,
+      aborted: true,
+    };
+
+    const capMarker: SessionReplayNetworkPayload = {
+      method: "",
+      url: "",
+      status: 0,
+      durationMs: 0,
+      responseBytes: 0,
+      isError: false,
+      isCapMarker: true,
+    };
+
+    expect(isSessionReplayNetworkPayload(cancelled)).toBe(true);
+    expect(isSessionReplayNetworkPayload(capMarker)).toBe(true);
   });
 
   it("route: RouteRecorder's { from, to, kind }", () => {
@@ -222,6 +258,56 @@ describe("payload guards accept what the recorder builds", () => {
     expect(isSessionReplayPerformancePayload({ ...vital, rating: "meh" })).toBe(
       false,
     );
+  });
+
+  /*
+   * PerformanceRecorder stamps every performance payload with the
+   * wall-clock time the entry HAPPENED (performance.timeOrigin +
+   * entry.startTime), never the time the observer delivered it: with
+   * buffered:true an LCP callback fires when the recorder boots and long
+   * tasks are batched after they end, so the emit time would draw the
+   * marker after the jank it explains. The contract has to declare the
+   * field - the recorder's own types extend these interfaces - and it has
+   * to stay optional, because a recorder older than it sends none. These
+   * literals are the compile-time half of that; an undeclared field is an
+   * excess-property error under ts-jest.
+   */
+  it("performance: both variants carry the optional occurredAtUnixMs the recorder stamps", () => {
+    const budget: SessionReplayPerformanceBudgetPayload = {
+      kind: "long-task",
+      durationMs: 320,
+      budgetMs: 200,
+      occurredAtUnixMs: 1757000000000,
+    };
+
+    const vital: SessionReplayWebVitalPayload = {
+      kind: "web-vital",
+      metric: "LCP",
+      value: 4800,
+      rating: "poor",
+      occurredAtUnixMs: 1757000000123,
+    };
+
+    /* What PerformanceRecorder builds is assignable to what it crosses on. */
+    const recorderIssue: PerformanceIssue = budget;
+    const recorderVital: WebVitalEvent = {
+      ...vital,
+      occurredAtUnixMs: 1757000000123,
+    };
+
+    expect(recorderIssue.occurredAtUnixMs).toBe(1757000000000);
+    expect(recorderVital.occurredAtUnixMs).toBe(1757000000123);
+
+    /* The guards ignore it: an older recorder's payload is still valid. */
+    expect(isSessionReplayPerformanceBudgetPayload(budget)).toBe(true);
+    expect(isSessionReplayWebVitalPayload(vital)).toBe(true);
+    expect(
+      isSessionReplayPerformanceBudgetPayload({
+        kind: "long-task",
+        durationMs: 320,
+        budgetMs: 200,
+      }),
+    ).toBe(true);
   });
 
   it("bfcache-restore and session-rotated: Recorder's payloads", () => {

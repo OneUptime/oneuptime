@@ -170,7 +170,7 @@ export function buildPrivacySummary(
 
   sentences.push({
     key: "retention",
-    text: `Recorded footage is deleted after ${plural(retentionInDays, "day")}; session metadata (duration, URLs, counts) is kept longer so the list stays accurate after playback expires.`,
+    text: `Recorded footage is deleted after ${plural(retentionInDays, "day")}, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.`,
     isDefault: retentionIsDefault,
     isSensitive: retentionInDays > 30,
     changeLabel: "Change retention",

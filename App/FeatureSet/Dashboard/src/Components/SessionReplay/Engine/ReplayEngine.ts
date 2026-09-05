@@ -29,6 +29,8 @@ import {
   REPLAY_HIDDEN_TICK_MS,
   REPLAY_HOLD_LAST_FRAME_MAX_BYTES,
   REPLAY_PAUSED_TICK_MS,
+  REPLAY_REANCHOR_MAX_LOOKBACK_MS,
+  REPLAY_SEGMENT_MAX_FED_SPAN_MS,
   REPLAY_SNAPSHOT_PUBLISH_INTERVAL_MS,
   REPLAY_WATCHDOG_MS,
   ReplayBufferState,
@@ -177,6 +179,26 @@ class ReplayEngineMachine implements ReplayEngine {
   private pendingGap: PendingJump | null;
   private feedGoal: FeedGoal | null;
   private isExtending: boolean;
+  /*
+   * Which feeding loop owns isExtending.
+   *
+   * A loop that is retired mid-await (a seek across anchors, a gap jump, a
+   * tab switch) still runs its finally when the fetch it was waiting on
+   * lands, and clearing the flag there would clear it for the loop that
+   * REPLACED it - after which the next tick starts a second loop on the
+   * same segment and every chunk from then on is fed into rrweb twice.
+   * So the flag is cleared only by whoever still holds the token.
+   */
+  private extendToken: number;
+  /*
+   * Where the playhead was when an idle skip started, while its
+   * feed-forward is in flight. The band it aimed at may be a manifest-only
+   * guess, so every chunk decoded on the way there re-measures it and the
+   * goal shortens if the truth is closer.
+   */
+  private idleSkipOriginMs: number | null;
+  /* Drops the decode subscription on the loader currently in use. */
+  private loaderUnsubscribe: (() => void) | null;
 
   private error: ReplayEngineError | null;
   private notice: ReplayEngineNotice | null;
@@ -237,6 +259,9 @@ class ReplayEngineMachine implements ReplayEngine {
     this.pendingGap = null;
     this.feedGoal = null;
     this.isExtending = false;
+    this.extendToken = 0;
+    this.idleSkipOriginMs = null;
+    this.loaderUnsubscribe = null;
 
     this.error = null;
     this.notice = null;
@@ -270,6 +295,28 @@ class ReplayEngineMachine implements ReplayEngine {
     this.subscribe = this.subscribe.bind(this);
     this.getSnapshot = this.getSnapshot.bind(this);
     this.onReplayer = this.onReplayer.bind(this);
+
+    this.watchLoaderDecodes();
+  }
+
+  /*
+   * Take every chunk the loader decodes as evidence for the idle map, not
+   * just the ones playback has fed.
+   *
+   * The bands ahead of the playhead are what "skip idle" jumps over, and
+   * before this they were computed from the manifest's event COUNT alone:
+   * a chunk carrying one click, one mutation and one mousemove batch is
+   * below the "active" threshold, so it read as silence and the skip
+   * sailed straight past the click. The bytes were usually already in the
+   * prefetch cache - the engine simply was not looking at them.
+   */
+  private watchLoaderDecodes(): void {
+    this.loaderUnsubscribe?.();
+    this.loaderUnsubscribe = this.loader.onChunkDecoded(
+      (chunkIndex: number): void => {
+        this.refineInactivity(chunkIndex);
+      },
+    );
   }
 
   /* ---- Public API ---- */
@@ -396,6 +443,8 @@ class ReplayEngineMachine implements ReplayEngine {
     this.isDisposed = true;
     this.generation += 1;
     this.cancelTick();
+    this.loaderUnsubscribe?.();
+    this.loaderUnsubscribe = null;
     this.destroyHoldover();
 
     if (this.segment) {
@@ -430,8 +479,14 @@ class ReplayEngineMachine implements ReplayEngine {
 
     this.pendingGap = null;
     this.feedGoal = null;
-    this.isExtending = false;
+    this.releaseExtendLoop();
     this.error = null;
+    /*
+     * The old segment's fed range says nothing about the new one, and a
+     * backward rebuild would let the loader treat the new anchor as
+     * already-watched footage and evict it first.
+     */
+    this.loader.setFedThrough(null);
     /* (c) The clock reports where playback is GOING, never 0. */
     this.pendingSeekMs = targetMs;
     this.currentTimeMs = targetMs;
@@ -856,6 +911,7 @@ class ReplayEngineMachine implements ReplayEngine {
     this.buffer = this.pendingGap ? "gap-pending" : "ok";
     this.pendingSeekMs = null;
     this.feedGoal = null;
+    this.idleSkipOriginMs = null;
     this.bufferingSinceMs = null;
     this.currentTimeMs = Math.max(segment.baseOffsetMs, targetMs);
     this.resetWatchdog();
@@ -874,6 +930,8 @@ class ReplayEngineMachine implements ReplayEngine {
     }
 
     this.isExtending = true;
+    this.extendToken += 1;
+    const token: number = this.extendToken;
 
     try {
       for (;;) {
@@ -883,7 +941,26 @@ class ReplayEngineMachine implements ReplayEngine {
 
         const segment: Segment | null = this.segment;
 
-        if (!segment || this.buffer === "halted" || this.pendingGap) {
+        if (!segment || this.buffer === "halted") {
+          return;
+        }
+
+        if (this.pendingGap) {
+          /*
+           * There is a hole between the fed range and whatever comes next,
+           * so no amount of feeding reaches a goal past it. Left as a bare
+           * return this stranded the engine in "building" for ever with no
+           * error and a Retry that does nothing (RETRY only acts on
+           * "halted"). queueGap re-anchors at the goal's own snapshot, or
+           * lands at the edge of the footage when the goal is inside the
+           * hole itself - both of which leave a state the viewer can act on.
+           */
+          const stranded: FeedGoal | null = this.feedGoal;
+
+          if (stranded) {
+            this.queueGap(this.pendingGap, stranded);
+          }
+
           return;
         }
 
@@ -1001,7 +1078,7 @@ class ReplayEngineMachine implements ReplayEngine {
         this.refineInactivity(decision.chunkIndex);
         this.updateLoadedChunkIndexes();
 
-        const liveGoal: FeedGoal | null = this.feedGoal;
+        const liveGoal: FeedGoal | null = this.refineIdleSkipGoal();
 
         if (liveGoal && segment.fedUntilOffsetMs >= liveGoal.targetMs) {
           this.landAt(liveGoal.targetMs);
@@ -1032,8 +1109,70 @@ class ReplayEngineMachine implements ReplayEngine {
         this.publish();
       }
     } finally {
-      this.isExtending = false;
+      /*
+       * Only if this loop is still the live one. A retired loop returning
+       * from its await must not hand the flag away from its replacement.
+       */
+      if (this.extendToken === token) {
+        this.isExtending = false;
+      }
     }
+  }
+
+  /*
+   * Retire whatever feeding loop is running: its finally will no longer
+   * clear the flag, and the next runExtend is free to start.
+   */
+  private releaseExtendLoop(): void {
+    this.extendToken += 1;
+    this.isExtending = false;
+  }
+
+  /*
+   * Re-measure an in-flight idle skip against the footage that has since
+   * been decoded, and shorten the goal when the truth is closer than the
+   * guess was.
+   *
+   * A band hatched from the manifest ends wherever the next chunk with
+   * enough events begins, which on a chunk carrying a single click is one
+   * chunk too late - the skip would jump over the click the viewer turned
+   * the toggle on to reach. Every chunk decoded on the way there refines
+   * the map, so the answer is re-asked here rather than committed to once.
+   */
+  private refineIdleSkipGoal(): FeedGoal | null {
+    const goal: FeedGoal | null = this.feedGoal;
+    const originMs: number | null = this.idleSkipOriginMs;
+
+    if (!goal || originMs === null) {
+      return goal;
+    }
+
+    const band: ReplayIdleBand | null = this.inactivity.findBandAt(
+      originMs,
+      IDLE_SKIP_MIN_REMAINING_MS,
+    );
+
+    /*
+     * The band the skip started in has gone: what looked like silence was
+     * activity all along, so land back where the skip started rather than
+     * jumping over footage that turned out to have something in it.
+     */
+    const refinedMs: number = Math.max(
+      originMs,
+      band ? getIdleSkipTargetMs(band) : originMs,
+    );
+
+    if (refinedMs >= goal.targetMs) {
+      return goal;
+    }
+
+    goal.targetMs = refinedMs;
+
+    if (band) {
+      this.lastIdleSkip = band;
+    }
+
+    return goal;
   }
 
   /*
@@ -1196,8 +1335,18 @@ class ReplayEngineMachine implements ReplayEngine {
    * A target before the first snapshot is clamped onto it with a notice,
    * never refused and never restarted from zero.
    */
-  private performSeek(requestedMs: number, maxFeedForwardMs: number): void {
+  private performSeek(
+    requestedMs: number,
+    maxFeedForwardMs: number,
+    /*
+     * Set only by an idle skip: the playhead it left from, so a feed
+     * forward can re-measure the band it is jumping over as the footage
+     * decodes. Every other seek clears it.
+     */
+    idleSkipOriginMs: number | null = null,
+  ): void {
     this.notice = null;
+    this.idleSkipOriginMs = idleSkipOriginMs;
 
     const earliest: number | null = this.loader.getEarliestPlayableOffsetMs();
 
@@ -1263,6 +1412,15 @@ class ReplayEngineMachine implements ReplayEngine {
         targetMs > segment.fedUntilOffsetMs &&
         targetMs - segment.fedUntilOffsetMs <= maxFeedForwardMs &&
         targetChunk !== null &&
+        /*
+         * Never feed forward across a hole the loader has already met.
+         * isContiguousRange answers from the MANIFEST, which still lists a
+         * chunk that came back empty, so this looked reachable while the
+         * feeding loop refused to run - the engine sat in "building" with
+         * no error, a dead Retry and a Play that did nothing. Fall through
+         * to case 3 and rebuild at the target's own anchor instead.
+         */
+        !this.pendingGap &&
         this.loader.isContiguousRange(
           segment.lastFedChunkIndex + 1,
           targetChunk,
@@ -1360,12 +1518,84 @@ class ReplayEngineMachine implements ReplayEngine {
           return;
         }
       }
+
+      if (this.reanchorIfSegmentTooLong(segment)) {
+        this.rescheduleTick();
+        return;
+      }
     }
 
     if (nowMs - this.lastPublishAtMs >= REPLAY_SNAPSHOT_PUBLISH_INTERVAL_MS) {
       this.lastPublishAtMs = nowMs;
       this.publish();
     }
+  }
+
+  /*
+   * Keep one Replayer from swallowing a whole recording.
+   *
+   * addEvent appends to rrweb's own event array and nothing ever drops
+   * from it, so a viewer who lets a 45-minute session play straight
+   * through holds every parsed event of it - the loader's byte budget
+   * bounds the CACHE, not the page, because the arrays it evicts are the
+   * very objects rrweb is still holding. Worse, every stall resume
+   * re-applies everything since the last snapshot synchronously, so the
+   * page gets heavier and slower the longer it plays.
+   *
+   * The recorder writes a full snapshot every 60s, so once a segment has
+   * fed more than the bound, the next snapshot the PLAYHEAD reaches is a
+   * free place to start over: no footage is skipped (the playhead is
+   * already at or past it), the old Replayer and its events are released,
+   * and hold-last-frame keeps the picture up while the new one rebuilds.
+   *
+   * Deliberately conservative: only while playing cleanly, only when the
+   * snapshot is close enough behind the playhead that the rebuild is
+   * actually cheaper than what it replaces, and only when its chunk is
+   * still decoded so the rebuild costs no fetch. A recording with no
+   * further snapshots (an old recorder, or one long checkout) is left to
+   * grow - there is nowhere safe to cut it.
+   */
+  private reanchorIfSegmentTooLong(segment: Segment): boolean {
+    if (
+      this.buffer !== "ok" ||
+      this.pendingGap ||
+      this.feedGoal ||
+      this.pendingSeekMs !== null ||
+      segment.fedUntilOffsetMs - segment.baseOffsetMs <
+        REPLAY_SEGMENT_MAX_FED_SPAN_MS
+    ) {
+      return false;
+    }
+
+    const chunkIndex: number | null = this.loader.getChunkIndexForOffset(
+      this.currentTimeMs,
+    );
+
+    if (chunkIndex === null) {
+      return false;
+    }
+
+    const anchor: number | null = this.loader.getSeekAnchor(chunkIndex);
+
+    if (
+      anchor === null ||
+      anchor <= segment.anchorChunkIndex ||
+      !this.loader.isChunkDecoded(anchor)
+    ) {
+      return false;
+    }
+
+    const anchorStartMs: number = this.chunkStartMs(anchor);
+
+    if (
+      this.currentTimeMs < anchorStartMs ||
+      this.currentTimeMs - anchorStartMs > REPLAY_REANCHOR_MAX_LOOKBACK_MS
+    ) {
+      return false;
+    }
+
+    this.startLoad(anchor, this.currentTimeMs);
+    return true;
   }
 
   /*
@@ -1376,6 +1606,25 @@ class ReplayEngineMachine implements ReplayEngine {
    */
   private runWatchdog(nowMs: number, segment: Segment): void {
     if (this.intent !== "playing" || this.buffer !== "ok") {
+      this.watchdogLastTimeMs = this.currentTimeMs;
+      this.watchdogLastAdvanceAtMs = nowMs;
+      return;
+    }
+
+    /*
+     * A hidden tab is not a stall. rrweb's clock only advances inside a
+     * requestAnimationFrame callback, and browsers suspend those in a
+     * background tab, so getCurrentTime() CANNOT move while the document
+     * is hidden. Without this the watchdog fired every 1.5s for as long as
+     * the viewer was on another tab, each time re-applying every event
+     * since the last snapshot synchronously - CPU and battery burned on a
+     * page nobody is looking at - and left watchdogFireCount, which the
+     * diagnostic copy reports as "should be zero", in the hundreds.
+     *
+     * The timestamp is carried forward so returning to the tab starts the
+     * 1.5s window again rather than firing on the first visible tick.
+     */
+    if (this.deps.isDocumentHidden?.()) {
       this.watchdogLastTimeMs = this.currentTimeMs;
       this.watchdogLastAdvanceAtMs = nowMs;
       return;
@@ -1477,13 +1726,14 @@ class ReplayEngineMachine implements ReplayEngine {
     /* The engine owns the loaders it is handed; the old one is finished. */
     this.loader.dispose();
     this.loader = loader;
+    this.watchLoaderDecodes();
     this.activeTabId = tabId;
     this.durationMs = loader.getDurationMs();
     this.inactivity = new InactivityMap(loader.getPlayableEntries());
     this.idleBands = this.inactivity.getBands();
     this.pendingGap = null;
     this.feedGoal = null;
-    this.isExtending = false;
+    this.releaseExtendLoop();
     this.error = null;
     this.notice = null;
     this.recordedSize = null;
@@ -1536,8 +1786,9 @@ class ReplayEngineMachine implements ReplayEngine {
 
   private onIdleSkip(band: ReplayIdleBand): void {
     const targetMs: number = getIdleSkipTargetMs(band);
+    const originMs: number = this.currentTimeMs;
 
-    if (targetMs <= this.currentTimeMs) {
+    if (targetMs <= originMs) {
       return;
     }
 
@@ -1553,6 +1804,7 @@ class ReplayEngineMachine implements ReplayEngine {
         REPLAY_FEED_FORWARD_MAX_MS,
         band.endMs - band.startMs + this.feedAheadMs,
       ),
+      originMs,
     );
   }
 
@@ -1652,8 +1904,17 @@ class ReplayEngineMachine implements ReplayEngine {
 
     if (!segment) {
       this.loadedChunkIndexes = [];
+      this.loader.setFedThrough(null);
       return;
     }
+
+    /*
+     * Everything up to here is inside rrweb already, so the loader may drop
+     * it before it drops the footage it fetched for the chunks still to be
+     * fed. Without this the cache evicted strictly oldest-first, which on a
+     * full cache is exactly the page the feed loop is about to read.
+     */
+    this.loader.setFedThrough(segment.lastFedChunkIndex);
 
     const indexes: Array<number> = [];
 

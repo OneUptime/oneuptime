@@ -3,6 +3,7 @@ import { SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH } from "Common/Types/Rum/SessionR
 import {
   EMPTY_ADVANCED_FILTERS,
   SessionReplayAdvancedFilters,
+  normalizeUrlPrefix,
   parseTagFilter,
   stringifyTagFilter,
 } from "./SessionReplayListFilters";
@@ -19,6 +20,10 @@ import {
  * substring, exact trace id, and the user label when the caller may read
  * it). Pure and dependency-free so the whole grammar is pinned by tests
  * that need no React.
+ *
+ * A URL prefix is anchored before it leaves the box (normalizeUrlPrefix):
+ * the endpoint matches it from the START of each address, so "checkout"
+ * would silently match nothing. What was applied is reported in warnings.
  *
  * id: is special: it is the one token that is an INTENT rather than a
  * filter. While typing, the id narrows the list by prefix like any other
@@ -246,6 +251,26 @@ export function parseSessionReplaySearch(
     advanced[field] = value;
   };
 
+  /*
+   * The endpoint compares urlPrefix from the START of every route and of
+   * the entry URL (and, since the path fix, of their paths), so a value
+   * that anchors nowhere - "checkout" - can only ever come back empty.
+   * normalizeUrlPrefix anchors it and the box says out loud what it
+   * applied, rather than leaving the viewer to conclude the page was never
+   * recorded.
+   */
+  const setUrlPrefix: (value: string) => void = (value: string): void => {
+    const normalized: string = normalizeUrlPrefix(value);
+
+    if (normalized !== value.trim()) {
+      warnings.push(
+        `A URL filter matches from the start of the address, so "${value.trim()}" was applied as "${normalized}". Type a path like /checkout, or paste a full URL to pin one origin.`,
+      );
+    }
+
+    setOnce("urlPrefix", normalized, "URL");
+  };
+
   for (const rawToken of tokenize(query)) {
     const token: string = rawToken.trim();
 
@@ -276,7 +301,7 @@ export function parseSessionReplaySearch(
       }
 
       if (isUrlLike(bare)) {
-        setOnce("urlPrefix", bare, "URL");
+        setUrlPrefix(bare);
       } else if (bare.includes("@")) {
         setOnce("identifiedUserRef", bare, "user");
       } else {
@@ -299,7 +324,7 @@ export function parseSessionReplaySearch(
         break;
       case "url":
       case "page":
-        setOnce("urlPrefix", value, "URL");
+        setUrlPrefix(value);
         break;
       case "tag": {
         const pair: Record<string, string> = parseTagFilter(value);

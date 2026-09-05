@@ -49,6 +49,8 @@ function networkDetail(
     traceId: TRACE_ID,
     isError: true,
     failedBeforeResponse: false,
+    aborted: false,
+    isCapMarker: false,
     isSlow: false,
     atUnixMs: null,
     ...overrides,
@@ -438,7 +440,7 @@ describe("ReplayRailDetail network", () => {
 
     expect(
       screen.getByText(
-        /failed before a response \(aborted, offline or blocked by CORS\)/,
+        /failed before a response \(offline, DNS or blocked by CORS\)/,
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("not measured")).toBeInTheDocument();
@@ -711,5 +713,188 @@ describe("ReplayRailDetail navigation", () => {
 
     expect(screen.getByText(/LCP 4.8s/)).toBeInTheDocument();
     expect(screen.queryByText(/INP 320ms/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Recorder notices in the detail. None of these is a failure, and the
+ * detail used to render all of them as one: a cancelled request as
+ * "failed before a response", the network cap marker as a request with no
+ * url, a resource failure as an ordinary uncaught error, and the raw word
+ * "resource" as its kind (ux-05, ux-06).
+ */
+describe("ReplayRailDetail recorder notices", () => {
+  it("calls a cancelled request cancelled, not failed", () => {
+    renderDetail(
+      networkSignal({
+        status: 0,
+        aborted: true,
+        isError: false,
+        failedBeforeResponse: false,
+        durationMs: 40,
+      }),
+    );
+
+    expect(screen.getByText(/cancelled by the page/)).toBeInTheDocument();
+    expect(screen.queryByText(/failed before a response/)).toBeNull();
+  });
+
+  it("explains the network cap marker instead of drawing an empty request", () => {
+    renderDetail(
+      networkSignal({
+        method: "",
+        url: "",
+        origin: "",
+        path: "",
+        status: 0,
+        isError: false,
+        isCapMarker: true,
+        durationMs: null,
+        responseBytes: null,
+        traceId: null,
+      }),
+    );
+
+    expect(
+      screen.getByText(/records at most 500 requests per session/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/HTTP 0/)).toBeNull();
+  });
+
+  it("names a resource failure in words and says it is not counted as an error", () => {
+    renderDetail(
+      clientErrorSignal({
+        severity: "warn",
+        title: "Resource failed to load: <img> /logo.png",
+        detail: {
+          kind: "resource",
+          message: "Resource failed to load: <img>",
+          source: "https://cdn.example.com/logo.png",
+          lineNumber: null,
+          columnNumber: null,
+          stack: null,
+          location: null,
+          tagName: "img",
+          isRepeat: false,
+          occurrences: null,
+          isCapMarker: false,
+          atUnixMs: null,
+        },
+      }),
+    );
+
+    expect(screen.getByText("resource failed to load")).toBeInTheDocument();
+    expect(screen.getAllByText(/<img>/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Next error steps past it/)).toBeInTheDocument();
+    /* Never the wrong explanation for a missing stack. */
+    expect(screen.queryByText(/cross-origin scripts hide theirs/)).toBeNull();
+  });
+
+  it("quantifies a repeated error", () => {
+    renderDetail(
+      clientErrorSignal({
+        detail: {
+          kind: "error",
+          message: "TypeError: cannot read total",
+          source: null,
+          lineNumber: null,
+          columnNumber: null,
+          stack: null,
+          location: null,
+          tagName: null,
+          isRepeat: true,
+          occurrences: 2400,
+          isCapMarker: false,
+          atUnixMs: null,
+        },
+      }),
+    );
+
+    expect(
+      screen.getByText("seen 2400 times so far this session"),
+    ).toBeInTheDocument();
+  });
+
+  it("says where error capture stopped", () => {
+    renderDetail(
+      clientErrorSignal({
+        severity: "warn",
+        detail: {
+          kind: "error",
+          message: "Error capture stopped after 100 distinct errors",
+          source: null,
+          lineNumber: null,
+          columnNumber: null,
+          stack: null,
+          location: null,
+          tagName: null,
+          isRepeat: false,
+          occurrences: null,
+          isCapMarker: true,
+          atUnixMs: null,
+        },
+      }),
+    );
+
+    expect(screen.getByText("recorder notice")).toBeInTheDocument();
+    expect(
+      screen.getByText(/errors after this point are missing/i),
+    ).toBeInTheDocument();
+  });
+});
+
+/* ux-17: the detail spells out measures and ratings. */
+describe("ReplayRailDetail performance wording", () => {
+  function performanceSignal(detail: Record<string, unknown>): ReplaySignal {
+    return {
+      id: "rec:0:9",
+      kind: "performance",
+      source: "recording",
+      offsetMs: 4800,
+      severity: "warn",
+      title: "LCP 4.8s needs improvement",
+      links: {},
+      detail: detail,
+      alignment: "exact",
+    };
+  }
+
+  it("renders the rating in words", () => {
+    renderDetail(
+      performanceSignal({
+        kind: "web-vital",
+        durationMs: null,
+        budgetMs: null,
+        isOverBudget: true,
+        metric: "LCP",
+        value: 4800,
+        rating: "needs-improvement",
+        url: null,
+        atUnixMs: null,
+      }),
+    );
+
+    expect(screen.getByText("needs improvement")).toBeInTheDocument();
+    expect(screen.queryByText("needs-improvement")).toBeNull();
+    expect(screen.getByText("LCP")).toBeInTheDocument();
+  });
+
+  it("names a budget kind in words rather than its enum value", () => {
+    renderDetail(
+      performanceSignal({
+        kind: "long-task",
+        durationMs: 320,
+        budgetMs: 200,
+        isOverBudget: true,
+        metric: null,
+        value: null,
+        rating: null,
+        url: null,
+        atUnixMs: null,
+      }),
+    );
+
+    expect(screen.getByText("Long task")).toBeInTheDocument();
+    expect(screen.queryByText("long-task")).toBeNull();
   });
 });

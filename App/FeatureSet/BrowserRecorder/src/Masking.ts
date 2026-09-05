@@ -145,6 +145,23 @@ const TEXT_LIKE_ATTRIBUTES: Array<string> = [
 const VALUE_IS_TEXT_TAGS: Array<string> = ["option", "data", "button"];
 
 /*
+ * Input types whose `value` is a LABEL a person reads off the page rather
+ * than something they typed. rrweb-snapshot skips maskInputValue for
+ * submit and button (rrweb.js:1014), so `<input type="submit" value="Continue
+ * as alice@example.com">` reached neither maskInput nor this table and
+ * survived a MaskAllText recording verbatim. reset is the same shape.
+ */
+const VALUE_IS_LABEL_INPUT_TYPES: Array<string> = ["submit", "button", "reset"];
+
+/*
+ * `<meta name="description" content="Invoices for Alice Hartwell">` is page
+ * text by another route, and slimDOMOptions keeps description/keywords and
+ * every custom meta (frameworks bootstrap from them). The tag has no text
+ * node, so rrweb's maskTextFn never sees it.
+ */
+const CONTENT_IS_TEXT_TAGS: Array<string> = ["meta"];
+
+/*
  * A data-* value that is a short token, not text. Frameworks drive CSS
  * attribute selectors off these (`[data-state="open"]`, `[data-theme]`),
  * so masking them would break the replay's LAYOUT rather than protect
@@ -261,6 +278,15 @@ export default class Masking {
    * selectors" would silently do nothing to input VALUES under the
    * default mode, which is exactly where a customer reaches for it.
    */
+  /*
+   * The application's configured mask selectors. Read by the ClickRecorder,
+   * which has to answer a question closest() cannot: does this element
+   * CONTAIN a masked one?
+   */
+  public getMaskSelectors(): Array<string> {
+    return this.maskSelectors;
+  }
+
   public matchesMaskSelector(element: Element): boolean {
     if (this.maskSelectors.length === 0) {
       return false;
@@ -471,6 +497,7 @@ export default class Masking {
         tagName,
         key,
         value,
+        attributes,
       );
 
       if (replacement === null || replacement === value) {
@@ -490,11 +517,17 @@ export default class Masking {
   /*
    * The replacement for one attribute, or null to leave it alone. Pure and
    * static so the rule is testable without a DOM.
+   *
+   * `attributes` is the element's whole serialised attribute record, when
+   * the caller has it: an input's `value` is a label or a typed value
+   * depending on its `type`, and that cannot be decided from the one
+   * attribute alone.
    */
   public static maskAttributeValue(
     tagName: string,
     name: string,
     value: string,
+    attributes?: Record<string, unknown>,
   ): string | null {
     const key: string = name.toLowerCase();
     const tag: string = tagName.toLowerCase();
@@ -504,6 +537,33 @@ export default class Masking {
     }
 
     if (key === "value" && (tag === "" || VALUE_IS_TEXT_TAGS.includes(tag))) {
+      return CommonMasking.maskText(value);
+    }
+
+    /*
+     * A submit or button input's value is the button's LABEL, not something
+     * the user typed, which is why rrweb-snapshot skips maskInputValue for
+     * those two types (rrweb.js:1014) - and why nothing else masked
+     * `<input type="submit" value="Continue as alice@example.com">`. Every
+     * other input value is rrweb's maskInputFn to mask, and it does; an
+     * absent type is a text input, so it is left alone here.
+     */
+    if (
+      key === "value" &&
+      tag === "input" &&
+      attributes &&
+      typeof attributes["type"] === "string" &&
+      VALUE_IS_LABEL_INPUT_TYPES.includes(
+        (attributes["type"] as string).toLowerCase(),
+      )
+    ) {
+      return CommonMasking.maskText(value);
+    }
+
+    if (
+      key === "content" &&
+      (tag === "" || CONTENT_IS_TEXT_TAGS.includes(tag))
+    ) {
       return CommonMasking.maskText(value);
     }
 

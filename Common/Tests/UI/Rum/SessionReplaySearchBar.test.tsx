@@ -259,6 +259,31 @@ describe("SessionReplaySearchBar hints", () => {
     );
   });
 
+  /*
+   * ux-03: a URL filter that anchors nowhere can only ever return "no
+   * sessions match", so the box anchors it and says what it applied
+   * instead of leaving the viewer to conclude the page was not recorded.
+   */
+  it("says what an un-anchored URL filter was applied as", () => {
+    renderBar();
+
+    fireEvent.change(input(), { target: { value: "url:checkout" } });
+
+    expect(screen.getByTestId("session-search-hint")).toHaveTextContent(
+      'was applied as "/checkout"',
+    );
+  });
+
+  it("a path URL filter is applied as typed, with no warning", () => {
+    renderBar();
+
+    fireEvent.change(input(), { target: { value: "url:/checkout" } });
+
+    expect(screen.getByTestId("session-search-hint")).toHaveTextContent(
+      "Tokens: user:, url:",
+    );
+  });
+
   it("says when the server ignores the user filter", () => {
     renderBar({
       filters: {

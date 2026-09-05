@@ -15,6 +15,7 @@ import {
   ReplaySignal,
 } from "./ReplaySignalTypes";
 import {
+  REPLAY_NETWORK_CAPTURE_CAP,
   REPLAY_SLOW_REQUEST_MS,
   ReplayClientErrorSignalDetail,
   ReplayConsoleSignalDetail,
@@ -32,8 +33,10 @@ import {
   buildErrorCounterpartIndex,
   findErrorAfterInteraction,
   findErrorLogsForTrace,
+  formatPerformanceMeasure,
   formatSignalBytes,
   formatSignalDuration,
+  formatVitalRating,
   indexTraceSignalsByTraceId,
   pairClientAndServerErrors,
 } from "./ReplaySignals";
@@ -348,6 +351,20 @@ const NetworkDetail: FunctionComponent<{
     .detail as ReplayNetworkSignalDetail;
 
   /*
+   * The cap marker is not a request: it carries no method, url or timing,
+   * and rendering the request facts for it printed a row of blanks.
+   */
+  if (detail.isCapMarker) {
+    return (
+      <Note>
+        The recorder records at most {REPLAY_NETWORK_CAPTURE_CAP} requests per
+        session. It reached that here, so requests after this moment are missing
+        from the Network tab - the page kept making them.
+      </Note>
+    );
+  }
+
+  /*
    * The timing bar: full width is the slow threshold (1s), so a 220ms
    * request reads as a fifth of the bar and anything past 1s fills it.
    */
@@ -357,13 +374,16 @@ const NetworkDetail: FunctionComponent<{
         Math.max(2, (detail.durationMs / REPLAY_SLOW_REQUEST_MS) * 100),
       )
     : null;
-  const barClass: string = detail.isSlow
-    ? "bg-orange-400"
-    : props.signal.severity === "error"
-      ? "bg-rose-400"
-      : props.signal.severity === "warn"
-        ? "bg-amber-400"
-        : "bg-emerald-400";
+  /* Cancelled is neither green (it never finished) nor red (nothing failed). */
+  const barClass: string = detail.aborted
+    ? "bg-gray-400"
+    : detail.isSlow
+      ? "bg-orange-400"
+      : props.signal.severity === "error"
+        ? "bg-rose-400"
+        : props.signal.severity === "warn"
+          ? "bg-amber-400"
+          : "bg-emerald-400";
 
   return (
     <div className="space-y-2">
@@ -376,9 +396,11 @@ const NetworkDetail: FunctionComponent<{
           <span className="text-gray-900">{detail.path || detail.url}</span>
         </Fact>
         <Fact label="Status">
-          {detail.failedBeforeResponse
-            ? "failed before a response (aborted, offline or blocked by CORS)"
-            : `HTTP ${detail.status}`}
+          {detail.aborted
+            ? "cancelled by the page before a response (AbortController, or navigating away) - not a failure"
+            : detail.failedBeforeResponse
+              ? "failed before a response (offline, DNS or blocked by CORS)"
+              : `HTTP ${detail.status}`}
         </Fact>
         <Fact label="Timing">
           {barPercent !== null && isFiniteNumber(detail.durationMs) ? (
@@ -647,9 +669,8 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
 
   return (
     <dl>
-      <Fact label="Measure">
-        {detail.metric ? detail.metric.toUpperCase() : detail.kind}
-      </Fact>
+      {/* Never the raw enum: "long-task" is a wire value, not a word. */}
+      <Fact label="Measure">{formatPerformanceMeasure(detail)}</Fact>
       {isFiniteNumber(detail.value) && (
         <Fact label="Value">
           {detail.metric === "CLS"
@@ -666,7 +687,9 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {detail.isOverBudget ? " (over)" : " (within)"}
         </Fact>
       )}
-      {detail.rating && <Fact label="Rating">{detail.rating}</Fact>}
+      {detail.rating && (
+        <Fact label="Rating">{formatVitalRating(detail.rating)}</Fact>
+      )}
       {detail.url && (
         <Fact label="URL" mono={true}>
           {detail.url}
@@ -674,6 +697,20 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
       )}
     </dl>
   );
+};
+
+/*
+ * The error kinds in words. "resource" and "unhandledrejection" are wire
+ * values; the detail used to print whichever one it did not recognise.
+ */
+const CLIENT_ERROR_KIND_COPY: Record<
+  ReplayClientErrorSignalDetail["kind"],
+  string
+> = {
+  error: "uncaught error",
+  unhandledrejection: "unhandled promise rejection",
+  resource: "resource failed to load",
+  unknown: "error",
 };
 
 const ErrorDetail: FunctionComponent<{
@@ -725,14 +762,11 @@ const ErrorDetail: FunctionComponent<{
   return (
     <div className="space-y-2">
       <dl>
-        {isClient && client.kind && (
-          <Fact label="Kind">
-            {client.kind === "unhandledrejection"
-              ? "unhandled promise rejection"
-              : client.kind === "error"
-                ? "uncaught error"
-                : client.kind}
-          </Fact>
+        {isClient && client.kind && !client.isCapMarker && (
+          <Fact label="Kind">{CLIENT_ERROR_KIND_COPY[client.kind]}</Fact>
+        )}
+        {isClient && client.isCapMarker && (
+          <Fact label="Kind">recorder notice</Fact>
         )}
         {!isClient && server.exceptionType && (
           <Fact label="Type" mono={true}>
@@ -742,6 +776,18 @@ const ErrorDetail: FunctionComponent<{
         <Fact label="Message">
           {isClient ? client.message : server.message}
         </Fact>
+        {isClient && client.kind === "resource" && client.tagName && (
+          <Fact label="Element" mono={true}>
+            &lt;{client.tagName}&gt;
+          </Fact>
+        )}
+        {isClient && client.isRepeat && (
+          <Fact label="Repeats">
+            {client.occurrences !== null
+              ? `seen ${client.occurrences} times so far this session`
+              : "seen again after its first occurrence"}
+          </Fact>
+        )}
         {isClient && client.location && (
           <Fact label="Location" mono={true}>
             {client.location}
@@ -779,13 +825,21 @@ const ErrorDetail: FunctionComponent<{
         )}
       </dl>
 
-      {stack ? (
+      {isClient && client.isCapMarker ? (
+        <Note>
+          The recorder stopped recording new errors at its per-session cap;
+          errors after this point are missing from this tab, and this row marks
+          where that happened.
+        </Note>
+      ) : stack ? (
         <CodeBlock code={stack} language="plaintext" maxHeight="14rem" />
       ) : (
         <Note>
-          {isClient
-            ? "No stack trace reached the recorder for this error (cross-origin scripts hide theirs)."
-            : "No stack trace was reported with this exception."}
+          {!isClient
+            ? "No stack trace was reported with this exception."
+            : client.kind === "resource"
+              ? "A failed resource load has no stack: the element and its URL are all the browser reports. It is not counted as an error, so Next error steps past it."
+              : "No stack trace reached the recorder for this error (cross-origin scripts hide theirs)."}
         </Note>
       )}
 

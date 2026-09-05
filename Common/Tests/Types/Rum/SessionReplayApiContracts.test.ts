@@ -1,6 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  SESSION_REPLAY_OMITTED_CHUNKS_HEADER,
+  SESSION_REPLAY_READ_ERROR_PREFIXES,
+  SESSION_REPLAY_READ_ERROR_PREFIX_ERASED,
+  SESSION_REPLAY_READ_ERROR_PREFIX_EXPIRED,
+  SESSION_REPLAY_READ_ERROR_PREFIX_NOT_FOUND,
   SESSION_REPLAY_SORT_BY_VALUES,
+  SessionReplayChunksRequestDto,
   SessionReplayExceptionSessionDto,
   SessionReplayForExceptionResponseDto,
   SessionReplayHeartbeatResponseDto,
@@ -11,6 +17,9 @@ import {
   SessionReplayManifestRequestDto,
   SessionReplayManifestResponseDto,
   SessionReplayManifestTabDto,
+  SessionReplayViewDto,
+  SessionReplayViewsRequestDto,
+  SessionReplayViewsResponseDto,
   isSessionReplaySortedListCursor,
   parseSessionReplayListCursor,
   readDtoBoolean,
@@ -321,6 +330,127 @@ describe("SessionReplayApi DTOs - today's wire shapes satisfy them", () => {
       "errorCount",
       "frustration",
     ]);
+  });
+});
+
+describe("SessionReplayApi - the additive contracts the surfaces already ship", () => {
+  /*
+   * The server drops identifiedUserRef when the caller lacks the identity
+   * permission. Dropping it silently answers a WIDER set of rows as if it
+   * were the filtered one, so the response says what it ignored and the
+   * list renders a notice. Absent (not []) on an older server.
+   */
+  it("/list: ignoredFilters is optional, and [] means 'looked and dropped nothing'", () => {
+    expect(legacyListResponse.ignoredFilters).toBeUndefined();
+
+    const withIgnored: SessionReplayListResponseDto = {
+      ...legacyListResponse,
+      ignoredFilters: ["identifiedUserRef"],
+    };
+    const withNoneIgnored: SessionReplayListResponseDto = {
+      ...legacyListResponse,
+      ignoredFilters: [],
+    };
+
+    expect(withIgnored.ignoredFilters).toEqual(["identifiedUserRef"]);
+    expect(withNoneIgnored.ignoredFilters).toEqual([]);
+    expect(withNoneIgnored.ignoredFilters).not.toBeUndefined();
+  });
+
+  /*
+   * POST /telemetry/rum/session-replay/views: "who watched this
+   * recording", off the audit rows every manifest read has written.
+   */
+  it("/views: the request is one session plus the application disambiguator, the response is the route's projection", () => {
+    const request: SessionReplayViewsRequestDto = {
+      sessionId: "sess-1",
+      rumApplicationId: "app-1",
+      limit: 50,
+    };
+    const minimalRequest: SessionReplayViewsRequestDto = {
+      sessionId: "sess-1",
+    };
+
+    const response: SessionReplayViewsResponseDto = {
+      views: [
+        {
+          id: "view-1",
+          viewedAt: START_ISO,
+          secondsWatched: 45,
+          accessReason: "incident-1234",
+          viewedByUserId: "user-1",
+          viewedByUser: {
+            id: "user-1",
+            name: "Jane Doe",
+            email: "jane@acme.com",
+            profilePictureId: "file-1",
+          },
+        },
+        /*
+         * The audit row outlives the account it names, and a view that
+         * never sent a heartbeat is a real 0 - "opened, never watched" -
+         * not a missing measurement.
+         */
+        {
+          id: "view-2",
+          viewedAt: START_ISO,
+          secondsWatched: 0,
+          accessReason: "",
+          viewedByUserId: null,
+          viewedByUser: null,
+        },
+      ],
+    };
+
+    const deletedViewer: SessionReplayViewDto = response.views[1]!;
+
+    expect(request.limit).toBe(50);
+    expect(minimalRequest.rumApplicationId).toBeUndefined();
+    expect(minimalRequest.limit).toBeUndefined();
+    expect(response.views[0]?.viewedByUser?.email).toBe("jane@acme.com");
+    expect(deletedViewer.viewedByUser).toBeNull();
+    expect(deletedViewer.secondsWatched).toBe(0);
+  });
+
+  it("/chunks: the request carries the application disambiguator, and the omitted-chunk header is one shared string", () => {
+    const chunksRequest: SessionReplayChunksRequestDto = {
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      chunkIndexes: [0, 1, 2],
+      rumApplicationId: "app-1",
+    };
+    const minimalChunksRequest: SessionReplayChunksRequestDto = {
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      chunkIndexes: [0],
+    };
+
+    expect(chunksRequest.chunkIndexes).toEqual([0, 1, 2]);
+    expect(minimalChunksRequest.rumApplicationId).toBeUndefined();
+    expect(SESSION_REPLAY_OMITTED_CHUNKS_HEADER).toBe(
+      "X-OneUptime-Replay-Omitted-Chunks",
+    );
+  });
+
+  /*
+   * A 404 from the read routes carries its reason as a prefix because the
+   * three reasons need three different screens - and only a prefix
+   * survives HTTPErrorResponse, which keeps the message and nothing else.
+   */
+  it("read failures: the three 404 prefixes are pinned, colon included", () => {
+    expect(SESSION_REPLAY_READ_ERROR_PREFIX_EXPIRED).toBe("expired:");
+    expect(SESSION_REPLAY_READ_ERROR_PREFIX_ERASED).toBe("erased:");
+    expect(SESSION_REPLAY_READ_ERROR_PREFIX_NOT_FOUND).toBe("not-found:");
+    expect([...SESSION_REPLAY_READ_ERROR_PREFIXES]).toEqual([
+      "expired:",
+      "erased:",
+      "not-found:",
+    ]);
+
+    for (const prefix of SESSION_REPLAY_READ_ERROR_PREFIXES) {
+      expect(prefix.endsWith(":")).toBe(true);
+      expect(`${prefix} This recording is gone.`.startsWith(prefix)).toBe(true);
+    }
   });
 });
 

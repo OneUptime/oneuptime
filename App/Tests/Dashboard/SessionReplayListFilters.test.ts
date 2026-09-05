@@ -12,6 +12,7 @@ import {
   EMPTY_ADVANCED_FILTERS,
   FILTER_URL_KEYS,
   hasAnyAdvancedFilter,
+  normalizeUrlPrefix,
   parseCursorMemory,
   parseTagFilter,
   readFiltersFromSearch,
@@ -107,6 +108,37 @@ describe("buildSessionReplayListFilters", () => {
       tags: { build: "1.4.2", plan: "pro" },
       search: "checkout",
     });
+  });
+
+  /*
+   * ux-03 / integration-001: the modal writes urlPrefix straight from a
+   * text input, and the endpoint's prefix comparison starts at the
+   * beginning of each address. An un-anchored value can only ever return
+   * "no sessions match", so it is anchored on the way out.
+   */
+  test("a URL prefix is anchored before it reaches the endpoint", () => {
+    expect(normalizeUrlPrefix("checkout")).toBe("/checkout");
+    expect(normalizeUrlPrefix("shop.example.com/cart")).toBe(
+      "https://shop.example.com/cart",
+    );
+    expect(normalizeUrlPrefix("localhost:3000/cart")).toBe(
+      "https://localhost:3000/cart",
+    );
+    /* A dotted word alone is a page, not a host typed without a scheme. */
+    expect(normalizeUrlPrefix("checkout.html")).toBe("/checkout.html");
+    /* Already anchored: untouched, both shapes the server can match. */
+    expect(normalizeUrlPrefix(" /checkout ")).toBe("/checkout");
+    expect(normalizeUrlPrefix("https://app.acme.com/cart")).toBe(
+      "https://app.acme.com/cart",
+    );
+    expect(normalizeUrlPrefix("   ")).toBe("");
+
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        urlPrefix: "checkout",
+      }),
+    ).toEqual({ urlPrefix: "/checkout" });
   });
 
   test("empty and unparseable fields are dropped, not sent as empties", () => {
@@ -315,6 +347,44 @@ describe("filter URL round trip", () => {
       );
 
     expect(range.range).toBe(TimeRange.CUSTOM);
+  });
+
+  /*
+   * correlation-11: the RUM overview's tiles link to this list with
+   * range/start/end (buildRangedListRoute in Pages/Rum/View/Overview.tsx),
+   * while the list writes startTime/endTime. Reading only the canonical
+   * pair dropped the tile's custom window on arrival.
+   */
+  test("the overview tile's start/end window is honoured, and never left behind", () => {
+    const fromTile: ReturnType<typeof readTimeRangeFromSearch> =
+      readTimeRangeFromSearch(
+        "?range=Custom&start=2026-09-01T00%3A00%3A00.000Z&end=2026-09-01T01%3A00%3A00.000Z",
+      );
+
+    expect(fromTile.range).toBe(TimeRange.CUSTOM);
+    expect(fromTile.startAndEndDate?.startValue.toISOString()).toBe(
+      "2026-09-01T00:00:00.000Z",
+    );
+    expect(fromTile.startAndEndDate?.endValue.toISOString()).toBe(
+      "2026-09-01T01:00:00.000Z",
+    );
+
+    /*
+     * Switching back to a named range has to clear the alias too, or the
+     * stale window would win the next time this URL is read.
+     */
+    const rewritten: string = buildFilteredUrl(
+      "https://dash.example.com/replay?start=2026-09-01T00:00:00.000Z&end=2026-09-01T01:00:00.000Z",
+      "all",
+      EMPTY_ADVANCED_FILTERS,
+      { timeRange: { range: TimeRange.PAST_ONE_WEEK } },
+    );
+
+    expect(rewritten).not.toContain("start=");
+    expect(rewritten).not.toContain("end=");
+    expect(readTimeRangeFromSearch(new URL(rewritten).search)).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
   });
 
   test("an inverted or unparseable custom range falls back to the default", () => {

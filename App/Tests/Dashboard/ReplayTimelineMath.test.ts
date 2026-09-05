@@ -26,6 +26,7 @@ import {
   findPrevMarker,
   getErrorMarkers,
   getFrustrationMarkers,
+  getMarkersForLane,
   markerSeekTarget,
   nudgeOffset,
   offsetToPercent,
@@ -294,6 +295,29 @@ describe("assignMarkerLane", () => {
     ],
     ["console", { kind: "console", severity: "error" }, null],
     ["plain click", { kind: "interaction", severity: "info" }, null],
+    /*
+     * ux-06: a subresource that failed to load is a network warning, not
+     * a client error - the recorder keeps it out of its trigger counts -
+     * and the recorder's own "capture stopped" marker is no error at all.
+     */
+    [
+      "resource load failure",
+      {
+        kind: "client-error",
+        severity: "warn",
+        detail: { kind: "resource", isCapMarker: false },
+      },
+      "network/amber",
+    ],
+    [
+      "error cap marker",
+      {
+        kind: "client-error",
+        severity: "warn",
+        detail: { kind: "error", isCapMarker: true },
+      },
+      null,
+    ],
   ];
 
   test.each(cases)(
@@ -654,6 +678,51 @@ describe("prev/next stepping", () => {
         return marker.id;
       }),
     ).toEqual(["exact:f", "coarse:frustration:9"]);
+  });
+
+  /*
+   * ux-06: E / Shift+E and the Errors lane step through real errors. A
+   * 404 image and the recorder's cap notice are rows in the rail, not
+   * errors to be walked through.
+   */
+  test("resource failures and cap markers never reach the error stepping", () => {
+    const markers: Array<ReplayTimelineMarker> = buildExactMarkers([
+      signal({
+        id: "real",
+        kind: "client-error",
+        severity: "error",
+        offsetMs: 4000,
+        detail: { kind: "error", isCapMarker: false },
+      }),
+      signal({
+        id: "resource",
+        kind: "client-error",
+        severity: "warn",
+        offsetMs: 5000,
+        detail: { kind: "resource", isCapMarker: false },
+      }),
+      signal({
+        id: "cap",
+        kind: "client-error",
+        severity: "warn",
+        offsetMs: 6000,
+        detail: { kind: "error", isCapMarker: true },
+      }),
+    ]);
+
+    expect(
+      getErrorMarkers(markers).map((marker: ReplayTimelineMarker) => {
+        return marker.signalId;
+      }),
+    ).toEqual(["real"]);
+    /* The resource failure is still drawn - in the network lane. */
+    expect(
+      getMarkersForLane(markers, "network").map(
+        (marker: ReplayTimelineMarker) => {
+          return marker.signalId;
+        },
+      ),
+    ).toEqual(["resource"]);
   });
 });
 

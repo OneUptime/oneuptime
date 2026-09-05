@@ -180,8 +180,14 @@ export interface RecorderInitOptions {
 
   /*
    * The one override that can turn off DNT/GPC honouring locally, for a
-   * customer whose lawful basis does not depend on it. Defaults to true,
-   * and the server's own respectDoNotTrack still applies on top.
+   * customer whose lawful basis does not depend on it.
+   *
+   * A TRI-STATE, deliberately: absent means the page said nothing and the
+   * server policy decides (Consent.isRecordingPermitted). It used to be
+   * coerced to `true` the moment it was read, here and in the script-tag
+   * reader, so "the page said nothing" and "the page said honour it" were
+   * the same value and the policy's own respectDoNotTrack could never be
+   * reached from a page - while three comments promised it could.
    */
   respectDoNotTrack?: boolean;
 
@@ -243,7 +249,10 @@ export default class Config {
       source: source,
       host: options.host,
       appIdentifier: options.appIdentifier,
-      respectDoNotTrack: options.respectDoNotTrack !== false,
+      respectDoNotTrack:
+        options.respectDoNotTrack === undefined
+          ? "policy-decides"
+          : options.respectDoNotTrack,
     });
 
     return options;
@@ -301,8 +310,14 @@ export default class Config {
       token: tag.getAttribute("data-oneuptime-token"),
       appIdentifier: tag.getAttribute("data-oneuptime-app-identifier"),
       userRef: tag.getAttribute("data-oneuptime-user-ref"),
-      respectDoNotTrack:
-        tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false",
+      /*
+       * Absent stays absent. hasAttribute rather than a !== "false" on the
+       * value, so a tag that does not mention it leaves the decision to the
+       * server policy instead of asserting "honour it".
+       */
+      respectDoNotTrack: tag.hasAttribute("data-oneuptime-respect-do-not-track")
+        ? tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false"
+        : undefined,
       debug: tag.getAttribute("data-oneuptime-debug"),
     };
 
@@ -384,8 +399,19 @@ export default class Config {
       host: host.replace(/\/+$/, ""),
       token: token,
       appIdentifier: appIdentifier,
-      respectDoNotTrack: respectDoNotTrack !== false,
     };
+
+    /*
+     * Only an explicit value is carried. `undefined` is the third state -
+     * "the page did not say" - and exactOptionalPropertyTypes makes an
+     * assigned undefined a different type from an absent key, so it is
+     * assigned conditionally like userRef below.
+     */
+    if (respectDoNotTrack === false || respectDoNotTrack === "false") {
+      options.respectDoNotTrack = false;
+    } else if (respectDoNotTrack === true || respectDoNotTrack === "true") {
+      options.respectDoNotTrack = true;
+    }
 
     if (Config.readBooleanOption(raw["debug"])) {
       options.debug = true;
@@ -623,12 +649,27 @@ export default class Config {
        */
       const reason: unknown = raw["disabledReason"];
 
+      /*
+       * disabledDetail narrows the reason to the switch or the budget that
+       * did it, and budgetResetsAt says when a budget clears. "Off because
+       * the monthly session budget is exhausted, back on the 1st" is a
+       * different ticket from "off because someone turned it off".
+       */
+      const detail: unknown = raw["disabledDetail"];
+      const budgetResetsAt: unknown = raw["budgetResetsAt"];
+
       debugWarn(
         "config-disabled",
         "The server says replay is off here. Nothing will be recorded.",
         {
           disabledReason:
             typeof reason === "string" && reason ? reason : "not-reported",
+          disabledDetail:
+            typeof detail === "string" && detail ? detail : "not-reported",
+          budgetResetsAt:
+            typeof budgetResetsAt === "string" && budgetResetsAt
+              ? budgetResetsAt
+              : "not-reported",
         },
       );
 

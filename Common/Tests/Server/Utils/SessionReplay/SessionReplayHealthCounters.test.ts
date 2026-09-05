@@ -53,9 +53,55 @@ class FakeRedisHashes {
   >();
   public expires: Map<string, number> = new Map<string, number>();
   public failNext: Error | null = null;
+  /* How many round trips the counter writes actually cost. */
+  public execCount: number = 0;
+
+  /*
+   * The writes go through a PIPELINE (one round trip for HINCRBY +
+   * EXPIRE), so the fake has to offer ioredis' chainable shape. The queued
+   * operations run against the same maps the direct commands use, in
+   * order, on exec().
+   */
+  public pipeline(): unknown {
+    const queued: Array<() => Promise<unknown>> = [];
+    const client: Record<string, (...args: Array<never>) => Promise<unknown>> =
+      this.client() as Record<
+        string,
+        (...args: Array<never>) => Promise<unknown>
+      >;
+
+    const chain: Record<string, unknown> = {
+      hincrby: (key: string, field: string, by: number): unknown => {
+        queued.push(() => {
+          return client["hincrby"]!(key as never, field as never, by as never);
+        });
+        return chain;
+      },
+      expire: (key: string, seconds: number): unknown => {
+        queued.push(() => {
+          return client["expire"]!(key as never, seconds as never);
+        });
+        return chain;
+      },
+      exec: async (): Promise<Array<unknown>> => {
+        this.execCount++;
+
+        for (const operation of queued) {
+          await operation();
+        }
+
+        return [];
+      },
+    };
+
+    return chain;
+  }
 
   public client(): unknown {
     return {
+      pipeline: (): unknown => {
+        return this.pipeline();
+      },
       hincrby: (key: string, field: string, by: number): Promise<number> => {
         if (this.failNext) {
           const error: Error = this.failNext;
@@ -175,6 +221,34 @@ describe("SessionReplayHealthCounters", () => {
         SESSION_REPLAY_HEALTH_COUNTER_TTL_SECONDS,
       );
       expect(SESSION_REPLAY_HEALTH_COUNTER_TTL_SECONDS).toBe(48 * 60 * 60);
+    });
+
+    /*
+     * The gate counts a refusal for EVERY refused request, including the
+     * 15-second 204s a misconfigured site never stops sending. Two awaited
+     * round trips per refusal is a cost the response path should not pay,
+     * and the module's own contract says a write must never delay a
+     * response: HINCRBY and EXPIRE go together in one pipeline.
+     */
+    test("the increment and its TTL refresh cost one round trip, not two", async () => {
+      await SessionReplayHealthCounters.recordRefusal({
+        projectId: PROJECT_ID,
+        appIdentifier: "checkout-web",
+        reason: "not-sampled",
+        nowUnixMs: NOW_UNIX_MS,
+      });
+
+      const key: string = SessionReplayHealthCounters.getRefusalCounterKey({
+        projectId: PROJECT_ID,
+        appIdentifier: "checkout-web",
+        utcDay: "2026-03-10",
+      });
+
+      expect(fakeRedis.execCount).toBe(1);
+      expect(fakeRedis.hashes.get(key)?.get("not-sampled")).toBe(1);
+      expect(fakeRedis.expires.get(key)).toBe(
+        SESSION_REPLAY_HEALTH_COUNTER_TTL_SECONDS,
+      );
     });
 
     test("an empty reason writes nothing", async () => {

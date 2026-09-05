@@ -16,6 +16,7 @@ import {
   RecordingHealthState,
   RecordingHealthStatus,
   SESSION_REPLAY_REFUSAL_REASONS,
+  SessionReplayIngestStatusResponseDto,
   SessionReplayRefusalReason,
   isSessionReplayRefusalReason,
 } from "../../../Types/Rum/SessionReplayHealth";
@@ -420,7 +421,14 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
     expect(pastThreshold.state).toBe("stale");
   });
 
-  it("healthy-quiet: no chunk for a while and the recorder is not loading either reads as quiet traffic", () => {
+  /*
+   * Regression for docs-and-design-fidelity-6. healthy-quiet is NOT "the
+   * recorder loads but nobody visited": it is the branch where no chunk
+   * AND no policy fetch landed, which is also what a removed snippet looks
+   * like. The copy must say that rather than reassure the reader that the
+   * install is fine, which is what it used to do.
+   */
+  it("healthy-quiet: names the second silence (no policy fetch either) instead of vouching for the install", () => {
     const result: RecordingHealthDiagnosis = diagnose(
       healthy({
         lastConfigFetchAt: iso(-2 * DAY),
@@ -431,12 +439,23 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
     expect(result.state).toBe("healthy-quiet");
     expect(result.severity).toBe("info");
     expect(result.title).toBe("No session recorded in the past 2d");
-    expect(result.detail).toContain("the recorder last loaded 2d ago");
+    expect(result.detail).toContain("The last chunk arrived 2d ago");
+    expect(result.detail).toContain("no page has fetched the policy for 2d");
+    expect(result.detail).toContain(
+      "no recorder is running on this application right now",
+    );
     expect(result.detail).toContain("sampling 100%");
-    expect(result.action).toBeUndefined();
+    expect(result.detail).not.toContain(
+      "quiet traffic rather than a broken install",
+    );
+    /* One action, and it is the one that settles which of the two it is. */
+    expect(result.action).toEqual({
+      label: "Check the install",
+      target: "setup-guide",
+    });
   });
 
-  it("healthy-quiet: with no config stamp at all (older server) it says so instead of guessing", () => {
+  it("healthy-quiet: with no config stamp at all (older server) it says the silence cannot be read, and offers nothing", () => {
     const result: RecordingHealthDiagnosis = diagnose(
       healthy({
         lastConfigFetchAt: null,
@@ -445,7 +464,17 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
     );
 
     expect(result.state).toBe("healthy-quiet");
-    expect(result.detail).toContain("when the recorder last loaded is unknown");
+    expect(result.title).toBe("No session recorded in the past 8h");
+    expect(result.detail).toContain("The last chunk arrived 8h ago");
+    expect(result.detail).toContain(
+      "this server does not report policy fetches",
+    );
+    expect(result.detail).toContain("cannot be told from here");
+    expect(result.detail).not.toContain(
+      "quiet traffic rather than a broken install",
+    );
+    /* Nothing here says the install is wrong, so nothing is offered. */
+    expect(result.action).toBeUndefined();
   });
 
   it("healthy: quantifies the last chunk, the sessions and the sampling", () => {
@@ -559,14 +588,22 @@ describe("diagnoseRecordingHealth - tie-breaks", () => {
       ).state,
     ).toBe("stale");
 
-    expect(
-      diagnose(
-        healthy({
-          lastConfigFetchAt: iso(-25 * HOUR),
-          lastChunkReceivedAt: iso(-25 * HOUR),
-        }),
-      ).state,
-    ).toBe("healthy-quiet");
+    const notLoading: RecordingHealthDiagnosis = diagnose(
+      healthy({
+        lastConfigFetchAt: iso(-25 * HOUR),
+        lastChunkReceivedAt: iso(-25 * HOUR),
+      }),
+    );
+
+    expect(notLoading.state).toBe("healthy-quiet");
+    /*
+     * The two states describe the same silence for opposite reasons, so
+     * the sentence has to flip too: stale says the recorder keeps loading,
+     * healthy-quiet says none is running.
+     */
+    expect(notLoading.detail).toContain(
+      "no recorder is running on this application right now",
+    );
   });
 
   it("is a pure function of (status, now): the same input yields the same diagnosis", () => {
@@ -711,6 +748,9 @@ describe("parseRecordingHealthStatus", () => {
     expect(status?.sessionsLast24h).toBeNull();
     expect(status?.playableSessionsLast24h).toBeNull();
     expect(status?.refusalsLast24h).toBeNull();
+    expect(status?.dropsLast24h).toBeNull();
+    /* Not [], which would claim a recorder uploaded and announced nothing. */
+    expect(status?.recorderCapabilities).toBeNull();
     expect(status?.projectBytesUsedToday).toBeNull();
     expect(status?.applicationBytesUsedThisMonth).toBe(5);
     expect(status?.monthlyBudgetInGB).toBeNull();
@@ -749,6 +789,51 @@ describe("parseRecordingHealthStatus", () => {
     ]);
   });
 
+  /*
+   * The health card and the setup guide answer "why is the rail empty?"
+   * with what the recorder said it can capture, so the parse has to carry
+   * the field through instead of leaving every surface to re-read the raw
+   * body - and it must keep "not reported" apart from "reported none".
+   */
+  it("carries recorderCapabilities and dropsLast24h through, verbatim and open-vocabulary", () => {
+    const status: RecordingHealthStatus | null = parseRecordingHealthStatus({
+      ...legacyWire,
+      recorderCapabilities: ["click-events", "web-vitals", 7],
+      dropsLast24h: [
+        { reason: "scrub-incomplete", count: "3" },
+        { reason: "", count: 1 },
+        { count: 2 },
+      ],
+    });
+
+    /* Unknown entries are kept: a mixed rollout is exactly what this shows. */
+    expect(status?.recorderCapabilities).toEqual([
+      "click-events",
+      "web-vitals",
+      "7",
+    ]);
+    expect(status?.dropsLast24h).toEqual([
+      { reason: "scrub-incomplete", count: 3 },
+    ]);
+  });
+
+  it("distinguishes 'no capabilities reported' from 'a recorder reported none'", () => {
+    expect(
+      parseRecordingHealthStatus({ ...legacyWire, recorderCapabilities: [] })
+        ?.recorderCapabilities,
+    ).toEqual([]);
+    expect(
+      parseRecordingHealthStatus({ ...legacyWire, recorderCapabilities: null })
+        ?.recorderCapabilities,
+    ).toBeNull();
+    expect(
+      parseRecordingHealthStatus({
+        ...legacyWire,
+        recorderCapabilities: "click-events",
+      })?.recorderCapabilities,
+    ).toBeNull();
+  });
+
   it("distinguishes an empty refusal list from an unreachable counter", () => {
     expect(
       parseRecordingHealthStatus({ ...legacyWire, refusalsLast24h: [] })
@@ -758,6 +843,59 @@ describe("parseRecordingHealthStatus", () => {
       parseRecordingHealthStatus({ ...legacyWire, refusalsLast24h: null })
         ?.refusalsLast24h,
     ).toBeNull();
+  });
+
+  /*
+   * The DTO is the wire half of the same story: the surfaces read these
+   * fields off /ingest-status, so they have to be declared - and every one
+   * of them optional, or an older server's body stops satisfying the type
+   * that describes it.
+   */
+  it("the /ingest-status DTO satisfies today's body and declares the additive fields as optional", () => {
+    const legacyDto: SessionReplayIngestStatusResponseDto = {
+      isProjectAllowed: true,
+      isApplicationEnabled: true,
+      appIdentifier: "acme-web",
+      allowedOrigins: ["https://acme.com"],
+      samplePercentage: 100,
+      captureTrigger: "Always",
+      lastChunkReceivedAt: iso(-12 * SECOND),
+      budgetExceededAt: null,
+      projectBytesUsedToday: null,
+      dailyByteLimit: 1024 * 1024 * 1024,
+      applicationBytesUsedThisMonth: 5,
+      monthlyBudgetInGB: null,
+    };
+
+    expect(legacyDto.recorderCapabilities).toBeUndefined();
+    expect(legacyDto.dropsLast24h).toBeUndefined();
+    expect(legacyDto.refusalsLast24h).toBeUndefined();
+
+    const richDto: SessionReplayIngestStatusResponseDto = {
+      ...legacyDto,
+      consentMode: "NotRequired",
+      maskingMode: "MaskSensitiveInputsOnly",
+      retentionInDays: 7,
+      publishedRecorderVersion: "2.0.0",
+      lastConfigFetchAt: iso(-1 * SECOND),
+      lastSessionStartedAt: iso(-1 * MINUTE),
+      sessionsLast24h: 12,
+      playableSessionsLast24h: 10,
+      refusalsLast24h: [],
+      dropsLast24h: [{ reason: "scrub-incomplete", count: 3 }],
+      recorderCapabilities: ["click-events", "web-vitals"],
+    };
+
+    const status: RecordingHealthStatus | null =
+      parseRecordingHealthStatus(richDto);
+
+    expect(status?.recorderCapabilities).toEqual([
+      "click-events",
+      "web-vitals",
+    ]);
+    expect(status?.dropsLast24h).toEqual([
+      { reason: "scrub-incomplete", count: 3 },
+    ]);
   });
 
   it("returns null for a body that is not an object", () => {

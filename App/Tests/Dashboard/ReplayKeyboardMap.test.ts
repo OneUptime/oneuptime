@@ -154,6 +154,34 @@ describe("resolveReplayKeyboardAction: focus rules", () => {
     });
   });
 
+  /*
+   * ux-01: the rail's tab strip is a roving-tabindex tablist, so Tab
+   * reaches only the selected tab and Left/Right/Home/End are the ONLY
+   * way to the other eight. The global map consumed them as +-5s seeks
+   * (and preventDefault'ed), which left eight tabs unreachable.
+   */
+  test("a focused rail tab keeps the WAI-ARIA tabs keys for its tablist", () => {
+    expect(resolve("ArrowLeft", { targetKind: "tab" })).toBeNull();
+    expect(resolve("ArrowRight", { targetKind: "tab" })).toBeNull();
+    expect(resolve("Home", { targetKind: "tab" })).toBeNull();
+    expect(resolve("End", { targetKind: "tab" })).toBeNull();
+    /* Space and Enter activate the tab itself. */
+    expect(resolve(" ", { targetKind: "tab" })).toBeNull();
+    expect(resolve("Enter", { targetKind: "tab" })).toBeNull();
+    /* Everything else still belongs to the player. */
+    expect(resolve("j", { targetKind: "tab" })).toEqual({
+      type: "seek-relative",
+      deltaMs: -REPLAY_KEY_SEEK_JL_MS,
+    });
+    expect(resolve("e", { targetKind: "tab" })).toEqual({
+      type: "next-error",
+    });
+    expect(resolve(",", { targetKind: "tab" })).toEqual({
+      type: "seek-relative",
+      deltaMs: -REPLAY_KEY_SEEK_FINE_MS,
+    });
+  });
+
   test("the focused slider owns its own arrow/Home/End keys but nothing else", () => {
     expect(resolve("ArrowLeft", { targetKind: "slider" })).toBeNull();
     expect(resolve("Home", { targetKind: "slider" })).toBeNull();
@@ -341,6 +369,7 @@ describe("getReplayKeyTargetKind", () => {
       element("DIV", { attributes: { role: "slider" } }),
       "slider",
     ],
+    ["a rail tab", element("BUTTON", { attributes: { role: "tab" } }), "tab"],
     ["body", element("BODY"), "other"],
     [
       "a list container",

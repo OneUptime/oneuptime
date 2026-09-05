@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import Span from "Common/Models/AnalyticsModels/Span";
 
 /*
  * Inbound links into a moment of a recording (final-design "Correlation",
@@ -26,10 +27,16 @@ type ReplayLinkModule =
   typeof import("../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayLink");
 type UrlStateModule =
   typeof import("../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlayerUrlState");
+type ReplaySignalsModule =
+  typeof import("../../FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals");
+type ReplaySignalTypesModule =
+  typeof import("../../FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes");
 type NavigationClass = (typeof import("Common/UI/Utils/Navigation"))["default"];
 
 let replayLink: ReplayLinkModule;
 let urlState: UrlStateModule;
+let replaySignals: ReplaySignalsModule;
+let signalTypes: ReplaySignalTypesModule;
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,
@@ -84,6 +91,12 @@ beforeAll(async () => {
   );
   urlState = await import(
     "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlayerUrlState"
+  );
+  replaySignals = await import(
+    "../../FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals"
+  );
+  signalTypes = await import(
+    "../../FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes"
   );
 
   const Navigation: NavigationClass = (
@@ -293,5 +306,146 @@ describe("every inbound surface builds its player URL through the shared builder
     expect(source).toContain("buildReplayMomentRoute(");
     expect(source).not.toContain("RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW");
     expect(source).not.toContain("populateRouteParams");
+  });
+});
+
+/*
+ * integration-003. The span panel links with the id of the span that was
+ * CLICKED, while the Traces tab of the rail carries one row per trace,
+ * keyed by that trace's ROOT span. Most spans a person opens are children,
+ * so an exact id comparison selected nothing at all and the ?signal= in
+ * the URL was a promise the page could not keep.
+ *
+ * The agreed contract (with the rail package) is that the LINK keeps the
+ * clicked span's id - it is the only id the panel honestly has, and it is
+ * what names the moment - and the RAIL resolves a span id by containment,
+ * to the row that owns the span and to that span's own moment. This block
+ * pins both halves together: the id the panel emits must be an id the
+ * rail's own resolver can answer.
+ */
+describe("integration-003: a span cross-link's ?signal= resolves against the traces rail", () => {
+  const SESSION_START_UNIX_MS: number = AT_UNIX_MS - 30_000;
+  const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+  const ROOT_SPAN_ID: string = "00f067aa0ba902b7";
+  const CHILD_SPAN_ID: string = "b7ad6b7169203331";
+  const CHILD_START_UNIX_MS: number = SESSION_START_UNIX_MS + 12_000;
+
+  const ALIGNMENT: {
+    status: "unanchored";
+    deltaMs: number;
+    pairCount: number;
+    uncertaintyMs: number;
+  } = {
+    status: "unanchored",
+    deltaMs: 0,
+    pairCount: 0,
+    uncertaintyMs: 0,
+  };
+
+  function clock(): {
+    startTimeUnixMs: number;
+    alignment: typeof ALIGNMENT;
+  } {
+    return {
+      startTimeUnixMs: SESSION_START_UNIX_MS,
+      alignment: ALIGNMENT,
+    };
+  }
+
+  /*
+   * Two spans of one trace, both carrying the session id - which is the
+   * scope the rail fetches on, so both are rows the rail has.
+   */
+  function sessionSpans(): Array<Span> {
+    return [
+      {
+        spanId: ROOT_SPAN_ID,
+        parentSpanId: "",
+        traceId: TRACE_ID,
+        name: "GET /checkout",
+        startTime: new Date(SESSION_START_UNIX_MS + 10_000),
+        durationUnixNano: 400 * 1_000_000,
+      },
+      {
+        spanId: CHILD_SPAN_ID,
+        parentSpanId: ROOT_SPAN_ID,
+        traceId: TRACE_ID,
+        name: "POST /api/orders",
+        startTime: new Date(CHILD_START_UNIX_MS),
+        durationUnixNano: 120 * 1_000_000,
+      },
+    ] as unknown as Array<Span>;
+  }
+
+  test("the rail row is keyed by the ROOT span, so an exact id match on a child would find nothing", () => {
+    const signals: ReturnType<ReplaySignalsModule["groupSpansIntoTraces"]> =
+      replaySignals.groupSpansIntoTraces(sessionSpans(), clock());
+
+    expect(signals).toHaveLength(1);
+    expect(signals[0]!.id).toBe(signalTypes.makeSpanSignalId(ROOT_SPAN_ID));
+    expect(signals[0]!.id).not.toBe(
+      signalTypes.makeSpanSignalId(CHILD_SPAN_ID),
+    );
+  });
+
+  test("the child span id the panel links with resolves to that trace's row, at the child's own moment", () => {
+    const signals: ReturnType<ReplaySignalsModule["groupSpansIntoTraces"]> =
+      replaySignals.groupSpansIntoTraces(sessionSpans(), clock());
+
+    const match: ReturnType<ReplaySignalsModule["findSignalMatch"]> =
+      replaySignals.findSignalMatch(
+        signals,
+        signalTypes.makeSpanSignalId(CHILD_SPAN_ID),
+      );
+
+    expect(match).not.toBeNull();
+    expect(match!.signal.id).toBe(signals[0]!.id);
+    /* Not the trace's start: the link named THIS span. */
+    expect(match!.offsetMs).toBe(CHILD_START_UNIX_MS - SESSION_START_UNIX_MS);
+    expect(match!.offsetMs).not.toBe(signals[0]!.offsetMs);
+  });
+
+  test("the root span id still resolves exactly, to the trace's own moment", () => {
+    const signals: ReturnType<ReplaySignalsModule["groupSpansIntoTraces"]> =
+      replaySignals.groupSpansIntoTraces(sessionSpans(), clock());
+
+    const match: ReturnType<ReplaySignalsModule["findSignalMatch"]> =
+      replaySignals.findSignalMatch(
+        signals,
+        signalTypes.makeSpanSignalId(ROOT_SPAN_ID),
+      );
+
+    expect(match).not.toBeNull();
+    expect(match!.offsetMs).toBe(signals[0]!.offsetMs);
+  });
+
+  test("a span id from a different trace resolves to nothing rather than to the nearest row", () => {
+    const signals: ReturnType<ReplaySignalsModule["groupSpansIntoTraces"]> =
+      replaySignals.groupSpansIntoTraces(sessionSpans(), clock());
+
+    expect(
+      replaySignals.findSignalMatch(
+        signals,
+        signalTypes.makeSpanSignalId("0123456789abcdef"),
+      ),
+    ).toBeNull();
+  });
+
+  test("the link the panel builds carries that same span id, the traces rail and the span's own moment", () => {
+    const params: URLSearchParams = searchParamsOf(
+      replayLink.buildReplayLinkRoute({
+        rumApplicationId: APP_ID,
+        sessionId: SESSION_ID,
+        atTime: new Date(CHILD_START_UNIX_MS),
+        signal: signalTypes.makeSpanSignalId(CHILD_SPAN_ID),
+        rail: "traces",
+      }),
+    );
+
+    expect(params.get("signal")).toBe(`span:${CHILD_SPAN_ID}`);
+    expect(params.get("rail")).toBe("traces");
+    expect(params.get("at")).toBe(
+      String(CHILD_START_UNIX_MS - urlState.REPLAY_MOMENT_PRE_ROLL_MS),
+    );
   });
 });

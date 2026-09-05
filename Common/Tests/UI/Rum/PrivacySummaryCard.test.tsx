@@ -129,7 +129,7 @@ describe("buildPrivacySummary", () => {
   it("retention quotes the days and flags long retention", () => {
     expect(
       sentence(buildPrivacySummary({ retentionInDays: 1 }), "retention").text,
-    ).toContain("deleted after 1 day;");
+    ).toContain("deleted after 1 day");
     expect(
       sentence(buildPrivacySummary({ retentionInDays: 90 }), "retention")
         .isSensitive,
@@ -138,6 +138,27 @@ describe("buildPrivacySummary", () => {
       sentence(buildPrivacySummary({ retentionInDays: 7 }), "retention")
         .isSensitive,
     ).toBe(false);
+  });
+
+  /*
+   * ux-09. RumSession derives retentionDate from the clamped session START so
+   * a session expires atomically - "keeps the header's retentionDate equal to
+   * its chunks'". The sentence a data-protection reviewer reads therefore may
+   * not promise that URLs, counts and the identity label outlive the footage;
+   * they are on the row that goes with it.
+   */
+  it("retention says the session row expires WITH the footage, never that metadata is kept longer", () => {
+    const retention: PrivacySummarySentence = sentence(
+      buildPrivacySummary({ retentionInDays: 7 }),
+      "retention",
+    );
+
+    expect(retention.text).toContain("expires with it");
+    expect(retention.text).toContain(
+      "only the session's logs, spans and exceptions follow the telemetry retention",
+    );
+    expect(retention.text).not.toContain("kept longer");
+    expect(retention.text).not.toContain("stays accurate after playback");
   });
 
   it("consent modes: explicit is gated and calm, not-required is asserted and flagged", () => {

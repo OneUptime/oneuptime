@@ -235,20 +235,70 @@ describe("readReplayListUrl", () => {
     );
   });
 
+  /*
+   * integration-002: SessionReplayTable stamps window.location.href (and
+   * buildFilteredUrl's absolute result), so a reader that only accepted a
+   * relative path dropped every stamp and the "Sessions" back link never
+   * restored the viewer's filters. The absolute form is now accepted and
+   * reduced to a path - but only when it is this origin.
+   */
+  test("accepts the absolute same-origin href the list actually stamps", () => {
+    const storage: FakeStorage = new FakeStorage();
+
+    storage.values.set(
+      REPLAY_LIST_URL_STORAGE_KEY,
+      "https://app.oneuptime.com/dashboard/p/rum/a/session-replay?signal=errors&sortBy=errors&page=3",
+    );
+
+    expect(readReplayListUrl(storage, "https://app.oneuptime.com")).toBe(
+      "/dashboard/p/rum/a/session-replay?signal=errors&sortBy=errors&page=3",
+    );
+  });
+
+  test("keeps the hash of an absolute same-origin href", () => {
+    const storage: FakeStorage = new FakeStorage();
+
+    storage.values.set(
+      REPLAY_LIST_URL_STORAGE_KEY,
+      "https://app.oneuptime.com/dashboard/list?a=1#row-7",
+    );
+
+    expect(readReplayListUrl(storage, "https://app.oneuptime.com")).toBe(
+      "/dashboard/list?a=1#row-7",
+    );
+  });
+
   test("refuses anything that could leave the origin", () => {
     for (const value of [
       "https://evil.example/phish",
       "//evil.example/phish",
       "javascript:alert(1)",
       "/dashboard\\evil",
+      "https://app.oneuptime.com.evil.example/dashboard",
+      "http://app.oneuptime.com/dashboard",
       "",
     ]) {
       const storage: FakeStorage = new FakeStorage();
 
       storage.values.set(REPLAY_LIST_URL_STORAGE_KEY, value);
 
-      expect([value, readReplayListUrl(storage)]).toEqual([value, null]);
+      /* An explicit origin, so the rejection is the origin check itself. */
+      expect([
+        value,
+        readReplayListUrl(storage, "https://app.oneuptime.com"),
+      ]).toEqual([value, null]);
     }
+  });
+
+  test("refuses an absolute URL when no origin is known", () => {
+    const storage: FakeStorage = new FakeStorage();
+
+    storage.values.set(
+      REPLAY_LIST_URL_STORAGE_KEY,
+      "https://app.oneuptime.com/dashboard/list",
+    );
+
+    expect(readReplayListUrl(storage, null)).toBeNull();
   });
 
   test("returns null without a storage or when reading throws", () => {

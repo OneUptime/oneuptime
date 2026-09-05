@@ -14,26 +14,41 @@ import {
 /*
  * One rail row: [glyph][mm:ss.t][title, truncated][right meta][actions].
  *
- * The row is an ARIA option inside the rail's listbox, so the clickable
- * surface is the option itself (a nested <button> would lose its
- * semantics under role="option"). The two hover actions - seek and the
- * link out - are real controls placed as SIBLINGS of the body, never
- * inside it: an <a> nested in a click target is invalid HTML and browsers
- * hoist it out, which is how the old panel's trace link kept jumping.
+ * SEMANTICS. The row is a listitem in the rail's role="list", and its
+ * clickable surface is a real <button>. It used to be a role="option"
+ * whose click target was a bare div: ARIA gives an option "children
+ * presentational" semantics, so the nested Seek / Copy / trace controls
+ * and the whole expanded detail were hidden or mis-announced, and the
+ * primary target itself was not focusable - "click a row to seek and open
+ * its detail" had no keyboard equivalent at all. A listitem has no such
+ * rule, so every control inside it keeps its own semantics.
+ *
+ * The body button carries aria-current (the playhead is on this row) and
+ * aria-expanded (its detail is open, which is what selection means here).
+ * Focus roves: only one row is in the Tab order (the selected one, else
+ * the active one, else the first), and j/k/Arrow move both selection and
+ * focus - the listbox pattern's aria-activedescendant would have needed
+ * option semantics we just gave up.
+ *
+ * The two hover actions are SIBLINGS of the body, never inside it: an <a>
+ * nested in a click target is invalid HTML and browsers hoist it out,
+ * which is how the old panel's trace link kept jumping.
  *
  * Three visual states on top of hover: past rows (gray-700), the active
- * row (indigo-50 with a ring, aria-current) and future rows (gray-400).
- * Selection is separate from activity (aria-selected) so a clicked row
- * stays visibly chosen while the playhead sits in its pre-roll window.
+ * row (indigo-50 with a ring) and future rows (gray-400). Selection is
+ * separate from activity so a clicked row stays visibly chosen while the
+ * playhead sits in its pre-roll window.
  */
 
 export interface ReplayRailRowProps {
   row: ReplayRailRowModel;
-  /* DOM id for aria-activedescendant. */
+  /* DOM id for the row; the detail is <domId>-detail. */
   domId: string;
   isActive: boolean;
   isSelected: boolean;
   isFuture: boolean;
+  /* The one row in the Tab order (roving tabindex across the list). */
+  isFocusStop: boolean;
   /* The detail element to render under the row when expanded. */
   detail?: ReactElement | null | undefined;
   /* Right-hand note beside the meta: "±3s" on unanchored telemetry rows. */
@@ -60,6 +75,45 @@ function sourceTag(signal: ReplaySignal): string | null {
   return null;
 }
 
+/*
+ * What a screen reader reads for the row. aria-label replaces the button's
+ * text, so everything the eye gets from the row has to be in it: the
+ * repeat count, the client/server tag and the right-hand meta included.
+ */
+function rowLabel(
+  props: ReplayRailRowProps,
+  glyph: ReplayRailGlyph,
+  time: string,
+  tag: string | null,
+): string {
+  const signal: ReplaySignal = props.row.signal;
+  const parts: Array<string> = [
+    `${glyph.description} at ${time}: ${signal.title}`,
+  ];
+
+  if (props.row.repeatCount > 1) {
+    parts.push(`repeated ${props.row.repeatCount} times`);
+  }
+
+  if (tag) {
+    parts.push(tag);
+  }
+
+  if (props.counterpartNote) {
+    parts.push(props.counterpartNote);
+  }
+
+  if (signal.subtitle) {
+    parts.push(signal.subtitle);
+  }
+
+  if (props.uncertaintyLabel) {
+    parts.push(`server-stamped, ${props.uncertaintyLabel}`);
+  }
+
+  return parts.join(", ");
+}
+
 const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   props: ReplayRailRowProps,
 ): ReactElement => {
@@ -67,6 +121,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   const glyph: ReplayRailGlyph = glyphForSignal(signal);
   const time: string = formatReplayOffsetPrecise(signal.offsetMs);
   const tag: string | null = sourceTag(signal);
+  const detailId: string = `${props.domId}-detail`;
 
   const textClass: string = props.isActive
     ? "text-gray-900"
@@ -83,13 +138,12 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   return (
     <div
       id={props.domId}
-      role="option"
-      aria-selected={props.isSelected}
-      aria-current={props.isActive ? "true" : undefined}
-      aria-label={`${glyph.description} at ${time}: ${signal.title}`}
+      role="listitem"
       data-testid="rail-row"
       data-signal-id={signal.id}
       data-future={props.isFuture ? "true" : "false"}
+      data-selected={props.isSelected ? "true" : "false"}
+      data-active={props.isActive ? "true" : "false"}
       className={`group rounded font-mono text-[11px] leading-relaxed ${rowClass}`}
       style={{ contentVisibility: "auto" } as React.CSSProperties}
       onMouseEnter={(): void => {
@@ -100,8 +154,15 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
       }}
     >
       <div className="flex items-start gap-1.5 px-2 py-1">
-        <div
-          className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left ${textClass}`}
+        <button
+          type="button"
+          data-rail-row-body="true"
+          tabIndex={props.isFocusStop ? 0 : -1}
+          aria-current={props.isActive ? "true" : undefined}
+          aria-expanded={props.isSelected}
+          aria-controls={props.detail ? detailId : undefined}
+          aria-label={rowLabel(props, glyph, time, tag)}
+          className={`flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${textClass}`}
           title={`Seek to ${time} (1s before) and open the detail`}
           onClick={(): void => {
             props.onActivate(props.row);
@@ -160,7 +221,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
               {props.uncertaintyLabel}
             </span>
           )}
-        </div>
+        </button>
 
         <div className="flex shrink-0 items-center gap-1 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
           <button
@@ -204,7 +265,10 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
 
       {props.detail && (
         <div
+          id={detailId}
           data-testid="rail-row-detail"
+          role="group"
+          aria-label={`Detail for ${signal.title}`}
           className="border-t border-gray-100 px-2 py-2 font-sans"
           onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
             /* Clicks inside the detail never re-seek the row. */

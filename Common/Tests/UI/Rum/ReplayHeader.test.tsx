@@ -179,6 +179,40 @@ describe("ReplayHeader", () => {
       ).toEqual(["Chrome 126", "macOS", "1440x900"]);
       expect(facts[2]).toHaveAttribute("title", "Viewport: 1440x900");
     });
+
+    /*
+     * ux-16: below md each fact carried `hidden ... md:inline`, so on a
+     * tablet in portrait the facts vanished outright and the viewer could
+     * not tell which browser, OS or viewport they were watching without
+     * opening Details. They collapse to one truncated line instead.
+     */
+    it("collapses the facts to one truncated line below md instead of hiding them", () => {
+      render(<ReplayHeader {...makeProps()} />);
+
+      const compact: HTMLElement = screen.getByTestId(
+        "replay-header-facts-compact",
+      );
+
+      expect(compact).toHaveTextContent("Chrome 126 · macOS · 1440x900");
+      expect(compact.className).toContain("truncate");
+      /* Shown only where the per-fact spans are hidden, and vice versa. */
+      expect(compact.className).toContain("md:hidden");
+      expect(
+        screen.getAllByTestId("replay-header-fact")[0]?.className,
+      ).toContain("md:inline");
+      expect(compact).toHaveAttribute(
+        "title",
+        "Browser: Chrome 126 · OS: macOS · Viewport: 1440x900",
+      );
+    });
+
+    it("renders no compact line when the manifest served no facts", () => {
+      render(<ReplayHeader {...makeProps({ facts: [] })} />);
+
+      expect(
+        screen.queryByTestId("replay-header-facts-compact"),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe("tabs", () => {
@@ -546,6 +580,112 @@ describe("ReplayHeader", () => {
       });
 
       expect(writeText).toHaveBeenCalledWith(MOMENT_URL);
+    });
+
+    /*
+     * ux-10: the rail's per-row "Copy link to this moment" wrote straight
+     * to navigator.clipboard, so it said nothing on success and nothing at
+     * all when the clipboard was missing. It borrows this path now.
+     */
+    it("exposes copyUrl on its handle so the rail's row action is announced too", async () => {
+      const writeText: MockFunction = getJestMockFunction();
+
+      writeText.mockResolvedValue(undefined);
+
+      setClipboard(writeText);
+
+      const ref: React.RefObject<ReplayHeaderHandle> =
+        React.createRef<ReplayHeaderHandle>();
+      const rowUrl: string = `${MOMENT_URL}&signal=rec%3A3%3A12`;
+
+      render(<ReplayHeader ref={ref} {...makeProps()} />);
+
+      await act(async (): Promise<void> => {
+        ref.current?.copyUrl(rowUrl);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(writeText).toHaveBeenCalledWith(rowUrl);
+      expect(screen.getByTestId("replay-copy-link-status")).toHaveTextContent(
+        "Link copied to the clipboard.",
+      );
+    });
+
+    it("copyUrl shows the read-only field when there is no clipboard", async () => {
+      setClipboard(null);
+
+      const ref: React.RefObject<ReplayHeaderHandle> =
+        React.createRef<ReplayHeaderHandle>();
+
+      render(<ReplayHeader ref={ref} {...makeProps()} />);
+
+      await act(async (): Promise<void> => {
+        ref.current?.copyUrl(MOMENT_URL);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(
+        within(screen.getByTestId("replay-copy-link-fallback")).getByLabelText(
+          "Link to this moment",
+        ),
+      ).toHaveValue(MOMENT_URL);
+    });
+  });
+
+  /*
+   * ux-19: "Copy id" discarded the result of copyTextToClipboard, so it
+   * looked like it had done nothing on success and actually did nothing on
+   * a clipboard-less install - and the user pasted stale text into a ticket.
+   */
+  describe("copy session id", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    it("announces the copy in the same live region as the Link button", async () => {
+      const writeText: MockFunction = getJestMockFunction();
+
+      writeText.mockResolvedValue(undefined);
+
+      setClipboard(writeText);
+
+      render(<ReplayHeader {...makeProps()} />);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByTestId("replay-copy-session-id"));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(writeText).toHaveBeenCalledWith(SESSION_ID);
+      expect(screen.getByTestId("replay-copy-link-status")).toHaveTextContent(
+        "Session id copied to the clipboard.",
+      );
+    });
+
+    it("shows the id in a read-only field when the clipboard refuses", async () => {
+      setClipboard(async (): Promise<void> => {
+        throw new Error("denied");
+      });
+
+      render(<ReplayHeader {...makeProps()} />);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByTestId("replay-copy-session-id"));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const fallback: HTMLElement = screen.getByTestId(
+        "replay-copy-link-fallback",
+      );
+
+      expect(fallback).toHaveTextContent("copy the session id by hand");
+      expect(within(fallback).getByLabelText("Session id")).toHaveValue(
+        SESSION_ID,
+      );
     });
   });
 
