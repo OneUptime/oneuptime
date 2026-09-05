@@ -175,6 +175,43 @@ new FetchInstrumentation({
 
 Same-origin requests are propagated without any configuration.
 
+## Joining traces to session replay
+
+If you also run [Session Replay](/docs/telemetry/session-replay), the recording and your browser telemetry are joined by one attribute: `session.id` on the resource. The recorder tells you the id through `onSessionChange`, which fires immediately if a session already exists and again whenever the id rotates (after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first), so the attribute follows it:
+
+```ts
+declare global {
+  interface Window {
+    OneUptimeReplay?: {
+      onSessionChange: (
+        listener: (sessionId: string, tabId: string) => void,
+      ) => () => void;
+    };
+    OneUptimeReplayQueue?: Array<Array<unknown>>;
+  }
+}
+
+const onSessionChange = (sessionId: string, tabId: string): void => {
+  resource.attributes["session.id"] = sessionId;
+  resource.attributes["session.tab.id"] = tabId;
+};
+
+// The recorder script loads asynchronously; queue the listener if it is
+// not there yet and it is applied the moment the recorder starts.
+if (window.OneUptimeReplay) {
+  window.OneUptimeReplay.onSessionChange(onSessionChange);
+} else {
+  (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+    "onSessionChange",
+    onSessionChange,
+  ]);
+}
+```
+
+Spans and logs exported after that carry the id, the replay player's **Logs** and **Traces** tabs list them on the recording's clock, and every log line and span in the dashboard links back to the moment in the replay. Forward the id to your backend (as baggage or a header your API reads onto its request span) and the backend side of each request joins up too.
+
+The recorder reads the `traceparent` header your `FetchInstrumentation` / `XMLHttpRequestInstrumentation` set — including on a `Request` object — so a request row in the replay links to the backend trace without any further configuration. **Trace propagation origins** in the application's replay policy is only for pages *without* this SDK.
+
 ## Content Security Policy
 
 If your site sends a CSP, the exporter's requests are blocked until you allow OneUptime. There is no error you can see from your own machine — the page simply reports nothing.
@@ -211,7 +248,7 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-If you use [Session Replay](/docs/telemetry/session-replay), its recorder captures uncaught errors on its own — that is what triggers an upload — and the exception page then offers a **Watch what the user saw** card.
+If you use [Session Replay](/docs/telemetry/session-replay), its recorder captures uncaught errors on its own and marks them on the replay's timeline, and the exception page then offers a **Watch what the user saw** card that opens the replay ten seconds before the error. Under the default policy the session is recorded whether or not anything throws; the error only decides where the card points.
 
 ## Logs and metrics (optional)
 

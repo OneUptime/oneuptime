@@ -10,7 +10,7 @@ Session Replay — watching a recording of what the user saw — is a separate, 
 
 ## Where it lives
 
-In the dashboard, **Resources → Real User Monitoring**. Each application has its own Overview, Metrics, Logs, Traces, Clients, Session Replay and Replay Access Log tabs. Project-wide settings (owner rules, label rules) live under the RUM side menu's **Settings** section.
+In the dashboard, **Resources → Real User Monitoring**. Each application has its own Overview, Metrics, Logs, Traces, Clients, Session Replay, Replay Policy and Replay Access Log tabs. Project-wide settings (owner rules, label rules, the session replay master switch) live under the RUM side menu's **Settings** section.
 
 ## How OneUptime decides something is RUM
 
@@ -47,7 +47,7 @@ Once a batch is classified as RUM, the application's identity is its **`service.
 
 **Clients** — the browser platforms and device models the application has been seen on. Coarse by platform, never per end user.
 
-**Session Replay** — a recording of the session, correlated with the errors, traces and logs from that same session. See [Session Replay](/docs/telemetry/session-replay).
+**Session Replay** — a recording of the session, played back next to the errors, traces and logs from that same session, with a searchable list of sessions and a health strip that says whether recordings are arriving. See [Session Replay](/docs/telemetry/session-replay), and in particular [Watching a session](/docs/telemetry/session-replay#watching-a-session).
 
 **Connection status** — an application shows *Connected* while telemetry keeps arriving and flips to *Disconnected* after 15 minutes of silence.
 

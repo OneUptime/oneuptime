@@ -163,5 +163,63 @@ describe("Session Replay troubleshooting docs page", (): void => {
       .sort();
 
     expect(undocumented).toEqual([]);
+
+    /*
+     * And each one as a table row, not merely a mention in prose: the
+     * page is a lookup table, and a code that only appears inside another
+     * code's explanation has no explanation of its own.
+     */
+    const withoutRow: Array<string> = Array.from(emitted)
+      .filter((code: string): boolean => {
+        return !new RegExp(`^\\| \`${code}\`\\s*\\|`, "m").test(page);
+      })
+      .sort();
+
+    expect(withoutRow).toEqual([]);
+  });
+
+  /*
+   * docs-tests-e2e-6: the Chunker never flushes an open chunk with no
+   * events, so an idle tab posts nothing. A page that says "a chunk every
+   * 15 seconds, or the install is broken" hands a false negative to
+   * somebody watching the Network tab without touching the page.
+   */
+  it("says an idle tab posts nothing before calling silence a fault", (): void => {
+    const page: string = readPage();
+    const opening: string = page.split("\n## ")[0] as string;
+
+    expect(opening).toContain("while the user is doing something");
+    expect(opening).toMatch(/idle tab .* posts nothing/);
+  });
+
+  /*
+   * revokeConsent() no longer ends recording for the page: the recorder
+   * keeps running into memory so a later grantConsent() continues on a
+   * fresh session (recorder-signals-16). The code row has to say so, or a
+   * customer reads "final for the page" and rebuilds their banner around
+   * a limitation that no longer exists.
+   */
+  it("describes revokeConsent() as reversible by a later grantConsent()", (): void => {
+    const row: string | undefined = readPage()
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("| `api-revoke-consent`");
+      });
+
+    expect(row).toBeDefined();
+    expect(row).toContain("grantConsent()");
+    expect(row).not.toContain("final for the page");
+  });
+
+  /*
+   * The dashboard's installation test moved to the application's Replay
+   * Policy page (settings-setup-17); the project-level path the page used
+   * to name no longer has one.
+   */
+  it("locates the installation test on the Replay Policy page", (): void => {
+    const page: string = readPage();
+
+    expect(page).not.toContain("RUM → Session Replay Settings");
+    expect(page).toContain("Replay Policy");
   });
 });
