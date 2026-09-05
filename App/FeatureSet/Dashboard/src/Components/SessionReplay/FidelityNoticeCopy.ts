@@ -57,6 +57,13 @@ const PLAYBACK_AFFECTING: Set<string> = new Set<string>([
   SessionReplayFidelityNotice.SnapshotTooLarge,
   SessionReplayFidelityNotice.BufferOverflow,
   TRUNCATED_NOTICE_CODE,
+  /*
+   * Repeated rrweb failures mean events around those moments may be missing
+   * or out of order, so the picture can skip or freeze - a claim about
+   * playback, not about fidelity, however deliberate the recorder's
+   * swallowing of the error was.
+   */
+  SessionReplayFidelityNotice.RecorderError,
 ]);
 
 export function getFidelityNoticeSeverity(

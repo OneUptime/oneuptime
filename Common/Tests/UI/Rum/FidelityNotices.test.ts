@@ -36,6 +36,12 @@ describe("getFidelityNoticeSeverity", () => {
     SessionReplayFidelityNotice.SnapshotTooLarge,
     SessionReplayFidelityNotice.BufferOverflow,
     "truncated",
+    /*
+     * The recorder swallowed repeated rrweb errors so the host page kept
+     * working, but the events around them are missing or reordered: the
+     * picture itself can skip or freeze, which is a playback claim.
+     */
+    SessionReplayFidelityNotice.RecorderError,
   ];
 
   const FIDELITY: Array<string> = [
