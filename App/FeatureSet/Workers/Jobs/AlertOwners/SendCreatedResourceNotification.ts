@@ -10,6 +10,7 @@ import PushNotificationMessage from "Common/Types/PushNotification/PushNotificat
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import SeriesLabelDisplay from "Common/Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
@@ -67,6 +68,14 @@ RunCron(
         },
         alertNumber: true,
         alertNumberWithPrefix: true,
+        /*
+         * The attribute key/values that identify the series this alert was
+         * raised for, e.g. {resource.k8s.pod.name: checkout-7d9f-2xk}.
+         * Without selecting it the email had no way to name the thing that
+         * actually broke, and fell back to printing the monitor's own name
+         * as the "Resources Affected".
+         */
+        seriesLabels: true,
       },
     });
 
@@ -134,6 +143,28 @@ RunCron(
         (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
       /*
+       * What actually broke.
+       *
+       * A grouped metric monitor raises one alert per breaching series, and
+       * the series identity is on the row — the dashboard renders it under
+       * "Affected Resource". The email used to print `alert.monitor.name`
+       * here, so a per-pod alert said "Resources Affected: oneuptime-test -
+       * Pod CPU Saturating Container Limit", naming the monitor twice and
+       * the pod not at all.
+       *
+       * `buildInlineSummary` is the same formatter the alert TITLE uses, so
+       * the two agree. Monitors without group-by have no series labels and
+       * keep the previous monitor-name fallback, which for them is the
+       * correct answer.
+       */
+      const seriesSummary: string = SeriesLabelDisplay.buildInlineSummary(
+        alert.seriesLabels,
+      );
+
+      const resourcesAffected: string =
+        seriesSummary || alert.monitor?.name || "None";
+
+      /*
        * These values do not vary per owner, so convert them once per alert
        * instead of once per owner notification. A conversion failure must
        * stay contained to this alert, like every other failure in this loop.
@@ -178,7 +209,7 @@ RunCron(
             projectName: alert.project!.name!,
             currentState: alert.currentAlertState!.name!,
             alertDescription: alertDescriptionHtml,
-            resourcesAffected: alert.monitor?.name || "None",
+            resourcesAffected: resourcesAffected,
             alertSeverity: alert.alertSeverity!.name!,
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
               {

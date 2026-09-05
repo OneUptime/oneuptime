@@ -7,6 +7,7 @@ import {
   getHostAlertTemplatesByCategory,
 } from "../../../Types/Monitor/HostAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
@@ -193,7 +194,7 @@ describe("HostAlertTemplates", () => {
   );
 
   test.each(HOST_TEMPLATES)(
-    "$id unhealthy/healthy criteria partition the range at $threshold with > / <=",
+    "$id unhealthy/healthy criteria leave a recovery dead band below $threshold",
     (tc: HostTemplateCase) => {
       const template: HostAlertTemplate = getHostAlertTemplateById(tc.id)!;
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -213,7 +214,26 @@ describe("HostAlertTemplates", () => {
         tc.metricAlias,
       );
       expect(offlineFilter.value).toBe(tc.threshold);
-      expect(onlineFilter.value).toBe(tc.threshold);
+      /*
+       * The healthy criteria recovers at a threshold strictly INSIDE the
+       * firing one, so a metric hovering at the boundary cannot satisfy
+       * both on consecutive evaluations. This assertion used to be
+       * `expect(onlineFilter.value).toBe(tc.threshold)` — the two criteria
+       * exactly partitioned the range, which is the flapping configuration
+       * this suite existed to lock in.
+       */
+      expect(
+        hasRecoveryDeadBand(
+          {
+            filterType: offlineFilter.filterType,
+            value: offlineFilter.value as number,
+          },
+          {
+            filterType: onlineFilter.filterType,
+            value: onlineFilter.value as number,
+          },
+        ),
+      ).toBe(true);
 
       // Host ceilings are all "> threshold" unhealthy / "<= threshold" healthy.
       expect(offlineFilter.filterType).toBe(FilterType.GreaterThan);

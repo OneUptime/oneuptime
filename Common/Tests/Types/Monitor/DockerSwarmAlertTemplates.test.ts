@@ -6,6 +6,9 @@ import {
   getDockerSwarmAlertTemplatesByCategory,
 } from "../../../Types/Monitor/DockerSwarmAlertTemplates";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
+import { getComplementFilterType } from "./Utils/RecommendationCriteriaAssertions";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -215,31 +218,18 @@ function getReferencableAliases(
  * Fire and recover must be disjoint complements on the same alias —
  * otherwise the monitor either flaps (overlap) or wedges (gap).
  */
+/*
+ * Delegates to the shared assertion so all eight recommendation suites
+ * agree on what a correct fire/recover pair looks like. This function used
+ * to require `fire.value === recover.value` — see the comment in
+ * RecommendationCriteriaAssertions for why that was the bug rather than
+ * the invariant.
+ */
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
 ): boolean {
-  if (fire.value !== recover.value) {
-    return false;
-  }
-  switch (fire.filterType) {
-    case FilterType.GreaterThan:
-      return (
-        recover.filterType === FilterType.LessThanOrEqualTo ||
-        (fire.value === 0 && recover.filterType === FilterType.EqualTo)
-      );
-    case FilterType.GreaterThanOrEqualTo:
-      return recover.filterType === FilterType.LessThan;
-    case FilterType.LessThan:
-      return recover.filterType === FilterType.GreaterThanOrEqualTo;
-    case FilterType.LessThanOrEqualTo:
-      return recover.filterType === FilterType.GreaterThan;
-    case FilterType.EqualTo:
-      // Task-down: fire when uptime == 0, recover when uptime > 0.
-      return fire.value === 0 && recover.filterType === FilterType.GreaterThan;
-    default:
-      return false;
-  }
+  return hasRecoveryDeadBand(fire, recover);
 }
 
 const ALL_TEMPLATES: Array<DockerSwarmAlertTemplate> =
@@ -522,7 +512,17 @@ describe("DockerSwarmAlertTemplates - spec table expectations", () => {
         tc.recover.alias,
       );
       expect(recoverFilter.filterType).toBe(tc.recover.filterType);
-      expect(recoverFilter.value).toBe(tc.recover.value);
+      /*
+       * The spec table states the FIRING threshold; the recovery threshold
+       * is derived from it so the dead band lives in one place rather than
+       * being restated in every spec table.
+       */
+      expect(recoverFilter.value).toBe(
+        getRecoveryThreshold({
+          filterType: getComplementFilterType(tc.recover.filterType)!,
+          value: tc.recover.value,
+        }) ?? tc.recover.value,
+      );
     },
   );
 });

@@ -7,6 +7,7 @@ import {
   getDockerAlertTemplatesByCategory,
 } from "../../../Types/Monitor/DockerAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
@@ -234,7 +235,7 @@ describe("DockerAlertTemplates", () => {
   );
 
   test.each(DOCKER_TEMPLATES)(
-    "$id unhealthy/healthy criteria partition the range at $threshold",
+    "$id unhealthy/healthy criteria leave a recovery dead band around $threshold",
     (tc: DockerTemplateCase) => {
       const template: DockerAlertTemplate = getDockerAlertTemplateById(tc.id)!;
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -248,7 +249,7 @@ describe("DockerAlertTemplates", () => {
       const offlineFilter: any = offline.data.filters[0];
       const onlineFilter: any = online.data.filters[0];
 
-      // Both criteria evaluate the SAME metric alias at the SAME threshold.
+      // Both criteria evaluate the same metric alias, at different thresholds.
       expect(offlineFilter.metricMonitorOptions.metricAlias).toBe(
         tc.metricAlias,
       );
@@ -256,7 +257,26 @@ describe("DockerAlertTemplates", () => {
         tc.metricAlias,
       );
       expect(offlineFilter.value).toBe(tc.threshold);
-      expect(onlineFilter.value).toBe(tc.threshold);
+      /*
+       * The healthy criteria recovers at a threshold strictly INSIDE the
+       * firing one, so a metric hovering at the boundary cannot satisfy
+       * both on consecutive evaluations. This assertion used to be
+       * `expect(onlineFilter.value).toBe(tc.threshold)` — the two criteria
+       * exactly partitioned the range, which is the flapping configuration
+       * this suite existed to lock in.
+       */
+      expect(
+        hasRecoveryDeadBand(
+          {
+            filterType: offlineFilter.filterType,
+            value: offlineFilter.value as number,
+          },
+          {
+            filterType: onlineFilter.filterType,
+            value: onlineFilter.value as number,
+          },
+        ),
+      ).toBe(true);
 
       // Only the comparison DIRECTION differs — pinned per template.
       expect(offlineFilter.filterType).toBe(tc.offlineFilterType);
