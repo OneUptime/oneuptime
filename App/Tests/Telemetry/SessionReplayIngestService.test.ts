@@ -1622,6 +1622,52 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     });
 
     /*
+     * The post-login case. A visitor lands anonymous (chunk 0 carries no
+     * reference), signs in, and the page calls identify("user-42") with no
+     * traits; the recorder forces meta onto the NEXT flushed chunk, which
+     * is neither chunk 0 nor final. The header must learn the identity from
+     * that middle chunk - otherwise a session that ends without a final
+     * chunk (a killed tab) stays "Anonymous" forever, and a live one stays
+     * anonymous until it ends.
+     */
+    test("a later chunk whose meta carries only an end-user reference writes a header version with the identity", async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ captureUserIdentity: true }) as never,
+      );
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionV1")[0]!["identifiedUserLabel"]).toBe(
+        "",
+      );
+
+      submitMock.mockClear();
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 3, meta: metaWithUserRef(USER_REF) }]),
+        ),
+      );
+
+      const laterHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+      expect(laterHeaders).toHaveLength(1);
+      expect(laterHeaders[0]!["identifiedUserLabel"]).toBe(USER_REF);
+      expect(laterHeaders[0]!["identifiedUserKey"]).toMatch(/^[0-9a-f]{64}$/);
+
+      submitMock.mockClear();
+
+      /* A plain mid-session chunk with no meta still writes no header. */
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 4 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionV1")).toHaveLength(0);
+    });
+
+    /*
      * The ACL-critical assertion. The recorder is supposed to withhold the
      * reference entirely when capture is off, but the recorder's copy of the
      * policy can be a config-cache TTL stale and a hand-crafted POST is not

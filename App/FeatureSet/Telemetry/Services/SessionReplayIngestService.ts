@@ -1142,9 +1142,12 @@ export default class SessionReplayIngestService {
 
   /*
    * Chunk 0 always. A later chunk only when its meta carries something the
-   * header must learn: tags or traits (set after chunk 0) or the terminal
-   * flag. Every other chunk writes no header, so a re-delivered mid-session
-   * frame cannot churn header versions.
+   * header must learn: an end-user reference, tags or traits (all of which
+   * the recorder forces onto the next flushed chunk after identify() /
+   * setTags(), which is neither chunk 0 nor final - the post-login
+   * identify() case), or the terminal flag. Every other chunk writes no
+   * header, so a re-delivered mid-session frame cannot churn header
+   * versions.
    */
   private static shouldWriteProvisionalHeader(
     envelope: SessionReplayChunkEnvelope,
@@ -1157,6 +1160,9 @@ export default class SessionReplayIngestService {
       return false;
     }
 
+    const hasUserRef: boolean =
+      typeof envelope.meta.identifiedUserRef === "string" &&
+      envelope.meta.identifiedUserRef.length > 0;
     const hasTags: boolean =
       envelope.meta.tags !== undefined &&
       Object.keys(envelope.meta.tags).length > 0;
@@ -1164,7 +1170,7 @@ export default class SessionReplayIngestService {
       envelope.meta.identifiedUserTraits !== undefined &&
       Object.keys(envelope.meta.identifiedUserTraits).length > 0;
 
-    return hasTags || hasTraits || envelope.isFinal;
+    return hasUserRef || hasTags || hasTraits || envelope.isFinal;
   }
 
   /*
